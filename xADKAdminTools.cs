@@ -350,7 +350,7 @@ namespace PRoConEvents
                 <br/>
                 Current Player Points View is the following:<br/>
                 <br/>
-                CREATE ALGORITHM=UNDEFINED DEFINER=`c1_coloncleaner`@`%` SQL SECURITY DEFINER VIEW `cae_playerpoints` AS select `cae_playerlist`.`player_name` AS `playername`,`cae_playerlist`.`player_guid` AS `playerguid`,`cae_playerlist`.`server_id` AS `serverid`,(select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Punish') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) AS `punishpoints`,(select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Forgive') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Punish') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) - (select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Forgive') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`)))) AS `totalpoints` from `cae_playerlist`;<br/>
+                CREATE VIEW `cae_playerpoints` AS select `cae_playerlist`.`player_name` AS `playername`,`cae_playerlist`.`player_guid` AS `playerguid`,`cae_playerlist`.`server_id` AS `serverid`,(select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Punish') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) AS `punishpoints`,(select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Forgive') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Punish') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) - (select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Forgive') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`)))) AS `totalpoints` from `cae_playerlist`;<br/>
                 <br/>
                 ALL THE ABOVE NEED TO BE RUN IN THIS ORDER. Once the views are done a constant tally of player points can be seen from your external systems. <br/>
                 <br/>
@@ -582,9 +582,16 @@ namespace PRoConEvents
         public void OnPluginEnable()
         {
             //Get admin list if needed
-            if (this.useDatabaseAdminList && (this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
+            if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
             {
-                this.fetchAdminList();
+                if (this.useDatabaseAdminList)
+                {
+                    this.fetchAdminList();
+                }
+                if (this.useDatabaseWhitelist)
+                {
+                    this.fetchTeamswapWhitelist();
+                }
             }
             isEnabled = true;
             ConsoleWrite("^b^2Enabled!^n^0 Version: " + GetPluginVersion());
@@ -1327,7 +1334,7 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
-                        command.CommandText = "SELECT name AS player_name FROM `" + this.mySqlDatabase + "`.`cae_teamswapwhitelist`";
+                        command.CommandText = "SELECT player_name AS player_name FROM `" + this.mySqlDatabase + "`.`cae_teamswapwhitelist`";
                         //Open the connection if needed
                         if (!this.databaseConnection.Ping())
                         {
@@ -1485,7 +1492,7 @@ namespace PRoConEvents
 
             if (record.record_type == CAE_CommandType.MoveSelf)
             {
-                if (this.isAdmin(record.source_name) || ((this.teamSwapTicketWindowHigh > this.highestTicketCount) && (this.teamSwapTicketWindowLow < this.lowestTicketCount)) )
+                if (this.isAdmin(record.source_name) || ((this.teamSwapTicketWindowHigh >= this.highestTicketCount) && (this.teamSwapTicketWindowLow <= this.lowestTicketCount)) )
                 {
                     this.DebugWrite("Calling Teamswap on self", 6);
                     teamSwapPlayer(record.targetPlayerInfo);
