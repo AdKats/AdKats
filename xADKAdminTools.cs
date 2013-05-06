@@ -284,13 +284,14 @@ namespace PRoConEvents
             <p>
                 Main record table is the following:<br/>
                 <br/>
-                CREATE  TABLE `cae_records` (<br/>
+                CREATE TABLE `cae_records` (<br/>
                   `record_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
                   `server_id` int(11) NOT NULL,<br/>
-                  `record_type` enum('Punish','Forgive') NOT NULL,<br/>
-                  `player_guid` varchar(100) NOT NULL,<br/>
-                  `player_name` varchar(45) NOT NULL,<br/>
-                  `admin_name` varchar(45) NOT NULL,<br/>
+                  `record_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','Ban','Punish','Forgive','Report','CallAdmin') NOT NULL,<br/>
+                  `record_durationMinutes` int(11) NOT NULL,<br/>
+                  `target_guid` varchar(100) NOT NULL,<br/>
+                  `target_name` varchar(45) NOT NULL,<br/>
+                  `source_name` varchar(45) NOT NULL,<br/>
                   `record_reason` varchar(100) NOT NULL,<br/>
                   `record_time` datetime NOT NULL,<br/>
                   PRIMARY KEY (`record_id`)<br/>
@@ -306,33 +307,57 @@ namespace PRoConEvents
                   PRIMARY KEY (`action_id`)<br/>
                 );<br/>
                 <br/>
+                Admin table is the following:<br/>
+                <br/>
+                CREATE TABLE `adminlist` (<br/>
+                  `name` varchar(255) NOT NULL,<br/>
+                  `uniqueid` varchar(32) NOT NULL COMMENT 'GUID',<br/>
+                  PRIMARY KEY (`uniqueid`)<br/>
+                );<br/>
+                <br/>
+                Teamswap whitelist is the following:<br/>
+                <br/>
+                CREATE TABLE `cae_teamswapwhitelist` (<br/>
+                  `player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',<br/>
+                  PRIMARY KEY (`player_name`),<br/>
+                  UNIQUE KEY `player_name_UNIQUE` (`player_name`)<br/>
+                );<br/>
+                <br/>
+                Server table is the following:<br/>
+                <br/>
+                CREATE TABLE `tbl_server` (<br/>
+                  `ServerID` smallint(5) unsigned NOT NULL AUTO_INCREMENT,<br/>
+                  `ServerGroup` tinyint(3) unsigned NOT NULL DEFAULT '0',<br/>
+                  `IP_Address` varchar(45) DEFAULT NULL,<br/>
+                  `ServerName` varchar(200) DEFAULT NULL,<br/>
+                  `usedSlots` smallint(5) unsigned DEFAULT '0',<br/>
+                  `maxSlots` smallint(5) unsigned DEFAULT '0',<br/>
+                  `mapName` varchar(45) DEFAULT NULL,<br/>
+                  `fullMapName` text,<br/>
+                  `Gamemode` varchar(45) DEFAULT NULL,<br/>
+                  `GameMod` varchar(45) DEFAULT NULL,<br/>
+                  `PBversion` varchar(45) DEFAULT NULL,<br/>
+                  `ConnectionState` varchar(45) DEFAULT NULL,<br/>
+                  PRIMARY KEY (`ServerID`),<br/>
+                  UNIQUE KEY `IP_Address_UNIQUE` (`IP_Address`),<br/>
+                  KEY `INDEX_SERVERGROUP` (`ServerGroup`),<br/>
+                  KEY `IP_Address` (`IP_Address`)<br/>
+                );<br/>
+                <br/>
                 Player List View is the following:<br/>
                 <br/>
-                CREATE VIEW `cae_playerlist` <br/>
-                AS SELECT <br/>
-                player_name, <br/>
-                player_guid, <br/>
-                server_id <br/>
-                FROM cae_records <br/>
-                GROUP BY <br/>
-                player_guid, <br/>
-                server_id <br/>
-                ORDER BY player_name ASC;<br/>
+                CREATE VIEW `cae_playerlist` AS select `cae_records`.`target_name` AS `player_name`,`cae_records`.`target_guid` AS `player_guid`,`cae_records`.`server_id` AS `server_id` from `cae_records` group by `cae_records`.`target_guid`,`cae_records`.`server_id` order by `cae_records`.`target_name`;<br/>
                 <br/>
                 Current Player Points View is the following:<br/>
                 <br/>
-                CREATE VIEW `cae_playerpoints` <br/>
-                AS SELECT <br/>
-                cae_playerlist.player_name AS `playername`, <br/>
-                cae_playerlist.player_guid AS `playerguid`, <br/>
-                cae_playerlist.server_id AS `serverid`, <br/>
-                (SELECT Count(cae_records.player_guid) FROM cae_records WHERE cae_records.record_type = 'Punish' AND cae_records.player_guid = `playerguid` AND cae_records.server_id = `serverid`) AS `punishpoints`, <br/>
-                (SELECT Count(cae_records.player_guid) FROM cae_records WHERE cae_records.record_type = 'Forgive' AND cae_records.player_guid = `playerguid` AND cae_records.server_id = `serverid`) AS `forgivepoints`, <br/>
-                (SELECT Count(cae_records.player_guid) FROM cae_records WHERE cae_records.record_type = 'Punish' AND cae_records.player_guid = `playerguid` AND cae_records.server_id = `serverid`)-(SELECT Count(cae_records.player_guid) FROM cae_records WHERE cae_records.record_type = 'Forgive' AND cae_records.player_guid = `playerguid` AND cae_records.server_id = `serverid`) as `totalpoints` <br/>
-                FROM cae_playerlist;<br/>
+                CREATE ALGORITHM=UNDEFINED DEFINER=`c1_coloncleaner`@`%` SQL SECURITY DEFINER VIEW `cae_playerpoints` AS select `cae_playerlist`.`player_name` AS `playername`,`cae_playerlist`.`player_guid` AS `playerguid`,`cae_playerlist`.`server_id` AS `serverid`,(select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Punish') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) AS `punishpoints`,(select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Forgive') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Punish') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) - (select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Forgive') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`)))) AS `totalpoints` from `cae_playerlist`;<br/>
                 <br/>
                 ALL THE ABOVE NEED TO BE RUN IN THIS ORDER. Once the views are done a constant tally of player points can be seen from your external systems. <br/>
                 <br/>
+                <br/>
+                Additional View if you want it:<br/>
+                <br/>
+                CREATE VIEW `cae_naughtylist` AS select (select `tbl_server`.`ServerName` from `tbl_server` where (`tbl_server`.`ServerID` = `cae_playerpoints`.`serverid`)) AS `server_name`,`cae_playerpoints`.`playername` AS `player_name`,`cae_playerpoints`.`totalpoints` AS `total_points` from `cae_playerpoints` where (`cae_playerpoints`.`totalpoints` > 0) order by `cae_playerpoints`.`serverid`,`cae_playerpoints`.`playername`;<br/>
             </p>
             <h3>Changelog</h3>
             <blockquote>
