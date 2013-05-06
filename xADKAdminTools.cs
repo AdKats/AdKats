@@ -352,6 +352,10 @@ namespace PRoConEvents
                 <br/>
                 CREATE VIEW `cae_playerpoints` AS select `cae_playerlist`.`player_name` AS `playername`,`cae_playerlist`.`player_guid` AS `playerguid`,`cae_playerlist`.`server_id` AS `serverid`,(select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Punish') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) AS `punishpoints`,(select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Forgive') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Punish') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`))) - (select count(`cae_records`.`target_guid`) from `cae_records` where ((`cae_records`.`record_type` = 'Forgive') and (`cae_records`.`target_guid` = `cae_playerlist`.`player_guid`) and (`cae_records`.`server_id` = `cae_playerlist`.`server_id`)))) AS `totalpoints` from `cae_playerlist`;<br/>
                 <br/>
+                Current Player Reports and Admin calls is shown with the following:<br/>
+                <br/>
+                CREATE VIEW `cae_reports` AS select `cae_records`.`record_id` AS `record_id`,`cae_records`.`server_id` AS `server_id`,`cae_records`.`record_type` AS `record_type`,`cae_records`.`record_durationMinutes` AS `record_durationMinutes`,`cae_records`.`target_guid` AS `target_guid`,`cae_records`.`target_name` AS `target_name`,`cae_records`.`source_name` AS `source_name`,`cae_records`.`record_reason` AS `record_reason`,`cae_records`.`record_time` AS `record_time` from `cae_records` where ((`cae_records`.`record_type` = 'Report') or (`cae_records`.`record_type` = 'CallAdmin'));<br/>
+                <br/>
                 ALL THE ABOVE NEED TO BE RUN IN THIS ORDER. Once the views are done a constant tally of player points can be seen from your external systems. <br/>
                 <br/>
                 <br/>
@@ -405,6 +409,8 @@ namespace PRoConEvents
                         * Create database whitelist definitions for teamswap.<br/>
                         * Add move, fmove, moveme as commands that use teamswap.<br/>
                         * Refactor database logging to work with all commands.<br/>
+                        * Code cleanup and organize.<br/>
+                        * Player and admin messaging changes.<br/>
              </blockquote>
             ";
         }
@@ -493,6 +499,17 @@ namespace PRoConEvents
             else if (Regex.Match(strVariable, @"Use Database Admin List").Success)
             {
                 this.useDatabaseAdminList = Boolean.Parse(strValue);
+                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
+                {
+                    if (this.useDatabaseAdminList)
+                    {
+                        this.fetchAdminList();
+                    }
+                    if (this.useDatabaseWhitelist)
+                    {
+                        this.fetchTeamswapWhitelist();
+                    }
+                }
             }
             else if (Regex.Match(strVariable, @"Static Admin List").Success)
             {
@@ -501,6 +518,17 @@ namespace PRoConEvents
             else if (Regex.Match(strVariable, @"MySQL Hostname").Success)
             {
                 mySqlHostname = strValue;
+                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
+                {
+                    if (this.useDatabaseAdminList)
+                    {
+                        this.fetchAdminList();
+                    }
+                    if (this.useDatabaseWhitelist)
+                    {
+                        this.fetchTeamswapWhitelist();
+                    }
+                }
             }
             else if (Regex.Match(strVariable, @"MySQL Port").Success)
             {
@@ -514,18 +542,62 @@ namespace PRoConEvents
                 {
                     ConsoleException("Invalid value for MySQL Port: '" + strValue + "'. Must be number between 1 and 65535!");
                 }
+                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
+                {
+                    if (this.useDatabaseAdminList)
+                    {
+                        this.fetchAdminList();
+                    }
+                    if (this.useDatabaseWhitelist)
+                    {
+                        this.fetchTeamswapWhitelist();
+                    }
+                }
             }
             else if (Regex.Match(strVariable, @"MySQL Database").Success)
             {
                 mySqlDatabase = strValue;
+                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
+                {
+                    if (this.useDatabaseAdminList)
+                    {
+                        this.fetchAdminList();
+                    }
+                    if (this.useDatabaseWhitelist)
+                    {
+                        this.fetchTeamswapWhitelist();
+                    }
+                }
             }
             else if (Regex.Match(strVariable, @"MySQL Username").Success)
             {
                 mySqlUsername = strValue;
+                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
+                {
+                    if (this.useDatabaseAdminList)
+                    {
+                        this.fetchAdminList();
+                    }
+                    if (this.useDatabaseWhitelist)
+                    {
+                        this.fetchTeamswapWhitelist();
+                    }
+                }
             }
             else if (Regex.Match(strVariable, @"MySQL Password").Success)
             {
                 mySqlPassword = strValue;
+                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
+                {
+                    if (this.useDatabaseAdminList)
+                    {
+                        this.fetchAdminList();
+                    }
+                    if (this.useDatabaseWhitelist)
+                    {
+                        this.fetchTeamswapWhitelist();
+                    }
+                }
             }
             else if (Regex.Match(strVariable, @"Server ID").Success)
             {
@@ -542,6 +614,17 @@ namespace PRoConEvents
             else if (Regex.Match(strVariable, @"Use Database Whitelist").Success)
             {
                 this.useDatabaseWhitelist = Boolean.Parse(strValue);
+                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
+                {
+                    if (this.useDatabaseAdminList)
+                    {
+                        this.fetchAdminList();
+                    }
+                    if (this.useDatabaseWhitelist)
+                    {
+                        this.fetchTeamswapWhitelist();
+                    }
+                }
             }
             else if (Regex.Match(strVariable, @"Ticket Window High").Success)
             {
@@ -661,6 +744,10 @@ namespace PRoConEvents
             this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
         }
 
+        #endregion
+
+        #region Teamswap Methods
+
         //runs through both team swap queues and performs the swapping
         public void runTeamSwap()
         {
@@ -764,6 +851,10 @@ namespace PRoConEvents
             return -1;
         }
 
+        #endregion
+
+        #region Record Creation and Processing
+
         public void createRecord(String speaker, String[] splitCommand)
         {
             //Create record for return
@@ -779,7 +870,7 @@ namespace PRoConEvents
             if (commandType == CAE_CommandType.Default)
             {
                 DebugWrite("Command not parsable", 6);
-                this.playerSayMessage(speaker, "CAE: Invalid command format.");
+                this.playerSayMessage(speaker, "Invalid command format.");
                 return;
             }
             record.record_type = commandType;
@@ -789,7 +880,7 @@ namespace PRoConEvents
             if (!this.hasAccess(speaker, record.record_type))
             {
                 DebugWrite("No rights to call command", 6);
-                this.playerSayMessage(speaker, "CAE: No rights to use " + commandString + " command. Inquire about access on ADKGamers.com");
+                this.playerSayMessage(speaker, "No rights to use " + commandString + " command. Inquire about access on ADKGamers.com");
                 //Return without creating if player doesn't have rights to do it
                 return;
             }
@@ -804,7 +895,7 @@ namespace PRoConEvents
             switch (record.record_type)
             {
                 case CAE_CommandType.MovePlayer:
-                    this.playerSayMessage(speaker, "CAE: Use force move.");
+                    this.playerSayMessage(speaker, "Use force move.");
                     return;
                     break;
                 case CAE_CommandType.ForceMovePlayer:
@@ -817,7 +908,7 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         DebugWrite("invalid format", 6);
-                        this.playerSayMessage(speaker, "CAE: Invalid command format, unable to submit.");
+                        this.playerSayMessage(speaker, "Invalid command format, unable to submit.");
                         return;
                     }
                     break;
@@ -836,13 +927,13 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         DebugWrite("invalid format", 6);
-                        this.playerSayMessage(speaker, "CAE: Invalid command format or no reason given, unable to submit.");
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
                         return;
                     }
                     if (record.record_reason.Length < this.requiredReasonLength)
                     {
                         DebugWrite("reason too short", 6);
-                        this.playerSayMessage(speaker, "CAE: Reason too short, unable to submit.");
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
                     break;
@@ -857,13 +948,13 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         DebugWrite("invalid format", 6);
-                        this.playerSayMessage(speaker, "CAE: Invalid command format or no reason given, unable to submit.");
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
                         return;
                     }
                     if (record.record_reason.Length < this.requiredReasonLength)
                     {
                         DebugWrite("reason too short", 6);
-                        this.playerSayMessage(speaker, "CAE: Reason too short, unable to submit.");
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
                     break;
@@ -882,13 +973,13 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         DebugWrite("invalid format", 6);
-                        this.playerSayMessage(speaker, "CAE: Invalid command format or no reason given, unable to submit.");
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
                         return;
                     }
                     if (record.record_reason.Length < this.requiredReasonLength)
                     {
                         DebugWrite("reason too short", 6);
-                        this.playerSayMessage(speaker, "CAE: Reason too short, unable to submit.");
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
                     break;
@@ -903,13 +994,13 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         DebugWrite("invalid format", 6);
-                        this.playerSayMessage(speaker, "CAE: Invalid command format or no reason given, unable to submit.");
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
                         return;
                     }
                     if (record.record_reason.Length < this.requiredReasonLength)
                     {
                         DebugWrite("reason too short", 6);
-                        this.playerSayMessage(speaker, "CAE: Reason too short, unable to submit.");
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
                     break;
@@ -924,13 +1015,13 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         DebugWrite("invalid format", 6);
-                        this.playerSayMessage(speaker, "CAE: Invalid command format or no reason given, unable to submit.");
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
                         return;
                     }
                     if (record.record_reason.Length < this.requiredReasonLength)
                     {
                         DebugWrite("reason too short", 6);
-                        this.playerSayMessage(speaker, "CAE: Reason too short, unable to submit.");
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
                     break;
@@ -945,13 +1036,13 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         DebugWrite("invalid format", 6);
-                        this.playerSayMessage(speaker, "CAE: Invalid command format or no reason given, unable to submit.");
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
                         return;
                     }
                     if (record.record_reason.Length < this.requiredReasonLength)
                     {
                         DebugWrite("reason too short", 6);
-                        this.playerSayMessage(speaker, "CAE: Reason too short, unable to submit.");
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
                     break;
@@ -966,13 +1057,13 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         DebugWrite("invalid format", 6);
-                        this.playerSayMessage(speaker, "CAE: Invalid command format or no reason given, unable to submit.");
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
                         return;
                     }
                     if (record.record_reason.Length < this.requiredReasonLength)
                     {
                         DebugWrite("reason too short", 6);
-                        this.playerSayMessage(speaker, "CAE: Reason too short, unable to submit.");
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
                     break;
@@ -987,13 +1078,13 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         DebugWrite("invalid format", 6);
-                        this.playerSayMessage(speaker, "CAE: Invalid command format or no reason given, unable to submit.");
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
                         return;
                     }
                     if (record.record_reason.Length < this.requiredReasonLength)
                     {
                         DebugWrite("reason too short", 6);
-                        this.playerSayMessage(speaker, "CAE: Reason too short, unable to submit.");
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
                     break;
@@ -1033,7 +1124,7 @@ namespace PRoConEvents
                     record.target_name = playerInfo.SoldierName;
                     record.targetPlayerInfo = playerInfo;
                     //Send record to attempt list
-                    this.playerSayMessage(speaker, "CAE: Did you mean: " + playerInfo.SoldierName + "?");
+                    this.playerSayMessage(speaker, "Did you mean: " + playerInfo.SoldierName + "?");
                     this.actionAttemptList.Remove(speaker);
                     this.actionAttemptList.Add(speaker, record);
                     return;
@@ -1041,7 +1132,7 @@ namespace PRoConEvents
             }
             //No player found
             DebugWrite("player not found", 6);
-            this.playerSayMessage(speaker, "CAE: Player not found.");
+            this.playerSayMessage(speaker, "Player not found.");
             return;
         }
 
@@ -1096,6 +1187,163 @@ namespace PRoConEvents
                     break;
             }
         }
+
+        #endregion
+
+        #region Action Methods
+
+        public void moveTarget(CAE_Record record)
+        {
+            forceMoveTarget(record);
+        }
+
+        public void forceMoveTarget(CAE_Record record)
+        {
+            this.DebugWrite("Entering forceMoveTarget", 6);
+
+            if (record.record_type == CAE_CommandType.MoveSelf)
+            {
+                if (this.isAdmin(record.source_name) || ((this.teamSwapTicketWindowHigh >= this.highestTicketCount) && (this.teamSwapTicketWindowLow <= this.lowestTicketCount)))
+                {
+                    this.DebugWrite("Calling Teamswap on self", 6);
+                    teamSwapPlayer(record.targetPlayerInfo);
+                }
+                else
+                {
+                    this.DebugWrite("Player unable to teamswap", 6);
+                    this.playerSayMessage(record.source_name, "You cannot TeamSwap at this time. Game outside ticket window [" + this.teamSwapTicketWindowLow + ", " + this.teamSwapTicketWindowHigh + "].");
+                }
+            }
+            else
+            {
+                this.DebugWrite("Calling Teamswap on target", 6);
+                this.playerSayMessage(record.source_name, "" + record.target_name + " sent to teamswap.");
+                teamSwapPlayer(record.targetPlayerInfo);
+            }
+
+            this.DebugWrite("Exiting forceMoveTarget", 6);
+        }
+
+        public void killTarget(CAE_Record record, string additionalMessage)
+        {
+            //Perform actions
+            ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_name);
+            this.playerSayMessage(record.target_name, "Killed by admin for: " + record.record_reason + ". " + additionalMessage);
+            this.playerSayMessage(record.source_name, "You KILLED " + record.target_name + " for " + record.record_reason + ". " + additionalMessage);
+        }
+
+        public void kickTarget(CAE_Record record, string additionalMessage)
+        {
+            //Perform Actions
+            ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_name, record.record_reason + ". " + additionalMessage);
+            this.playerSayMessage(record.target_name, "Killed by admin for: " + record.record_reason + "." + additionalMessage);
+            this.playerSayMessage(record.source_name, "You KICKED " + record.target_name + " for " + record.record_reason + ". ");
+        }
+
+        public void tempBanTarget(CAE_Record record, string additionalMessage)
+        {
+            //Perform Actions
+            Int32 seconds = record.record_durationMinutes * 60;
+            ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "seconds", seconds + "", record.record_reason + ". " + additionalMessage);
+            ExecuteCommand("procon.protected.send", "banList.save");
+            ExecuteCommand("procon.protected.send", "banList.list");
+            this.playerSayMessage(record.source_name, "You TEMP BANNED " + record.target_name + " for " + record.record_durationMinutes + " minutes. " + additionalMessage);
+        }
+
+        public void permaBanTarget(CAE_Record record, string additionalMessage)
+        {
+            //Perform Actions
+            ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "perm", record.record_reason + ". " + additionalMessage);
+            ExecuteCommand("procon.protected.send", "banList.save");
+            ExecuteCommand("procon.protected.send", "banList.list");
+            this.playerSayMessage(record.source_name, "You PERMA BANNED " + record.target_name + "! Get a vet admin NOW!" + additionalMessage);
+        }
+
+        public void punishTarget(CAE_Record record)
+        {
+            if (this.actOnPunishments)
+            {
+                //Get number of points the player from server
+                int points = this.fetchPoints(record.target_guid, this.serverID);
+                //Get the proper action to take for player punishment
+                string action = "noaction";
+                if (points > (this.punishmentHierarchy.Length - 1))
+                {
+                    action = this.punishmentHierarchy[this.punishmentHierarchy.Length - 1];
+                }
+                else if (points > 0)
+                {
+                    action = this.punishmentHierarchy[points - 1];
+                }
+                //Set additional message
+                string additionalMessage = "(" + points + " infraction points)";
+
+                //Call correct action
+                if (action.Equals("kill") || (this.onlyKillOnLowPop && this.playerList.Count < this.lowPopPlayerCount))
+                {
+                    this.killTarget(record, additionalMessage);
+                }
+                else if (action.Equals("kick"))
+                {
+                    this.kickTarget(record, additionalMessage);
+                }
+                else if (action.Equals("tban60"))
+                {
+                    record.record_durationMinutes = 60;
+                    this.tempBanTarget(record, additionalMessage);
+                }
+                else if (action.Equals("tbanweek"))
+                {
+                    record.record_durationMinutes = 10080;
+                    this.tempBanTarget(record, additionalMessage);
+                }
+                else if (action.Equals("ban"))
+                {
+                    this.permaBanTarget(record, additionalMessage);
+                }
+            }
+            else
+            {
+                this.playerSayMessage(record.source_name, "Punish Logged for " + record.target_name);
+                this.uploadAction(record);
+            }
+        }
+
+        public void forgiveTarget(CAE_Record record)
+        {
+            this.playerSayMessage(record.source_name, "Forgive Logged for " + record.target_name);
+            this.playerSayMessage(record.target_name, "Forgiven 1 infraction point. You now have " + this.fetchPoints(record.target_guid, record.server_id) + " point(s) against you.");
+        }
+
+        public void reportTarget(CAE_Record record)
+        {
+            foreach (String admin_name in this.databaseAdminCache)
+            {
+                this.playerSayMessage(admin_name, "REPORT: " + record.source_name + " reported " + record.target_name + " for " + record.record_reason);
+            }
+            foreach (String admin_name in this.staticAdminCache)
+            {
+                this.playerSayMessage(admin_name, "REPORT: " + record.source_name + " reported " + record.target_name + " for " + record.record_reason);
+            }
+            this.playerSayMessage(record.source_name, "Report sent to admins on " + record.target_name + " for " + record.record_reason);
+        }
+
+        public void callAdminOnTarget(CAE_Record record)
+        {
+            foreach (String admin_name in this.databaseAdminCache)
+            {
+                this.playerSayMessage(admin_name, "ADMIN CALL: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_reason);
+            }
+            foreach (String admin_name in this.staticAdminCache)
+            {
+                this.playerSayMessage(admin_name, "ADMIN CALL: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_reason);
+            }
+            this.playerSayMessage(record.source_name, "Admin call sent on " + record.target_name + " for " + record.record_reason);
+        }
+
+        #endregion
+
+        #region MySQL Methods
 
         private string PrepareMySqlConnectionString()
         {
@@ -1372,6 +1620,10 @@ namespace PRoConEvents
             DebugWrite("fetchTeamswapWhitelist finished!", 6);
         }
 
+        #endregion
+
+        #region Access Checking
+
         private Boolean hasAccess(String player_name, CAE_CommandType command)
         {
             switch (command)
@@ -1474,162 +1726,12 @@ namespace PRoConEvents
         public override void OnTeamChat(string speaker, string message, int teamId) { this.OnGlobalChat(speaker, message); }
         public override void OnSquadChat(string speaker, string message, int teamId, int squadId) { this.OnGlobalChat(speaker, message); }
 
-
         public void playerSayMessage(string target, string message)
         {
             ExecuteCommand("procon.protected.send", "admin.say", message, "player", target);
             ExecuteCommand("procon.protected.chat.write", string.Format("(PlayerSay {0}) ", target) + message);
         }
-
-        public void moveTarget(CAE_Record record)
-        {
-            forceMoveTarget(record);
-        }
-
-        public void forceMoveTarget(CAE_Record record)
-        {
-            this.DebugWrite("Entering forceMoveTarget", 6);
-
-            if (record.record_type == CAE_CommandType.MoveSelf)
-            {
-                if (this.isAdmin(record.source_name) || ((this.teamSwapTicketWindowHigh >= this.highestTicketCount) && (this.teamSwapTicketWindowLow <= this.lowestTicketCount)) )
-                {
-                    this.DebugWrite("Calling Teamswap on self", 6);
-                    teamSwapPlayer(record.targetPlayerInfo);
-                }
-                else
-                {
-                    this.DebugWrite("Player unable to teamswap", 6);
-                    this.playerSayMessage(record.source_name, "You cannot TeamSwap at this time. Game outside ticket window [" + this.teamSwapTicketWindowLow + ", " + this.teamSwapTicketWindowHigh + "].");
-                }
-            }
-            else
-            {
-                this.DebugWrite("Calling Teamswap on target", 6);
-                this.playerSayMessage(record.source_name, "CAE: " + record.target_name + " sent to teamswap.");
-                teamSwapPlayer(record.targetPlayerInfo);
-            }
-
-            this.DebugWrite("Exiting forceMoveTarget", 6);
-        }
-
-        public void killTarget(CAE_Record record, string additionalMessage)
-        {
-            //Perform actions
-            ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_name);
-            this.playerSayMessage(record.target_name, "Killed by admin for: " + record.record_reason + ". " + additionalMessage);
-            this.playerSayMessage(record.source_name, "CAE: You KILLED " + record.target_name + " for " + record.record_reason + ". " + additionalMessage);
-        }
-
-        public void kickTarget(CAE_Record record, string additionalMessage)
-        {
-            //Perform Actions
-            ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_name, record.record_reason + ". " + additionalMessage);
-            this.playerSayMessage(record.target_name, "Killed by admin for: " + record.record_reason + "." + additionalMessage);
-            this.playerSayMessage(record.source_name, "CAE: You KICKED " + record.target_name + " for " + record.record_reason + ". ");
-        }
-
-        public void tempBanTarget(CAE_Record record, string additionalMessage)
-        {
-            //Perform Actions
-            Int32 seconds = record.record_durationMinutes * 60;
-            ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "seconds", seconds + "", record.record_reason + ". " + additionalMessage);
-            ExecuteCommand("procon.protected.send", "banList.save");
-            ExecuteCommand("procon.protected.send", "banList.list");
-            this.playerSayMessage(record.source_name, "CAE: You TEMP BANNED " + record.target_name + " for " + record.record_durationMinutes + " minutes. " + additionalMessage);
-        }
-
-        public void permaBanTarget(CAE_Record record, string additionalMessage)
-        {
-            //Perform Actions
-            ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "perm", record.record_reason + ". " + additionalMessage);
-            ExecuteCommand("procon.protected.send", "banList.save");
-            ExecuteCommand("procon.protected.send", "banList.list");
-            this.playerSayMessage(record.source_name, "CAE: You PERMA BANNED " + record.target_name + "! Get a vet admin NOW!" + additionalMessage);
-        }
-
-        public void punishTarget(CAE_Record record)
-        {
-            if (this.actOnPunishments)
-            {
-                //Get number of points the player from server
-                int points = this.fetchPoints(record.target_guid, this.serverID);
-                //Get the proper action to take for player punishment
-                string action = "noaction";
-                if (points > (this.punishmentHierarchy.Length - 1))
-                {
-                    action = this.punishmentHierarchy[this.punishmentHierarchy.Length - 1];
-                }
-                else if (points > 0)
-                {
-                    action = this.punishmentHierarchy[points - 1];
-                }
-                //Set additional message
-                string additionalMessage = "(" + points + " infraction points)";
-
-                //Call correct action
-                if (action.Equals("kill") || (this.onlyKillOnLowPop && this.playerList.Count < this.lowPopPlayerCount))
-                {
-                    this.killTarget(record, additionalMessage);
-                }
-                else if (action.Equals("kick"))
-                {
-                    this.kickTarget(record, additionalMessage);
-                }
-                else if (action.Equals("tban60"))
-                {
-                    record.record_durationMinutes = 60;
-                    this.tempBanTarget(record, additionalMessage);
-                }
-                else if (action.Equals("tbanweek"))
-                {
-                    record.record_durationMinutes = 10080;
-                    this.tempBanTarget(record, additionalMessage);
-                }
-                else if (action.Equals("ban"))
-                {
-                    this.permaBanTarget(record, additionalMessage);
-                }
-            }
-            else
-            {
-                this.playerSayMessage(record.source_name, "CAE: Punish Logged for " + record.target_name);
-                this.uploadAction(record);
-            }
-        }
-
-        public void forgiveTarget(CAE_Record record)
-        {
-            this.playerSayMessage(record.source_name, "CAE: Forgive Logged for " + record.target_name);
-            this.playerSayMessage(record.target_name, "CAE: Forgiven 1 infraction point. You now have " + this.fetchPoints(record.target_guid, record.server_id) + " point(s) against you.");
-        }
-
-        public void reportTarget(CAE_Record record)
-        {
-            foreach (String admin_name in this.databaseAdminCache)
-            {
-                this.playerSayMessage(admin_name, "REPORT: " + record.source_name + " reported " + record.target_name + " for " + record.record_reason);
-            }
-            foreach (String admin_name in this.staticAdminCache)
-            {
-                this.playerSayMessage(admin_name, "REPORT: " + record.source_name + " reported " + record.target_name + " for " + record.record_reason);
-            }
-            this.playerSayMessage(record.source_name, "Report sent to admins on " + record.target_name + " for " + record.record_reason);
-        }
         
-        public void callAdminOnTarget(CAE_Record record)
-        {
-            foreach (String admin_name in this.databaseAdminCache)
-            {
-                this.playerSayMessage(admin_name, "ADMIN CALL: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_reason);
-            }
-            foreach (String admin_name in this.staticAdminCache)
-            {
-                this.playerSayMessage(admin_name, "ADMIN CALL: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_reason);
-            }
-            this.playerSayMessage(record.source_name, "Admin call sent on " + record.target_name + " for " + record.record_reason);
-        }
-
         #endregion
 
         #region Helper Classes
@@ -1664,6 +1766,10 @@ namespace PRoConEvents
             {
             }
         }
+
+        #endregion
+
+        #region Logging
 
         public string FormatMessage(string msg, MessageTypeEnum type)
         {
@@ -1725,7 +1831,7 @@ namespace PRoConEvents
 
         #endregion
 
-        #region Helper methods
+        #region Server Commands
 
         public void ServerCommand(params string[] args)
         {
