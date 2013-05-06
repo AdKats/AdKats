@@ -855,8 +855,9 @@ namespace PRoConEvents
 
         #region Record Creation and Processing
 
-        public void createRecord(String speaker, String[] splitCommand)
+        public void createRecord(String speaker, String message)
         {
+            String[] splitCommand = message.Split(' ');
             //Create record for return
             CAE_Record record = new CAE_Record();
             //Add server
@@ -873,6 +874,7 @@ namespace PRoConEvents
                 this.playerSayMessage(speaker, "Invalid command format.");
                 return;
             }
+            message = message.TrimStart(commandString.ToCharArray()).Trim();
             record.record_type = commandType;
 
             //Add source
@@ -920,8 +922,9 @@ namespace PRoConEvents
                     try
                     {
                         record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
-                        record.record_reason = splitCommand[2];
+                        record.record_reason = message;
                         DebugWrite("reason: " + record.record_reason, 6);
                     }
                     catch (Exception e)
@@ -941,8 +944,9 @@ namespace PRoConEvents
                     try
                     {
                         record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
-                        record.record_reason = splitCommand[2];
+                        record.record_reason = message;
                         DebugWrite("reason: " + record.record_reason, 6);
                     }
                     catch (Exception e)
@@ -965,9 +969,11 @@ namespace PRoConEvents
                         DebugWrite("Raw Duration: " + splitCommand[1], 6);
                         Boolean valid = Int32.TryParse(splitCommand[1], out record_duration);
                         record.record_durationMinutes = record_duration;
+                        message = message.TrimStart(splitCommand[1].ToCharArray()).Trim();
                         record.target_name = splitCommand[2];
                         DebugWrite("target: " + record.target_name, 6);
-                        record.record_reason = splitCommand[3];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
+                        record.record_reason = message;
                         DebugWrite("reason: " + record.record_reason, 6);
                     }
                     catch (Exception e)
@@ -987,8 +993,9 @@ namespace PRoConEvents
                     try
                     {
                         record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
-                        record.record_reason = splitCommand[2];
+                        record.record_reason = message;
                         DebugWrite("reason: " + record.record_reason, 6);
                     }
                     catch (Exception e)
@@ -1008,8 +1015,9 @@ namespace PRoConEvents
                     try
                     {
                         record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
-                        record.record_reason = splitCommand[2];
+                        record.record_reason = message;
                         DebugWrite("reason: " + record.record_reason, 6);
                     }
                     catch (Exception e)
@@ -1029,8 +1037,9 @@ namespace PRoConEvents
                     try
                     {
                         record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
-                        record.record_reason = splitCommand[2];
+                        record.record_reason = message;
                         DebugWrite("reason: " + record.record_reason, 6);
                     }
                     catch (Exception e)
@@ -1050,8 +1059,9 @@ namespace PRoConEvents
                     try
                     {
                         record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
-                        record.record_reason = splitCommand[2];
+                        record.record_reason = message;
                         DebugWrite("reason: " + record.record_reason, 6);
                     }
                     catch (Exception e)
@@ -1071,8 +1081,9 @@ namespace PRoConEvents
                     try
                     {
                         record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
-                        record.record_reason = splitCommand[2];
+                        record.record_reason = message;
                         DebugWrite("reason: " + record.record_reason, 6);
                     }
                     catch (Exception e)
@@ -1715,11 +1726,8 @@ namespace PRoConEvents
                 //If the message does not cause either of the above clauses, then ignore it.
                 return;
             }
-
-            //Split the command into sections by whitespace
-            string[] splitCommand = message.Trim().Split(' ');
             //Create the record
-            this.createRecord(speaker, splitCommand);
+            this.createRecord(speaker, message);
             //Processing complete. End.
             return;
         }
