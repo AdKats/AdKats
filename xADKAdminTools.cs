@@ -107,6 +107,8 @@ namespace PRoConEvents
         private int lowPopPlayerCount = 24;
         //Default required reason length
         private int requiredReasonLength = 5;
+        //Punishment Timeout
+        private Double punishmentTimeout = 1.0;
 
         //TeamSwap Settings
         //whether to allow all players, or just players in the whitelist
@@ -142,8 +144,8 @@ namespace PRoConEvents
             this.CAE_CommandStrings.Add("kick", CAE_CommandType.KickPlayer);
             this.CAE_CommandStrings.Add("tban", CAE_CommandType.TempBanPlayer);
             this.CAE_CommandStrings.Add("ban", CAE_CommandType.BanPlayer);
-            this.CAE_CommandStrings.Add("punish", CAE_CommandType.PunishPlayer);
-            this.CAE_CommandStrings.Add("forgive", CAE_CommandType.ForgivePlayer);
+            this.CAE_CommandStrings.Add("pun", CAE_CommandType.PunishPlayer);
+            this.CAE_CommandStrings.Add("for", CAE_CommandType.ForgivePlayer);
             this.CAE_CommandStrings.Add("report", CAE_CommandType.ReportPlayer);
             this.CAE_CommandStrings.Add("admin", CAE_CommandType.CallAdmin);
             //Populate Inverse Command Strings
@@ -156,8 +158,8 @@ namespace PRoConEvents
             this.CAE_CommandStringsInverse.Add(CAE_CommandType.KickPlayer, "kick");
             this.CAE_CommandStringsInverse.Add(CAE_CommandType.TempBanPlayer, "tban");
             this.CAE_CommandStringsInverse.Add(CAE_CommandType.BanPlayer, "ban");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.PunishPlayer, "punish");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.ForgivePlayer, "forgive");
+            this.CAE_CommandStringsInverse.Add(CAE_CommandType.PunishPlayer, "pun");
+            this.CAE_CommandStringsInverse.Add(CAE_CommandType.ForgivePlayer, "for");
             this.CAE_CommandStringsInverse.Add(CAE_CommandType.ReportPlayer, "report");
             this.CAE_CommandStringsInverse.Add(CAE_CommandType.CallAdmin, "admin");
             //Fill DB record types
@@ -185,7 +187,7 @@ namespace PRoConEvents
 
         public string GetPluginVersion()
         {
-            return "0.1.0";
+            return "0.1.1";
         }
 
         public string GetPluginAuthor()
@@ -221,26 +223,27 @@ namespace PRoConEvents
             </p>
             <h2>Settings</h2>
             <p>
-                Debugging Settings:<br/><br/>
+                <h3>Debugging Settings:</h3><br/>
                 * 'Debug level' - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step.</br></br>
-                Admin Settings:<br/><br/>
+                <h3>Admin Settings:</h3><br/><br/>
                 * 'Use Database Admin List' - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Plugin must be restarted to update admin list from database.<br/></br>
                 * 'Static Admin List' - List of admins input from plugin settings. Use if no admin database table. <br/></br>
-                MySQL Settings:<br/><br/>
+                <h3>MySQL Settings:</h3><br/>
                 * 'MySQL Hostname' - Hostname of the MySQL-Server Cross-Admin Enforcer should connect to. <br/></br>
                 * 'MySQL Port' - Port of the MySQL-Server Cross-Admin Enforcer should connect to. <br/></br>
                 * 'MySQL Database' - Database Cross-Admin Enforcer should use for storage. Hardcoded table names and creation scripts given below. <br/></br>
                 * 'MySQL Username' - Username of the MySQL-Server Cross-Admin Enforcer should connect to. <br/></br>
                 * 'MySQL Password' - Password of the MySQL-Server Cross-Admin Enforcer should connect to. <br/></br>
-                Punishment Settings:<br/><br/>
+                <h3>Punishment Settings:</h3><br/>
                 * 'Act on Punishments' - Whether the plugin should carry out punishments, or have an external source do it through cae_actionlist.<br/></br>
                 * 'Punishment Hierarchy' - List of punishments in order from lightest to most severe. Index in list is the action taken at that number of points.<br/></br>
                 * 'Minimum Reason Length' - The minimum number of characters a reason must be to call punish or forgive on a player.<br/></br>
                 * 'Only Kill Players when Server in low population' - When server population is below 'Low Server Pop Value', only kill players, so server does not empty. Player points will still be incremented normally.<br/></br>
                 * 'Low Server Pop Value' - Number of players at which the server is deemed 'Low Population'.<br/></br>
-                Server Settings:<br/><br/>
+                * 'Punishment Timeout' - A player cannot be punished more than once every x.xx minutes. This prevents multiple admins from punishing a player multiple times for the same infraction.<br/></br>
+                <h3></h3><br/>
                 * 'Server ID' - ID that will be used to identify this server in the database.<br/></br>
-                Teamswap Settings:<br/><br/>
+                <h3>Teamswap Settings:</h3><br/>
                 * 'Require Whitelist for Access' - Whether the 'moveme' command will require whitelisting. Admins are always allowed to use it.<br/></br>
                 * 'Static Player Whitelist' - Static list of players plugin-side that will be able to teamswap.<br/></br>
                 * 'Use Database Whitelist' - Whether to use 'cae_teamswapwhitelist' table in the database for player whitelisting.<br/></br>
@@ -271,8 +274,8 @@ namespace PRoConEvents
                 * '@kick playername reason' : This command will log a kick for the given player, then kick them.<br/>
                 * '@tban minutes playername reason' : This command will log a temp ban for the given player, then temp ban them for the given number of minutes.<br/>
                 * '@ban playername reason' : This command will log a perma-ban for the given player, then perma-ban them.<br/>
-                * '@punish playername reason' : This command will log a punish for the given player, increasing their total points by 1. Reason must be 5 chars or more.<br/>
-                * '@forgive playername reason' : This command will log a forgive for the given player, decreasing their total points by 1. Reason must be 5 chars or more.<br/>
+                * '@pun playername reason' : This command will log a punish for the given player, increasing their total points by 1. Reason must be 5 chars or more.<br/>
+                * '@for playername reason' : This command will log a forgive for the given player, decreasing their total points by 1. Reason must be 5 chars or more.<br/>
                 * '@yes' : Confirm a partial player name selection.</br>
                 * '@no' : Cancel partial player name selection.</br>
             </p>
@@ -411,6 +414,12 @@ namespace PRoConEvents
                         * Refactor database logging to work with all commands.<br/>
                         * Code cleanup and organize.<br/>
                         * Player and admin messaging changes.<br/>
+                <h4>0.1.1 (6-MAY-2013)</h4>
+	                <b>Changes</b>          <br/>
+                        * Punish and forgive commands changed to 'pun' and 'for', for ease of use in high punish/minute instances.<br/>
+                        * Now a player may only be punished once every x minutes, this removes the case where two admins can punish a player for the same infraction.<br/>
+
+                TODO 1: Add watchlist use.
              </blockquote>
             ";
         }
@@ -443,6 +452,7 @@ namespace PRoConEvents
             lstReturn.Add(new CPluginVariable("Punishment Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
             lstReturn.Add(new CPluginVariable("Punishment Settings|Only Kill Players when Server in low population", typeof(Boolean), this.onlyKillOnLowPop));
             lstReturn.Add(new CPluginVariable("Punishment Settings|Low Population Value", typeof(int), this.lowPopPlayerCount));
+            lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Timeout", typeof(Double), this.punishmentTimeout));
 
             //Admin Settings
             lstReturn.Add(new CPluginVariable("Admin Settings|Use Database Admin List", typeof(Boolean), this.useDatabaseAdminList));
@@ -495,6 +505,10 @@ namespace PRoConEvents
             else if (Regex.Match(strVariable, @"Minimum Required Reason Length").Success)
             {
                 this.requiredReasonLength = Int32.Parse(strValue);
+            }
+            else if (Regex.Match(strVariable, @"Punishment Timeout").Success)
+            {
+                this.punishmentTimeout = Double.Parse(strValue);
             }
             else if (Regex.Match(strVariable, @"Use Database Admin List").Success)
             {
@@ -1156,42 +1170,68 @@ namespace PRoConEvents
 
         private void processRecord(CAE_Record record)
         {
-            //Upload Record
-            this.uploadRecord(record);
             //Perform Actions
             switch (record.record_type)
             {
                 case CAE_CommandType.MovePlayer:
                     this.moveTarget(record);
+                    //Upload Record
+                    this.uploadRecord(record);
                     break;
                 case CAE_CommandType.ForceMovePlayer:
                     this.forceMoveTarget(record);
+                    //Upload Record
+                    this.uploadRecord(record);
                     break;
                 case CAE_CommandType.MoveSelf:
                     this.forceMoveTarget(record);
+                    //Upload Record
+                    this.uploadRecord(record);
                     break;
                 case CAE_CommandType.KillPlayer:
                     this.killTarget(record, "");
+                    //Upload Record
+                    this.uploadRecord(record);
                     break;
                 case CAE_CommandType.KickPlayer:
                     this.kickTarget(record, "");
+                    //Upload Record
+                    this.uploadRecord(record);
                     break;
                 case CAE_CommandType.TempBanPlayer:
                     this.tempBanTarget(record, "");
+                    //Upload Record
+                    this.uploadRecord(record);
                     break;
                 case CAE_CommandType.BanPlayer:
                     this.permaBanTarget(record, "");
+                    //Upload Record
+                    this.uploadRecord(record);
                     break;
                 case CAE_CommandType.PunishPlayer:
-                    this.punishTarget(record);
+                    //If the record is a punish, check if it can be uploaded.
+                    if (this.canUploadPunish(record))
+                    {
+                        //Upload Record
+                        this.uploadRecord(record);
+                        this.punishTarget(record);
+                    }
+                    else
+                    {
+                        this.playerSayMessage(record.source_name, record.target_name + " already punished in the last " + this.punishmentTimeout + " minute(s).");
+                    }
                     break;
                 case CAE_CommandType.ForgivePlayer:
                     this.forgiveTarget(record);
                     break;
                 case CAE_CommandType.ReportPlayer:
+                    //Upload Record
+                    this.uploadRecord(record);
                     this.reportTarget(record);
                     break;
                 case CAE_CommandType.CallAdmin:
+                    //Upload Record
+                    this.uploadRecord(record);
                     this.callAdminOnTarget(record);
                     break;
                 default:
@@ -1423,6 +1463,63 @@ namespace PRoConEvents
             }
 
             DebugWrite("postRecord finished!", 6);
+        }
+
+        private Boolean canUploadPunish(CAE_Record record)
+        {
+            DebugWrite("canUploadRecord starting!", 6);
+
+            if (this.databaseConnection == null)
+            {
+                this.databaseConnection = new MySqlConnection(PrepareMySqlConnectionString());
+            }
+
+            try
+            {
+                using (this.databaseConnection)
+                {
+                    using (MySqlCommand command = this.databaseConnection.CreateCommand())
+                    {
+                        //command.CommandText = "select latest_time from (select record_time as `latest_time` from `" + this.mySqlDatabase + "`.`cae_records` where `cae_records`.`server_id` = " + record.server_id + " and `cae_records`.`record_type` = 'Punish' and `cae_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1) as temp where latest_time < (NOW() - INTERVAL '1' MINUTE)";
+                        command.CommandText = "select record_time as `latest_time` from `" + this.mySqlDatabase + "`.`cae_records` where `cae_records`.`server_id` = " + record.server_id + " and `cae_records`.`record_type` = 'Punish' and `cae_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1";
+                        //Open the connection if needed
+                        if (!this.databaseConnection.Ping())
+                        {
+                            this.databaseConnection.Open();
+                        }
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            DateTime latestUpload;
+                            if (reader.Read())
+                            {
+                                latestUpload = reader.GetDateTime("latest_time");
+                                this.DebugWrite("player has at least one punish", 6);
+                            }
+                            else
+                            {
+                                return true;
+                            }
+                            latestUpload.AddMinutes(1.0);
+                            if (record.record_time.CompareTo(latestUpload.AddMinutes(this.punishmentTimeout)) > 0)
+                            {
+                                this.DebugWrite("new punish > 1 minute over last logged punish", 6);
+                                return true;
+                            }
+                            else
+                            {
+                                this.DebugWrite("can't upload punish", 6);
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                DebugWrite(e.ToString(), 3);
+            }
+            DebugWrite("ERROR in canUploadPunish!", 6);
+            return false;
         }
 
         private void uploadAction(CAE_Record record)
