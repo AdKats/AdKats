@@ -203,7 +203,7 @@ namespace PRoConEvents
         public string GetPluginDescription()
         {
             return @"
-            <h1>xADKAdminTools</h1>
+            <h1>xADKAdminTools</h1> 
             <h2>Description</h2>
             <h3>Main</h3>
             <p>
@@ -241,8 +241,8 @@ namespace PRoConEvents
                 * 'Only Kill Players when Server in low population' - When server population is below 'Low Server Pop Value', only kill players, so server does not empty. Player points will still be incremented normally.<br/></br>
                 * 'Low Server Pop Value' - Number of players at which the server is deemed 'Low Population'.<br/></br>
                 * 'Punishment Timeout' - A player cannot be punished more than once every x.xx minutes. This prevents multiple admins from punishing a player multiple times for the same infraction.<br/></br>
-                <h3></h3><br/>
-                * 'Server ID' - ID that will be used to identify this server in the database.<br/></br>
+                <h3>Server Settings:</h3><br/>
+                * 'Server ID' - ID that will be used to identify this server in the database.<br/>
                 <h3>Teamswap Settings:</h3><br/>
                 * 'Require Whitelist for Access' - Whether the 'moveme' command will require whitelisting. Admins are always allowed to use it.<br/></br>
                 * 'Static Player Whitelist' - Static list of players plugin-side that will be able to teamswap.<br/></br>
@@ -1633,7 +1633,7 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
-                        command.CommandText = "SELECT name AS admin_name, uniqueid AS admin_guid FROM `" + this.mySqlDatabase + "`.`adminlist`";
+                        command.CommandText = "SELECT name AS admin_name, eaguid AS admin_guid FROM `" + this.mySqlDatabase + "`.`tbl_adminlist`";
                         //Open the connection if needed
                         if (!this.databaseConnection.Ping())
                         {
