@@ -44,7 +44,7 @@ namespace PRoConEvents
         private bool isEnabled;
         private int debugLevel;
         private int USTeamId = 1;
-        private int RussianTeam = 2;
+        private int RUTeamId = 2;
         private Boolean updating = false;
         private CServerInfo serverInfo = null;
 
@@ -59,7 +59,7 @@ namespace PRoConEvents
         private int USPlayerCount = 0;
         private int RUPlayerCount = 0;
 
-        // Admin List
+        // Admin Settings
         private Boolean useDatabaseAdminList = true;
         private List<string> databaseAdminCache = new List<string>();
         private List<string> staticAdminCache = new List<string>();
@@ -68,7 +68,7 @@ namespace PRoConEvents
         public MySqlConnection databaseConnection = null;
         public string mySqlHostname;
         public string mySqlPort;
-        public string mySqlDatabase;
+        public string mySqlDatabaseName;
         public string mySqlUsername;
         public string mySqlPassword;
 
@@ -76,11 +76,77 @@ namespace PRoConEvents
         private int serverID = -1;
 
         //Static Enum of Possible Admin Commands
-        public enum CAE_CommandType { Default, Yes, No, MovePlayer, ForceMovePlayer, MoveSelf, KillPlayer, KickPlayer, TempBanPlayer, BanPlayer, PunishPlayer, ForgivePlayer, ReportPlayer, CallAdmin };
-        //Default command names
+        public enum CAE_CommandType
+        {
+            //Case for use while parsing
+            Default, 
+            //Confirm or cancel a command
+            ConfirmCommand,
+            CancelCommand,
+            //Moving players
+            MovePlayer,
+            ForceMovePlayer,
+            Teamswap,
+            //Punishing players
+            KillPlayer,
+            KickPlayer,
+            TempBanPlayer,
+            PermabanPlayer,
+            PunishPlayer,
+            ForgivePlayer,
+            //Reporting players
+            ReportPlayer,
+            CallAdmin,
+            //Round Commands
+            RestartLevel,
+            NextLevel,
+            EndLevel,
+            //Messaging
+            AdminSay,
+            PlayerSay,
+            AdminYell,
+            PlayerYell
+
+        };
+        //enum for player ban types
+        public enum BanTypes
+        {
+            FrostbiteName,
+            FrostbiteEaGuid,
+            PunkbusterGuid
+        };
+        //current ban type
+        private string m_strBanTypeOption;
+
+        //Command Strings for Input
+        //Player punishment
+        private string m_strKillCommand;
+        private string m_strKickCommand;
+        private string m_strTemporaryBanCommand;
+        private string m_strPermanentBanCommand;
+        private string m_strPunishCommand;
+        private string m_strForgiveCommand;
+        private string m_strMoveCommand;
+        private string m_strForceMoveCommand;
+        private string m_strTeamswapCommand;
+        private string m_strReportCommand;
+        private string m_strCallAdminCommand;
+        //Admin messaging
+        private string m_strSayCommand;
+        private string m_strPlayerSayCommand;
+        private string m_strYellCommand;
+        private string m_strPlayerYellCommand;
+        private int m_iShowMessageLength;
+        private string m_strShowMessageLength;
+        //Map control
+        private string m_strRestartLevelCommand;
+        private string m_strNextLevelCommand;
+        private string m_strEndLevelCommand;
+        //Confirm and cancel
+        private string m_strConfirmCommand;
+        private string m_strCancelCommand;
+        //Used to parse incoming commands quickly
         public Dictionary<string, CAE_CommandType> CAE_CommandStrings = new Dictionary<string, CAE_CommandType>();
-        //Create the inverse dictionary
-        public Dictionary<CAE_CommandType, string> CAE_CommandStringsInverse = new Dictionary<CAE_CommandType, string>();
         //Database record types
         public Dictionary<CAE_CommandType, string> CAE_RecordTypes = new Dictionary<CAE_CommandType, string>();
 
@@ -127,53 +193,68 @@ namespace PRoConEvents
         private int teamSwapTicketWindowHigh = 500000;
         //the lowest ticket count of either team to allow self move
         private int teamSwapTicketWindowLow = 0;
-        //denied access text
-        private string deniedAccessText = "TeamSwap Access Denied. Please purchase access on ADKGamers.com";
 
         #endregion
 
         public xADKAdminTools()
         {
+            this.m_strConfirmCommand = "yes";
+            this.m_strCancelCommand = "no";
+
             //Populate Command Strings
-            this.CAE_CommandStrings.Add("yes", CAE_CommandType.Yes);
-            this.CAE_CommandStrings.Add("no", CAE_CommandType.No);
-            this.CAE_CommandStrings.Add("move", CAE_CommandType.MovePlayer);
-            this.CAE_CommandStrings.Add("fmove", CAE_CommandType.ForceMovePlayer);
-            this.CAE_CommandStrings.Add("moveme", CAE_CommandType.MoveSelf);
-            this.CAE_CommandStrings.Add("kill", CAE_CommandType.KillPlayer);
-            this.CAE_CommandStrings.Add("kick", CAE_CommandType.KickPlayer);
-            this.CAE_CommandStrings.Add("tban", CAE_CommandType.TempBanPlayer);
-            this.CAE_CommandStrings.Add("ban", CAE_CommandType.BanPlayer);
-            this.CAE_CommandStrings.Add("pun", CAE_CommandType.PunishPlayer);
-            this.CAE_CommandStrings.Add("for", CAE_CommandType.ForgivePlayer);
-            this.CAE_CommandStrings.Add("report", CAE_CommandType.ReportPlayer);
-            this.CAE_CommandStrings.Add("admin", CAE_CommandType.CallAdmin);
-            //Populate Inverse Command Strings
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.Yes, "yes");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.No, "no");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.MovePlayer, "move");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.ForceMovePlayer, "fmove");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.MoveSelf, "moveme");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.KillPlayer, "kill");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.KickPlayer, "kick");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.TempBanPlayer, "tban");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.BanPlayer, "ban");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.PunishPlayer, "pun");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.ForgivePlayer, "for");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.ReportPlayer, "report");
-            this.CAE_CommandStringsInverse.Add(CAE_CommandType.CallAdmin, "admin");
+            this.m_strKillCommand = "kill";
+            this.m_strKickCommand = "kick";
+            this.m_strTemporaryBanCommand = "tban";
+            this.m_strPermanentBanCommand = "ban";
+            this.m_strPunishCommand = "punish";
+            this.m_strForgiveCommand = "forgive";
+            this.m_strMoveCommand = "move";
+            this.m_strForceMoveCommand = "fmove";
+            this.m_strTeamswapCommand = "moveme";
+            this.m_strReportCommand = "report";
+            this.m_strCallAdminCommand = "admin";
+
+            this.m_strSayCommand = "say";
+            this.m_strPlayerSayCommand = "psay";
+            this.m_strYellCommand = "yell";
+            this.m_strPlayerYellCommand = "pyell";
+
+            this.m_strRestartLevelCommand = "restart";
+            this.m_strNextLevelCommand = "nextlevel";
+            this.m_strEndLevelCommand = "endround";
+
+            this.m_strBanTypeOption = "Frostbite - Name";
+
+            this.m_iShowMessageLength = 5;
+            this.m_strShowMessageLength = m_iShowMessageLength + "";
+
+            //Bind all the string commands to enumerated command types
+            this.rebindAllCommands();
+            
             //Fill DB record types
-            this.CAE_RecordTypes.Add(CAE_CommandType.MovePlayer, "Move");
-            this.CAE_RecordTypes.Add(CAE_CommandType.ForceMovePlayer, "ForceMove");
-            this.CAE_RecordTypes.Add(CAE_CommandType.MoveSelf, "Teamswap");
             this.CAE_RecordTypes.Add(CAE_CommandType.KillPlayer, "Kill");
             this.CAE_RecordTypes.Add(CAE_CommandType.KickPlayer, "Kick");
             this.CAE_RecordTypes.Add(CAE_CommandType.TempBanPlayer, "TempBan");
-            this.CAE_RecordTypes.Add(CAE_CommandType.BanPlayer, "Ban");
+            this.CAE_RecordTypes.Add(CAE_CommandType.PermabanPlayer, "PermaBan");
             this.CAE_RecordTypes.Add(CAE_CommandType.PunishPlayer, "Punish");
             this.CAE_RecordTypes.Add(CAE_CommandType.ForgivePlayer, "Forgive");
+
+            this.CAE_RecordTypes.Add(CAE_CommandType.MovePlayer, "Move");
+            this.CAE_RecordTypes.Add(CAE_CommandType.ForceMovePlayer, "ForceMove");
+            this.CAE_RecordTypes.Add(CAE_CommandType.Teamswap, "Teamswap");
+
             this.CAE_RecordTypes.Add(CAE_CommandType.ReportPlayer, "Report");
             this.CAE_RecordTypes.Add(CAE_CommandType.CallAdmin, "CallAdmin");
+
+            this.CAE_RecordTypes.Add(CAE_CommandType.AdminSay, "AdminSay");
+            this.CAE_RecordTypes.Add(CAE_CommandType.PlayerSay, "PlayerSay");
+            this.CAE_RecordTypes.Add(CAE_CommandType.AdminYell, "AdminYell");
+            this.CAE_RecordTypes.Add(CAE_CommandType.PlayerYell, "PlayerYell");
+
+            this.CAE_RecordTypes.Add(CAE_CommandType.RestartLevel, "RestartLevel");
+            this.CAE_RecordTypes.Add(CAE_CommandType.NextLevel, "NextLevel");
+            this.CAE_RecordTypes.Add(CAE_CommandType.EndLevel, "EndLevel");
+
             isEnabled = false;
             debugLevel = 2;
         }
@@ -442,26 +523,63 @@ namespace PRoConEvents
             //SQL Settings
             lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Hostname", typeof(string), mySqlHostname));
             lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Port", typeof(string), mySqlPort));
-            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Database", typeof(string), mySqlDatabase));
+            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Database", typeof(string), mySqlDatabaseName));
             lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Username", typeof(string), mySqlUsername));
             lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Password", typeof(string), mySqlPassword));
+
+            //Ban Settings
+            lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.ADKAdminTools_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
+
+            //Command Settings
+            lstReturn.Add(new CPluginVariable("Command Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
+            lstReturn.Add(new CPluginVariable("Command Settings|Yell display time seconds", typeof(int), this.m_iShowMessageLength));
+            lstReturn.Add(new CPluginVariable("Command Settings|Confirm Command", typeof(string), m_strConfirmCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Cancel Command", typeof(string), m_strCancelCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Kill Player", typeof(string), m_strKillCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Kick Player", typeof(string), m_strKickCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Temp-Ban Player", typeof(string), m_strTemporaryBanCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Permaban Player", typeof(string), m_strPermanentBanCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Punish Player", typeof(string), m_strPunishCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Forgive Player", typeof(string), m_strForgiveCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Move Player", typeof(string), m_strMoveCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Force Move Player", typeof(string), m_strForceMoveCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Teamswap Self", typeof(string), m_strTeamswapCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Report Player", typeof(string), m_strReportCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Call Admin on Player", typeof(string), m_strCallAdminCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Admin Say", typeof(string), m_strSayCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Player Say", typeof(string), m_strPlayerSayCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Admin Yell", typeof(string), m_strYellCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Player Yell", typeof(string), m_strPlayerYellCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Restart Level", typeof(string), m_strRestartLevelCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Next Level", typeof(string), m_strNextLevelCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|End Level", typeof(string), m_strEndLevelCommand));
 
             //Punishment Settings
             lstReturn.Add(new CPluginVariable("Punishment Settings|Act on Punishments", typeof(Boolean), this.actOnPunishments));
             lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Hierarchy", typeof(string[]), this.punishmentHierarchy));
-            lstReturn.Add(new CPluginVariable("Punishment Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
             lstReturn.Add(new CPluginVariable("Punishment Settings|Only Kill Players when Server in low population", typeof(Boolean), this.onlyKillOnLowPop));
-            lstReturn.Add(new CPluginVariable("Punishment Settings|Low Population Value", typeof(int), this.lowPopPlayerCount));
+            if (this.onlyKillOnLowPop)
+            {
+                lstReturn.Add(new CPluginVariable("Punishment Settings|Low Population Value", typeof(int), this.lowPopPlayerCount));
+            }
             lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Timeout", typeof(Double), this.punishmentTimeout));
 
             //Admin Settings
             lstReturn.Add(new CPluginVariable("Admin Settings|Use Database Admin List", typeof(Boolean), this.useDatabaseAdminList));
-            lstReturn.Add(new CPluginVariable("Admin Settings|Static Admin List", typeof(string[]), this.staticAdminCache.ToArray()));
-
+            if (!this.useDatabaseAdminList)
+            {
+                lstReturn.Add(new CPluginVariable("Admin Settings|Static Admin List", typeof(string[]), this.staticAdminCache.ToArray()));
+            }
             //TeamSwap Settings
             lstReturn.Add(new CPluginVariable("TeamSwap Settings|Require Whitelist for Access", typeof(Boolean), this.requireWhitelist));
-            lstReturn.Add(new CPluginVariable("TeamSwap Settings|Static Player Whitelist", typeof(string[]), this.staticWhitelistCache.ToArray()));
-            lstReturn.Add(new CPluginVariable("TeamSwap Settings|Use Database Whitelist", typeof(Boolean), this.useDatabaseWhitelist));
+            if (this.requireWhitelist)
+            {
+                lstReturn.Add(new CPluginVariable("TeamSwap Settings|Use Database Whitelist", typeof(Boolean), this.useDatabaseWhitelist));
+                if (!this.useDatabaseWhitelist)
+                {
+                    lstReturn.Add(new CPluginVariable("TeamSwap Settings|Static Player Whitelist", typeof(string[]), this.staticWhitelistCache.ToArray()));
+                }
+            }
             lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window High", typeof(int), this.teamSwapTicketWindowHigh));
             lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window Low", typeof(int), this.teamSwapTicketWindowLow));
             return lstReturn;
@@ -474,18 +592,137 @@ namespace PRoConEvents
 
         public void SetPluginVariable(string strVariable, string strValue)
         {
+            #region debugging
             if (Regex.Match(strVariable, @"Debug level").Success)
             {
                 int tmp = 2;
                 int.TryParse(strValue, out tmp);
                 debugLevel = tmp;
             }
+            #endregion
+            #region server settings
             else if (Regex.Match(strVariable, @"Server ID").Success)
             {
                 int tmp = 2;
                 int.TryParse(strValue, out tmp);
                 this.serverID = tmp;
             }
+            #endregion
+            #region command settings
+            else if (Regex.Match(strVariable, @"Minimum Required Reason Length").Success)
+            {
+                this.requiredReasonLength = Int32.Parse(strValue);
+            }
+            else if (Regex.Match(strVariable, @"Yell display time seconds").Success)
+            {
+                this.m_iShowMessageLength = Int32.Parse(strValue);
+                this.m_strShowMessageLength = m_iShowMessageLength + "";
+            }
+            else if (Regex.Match(strVariable, @"Confirm Command").Success)
+            {
+                this.m_strConfirmCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Cancel Command").Success)
+            {
+                this.m_strCancelCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Kill Player").Success)
+            {
+                this.m_strKillCommand = strValue;
+
+                this.DebugWrite("Key: " + this.m_strKillCommand, 6);
+                rebindAllCommands();
+                this.DebugWrite("Command: " + this.CAE_CommandStrings[strValue], 6);
+            }
+            else if (Regex.Match(strVariable, @"Kick Player").Success)
+            {
+                this.m_strKickCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Temp-Ban Player").Success)
+            {
+                this.m_strTemporaryBanCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Permaban Player").Success)
+            {
+                this.m_strPermanentBanCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Punish Player").Success)
+            {
+                this.m_strPunishCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Forgive Player").Success)
+            {
+                this.m_strForgiveCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Move Player").Success)
+            {
+                this.m_strMoveCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Force Move Player").Success)
+            {
+                this.m_strForceMoveCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Teamswap Self").Success)
+            {
+                this.m_strTeamswapCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Report Player").Success)
+            {
+                this.m_strReportCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Call Admin on Player").Success)
+            {
+                this.m_strCallAdminCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Admin Say").Success)
+            {
+                this.m_strSayCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Player Say").Success)
+            {
+                this.m_strPlayerSayCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Admin Yell").Success)
+            {
+                this.m_strYellCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Player Yell").Success)
+            {
+                this.m_strPlayerYellCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Restart Level").Success)
+            {
+                this.m_strRestartLevelCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"Next Level").Success)
+            {
+                this.m_strNextLevelCommand = strValue;
+                rebindAllCommands();
+            }
+            else if (Regex.Match(strVariable, @"End Level").Success)
+            {
+                this.m_strEndLevelCommand = strValue;
+                rebindAllCommands();
+            }
+            #endregion
+            #region punishment settings
             else if (Regex.Match(strVariable, @"Act on Punishments").Success)
             {
                 this.actOnPunishments = Boolean.Parse(strValue);
@@ -502,47 +739,27 @@ namespace PRoConEvents
             {
                 this.lowPopPlayerCount = Int32.Parse(strValue);
             }
-            else if (Regex.Match(strVariable, @"Minimum Required Reason Length").Success)
-            {
-                this.requiredReasonLength = Int32.Parse(strValue);
-            }
             else if (Regex.Match(strVariable, @"Punishment Timeout").Success)
             {
                 this.punishmentTimeout = Double.Parse(strValue);
             }
+            #endregion
+            #region admin settings
             else if (Regex.Match(strVariable, @"Use Database Admin List").Success)
             {
                 this.useDatabaseAdminList = Boolean.Parse(strValue);
-                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
-                {
-                    if (this.useDatabaseAdminList)
-                    {
-                        this.fetchAdminList();
-                    }
-                    if (this.useDatabaseWhitelist)
-                    {
-                        this.fetchTeamswapWhitelist();
-                    }
-                }
+                connectToDatabase();
             }
             else if (Regex.Match(strVariable, @"Static Admin List").Success)
             {
                 this.staticAdminCache = new List<string>(CPluginVariable.DecodeStringArray(strValue));
             }
+            #endregion
+            #region sql settings
             else if (Regex.Match(strVariable, @"MySQL Hostname").Success)
             {
                 mySqlHostname = strValue;
-                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
-                {
-                    if (this.useDatabaseAdminList)
-                    {
-                        this.fetchAdminList();
-                    }
-                    if (this.useDatabaseWhitelist)
-                    {
-                        this.fetchTeamswapWhitelist();
-                    }
-                }
+                connectToDatabase();
             }
             else if (Regex.Match(strVariable, @"MySQL Port").Success)
             {
@@ -556,67 +773,25 @@ namespace PRoConEvents
                 {
                     ConsoleException("Invalid value for MySQL Port: '" + strValue + "'. Must be number between 1 and 65535!");
                 }
-                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
-                {
-                    if (this.useDatabaseAdminList)
-                    {
-                        this.fetchAdminList();
-                    }
-                    if (this.useDatabaseWhitelist)
-                    {
-                        this.fetchTeamswapWhitelist();
-                    }
-                }
+                connectToDatabase();
             }
             else if (Regex.Match(strVariable, @"MySQL Database").Success)
             {
-                mySqlDatabase = strValue;
-                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
-                {
-                    if (this.useDatabaseAdminList)
-                    {
-                        this.fetchAdminList();
-                    }
-                    if (this.useDatabaseWhitelist)
-                    {
-                        this.fetchTeamswapWhitelist();
-                    }
-                }
+                this.mySqlDatabaseName = strValue;
+                connectToDatabase();
             }
             else if (Regex.Match(strVariable, @"MySQL Username").Success)
             {
                 mySqlUsername = strValue;
-                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
-                {
-                    if (this.useDatabaseAdminList)
-                    {
-                        this.fetchAdminList();
-                    }
-                    if (this.useDatabaseWhitelist)
-                    {
-                        this.fetchTeamswapWhitelist();
-                    }
-                }
+                connectToDatabase();
             }
             else if (Regex.Match(strVariable, @"MySQL Password").Success)
             {
                 mySqlPassword = strValue;
-                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
-                {
-                    if (this.useDatabaseAdminList)
-                    {
-                        this.fetchAdminList();
-                    }
-                    if (this.useDatabaseWhitelist)
-                    {
-                        this.fetchTeamswapWhitelist();
-                    }
-                }
+                connectToDatabase();
             }
-            else if (Regex.Match(strVariable, @"Server ID").Success)
-            {
-                serverID = Int32.Parse(strValue);
-            }
+            #endregion
+            #region teamswap settings
             else if (Regex.Match(strVariable, @"Require Whitelist for Access").Success)
             {
                 this.requireWhitelist = Boolean.Parse(strValue);
@@ -628,17 +803,7 @@ namespace PRoConEvents
             else if (Regex.Match(strVariable, @"Use Database Whitelist").Success)
             {
                 this.useDatabaseWhitelist = Boolean.Parse(strValue);
-                if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
-                {
-                    if (this.useDatabaseAdminList)
-                    {
-                        this.fetchAdminList();
-                    }
-                    if (this.useDatabaseWhitelist)
-                    {
-                        this.fetchTeamswapWhitelist();
-                    }
-                }
+                connectToDatabase();
             }
             else if (Regex.Match(strVariable, @"Ticket Window High").Success)
             {
@@ -652,52 +817,80 @@ namespace PRoConEvents
                 int.TryParse(strValue, out tmp);
                 this.teamSwapTicketWindowLow = tmp;
             }
-            
+            #endregion
         }
 
-        public void OnPluginLoaded(string strHostName, string strPort, string strPRoConVersion)
+        private void rebindAllCommands()
         {
-            this.RegisterEvents(this.GetType().Name, "OnVersion", "OnServerInfo", "OnResponseError", "OnListPlayers", "OnPlayerJoin", "OnPlayerLeft", "OnPlayerKilled", "OnPlayerSpawned", "OnPlayerTeamChange", "OnGlobalChat", "OnTeamChat", "OnSquadChat", "OnRoundOverPlayers", "OnRoundOver", "OnRoundOverTeamScores", "OnLoadingLevel", "OnLevelStarted", "OnLevelLoaded");
-            //Get admin list if needed
-            if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
+            this.DebugWrite("Entering rebindAllCommands", 6);
+
+            Dictionary<String, CAE_CommandType> tempDictionary = new Dictionary<String, CAE_CommandType>();
+
+            try
             {
-                if (this.useDatabaseAdminList)
+                //Update confirm and cancel
+                tempDictionary.Add(m_strConfirmCommand, CAE_CommandType.ConfirmCommand);
+                tempDictionary.Add(m_strCancelCommand, CAE_CommandType.CancelCommand);
+                //Update player punishment
+                tempDictionary.Add(m_strKillCommand, CAE_CommandType.KillPlayer);
+                tempDictionary.Add(m_strKickCommand, CAE_CommandType.KickPlayer);
+                tempDictionary.Add(m_strTemporaryBanCommand, CAE_CommandType.TempBanPlayer);
+                tempDictionary.Add(m_strPermanentBanCommand, CAE_CommandType.PermabanPlayer);
+                tempDictionary.Add(m_strPunishCommand, CAE_CommandType.PunishPlayer);
+                tempDictionary.Add(m_strForgiveCommand, CAE_CommandType.ForgivePlayer);
+                tempDictionary.Add(m_strMoveCommand, CAE_CommandType.MovePlayer);
+                tempDictionary.Add(m_strForceMoveCommand, CAE_CommandType.ForceMovePlayer);
+                tempDictionary.Add(m_strTeamswapCommand, CAE_CommandType.Teamswap);
+                tempDictionary.Add(m_strReportCommand, CAE_CommandType.ReportPlayer);
+                tempDictionary.Add(m_strCallAdminCommand, CAE_CommandType.CallAdmin);
+                //Update Messaging
+                tempDictionary.Add(m_strSayCommand, CAE_CommandType.AdminSay);
+                tempDictionary.Add(m_strPlayerSayCommand, CAE_CommandType.PlayerSay);
+                tempDictionary.Add(m_strYellCommand, CAE_CommandType.AdminYell);
+                tempDictionary.Add(m_strPlayerYellCommand, CAE_CommandType.PlayerYell);
+                //Update level controls
+                tempDictionary.Add(m_strRestartLevelCommand, CAE_CommandType.RestartLevel);
+                tempDictionary.Add(m_strNextLevelCommand, CAE_CommandType.NextLevel);
+                tempDictionary.Add(m_strEndLevelCommand, CAE_CommandType.EndLevel);
+                //Overwrite command string dictionary with the new one
+                this.CAE_CommandStrings = tempDictionary;
+            }
+            catch (Exception e)
+            {
+                if (tempDictionary.Keys.Count - 1 >= 0)
                 {
-                    this.fetchAdminList();
+                    this.DebugWrite("Error changing commands: " + e.Message + ". Size is: " + tempDictionary.Keys.Count, 6);
                 }
-                if (this.useDatabaseWhitelist)
+                else
                 {
-                    this.fetchTeamswapWhitelist();
+                    this.DebugWrite("Unknown error changing commands", 0);
                 }
             }
+
+            this.DebugWrite("rebindAllCommands finished!", 6);
         }
 
         #endregion
 
         #region Procon Events
 
+        public void OnPluginLoaded(string strHostName, string strPort, string strPRoConVersion)
+        {
+            this.RegisterEvents(this.GetType().Name, "OnVersion", "OnServerInfo", "OnResponseError", "OnListPlayers", "OnPlayerJoin", "OnPlayerLeft", "OnPlayerKilled", "OnPlayerSpawned", "OnPlayerTeamChange", "OnGlobalChat", "OnTeamChat", "OnSquadChat", "OnRoundOverPlayers", "OnRoundOver", "OnRoundOverTeamScores", "OnLoadingLevel", "OnLevelStarted", "OnLevelLoaded");
+            //try connecting to the database
+            this.connectToDatabase();
+        }
+
         public void OnPluginEnable()
         {
-            //Get admin list if needed
-            if ((this.mySqlDatabase != null) && (this.mySqlHostname != null) && (this.mySqlPassword != null) && (this.mySqlPort != null) && (this.mySqlUsername != null))
-            {
-                if (this.useDatabaseAdminList)
-                {
-                    this.fetchAdminList();
-                }
-                if (this.useDatabaseWhitelist)
-                {
-                    this.fetchTeamswapWhitelist();
-                }
-            }
             isEnabled = true;
             ConsoleWrite("^b^2Enabled!^n^0 Version: " + GetPluginVersion());
+
         }
 
         public void OnPluginDisable()
         {
             isEnabled = false;
-
             ConsoleWrite("^b^1Disabled! =(^n^0");
         }
 
@@ -787,7 +980,7 @@ namespace PRoConEvents
                     if (this.RUPlayerCount < maxPlayerCount)
                     {
                         CPlayerInfo player = this.USMoveList.Dequeue();
-                        ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, this.RussianTeam.ToString(), "1", "true");
+                        ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, this.RUTeamId.ToString(), "1", "true");
                         this.playerSayMessage(player.SoldierName, "Swapping you from team US to team RU");
                         movedPlayer = true;
                         RUPlayerCount++;
@@ -927,10 +1120,12 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Invalid command format, unable to submit.");
                         return;
                     }
+                    findFullPlayerName(record);
                     break;
-                case CAE_CommandType.MoveSelf:
+                case CAE_CommandType.Teamswap:
                     record.target_name = speaker;
                     record.record_reason = "TEAMSWAP";
+                    this.processRecord(record);
                     break;
                 case CAE_CommandType.KillPlayer:
                     try
@@ -953,6 +1148,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
+                    findFullPlayerName(record);
                     break;
                 case CAE_CommandType.KickPlayer:
                     try
@@ -975,6 +1171,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
+                    findFullPlayerName(record);
                     break;
                 case CAE_CommandType.TempBanPlayer:
                     try
@@ -1002,8 +1199,9 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
+                    findFullPlayerName(record);
                     break;
-                case CAE_CommandType.BanPlayer:
+                case CAE_CommandType.PermabanPlayer:
                     try
                     {
                         record.target_name = splitCommand[1];
@@ -1024,6 +1222,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
+                    findFullPlayerName(record);
                     break;
                 case CAE_CommandType.PunishPlayer:
                     try
@@ -1046,6 +1245,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
+                    findFullPlayerName(record);
                     break;
                 case CAE_CommandType.ForgivePlayer:
                     try
@@ -1068,6 +1268,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
+                    findFullPlayerName(record);
                     break;
                 case CAE_CommandType.ReportPlayer:
                     try
@@ -1090,6 +1291,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
+                    findFullPlayerName(record);
                     break;
                 case CAE_CommandType.CallAdmin:
                     try
@@ -1112,8 +1314,114 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
+                    findFullPlayerName(record);
                     break;
-                case CAE_CommandType.Yes:
+                case CAE_CommandType.EndLevel:
+                    try
+                    {
+                        record.record_reason = "End Level";
+                        String targetTeam = splitCommand[1];
+                        DebugWrite("target team: " + targetTeam, 6);
+                        if (targetTeam.ToLower().Contains("us"))
+                        {
+                            record.target_name = "US Team";
+                            record.target_guid = this.USTeamId + "";
+                            this.endLevel(record);
+                        }
+                        else if (targetTeam.ToLower().Contains("ru"))
+                        {
+                            record.target_name = "RU Team";
+                            record.target_guid = this.RUTeamId + "";
+                            this.endLevel(record);
+                        }
+                        else
+                        {
+                            this.playerSayMessage(record.source_name, "Use 'US' or 'RU' as team names to end round");
+                        }
+                        this.processRecord(record);
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format, use 'RU' or 'US' to end round.");
+                        return;
+                    }
+                    break;
+                case CAE_CommandType.RestartLevel:
+                    this.processRecord(record);
+                    break;
+                case CAE_CommandType.NextLevel:
+                    this.processRecord(record);
+                    break;
+                case CAE_CommandType.AdminSay:
+                    try
+                    {
+                        String adminMessage = splitCommand[1];
+                        DebugWrite("message: " + adminMessage, 6);
+                        record.target_name = "Server";
+                        record.target_guid = "Server";
+                        record.record_reason = adminMessage;
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format, no message given.");
+                        return;
+                    }
+                    this.processRecord(record);
+                    break;
+                case CAE_CommandType.AdminYell:
+                    try
+                    {
+                        String adminMessage = splitCommand[1];
+                        DebugWrite("message: " + adminMessage, 6);
+                        record.target_name = "Server";
+                        record.target_guid = "Server";
+                        record.record_reason = adminMessage;
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format, no message given.");
+                        return;
+                    }
+                    this.processRecord(record);
+                    break;
+                case CAE_CommandType.PlayerSay:
+                    try
+                    {
+                        record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
+                        DebugWrite("target: " + record.target_name, 6);
+                        record.record_reason = message;
+                        DebugWrite("message: " + record.record_reason, 6);
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format or no message given, unable to submit.");
+                        return;
+                    }
+                    findFullPlayerName(record);
+                    break;
+                case CAE_CommandType.PlayerYell:
+                    try
+                    {
+                        record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
+                        DebugWrite("target: " + record.target_name, 6);
+                        record.record_reason = message;
+                        DebugWrite("message: " + record.record_reason, 6);
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format or no message given, unable to submit.");
+                        return;
+                    }
+                    findFullPlayerName(record);
+                    break;
+                case CAE_CommandType.ConfirmCommand:
                     CAE_Record recordAttempt = null;
                     this.actionAttemptList.TryGetValue(speaker, out recordAttempt);
                     if (recordAttempt != null)
@@ -1122,13 +1430,24 @@ namespace PRoConEvents
                         this.processRecord(recordAttempt);
                     }
                     return;
-                case CAE_CommandType.No:
+                case CAE_CommandType.CancelCommand:
                     this.actionAttemptList.Remove(speaker);
                     return;
                 default:
                     return;
             }
+            return;
+        }
 
+        private CAE_CommandType getCommand(string commandString)
+        {
+            CAE_CommandType command = CAE_CommandType.Default;
+            this.CAE_CommandStrings.TryGetValue(commandString, out command);
+            return command;
+        }
+
+        public void findFullPlayerName(CAE_Record record)
+        {
             //Check if player exists in the game, or suggest a player
             foreach (CPlayerInfo playerInfo in this.playerList)
             {
@@ -1149,23 +1468,16 @@ namespace PRoConEvents
                     record.target_name = playerInfo.SoldierName;
                     record.targetPlayerInfo = playerInfo;
                     //Send record to attempt list
-                    this.playerSayMessage(speaker, "Did you mean: " + playerInfo.SoldierName + "?");
-                    this.actionAttemptList.Remove(speaker);
-                    this.actionAttemptList.Add(speaker, record);
+                    this.playerSayMessage(record.source_name, "Did you mean: " + playerInfo.SoldierName + "?");
+                    this.actionAttemptList.Remove(record.source_name);
+                    this.actionAttemptList.Add(record.source_name, record);
                     return;
                 }
             }
             //No player found
             DebugWrite("player not found", 6);
-            this.playerSayMessage(speaker, "Player not found.");
+            this.playerSayMessage(record.source_name, "Player not found.");
             return;
-        }
-
-        private CAE_CommandType getCommand(string commandString)
-        {
-            CAE_CommandType command = CAE_CommandType.Default;
-            this.CAE_CommandStrings.TryGetValue(commandString, out command);
-            return command;
         }
 
         private void processRecord(CAE_Record record)
@@ -1183,7 +1495,7 @@ namespace PRoConEvents
                     //Upload Record
                     this.uploadRecord(record);
                     break;
-                case CAE_CommandType.MoveSelf:
+                case CAE_CommandType.Teamswap:
                     this.forceMoveTarget(record);
                     //Upload Record
                     this.uploadRecord(record);
@@ -1203,7 +1515,7 @@ namespace PRoConEvents
                     //Upload Record
                     this.uploadRecord(record);
                     break;
-                case CAE_CommandType.BanPlayer:
+                case CAE_CommandType.PermabanPlayer:
                     this.permaBanTarget(record, "");
                     //Upload Record
                     this.uploadRecord(record);
@@ -1222,6 +1534,7 @@ namespace PRoConEvents
                     }
                     break;
                 case CAE_CommandType.ForgivePlayer:
+                    this.uploadRecord(record);
                     this.forgiveTarget(record);
                     break;
                 case CAE_CommandType.ReportPlayer:
@@ -1233,6 +1546,27 @@ namespace PRoConEvents
                     //Upload Record
                     this.uploadRecord(record);
                     this.callAdminOnTarget(record);
+                    break;
+                case CAE_CommandType.RestartLevel:
+                    this.restartLevel(record);
+                    break;
+                case CAE_CommandType.NextLevel:
+                    this.nextLevel(record);
+                    break;
+                case CAE_CommandType.EndLevel:
+                    this.endLevel(record);
+                    break;
+                case CAE_CommandType.AdminSay:
+                    this.adminSay(record);
+                    break;
+                case CAE_CommandType.PlayerSay:
+                    this.playerSay(record);
+                    break;
+                case CAE_CommandType.AdminYell:
+                    this.adminYell(record);
+                    break;
+                case CAE_CommandType.PlayerYell:
+                    this.playerYell(record);
                     break;
                 default:
                     break;
@@ -1252,7 +1586,7 @@ namespace PRoConEvents
         {
             this.DebugWrite("Entering forceMoveTarget", 6);
 
-            if (record.record_type == CAE_CommandType.MoveSelf)
+            if (record.record_type == CAE_CommandType.Teamswap)
             {
                 if (this.isAdmin(record.source_name) || ((this.teamSwapTicketWindowHigh >= this.highestTicketCount) && (this.teamSwapTicketWindowLow <= this.lowestTicketCount)))
                 {
@@ -1392,23 +1726,126 @@ namespace PRoConEvents
             this.playerSayMessage(record.source_name, "Admin call sent on " + record.target_name + " for " + record.record_reason);
         }
 
+        public void restartLevel(CAE_Record record)
+        {
+            this.ExecuteCommand("procon.protected.send", "mapList.restartRound");
+        }
+
+        public void nextLevel(CAE_Record record)
+        {
+            this.ExecuteCommand("procon.protected.send", "mapList.runNextRound");
+        }
+
+        public void endLevel(CAE_Record record)
+        {
+            this.ExecuteCommand("procon.protected.send", "mapList.endRound", record.target_guid);
+        }
+
+        public void playerSay(CAE_Record record)
+        {
+            this.playerSayMessage(record.target_name, record.record_reason);
+        }
+
+        public void adminSay(CAE_Record record)
+        {
+            this.ExecuteCommand("procon.protected.send", "admin.say", record.record_reason, "all");
+        }
+
+        public void adminYell(CAE_Record record)
+        {
+            this.ExecuteCommand("procon.protected.send", "admin.yell", record.record_reason, this.m_strShowMessageLength, "all");
+        }
+
+        public void playerYell(CAE_Record record)
+        {
+            this.ExecuteCommand("procon.protected.send", "admin.yell", record.record_reason, this.m_strShowMessageLength, "player", record.target_name);
+        }
+
         #endregion
 
         #region MySQL Methods
 
+        private Boolean connectionCapable()
+        {
+            if ((this.mySqlDatabaseName != null && this.mySqlDatabaseName.Length > 0) && 
+                (this.mySqlHostname != null && this.mySqlHostname.Length > 0) && 
+                (this.mySqlPassword != null && this.mySqlPassword.Length > 0) &&
+                (this.mySqlPort != null && this.mySqlPort.Length > 0) && 
+                (this.mySqlUsername != null && this.mySqlUsername.Length > 0))
+            {
+                this.DebugWrite("MySql Connection capable. All variables in place.", 6);
+                return true;
+            }
+            return false;
+        }
+
+        private void connectToDatabase()
+        {
+            DebugWrite("connectToDatabase starting!", 6);
+            if (this.connectionCapable())
+            {
+                //Close current connection if it exists
+                if (this.databaseConnection != null)
+                {
+                    this.DebugWrite("Closing current connection.", 0);
+                    this.databaseConnection.Close();
+                    this.databaseConnection = null;
+                }
+                this.DebugWrite("Attempting new database connection.", 0);
+                //Prepare the connection string and create the connection object
+                String connectionString = this.PrepareMySqlConnectionString();
+                this.databaseConnection = new MySqlConnection(connectionString);
+                try
+                {
+                    //Attempt to open the connection to database
+                    this.databaseConnection.Open();
+                    //Attempt a ping through the connection
+                    if (this.databaseConnection.Ping())
+                    {
+                        //Connection good
+                        this.DebugWrite("Database connection SUCCESS.", 0);
+                        //Fetch admin lists if needed
+                        this.fetchAccessLists();
+                    }
+                    else
+                    {
+                        //Connection poor
+                        this.DebugWrite("Database connection FAILED ping test. Current settings: " + connectionString, 0);
+                    }
+                }
+                catch (Exception e)
+                {   
+                    //Invalid credentials or no connection to database
+                    this.DebugWrite("Database connection FAILED with EXCEPTION. Probably bad credentials. Current settings: " + connectionString, 0);
+                }
+            }
+            else
+            {
+                this.DebugWrite("Not DB connection capable yet, complete sql connection variables.", 3);
+            }
+            DebugWrite("connectToDatabase finished!", 6);
+        }
+
+        private void fetchAccessLists()
+        {
+            if (this.useDatabaseAdminList)
+            {
+                this.fetchAdminList();
+            }
+            if (this.useDatabaseWhitelist)
+            {
+                this.fetchTeamswapWhitelist();
+            }
+        }
+
         private string PrepareMySqlConnectionString()
         {
-            return "Server=" + mySqlHostname + ";Port=" + mySqlPort + ";Database=" + mySqlDatabase + ";Uid=" + mySqlUsername + ";Pwd=" + mySqlPassword + ";";
+            return "Server=" + mySqlHostname + ";Port=" + mySqlPort + ";Database=" + this.mySqlDatabaseName + ";Uid=" + mySqlUsername + ";Pwd=" + mySqlPassword + ";";
         }
 
         private void uploadRecord(CAE_Record record)
         {
             DebugWrite("postRecord starting!", 6);
-
-            if (this.databaseConnection == null)
-            {
-                this.databaseConnection = new MySqlConnection(PrepareMySqlConnectionString());
-            }
 
             Boolean success = false;
             try
@@ -1418,7 +1855,7 @@ namespace PRoConEvents
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
                         //Set the insert command structure
-                        command.CommandText = "INSERT INTO `" + mySqlDatabase + "`.`cae_records` (`server_id`, `record_type`, `record_durationMinutes`,`target_guid`, `target_name`, `source_name`, `record_reason`, `record_time`) VALUES (@server_id, @record_type, @record_durationMinutes, @target_guid, @target_name, @source_name, @record_reason, @record_time)";
+                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`cae_records` (`server_id`, `record_type`, `record_durationMinutes`,`target_guid`, `target_name`, `source_name`, `record_reason`, `record_time`) VALUES (@server_id, @record_type, @record_durationMinutes, @target_guid, @target_name, @source_name, @record_reason, @record_time)";
                         //Fill the command
                         DebugWrite(record.target_guid, 6);
                         command.Parameters.AddWithValue("@server_id", record.server_id);
@@ -1469,11 +1906,6 @@ namespace PRoConEvents
         {
             DebugWrite("canUploadRecord starting!", 6);
 
-            if (this.databaseConnection == null)
-            {
-                this.databaseConnection = new MySqlConnection(PrepareMySqlConnectionString());
-            }
-
             try
             {
                 using (this.databaseConnection)
@@ -1481,7 +1913,7 @@ namespace PRoConEvents
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
                         //command.CommandText = "select latest_time from (select record_time as `latest_time` from `" + this.mySqlDatabase + "`.`cae_records` where `cae_records`.`server_id` = " + record.server_id + " and `cae_records`.`record_type` = 'Punish' and `cae_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1) as temp where latest_time < (NOW() - INTERVAL '1' MINUTE)";
-                        command.CommandText = "select record_time as `latest_time` from `" + this.mySqlDatabase + "`.`cae_records` where `cae_records`.`server_id` = " + record.server_id + " and `cae_records`.`record_type` = 'Punish' and `cae_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1";
+                        command.CommandText = "select record_time as `latest_time` from `" + this.mySqlDatabaseName + "`.`cae_records` where `cae_records`.`server_id` = " + record.server_id + " and `cae_records`.`record_type` = 'Punish' and `cae_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1";
                         //Open the connection if needed
                         if (!this.databaseConnection.Ping())
                         {
@@ -1524,10 +1956,6 @@ namespace PRoConEvents
 
         private void uploadAction(CAE_Record record)
         {
-            if (this.databaseConnection == null)
-            {
-                this.databaseConnection = new MySqlConnection(PrepareMySqlConnectionString());
-            }
 
             Boolean success = false;
             try
@@ -1537,7 +1965,7 @@ namespace PRoConEvents
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
                         //Set the insert command structure
-                        command.CommandText = "INSERT INTO `" + mySqlDatabase + "`.`cae_actionlist` (`server_id`, `player_guid`, `player_name`) VALUES (@server_id, @player_guid, @player_name)";
+                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`cae_actionlist` (`server_id`, `player_guid`, `player_name`) VALUES (@server_id, @player_guid, @player_name)";
                         //Fill the command
                         command.Parameters.AddWithValue("@server_id", record.server_id);
                         command.Parameters.AddWithValue("@player_guid", record.target_guid);
@@ -1575,11 +2003,6 @@ namespace PRoConEvents
         {
             DebugWrite("fetchPoints starting!", 6);
 
-            if (this.databaseConnection == null)
-            {
-                this.databaseConnection = new MySqlConnection(PrepareMySqlConnectionString());
-            }
-
             int returnVal = -1;
 
             try
@@ -1588,7 +2011,7 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
-                        command.CommandText = "SELECT playername, playerguid, serverid, totalpoints FROM `" + this.mySqlDatabase + "`.`cae_playerpoints` WHERE `playerguid` = '" + player_guid + "' AND `serverid` = " + server_id;
+                        command.CommandText = "SELECT playername, playerguid, serverid, totalpoints FROM `" + this.mySqlDatabaseName + "`.`cae_playerpoints` WHERE `playerguid` = '" + player_guid + "' AND `serverid` = " + server_id;
                         //Open the connection if needed
                         if (!this.databaseConnection.Ping())
                         {
@@ -1619,11 +2042,6 @@ namespace PRoConEvents
         {
             DebugWrite("fetchAdminList starting!", 6);
 
-            if (this.databaseConnection == null)
-            {
-                this.databaseConnection = new MySqlConnection(PrepareMySqlConnectionString());
-            }
-
             List<string> tempAdminList = new List<string>();
 
             Boolean success = false;
@@ -1633,7 +2051,7 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
-                        command.CommandText = "SELECT name AS admin_name, eaguid AS admin_guid FROM `" + this.mySqlDatabase + "`.`tbl_adminlist`";
+                        command.CommandText = "SELECT name AS admin_name, eaguid AS admin_guid FROM `" + this.mySqlDatabaseName + "`.`tbl_adminlist`";
                         //Open the connection if needed
                         if (!this.databaseConnection.Ping())
                         {
@@ -1676,11 +2094,6 @@ namespace PRoConEvents
         {
             DebugWrite("fetchTeamswapWhitelist starting!", 6);
 
-            if (this.databaseConnection == null)
-            {
-                this.databaseConnection = new MySqlConnection(PrepareMySqlConnectionString());
-            }
-
             List<string> tempWhitelist = new List<string>();
 
             Boolean success = false;
@@ -1690,7 +2103,7 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
-                        command.CommandText = "SELECT player_name AS player_name FROM `" + this.mySqlDatabase + "`.`cae_teamswapwhitelist`";
+                        command.CommandText = "SELECT player_name AS player_name FROM `" + this.mySqlDatabaseName + "`.`cae_teamswapwhitelist`";
                         //Open the connection if needed
                         if (!this.databaseConnection.Ping())
                         {
@@ -1740,7 +2153,7 @@ namespace PRoConEvents
                     return this.isAdmin(player_name);
                 case CAE_CommandType.ForceMovePlayer:
                     return this.isAdmin(player_name);
-                case CAE_CommandType.MoveSelf:
+                case CAE_CommandType.Teamswap:
                     if (this.isAdmin(player_name))
                     {
                         return true;
@@ -1759,7 +2172,7 @@ namespace PRoConEvents
                     return this.isAdmin(player_name);
                 case CAE_CommandType.TempBanPlayer:
                     return this.isAdmin(player_name);
-                case CAE_CommandType.BanPlayer:
+                case CAE_CommandType.PermabanPlayer:
                     return this.isAdmin(player_name);
                 case CAE_CommandType.PunishPlayer:
                     return this.isAdmin(player_name);
@@ -1769,9 +2182,23 @@ namespace PRoConEvents
                     return true;
                 case CAE_CommandType.CallAdmin:
                     return true;
-                case CAE_CommandType.Yes:
+                case CAE_CommandType.RestartLevel:
+                    return this.isAdmin(player_name);
+                case CAE_CommandType.NextLevel:
+                    return this.isAdmin(player_name);
+                case CAE_CommandType.EndLevel:
+                    return this.isAdmin(player_name);
+                case CAE_CommandType.AdminSay:
+                    return this.isAdmin(player_name);
+                case CAE_CommandType.PlayerSay:
+                    return this.isAdmin(player_name);
+                case CAE_CommandType.AdminYell:
+                    return this.isAdmin(player_name);
+                case CAE_CommandType.PlayerYell:
+                    return this.isAdmin(player_name);
+                case CAE_CommandType.ConfirmCommand:
                     return true;
-                case CAE_CommandType.No:
+                case CAE_CommandType.CancelCommand:
                     return true;
                 default:
                     this.DebugWrite("Command not recognized in hasAccess", 6);
@@ -1783,7 +2210,7 @@ namespace PRoConEvents
         {
             if (this.useDatabaseAdminList)
             {
-                return (this.databaseAdminCache.Contains(player_name.ToLower()) || this.staticAdminCache.Contains(player_name.ToLower()));
+                return this.databaseAdminCache.Contains(player_name.ToLower());
             }
             else
             {
@@ -1795,7 +2222,7 @@ namespace PRoConEvents
         {
             if (this.useDatabaseWhitelist)
             {
-                return (this.databaseWhitelistCache.Contains(player_name.ToLower()) || this.staticWhitelistCache.Contains(player_name.ToLower()));
+                return this.databaseWhitelistCache.Contains(player_name.ToLower());
             }
             else
             {
@@ -1950,4 +2377,3 @@ namespace PRoConEvents
 
     } // end xADKAdminTools
 } // end namespace PRoConEvents
-
