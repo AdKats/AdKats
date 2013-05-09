@@ -1095,24 +1095,35 @@ namespace PRoConEvents
             }
             record.source_name = speaker;
 
-            //Add other general data
+            //Add general data
             record.source_name = speaker;
             record.server_id = this.serverID;
             record.record_time = DateTime.Now;
-
             //Add specific data based on type
             switch (record.record_type)
             {
+                //No command actions should be acted on here. This section prepares the record for upload. Only actions to be taken here are messaging to inform of invalid commands.
+                //Items that need filling before calling processRecord:
+                //target_name
+                //target_guid
+                //record_reason
+
+                #region MovePlayer
                 case CAE_CommandType.MovePlayer:
+                    record.target_guid = "";
+                    record.target_name = "";
+                    record.record_reason = "";
                     this.playerSayMessage(speaker, "Use force move.");
                     return;
                     break;
+                #endregion
+                #region ForceMovePlayer
                 case CAE_CommandType.ForceMovePlayer:
                     try
                     {
                         record.target_name = splitCommand[1];
                         DebugWrite("target: " + record.target_name, 6);
-                        record.record_reason = "FORCE MOVE";
+                        record.record_reason = "ForceMove";
                     }
                     catch (Exception e)
                     {
@@ -1120,13 +1131,19 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Invalid command format, unable to submit.");
                         return;
                     }
+                    //Sets target_guid and completes target_name, then calls processRecord
                     findFullPlayerName(record);
                     break;
+                #endregion
+                #region Teamswap
                 case CAE_CommandType.Teamswap:
                     record.target_name = speaker;
-                    record.record_reason = "TEAMSWAP";
-                    this.processRecord(record);
+                    record.record_reason = "TeamSwap";
+                    //Sets target_guid and completes target_name, then calls processRecord
+                    findFullPlayerName(record);
                     break;
+                #endregion
+                #region KillPlayer
                 case CAE_CommandType.KillPlayer:
                     try
                     {
@@ -1150,6 +1167,8 @@ namespace PRoConEvents
                     }
                     findFullPlayerName(record);
                     break;
+                #endregion
+                #region KickPlayer
                 case CAE_CommandType.KickPlayer:
                     try
                     {
@@ -1173,6 +1192,8 @@ namespace PRoConEvents
                     }
                     findFullPlayerName(record);
                     break;
+                #endregion
+                #region TempBanPlayer
                 case CAE_CommandType.TempBanPlayer:
                     try
                     {
@@ -1201,6 +1222,8 @@ namespace PRoConEvents
                     }
                     findFullPlayerName(record);
                     break;
+                #endregion
+                #region PermabanPlayer
                 case CAE_CommandType.PermabanPlayer:
                     try
                     {
@@ -1224,6 +1247,8 @@ namespace PRoConEvents
                     }
                     findFullPlayerName(record);
                     break;
+                #endregion
+                #region PunishPlayer
                 case CAE_CommandType.PunishPlayer:
                     try
                     {
@@ -1247,6 +1272,8 @@ namespace PRoConEvents
                     }
                     findFullPlayerName(record);
                     break;
+                #endregion
+                #region ForgivePlayer
                 case CAE_CommandType.ForgivePlayer:
                     try
                     {
@@ -1270,6 +1297,8 @@ namespace PRoConEvents
                     }
                     findFullPlayerName(record);
                     break;
+                #endregion
+                #region ReportPlayer
                 case CAE_CommandType.ReportPlayer:
                     try
                     {
@@ -1293,6 +1322,8 @@ namespace PRoConEvents
                     }
                     findFullPlayerName(record);
                     break;
+                #endregion
+                #region CallAdmin
                 case CAE_CommandType.CallAdmin:
                     try
                     {
@@ -1316,6 +1347,8 @@ namespace PRoConEvents
                     }
                     findFullPlayerName(record);
                     break;
+                #endregion
+                #region EndLevel
                 case CAE_CommandType.EndLevel:
                     try
                     {
@@ -1347,12 +1380,18 @@ namespace PRoConEvents
                         return;
                     }
                     break;
+                #endregion
+                #region RestartLevel
                 case CAE_CommandType.RestartLevel:
                     this.processRecord(record);
                     break;
+                #endregion
+                #region NextLevel
                 case CAE_CommandType.NextLevel:
                     this.processRecord(record);
                     break;
+                #endregion
+                #region AdminSay
                 case CAE_CommandType.AdminSay:
                     try
                     {
@@ -1370,6 +1409,8 @@ namespace PRoConEvents
                     }
                     this.processRecord(record);
                     break;
+                #endregion
+                #region AdminYell
                 case CAE_CommandType.AdminYell:
                     try
                     {
@@ -1387,6 +1428,8 @@ namespace PRoConEvents
                     }
                     this.processRecord(record);
                     break;
+                #endregion
+                #region PlayerSay
                 case CAE_CommandType.PlayerSay:
                     try
                     {
@@ -1404,6 +1447,8 @@ namespace PRoConEvents
                     }
                     findFullPlayerName(record);
                     break;
+                #endregion
+                #region PlayerYell
                 case CAE_CommandType.PlayerYell:
                     try
                     {
@@ -1421,6 +1466,8 @@ namespace PRoConEvents
                     }
                     findFullPlayerName(record);
                     break;
+                #endregion
+                #region ConfirmCommand
                 case CAE_CommandType.ConfirmCommand:
                     CAE_Record recordAttempt = null;
                     this.actionAttemptList.TryGetValue(speaker, out recordAttempt);
@@ -1430,9 +1477,12 @@ namespace PRoConEvents
                         this.processRecord(recordAttempt);
                     }
                     return;
+                #endregion
+                #region CancelCommand
                 case CAE_CommandType.CancelCommand:
                     this.actionAttemptList.Remove(speaker);
                     return;
+                #endregion
                 default:
                     return;
             }
