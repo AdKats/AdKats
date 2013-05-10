@@ -45,7 +45,10 @@ AdKats
     action here.<br/><br/>
 
     All commands which might lead to actions against players are required to have a reason entered, and will cancel if
-    no reason is given.
+    no reason is given. When deciding to use this system, 'punish' should be the only command used for player rule-breaking.
+    Other commands like kill, or kick are not counted since sometimes players ask to be kill, and admins kill/kick themselves to leave games.
+    Direct tban and ban are of course left in here for hacker/glitching situations, but that is the ONLY time they should be used.
+    (currently working on adding direct tban counter into this system though, it would immediately escalate the player's hierarchy to tban level)
 </p>
 <h3>Report/CallAdmin System</h3>
 <p>
