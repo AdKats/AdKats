@@ -1,13 +1,13 @@
 AdKats
 ======
 <p>
-    Advanced Admin Tool Set for A-Different-Kind, with database back-end.
+    Advanced Admin Tool Set for A-Different-Kind, with MySQL database back-end.
 </p>
 <h2>Description</h2>
 <h3>Main</h3>
 <p>
     This plugin should be used by groups with high traffic servers, with set rules, and many admins. It is a
-    database reflected admin tool that includes editable in-game commands, database reflected punishment and
+    MySQL database reflected admin tool that includes editable in-game commands, database reflected punishment and
     forgiveness, proper player report and admin call handling, and internal implementation of Teamswap.
 </p>
 <h3>Reason Behind Development</h3>
@@ -55,7 +55,7 @@ AdKats
 </p>
 <h3>Teamswap</h3>
 <p>
-    This plugin implements Teamswap. Teamswap is a server-smart player moving system. In this instance it's merged with
+    This plugin implements Teamswap. Teamswap is a server-smart player moving system. It's available as a separate plugin, but in this instance I've merged it with
     move and forcemove commands and offers two main benefits. Normally if the team a player gets @move'd or @fmove'd to
     is full then the command just fails, now they are dropped on a queue until a slot opens on that side. They can keep
     playing on their side until that slot opens, when it does they are immediately slain and moved over to fill it.
@@ -65,6 +65,13 @@ AdKats
     '@moveme' and the plugin will queue them. This is meant to be available to players outside the admin list, usually
     by paid usage to your community or to clan members only. Admins can also use '@moveme', and in their case it
     bypasses the ticket window restriction.
+</p>
+<h3>Performance</h3>
+<p>
+    There still needs to be more testing done in this section. However, I've designed it to be rather heavy when 
+    changing settings, but lighter when in use. All commands are stored in dictionaries so command meanings are parsed instantly when entered. 
+    Also during record parsing there is a hierarchy of checks the command goes through (specific to each command), 
+    if any of them fail the process ends immediately and informs the calling player of the error they made.
 </p>
 <h3>Available In-Game Commands</h3>
 <p>
@@ -176,7 +183,7 @@ Below are what the in-game commands format will be for all plugin functions. Com
     Access'</b> - Whether the 'moveme' command will require whitelisting. Admins are always allowed to use it.<br/>
 * <b>'Static Player Whitelist'</b> - Static list of players plugin-side that will be able to teamswap.<br/>
 * <b>'Use Database
-    Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Plugin must be disabled and re-enabled (or db settings changed) to update whitelist from database, admin names are cached in the plugin to save bandwidth.<br/>
+    Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Plugin must be disabled and re-enabled (or db settings changed) to update whitelist from database, whitelisted names are cached in the plugin to save bandwidth.<br/>
 * <b>'Ticket Window
     High'</b> - When either team is above this ticket count, then nobody (except admins) will be able to use teamswap.
 <br/>
