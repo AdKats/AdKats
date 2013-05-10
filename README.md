@@ -85,9 +85,9 @@ AdKats
     though, especially when you have to hold 40+ admins accountable for their actions.<br/><br/>
     <table>
         <tr>
-            <td><b>Command</b></td>
-            <td><b>Params</b></td>
-            <td><b>Access</b></td>
+            <td><b>----Command----</b></td>
+            <td><b>--------Params--------</b></td>
+            <td><b>----Access----</b></td>
             <td><b>Description</b></td>
         </tr>
         <tr>
