@@ -13,7 +13,7 @@ AdKats
 <h3>Reason Behind Development</h3>
 <p>
     Players who break rules over time usually don't end up doing it in front of the same admin twice, so minimal or
-    'incorrect' action is taken.
+    'incorrect' action is taken. 
     On very active servers with high player turn-around it's impossible for admins to track a player's history in their
     head, now the punish system tracks that instead and takes proper action based on a player's history.<br/><br/>
 
@@ -25,8 +25,8 @@ AdKats
     NOTE: This is NOT the player based punish/forgive system normally used for teamkilling, and is only usable by
     admins.<br/><br/>
 
-    When a player is 'punished' by an admin a log is made in the database (increasing points by 1), their total points
-    are calculated, then an action decided from the punishment hierarchy. Punishments should get more harsh as the
+    When a player is 'punished' by an admin a log is made in the database, their total points
+    are calculated (+Punishments - Forgivenesses = Total Points), then an action decided from the punishment hierarchy. Punishments should get more harsh as the
     player gets more points. The punishment hierarchy is configurable to suit your needs. ADK is rather lenient with
     players, so there are 8 levels before a player is perma-banned in our version. Players may also be 'forgiven', which
     will reduce their total point value by 1 each time, this is useful if you have a website where players can apologize
@@ -383,5 +383,6 @@ Below are what the in-game commands format will be for all plugin functions. Com
     <h4>0.1.4 (10-MAY-2013)</h4>
     <b>Changes</b> <br/>
     * Fixed bugs in command logging interface and command setting initialization.<br/>
+    <br/>
     TODO 1: Add watchlist use.
 </blockquote>
