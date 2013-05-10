@@ -38,49 +38,12 @@ namespace PRoConEvents
         #region Variables
 
         // Enumerations
+        //Messaging
         public enum MessageTypeEnum { Warning, Error, Exception, Normal };
-
-        // General settings
-        private bool isEnabled;
-        private int debugLevel;
-        private int USTeamId = 1;
-        private int RUTeamId = 2;
-        private Boolean updating = false;
-        private CServerInfo serverInfo = null;
-
-        // Player Lists
-        Dictionary<string, CPlayerInfo> currentPlayers = new Dictionary<string, CPlayerInfo>();
-        List<CPlayerInfo> playerList = new List<CPlayerInfo>();
-        //Delayed move list
-        private List<CPlayerInfo> onDeathMoveList = new List<CPlayerInfo>();
-        //The list of players on RU wishing to move to US (This list takes first priority)
-        private Queue<CPlayerInfo> USMoveList = new Queue<CPlayerInfo>();
-        //the list of players on US wishing to move to RU (This list takes secondary)
-        private Queue<CPlayerInfo> RUMoveList = new Queue<CPlayerInfo>();
-        //player counts per team
-        private int USPlayerCount = 0;
-        private int RUPlayerCount = 0;
-
-        // Admin Settings
-        private Boolean useDatabaseAdminList = true;
-        private List<string> databaseAdminCache = new List<string>();
-        private List<string> staticAdminCache = new List<string>();
-
-        // MySQL Settings
-        public MySqlConnection databaseConnection = null;
-        public string mySqlHostname;
-        public string mySqlPort;
-        public string mySqlDatabaseName;
-        public string mySqlUsername;
-        public string mySqlPassword;
-
-        // Battlefield Server ID
-        private int serverID = -1;
-
-        //Static Enum of Possible Admin Commands
+        //Possible Admin Commands
         public enum ADKAT_CommandType
         {
-            //Case for use while parsing
+            //Case for use while parsing and handling errors
             Default,
             //Confirm or cancel a command
             ConfirmCommand,
@@ -108,18 +71,62 @@ namespace PRoConEvents
             PlayerSay,
             AdminYell,
             PlayerYell
-
         };
         //enum for player ban types
-        public enum BanTypes
+        public enum ADKAT_BanType
         {
             FrostbiteName,
             FrostbiteEaGuid,
             PunkbusterGuid
         };
+
+        // General settings
+        //Whether the plugin is enabled
+        private bool isEnabled;
+        //Current debug level
+        private int debugLevel;
+        //IDs of the two teams as the server understands it
+        private int USTeamId = 1;
+        private int RUTeamId = 2;
+        //Boolean used for archaic thread sync
+        private Boolean updating = false;
+        //All server info
+        private CServerInfo serverInfo = null;
+
+        // Player Lists
+        Dictionary<string, CPlayerInfo> currentPlayers = new Dictionary<string, CPlayerInfo>();
+        List<CPlayerInfo> playerList = new List<CPlayerInfo>();
+
+        //Teamswap
+        //Delayed move list
+        private List<CPlayerInfo> onDeathMoveList = new List<CPlayerInfo>();
+        //The list of players on RU wishing to move to US (This list takes first priority)
+        private Queue<CPlayerInfo> USMoveList = new Queue<CPlayerInfo>();
+        //the list of players on US wishing to move to RU (This list takes secondary)
+        private Queue<CPlayerInfo> RUMoveList = new Queue<CPlayerInfo>();
+        //player counts per team
+        private int USPlayerCount = 0;
+        private int RUPlayerCount = 0;
+
+        // Admin Settings
+        private Boolean useDatabaseAdminList = true;
+        private List<string> databaseAdminCache = new List<string>();
+        private List<string> staticAdminCache = new List<string>();
+
+        // MySQL Settings
+        public MySqlConnection databaseConnection = null;
+        public string mySqlHostname;
+        public string mySqlPort;
+        public string mySqlDatabaseName;
+        public string mySqlUsername;
+        public string mySqlPassword;
+
+        // Battlefield Server ID
+        private int serverID = -1;
+
         //current ban type
         private string m_strBanTypeOption = "Frostbite - Name";
-        private BanTypes m_banMethod;
+        private ADKAT_BanType m_banMethod;
 
         //Command Strings for Input
         //Player punishment
@@ -149,11 +156,11 @@ namespace PRoConEvents
         private string m_strConfirmCommand = "yes";
         private string m_strCancelCommand = "no";
         //Used to parse incoming commands quickly
-        public Dictionary<string, ADKAT_CommandType> ADKAT_CommandStrings = new Dictionary<string, ADKAT_CommandType>();
+        public Dictionary<string, ADKAT_CommandType> ADKAT_CommandStrings;
         //Database record types
-        public Dictionary<ADKAT_CommandType, string> ADKAT_RecordTypes = new Dictionary<ADKAT_CommandType, string>();
+        public Dictionary<ADKAT_CommandType, string> ADKAT_RecordTypes;
         //Logging settings
-        public Dictionary<ADKAT_CommandType, Boolean> ADKAT_LoggingSettings = new Dictionary<ADKAT_CommandType, Boolean>();
+        public Dictionary<ADKAT_CommandType, Boolean> ADKAT_LoggingSettings;
 
         //When a player partially completes a name, this dictionary holds those actions until player confirms action
         private Dictionary<string, ADKAT_Record> actionAttemptList = new Dictionary<string, ADKAT_Record>();
@@ -178,7 +185,7 @@ namespace PRoConEvents
         private int lowPopPlayerCount = 20;
         //Default required reason length
         private int requiredReasonLength = 5;
-        //Punishment Timeout
+        //Default punishment timeout in minutes
         private Double punishmentTimeout = 1.0;
 
         //TeamSwap Settings
@@ -205,6 +212,38 @@ namespace PRoConEvents
         {
             isEnabled = false;
             debugLevel = 2;
+
+            //Create command and logging dictionaries
+            this.ADKAT_CommandStrings = new Dictionary<string, ADKAT_CommandType>();
+            this.ADKAT_LoggingSettings = new Dictionary<ADKAT_CommandType, Boolean>();
+            //Fill command and logging dictionaries by calling rebind
+            this.rebindAllCommands();
+
+            //Create database dictionaries
+            this.ADKAT_RecordTypes = new Dictionary<ADKAT_CommandType, string>();
+            //Fill DB record types
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.KillPlayer, "Kill");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.KickPlayer, "Kick");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.TempBanPlayer, "TempBan");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PermabanPlayer, "PermaBan");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PunishPlayer, "Punish");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ForgivePlayer, "Forgive");
+
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.MovePlayer, "Move");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ForceMovePlayer, "ForceMove");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.Teamswap, "Teamswap");
+
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ReportPlayer, "Report");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.CallAdmin, "CallAdmin");
+
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.AdminSay, "AdminSay");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PlayerSay, "PlayerSay");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.AdminYell, "AdminYell");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PlayerYell, "PlayerYell");
+
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.RestartLevel, "RestartLevel");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.NextLevel, "NextLevel");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.EndLevel, "EndLevel");
         }
 
         #region Plugin details
@@ -216,7 +255,7 @@ namespace PRoConEvents
 
         public string GetPluginVersion()
         {
-            return "0.1.3";
+            return "0.1.4";
         }
 
         public string GetPluginAuthor()
@@ -232,251 +271,385 @@ namespace PRoConEvents
         public string GetPluginDescription()
         {
             return @"
-            <h1>ADKATs</h1> 
+            <h1>AdKats</h1>
+            <p>
+                Advanced Admin Tool Set for A-Different-Kind, with database back-end.
+            </p>
             <h2>Description</h2>
             <h3>Main</h3>
             <p>
-                This plugin should be used by groups who have high traffic servers, with set rules, and many admins. Players who break rules over time usually don't end up doing it in front of the same admin twice, so minimal or 'incorrect' action is taken. This fixes that issue, along with keeping all functionality of other admin tools (Aside from nuking teams).<br/><br/>
+                This plugin should be used by groups with high traffic servers, with set rules, and many admins. It is a
+                database reflected admin tool that includes editable in-game commands, database reflected punishment and
+                forgiveness, proper player report and admin call handling, and internal implementation of Teamswap.
+            </p>
+            <h3>Reason this was made</h3>
+            <p>
+                Players who break rules over time usually don't end up doing it in front of the same admin twice, so minimal or
+                'incorrect' action is taken.
+                On very active servers with high player turn-around it's impossible for admins to track a player's history in their
+                head, now the punish system tracks that instead and takes proper action based on a player's history.<br/><br/>
 
-                This plugin does NOT support votekick or voteban, punish/forgive for teamkilling, or other player-based actions. This is an admin tool.<br/><br/>
+                In general this combines simple in-game admin commands, player name completion, admin punish/forgive,
+                report/calladmin, and teamswap, into one plugin to reduce the load on your procon layer.
             </p>
             <h3>Punishment/Forgiveness system</h3>
             <p>
-                When a player is 'punished' a log is made in the database, their total points calculated, and then an action decided from the punishment hierarchy. Punishments get more harsh as the player gets more points, the punishment hierarchy is configurable to suit your needs. ADK is rather lenient with players, so there are 8 levels before a player is perma-banned in our version. Players may also be 'forgiven', which will reduce their total point value by 1 each time, this is useful if you have a website where players can apologize for their actions in-game.<br/><br/>
+                NOTE: This is NOT the player based punish/forgive system normally used for teamkilling, and is only usable by
+                admins.<br/><br/>
 
-                Logs can be made server specific (The case of running multiple servers with this plugin on the same database), meaning rule breaking on one server won't cause increase in punishments on another server for that same player. This is available since many groups run different rule sets on each server they own.<br/><br/>
+                When a player is 'punished' by an admin a log is made in the database (increasing points by 1), their total points
+                are calculated, then an action decided from the punishment hierarchy. Punishments should get more harsh as the
+                player gets more points. The punishment hierarchy is configurable to suit your needs. ADK is rather lenient with
+                players, so there are 8 levels before a player is perma-banned in our version. Players may also be 'forgiven', which
+                will reduce their total point value by 1 each time, this is useful if you have a website where players can apologize
+                for their actions in-game.<br/><br/>
 
-                If you have a procon-external system (such as a web-based tool with direct rcon connection for server control), then use the ActionList table by turning 'act on punishments' off. This will then send player Id's who need punishment (along with ID of the server they are in) to that table for your external system to act on, instead of taking action here.<br/><br/>
+                Logs can be made server specific (The case of running multiple servers with this plugin on the same database),
+                meaning rule breaking on one server won't cause increase in punishments on another server for that same player. This
+                is available since many groups run different rule sets on each server they own. You can set all servers to the same
+                ID for punishments to act across servers.<br/><br/>
 
-                All commands which might lead to actions against players are required to have a reason entered, and will cancel if no reason is given.<br/><br/>
+                If you have a procon-external system (such as a web-based tool with direct rcon connection for server control), then
+                use the ActionList table by turning 'act on punishments' off. The plugin will then send player Id's who need
+                punishment (along with the server they are in) to that table for your external system to act on, instead of taking
+                action here.<br/><br/>
+
+                All commands which might lead to actions against players are required to have a reason entered, and will cancel if
+                no reason is given.
             </p>
             <h3>Report/CallAdmin System</h3>
             <p>
-                All uses of @report and @admin with this plugin require players to enter a reason, and will tell them if they haven't entered one. When a player puts in a proper @report or @admin, all in-game admins are notified, then the report is logged in the database with full player names for both parties and the reason for reporting.<br/><br/>
+                All uses of @report and @admin with this plugin require players to enter a reason, and will tell them if they
+                haven't entered one. It will not send the report to admins unless it's in proper format. This cleans up what admins
+                end up seeing for reports, useful since ADK admins get reports and admin calls whether they are in-game or not. When
+                a player puts in a proper @report or @admin, all in-game admins are notified, then the report is logged in the
+                database with full player names for reporter/target, and the full reason for reporting.
             </p>
             <h3>Teamswap</h3>
             <p>
-                This plugin also implements Teamswap. Teamswap is a server-smart player moving system. In this instance it's merged with move and forcemove commands. If the team a player is being switched to is full they are dropped on a queue until a slot opens on that side. They can keep playing on their side until that slot opens, when it does they are immediately slain and moved over to fill it. It also allows whitelisted (non-admin) players the ability to move themselves between teams as often as they want (within a ticket count window). This is currently not an available option in default battlefield aside from procon commands, as the game itself limits players to one switch per gaming session. Whitelisted players can type '@moveme' and the plugin will queue them. This is meant to be available to players outside the admin list, usually by paid usage to your community. Admins can also use '@moveme', and in their case it bypasses the ticket window restriction.<br/>
+                This plugin implements Teamswap. Teamswap is a server-smart player moving system. In this instance it's merged with
+                move and forcemove commands and offers two main benefits. Normally if the team a player gets @move'd or @fmove'd to
+                is full then the command just fails, now they are dropped on a queue until a slot opens on that side. They can keep
+                playing on their side until that slot opens, when it does they are immediately slain and moved over to fill it.
+                Secondly it allows whitelisted (non-admin) players the ability to move themselves between teams as often as they
+                want (within a ticket count window). This is currently not an available option in default battlefield aside from
+                procon commands, as the game itself limits players to one switch per gaming session. Whitelisted players can type
+                '@moveme' and the plugin will queue them. This is meant to be available to players outside the admin list, usually
+                by paid usage to your community or to clan members only. Admins can also use '@moveme', and in their case it
+                bypasses the ticket window restriction.
+            </p>
+            <h3>Available In-Game Commands</h3>
+            <p>
+                <u><b>You can edit the text typed for each command to suit your needs in plugin settings.</b></u> Usage of all
+                commands is database logged by default, but each command can be told whether to log or not. Logging all is useful
+                though, especially when you have to hold 40+ admins accountable for their actions.<br/><br/>
+
+                * <b>'Kill Player [playername or partial] [reason]'</b> - The in-game command used for killing players.<br/>
+                * <b>'Kick Player [playername or partial] [reason]'</b> - The in-game command used for kicking players.<br/>
+                * <b>'Temp-Ban Player [minutes] [playername or partial] [reason]'</b> - The in-game command used temp-banning
+                players.<br/>
+                * <b>'Permaban Player [playername or partial] [reason]'</b> - The in-game command used for perma-banning
+                players.<br/>
+                * <b>'Punish Player [playername or partial] [reason]'</b> - The in-game command used for punishing players.<br/>
+                * <b>'Forgive Player [playername or partial] [reason]'</b> - The in-game command used for forgiving players.<br/>
+                * <b>'Move Player [playername or partial]'</b> - The in-game command used for moving players between teams. This
+                command will add players to a death move list, when they die they will be sent to teamswap.<br/>
+                * <b>'Force Move Player [playername or partial]'</b> - The in-game command used for force-moving players between
+                teams. This command will immediately send the given player to teamswap.<br/>
+                * <b>'Teamswap Self'</b> - The in-game command used for moving yourself between teams. Will immediately send the
+                speaker to teamswap.<br/>
+                * <b>'Report Player [playername or partial] [reason]'</b> - The in-game command used for reporting players. <br/>
+                * <b>'Call Admin on Player [playername or partial] [reason]'</b> - The in-game command used for calling admin
+                attention to a player.<br/>
+                * <b>'Admin Say [message]'</b> - The in-game command used to send a message through admin chat. <br/>
+                * <b>'Player Say [playername or partial] [message]'</b> - The in-game command used to send a message through admin
+                chat, to a specific player.<br/>
+                * <b>'Admin Yell [message]'</b> - The in-game command used for to send a message through admin yell. <br/>
+                * <b>'Player Yell [playername or partial] [message]'</b> - The in-game command used for to send a message through
+                admin yell, to a specific player.<br/>
+                * <b>'Restart Level'</b> - The in-game command used for restarting the round.<br/>
+                * <b>'Next Level'</b> - The in-game command used for running the next map. <br/>
+                * <b>'Confirm Command'</b> - The in-game command used for confirming other commands. <br/>
+                * <b>'Cancel Command'</b> - The in-game command used to cancel other commands<br/>
             </p>
             <h2>Settings</h2>
             <p>
-                <h3>Debugging Settings:</h3><br/>
-                * <b>'Debug level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step.</br></br>
-                <h3>Admin Settings:</h3><br/><br/>
-                * <b>'Use Database Admin List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Plugin must be restarted to update admin list from database.<br/></br>
-                * <b>'Static Admin List'</b> - List of admins input from plugin settings. Use if no admin database table. <br/></br>
-                <h3>MySQL Settings:</h3><br/>
-                * <b>'MySQL Hostname'</b> - Hostname of the MySQL-Server Cross-Admin Enforcer should connect to. <br/></br>
-                * <b>'MySQL Port'</b> - Port of the MySQL-Server Cross-Admin Enforcer should connect to. <br/></br>
-                * <b>'MySQL Database'</b> - Database Cross-Admin Enforcer should use for storage. Hardcoded table names and creation scripts given below. <br/></br>
-                * <b>'MySQL Username'</b> - Username of the MySQL-Server Cross-Admin Enforcer should connect to. <br/></br>
-                * <b>'MySQL Password'</b> - Password of the MySQL-Server Cross-Admin Enforcer should connect to. <br/></br>
-                <h3>Command Settings:</h3><br/>
-                Below are what the in-game commands will be for all plugin functions. All commands can be suffixed with '|log', this sets whether logs for that command will be sent to the database. Punish and Forgive commands require logging.<br/><br/>
-                * <b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason to execute.<br/>
-                * <b>'Yell display time seconds'</b> - The integer time in seconds that yell messages will displayed.<br/>
-                * <b>'Confirm Command'</b> - The in-game command used for confirming other commands. <br/>
-                * <b>'Cancel Command'</b> - The in-game command used to cancel other commands<br/>
-                * <b>'Kill Player [playername or partial] [reason]'</b> - The in-game command used for killing players.<br/>
-                * <b>'Kick Player [playername or partial] [reason]'</b> - The in-game command used for kicking players.<br/>
-                * <b>'Temp-Ban Player [minutes] [playername or partial] [reason]'</b> - The in-game command used temp-banning players.<br/>
-                * <b>'Permaban Player [playername or partial] [reason]'</b> - The in-game command used for perma-banning players.<br/>
-                * <b>'Punish Player [playername or partial] [reason]'</b> - The in-game command used for punishing players.<br/>
-                * <b>'Forgive Player [playername or partial] [reason]'</b> - The in-game command used for forgiving players.<br/>
-                * <b>'Move Player [playername or partial]'</b> - The in-game command used for moving players between teams. This command will add players to a death move list, when they die they will be sent to teamswap.<br/>
-                * <b>'Force Move Player [playername or partial]'</b> - The in-game command used for force moving players between teams. This command will immediately send the given player to teamswap.<br/>
-                * <b>'Teamswap Self'</b> - The in-game command used for moving yourself between teams. Will immediately send the speaker to teamswap.<br/>
-                * <b>'Report Player [playername or partial] [reason]'</b> - The in-game command used for reporting players. <br/>
-                * <b>'Call Admin on Player [playername or partial] [reason]'</b> - The in-game command used for calling admin attention to a player.<br/>
-                * <b>'Admin Say [message]'</b> - The in-game command used to send a message through admin chat. <br/>
-                * <b>'Player Say [playername or partial] [message]'</b> - The in-game command used to send a message through admin chat, to a specific player.<br/>
-                * <b>'Admin Yell [message]'</b> - The in-game command used for to send a message through admin yell. <br/>
-                * <b>'Player Yell [playername or partial] [message]'</b> - The in-game command used for to send a message through admin yell, to a specific player.<br/>
-                * <b>'Restart Level'</b> - The in-game command used for restarting the round.<br/>
-                * <b>'Next Level'</b> - The in-game command used for running the next map. <br/>
-                * <b>'End Level [RU or US]'</b> - The in-game command used for ending the match with a winning team.<br/>
-                <h3>Punishment Settings:</h3><br/>
-                * <b>'Act on Punishments'</b> - Whether the plugin should carry out punishments, or have an external source do it through adkat_actionlist.<br/></br>
-                * <b>'Punishment Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the action taken at that number of points.<br/></br>
-                * <b>'Minimum Reason Length'</b> - The minimum number of characters a reason must be to call punish or forgive on a player.<br/></br>
-                * <b>'Only Kill Players when Server in low population'</b> - When server population is below 'Low Server Pop Value', only kill players, so server does not empty. Player points will still be incremented normally.<br/></br>
-                * <b>'Low Server Pop Value'</b> - Number of players at which the server is deemed 'Low Population'.<br/></br>
-                * <b>'Punishment Timeout'</b> - A player cannot be punished more than once every x.xx minutes. This prevents multiple admins from punishing a player multiple times for the same infraction.<br/></br>
-                <h3>Server Settings:</h3><br/>
-                * <b>'Server ID'</b> - ID that will be used to identify this server in the database. This is not linked to any database attributes, instead it's used to differentiate between servers for infraction points.<br/>
-                <h3>Teamswap Settings:</h3><br/>
-                * <b>'Require Whitelist for Access'</b> - Whether the 'moveme' command will require whitelisting. Admins are always allowed to use it.<br/></br>
-                * <b>'Static Player Whitelist'</b> - Static list of players plugin-side that will be able to teamswap.<br/></br>
-                * <b>'Use Database Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting.<br/></br>
-                * <b>'Ticket Window High'</b> - When either team is above this ticket count, then nobody (except admins) will be able to teamswap.<br/></br>
-                * <b>'Ticket Window Low'</b> - When either team is below this ticket count, then nobody (except admins) will be able to teamswap.<br/></br>
+            <h3>Debugging Settings:</h3>
+            * <b>'Debug
+                level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step.
+            <h3>Admin Settings:</h3>
+            * <b>'Use Database Admin
+                List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Plugin must be disabled and re-enabled (or db settings changed) to update admin list from database, admin names are cached in the plugin to save bandwidth.<br/>
+            * <b>'Static Admin List'</b> - List of admins input from plugin settings. Use if no admin database table.
+            <h3>MySQL Settings:</h3>
+            * <b>'MySQL Hostname'</b> - Hostname of the MySQL-Server Cross-Admin Enforcer should connect to. <br/>
+            * <b>'MySQL Port'</b> - Port of the MySQL-Server Cross-Admin Enforcer should connect to. <br/>
+            * <b>'MySQL
+                Database'</b> - Database Cross-Admin Enforcer should use for storage. Hardcoded table names and creation scripts given below.<br/>
+            * <b>'MySQL Username'</b> - Username of the MySQL-Server Cross-Admin Enforcer should connect to. <br/>
+            * <b>'MySQL Password'</b> - Password of the MySQL-Server Cross-Admin Enforcer should connect to.
+            <h3>Command Settings:</h3>
+            Below are what the in-game commands format will be for all plugin functions. Command text is defined in each setting. All commands can be suffixed with '|log', this sets whether logs for that command will be sent to the database. Punish and Forgive commands require logging.
+            <br/><br/>
+            * <b>'Minimum Required Reason
+                Length'</b> - The minimum length a reason must be for commands that require a reason to execute.<br/>
+            * <b>'Yell display time seconds'</b> - The integer time in seconds that yell messages will displayed.<br/>
+            * <b>'Confirm Command'</b> - The in-game command used for confirming other commands. <br/>
+            * <b>'Cancel Command'</b> - The in-game command used to cancel other commands<br/>
+            * <b>'Kill Player [playername or partial] [reason]'</b> - The in-game command used for killing players.<br/>
+            * <b>'Kick Player [playername or partial] [reason]'</b> - The in-game command used for kicking players.<br/>
+            * <b>'Temp-Ban Player [minutes] [playername or partial] [reason]'</b> - The in-game command used temp-banning players.
+            <br/>
+            * <b>'Permaban Player [playername or partial] [reason]'</b> - The in-game command used for perma-banning players.<br/>
+            * <b>'Punish Player [playername or partial] [reason]'</b> - The in-game command used for punishing players.<br/>
+            * <b>'Forgive Player [playername or partial] [reason]'</b> - The in-game command used for forgiving players.<br/>
+            * <b>'Move Player [playername or
+                partial]'</b> - The in-game command used for moving players between teams. This command will add players to a death move list, when they die they will be sent to teamswap.
+            <br/>
+            * <b>'Force Move Player [playername or
+                partial]'</b> - The in-game command used for force moving players between teams. This command will immediately send the given player to teamswap.
+            <br/>
+            * <b>'Teamswap
+                Self'</b> - The in-game command used for moving yourself between teams. Will immediately send the speaker to teamswap.
+            <br/>
+            * <b>'Report Player [playername or partial] [reason]'</b> - The in-game command used for reporting players. <br/>
+            * <b>'Call Admin on Player [playername or partial]
+                [reason]'</b> - The in-game command used for calling admin attention to a player.<br/>
+            * <b>'Admin Say [message]'</b> - The in-game command used to send a message through admin chat. <br/>
+            * <b>'Player Say [playername or partial]
+                [message]'</b> - The in-game command used to send a message through admin chat, to a specific player.<br/>
+            * <b>'Admin Yell [message]'</b> - The in-game command used for to send a message through admin yell. <br/>
+            * <b>'Player Yell [playername or partial]
+                [message]'</b> - The in-game command used for to send a message through admin yell, to a specific player.<br/>
+            * <b>'Restart Level'</b> - The in-game command used for restarting the round.<br/>
+            * <b>'Next Level'</b> - The in-game command used for running the next map. <br/>
+            * <b>'End Level [RU or US]'</b> - The in-game command used for ending the match with a winning team.<br/>
+            <h3>Punishment Settings:</h3>
+            * <b>'Act on
+                Punishments'</b> - Whether the plugin should carry out punishments, or have an external source do it through adkat_actionlist.
+            <br/>
+            * <b>'Punishment
+                Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the action taken at that number of points.
+            <br/>
+            * <b>'Minimum Reason
+                Length'</b> - The minimum number of characters a reason must be to call punish or forgive on a player.<br/>
+            * <b>'Only Kill Players when Server in low
+                population'</b> - When server population is below 'Low Server Pop Value', only kill players, so server does not empty. Player points will still be incremented normally.
+            <br/>
+            * <b>'Low Server Pop Value'</b> - Number of players at which the server is deemed 'Low Population'.<br/>
+            * <b>'Punishment
+                Timeout'</b> - A player cannot be punished more than once every x.xx minutes. This prevents multiple admins from punishing a player multiple times for the same infraction.
+            <h3>Server Settings:</h3>
+            * <b>'Server
+                ID'</b> - ID that will be used to identify this server in the database. This is not linked to any database attributes, instead it's used to differentiate between servers for infraction points.
+            <br/>
+            <h3>Teamswap Settings:</h3>
+            * <b>'Require Whitelist for
+                Access'</b> - Whether the 'moveme' command will require whitelisting. Admins are always allowed to use it.<br/>
+            * <b>'Static Player Whitelist'</b> - Static list of players plugin-side that will be able to teamswap.<br/>
+            * <b>'Use Database
+                Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Plugin must be disabled and re-enabled (or db settings changed) to update whitelist from database, admin names are cached in the plugin to save bandwidth.<br/>
+            * <b>'Ticket Window
+                High'</b> - When either team is above this ticket count, then nobody (except admins) will be able to use teamswap.
+            <br/>
+            * <b>'Ticket Window
+                Low'</b> - When either team is below this ticket count, then nobody (except admins) will be able to use teamswap.
             </p>
             <h2>Default Punishment Levels by Point</h2>
             <p>
-                Action decided after player is punished, and their points incremented.</br></br>
-                * 1 point  - Player Killed. </br>
-                * 2 points - Player Killed. </br>
-                * 3 points - Player Kicked. </br>
-                * 4 points - Player Kicked. </br>
-                * 5 points - Player Temp Banned for 60 minutes. </br>
-                * 6 points - Player Temp Banned for 60 minutes. </br>
-                * 7 points - Player Temp Banned for 1 week. </br>
-                * 8 points - Player Temp Banned for 1 week. </br>
-                * 9 points - Player Perma-Banned. </br>
-            </p>
-            <h2>Current In-Game player Commands</h2>
-            <p>
-                See settings section for command list.
-            </p>
-            <h2>Development</h2>
-            <p>
-                Started by ColColonCleaner for ADK Gamers on Apr. 20, 2013</br>
+                Action decided after player is punished, and their points incremented.<br/><br/>
+                * 1 point - Player Killed. <br/>
+                * 2 points - Player Killed. <br/>
+                * 3 points - Player Kicked. <br/>
+                * 4 points - Player Kicked. <br/>
+                * 5 points - Player Temp-Banned for 60 minutes. <br/>
+                * 6 points - Player Temp-Banned for 60 minutes. <br/>
+                * 7 points - Player Temp-Banned for 1 week. <br/>
+                * 8 points - Player Temp-Banned for 1 week. <br/>
+                * 9 points - Player Perma-Banned. <br/>
             </p>
             <h2>Database Tables and Views</h2>
             <p>
                 Main record table is the following:<br/>
                 <br/>
                 CREATE TABLE `adkat_records` (<br/>
-                  `record_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
-                  `server_id` int(11) NOT NULL,<br/>
-                  `command_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','Ban','Punish','Forgive','Report','CallAdmin') NOT NULL,<br/>
-                  `record_durationMinutes` int(11) NOT NULL,<br/>
-                  `target_guid` varchar(100) NOT NULL,<br/>
-                  `target_name` varchar(45) NOT NULL,<br/>
-                  `source_name` varchar(45) NOT NULL,<br/>
-                  `record_message` varchar(100) NOT NULL,<br/>
-                  `record_time` datetime NOT NULL,<br/>
-                  PRIMARY KEY (`record_id`)<br/>
+                `record_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
+                `server_id` int(11) NOT NULL,<br/>
+                `command_type`
+                enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','Ban','Punish','Forgive','Report','CallAdmin') NOT
+                NULL,<br/>
+                `record_durationMinutes` int(11) NOT NULL,<br/>
+                `target_guid` varchar(100) NOT NULL,<br/>
+                `target_name` varchar(45) NOT NULL,<br/>
+                `source_name` varchar(45) NOT NULL,<br/>
+                `record_message` varchar(100) NOT NULL,<br/>
+                `record_time` datetime NOT NULL,<br/>
+                PRIMARY KEY (`record_id`)<br/>
                 );<br/>
                 <br/>
                 Action List table is the following:<br/>
                 <br/>
                 CREATE TABLE `adkat_actionlist` (<br/>
-                  `action_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
-                  `server_id` int(11) NOT NULL,<br/>
-                  `player_guid` varchar(100) NOT NULL,<br/>
-                  `player_name` varchar(45) NOT NULL,<br/>
-                  PRIMARY KEY (`action_id`)<br/>
+                `action_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
+                `server_id` int(11) NOT NULL,<br/>
+                `player_guid` varchar(100) NOT NULL,<br/>
+                `player_name` varchar(45) NOT NULL,<br/>
+                PRIMARY KEY (`action_id`)<br/>
                 );<br/>
                 <br/>
                 Admin table is the following:<br/>
                 <br/>
                 CREATE TABLE `adminlist` (<br/>
-                  `name` varchar(255) NOT NULL,<br/>
-                  `uniqueid` varchar(32) NOT NULL COMMENT 'GUID',<br/>
-                  PRIMARY KEY (`uniqueid`)<br/>
+                `name` varchar(255) NOT NULL,<br/>
+                `uniqueid` varchar(32) NOT NULL COMMENT 'GUID',<br/>
+                PRIMARY KEY (`uniqueid`)<br/>
                 );<br/>
                 <br/>
                 Teamswap whitelist is the following:<br/>
                 <br/>
                 CREATE TABLE `adkat_teamswapwhitelist` (<br/>
-                  `player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',<br/>
-                  PRIMARY KEY (`player_name`),<br/>
-                  UNIQUE KEY `player_name_UNIQUE` (`player_name`)<br/>
+                `player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',<br/>
+                PRIMARY KEY (`player_name`),<br/>
+                UNIQUE KEY `player_name_UNIQUE` (`player_name`)<br/>
                 );<br/>
                 <br/>
                 Server table is the following:<br/>
                 <br/>
                 CREATE TABLE `tbl_server` (<br/>
-                  `ServerID` smallint(5) unsigned NOT NULL AUTO_INCREMENT,<br/>
-                  `ServerGroup` tinyint(3) unsigned NOT NULL DEFAULT '0',<br/>
-                  `IP_Address` varchar(45) DEFAULT NULL,<br/>
-                  `ServerName` varchar(200) DEFAULT NULL,<br/>
-                  `usedSlots` smallint(5) unsigned DEFAULT '0',<br/>
-                  `maxSlots` smallint(5) unsigned DEFAULT '0',<br/>
-                  `mapName` varchar(45) DEFAULT NULL,<br/>
-                  `fullMapName` text,<br/>
-                  `Gamemode` varchar(45) DEFAULT NULL,<br/>
-                  `GameMod` varchar(45) DEFAULT NULL,<br/>
-                  `PBversion` varchar(45) DEFAULT NULL,<br/>
-                  `ConnectionState` varchar(45) DEFAULT NULL,<br/>
-                  PRIMARY KEY (`ServerID`),<br/>
-                  UNIQUE KEY `IP_Address_UNIQUE` (`IP_Address`),<br/>
-                  KEY `INDEX_SERVERGROUP` (`ServerGroup`),<br/>
-                  KEY `IP_Address` (`IP_Address`)<br/>
+                `ServerID` smallint(5) unsigned NOT NULL AUTO_INCREMENT,<br/>
+                `ServerGroup` tinyint(3) unsigned NOT NULL DEFAULT '0',<br/>
+                `IP_Address` varchar(45) DEFAULT NULL,<br/>
+                `ServerName` varchar(200) DEFAULT NULL,<br/>
+                `usedSlots` smallint(5) unsigned DEFAULT '0',<br/>
+                `maxSlots` smallint(5) unsigned DEFAULT '0',<br/>
+                `mapName` varchar(45) DEFAULT NULL,<br/>
+                `fullMapName` text,<br/>
+                `Gamemode` varchar(45) DEFAULT NULL,<br/>
+                `GameMod` varchar(45) DEFAULT NULL,<br/>
+                `PBversion` varchar(45) DEFAULT NULL,<br/>
+                `ConnectionState` varchar(45) DEFAULT NULL,<br/>
+                PRIMARY KEY (`ServerID`),<br/>
+                UNIQUE KEY `IP_Address_UNIQUE` (`IP_Address`),<br/>
+                KEY `INDEX_SERVERGROUP` (`ServerGroup`),<br/>
+                KEY `IP_Address` (`IP_Address`)<br/>
                 );<br/>
                 <br/>
                 Player List View is the following:<br/>
                 <br/>
-                CREATE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by `adkat_records`.`target_name`;<br/>
+                CREATE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS
+                `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from
+                `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by
+                `adkat_records`.`target_name`;<br/>
                 <br/>
                 Current Player Points View is the following:<br/>
                 <br/>
-                CREATE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints` from `adkat_playerlist`;<br/>
+                CREATE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS
+                `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select
+                count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and
+                (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` =
+                `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from
+                `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` =
+                `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS
+                `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where
+                ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
+                and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`)
+                from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` =
+                `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS
+                `totalpoints` from `adkat_playerlist`;<br/>
                 <br/>
                 Current Player Reports and Admin calls is shown with the following:<br/>
                 <br/>
-                CREATE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));<br/>
+                CREATE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS
+                `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS
+                `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS
+                `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS
+                `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where
+                ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));<br/>
                 <br/>
-                ALL THE ABOVE NEED TO BE RUN IN THIS ORDER. Once the views are done a constant tally of player points can be seen from your external systems. <br/>
+                ALL THE ABOVE NEED TO BE RUN IN THIS ORDER. Once the views are done a constant tally of player points can be seen
+                from your external systems. <br/>
                 <br/>
                 <br/>
                 Additional View if you want it:<br/>
                 <br/>
-                CREATE VIEW `adkat_naughtylist` AS select (select `tbl_server`.`ServerName` from `tbl_server` where (`tbl_server`.`ServerID` = `adkat_playerpoints`.`serverid`)) AS `server_name`,`adkat_playerpoints`.`playername` AS `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;<br/>
+                CREATE VIEW `adkat_naughtylist` AS select (select `tbl_server`.`ServerName` from `tbl_server` where
+                (`tbl_server`.`ServerID` = `adkat_playerpoints`.`serverid`)) AS `server_name`,`adkat_playerpoints`.`playername` AS
+                `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where
+                (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;<br/>
+            </p>
+            <h2>Development</h2>
+            <p>
+                Started by ColColonCleaner for ADK Gamers on Apr. 20, 2013
             </p>
             <h3>Changelog</h3>
             <blockquote>
                 <h4>0.0.1 (20-APR-2013)</h4>
-	                <b>Main: </b>          <br/>
-                        Initial Version          <br/>
+                <b>Main: </b> <br/>
+                Initial Version <br/>
                 <h4>0.0.2 (25-APR-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * Added plugin-side punishment. <br/>
-                        * Initial DB test, tables updated. <br/>
+                <b>Changes</b> <br/>
+                * Added plugin-side punishment. <br/>
+                * Initial DB test, tables updated. <br/>
                 <h4>0.0.3 (28-APR-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * In-game commands no longer case sensitive. <br/>
-                        * External DB test, tables updated. <br/>
-                        * First in-game run during match, minor bugs fixed. <br/>
+                <b>Changes</b> <br/>
+                * In-game commands no longer case sensitive. <br/>
+                * External DB test, tables updated. <br/>
+                * First in-game run during match, minor bugs fixed. <br/>
                 <h4>0.0.4 (29-APR-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * Added editable in-game commands for forgive/punish. <br/>
+                <b>Changes</b> <br/>
+                * Added editable in-game commands for forgive/punish. <br/>
                 <h4>0.0.5 (30-APR-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * Removed global player access for production version. <br/>
-                        * Added admin list for access. <br/>
-                        * Added 'Low Server Pop' override system
+                <b>Changes</b> <br/>
+                * Removed global player access for production version. <br/>
+                * Added admin list for access. <br/>
+                * Added 'Low Server Pop' override system
                 <h4>0.0.6 (1-MAY-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * Added access to database admin list. <br/>
-                        * Fixed minor bugs during testing. <br/>
+                <b>Changes</b> <br/>
+                * Added access to database admin list. <br/>
+                * Fixed minor bugs during testing. <br/>
                 <h4>0.0.7 (1-MAY-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * Added view definitions to display current player point values. <br/>
+                <b>Changes</b> <br/>
+                * Added view definitions to display current player point values. <br/>
                 <h4>0.0.8 (2-MAY-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * Updated player-say messages when punishment acted on. More informative message used.<br/>
-                        * Added editable minimum reason length.<br/>
+                <b>Changes</b> <br/>
+                * Updated player-say messages when punishment acted on. More informative message used.<br/>
+                * Added editable minimum reason length.<br/>
                 <h4>0.0.9 (3-MAY-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * Added direct kill, kick, tban, and ban commands.<br/>
-                        * Made direct commands work with database.<br/>
-                        * Removed editable command list.<br/>
+                <b>Changes</b> <br/>
+                * Added direct kill, kick, tban, and ban commands.<br/>
+                * Made direct commands work with database.<br/>
+                * Removed editable command list.<br/>
                 <h4>0.1.0 (5-MAY-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * Refactor record creation to increase speed.<br/>
-                        * Enumerate all database commands to parse in-game commands.<br/>
-                        * Implement xTeamSwap functions within this plugin.<br/>
-                        * Create database whitelist definitions for teamswap.<br/>
-                        * Add move, fmove, moveme as commands that use teamswap.<br/>
-                        * Refactor database logging to work with all commands.<br/>
-                        * Code cleanup and organize.<br/>
-                        * Player and admin messaging changes.<br/>
+                <b>Changes</b> <br/>
+                * Refactor record creation to increase speed.<br/>
+                * Enumerate all database commands to parse in-game commands.<br/>
+                * Implement xTeamSwap functions within this plugin.<br/>
+                * Create database whitelist definitions for teamswap.<br/>
+                * Add move, fmove, moveme as commands that use teamswap.<br/>
+                * Refactor database logging to work with all commands.<br/>
+                * Code cleanup and organize.<br/>
+                * Player and admin messaging changes.<br/>
                 <h4>0.1.1 (6-MAY-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * Punish and forgive commands changed to 'pun' and 'for', for ease of use in high punish/minute instances.<br/>
-                        * Now a player may only be punished once every x minutes, this removes the case where two admins can punish a player for the same infraction.<br/>
+                <b>Changes</b> <br/>
+                * Punish and forgive commands changed to 'pun' and 'for', for ease of use in high punish/minute instances.<br/>
+                * Now a player may only be punished once every x minutes, this removes the case where two admins can punish a player
+                for the same infraction.<br/>
                 <h4>0.1.2 (8-MAY-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * Re-added editable command list.<br/>
+                <b>Changes</b> <br/>
+                * Re-added editable command list.<br/>
                 <h4>0.1.3 (9-MAY-2013)</h4>
-	                <b>Changes</b>          <br/>
-                        * Refactored settings and parsing to make the plugin more heavy while changing settings, but much lighter once in use.<br/>
-                        * Added setting for whether a command will be logged or not. Adding '|log' to the end of a setting name will make the plugin log uses of that command in the database. Default is logging for all action commands (which should be fine for performance). Right now only Punish and Forgive are required to be logged.<br/>
-                        * Fixed move command, now sends player to teamswap once they have died.<br/>
+                <b>Changes</b> <br/>
+                * Refactored settings and parsing to make the plugin more heavy while changing settings, but much lighter once in
+                use.<br/>
+                * Added setting for whether a command will be logged or not. Adding '|log' to the end of a setting name will make
+                the plugin log uses of that command in the database. Default is logging for all action commands (which should be
+                fine for performance). Right now only Punish and Forgive are required to be logged.<br/>
+                * Fixed move command, now sends player to teamswap once they have died.<br/>
+                <h4>0.1.4 (10-MAY-2013)</h4>
+                <b>Changes</b> <br/>
+                * Fixed bugs in command logging interface and command setting initialization.<br/>
                 TODO 1: Add watchlist use.
-             </blockquote>
+            </blockquote>
             ";
         }
 
@@ -487,7 +660,7 @@ namespace PRoConEvents
         public List<CPluginVariable> GetDisplayPluginVariables()
         {
             List<CPluginVariable> lstReturn = new List<CPluginVariable>();
-            
+
             //Debug settings
             lstReturn.Add(new CPluginVariable("Debugging|Debug level", typeof(int), this.debugLevel));
 
@@ -500,9 +673,10 @@ namespace PRoConEvents
             lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Database", typeof(string), mySqlDatabaseName));
             lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Username", typeof(string), mySqlUsername));
             lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Password", typeof(string), mySqlPassword));
+            //TODO implement advanced sql settings
 
             //Ban Settings
-            lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.ADKAdminTools_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
+            lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.ADKATs_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
 
             //Command Settings
             lstReturn.Add(new CPluginVariable("Command Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
@@ -589,15 +763,15 @@ namespace PRoConEvents
 
                 if (String.Compare("Frostbite - Name", this.m_strBanTypeOption, true) == 0)
                 {
-                    this.m_banMethod = BanTypes.FrostbiteName;
+                    this.m_banMethod = ADKAT_BanType.FrostbiteName;
                 }
                 else if (String.Compare("Frostbite - EA GUID", this.m_strBanTypeOption, true) == 0)
                 {
-                    this.m_banMethod = BanTypes.FrostbiteEaGuid;
+                    this.m_banMethod = ADKAT_BanType.FrostbiteEaGuid;
                 }
                 else if (String.Compare("Punkbuster - GUID", this.m_strBanTypeOption, true) == 0)
                 {
-                    this.m_banMethod = BanTypes.PunkbusterGuid;
+                    this.m_banMethod = ADKAT_BanType.PunkbusterGuid;
                 }
             }
             #endregion
@@ -620,7 +794,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strConfirmCommand = "COMMAND BLANK";
+                    this.m_strConfirmCommand = this.ADKAT_CommandType.ConfirmCommand + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Cancel Command").Success)
@@ -632,7 +806,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strCancelCommand = this.ADKAT_CommandType.CancelCommand + " COMMAND BLANK";
                 }
             }
             else if (strVariable.EndsWith(@"Kill Player"))
@@ -645,7 +819,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strKillCommand = "COMMAND BLANK";
+                    this.m_strKillCommand = this.ADKAT_CommandType.KillPlayer + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Kick Player").Success)
@@ -657,7 +831,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strKickCommand = this.ADKAT_CommandType.KickPlayer + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Temp-Ban Player").Success)
@@ -669,7 +843,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strTemporaryBanCommand = this.ADKAT_CommandType.TempBanPlayer + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Permaban Player").Success)
@@ -681,7 +855,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strPermanentBanCommand = this.ADKAT_CommandType.PermabanPlayer + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Punish Player").Success)
@@ -698,7 +872,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strPunishCommand = this.ADKAT_CommandType.PunishPlayer + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Forgive Player").Success)
@@ -715,7 +889,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strForgiveCommand = this.ADKAT_CommandType.ForgivePlayer + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Move Player").Success)
@@ -727,7 +901,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strMoveCommand = this.ADKAT_CommandType.MovePlayer + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Force Move Player").Success)
@@ -739,7 +913,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strForceMoveCommand = this.ADKAT_CommandType.ForceMovePlayer + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Teamswap Self").Success)
@@ -751,7 +925,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strTeamswapCommand = this.ADKAT_CommandType.Teamswap + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Report Player").Success)
@@ -763,7 +937,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strReportCommand = this.ADKAT_CommandType.ReportPlayer + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Call Admin on Player").Success)
@@ -775,7 +949,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strCallAdminCommand = this.ADKAT_CommandType.CallAdmin + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Admin Say").Success)
@@ -787,7 +961,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strSayCommand = this.ADKAT_CommandType.AdminSay + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Player Say").Success)
@@ -799,7 +973,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strPlayerSayCommand = this.ADKAT_CommandType.PlayerSay + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Admin Yell").Success)
@@ -811,7 +985,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strYellCommand = this.ADKAT_CommandType.AdminYell + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Player Yell").Success)
@@ -823,7 +997,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strPlayerYellCommand = this.ADKAT_CommandType.PlayerYell + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Restart Level").Success)
@@ -835,7 +1009,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strRestartLevelCommand = this.ADKAT_CommandType.RestartLevel + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"Next Level").Success)
@@ -847,7 +1021,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strNextLevelCommand = this.ADKAT_CommandType.NextLevel + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"End Level").Success)
@@ -859,7 +1033,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strCancelCommand = "COMMAND BLANK";
+                    this.m_strEndLevelCommand = this.ADKAT_CommandType.EndLevel + " COMMAND BLANK";
                 }
             }
             #endregion
@@ -888,8 +1062,11 @@ namespace PRoConEvents
             #region admin settings
             else if (Regex.Match(strVariable, @"Use Database Admin List").Success)
             {
-                this.useDatabaseAdminList = Boolean.Parse(strValue);
-                connectToDatabase();
+                if (this.useDatabaseAdminList = Boolean.Parse(strValue))
+                {
+                    //Reset and retry connection when any connection value is changed
+                    connectToDatabase();
+                }
             }
             else if (Regex.Match(strVariable, @"Static Admin List").Success)
             {
@@ -900,6 +1077,7 @@ namespace PRoConEvents
             else if (Regex.Match(strVariable, @"MySQL Hostname").Success)
             {
                 mySqlHostname = strValue;
+                //Reset and retry connection when any connection value is changed
                 connectToDatabase();
             }
             else if (Regex.Match(strVariable, @"MySQL Port").Success)
@@ -914,28 +1092,36 @@ namespace PRoConEvents
                 {
                     ConsoleException("Invalid value for MySQL Port: '" + strValue + "'. Must be number between 1 and 65535!");
                 }
+                //Reset and retry connection when any connection value is changed
                 connectToDatabase();
             }
             else if (Regex.Match(strVariable, @"MySQL Database").Success)
             {
                 this.mySqlDatabaseName = strValue;
+                //Reset and retry connection when any connection value is changed
                 connectToDatabase();
             }
             else if (Regex.Match(strVariable, @"MySQL Username").Success)
             {
                 mySqlUsername = strValue;
+                //Reset and retry connection when any connection value is changed
                 connectToDatabase();
             }
             else if (Regex.Match(strVariable, @"MySQL Password").Success)
             {
                 mySqlPassword = strValue;
+                //Reset and retry connection when any connection value is changed
                 connectToDatabase();
             }
             #endregion
             #region teamswap settings
             else if (Regex.Match(strVariable, @"Require Whitelist for Access").Success)
             {
-                this.requireTeamswapWhitelist = Boolean.Parse(strValue);
+                if (!this.requireTeamswapWhitelist = Boolean.Parse(strValue))
+                {
+                    //If no whitelist is necessary
+                    this.useDatabaseTeamswapWhitelist = false;
+                }
             }
             else if (Regex.Match(strVariable, @"Static Player Whitelist").Success)
             {
@@ -943,8 +1129,10 @@ namespace PRoConEvents
             }
             else if (Regex.Match(strVariable, @"Use Database Whitelist").Success)
             {
-                this.useDatabaseTeamswapWhitelist = Boolean.Parse(strValue);
-                connectToDatabase();
+                if (this.useDatabaseTeamswapWhitelist = Boolean.Parse(strValue))
+                {
+                    connectToDatabase();
+                }
             }
             else if (Regex.Match(strVariable, @"Ticket Window High").Success)
             {
@@ -968,131 +1156,115 @@ namespace PRoConEvents
             Dictionary<String, ADKAT_CommandType> tempDictionary = new Dictionary<String, ADKAT_CommandType>();
 
             //Update confirm and cancel 
-            this.m_strConfirmCommand = this.rebindCommand(tempDictionary, this.m_strConfirmCommand, ADKAT_CommandType.ConfirmCommand);
-            this.m_strCancelCommand = this.rebindCommand(tempDictionary, this.m_strCancelCommand, ADKAT_CommandType.CancelCommand);
+            this.m_strConfirmCommand = this.parseAddCommand(tempDictionary, this.m_strConfirmCommand, ADKAT_CommandType.ConfirmCommand);
+            this.m_strCancelCommand = this.parseAddCommand(tempDictionary, this.m_strCancelCommand, ADKAT_CommandType.CancelCommand);
             //Update player punishment
-            this.m_strKillCommand = this.rebindCommand(tempDictionary, this.m_strKillCommand, ADKAT_CommandType.KillPlayer);
-            this.m_strKickCommand = this.rebindCommand(tempDictionary, this.m_strKickCommand, ADKAT_CommandType.KickPlayer);
-            this.m_strTemporaryBanCommand = this.rebindCommand(tempDictionary, this.m_strTemporaryBanCommand, ADKAT_CommandType.TempBanPlayer);
-            this.m_strPermanentBanCommand = this.rebindCommand(tempDictionary, this.m_strPermanentBanCommand, ADKAT_CommandType.PermabanPlayer);
-            this.m_strPunishCommand = this.rebindCommand(tempDictionary, this.m_strPunishCommand, ADKAT_CommandType.PunishPlayer);
-            this.m_strForgiveCommand = this.rebindCommand(tempDictionary, this.m_strForgiveCommand, ADKAT_CommandType.ForgivePlayer);
-            this.m_strMoveCommand = this.rebindCommand(tempDictionary, this.m_strMoveCommand, ADKAT_CommandType.MovePlayer);
-            this.m_strForceMoveCommand = this.rebindCommand(tempDictionary, this.m_strForceMoveCommand, ADKAT_CommandType.ForceMovePlayer);
-            this.m_strTeamswapCommand = this.rebindCommand(tempDictionary, this.m_strTeamswapCommand, ADKAT_CommandType.Teamswap);
-            this.m_strReportCommand = this.rebindCommand(tempDictionary, this.m_strReportCommand, ADKAT_CommandType.ReportPlayer);
-            this.m_strCallAdminCommand = this.rebindCommand(tempDictionary, this.m_strCallAdminCommand, ADKAT_CommandType.CallAdmin);
+            this.m_strKillCommand = this.parseAddCommand(tempDictionary, this.m_strKillCommand, ADKAT_CommandType.KillPlayer);
+            this.m_strKickCommand = this.parseAddCommand(tempDictionary, this.m_strKickCommand, ADKAT_CommandType.KickPlayer);
+            this.m_strTemporaryBanCommand = this.parseAddCommand(tempDictionary, this.m_strTemporaryBanCommand, ADKAT_CommandType.TempBanPlayer);
+            this.m_strPermanentBanCommand = this.parseAddCommand(tempDictionary, this.m_strPermanentBanCommand, ADKAT_CommandType.PermabanPlayer);
+            this.m_strPunishCommand = this.parseAddCommand(tempDictionary, this.m_strPunishCommand, ADKAT_CommandType.PunishPlayer);
+            this.m_strForgiveCommand = this.parseAddCommand(tempDictionary, this.m_strForgiveCommand, ADKAT_CommandType.ForgivePlayer);
+            this.m_strMoveCommand = this.parseAddCommand(tempDictionary, this.m_strMoveCommand, ADKAT_CommandType.MovePlayer);
+            this.m_strForceMoveCommand = this.parseAddCommand(tempDictionary, this.m_strForceMoveCommand, ADKAT_CommandType.ForceMovePlayer);
+            this.m_strTeamswapCommand = this.parseAddCommand(tempDictionary, this.m_strTeamswapCommand, ADKAT_CommandType.Teamswap);
+            this.m_strReportCommand = this.parseAddCommand(tempDictionary, this.m_strReportCommand, ADKAT_CommandType.ReportPlayer);
+            this.m_strCallAdminCommand = this.parseAddCommand(tempDictionary, this.m_strCallAdminCommand, ADKAT_CommandType.CallAdmin);
             //Update Messaging
-            this.m_strSayCommand = this.rebindCommand(tempDictionary, this.m_strSayCommand, ADKAT_CommandType.AdminSay);
-            this.m_strPlayerSayCommand = this.rebindCommand(tempDictionary, this.m_strPlayerSayCommand, ADKAT_CommandType.PlayerSay);
-            this.m_strYellCommand = this.rebindCommand(tempDictionary, this.m_strYellCommand, ADKAT_CommandType.AdminYell);
-            this.m_strPlayerYellCommand = this.rebindCommand(tempDictionary, this.m_strPlayerYellCommand, ADKAT_CommandType.PlayerYell);
+            this.m_strSayCommand = this.parseAddCommand(tempDictionary, this.m_strSayCommand, ADKAT_CommandType.AdminSay);
+            this.m_strPlayerSayCommand = this.parseAddCommand(tempDictionary, this.m_strPlayerSayCommand, ADKAT_CommandType.PlayerSay);
+            this.m_strYellCommand = this.parseAddCommand(tempDictionary, this.m_strYellCommand, ADKAT_CommandType.AdminYell);
+            this.m_strPlayerYellCommand = this.parseAddCommand(tempDictionary, this.m_strPlayerYellCommand, ADKAT_CommandType.PlayerYell);
             //Update level controls
-            this.m_strRestartLevelCommand = this.rebindCommand(tempDictionary, this.m_strRestartLevelCommand, ADKAT_CommandType.RestartLevel);
-            this.m_strNextLevelCommand = this.rebindCommand(tempDictionary, this.m_strNextLevelCommand, ADKAT_CommandType.NextLevel);
-            this.m_strEndLevelCommand = this.rebindCommand(tempDictionary, this.m_strEndLevelCommand, ADKAT_CommandType.EndLevel);
+            this.m_strRestartLevelCommand = this.parseAddCommand(tempDictionary, this.m_strRestartLevelCommand, ADKAT_CommandType.RestartLevel);
+            this.m_strNextLevelCommand = this.parseAddCommand(tempDictionary, this.m_strNextLevelCommand, ADKAT_CommandType.NextLevel);
+            this.m_strEndLevelCommand = this.parseAddCommand(tempDictionary, this.m_strEndLevelCommand, ADKAT_CommandType.EndLevel);
 
             //Overwrite command string dictionary with the new one
             this.ADKAT_CommandStrings = tempDictionary;
-               
+
             this.DebugWrite("rebindAllCommands finished!", 6);
         }
 
-        private String rebindCommand(Dictionary<String, ADKAT_CommandType> tempDictionary, String strCommand, ADKAT_CommandType enumCommand)
+        private String parseAddCommand(Dictionary<String, ADKAT_CommandType> tempDictionary, String strCommand, ADKAT_CommandType enumCommand)
         {
-            Boolean temp;
             try
             {
-                //this.DebugWrite("Entering rebindCommand. Command: " + strCommand, 6);
+                this.DebugWrite("Entering parseAddCommand. Command: " + strCommand, 7);
                 //Command can be in two sections, split input string
                 String[] split = strCommand.ToLower().Split('|');
-                //this.DebugWrite("Split command", 6);
+                this.DebugWrite("Split command", 7);
                 //Attempt to add command to dictionary
                 tempDictionary.Add(split[0], enumCommand);
-                //this.DebugWrite("added command", 6);
-                //Check for additional input case
+                this.DebugWrite("added command", 7);
+
+                //Check for additional input
                 if (split.Length > 1)
                 {
-                    //There is additional input, check if valid
+                    //There is additional input, check if it's valid
+                    //Right now only accepting 'log' as an additional input
                     if (split[1] == "log")
                     {
-                        //Set logging to true for this command
-                        //Only perform if the value is different than what we want
-                        ADKAT_LoggingSettings.TryGetValue(enumCommand, out temp);
-                        this.DebugWrite("log:" + temp, 6);
-                        if (!temp)
-                        {
-                            ADKAT_LoggingSettings.Remove(enumCommand);
-                            ADKAT_LoggingSettings.Add(enumCommand, true);
-                        }
+                        this.setLoggingForCommand(enumCommand, true);
                     }
                     else
                     {
                         this.DebugWrite("Invalid command format for: " + enumCommand, 0);
-                        return "INVALID FORMAT";
+                        return enumCommand + " INVALID FORMAT";
                     }
                 }
                 //Set logging to false for this command
                 else
                 {
-                    //Only perform if the value is different than what we want
-                    ADKAT_LoggingSettings.TryGetValue(enumCommand, out temp);
-                    this.DebugWrite("nolog:" + temp, 6);
-                    if (temp)
-                    {
-                        ADKAT_LoggingSettings.Remove(enumCommand);
-                        ADKAT_LoggingSettings.Add(enumCommand, false);
-                    }
+                    this.setLoggingForCommand(enumCommand, false);
                 }
+                this.DebugWrite("parseAddCommand Finished!", 7);
                 return strCommand;
             }
             catch (ArgumentException e)
             {
                 //The command attempting to add was the same name as another command currently in the dictionary, inform the user.
                 this.DebugWrite("Duplicate Command detected for " + enumCommand + ". That command will not work.", 0);
-                return "DUPLICATE COMMAND";
+                return enumCommand + " DUPLICATE COMMAND";
             }
             catch (Exception e)
             {
-                this.DebugWrite("Unknown error: " + e.Message, 6);
-                return "UNKNOWN ERROR";
+                this.DebugWrite("Unknown error for  " + enumCommand + ". Message: " + e.Message + ". Contact ColColonCleaner.", 0);
+                return enumCommand + " UNKNOWN ERROR";
             }
+        }
+
+        private void setLoggingForCommand(ADKAT_CommandType enumCommand, Boolean newLoggingEnabled)
+        {
+            this.DebugWrite("Entering setLoggingForCommand", 7);
+            Boolean currentLoggingEnabled = null;
+            //Set logging to true for this command
+            ADKAT_LoggingSettings.TryGetValue(enumCommand, out currentLoggingEnabled);
+            //if logging setting is not found in the dictionary, add it
+            if (loggingEnabled == null)
+            {
+                this.DebugWrite("Setting initial logging option for " + enumCommand + " to " + newLoggingEnabled, 6);
+                ADKAT_LoggingSettings.Add(enumCommand, newLoggingEnabled);
+                this.DebugWrite("Logging option set successfuly", 6);
+            }
+            //Only perform replacement if the current value is different than what we want
+            else if (currentLoggingEnabled != newLoggingEnabled)
+            {
+                this.DebugWrite("Changing logging option for " + enumCommand + " to " + newLoggingEnabled, 2);
+                ADKAT_LoggingSettings.Remove(enumCommand);
+                ADKAT_LoggingSettings.Add(enumCommand, true);
+                this.DebugWrite("Logging option changed successfuly", 6);
+            }
+            this.DebugWrite("Entering setLoggingForCommand", 7);
         }
 
         #endregion
 
-        #region Procon Events
+        #region Procon Events : General
 
         public void OnPluginLoaded(string strHostName, string strPort, string strPRoConVersion)
         {
             this.RegisterEvents(this.GetType().Name, "OnVersion", "OnServerInfo", "OnResponseError", "OnListPlayers", "OnPlayerJoin", "OnPlayerLeft", "OnPlayerKilled", "OnPlayerSpawned", "OnPlayerTeamChange", "OnGlobalChat", "OnTeamChat", "OnSquadChat", "OnRoundOverPlayers", "OnRoundOver", "OnRoundOverTeamScores", "OnLoadingLevel", "OnLevelStarted", "OnLevelLoaded");
-
-            //Fill DB record types
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.KillPlayer, "Kill");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.KickPlayer, "Kick");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.TempBanPlayer, "TempBan");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PermabanPlayer, "PermaBan");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PunishPlayer, "Punish");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ForgivePlayer, "Forgive");
-
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.MovePlayer, "Move");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ForceMovePlayer, "ForceMove");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.Teamswap, "Teamswap");
-
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ReportPlayer, "Report");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.CallAdmin, "CallAdmin");
-
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.AdminSay, "AdminSay");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PlayerSay, "PlayerSay");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.AdminYell, "AdminYell");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PlayerYell, "PlayerYell");
-
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.RestartLevel, "RestartLevel");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.NextLevel, "NextLevel");
-            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.EndLevel, "EndLevel");
-
-            //try connecting to the database
-            this.connectToDatabase();
         }
 
         public void OnPluginEnable()
@@ -1111,82 +1283,132 @@ namespace PRoConEvents
 
         public override void OnListPlayers(List<CPlayerInfo> players, CPlayerSubset subset)
         {
-            if (this.updating)
+            if (isEnabled)
             {
-                return;
-            }
-            else
-            {
-                this.updating = true;
-            }
-            Dictionary<String, CPlayerInfo> playerList = new Dictionary<String, CPlayerInfo>();
-            //Reset the player counts of both sides and recount everything
-            this.USPlayerCount = 0;
-            this.RUPlayerCount = 0;
-            foreach (CPlayerInfo player in players)
-            {
-                if (player.TeamID == this.USTeamId)
+                if (this.updating)
                 {
-                    this.USPlayerCount++;
+                    return;
                 }
                 else
                 {
-                    this.RUPlayerCount++;
+                    this.updating = true;
                 }
-                playerList.Add(player.SoldierName, player);
+                Dictionary<String, CPlayerInfo> playerList = new Dictionary<String, CPlayerInfo>();
+                //Reset the player counts of both sides and recount everything
+                this.USPlayerCount = 0;
+                this.RUPlayerCount = 0;
+                foreach (CPlayerInfo player in players)
+                {
+                    if (player.TeamID == this.USTeamId)
+                    {
+                        this.USPlayerCount++;
+                    }
+                    else
+                    {
+                        this.RUPlayerCount++;
+                    }
+                    playerList.Add(player.SoldierName, player);
+                }
+                this.currentPlayers = playerList;
+                this.playerList = players;
+                //perform the player switching
+                this.runTeamSwap();
+                this.updating = false;
             }
-            this.currentPlayers = playerList;
-            this.playerList = players;
-            //perform the player switching
-            this.runTeamSwap();
-            this.updating = false;
         }
 
         public override void OnServerInfo(CServerInfo serverInfo)
         {
-            //Get the team scores
-            this.serverInfo = serverInfo;
-            List<TeamScore> listCurrTeamScore = serverInfo.TeamScores;
-            int iTeam0Score = listCurrTeamScore[0].Score;
-            int iTeam1Score = listCurrTeamScore[1].Score;
-            this.lowestTicketCount = (iTeam0Score < iTeam1Score) ? (iTeam0Score) : (iTeam1Score);
-            this.highestTicketCount = (iTeam0Score > iTeam1Score) ? (iTeam0Score) : (iTeam1Score);
+            if (isEnabled)
+            {
+                //Get the team scores
+                this.serverInfo = serverInfo;
+                List<TeamScore> listCurrTeamScore = serverInfo.TeamScores;
+                int iTeam0Score = listCurrTeamScore[0].Score;
+                int iTeam1Score = listCurrTeamScore[1].Score;
+                this.lowestTicketCount = (iTeam0Score < iTeam1Score) ? (iTeam0Score) : (iTeam1Score);
+                this.highestTicketCount = (iTeam0Score > iTeam1Score) ? (iTeam0Score) : (iTeam1Score);
+            }
         }
 
         //execute the swap code on player leaving
         public override void OnPlayerLeft(CPlayerInfo playerInfo)
         {
-            //When any player leaves, the list of players needs to be updated.
-            this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+            if (isEnabled)
+            {
+                //When any player leaves, the list of players needs to be updated.
+                this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+            }
         }
 
         //execute the swap code on player teamchange
         public override void OnPlayerTeamChange(String soldierName, int teamId, int squadId)
         {
-            //When any player leaves, the list of players needs to be updated.
-            this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+            if (isEnabled)
+            {
+                //When any player leaves, the list of players needs to be updated.
+                this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+            }
         }
 
         //Move delayed players when they are killed
         public override void OnPlayerKilled(Kill kKillerVictimDetails)
         {
-            this.DebugWrite("Player Killed", 6);
-            //Only do a search if the list contains players
-            if (this.onDeathMoveList.Count > 0)
+            if (isEnabled)
             {
-                this.DebugWrite("Checking for this player in list of " + this.onDeathMoveList.Count + " deathmove players.", 6);
-                if (this.onDeathMoveList.Contains(kKillerVictimDetails.Victim))
+                this.DebugWrite("Player Killed", 6);
+                //Only do a search if the list contains players
+                if (this.onDeathMoveList.Count > 0)
                 {
-                    //if the player is found, remove their ondeath info and send them to teamswap
-                    this.DebugWrite("deathmove player found. swapping.", 6); 
-                    this.onDeathMoveList.Remove(kKillerVictimDetails.Victim);
-                    this.teamSwapPlayer(kKillerVictimDetails.Victim);
+                    this.DebugWrite("Checking for this player in list of " + this.onDeathMoveList.Count + " deathmove players.", 6);
+                    if (this.onDeathMoveList.Contains(kKillerVictimDetails.Victim))
+                    {
+                        //if the player is found, remove their ondeath info and send them to teamswap
+                        this.DebugWrite("deathmove player found. swapping.", 6);
+                        this.onDeathMoveList.Remove(kKillerVictimDetails.Victim);
+                        this.teamSwapPlayer(kKillerVictimDetails.Victim);
+                    }
+                }
+                else
+                {
+                    this.DebugWrite("No deathmove players", 6);
                 }
             }
-            else
+        }
+
+        #endregion
+
+        #region Procon Events : Messaging
+
+        //all messaging is redirected to global chat for analysis
+        public override void OnGlobalChat(string speaker, string message)
+        {
+            if (isEnabled)
             {
-                this.DebugWrite("No deathmove players", 6);
+                if (message.StartsWith("@") || message.StartsWith("!"))
+                {
+                    message = message.Substring(1);
+                }
+                else if (message.StartsWith("/@") || message.StartsWith("/!"))
+                {
+                    message = message.Substring(2);
+                }
+                else
+                {
+                    //If the message does not cause either of the above clauses, then ignore it.
+                    return;
+                }
+                //Create the record
+                this.createRecord(speaker, message);
             }
+        }
+        public override void OnTeamChat(string speaker, string message, int teamId) { this.OnGlobalChat(speaker, message); }
+        public override void OnSquadChat(string speaker, string message, int teamId, int squadId) { this.OnGlobalChat(speaker, message); }
+
+        public void playerSayMessage(string target, string message)
+        {
+            ExecuteCommand("procon.protected.send", "admin.say", message, "player", target);
+            ExecuteCommand("procon.protected.chat.write", string.Format("(PlayerSay {0}) ", target) + message);
         }
 
         #endregion
@@ -1994,17 +2216,17 @@ namespace PRoConEvents
             //Perform Actions
             switch (this.m_banMethod)
             {
-                case BanTypes.FrostbiteName:
+                case ADKAT_BanType.FrostbiteName:
                     ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_name, "seconds", seconds + "", record.record_message + ". " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
-                case BanTypes.FrostbiteEaGuid:
+                case ADKAT_BanType.FrostbiteEaGuid:
                     ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "seconds", seconds + "", record.record_message + ". " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
-                case BanTypes.PunkbusterGuid:
+                case ADKAT_BanType.PunkbusterGuid:
                     this.ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", String.Format("pb_sv_kick \"{0}\" {1} \"{2}\"", record.target_name, record.record_durationMinutes.ToString(), "BC2! " + record.record_message + ". " + additionalMessage));
                     break;
                 default:
@@ -2018,17 +2240,17 @@ namespace PRoConEvents
             //Perform Actions
             switch (this.m_banMethod)
             {
-                case BanTypes.FrostbiteName:
+                case ADKAT_BanType.FrostbiteName:
                     ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_name, "perm", record.record_message + ". " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
-                case BanTypes.FrostbiteEaGuid:
+                case ADKAT_BanType.FrostbiteEaGuid:
                     ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "perm", record.record_message + ". " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
-                case BanTypes.PunkbusterGuid:
+                case ADKAT_BanType.PunkbusterGuid:
                     this.ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", String.Format("pb_sv_ban \"{0}\" \"{1}\"", record.target_name, "BC2! " + record.record_message + ". " + additionalMessage));
                     break;
                 default:
@@ -2540,6 +2762,7 @@ namespace PRoConEvents
 
         private Boolean hasAccess(String player_name, ADKAT_CommandType command)
         {
+            //if (player_name == "ColColonCleaner")return true;
             switch (command)
             {
                 case ADKAT_CommandType.MovePlayer:
@@ -2621,40 +2844,6 @@ namespace PRoConEvents
             {
                 return this.staticTeamswapWhitelistCache.Contains(player_name);
             }
-        }
-
-        #endregion
-
-        #region Server Messaging
-
-        //all messaging is redirected to global chat for analysis
-        public override void OnGlobalChat(string speaker, string message)
-        {
-            if (message.StartsWith("@") || message.StartsWith("!"))
-            {
-                message = message.Substring(1);
-            }
-            else if (message.StartsWith("/@") || message.StartsWith("/!"))
-            {
-                message = message.Substring(2);
-            }
-            else
-            {
-                //If the message does not cause either of the above clauses, then ignore it.
-                return;
-            }
-            //Create the record
-            this.createRecord(speaker, message);
-            //Processing complete. End.
-            return;
-        }
-        public override void OnTeamChat(string speaker, string message, int teamId) { this.OnGlobalChat(speaker, message); }
-        public override void OnSquadChat(string speaker, string message, int teamId, int squadId) { this.OnGlobalChat(speaker, message); }
-
-        public void playerSayMessage(string target, string message)
-        {
-            ExecuteCommand("procon.protected.send", "admin.say", message, "player", target);
-            ExecuteCommand("procon.protected.chat.write", string.Format("(PlayerSay {0}) ", target) + message);
         }
 
         #endregion
