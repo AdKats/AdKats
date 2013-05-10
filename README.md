@@ -10,7 +10,7 @@ AdKats
     database reflected admin tool that includes editable in-game commands, database reflected punishment and
     forgiveness, proper player report and admin call handling, and internal implementation of Teamswap.
 </p>
-<h3>Reason this was made</h3>
+<h3>Reason Behind Development</h3>
 <p>
     Players who break rules over time usually don't end up doing it in front of the same admin twice, so minimal or
     'incorrect' action is taken.
@@ -20,7 +20,7 @@ AdKats
     In general this combines simple in-game admin commands, player name completion, admin punish/forgive,
     report/calladmin, and teamswap, into one plugin to reduce the load on your procon layer.
 </p>
-<h3>Punishment/Forgiveness system</h3>
+<h3>Punishment/Forgiveness System</h3>
 <p>
     NOTE: This is NOT the player based punish/forgive system normally used for teamkilling, and is only usable by
     admins.<br/><br/>
