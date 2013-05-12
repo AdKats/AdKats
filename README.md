@@ -277,7 +277,7 @@ AdKats
 </p>
 <h2>Database Tables and Views</h2>
 <p>
-	Run the following on your MySQL database to set it up for plugin use.
+	Run the following on your MySQL database to set it up for plugin use.<br/><br/>
 	
 	DROP TABLE IF EXISTS `adkat_records`;<br/>
 	DROP TABLE IF EXISTS `adkat_actionlist`;<br/>
@@ -382,6 +382,9 @@ AdKats
     <h4>0.1.4 (10-MAY-2013)</h4>
     <b>Changes</b> <br/>
     * Fixed bugs in command logging interface and command setting initialization.<br/>
+    <h4>0.1.5 (12-MAY-2013)</h4>
+    <b>Changes</b> <br/>
+    * Cleaned up messaging. Small bug fixes.<br/>
     <br/>
     TODO 1: Add watchlist use.
 </blockquote>
