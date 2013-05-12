@@ -227,13 +227,10 @@ AdKats
 * <b>'MySQL Username'</b> - Username of the MySQL server AdKats should connect to. <br/>
 * <b>'MySQL Password'</b> - Password of the MySQL server AdKats should connect to.
 <h3>Command Settings:</h3>
-Below are what the in-game commands format will be for all plugin functions. Command text is defined in each setting. All commands can be suffixed with '|log', this sets whether logs for that command will be sent to the database. Punish and Forgive commands require logging.
-<br/><br/>
-* <b>'Minimum Required Reason
-    Length'</b> - The minimum length a reason must be for commands that require a reason to execute.<br/>
+* <b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason to execute.<br/>
 * <b>'Yell display time seconds'</b> - The integer time in seconds that yell messages will be displayed.<br/><br/>
 
-<b>Specific command definitions given above.</b> All command text must be a single string with no whitespace. E.G. kill. All commands can be suffixed with '|log', which will set whether use of that command is logged in the database or not.
+<b>Specific command definitions given in description section above.</b> All command text must be a single string with no whitespace. E.G. kill. All commands can be suffixed with '|log', which will set whether use of that command is logged in the database or not.
 <h3>Punishment Settings:</h3>
 * <b>'Act on
     Punishments'</b> - Whether the plugin should carry out punishments, or have an external source do it through adkat_actionlist.
@@ -280,112 +277,39 @@ Below are what the in-game commands format will be for all plugin functions. Com
 </p>
 <h2>Database Tables and Views</h2>
 <p>
-    Main record table is the following:<br/>
-    <br/>
-    CREATE TABLE `adkat_records` (<br/>
-    `record_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
-    `server_id` int(11) NOT NULL,<br/>
-    `command_type`
-    enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','Ban','Punish','Forgive','Report','CallAdmin') NOT
-    NULL,<br/>
-    `record_durationMinutes` int(11) NOT NULL,<br/>
-    `target_guid` varchar(100) NOT NULL,<br/>
-    `target_name` varchar(45) NOT NULL,<br/>
-    `source_name` varchar(45) NOT NULL,<br/>
-    `record_message` varchar(100) NOT NULL,<br/>
-    `record_time` datetime NOT NULL,<br/>
-    PRIMARY KEY (`record_id`)<br/>
-    );<br/>
-    <br/>
-    Action List table is the following:<br/>
-    <br/>
-    CREATE TABLE `adkat_actionlist` (<br/>
-    `action_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
-    `server_id` int(11) NOT NULL,<br/>
-    `player_guid` varchar(100) NOT NULL,<br/>
-    `player_name` varchar(45) NOT NULL,<br/>
-    PRIMARY KEY (`action_id`)<br/>
-    );<br/>
-    <br/>
-    Admin table is the following:<br/>
-    <br/>
-    CREATE TABLE `adminlist` (<br/>
-    `name` varchar(255) NOT NULL,<br/>
-    `uniqueid` varchar(32) NOT NULL COMMENT 'GUID',<br/>
-    PRIMARY KEY (`uniqueid`)<br/>
-    );<br/>
-    <br/>
-    Teamswap whitelist is the following:<br/>
-    <br/>
-    CREATE TABLE `adkat_teamswapwhitelist` (<br/>
-    `player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',<br/>
-    PRIMARY KEY (`player_name`),<br/>
-    UNIQUE KEY `player_name_UNIQUE` (`player_name`)<br/>
-    );<br/>
-    <br/>
-    Server table is the following:<br/>
-    <br/>
-    CREATE TABLE `tbl_server` (<br/>
-    `ServerID` smallint(5) unsigned NOT NULL AUTO_INCREMENT,<br/>
-    `ServerGroup` tinyint(3) unsigned NOT NULL DEFAULT '0',<br/>
-    `IP_Address` varchar(45) DEFAULT NULL,<br/>
-    `ServerName` varchar(200) DEFAULT NULL,<br/>
-    `usedSlots` smallint(5) unsigned DEFAULT '0',<br/>
-    `maxSlots` smallint(5) unsigned DEFAULT '0',<br/>
-    `mapName` varchar(45) DEFAULT NULL,<br/>
-    `fullMapName` text,<br/>
-    `Gamemode` varchar(45) DEFAULT NULL,<br/>
-    `GameMod` varchar(45) DEFAULT NULL,<br/>
-    `PBversion` varchar(45) DEFAULT NULL,<br/>
-    `ConnectionState` varchar(45) DEFAULT NULL,<br/>
-    PRIMARY KEY (`ServerID`),<br/>
-    UNIQUE KEY `IP_Address_UNIQUE` (`IP_Address`),<br/>
-    KEY `INDEX_SERVERGROUP` (`ServerGroup`),<br/>
-    KEY `IP_Address` (`IP_Address`)<br/>
-    );<br/>
-    <br/>
-    Player List View is the following:<br/>
-    <br/>
-    CREATE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS
-    `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from
-    `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by
-    `adkat_records`.`target_name`;<br/>
-    <br/>
-    Current Player Points View is the following:<br/>
-    <br/>
-    CREATE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS
-    `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select
-    count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and
-    (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` =
-    `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from
-    `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` =
-    `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS
-    `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where
-    ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-    and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`)
-    from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` =
-    `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS
-    `totalpoints` from `adkat_playerlist`;<br/>
-    <br/>
-    Current Player Reports and Admin calls is shown with the following:<br/>
-    <br/>
-    CREATE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS
-    `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS
-    `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS
-    `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS
-    `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where
-    ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));<br/>
-    <br/>
-    ALL THE ABOVE NEED TO BE RUN IN THIS ORDER. Once the views are done a constant tally of player points can be seen
-    from your external systems. <br/>
-    <br/>
-    <br/>
-    Additional View if you want it:<br/>
-    <br/>
-    CREATE VIEW `adkat_naughtylist` AS select (select `tbl_server`.`ServerName` from `tbl_server` where
-    (`tbl_server`.`ServerID` = `adkat_playerpoints`.`serverid`)) AS `server_name`,`adkat_playerpoints`.`playername` AS
-    `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where
-    (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;<br/>
+	Run the following on your MySQL database to set it up for plugin use.
+	
+	DROP TABLE IF EXISTS `adkat_records`;<br/>
+	DROP TABLE IF EXISTS `adkat_actionlist`;<br/>
+	DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;<br/>
+	CREATE TABLE `adkat_records` (<br/>
+	`record_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
+	`server_id` int(11) NOT NULL,<br/>
+	`command_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','PermaBan','Punish','Forgive','Report','CallAdmin', 'AdminSay', 'PlayerSay', 'AdminYell', 'PlayerYell', 'RestartLevel', 'NextLevel', 'EndLevel') NOT NULL,<br/>
+	`record_durationMinutes` int(11) NOT NULL,<br/>
+	`target_guid` varchar(100) NOT NULL,<br/>
+	`target_name` varchar(45) NOT NULL,<br/>
+	`source_name` varchar(45) NOT NULL,<br/>
+	`record_message` varchar(100) NOT NULL,<br/>
+	`record_time` datetime NOT NULL,<br/>
+	PRIMARY KEY (`record_id`)<br/>
+	);<br/>
+	CREATE TABLE `adkat_actionlist` (<br/>
+	`action_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
+	`server_id` int(11) NOT NULL,<br/>
+	`player_guid` varchar(100) NOT NULL,<br/>
+	`player_name` varchar(45) NOT NULL,<br/>
+	PRIMARY KEY (`action_id`)	<br/>
+	);<br/>
+	CREATE TABLE `adkat_teamswapwhitelist` (<br/>
+	`player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',<br/>
+	PRIMARY KEY (`player_name`),<br/>
+	UNIQUE KEY `player_name_UNIQUE` (`player_name`)<br/>
+	);<br/>
+	CREATE OR REPLACE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by `adkat_records`.`target_name`;<br/>
+	CREATE OR REPLACE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints` from `adkat_playerlist`;<br/>
+	CREATE OR REPLACE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));<br/>
+	CREATE OR REPLACE VIEW `adkat_naughtylist` AS select `adkat_playerpoints`.`serverid` AS `server_id`,`adkat_playerpoints`.`playername` AS `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;
 </p>
 <h2>Development</h2>
 <p>
