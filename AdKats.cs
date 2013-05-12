@@ -253,7 +253,7 @@ namespace PRoConEvents
 
         public string GetPluginName()
         {
-            return "A Different Kind - Admin Tools";
+            return "AdKats";
         }
 
         public string GetPluginVersion()
