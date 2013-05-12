@@ -58,8 +58,8 @@ AdKats
 </p>
 <h3>Teamswap</h3>
 <p>
-    This plugin implements Teamswap. Teamswap is a server-smart player moving system. It's available as a separate plugin, but in this instance I've merged it with
-    move and forcemove commands and offers two main benefits. Normally if the team a player gets @move'd or @fmove'd to
+    This plugin implements Teamswap. Teamswap is a server-smart player moving system that offers two major benefits over the default system. It's available as a separate plugin, but in this instance I've merged it with
+    move and forcemove commands. Normally if the team a player gets @move'd or @fmove'd to
     is full then the command just fails, now they are dropped on a queue until a slot opens on that side. They can keep
     playing on their side until that slot opens, when it does they are immediately slain and moved over to fill it.
     Secondly it allows whitelisted (non-admin) players the ability to move themselves between teams as often as they
