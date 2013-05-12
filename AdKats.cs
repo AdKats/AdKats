@@ -109,7 +109,7 @@ namespace PRoConEvents
         private int RUPlayerCount = 0;
 
         // Admin Settings
-        private Boolean useDatabaseAdminList = true;
+        private Boolean useDatabaseAdminList = false;
         private List<string> databaseAdminCache = new List<string>();
         private List<string> staticAdminCache = new List<string>();
 
