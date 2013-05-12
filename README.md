@@ -7,7 +7,7 @@
 <p>
     This plugin should be used by groups with high traffic servers, with set rules, and many admins. It is a
     MySQL database reflected admin tool that includes editable in-game commands, database reflected punishment and
-    forgiveness, proper player report and admin call handling, and internal implementation of Teamswap.
+    forgiveness, proper player report and admin call handling, and internal implementation of TeamSwap.
 </p>
 <h3>Reason Behind Development</h3>
 <p>
@@ -17,7 +17,7 @@
     head, now the punish system tracks that instead and takes proper action based on a player's history.<br/><br/>
 
     In general this combines simple in-game admin commands, player name completion, admin punish/forgive,
-    report/calladmin, and teamswap, into one plugin to reduce the load on your procon layer.
+    report/calladmin, and TeamSwap, into one plugin to reduce the load on your procon layer.
 </p>
 <h3>Punishment/Forgiveness System</h3>
 <p>
@@ -55,9 +55,9 @@
     a player puts in a proper @report or @admin, all in-game admins are notified, then the report is logged in the
     database with full player names for reporter/target, and the full reason for reporting.
 </p>
-<h3>Teamswap</h3>
+<h3>TeamSwap</h3>
 <p>
-    This plugin implements Teamswap. Teamswap is a server-smart player moving system that offers two major benefits over the default system. It's available as a separate plugin, but in this instance I've merged it with
+    This plugin implements TeamSwap. TeamSwap is a server-smart player moving system that offers two major benefits over the default system. It's available as a separate plugin, but in this instance I've merged it with
     move and forcemove commands. Normally if the team a player gets @move'd or @fmove'd to
     is full then the command just fails, now they are dropped on a queue until a slot opens on that side. They can keep
     playing on their side until that slot opens, when it does they are immediately slain and moved over to fill it.
@@ -127,13 +127,13 @@
             <td><b>Move Player</b></td>
             <td>[player]</td>
             <td>Admin</td>
-            <td>The in-game command used for moving players between teams. Will add players to a death move list, when they die they will be sent to teamswap.</td>
+            <td>The in-game command used for moving players between teams. Will add players to a death move list, when they die they will be sent to TeamSwap.</td>
         </tr>
         <tr>
             <td><b>Force-Move Player</b></td>
             <td>[player]</td>
             <td>Admin</td>
-            <td>The in-game command used for force-moving players between teams. Will immediately send the given player to teamswap.</td>
+            <td>The in-game command used for force-moving players between teams. Will immediately send the given player to TeamSwap.</td>
         </tr>
         <tr>
             <td><b>TeamSwap Player</b></td>
@@ -249,17 +249,17 @@
 * <b>'Server
     ID'</b> - ID that will be used to identify this server in the database. This is not linked to any database attributes, instead it's used to differentiate between servers for infraction points.
 <br/>
-<h3>Teamswap Settings:</h3>
+<h3>TeamSwap Settings:</h3>
 * <b>'Require Whitelist for
     Access'</b> - Whether the 'moveme' command will require whitelisting. Admins are always allowed to use it.<br/>
-* <b>'Static Player Whitelist'</b> - Static list of players plugin-side that will be able to teamswap.<br/>
+* <b>'Static Player Whitelist'</b> - Static list of players plugin-side that will be able to TeamSwap.<br/>
 * <b>'Use Database
     Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Plugin must be disabled and re-enabled (or db settings changed) to update whitelist from database, whitelisted names are cached in the plugin to save bandwidth.<br/>
 * <b>'Ticket Window
-    High'</b> - When either team is above this ticket count, then nobody (except admins) will be able to use teamswap.
+    High'</b> - When either team is above this ticket count, then nobody (except admins) will be able to use TeamSwap.
 <br/>
 * <b>'Ticket Window
-    Low'</b> - When either team is below this ticket count, then nobody (except admins) will be able to use teamswap.
+    Low'</b> - When either team is below this ticket count, then nobody (except admins) will be able to use TeamSwap.
 </p>
 <h2>Default Punishment Levels by Point</h2>
 <p>
@@ -357,8 +357,8 @@
     * Refactor record creation to increase speed.<br/>
     * Enumerate all database commands to parse in-game commands.<br/>
     * Implement xTeamSwap functions within this plugin.<br/>
-    * Create database whitelist definitions for teamswap.<br/>
-    * Add move, fmove, moveme as commands that use teamswap.<br/>
+    * Create database whitelist definitions for TeamSwap.<br/>
+    * Add move, fmove, moveme as commands that use TeamSwap.<br/>
     * Refactor database logging to work with all commands.<br/>
     * Code cleanup and organize.<br/>
     * Player and admin messaging changes.<br/>
@@ -377,7 +377,7 @@
     * Added setting for whether a command will be logged or not. Adding '|log' to the end of a setting name will make
     the plugin log uses of that command in the database. Default is logging for all action commands (which should be
     fine for performance). Right now only Punish and Forgive are required to be logged.<br/>
-    * Fixed move command, now sends player to teamswap once they have died.<br/>
+    * Fixed move command, now sends player to TeamSwap once they have died.<br/>
     <h4>0.1.4 (10-MAY-2013)</h4>
     <b>Changes</b> <br/>
     * Fixed bugs in command logging interface and command setting initialization.<br/>
