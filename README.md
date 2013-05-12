@@ -26,9 +26,7 @@ AdKats
     admins.<br/><br/>
 
     When a player is 'punished' by an admin a log is made in the database, their total points
-    are calculated <br/>
-    <b>(+Punishments - Forgivenesses = Total Points)</b> <br/>
-    then an action decided from the punishment hierarchy. Punishments should get more harsh as the
+    are calculated <b>(Punishment Count - Forgiveness Count = Total Points)</b> then an action decided from the punishment hierarchy. Punishments should get more harsh as the
     player gets more points. The punishment hierarchy is configurable to suit your needs. ADK is rather lenient with
     players, so there are 8 levels before a player is perma-banned in our version. Players may also be 'forgiven', which
     will reduce their total point value by 1 each time, this is useful if you have a website where players can apologize
