@@ -1,5 +1,4 @@
-AdKats
-======
+<h1>AdKats</h1>
 <p>
     Advanced Admin Tool Set for A-Different-Kind, with MySQL database back-end.
 </p>
@@ -89,109 +88,109 @@ AdKats
             <td><b>Description</b></td>
         </tr>
         <tr>
-            <td><b>Kill</b></td>
+            <td><b>Kill Player</b></td>
             <td>[player][reason]</td>
             <td>Admin</td>
             <td>The in-game command used for killing players.</td>
         </tr>
         <tr>
-            <td><b>Kick</b></td>
+            <td><b>Kick Player</b></td>
             <td>[player][reason]</td>
             <td>Admin</td>
             <td>The in-game command used for kicking players.</td>
         </tr>
         <tr>
-            <td><b>TempBan</b></td>
+            <td><b>Temp-Ban Player</b></td>
             <td>[minutes] [player] [reason]</td>
             <td>Admin</td>
             <td>The in-game command used temp-banning players.</td>
         </tr>
         <tr>
-            <td><b>PermaBan</b></td>
+            <td><b>Perma-Ban Player</b></td>
             <td>[player][reason]</td>
             <td>Admin</td>
             <td>The in-game command used for perma-banning players.</td>
         </tr>
         <tr>
-            <td><b>Punish</b></td>
+            <td><b>Punish Player</b></td>
             <td>[player][reason]</td>
             <td>Admin</td>
             <td>The in-game command used for punishing players. Will add a Punish record to the database, increasing a player's total points by 1.</td>
         </tr>
         <tr>
-            <td><b>Forgive</b></td>
+            <td><b>Forgive Player</b></td>
             <td>[player][reason]</td>
             <td>Admin</td>
             <td>The in-game command used for forgiving players. Will add a Forgive record to the database, decreasing a player's total points by 1.</td>
         </tr>
         <tr>
-            <td><b>Move</b></td>
+            <td><b>Move Player</b></td>
             <td>[player]</td>
             <td>Admin</td>
             <td>The in-game command used for moving players between teams. Will add players to a death move list, when they die they will be sent to teamswap.</td>
         </tr>
         <tr>
-            <td><b>ForceMove</b></td>
+            <td><b>Force-Move Player</b></td>
             <td>[player]</td>
             <td>Admin</td>
             <td>The in-game command used for force-moving players between teams. Will immediately send the given player to teamswap.</td>
         </tr>
         <tr>
-            <td><b>TeamSwap</b></td>
+            <td><b>TeamSwap Player</b></td>
             <td>None</td>
             <td>Admin and TeamSwap Whitelist</td>
             <td>The in-game command used for moving yourself between teams. Will immediately send the speaker to TeamSwap.</td>
         </tr>
         <tr>
-            <td><b>Report</b></td>
+            <td><b>Report Player</b></td>
             <td>[player][reason]</td>
             <td>All Players</td>
             <td>The in-game command used for reporting players. Must have a reason, and will inform a player otherwise when using. Will log a Report tuple in the database(External GCP polls from there for external admin notifications), and notify all in-game admins.</td>
         </tr>
         <tr>
-            <td><b>CallAdmin</b></td>
+            <td><b>Call Admin</b></td>
             <td>[player][reason]</td>
             <td>All Players</td>
             <td>The in-game command used for calling admin attention to a player. Same deal as report, but used for a different reason.</td>
         </tr>
         <tr>
-            <td><b>AdminSay</b></td>
+            <td><b>Admin Say</b></td>
             <td>[message]</td>
             <td>Admin</td>
             <td>The in-game command used to send a message through admin chat.</td>
         </tr>
         <tr>
-            <td><b>AdminYell</b></td>
+            <td><b>Admin Yell</b></td>
             <td>[message]</td>
             <td>Admin</td>
             <td>The in-game command used for to send a message through admin yell.</td>
         </tr>
         <tr>
-            <td><b>PlayerSay</b></td>
+            <td><b>Player Say</b></td>
             <td>[player][message]</td>
             <td>Admin</td>
             <td>The in-game command used for sending a message through admin chat to only a specific player.</td>
         </tr>
         <tr>
-            <td><b>PlayerYell</b></td>
+            <td><b>Player Yell</b></td>
             <td>[player][message]</td>
             <td>Admin</td>
             <td>The in-game command used for sending a message through admin yell to only a specific player.</td>
         </tr>
         <tr>
-            <td><b>RestartLevel</b></td>
+            <td><b>Restart Level</b></td>
             <td>None</td>
             <td>Admin</td>
             <td>The in-game command used for restarting the round.</td>
         </tr>
         <tr>
-            <td><b>NextLevel</b></td>
+            <td><b>Run Next Level</b></td>
             <td>None</td>
             <td>Admin</td>
             <td>The in-game command used for running the next map in current rotation, but keep all points and KDRs from this round.</td>
         </tr>
         <tr>
-            <td><b>EndLevel</b></td>
+            <td><b>End Level</b></td>
             <td>[US/RU]</td>
             <td>Admin</td>
             <td>The in-game command used for ending the current round with a winning team. Either US or RU.</td>
