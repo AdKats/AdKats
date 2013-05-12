@@ -220,12 +220,12 @@ AdKats
     List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Plugin must be disabled and re-enabled (or db settings changed) to update admin list from database, admin names are cached in the plugin to save bandwidth.<br/>
 * <b>'Static Admin List'</b> - List of admins input from plugin settings. Use if no admin database table.
 <h3>MySQL Settings:</h3>
-* <b>'MySQL Hostname'</b> - Hostname of the MySQL-Server Cross-Admin Enforcer should connect to. <br/>
-* <b>'MySQL Port'</b> - Port of the MySQL-Server Cross-Admin Enforcer should connect to. <br/>
+* <b>'MySQL Hostname'</b> - Hostname of the MySQL server AdKats should connect to. <br/>
+* <b>'MySQL Port'</b> - Port of the MySQL server AdKats should connect to. <br/>
 * <b>'MySQL
-    Database'</b> - Database Cross-Admin Enforcer should use for storage. Hardcoded table names and creation scripts given below.<br/>
-* <b>'MySQL Username'</b> - Username of the MySQL-Server Cross-Admin Enforcer should connect to. <br/>
-* <b>'MySQL Password'</b> - Password of the MySQL-Server Cross-Admin Enforcer should connect to.
+    Database'</b> - Database name AdKats should use for storage. Hardcoded table names and creation scripts given below.<br/>
+* <b>'MySQL Username'</b> - Username of the MySQL server AdKats should connect to. <br/>
+* <b>'MySQL Password'</b> - Password of the MySQL server AdKats should connect to.
 <h3>Command Settings:</h3>
 Below are what the in-game commands format will be for all plugin functions. Command text is defined in each setting. All commands can be suffixed with '|log', this sets whether logs for that command will be sent to the database. Punish and Forgive commands require logging.
 <br/><br/>
