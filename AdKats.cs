@@ -101,9 +101,9 @@ namespace PRoConEvents
         //Delayed move list
         private List<CPlayerInfo> onDeathMoveList = new List<CPlayerInfo>();
         //The list of players on RU wishing to move to US (This list takes first priority)
-        private Queue<CPlayerInfo> USMoveList = new Queue<CPlayerInfo>();
+        private Queue<CPlayerInfo> USMoveQueue = new Queue<CPlayerInfo>();
         //the list of players on US wishing to move to RU (This list takes secondary)
-        private Queue<CPlayerInfo> RUMoveList = new Queue<CPlayerInfo>();
+        private Queue<CPlayerInfo> RUMoveQueue = new Queue<CPlayerInfo>();
         //player counts per team
         private int USPlayerCount = 0;
         private int RUPlayerCount = 0;
@@ -1077,8 +1077,10 @@ namespace PRoConEvents
             {
                 if (this.useDatabaseAdminList = Boolean.Parse(strValue))
                 {
-                    //Reset and retry connection when any connection value is changed
-                    connectToDatabase();
+                    if (!this.databaseConnection.Ping())
+                    {
+                        connectToDatabase();
+                    }
                 }
             }
             else if (Regex.Match(strVariable, @"Static Admin List").Success)
@@ -1144,7 +1146,10 @@ namespace PRoConEvents
             {
                 if (this.useDatabaseTeamswapWhitelist = Boolean.Parse(strValue))
                 {
-                    connectToDatabase();
+                    if (!this.databaseConnection.Ping())
+                    {
+                        connectToDatabase();
+                    }
                 }
             }
             else if (Regex.Match(strVariable, @"Ticket Window High").Success)
@@ -1297,7 +1302,13 @@ namespace PRoConEvents
 
         public void OnPluginDisable()
         {
+            ConsoleWrite("Disabling command functionality");
             isEnabled = false;
+            if (this.databaseConnection != null && this.databaseConnection.Ping())
+            {
+                this.ConsoleWrite("Closing open database connection");
+                this.databaseConnection.Close();
+            }
             ConsoleWrite("^b^1Disabled! =(^n^0");
         }
 
@@ -1354,7 +1365,8 @@ namespace PRoConEvents
         //execute the swap code on player leaving
         public override void OnPlayerLeft(CPlayerInfo playerInfo)
         {
-            if (isEnabled)
+            //Only call when a player is waiting to be switched
+            if (isEnabled && (this.USMoveQueue.Count>0 || this.RUMoveQueue.Count>0))
             {
                 //When any player leaves, the list of players needs to be updated.
                 this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
@@ -1364,7 +1376,8 @@ namespace PRoConEvents
         //execute the swap code on player teamchange
         public override void OnPlayerTeamChange(String soldierName, int teamId, int squadId)
         {
-            if (isEnabled)
+            //Only call when a player is waiting to be switched
+            if (isEnabled && (this.USMoveQueue.Count > 0 || this.RUMoveQueue.Count > 0))
             {
                 //When any player leaves, the list of players needs to be updated.
                 this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
@@ -1453,22 +1466,22 @@ namespace PRoConEvents
             do
             {
                 movedPlayer = false;
-                if (this.RUMoveList.Count > 0)
+                if (this.RUMoveQueue.Count > 0)
                 {
                     if (this.USPlayerCount < maxPlayerCount)
                     {
-                        CPlayerInfo player = this.RUMoveList.Dequeue();
+                        CPlayerInfo player = this.RUMoveQueue.Dequeue();
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, this.USTeamId.ToString(), "1", "true");
                         this.playerSayMessage(player.SoldierName, "Swapping you from team RU to team US");
                         movedPlayer = true;
                         USPlayerCount++;
                     }
                 }
-                if (this.USMoveList.Count > 0)
+                if (this.USMoveQueue.Count > 0)
                 {
                     if (this.RUPlayerCount < maxPlayerCount)
                     {
-                        CPlayerInfo player = this.USMoveList.Dequeue();
+                        CPlayerInfo player = this.USMoveQueue.Dequeue();
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, this.RUTeamId.ToString(), "1", "true");
                         this.playerSayMessage(player.SoldierName, "Swapping you from team US to team RU");
                         movedPlayer = true;
@@ -1482,26 +1495,26 @@ namespace PRoConEvents
         {
             if (player.TeamID == this.USTeamId)
             {
-                if (!this.containsCPlayerInfo(this.USMoveList, player.SoldierName))
+                if (!this.containsCPlayerInfo(this.USMoveQueue, player.SoldierName))
                 {
-                    this.USMoveList.Enqueue(player);
-                    this.playerSayMessage(player.SoldierName, "You have been added to the (US -> RU) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.USMoveList, player.SoldierName) + 1) + ".");
+                    this.USMoveQueue.Enqueue(player);
+                    this.playerSayMessage(player.SoldierName, "You have been added to the (US -> RU) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.USMoveQueue, player.SoldierName) + 1) + ".");
                 }
                 else
                 {
-                    this.playerSayMessage(player.SoldierName, "(US -> RU) queue: Position " + (this.indexOfCPlayerInfo(this.USMoveList, player.SoldierName) + 1));
+                    this.playerSayMessage(player.SoldierName, "(US -> RU) queue: Position " + (this.indexOfCPlayerInfo(this.USMoveQueue, player.SoldierName) + 1));
                 }
             }
             else
             {
-                if (!this.containsCPlayerInfo(this.RUMoveList, player.SoldierName))
+                if (!this.containsCPlayerInfo(this.RUMoveQueue, player.SoldierName))
                 {
-                    this.RUMoveList.Enqueue(player);
-                    this.playerSayMessage(player.SoldierName, "You have been added to the (RU -> US) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.RUMoveList, player.SoldierName) + 1) + ".");
+                    this.RUMoveQueue.Enqueue(player);
+                    this.playerSayMessage(player.SoldierName, "You have been added to the (RU -> US) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.RUMoveQueue, player.SoldierName) + 1) + ".");
                 }
                 else
                 {
-                    this.playerSayMessage(player.SoldierName, "(RU -> US) queue: Position " + (this.indexOfCPlayerInfo(this.RUMoveList, player.SoldierName) + 1));
+                    this.playerSayMessage(player.SoldierName, "(RU -> US) queue: Position " + (this.indexOfCPlayerInfo(this.RUMoveQueue, player.SoldierName) + 1));
                 }
             }
             //call an update of the player list, this will move players when possible
@@ -1554,7 +1567,7 @@ namespace PRoConEvents
         public void createRecord(String speaker, String message)
         {
             String[] splitCommand = message.Split(' ');
-            //Create record for return
+            //Create record for processing
             ADKAT_Record record = new ADKAT_Record();
             //Add server
             record.server_id = this.serverID;
@@ -2388,7 +2401,7 @@ namespace PRoConEvents
             if (this.connectionCapable())
             {
                 //Close current connection if it exists
-                if (this.databaseConnection != null)
+                if (this.databaseConnection != null && this.databaseConnection.Ping())
                 {
                     this.DebugWrite("Closing current connection.", 0);
                     this.databaseConnection.Close();
@@ -2875,7 +2888,7 @@ namespace PRoConEvents
 
         public string FormatMessage(string msg, MessageTypeEnum type)
         {
-            string prefix = "[^bCross-Admin Enforcer^n] ";
+            string prefix = "[^bAdKats^n] ";
 
             if (type.Equals(MessageTypeEnum.Warning))
             {
