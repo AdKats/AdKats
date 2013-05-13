@@ -186,7 +186,7 @@ namespace PRoConEvents
         //Default required reason length
         private int requiredReasonLength = 5;
         //Default punishment timeout in minutes
-        private Double punishmentTimeout = 1.0;
+        private Double punishmentTimeout = 0.5;
 
         //TeamSwap Settings
         //whether to allow all players, or just players in the whitelist
@@ -1254,14 +1254,10 @@ namespace PRoConEvents
 
         private void setLoggingForCommand(ADKAT_CommandType enumCommand, Boolean newLoggingEnabled)
         {
-            //Set logging to true for this command
-            //ADKAT_LoggingSettings.TryGetValue(enumCommand, out currentLoggingEnabled);
-            //if logging setting is not found in the dictionary, add it
             try
             {
                 //Get current value
                 bool currentLoggingEnabled = this.ADKAT_LoggingSettings[enumCommand];
-
                 this.DebugWrite("set logging for " + enumCommand + " to " + newLoggingEnabled + " from " + currentLoggingEnabled, 7);
                 //Only perform replacement if the current value is different than what we want
                 if (currentLoggingEnabled != newLoggingEnabled)
@@ -1271,10 +1267,10 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.DebugWrite("Logging option for " + enumCommand + " still " + currentLoggingEnabled + ".", 6);
+                    this.DebugWrite("Logging option for " + enumCommand + " still " + currentLoggingEnabled + ".", 3);
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 this.DebugWrite("Current value null?: " + e.Message, 6);
                 this.DebugWrite("Setting initial logging option for " + enumCommand + " to " + newLoggingEnabled, 6);
@@ -1316,6 +1312,7 @@ namespace PRoConEvents
         {
             if (isEnabled)
             {
+                //this.updating used as a primitive thread sync
                 if (this.updating)
                 {
                     return;
@@ -1324,7 +1321,7 @@ namespace PRoConEvents
                 {
                     this.updating = true;
                 }
-                Dictionary<String, CPlayerInfo> playerList = new Dictionary<String, CPlayerInfo>();
+                Dictionary<String, CPlayerInfo> currentPlayers = new Dictionary<String, CPlayerInfo>();
                 //Reset the player counts of both sides and recount everything
                 this.USPlayerCount = 0;
                 this.RUPlayerCount = 0;
@@ -1340,9 +1337,9 @@ namespace PRoConEvents
                     }
                     playerList.Add(player.SoldierName, player);
                 }
-                this.currentPlayers = playerList;
+                this.currentPlayers = currentPlayers;
                 this.playerList = players;
-                //perform the player switching
+                //perform player switching if needed
                 this.runTeamSwap();
                 this.updating = false;
             }
@@ -1366,7 +1363,7 @@ namespace PRoConEvents
         public override void OnPlayerLeft(CPlayerInfo playerInfo)
         {
             //Only call when a player is waiting to be switched
-            if (isEnabled && (this.USMoveQueue.Count>0 || this.RUMoveQueue.Count>0))
+            if (isEnabled && (this.USMoveQueue.Count > 0 || this.RUMoveQueue.Count > 0))
             {
                 //When any player leaves, the list of players needs to be updated.
                 this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
@@ -1379,7 +1376,7 @@ namespace PRoConEvents
             //Only call when a player is waiting to be switched
             if (isEnabled && (this.USMoveQueue.Count > 0 || this.RUMoveQueue.Count > 0))
             {
-                //When any player leaves, the list of players needs to be updated.
+                //When any player changes team, the list of players needs to be updated.
                 this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
             }
         }
@@ -1387,6 +1384,7 @@ namespace PRoConEvents
         //Move delayed players when they are killed
         public override void OnPlayerKilled(Kill kKillerVictimDetails)
         {
+            //Used for delayed player moving
             if (isEnabled)
             {
                 this.DebugWrite("Player Killed", 6);
@@ -1403,7 +1401,7 @@ namespace PRoConEvents
                             break;
                         }
                     }
-                    if (playerToMove!=null)
+                    if (playerToMove != null)
                     {
                         //if the player is found, remove their ondeath info and send them to teamswap
                         this.DebugWrite("deathmove player found. swapping.", 6);
@@ -1491,6 +1489,7 @@ namespace PRoConEvents
             } while (movedPlayer);
         }
 
+        //Adds a player to the proper move queue
         public void teamSwapPlayer(CPlayerInfo player)
         {
             if (player.TeamID == this.USTeamId)
@@ -1521,6 +1520,7 @@ namespace PRoConEvents
             this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
         }
 
+        //Whether a move queue contains a given player
         private bool containsCPlayerInfo(Queue<CPlayerInfo> queueList, String player)
         {
             CPlayerInfo[] playerArray = queueList.ToArray();
@@ -1534,6 +1534,7 @@ namespace PRoConEvents
             return false;
         }
 
+        //Helper method to find a player's information in the move queue
         private CPlayerInfo getCPlayerInfo(Queue<CPlayerInfo> queueList, String player)
         {
             CPlayerInfo[] playerArray = queueList.ToArray();
@@ -1547,6 +1548,8 @@ namespace PRoConEvents
             return null;
         }
 
+        //The index of a player in the move queue
+        //TODO make this accessible via in-game command
         private Int32 indexOfCPlayerInfo(Queue<CPlayerInfo> queueList, String player)
         {
             CPlayerInfo[] playerArray = queueList.ToArray();
@@ -1566,13 +1569,18 @@ namespace PRoConEvents
 
         public void createRecord(String speaker, String message)
         {
+            //Initial split of command by whitespace
             String[] splitCommand = message.Split(' ');
+
             //Create record for processing
             ADKAT_Record record = new ADKAT_Record();
-            //Add server
-            record.server_id = this.serverID;
 
-            //Add Command
+            //GATE 1: Add general data
+            record.source_name = speaker;
+            record.server_id = this.serverID;
+            record.record_time = DateTime.Now;
+
+            //GATE 2: Add Command
             string commandString = splitCommand[0].ToLower();
             DebugWrite("Raw Command: " + commandString, 6);
             ADKAT_CommandType commandType = this.getCommand(commandString);
@@ -1586,7 +1594,7 @@ namespace PRoConEvents
             message = message.TrimStart(commandString.ToCharArray()).Trim();
             record.command_type = commandType;
 
-            //Add source
+            //GATE 3: Add source
             //Check if player has the right to perform what he's asking
             if (!this.hasAccess(speaker, record.command_type))
             {
@@ -1597,11 +1605,9 @@ namespace PRoConEvents
             }
             record.source_name = speaker;
 
-            //Add general data
-            record.source_name = speaker;
-            record.server_id = this.serverID;
-            record.record_time = DateTime.Now;
-            //Add specific data based on type
+            //GATE 4: Add specific data based on command type
+            //Make sure the specific data entered is valid and worth parsing
+            //Process the completed record
             switch (record.command_type)
             {
                 //No command actions should be acted on here. This section prepares the record for upload. Only actions to be taken here are messaging to inform of invalid commands.
@@ -1611,7 +1617,7 @@ namespace PRoConEvents
                 //record_message
 
                 #region MovePlayer
-                case ADKAT_CommandType.MovePlayer: 
+                case ADKAT_CommandType.MovePlayer:
                     try
                     {
                         record.target_name = splitCommand[1];
@@ -2006,6 +2012,7 @@ namespace PRoConEvents
             return;
         }
 
+        //Attempts to parse the command from a string
         private ADKAT_CommandType getCommand(string commandString)
         {
             ADKAT_CommandType command = ADKAT_CommandType.Default;
@@ -2013,11 +2020,13 @@ namespace PRoConEvents
             return command;
         }
 
+        //Used for player name suggestion
         public void findFullPlayerName(ADKAT_Record record)
         {
             //Check if player exists in the game, or suggest a player
             foreach (CPlayerInfo playerInfo in this.playerList)
             {
+                //If they entered the full player name, dont ask for completion just process it
                 if (playerInfo.SoldierName.ToLower().Equals(record.target_name.ToLower()))
                 {
                     //Player found, grab guid and name
@@ -2028,6 +2037,7 @@ namespace PRoConEvents
                     this.processRecord(record);
                     return;
                 }
+                //If they entered a partial name then suggest the first player that contains the partial they entered
                 else if (playerInfo.SoldierName.ToLower().Contains(record.target_name.ToLower()))
                 {
                     //Possible player found, grab guid
@@ -2085,7 +2095,7 @@ namespace PRoConEvents
                     this.permaBanTarget(record, "");
                     break;
                 case ADKAT_CommandType.PunishPlayer:
-                    //If the record is a punish, check if it can be uploaded.
+                    //If the record is a punish, check if it can be uploaded
                     if (this.canUploadPunish(record))
                     {
                         //Upload for punish is required
@@ -2099,6 +2109,7 @@ namespace PRoConEvents
                     break;
                 case ADKAT_CommandType.ForgivePlayer:
                     //Upload for forgive is required
+                    //No restriction on forgives/minute
                     this.uploadRecord(record);
                     this.forgiveTarget(record);
                     break;
@@ -2143,6 +2154,8 @@ namespace PRoConEvents
             }
         }
 
+        //Checks the logging setting for a record type to see if it should be sent to database
+        //If yes then it's sent, if not then it's ignored
         private void conditionalUploadRecord(ADKAT_Record record)
         {
             if (this.ADKAT_LoggingSettings[record.command_type])
@@ -2547,10 +2560,9 @@ namespace PRoConEvents
                             {
                                 return true;
                             }
-                            latestUpload.AddMinutes(1.0);
                             if (record.record_time.CompareTo(latestUpload.AddMinutes(this.punishmentTimeout)) > 0)
                             {
-                                this.DebugWrite("new punish > 1 minute over last logged punish", 6);
+                                this.DebugWrite("new punish > " + this.punishmentTimeout + " minutes over last logged punish", 6);
                                 return true;
                             }
                             else
@@ -2942,18 +2954,6 @@ namespace PRoConEvents
             {
                 ConsoleWrite(msg, MessageTypeEnum.Normal);
             }
-        }
-
-        #endregion
-
-        #region Server Commands
-
-        public void ServerCommand(params string[] args)
-        {
-            List<string> list = new List<string>();
-            list.Add("procon.protected.send");
-            list.AddRange(args);
-            this.ExecuteCommand(list.ToArray());
         }
 
         #endregion
