@@ -189,6 +189,8 @@ namespace PRoConEvents
         private Double punishmentTimeout = 0.5;
 
         //TeamSwap Settings
+        //Last time list players was called
+        private DateTime lastListPlayersRequest = DateTime.Now;
         //whether to allow all players, or just players in the whitelist
         private Boolean requireTeamswapWhitelist = false;
         //Static whitelist for plugin only use
@@ -275,7 +277,7 @@ namespace PRoConEvents
         {
             return @"
             <h1>AdKats</h1>
-			<p>
+  		<p>
 				Advanced Admin Tool Set for A-Different-Kind, with MySQL database back-end.
 			</p>
 			<h2>Description</h2>
@@ -1312,6 +1314,8 @@ namespace PRoConEvents
         {
             if (isEnabled)
             {
+                //Update last call time
+                this.lastListPlayersRequest = DateTime.Now;
                 //this.updating used as a primitive thread sync
                 if (this.updating)
                 {
@@ -1335,7 +1339,7 @@ namespace PRoConEvents
                     {
                         this.RUPlayerCount++;
                     }
-                    playerList.Add(player.SoldierName, player);
+                    currentPlayers.Add(player.SoldierName, player);
                 }
                 this.currentPlayers = currentPlayers;
                 this.playerList = players;
@@ -1366,7 +1370,7 @@ namespace PRoConEvents
             if (isEnabled && (this.USMoveQueue.Count > 0 || this.RUMoveQueue.Count > 0))
             {
                 //When any player leaves, the list of players needs to be updated.
-                this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+                this.callListPlayers();
             }
         }
 
@@ -1377,6 +1381,14 @@ namespace PRoConEvents
             if (isEnabled && (this.USMoveQueue.Count > 0 || this.RUMoveQueue.Count > 0))
             {
                 //When any player changes team, the list of players needs to be updated.
+                this.callListPlayers();
+            }
+        }
+
+        public void callListPlayers()
+        {
+            if (DateTime.Now > this.lastListPlayersRequest.AddSeconds(5))
+            {
                 this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
             }
         }
@@ -1517,7 +1529,7 @@ namespace PRoConEvents
                 }
             }
             //call an update of the player list, this will move players when possible
-            this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+            this.callListPlayers();
         }
 
         //Whether a move queue contains a given player
