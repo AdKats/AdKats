@@ -1,5 +1,5 @@
 /* 
- * ADKATs.cs
+ * AdKats.cs
  */
 
 using System;
@@ -114,12 +114,15 @@ namespace PRoConEvents
         private List<string> staticAdminCache = new List<string>();
 
         // MySQL Settings
-        public MySqlConnection databaseConnection = null;
-        public string mySqlHostname;
-        public string mySqlPort;
-        public string mySqlDatabaseName;
-        public string mySqlUsername;
-        public string mySqlPassword;
+        private MySqlConnection databaseConnection = null;
+        private Boolean dbStructureConfirmed = false;
+        private string mySqlHostname;
+        private string mySqlPort;
+        private string mySqlDatabaseName;
+        private string mySqlUsername;
+        private string mySqlPassword;
+        private string tablename_adminlist = "tbl_adminlist";
+        private string columnname_adminname = "name";
 
         // Battlefield Server ID
         private int serverID = -1;
@@ -260,7 +263,7 @@ namespace PRoConEvents
 
         public string GetPluginVersion()
         {
-            return "0.1.5";
+            return "0.1.6";
         }
 
         public string GetPluginAuthor()
@@ -494,7 +497,7 @@ namespace PRoConEvents
 				level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step.
 			<h3>Admin Settings:</h3>
 			* <b>'Use Database Admin
-				List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Plugin must be disabled and re-enabled (or db settings changed) to update admin list from database, admin names are cached in the plugin to save bandwidth.<br/>
+				List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Admin names are cached in the plugin to save bandwidth. The list is updated when a non-admin is requesting access, to see if list has changed.<br/>
 			* <b>'Static Admin List'</b> - List of admins input from plugin settings. Use if no admin database table.
 			<h3>MySQL Settings:</h3>
 			* <b>'MySQL Hostname'</b> - Hostname of the MySQL server AdKats should connect to. <br/>
@@ -532,7 +535,7 @@ namespace PRoConEvents
 				Access'</b> - Whether the 'moveme' command will require whitelisting. Admins are always allowed to use it.<br/>
 			* <b>'Static Player Whitelist'</b> - Static list of players plugin-side that will be able to TeamSwap.<br/>
 			* <b>'Use Database
-				Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Plugin must be disabled and re-enabled (or db settings changed) to update whitelist from database, whitelisted names are cached in the plugin to save bandwidth.<br/>
+				Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Whitelisted names are cached in the plugin to save bandwidth. The list is updated when a non-whitelisted player is requesting access, to see if list has changed.<br/>
 			* <b>'Ticket Window
 				High'</b> - When either team is above this ticket count, then nobody (except admins) will be able to use TeamSwap.
 			<br/>
@@ -554,7 +557,7 @@ namespace PRoConEvents
 			</p>
 			<h2>Database Tables and Views</h2>
 			<p>
-				Run the following on your MySQL database to set it up for plugin use.<br/><br/>
+                The plugin checks the database for needed tables on connect. If it doesnt find the master record table it will run the script below. You can run the script below beforehand if you dont want the plugin changing tables in your database.<br/><br/>
 				
 				DROP TABLE IF EXISTS `adkat_records`;<br/>
 				DROP TABLE IF EXISTS `adkat_actionlist`;<br/>
@@ -662,6 +665,12 @@ namespace PRoConEvents
 				<h4>0.1.5 (12-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				* Cleaned up messaging. Small bug fixes.<br/>
+				<h4>0.1.6 (14-MAY-2013)</h4>
+				<b>Changes</b> <br/>
+				* Optimized calling of listPlayers to only once every 5 seconds or on call from a move command.<br/>
+				* Fixed console spam start of plugin.<br/>
+				* Added update of admin list/teamswap list if a player isn't on it and trying a command.<br/>
+				* Gave plugin control over table creation if not setup beforehand.<br/>
 				<br/>
 				TODO 1: Add watchlist use.
 			</blockquote>
@@ -732,6 +741,11 @@ namespace PRoConEvents
             if (!this.useDatabaseAdminList)
             {
                 lstReturn.Add(new CPluginVariable("Admin Settings|Static Admin List", typeof(string[]), this.staticAdminCache.ToArray()));
+            }
+            else
+            {
+                lstReturn.Add(new CPluginVariable("Admin Settings|Admin Table Name", typeof(string), this.tablename_adminlist));
+                lstReturn.Add(new CPluginVariable("Admin Settings|Column That Contains Admin Name", typeof(string), this.columnname_adminname));
             }
             //TeamSwap Settings
             lstReturn.Add(new CPluginVariable("TeamSwap Settings|Require Whitelist for Access", typeof(Boolean), this.requireTeamswapWhitelist));
@@ -1079,15 +1093,22 @@ namespace PRoConEvents
             {
                 if (this.useDatabaseAdminList = Boolean.Parse(strValue))
                 {
-                    if (!this.databaseConnection.Ping())
-                    {
-                        connectToDatabase();
-                    }
+                    this.fetchAdminList();
                 }
             }
             else if (Regex.Match(strVariable, @"Static Admin List").Success)
             {
                 this.staticAdminCache = new List<string>(CPluginVariable.DecodeStringArray(strValue));
+            }
+            else if (Regex.Match(strVariable, @"Admin Table Name").Success)
+            {
+                this.tablename_adminlist = strValue;
+                this.fetchAdminList();
+            }
+            else if (Regex.Match(strVariable, @"Column That Contains Admin Name").Success)
+            {
+                this.columnname_adminname = strValue;
+                this.fetchAdminList();
             }
             #endregion
             #region sql settings
@@ -1136,7 +1157,7 @@ namespace PRoConEvents
             {
                 if (!(this.requireTeamswapWhitelist = Boolean.Parse(strValue)))
                 {
-                    //If no whitelist is necessary
+                    //If no whitelist is necessary change use db whitelist to false
                     this.useDatabaseTeamswapWhitelist = false;
                 }
             }
@@ -1148,10 +1169,7 @@ namespace PRoConEvents
             {
                 if (this.useDatabaseTeamswapWhitelist = Boolean.Parse(strValue))
                 {
-                    if (!this.databaseConnection.Ping())
-                    {
-                        connectToDatabase();
-                    }
+                    this.fetchTeamswapWhitelist();
                 }
             }
             else if (Regex.Match(strVariable, @"Ticket Window High").Success)
@@ -1296,6 +1314,7 @@ namespace PRoConEvents
             ConsoleWrite("^b^2Enabled!^n^0 Version: " + GetPluginVersion());
             //try connecting to the database
             this.connectToDatabase();
+            this.fetchAllAccessLists();
         }
 
         public void OnPluginDisable()
@@ -1370,7 +1389,7 @@ namespace PRoConEvents
             if (isEnabled && (this.USMoveQueue.Count > 0 || this.RUMoveQueue.Count > 0))
             {
                 //When any player leaves, the list of players needs to be updated.
-                this.callListPlayers();
+                this.callListPlayers(false);
             }
         }
 
@@ -1381,13 +1400,13 @@ namespace PRoConEvents
             if (isEnabled && (this.USMoveQueue.Count > 0 || this.RUMoveQueue.Count > 0))
             {
                 //When any player changes team, the list of players needs to be updated.
-                this.callListPlayers();
+                this.callListPlayers(false);
             }
         }
 
-        public void callListPlayers()
+        public void callListPlayers(Boolean bypass)
         {
-            if (DateTime.Now > this.lastListPlayersRequest.AddSeconds(5))
+            if (DateTime.Now > this.lastListPlayersRequest.AddSeconds(5) || bypass)
             {
                 this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
             }
@@ -1529,7 +1548,7 @@ namespace PRoConEvents
                 }
             }
             //call an update of the player list, this will move players when possible
-            this.callListPlayers();
+            this.callListPlayers(true);
         }
 
         //Whether a move queue contains a given player
@@ -2445,8 +2464,10 @@ namespace PRoConEvents
                     {
                         //Connection good
                         this.DebugWrite("Database connection SUCCESS.", 0);
-                        //Fetch admin lists if needed
-                        this.fetchAccessLists();
+                        if (!this.dbStructureConfirmed)
+                        {
+                            this.helper_confirmDatabaseSetup();
+                        }
                     }
                     else
                     {
@@ -2462,21 +2483,130 @@ namespace PRoConEvents
             }
             else
             {
-                this.DebugWrite("Not DB connection capable yet, complete sql connection variables.", 3);
+                this.DebugWrite("Not DB connection capable yet, complete sql connection variables.", 0);
             }
             DebugWrite("connectToDatabase finished!", 6);
         }
 
-        private void fetchAccessLists()
+        private void helper_confirmDatabaseSetup()
         {
-            if (this.useDatabaseAdminList)
+            if(!this.helper_confirmTable("adkat_records"))
             {
-                this.fetchAdminList();
+                ConsoleWrite("^b^1Main Record table not present in the database. Running Setup Script.^n^0");
+                this.helper_runDBSetupScript();
+                return;
             }
-            if (this.useDatabaseTeamswapWhitelist)
+            if (this.useDatabaseWhitelist && !this.helper_confirmTable("adkat_teamswapwhitelist"))
             {
-                this.fetchTeamswapWhitelist();
+                ConsoleWrite("^b^adkat_teamswapwhitelist not present in the database. AdKats will not function properly.^n^0");
             }
+            if (this.useDatabaseAdminlist && !this.helper_confirmTable(this.tablename_adminlist))
+            {
+                ConsoleWrite("^b^" + this.tablename_adminlist + " not present in the database. AdKats will not function properly.^n^0");
+            }
+            if (!this.helper_confirmTable("adkat_actionlist"))
+            {
+                ConsoleWrite("^b^1adkat_actionlist not present in the database. AdKats will not function properly.^n^0");
+            }
+            if (!this.helper_confirmTable("adkat_playerlist"))
+            {
+                ConsoleWrite("^b^adkat_playerlist not present in the database. AdKats will not function properly.^n^0");
+            }
+            if (!this.helper_confirmTable("adkat_playerpoints"))
+            {
+                ConsoleWrite("^b^adkat_playerpoints not present in the database. AdKats will not function properly.^n^0");
+            }
+            if (!this.helper_confirmTable("adkat_reports"))
+            {
+                ConsoleWrite("^b^adkat_reports not present in the database. AdKats will not function properly.^n^0");
+            }
+            if (!this.helper_confirmTable("adkat_naughtylist"))
+            {
+                ConsoleWrite("^b^adkat_naughtylist not present in the database. AdKats will not function properly.^n^0");
+            }
+            this.DebugWrite("Database confirmed functional for AdKats use.", 3);
+            this.dbStructureConfirmed = true;
+        }
+
+        private void helper_runDBSetupScript()
+        {
+            using (this.databaseConnection)
+            {
+                using (MySqlCommand command = this.databaseConnection.CreateCommand())
+                {
+                    //Set the insert command structure
+                    command.CommandText = 
+                        @"
+                        DROP TABLE IF EXISTS `adkat_records`;
+                        DROP TABLE IF EXISTS `adkat_actionlist`;
+                        DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;
+                        CREATE TABLE `adkat_records` (
+                        `record_id` int(11) NOT NULL AUTO_INCREMENT,
+                        `server_id` int(11) NOT NULL,
+                        `command_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','PermaBan','Punish','Forgive','Report','CallAdmin', 'AdminSay', 'PlayerSay', 'AdminYell', 'PlayerYell', 'RestartLevel', 'NextLevel', 'EndLevel') NOT NULL,
+                        `record_durationMinutes` int(11) NOT NULL,
+                        `target_guid` varchar(100) NOT NULL,
+                        `target_name` varchar(45) NOT NULL,
+                        `source_name` varchar(45) NOT NULL,
+                        `record_message` varchar(100) NOT NULL,
+                        `record_time` datetime NOT NULL,
+                        PRIMARY KEY (`record_id`)
+                        );
+                        CREATE TABLE `adkat_actionlist` (
+                        `action_id` int(11) NOT NULL AUTO_INCREMENT,
+                        `server_id` int(11) NOT NULL,
+                        `player_guid` varchar(100) NOT NULL,
+                        `player_name` varchar(45) NOT NULL,
+                        PRIMARY KEY (`action_id`)	
+                        );
+                        CREATE TABLE `adkat_teamswapwhitelist` (
+                        `player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',
+                        PRIMARY KEY (`player_name`),
+                        UNIQUE KEY `player_name_UNIQUE` (`player_name`)
+                        );
+                        CREATE OR REPLACE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by `adkat_records`.`target_name`;
+                        CREATE OR REPLACE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints` from `adkat_playerlist`;
+                        CREATE OR REPLACE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));
+                        CREATE OR REPLACE VIEW `adkat_naughtylist` AS select `adkat_playerpoints`.`serverid` AS `server_id`,`adkat_playerpoints`.`playername` AS `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;";
+                    //Attempt to execute the query
+                    if (command.ExecuteNonQuery() > 0)
+                    {
+                        ConsoleWrite("Creation script successful, your database is setup for AdKats use.");
+                    }
+                    else
+                    {
+                        ConsoleWrite("^b^Your database did not accept the script. Does your account have access to table creation? AdKats will not function properly.^n^0");
+                    }
+                }
+            }
+        }
+
+        private Boolean helper_confirmTable(string tablename)
+        {
+            using (this.databaseConnection)
+            {
+                using (MySqlCommand command = this.databaseConnection.CreateCommand())
+                {
+                    command.CommandText = "SHOW TABLES LIKE '" + tablename + "'";
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        if (reader.Read())
+                        {
+                            return true;
+                        }
+                        else
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void fetchAllAccessLists()
+        {
+            fetchAdminList();
+            fetchTeamswapWhitelist();
         }
 
         private string PrepareMySqlConnectionString()
@@ -2491,6 +2621,11 @@ namespace PRoConEvents
             Boolean success = false;
             try
             {
+                //Open the connection if needed
+                if (!this.databaseConnection.Ping())
+                {
+                    this.connectToDatabase();
+                }
                 using (this.databaseConnection)
                 {
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
@@ -2510,11 +2645,6 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@source_name", record.source_name);
                         command.Parameters.AddWithValue("@record_message", record.record_message);
                         command.Parameters.AddWithValue("@record_time", record.record_time);
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
                         {
@@ -2533,7 +2663,7 @@ namespace PRoConEvents
 
             if (success)
             {
-                DebugWrite(temp + " log for player " + record.target_name + " by " + record.source_name + " SUCCESSFUL!", 5);
+                DebugWrite(temp + " log for player " + record.target_name + " by " + record.source_name + " SUCCESSFUL!", 3);
             }
             else
             {
@@ -2549,17 +2679,17 @@ namespace PRoConEvents
 
             try
             {
+                //Open the connection if needed
+                if (!this.databaseConnection.Ping())
+                {
+                    this.connectToDatabase();
+                }
                 using (this.databaseConnection)
                 {
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
                         //command.CommandText = "select latest_time from (select record_time as `latest_time` from `" + this.mySqlDatabase + "`.`adkat_records` where `adkat_records`.`server_id` = " + record.server_id + " and `adkat_records`.`command_type` = 'Punish' and `adkat_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1) as temp where latest_time < (NOW() - INTERVAL '1' MINUTE)";
                         command.CommandText = "select record_time as `latest_time` from `" + this.mySqlDatabaseName + "`.`adkat_records` where `adkat_records`.`server_id` = " + record.server_id + " and `adkat_records`.`command_type` = 'Punish' and `adkat_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1";
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             DateTime latestUpload;
@@ -2600,6 +2730,11 @@ namespace PRoConEvents
             Boolean success = false;
             try
             {
+                //Open the connection if needed
+                if (!this.databaseConnection.Ping())
+                {
+                    this.connectToDatabase();
+                }
                 using (this.databaseConnection)
                 {
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
@@ -2610,11 +2745,6 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@server_id", record.server_id);
                         command.Parameters.AddWithValue("@player_guid", record.target_guid);
                         command.Parameters.AddWithValue("@player_name", record.target_name);
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
                         {
@@ -2647,16 +2777,16 @@ namespace PRoConEvents
 
             try
             {
+                //Open the connection if needed
+                if (!this.databaseConnection.Ping())
+                {
+                    this.connectToDatabase();
+                }
                 using (this.databaseConnection)
                 {
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
                         command.CommandText = "SELECT playername, playerguid, serverid, totalpoints FROM `" + this.mySqlDatabaseName + "`.`adkat_playerpoints` WHERE `playerguid` = '" + player_guid + "' AND `serverid` = " + server_id;
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             if (reader.Read())
@@ -2687,23 +2817,23 @@ namespace PRoConEvents
             Boolean success = false;
             try
             {
+                //Open the connection if needed
+                if (!this.databaseConnection.Ping())
+                {
+                    this.DebugWrite("Admin list fetch needs to renew database connection.", 3);
+                    this.connectToDatabase();
+                }
                 using (this.databaseConnection)
                 {
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
-                        command.CommandText = "SELECT name AS admin_name, eaguid AS admin_guid FROM `" + this.mySqlDatabaseName + "`.`tbl_adminlist`";
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
+                        command.CommandText = "SELECT `" + this.columnname_adminname + "` AS `admin_name` FROM `" + this.mySqlDatabaseName + "`.`" + this.tablename_adminlist + "`";
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {
                                 success = true;
                                 string admin_name = reader.GetString("admin_name");
-                                string admin_guid = reader.GetString("admin_guid");
                                 DebugWrite("Admin found: " + admin_name, 6);
                                 //only use admin names not guids for now
                                 tempAdminList.Add(admin_name);
@@ -2739,16 +2869,17 @@ namespace PRoConEvents
             Boolean success = false;
             try
             {
+                //Open the connection if needed
+                if (!this.databaseConnection.Ping())
+                {
+                    this.DebugWrite("Teamswap list fetch needs to renew database connection.", 3);
+                    this.connectToDatabase();
+                }
                 using (this.databaseConnection)
                 {
                     using (MySqlCommand command = this.databaseConnection.CreateCommand())
                     {
                         command.CommandText = "SELECT player_name AS player_name FROM `" + this.mySqlDatabaseName + "`.`adkat_teamswapwhitelist`";
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())
@@ -2851,6 +2982,11 @@ namespace PRoConEvents
         {
             if (this.useDatabaseAdminList)
             {
+                //If the cache of admins plugin-side doesnt contain the person, just make sure it doesnt need updating
+                if (!this.databaseAdminCache.Contains(player_name))
+                {
+                    this.fetchAdminList();
+                }
                 return this.databaseAdminCache.Contains(player_name);
             }
             else
@@ -2863,6 +2999,11 @@ namespace PRoConEvents
         {
             if (this.useDatabaseTeamswapWhitelist)
             {
+                //if the cache of teamswap whitelisted players plugin-side doesnt contain the person, just make sure it doesnt need updating
+                if (!this.databaseTeamswapWhitelistCache.Contains(player_name))
+                {
+                    this.fetchTeamswapWhitelist();
+                }
                 return this.databaseTeamswapWhitelistCache.Contains(player_name);
             }
             else
@@ -2970,5 +3111,5 @@ namespace PRoConEvents
 
         #endregion
 
-    } // end ADKATs
+    } // end AdKats
 } // end namespace PRoConEvents
