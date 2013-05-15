@@ -1,8 +1,13 @@
 /* 
  * AdKats is a MySQL reflected admin tool for Procon Frostbite.
- * In general this combines simple in-game admin commands, player name completion, admin punish/forgive,
+ * 
+ * In combines editable in-game admin commands, player name completion, admin punish/forgive,
  * report/calladmin, and TeamSwap, into one plugin to reduce the load on your procon layer.
+ * 
+ * Requires a MySQL Database for upload of logs and use of Punish/Forgive.
+ * 
  * Current version: 0.1.7
+ * 
  * AdKats.cs
  */
 
@@ -265,7 +270,7 @@ namespace PRoConEvents
 
         public string GetPluginVersion()
         {
-            return "0.1.7";
+            return "0.1.6";
         }
 
         public string GetPluginAuthor()
@@ -2520,7 +2525,7 @@ namespace PRoConEvents
             DebugWrite("testDatabaseConnection finished!", 6);
         }
 
-        private void confirmDatabaseSetup()
+        private Boolean confirmDatabaseSetup()
         {
             this.DebugWrite("Confirming Database Structure.", 0);
             try
@@ -2528,9 +2533,13 @@ namespace PRoConEvents
                 Boolean confirmed = true;
                 if (!this.confirmTable("adkat_records"))
                 {
-                    ConsoleWrite("^b^1Main Record table not present in the database. Running Setup Script.^n^0");
+                    ConsoleWrite("^b^1Main Record table not present in the database.^n^0");
                     this.helper_runDBSetupScript();
-                    return;
+                    if (!this.confirmTable("adkat_records"))
+                    {
+                        this.DebugWrite("After running setup script main record table still not present. ColonCleaner is fail :(", 3);
+                        confirmed = false;
+                    }
                 }
                 if (this.useDatabaseTeamswapWhitelist && !this.confirmTable("adkat_teamswapwhitelist"))
                 {
@@ -2570,8 +2579,12 @@ namespace PRoConEvents
                 if (confirmed)
                 {
                     this.DebugWrite("Database confirmed functional for AdKats use.", 3);
-                    return true;
                 }
+                else
+                {
+                    this.DebugWrite("Database ERROR, not set up for AdKats use.", 3);
+                }
+                return confirmed;
             }
             catch (Exception e)
             {
@@ -2590,37 +2603,37 @@ namespace PRoConEvents
                         //Set the insert command structure
                         command.CommandText =
                             @"
-                        DROP TABLE IF EXISTS `adkat_records`;
-                        DROP TABLE IF EXISTS `adkat_actionlist`;
-                        DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;
-                        CREATE TABLE `adkat_records` (
-                        `record_id` int(11) NOT NULL AUTO_INCREMENT,
-                        `server_id` int(11) NOT NULL,
-                        `command_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','PermaBan','Punish','Forgive','Report','CallAdmin', 'AdminSay', 'PlayerSay', 'AdminYell', 'PlayerYell', 'RestartLevel', 'NextLevel', 'EndLevel') NOT NULL,
-                        `record_durationMinutes` int(11) NOT NULL,
-                        `target_guid` varchar(100) NOT NULL,
-                        `target_name` varchar(45) NOT NULL,
-                        `source_name` varchar(45) NOT NULL,
-                        `record_message` varchar(100) NOT NULL,
-                        `record_time` datetime NOT NULL,
-                        PRIMARY KEY (`record_id`)
-                        );
-                        CREATE TABLE `adkat_actionlist` (
-                        `action_id` int(11) NOT NULL AUTO_INCREMENT,
-                        `server_id` int(11) NOT NULL,
-                        `player_guid` varchar(100) NOT NULL,
-                        `player_name` varchar(45) NOT NULL,
-                        PRIMARY KEY (`action_id`)	
-                        );
-                        CREATE TABLE `adkat_teamswapwhitelist` (
-                        `player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',
-                        PRIMARY KEY (`player_name`),
-                        UNIQUE KEY `player_name_UNIQUE` (`player_name`)
-                        );
-                        CREATE OR REPLACE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by `adkat_records`.`target_name`;
-                        CREATE OR REPLACE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints` from `adkat_playerlist`;
-                        CREATE OR REPLACE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));
-                        CREATE OR REPLACE VIEW `adkat_naughtylist` AS select `adkat_playerpoints`.`serverid` AS `server_id`,`adkat_playerpoints`.`playername` AS `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;";
+                            DROP TABLE IF EXISTS `adkat_records`;
+                            DROP TABLE IF EXISTS `adkat_actionlist`;
+                            DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;
+                            CREATE TABLE `adkat_records` (
+                            `record_id` int(11) NOT NULL AUTO_INCREMENT,
+                            `server_id` int(11) NOT NULL,
+                            `command_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','PermaBan','Punish','Forgive','Report','CallAdmin', 'AdminSay', 'PlayerSay', 'AdminYell', 'PlayerYell', 'RestartLevel', 'NextLevel', 'EndLevel') NOT NULL,
+                            `record_durationMinutes` int(11) NOT NULL,
+                            `target_guid` varchar(100) NOT NULL,
+                            `target_name` varchar(45) NOT NULL,
+                            `source_name` varchar(45) NOT NULL,
+                            `record_message` varchar(100) NOT NULL,
+                            `record_time` datetime NOT NULL,
+                            PRIMARY KEY (`record_id`)
+                            );
+                            CREATE TABLE `adkat_actionlist` (
+                            `action_id` int(11) NOT NULL AUTO_INCREMENT,
+                            `server_id` int(11) NOT NULL,
+                            `player_guid` varchar(100) NOT NULL,
+                            `player_name` varchar(45) NOT NULL,
+                            PRIMARY KEY (`action_id`)	
+                            );
+                            CREATE TABLE `adkat_teamswapwhitelist` (
+                            `player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',
+                            PRIMARY KEY (`player_name`),
+                            UNIQUE KEY `player_name_UNIQUE` (`player_name`)
+                            );
+                            CREATE OR REPLACE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by `adkat_records`.`target_name`;
+                            CREATE OR REPLACE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints` from `adkat_playerlist`;
+                            CREATE OR REPLACE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));
+                            CREATE OR REPLACE VIEW `adkat_naughtylist` AS select `adkat_playerpoints`.`serverid` AS `server_id`,`adkat_playerpoints`.`playername` AS `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;";
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
                         {
@@ -2635,7 +2648,7 @@ namespace PRoConEvents
             }
             catch (Exception e)
             {
-                this.DebugWrite("ERROR in helper_runDBSetupScript: " + e.ToString(), 6);
+                this.DebugWrite("ERROR in runDBSetupScript: " + e.ToString(), 6);
             }
         }
 
@@ -2960,12 +2973,12 @@ namespace PRoConEvents
                 case ADKAT_CommandType.ForceMovePlayer:
                     return this.isAdmin(player_name);
                 case ADKAT_CommandType.Teamswap:
-                    if (this.isAdmin(player_name))
+                    if (this.requireTeamswapWhitelist)
                     {
-                        return true;
-                    }
-                    else if (this.requireTeamswapWhitelist)
-                    {
+                        if (this.isAdmin(player_name))
+                        {
+                            return true;
+                        }
                         return this.isTeamswapWhitelisted(player_name);
                     }
                     else
