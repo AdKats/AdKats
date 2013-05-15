@@ -1,4 +1,8 @@
 /* 
+ * AdKats is a MySQL reflected admin tool for Procon Frostbite.
+ * In general this combines simple in-game admin commands, player name completion, admin punish/forgive,
+ * report/calladmin, and TeamSwap, into one plugin to reduce the load on your procon layer.
+ * Current version: 0.1.7
  * AdKats.cs
  */
 
@@ -261,7 +265,7 @@ namespace PRoConEvents
 
         public string GetPluginVersion()
         {
-            return "0.1.6";
+            return "0.1.7";
         }
 
         public string GetPluginAuthor()
