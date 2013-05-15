@@ -1,7 +1,7 @@
 /* 
  * AdKats is a MySQL reflected admin tool for Procon Frostbite.
  * 
- * In combines editable in-game admin commands, player name completion, admin punish/forgive,
+ * Combines editable in-game admin commands, player name completion, admin punish/forgive,
  * report/calladmin, and TeamSwap, into one plugin to reduce the load on your procon layer.
  * 
  * Requires a MySQL Database for upload of logs and use of Punish/Forgive.
