@@ -683,6 +683,7 @@ namespace PRoConEvents
 				    * Reconfigured Database connection handling and connection testing to follow best practices seen elsewhere.<br/>
 				    * Fixed bugs in the database structure confirmation and table setup sequence.<br/>
 				    * All yell messages will now be changed to uppercase before sending.<br/>
+				    * Added confirm action to all round targeted commands.<br/>
 				<br/>
 				TODO 1: Add watchlist use.
 			</blockquote>
@@ -1685,7 +1686,7 @@ namespace PRoConEvents
                     }
                     record.record_message = "";
                     //Sets target_guid and completes target_name, then calls processRecord
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region ForceMovePlayer
@@ -1703,7 +1704,7 @@ namespace PRoConEvents
                         return;
                     }
                     //Sets target_guid and completes target_name, then calls processRecord
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region Teamswap
@@ -1711,7 +1712,7 @@ namespace PRoConEvents
                     record.target_name = speaker;
                     record.record_message = "TeamSwap";
                     //Sets target_guid and completes target_name, then calls processRecord
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region KillPlayer
@@ -1736,7 +1737,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region KickPlayer
@@ -1761,7 +1762,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region TempBanPlayer
@@ -1791,7 +1792,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region PermabanPlayer
@@ -1816,7 +1817,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region PunishPlayer
@@ -1841,7 +1842,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region ForgivePlayer
@@ -1866,7 +1867,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region ReportPlayer
@@ -1891,7 +1892,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region CallAdmin
@@ -1916,33 +1917,33 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region EndLevel
                 case ADKAT_CommandType.EndLevel:
                     try
                     {
-                        record.record_message = "Admin Call to End Round";
+                        record.record_message = "End Round";
                         String targetTeam = splitCommand[1];
                         DebugWrite("target team: " + targetTeam, 6);
                         if (targetTeam.ToLower().Contains("us"))
                         {
                             record.target_name = "US Team";
-                            record.target_guid = this.USTeamId + "";
-                            this.endLevel(record);
+                            record.target_guid = "US Team";
+                            record.record_message += " (US Win)";
                         }
                         else if (targetTeam.ToLower().Contains("ru"))
                         {
                             record.target_name = "RU Team";
-                            record.target_guid = this.RUTeamId + "";
-                            this.endLevel(record);
+                            record.target_guid = "RU Team";
+                            record.record_message += " (RU Win)";
                         }
                         else
                         {
                             this.playerSayMessage(record.source_name, "Use 'US' or 'RU' as team names to end round");
                         }
-                        this.processRecord(record);
+                        confirmAction(record);
                     }
                     catch (Exception e)
                     {
@@ -1956,16 +1957,16 @@ namespace PRoConEvents
                 case ADKAT_CommandType.RestartLevel:
                     record.target_name = "Server";
                     record.target_guid = "Server";
-                    record.record_message = "Admin Call to Restart Round";
-                    this.processRecord(record);
+                    record.record_message = "Restart Round";
+                    confirmAction(record);
                     break;
                 #endregion
                 #region NextLevel
                 case ADKAT_CommandType.NextLevel:
                     record.target_name = "Server";
                     record.target_guid = "Server";
-                    record.record_message = "Admin Call to Run Next Map";
-                    this.processRecord(record);
+                    record.record_message = "Run Next Map";
+                    confirmAction(record);
                     break;
                 #endregion
                 #region AdminSay
@@ -2022,7 +2023,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Invalid command format or no message given, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region PlayerYell
@@ -2041,7 +2042,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Invalid command format or no message given, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region ConfirmCommand
@@ -2074,8 +2075,16 @@ namespace PRoConEvents
             return command;
         }
 
+        public void confirmAction(ADKAT_Record record)
+        {
+            //Send record to attempt list
+            this.playerSayMessage(record.source_name, "Confirm Action: " + playerInfo.record_message);
+            this.actionAttemptList.Remove(record.source_name);
+            this.actionAttemptList.Add(record.source_name, record);
+        }
+
         //Used for player name suggestion
-        public void findFullPlayerName(ADKAT_Record record)
+        public void confirmPlayerName(ADKAT_Record record)
         {
             //Check if player exists in the game, or suggest a player
             foreach (CPlayerInfo playerInfo in this.playerList)
