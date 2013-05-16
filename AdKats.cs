@@ -7,7 +7,7 @@
  * 
  * Requires a MySQL Database connection for proper use. Will set up needed tables in the database if they are not there already.
  * 
- * Current version: 0.1.7.1
+ * Current version: 0.1.7.2
  * 
  * AdKats.cs
  */
@@ -80,7 +80,9 @@ namespace PRoConEvents
             AdminSay,
             PlayerSay,
             AdminYell,
-            PlayerYell
+            PlayerYell,
+            PreYell,
+            PreSay
         };
         //enum for player ban types
         public enum ADKAT_BanType
@@ -157,6 +159,9 @@ namespace PRoConEvents
         private string m_strPlayerSayCommand = "psay|log";
         private string m_strYellCommand = "yell|log";
         private string m_strPlayerYellCommand = "pyell|log";
+        private string m_strPreYellCommand = "preyell|log";
+        private string m_strPreSayCommand = "presay|log";
+        private List<string> preMessageList = new List<string>();
         private int m_iShowMessageLength = 5;
         private string m_strShowMessageLength = "5";
         //Map control
@@ -226,6 +231,11 @@ namespace PRoConEvents
             isEnabled = false;
             debugLevel = 0;
 
+            preMessageList.Add("US TEAM: DO NOT ENTER THE STREETS BEYOND 'A', YOU WILL BE PUNISHED.");
+            preMessageList.Add("US TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.");
+            preMessageList.Add("RU TEAM: DO NOT GO BEYOND 'C' FLAG, YOU WILL BE PUNISHED.");
+            preMessageList.Add("RU TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.");
+
             //Create command and logging dictionaries
             this.ADKAT_CommandStrings = new Dictionary<string, ADKAT_CommandType>();
             //this.ADKAT_CommandStrings.Add(this.m_strKillCommand, ADKAT_CommandType.KillPlayer);
@@ -271,7 +281,7 @@ namespace PRoConEvents
 
         public string GetPluginVersion()
         {
-            return "0.1.7.1";
+            return "0.1.7.2";
         }
 
         public string GetPluginAuthor()
@@ -608,43 +618,43 @@ namespace PRoConEvents
 			</p>
 			<h3>Changelog</h3>
 			<blockquote>
-				<h4>0.0.1 (20-APR-2013)</h4>
+				<h4>0.0.1 Dev (20-APR-2013)</h4>
 				<b>Main: </b> <br/>
 				    * Initial Version <br/>
-				<h4>0.0.2 (25-APR-2013)</h4>
+				<h4>0.0.2 Dev (25-APR-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Added plugin-side punishment. <br/>
 				    * Initial DB test, tables updated. <br/>
-				<h4>0.0.3 (28-APR-2013)</h4>
+				<h4>0.0.3 Dev (28-APR-2013)</h4>
 				<b>Changes</b> <br/>
 				    * In-game commands no longer case sensitive. <br/>
 				    * External DB test, tables updated. <br/>
 				    * First in-game run during match, minor bugs fixed. <br/>
-				<h4>0.0.4 (29-APR-2013)</h4>
+				<h4>0.0.4 Dev (29-APR-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Added editable in-game commands for forgive/punish. <br/>
-				<h4>0.0.5 (30-APR-2013)</h4>
+				<h4>0.0.5 Dev (30-APR-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Removed global player access for production version. <br/>
 				    * Added admin list for access. <br/>
 				    * Added 'Low Server Pop' override system
-				<h4>0.0.6 (1-MAY-2013)</h4>
+				<h4>0.0.6 Dev (1-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Added access to database admin list. <br/>
 				    * Fixed minor bugs during testing. <br/>
-				<h4>0.0.7 (1-MAY-2013)</h4>
+				<h4>0.0.7 Dev (1-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Added view definitions to display current player point values. <br/>
-				<h4>0.0.8 (2-MAY-2013)</h4>
+				<h4>0.0.8 Dev (2-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Updated player-say messages when punishment acted on. More informative message used.<br/>
 				    * Added editable minimum reason length.<br/>
-				<h4>0.0.9 (3-MAY-2013)</h4>
+				<h4>0.0.9 Dev (3-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Added direct kill, kick, tban, and ban commands.<br/>
 				    * Made direct commands work with database.<br/>
 				    * Removed editable command list.<br/>
-				<h4>0.1.0 (5-MAY-2013)</h4>
+				<h4>0.1.0 Release (5-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Refactor record creation to increase speed.<br/>
 				    * Enumerate all database commands to parse in-game commands.<br/>
@@ -654,15 +664,15 @@ namespace PRoConEvents
 				    * Refactor database logging to work with all commands.<br/>
 				    * Code cleanup and organize.<br/>
 				    * Player and admin messaging changes.<br/>
-				<h4>0.1.1 (6-MAY-2013)</h4>
+				<h4>0.1.1 Dev (6-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Punish and forgive commands changed to 'pun' and 'for', for ease of use in high punish/minute instances.<br/>
 				    * Now a player may only be punished once every x minutes, this removes the case where two admins can punish a player
 				for the same infraction.<br/>
-				<h4>0.1.2 (8-MAY-2013)</h4>
+				<h4>0.1.2 Dev (8-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Re-added editable command list.<br/>
-				<h4>0.1.3 (9-MAY-2013)</h4>
+				<h4>0.1.3 Dev (9-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Refactored settings and parsing to make the plugin more heavy while changing settings, but much lighter once in
 				use.<br/>
@@ -670,28 +680,31 @@ namespace PRoConEvents
 				the plugin log uses of that command in the database. Default is logging for all action commands (which should be
 				fine for performance). Right now only Punish and Forgive are required to be logged.<br/>
 				    * Fixed move command, now sends player to TeamSwap once they have died.<br/>
-				<h4>0.1.4 (10-MAY-2013)</h4>
+				<h4>0.1.4 Dev (10-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Fixed bugs in command logging interface and command setting initialization.<br/>
-				<h4>0.1.5 (12-MAY-2013)</h4>
+				<h4>0.1.5 Release (12-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Cleaned up messaging. Small bug fixes.<br/>
-				<h4>0.1.6 (14-MAY-2013)</h4>
+				<h4>0.1.6 Dev (14-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Optimized calling of listPlayers to only once every 5 seconds or on call from a move command.<br/>
 				    * Fixed console spam at start of plugin.<br/>
 				    * Added update of admin list/teamswap list if a player isn't on it and trying a command.<br/>
 				    * Gave plugin control over table creation if not setup beforehand.<br/>
-                <h4>0.1.7 (15-MAY-2013)</h4>
+                <h4>0.1.7 Release (15-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Reconfigured Database connection handling and connection testing to follow best practices seen elsewhere.<br/>
 				    * Fixed bugs in the database structure confirmation and table setup sequence.<br/>
 				    * All yell messages will now be changed to uppercase before sending.<br/>
 				    * Added confirm action to all round targeted commands.<br/>
 				<br/>
-                <h4>0.1.7.1 (16-MAY-2013)</h4>
+                <h4>0.1.7.2 Dev (16-MAY-2013)</h4>
 				<b>Changes</b> <br/>
 				    * Console Errors displayed when players enter invalid settings made more descriptive.<br/>
+                <h4>0.1.7.2 Dev (16-MAY-2013)</h4>
+				<b>Changes</b> <br/>
+				    * Added presay and preyell commands. Need testing.<br/>
 				<br/>
 				TODO 1: Add watchlist use.
 			</blockquote>
@@ -722,7 +735,7 @@ namespace PRoConEvents
 
             //Ban Settings
             lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.ADKATs_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
-
+           
             //Command Settings
             lstReturn.Add(new CPluginVariable("Command Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
             lstReturn.Add(new CPluginVariable("Command Settings|Yell display time seconds", typeof(int), this.m_iShowMessageLength));
@@ -740,8 +753,10 @@ namespace PRoConEvents
             lstReturn.Add(new CPluginVariable("Command Settings|Report Player", typeof(string), m_strReportCommand));
             lstReturn.Add(new CPluginVariable("Command Settings|Call Admin on Player", typeof(string), m_strCallAdminCommand));
             lstReturn.Add(new CPluginVariable("Command Settings|Admin Say", typeof(string), m_strSayCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Admin Pre-Say", typeof(string), m_strPreSayCommand));
             lstReturn.Add(new CPluginVariable("Command Settings|Player Say", typeof(string), m_strPlayerSayCommand));
             lstReturn.Add(new CPluginVariable("Command Settings|Admin Yell", typeof(string), m_strYellCommand));
+            lstReturn.Add(new CPluginVariable("Command Settings|Admin Pre-Yell", typeof(string), m_strPreYellCommand));
             lstReturn.Add(new CPluginVariable("Command Settings|Player Yell", typeof(string), m_strPlayerYellCommand));
             lstReturn.Add(new CPluginVariable("Command Settings|Restart Level", typeof(string), m_strRestartLevelCommand));
             lstReturn.Add(new CPluginVariable("Command Settings|Next Level", typeof(string), m_strNextLevelCommand));
@@ -780,6 +795,8 @@ namespace PRoConEvents
             }
             lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window High", typeof(int), this.teamSwapTicketWindowHigh));
             lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window Low", typeof(int), this.teamSwapTicketWindowLow));
+
+            lstReturn.Add(new CPluginVariable("Messaging Settings|Pre-Message List", typeof(string[]), this.preMessageList));
             return lstReturn;
         }
 
@@ -1230,6 +1247,12 @@ namespace PRoConEvents
                 this.teamSwapTicketWindowLow = tmp;
             }
             #endregion
+            #region Messaging Settings
+            else if (Regex.Match(strVariable, @"Pre-Message List").Success)
+            {
+                this.preMessageList = new List<string>(CPluginVariable.DecodeStringArray(strValue));
+            }
+            #endregion
         }
 
         private void rebindAllCommands()
@@ -1258,6 +1281,10 @@ namespace PRoConEvents
             this.m_strPlayerSayCommand = this.parseAddCommand(tempDictionary, this.m_strPlayerSayCommand, ADKAT_CommandType.PlayerSay);
             this.m_strYellCommand = this.parseAddCommand(tempDictionary, this.m_strYellCommand, ADKAT_CommandType.AdminYell);
             this.m_strPlayerYellCommand = this.parseAddCommand(tempDictionary, this.m_strPlayerYellCommand, ADKAT_CommandType.PlayerYell);
+            this.m_strPreYellCommand = this.parseAddCommand(tempDictionary, this.m_strPreYellCommand, ADKAT_CommandType.PreYell);
+            this.m_strPreSayCommand = this.parseAddCommand(tempDictionary, this.m_strPreSayCommand, ADKAT_CommandType.PreSay);
+
+            
             //Update level controls
             this.m_strRestartLevelCommand = this.parseAddCommand(tempDictionary, this.m_strRestartLevelCommand, ADKAT_CommandType.RestartLevel);
             this.m_strNextLevelCommand = this.parseAddCommand(tempDictionary, this.m_strNextLevelCommand, ADKAT_CommandType.NextLevel);
@@ -2003,6 +2030,45 @@ namespace PRoConEvents
                     this.processRecord(record);
                     break;
                 #endregion
+                #region PreSay
+                case ADKAT_CommandType.PreSay:
+                    record.target_name = "Server";
+                    record.target_guid = "Server";
+                    try
+                    {
+                        if (this.preMessageList.Count > 0)
+                        {
+                            int preSayID = 0;
+                            DebugWrite("Raw preSayID: " + splitCommand[1], 6);
+                            Boolean valid = Int32.TryParse(splitCommand[1], out preSayID);
+                            if (valid && (preSayID >= 0) && (preSayID < this.preMessageList.Count))
+                            {
+                                record.record_message = this.preMessageList.Get(preSayID);
+                                record.command_type = ADKAT_CommandType.AdminSay;
+                            }
+                            else
+                            {
+                                DebugWrite("invalid pre message id", 6);
+                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 0-" + this.preMessageList.Count - 1);
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            DebugWrite("no premessages stored", 6);
+                            this.playerSayMessage(speaker, "No Pre-Messages stored");
+                            return;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format, no pre-message ID given.");
+                        return;
+                    }
+                    confirmAction(record);
+                    break;
+                #endregion
                 #region AdminYell
                 case ADKAT_CommandType.AdminYell:
                     record.target_name = "Server";
@@ -2020,6 +2086,45 @@ namespace PRoConEvents
                         return;
                     }
                     this.processRecord(record);
+                    break;
+                #endregion
+                #region PreYell
+                case ADKAT_CommandType.PreYell:
+                    record.target_name = "Server";
+                    record.target_guid = "Server";
+                    try
+                    {
+                        if (this.preMessageList.Count > 0)
+                        {
+                            int preYellID = 0;
+                            DebugWrite("Raw preYellID: " + splitCommand[1], 6);
+                            Boolean valid = Int32.TryParse(splitCommand[1], out preYellID);
+                            if (valid && (preYellID >= 0) && (preYellID < this.preMessageList.Count))
+                            {
+                                record.record_message = this.preMessageList.Get(preYellID);
+                                record.command_type = ADKAT_CommandType.AdminYell;
+                            }
+                            else
+                            {
+                                DebugWrite("invalid pre message id", 6);
+                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 0-" + this.preMessageList.Count - 1);
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            DebugWrite("no premessages stored", 6);
+                            this.playerSayMessage(speaker, "No Pre-Messages stored");
+                            return;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format, no Pre-Message ID given.");
+                        return;
+                    }
+                    confirmAction(record);
                     break;
                 #endregion
                 #region PlayerSay
@@ -2093,7 +2198,7 @@ namespace PRoConEvents
         public void confirmAction(ADKAT_Record record)
         {
             //Send record to attempt list
-            this.playerSayMessage(record.source_name, "Confirm Action: " + record.record_message);
+            this.playerSayMessage(record.source_name, "Confirm " + record.command_type + ": " + record.record_message);
             this.actionAttemptList.Remove(record.source_name);
             this.actionAttemptList.Add(record.source_name, record);
         }
