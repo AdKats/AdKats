@@ -1,5 +1,15 @@
 /* 
- * ADKATs.cs
+ * AdKats is a MySQL reflected admin tool for Procon Frostbite.
+ * 
+ * This plugin should be used by groups with high traffic servers, with set rules, and many admins. It is a
+ * MySQL database reflected admin tool that includes editable in-game commands, database reflected punishment and
+ * forgiveness, proper player report and admin call handling, player name completion, and internal implementation of TeamSwap.
+ * 
+ * Requires a MySQL Database connection for proper use. Will set up needed tables in the database if they are not there already.
+ * 
+ * Current version: 0.1.7
+ * 
+ * AdKats.cs
  */
 
 using System;
@@ -114,12 +124,13 @@ namespace PRoConEvents
         private List<string> staticAdminCache = new List<string>();
 
         // MySQL Settings
-        public MySqlConnection databaseConnection = null;
-        public string mySqlHostname;
-        public string mySqlPort;
-        public string mySqlDatabaseName;
-        public string mySqlUsername;
-        public string mySqlPassword;
+        private string mySqlHostname;
+        private string mySqlPort;
+        private string mySqlDatabaseName;
+        private string mySqlUsername;
+        private string mySqlPassword;
+        private string tablename_adminlist = "tbl_adminlist";
+        private string columnname_adminname = "name";
 
         // Battlefield Server ID
         private int serverID = -1;
@@ -196,7 +207,7 @@ namespace PRoConEvents
         //Static whitelist for plugin only use
         private List<string> staticTeamswapWhitelistCache = new List<string>();
         //Whether to use the database whitelist for teamswap
-        private Boolean useDatabaseTeamswapWhitelist = true;
+        private Boolean useDatabaseTeamswapWhitelist = false;
         //Database whitelist cache
         private List<string> databaseTeamswapWhitelistCache = new List<string>();
         //the lowest ticket count of either team
@@ -213,7 +224,7 @@ namespace PRoConEvents
         public ADKATs()
         {
             isEnabled = false;
-            debugLevel = 2;
+            debugLevel = 0;
 
             //Create command and logging dictionaries
             this.ADKAT_CommandStrings = new Dictionary<string, ADKAT_CommandType>();
@@ -260,7 +271,7 @@ namespace PRoConEvents
 
         public string GetPluginVersion()
         {
-            return "0.1.5";
+            return "0.1.7";
         }
 
         public string GetPluginAuthor()
@@ -286,6 +297,9 @@ namespace PRoConEvents
 				This plugin should be used by groups with high traffic servers, with set rules, and many admins. It is a
 				MySQL database reflected admin tool that includes editable in-game commands, database reflected punishment and
 				forgiveness, proper player report and admin call handling, and internal implementation of TeamSwap.
+			</p>
+			<p>
+				Certain aspects like TeamSwap will only work for servers running TWO teamed matches (i.e. Rounds with RU and US teams). For example sqaud deathmatch which has 4 teams will not work properly.
 			</p>
 			<h3>Reason Behind Development</h3>
 			<p>
@@ -494,7 +508,7 @@ namespace PRoConEvents
 				level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step.
 			<h3>Admin Settings:</h3>
 			* <b>'Use Database Admin
-				List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Plugin must be disabled and re-enabled (or db settings changed) to update admin list from database, admin names are cached in the plugin to save bandwidth.<br/>
+				List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Admin names are cached in the plugin to save bandwidth. The list is updated when a non-admin is requesting access, to see if list has changed.<br/>
 			* <b>'Static Admin List'</b> - List of admins input from plugin settings. Use if no admin database table.
 			<h3>MySQL Settings:</h3>
 			* <b>'MySQL Hostname'</b> - Hostname of the MySQL server AdKats should connect to. <br/>
@@ -532,7 +546,7 @@ namespace PRoConEvents
 				Access'</b> - Whether the 'moveme' command will require whitelisting. Admins are always allowed to use it.<br/>
 			* <b>'Static Player Whitelist'</b> - Static list of players plugin-side that will be able to TeamSwap.<br/>
 			* <b>'Use Database
-				Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Plugin must be disabled and re-enabled (or db settings changed) to update whitelist from database, whitelisted names are cached in the plugin to save bandwidth.<br/>
+				Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Whitelisted names are cached in the plugin to save bandwidth. The list is updated when a non-whitelisted player is requesting access, to see if list has changed.<br/>
 			* <b>'Ticket Window
 				High'</b> - When either team is above this ticket count, then nobody (except admins) will be able to use TeamSwap.
 			<br/>
@@ -554,7 +568,7 @@ namespace PRoConEvents
 			</p>
 			<h2>Database Tables and Views</h2>
 			<p>
-				Run the following on your MySQL database to set it up for plugin use.<br/><br/>
+                The plugin checks the database for needed tables on connect. If it doesnt find the master record table it will run the script below. You can run the script below beforehand if you dont want the plugin changing tables in your database.<br/><br/>
 				
 				DROP TABLE IF EXISTS `adkat_records`;<br/>
 				DROP TABLE IF EXISTS `adkat_actionlist`;<br/>
@@ -596,72 +610,84 @@ namespace PRoConEvents
 			<blockquote>
 				<h4>0.0.1 (20-APR-2013)</h4>
 				<b>Main: </b> <br/>
-				Initial Version <br/>
+				    * Initial Version <br/>
 				<h4>0.0.2 (25-APR-2013)</h4>
 				<b>Changes</b> <br/>
-				* Added plugin-side punishment. <br/>
-				* Initial DB test, tables updated. <br/>
+				    * Added plugin-side punishment. <br/>
+				    * Initial DB test, tables updated. <br/>
 				<h4>0.0.3 (28-APR-2013)</h4>
 				<b>Changes</b> <br/>
-				* In-game commands no longer case sensitive. <br/>
-				* External DB test, tables updated. <br/>
-				* First in-game run during match, minor bugs fixed. <br/>
+				    * In-game commands no longer case sensitive. <br/>
+				    * External DB test, tables updated. <br/>
+				    * First in-game run during match, minor bugs fixed. <br/>
 				<h4>0.0.4 (29-APR-2013)</h4>
 				<b>Changes</b> <br/>
-				* Added editable in-game commands for forgive/punish. <br/>
+				    * Added editable in-game commands for forgive/punish. <br/>
 				<h4>0.0.5 (30-APR-2013)</h4>
 				<b>Changes</b> <br/>
-				* Removed global player access for production version. <br/>
-				* Added admin list for access. <br/>
-				* Added 'Low Server Pop' override system
+				    * Removed global player access for production version. <br/>
+				    * Added admin list for access. <br/>
+				    * Added 'Low Server Pop' override system
 				<h4>0.0.6 (1-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				* Added access to database admin list. <br/>
-				* Fixed minor bugs during testing. <br/>
+				    * Added access to database admin list. <br/>
+				    * Fixed minor bugs during testing. <br/>
 				<h4>0.0.7 (1-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				* Added view definitions to display current player point values. <br/>
+				    * Added view definitions to display current player point values. <br/>
 				<h4>0.0.8 (2-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				* Updated player-say messages when punishment acted on. More informative message used.<br/>
-				* Added editable minimum reason length.<br/>
+				    * Updated player-say messages when punishment acted on. More informative message used.<br/>
+				    * Added editable minimum reason length.<br/>
 				<h4>0.0.9 (3-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				* Added direct kill, kick, tban, and ban commands.<br/>
-				* Made direct commands work with database.<br/>
-				* Removed editable command list.<br/>
+				    * Added direct kill, kick, tban, and ban commands.<br/>
+				    * Made direct commands work with database.<br/>
+				    * Removed editable command list.<br/>
 				<h4>0.1.0 (5-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				* Refactor record creation to increase speed.<br/>
-				* Enumerate all database commands to parse in-game commands.<br/>
-				* Implement xTeamSwap functions within this plugin.<br/>
-				* Create database whitelist definitions for TeamSwap.<br/>
-				* Add move, fmove, moveme as commands that use TeamSwap.<br/>
-				* Refactor database logging to work with all commands.<br/>
-				* Code cleanup and organize.<br/>
-				* Player and admin messaging changes.<br/>
+				    * Refactor record creation to increase speed.<br/>
+				    * Enumerate all database commands to parse in-game commands.<br/>
+				    * Implement xTeamSwap functions within this plugin.<br/>
+				    * Create database whitelist definitions for TeamSwap.<br/>
+				    * Add move, fmove, moveme as commands that use TeamSwap.<br/>
+				    * Refactor database logging to work with all commands.<br/>
+				    * Code cleanup and organize.<br/>
+				    * Player and admin messaging changes.<br/>
 				<h4>0.1.1 (6-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				* Punish and forgive commands changed to 'pun' and 'for', for ease of use in high punish/minute instances.<br/>
-				* Now a player may only be punished once every x minutes, this removes the case where two admins can punish a player
+				    * Punish and forgive commands changed to 'pun' and 'for', for ease of use in high punish/minute instances.<br/>
+				    * Now a player may only be punished once every x minutes, this removes the case where two admins can punish a player
 				for the same infraction.<br/>
 				<h4>0.1.2 (8-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				* Re-added editable command list.<br/>
+				    * Re-added editable command list.<br/>
 				<h4>0.1.3 (9-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				* Refactored settings and parsing to make the plugin more heavy while changing settings, but much lighter once in
+				    * Refactored settings and parsing to make the plugin more heavy while changing settings, but much lighter once in
 				use.<br/>
-				* Added setting for whether a command will be logged or not. Adding '|log' to the end of a setting name will make
+				    * Added setting for whether a command will be logged or not. Adding '|log' to the end of a setting name will make
 				the plugin log uses of that command in the database. Default is logging for all action commands (which should be
 				fine for performance). Right now only Punish and Forgive are required to be logged.<br/>
-				* Fixed move command, now sends player to TeamSwap once they have died.<br/>
+				    * Fixed move command, now sends player to TeamSwap once they have died.<br/>
 				<h4>0.1.4 (10-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				* Fixed bugs in command logging interface and command setting initialization.<br/>
+				    * Fixed bugs in command logging interface and command setting initialization.<br/>
 				<h4>0.1.5 (12-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				* Cleaned up messaging. Small bug fixes.<br/>
+				    * Cleaned up messaging. Small bug fixes.<br/>
+				<h4>0.1.6 (14-MAY-2013)</h4>
+				<b>Changes</b> <br/>
+				    * Optimized calling of listPlayers to only once every 5 seconds or on call from a move command.<br/>
+				    * Fixed console spam at start of plugin.<br/>
+				    * Added update of admin list/teamswap list if a player isn't on it and trying a command.<br/>
+				    * Gave plugin control over table creation if not setup beforehand.<br/>
+                <h4>0.1.7 (15-MAY-2013)</h4>
+				<b>Changes</b> <br/>
+				    * Reconfigured Database connection handling and connection testing to follow best practices seen elsewhere.<br/>
+				    * Fixed bugs in the database structure confirmation and table setup sequence.<br/>
+				    * All yell messages will now be changed to uppercase before sending.<br/>
+				    * Added confirm action to all round targeted commands.<br/>
 				<br/>
 				TODO 1: Add watchlist use.
 			</blockquote>
@@ -732,6 +758,11 @@ namespace PRoConEvents
             if (!this.useDatabaseAdminList)
             {
                 lstReturn.Add(new CPluginVariable("Admin Settings|Static Admin List", typeof(string[]), this.staticAdminCache.ToArray()));
+            }
+            else
+            {
+                lstReturn.Add(new CPluginVariable("Admin Settings|Admin Table Name", typeof(string), this.tablename_adminlist));
+                lstReturn.Add(new CPluginVariable("Admin Settings|Column That Contains Admin Name", typeof(string), this.columnname_adminname));
             }
             //TeamSwap Settings
             lstReturn.Add(new CPluginVariable("TeamSwap Settings|Require Whitelist for Access", typeof(Boolean), this.requireTeamswapWhitelist));
@@ -1079,9 +1110,10 @@ namespace PRoConEvents
             {
                 if (this.useDatabaseAdminList = Boolean.Parse(strValue))
                 {
-                    if (!this.databaseConnection.Ping())
+                    if (this.isEnabled)
                     {
-                        connectToDatabase();
+                        //Test the database connection
+                        testDatabaseConnection();
                     }
                 }
             }
@@ -1089,13 +1121,28 @@ namespace PRoConEvents
             {
                 this.staticAdminCache = new List<string>(CPluginVariable.DecodeStringArray(strValue));
             }
+            else if (Regex.Match(strVariable, @"Admin Table Name").Success)
+            {
+                this.tablename_adminlist = strValue;
+                if(this.useDatabaseAdminList)
+                    this.fetchAdminList();
+            }
+            else if (Regex.Match(strVariable, @"Column That Contains Admin Name").Success)
+            {
+                this.columnname_adminname = strValue;
+                if(this.useDatabaseAdminList)
+                    this.fetchAdminList();
+            }
             #endregion
             #region sql settings
             else if (Regex.Match(strVariable, @"MySQL Hostname").Success)
             {
                 mySqlHostname = strValue;
-                //Reset and retry connection when any connection value is changed
-                connectToDatabase();
+                if (this.isEnabled)
+                {
+                    //Test the database connection
+                    testDatabaseConnection();
+                }
             }
             else if (Regex.Match(strVariable, @"MySQL Port").Success)
             {
@@ -1109,26 +1156,38 @@ namespace PRoConEvents
                 {
                     ConsoleException("Invalid value for MySQL Port: '" + strValue + "'. Must be number between 1 and 65535!");
                 }
-                //Reset and retry connection when any connection value is changed
-                connectToDatabase();
+                if (this.isEnabled)
+                {
+                    //Test the database connection
+                    testDatabaseConnection();
+                }
             }
             else if (Regex.Match(strVariable, @"MySQL Database").Success)
             {
                 this.mySqlDatabaseName = strValue;
-                //Reset and retry connection when any connection value is changed
-                connectToDatabase();
+                if (this.isEnabled)
+                {
+                    //Test the database connection
+                    testDatabaseConnection();
+                }
             }
             else if (Regex.Match(strVariable, @"MySQL Username").Success)
             {
                 mySqlUsername = strValue;
-                //Reset and retry connection when any connection value is changed
-                connectToDatabase();
+                if (this.isEnabled)
+                {
+                    //Test the database connection
+                    testDatabaseConnection();
+                }
             }
             else if (Regex.Match(strVariable, @"MySQL Password").Success)
             {
                 mySqlPassword = strValue;
-                //Reset and retry connection when any connection value is changed
-                connectToDatabase();
+                if (this.isEnabled)
+                {
+                    //Test the database connection
+                    testDatabaseConnection();
+                }
             }
             #endregion
             #region teamswap settings
@@ -1136,7 +1195,7 @@ namespace PRoConEvents
             {
                 if (!(this.requireTeamswapWhitelist = Boolean.Parse(strValue)))
                 {
-                    //If no whitelist is necessary
+                    //If no whitelist is necessary change use db whitelist to false
                     this.useDatabaseTeamswapWhitelist = false;
                 }
             }
@@ -1148,9 +1207,10 @@ namespace PRoConEvents
             {
                 if (this.useDatabaseTeamswapWhitelist = Boolean.Parse(strValue))
                 {
-                    if (!this.databaseConnection.Ping())
+                    if (this.isEnabled)
                     {
-                        connectToDatabase();
+                        //Test the database connection
+                        testDatabaseConnection();
                     }
                 }
             }
@@ -1294,19 +1354,14 @@ namespace PRoConEvents
         {
             isEnabled = true;
             ConsoleWrite("^b^2Enabled!^n^0 Version: " + GetPluginVersion());
-            //try connecting to the database
-            this.connectToDatabase();
+            //Test the database connection
+            testDatabaseConnection();
         }
 
         public void OnPluginDisable()
         {
             ConsoleWrite("Disabling command functionality");
             isEnabled = false;
-            if (this.databaseConnection != null && this.databaseConnection.Ping())
-            {
-                this.ConsoleWrite("Closing open database connection");
-                this.databaseConnection.Close();
-            }
             ConsoleWrite("^b^1Disabled! =(^n^0");
         }
 
@@ -1343,7 +1398,7 @@ namespace PRoConEvents
                 }
                 this.currentPlayers = currentPlayers;
                 this.playerList = players;
-                //perform player switching if needed
+                //perform player switching
                 this.runTeamSwap();
                 this.updating = false;
             }
@@ -1370,7 +1425,7 @@ namespace PRoConEvents
             if (isEnabled && (this.USMoveQueue.Count > 0 || this.RUMoveQueue.Count > 0))
             {
                 //When any player leaves, the list of players needs to be updated.
-                this.callListPlayers();
+                this.callListPlayers(false);
             }
         }
 
@@ -1381,13 +1436,13 @@ namespace PRoConEvents
             if (isEnabled && (this.USMoveQueue.Count > 0 || this.RUMoveQueue.Count > 0))
             {
                 //When any player changes team, the list of players needs to be updated.
-                this.callListPlayers();
+                this.callListPlayers(false);
             }
         }
 
-        public void callListPlayers()
+        public void callListPlayers(Boolean bypass)
         {
-            if (DateTime.Now > this.lastListPlayersRequest.AddSeconds(5))
+            if (DateTime.Now > this.lastListPlayersRequest.AddSeconds(5) || bypass)
             {
                 this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
             }
@@ -1529,7 +1584,7 @@ namespace PRoConEvents
                 }
             }
             //call an update of the player list, this will move players when possible
-            this.callListPlayers();
+            this.callListPlayers(true);
         }
 
         //Whether a move queue contains a given player
@@ -1643,7 +1698,7 @@ namespace PRoConEvents
                     }
                     record.record_message = "";
                     //Sets target_guid and completes target_name, then calls processRecord
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region ForceMovePlayer
@@ -1661,7 +1716,7 @@ namespace PRoConEvents
                         return;
                     }
                     //Sets target_guid and completes target_name, then calls processRecord
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region Teamswap
@@ -1669,7 +1724,7 @@ namespace PRoConEvents
                     record.target_name = speaker;
                     record.record_message = "TeamSwap";
                     //Sets target_guid and completes target_name, then calls processRecord
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region KillPlayer
@@ -1694,7 +1749,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region KickPlayer
@@ -1719,7 +1774,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region TempBanPlayer
@@ -1749,7 +1804,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region PermabanPlayer
@@ -1774,7 +1829,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region PunishPlayer
@@ -1799,7 +1854,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region ForgivePlayer
@@ -1824,7 +1879,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region ReportPlayer
@@ -1849,7 +1904,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region CallAdmin
@@ -1874,33 +1929,33 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Reason too short, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region EndLevel
                 case ADKAT_CommandType.EndLevel:
                     try
                     {
-                        record.record_message = "Admin Call to End Round";
+                        record.record_message = "End Round";
                         String targetTeam = splitCommand[1];
                         DebugWrite("target team: " + targetTeam, 6);
                         if (targetTeam.ToLower().Contains("us"))
                         {
                             record.target_name = "US Team";
-                            record.target_guid = this.USTeamId + "";
-                            this.endLevel(record);
+                            record.target_guid = "US Team";
+                            record.record_message += " (US Win)";
                         }
                         else if (targetTeam.ToLower().Contains("ru"))
                         {
                             record.target_name = "RU Team";
-                            record.target_guid = this.RUTeamId + "";
-                            this.endLevel(record);
+                            record.target_guid = "RU Team";
+                            record.record_message += " (RU Win)";
                         }
                         else
                         {
                             this.playerSayMessage(record.source_name, "Use 'US' or 'RU' as team names to end round");
                         }
-                        this.processRecord(record);
+                        confirmAction(record);
                     }
                     catch (Exception e)
                     {
@@ -1914,16 +1969,16 @@ namespace PRoConEvents
                 case ADKAT_CommandType.RestartLevel:
                     record.target_name = "Server";
                     record.target_guid = "Server";
-                    record.record_message = "Admin Call to Restart Round";
-                    this.processRecord(record);
+                    record.record_message = "Restart Round";
+                    confirmAction(record);
                     break;
                 #endregion
                 #region NextLevel
                 case ADKAT_CommandType.NextLevel:
                     record.target_name = "Server";
                     record.target_guid = "Server";
-                    record.record_message = "Admin Call to Run Next Map";
-                    this.processRecord(record);
+                    record.record_message = "Run Next Map";
+                    confirmAction(record);
                     break;
                 #endregion
                 #region AdminSay
@@ -1953,7 +2008,7 @@ namespace PRoConEvents
                     {
                         String adminMessage = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("message: " + adminMessage, 6);
-                        record.record_message = adminMessage;
+                        record.record_message = adminMessage.ToUpper();
                     }
                     catch (Exception e)
                     {
@@ -1980,7 +2035,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Invalid command format or no message given, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region PlayerYell
@@ -1990,7 +2045,7 @@ namespace PRoConEvents
                         record.target_name = splitCommand[1];
                         String adminMessage = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
-                        record.record_message = adminMessage;
+                        record.record_message = adminMessage.ToUpper();
                         DebugWrite("message: " + record.record_message, 6);
                     }
                     catch (Exception e)
@@ -1999,7 +2054,7 @@ namespace PRoConEvents
                         this.playerSayMessage(speaker, "Invalid command format or no message given, unable to submit.");
                         return;
                     }
-                    findFullPlayerName(record);
+                    confirmPlayerName(record);
                     break;
                 #endregion
                 #region ConfirmCommand
@@ -2032,8 +2087,16 @@ namespace PRoConEvents
             return command;
         }
 
+        public void confirmAction(ADKAT_Record record)
+        {
+            //Send record to attempt list
+            this.playerSayMessage(record.source_name, "Confirm Action: " + record.record_message);
+            this.actionAttemptList.Remove(record.source_name);
+            this.actionAttemptList.Add(record.source_name, record);
+        }
+
         //Used for player name suggestion
-        public void findFullPlayerName(ADKAT_Record record)
+        public void confirmPlayerName(ADKAT_Record record)
         {
             //Check if player exists in the game, or suggest a player
             foreach (CPlayerInfo playerInfo in this.playerList)
@@ -2108,7 +2171,7 @@ namespace PRoConEvents
                     break;
                 case ADKAT_CommandType.PunishPlayer:
                     //If the record is a punish, check if it can be uploaded
-                    if (this.canUploadPunish(record))
+                    if (this.canPunish(record))
                     {
                         //Upload for punish is required
                         this.uploadRecord(record);
@@ -2420,63 +2483,238 @@ namespace PRoConEvents
             return false;
         }
 
-        private void connectToDatabase()
+        private MySqlConnection getDatabaseConnection()
         {
-            DebugWrite("connectToDatabase starting!", 6);
             if (this.connectionCapable())
             {
-                //Close current connection if it exists
-                if (this.databaseConnection != null && this.databaseConnection.Ping())
-                {
-                    this.DebugWrite("Closing current connection.", 0);
-                    this.databaseConnection.Close();
-                    this.databaseConnection = null;
-                }
-                this.DebugWrite("Attempting new database connection.", 0);
-                //Prepare the connection string and create the connection object
-                String connectionString = this.PrepareMySqlConnectionString();
-                this.databaseConnection = new MySqlConnection(connectionString);
+                MySqlConnection conn = new MySqlConnection(this.PrepareMySqlConnectionString());
+                conn.Open();
+                return conn;
+            }
+            else
+            {
+                this.DebugWrite("Attempted to connect to database without all variables in place", 0);
+                return null;
+            }
+        }
+
+        private void testDatabaseConnection()
+        {
+            DebugWrite("testDatabaseConnection starting!", 6);
+            if (this.connectionCapable())
+            {
                 try
                 {
-                    //Attempt to open the connection to database
-                    this.databaseConnection.Open();
-                    //Attempt a ping through the connection
-                    if (this.databaseConnection.Ping())
+                    Boolean success = false;
+                    //Prepare the connection string and create the connection object
+                    using (MySqlConnection databaseConnection = this.getDatabaseConnection())
                     {
-                        //Connection good
-                        this.DebugWrite("Database connection SUCCESS.", 0);
-                        //Fetch admin lists if needed
-                        this.fetchAccessLists();
-                    }
-                    else
+                        this.DebugWrite("Attempting database connection.", 0);
+                        //Attempt a ping through the connection
+                        if (databaseConnection.Ping())
+                        {
+                            //Connection good
+                            this.DebugWrite("Database connection SUCCESS.", 0);
+                            success = true;
+                        }
+                        else
+                        {
+                            //Connection poor
+                            this.DebugWrite("Database connection FAILED ping test.", 0);
+                        }
+                    } //databaseConnection gets closed here
+                    if (success)
                     {
-                        //Connection poor
-                        this.DebugWrite("Database connection FAILED ping test. Current settings: " + connectionString, 0);
+                        //Make sure database structure is good
+                        if (confirmDatabaseSetup())
+                        {
+                            //If the structure is good, fetch all access lists
+                            this.fetchAllAccessLists();
+                        }
                     }
                 }
                 catch (Exception e)
                 {
                     //Invalid credentials or no connection to database
-                    this.DebugWrite("Database connection FAILED with EXCEPTION. Probably bad credentials. Current settings: " + connectionString, 0);
+                    this.DebugWrite("Database connection FAILED with EXCEPTION. Probably bad credentials." , 0);
                 }
             }
             else
             {
-                this.DebugWrite("Not DB connection capable yet, complete sql connection variables.", 3);
+                this.DebugWrite("Not DB connection capable yet, complete sql connection variables.", 0);
             }
-            DebugWrite("connectToDatabase finished!", 6);
+            DebugWrite("testDatabaseConnection finished!", 6);
         }
 
-        private void fetchAccessLists()
+        private Boolean confirmDatabaseSetup()
         {
-            if (this.useDatabaseAdminList)
+            if (!this.connectionCapable())
             {
-                this.fetchAdminList();
+                this.DebugWrite("Attempted to confirm database setup without being connection capable.", 3);
             }
-            if (this.useDatabaseTeamswapWhitelist)
+            this.DebugWrite("Confirming Database Structure.", 3);
+            try
             {
-                this.fetchTeamswapWhitelist();
+                Boolean confirmed = true;
+                if (!this.confirmTable("adkat_records"))
+                {
+                    ConsoleWrite("^b^1Main Record table not present in the database.^n^0");
+                    this.runDBSetupScript();
+                    if (!this.confirmTable("adkat_records"))
+                    {
+                        this.DebugWrite("After running setup script main record table still not present. ColonCleaner is fail :(", 3);
+                        confirmed = false;
+                    }
+                }
+                if (this.useDatabaseTeamswapWhitelist && !this.confirmTable("adkat_teamswapwhitelist"))
+                {
+                    ConsoleWrite("^b^1adkat_teamswapwhitelist not present in the database. AdKats will not function properly.^n^0");
+                    confirmed = false;
+                }
+                if (this.useDatabaseAdminList && !this.confirmTable(this.tablename_adminlist))
+                {
+                    ConsoleWrite("^b^1" + this.tablename_adminlist + " not present in the database. AdKats will not function properly.^n^0");
+                    confirmed = false;
+                }
+                if (!this.confirmTable("adkat_actionlist"))
+                {
+                    ConsoleWrite("^b^1adkat_actionlist not present in the database. AdKats will not function properly.^n^0");
+                    confirmed = false;
+                }
+                if (!this.confirmTable("adkat_playerlist"))
+                {
+                    ConsoleWrite("^b^1adkat_playerlist not present in the database. AdKats will not function properly.^n^0");
+                    confirmed = false;
+                }
+                if (!this.confirmTable("adkat_playerpoints"))
+                {
+                    ConsoleWrite("^b^1adkat_playerpoints not present in the database. AdKats will not function properly.^n^0");
+                    confirmed = false;
+                }
+                if (!this.confirmTable("adkat_reports"))
+                {
+                    ConsoleWrite("^b^1adkat_reports not present in the database. AdKats will not function properly.^n^0");
+                    confirmed = false;
+                }
+                if (!this.confirmTable("adkat_naughtylist"))
+                {
+                    ConsoleWrite("^b^1adkat_naughtylist not present in the database. AdKats will not function properly.^n^0");
+                    confirmed = false;
+                }
+                if (confirmed)
+                {
+                    this.DebugWrite("Database confirmed functional for AdKats use.", 3);
+                }
+                else
+                {
+                    this.DebugWrite("^b^1Database ERROR, not set up for AdKats use.^n^0", 0);
+                }
+                return confirmed;
             }
+            catch (Exception e)
+            {
+                this.DebugWrite("ERROR in helper_confirmDatabaseSetup: " + e.ToString(), 6);
+                return false;
+            }
+        }
+
+        private void runDBSetupScript()
+        {
+            try
+            {
+                ConsoleWrite("Running database setup script.");
+                using (MySqlConnection databaseConnection = this.getDatabaseConnection())
+                {
+                    using (MySqlCommand command = databaseConnection.CreateCommand())
+                    {
+                        //Set the insert command structure
+                        command.CommandText =
+                            @"
+                            DROP TABLE IF EXISTS `adkat_records`;
+                            DROP TABLE IF EXISTS `adkat_actionlist`;
+                            DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;
+                            CREATE TABLE `adkat_records` (
+                            `record_id` int(11) NOT NULL AUTO_INCREMENT,
+                            `server_id` int(11) NOT NULL,
+                            `command_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','PermaBan','Punish','Forgive','Report','CallAdmin', 'AdminSay', 'PlayerSay', 'AdminYell', 'PlayerYell', 'RestartLevel', 'NextLevel', 'EndLevel') NOT NULL,
+                            `record_durationMinutes` int(11) NOT NULL,
+                            `target_guid` varchar(100) NOT NULL,
+                            `target_name` varchar(45) NOT NULL,
+                            `source_name` varchar(45) NOT NULL,
+                            `record_message` varchar(100) NOT NULL,
+                            `record_time` datetime NOT NULL,
+                            PRIMARY KEY (`record_id`)
+                            );
+                            CREATE TABLE `adkat_actionlist` (
+                            `action_id` int(11) NOT NULL AUTO_INCREMENT,
+                            `server_id` int(11) NOT NULL,
+                            `player_guid` varchar(100) NOT NULL,
+                            `player_name` varchar(45) NOT NULL,
+                            PRIMARY KEY (`action_id`)	
+                            );
+                            CREATE TABLE `adkat_teamswapwhitelist` (
+                            `player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',
+                            PRIMARY KEY (`player_name`),
+                            UNIQUE KEY `player_name_UNIQUE` (`player_name`)
+                            );
+                            CREATE OR REPLACE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by `adkat_records`.`target_name`;
+                            CREATE OR REPLACE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints` from `adkat_playerlist`;
+                            CREATE OR REPLACE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));
+                            CREATE OR REPLACE VIEW `adkat_naughtylist` AS select `adkat_playerpoints`.`serverid` AS `server_id`,`adkat_playerpoints`.`playername` AS `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;";
+                        //Attempt to execute the query
+                        if (command.ExecuteNonQuery() >= 0)
+                        {
+                            ConsoleWrite("Creation script successful, your database is now setup for AdKats use.");
+                        }
+                        else
+                        {
+                            ConsoleWrite("^b^1Your database did not accept the script. Does your account have access to table creation? AdKats will not function properly.^n^0");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.DebugWrite("ERROR in runDBSetupScript: " + e.ToString(), 6);
+            }
+        }
+
+        private Boolean confirmTable(string tablename)
+        {
+            try
+            {
+                using (MySqlConnection databaseConnection = this.getDatabaseConnection())
+                {
+                    using (MySqlCommand command = databaseConnection.CreateCommand())
+                    {
+                        command.CommandText = "SHOW TABLES LIKE '" + tablename + "'";
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                return true;
+                            }
+                            else
+                            {
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.DebugWrite("ERROR in helper_confirmTable: " + e.ToString(), 6);
+                return false;
+            }
+        }
+
+        private void fetchAllAccessLists()
+        {
+            if(this.useDatabaseAdminList)
+                fetchAdminList();
+            if(this.useDatabaseTeamswapWhitelist)
+                fetchTeamswapWhitelist();
         }
 
         private string PrepareMySqlConnectionString()
@@ -2491,9 +2729,9 @@ namespace PRoConEvents
             Boolean success = false;
             try
             {
-                using (this.databaseConnection)
+                using (MySqlConnection databaseConnection = this.getDatabaseConnection())
                 {
-                    using (MySqlCommand command = this.databaseConnection.CreateCommand())
+                    using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
                         //Set the insert command structure
                         command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkat_records` (`server_id`, `command_type`, `record_durationMinutes`,`target_guid`, `target_name`, `source_name`, `record_message`, `record_time`) VALUES (@server_id, @command_type, @record_durationMinutes, @target_guid, @target_name, @source_name, @record_message, @record_time)";
@@ -2510,11 +2748,6 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@source_name", record.source_name);
                         command.Parameters.AddWithValue("@record_message", record.record_message);
                         command.Parameters.AddWithValue("@record_time", record.record_time);
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
                         {
@@ -2533,7 +2766,7 @@ namespace PRoConEvents
 
             if (success)
             {
-                DebugWrite(temp + " log for player " + record.target_name + " by " + record.source_name + " SUCCESSFUL!", 5);
+                DebugWrite(temp + " log for player " + record.target_name + " by " + record.source_name + " SUCCESSFUL!", 3);
             }
             else
             {
@@ -2543,23 +2776,18 @@ namespace PRoConEvents
             DebugWrite("postRecord finished!", 6);
         }
 
-        private Boolean canUploadPunish(ADKAT_Record record)
+        private Boolean canPunish(ADKAT_Record record)
         {
-            DebugWrite("canUploadRecord starting!", 6);
+            DebugWrite("canPunish starting!", 6);
 
             try
             {
-                using (this.databaseConnection)
+                using (MySqlConnection databaseConnection = this.getDatabaseConnection())
                 {
-                    using (MySqlCommand command = this.databaseConnection.CreateCommand())
+                    using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
                         //command.CommandText = "select latest_time from (select record_time as `latest_time` from `" + this.mySqlDatabase + "`.`adkat_records` where `adkat_records`.`server_id` = " + record.server_id + " and `adkat_records`.`command_type` = 'Punish' and `adkat_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1) as temp where latest_time < (NOW() - INTERVAL '1' MINUTE)";
                         command.CommandText = "select record_time as `latest_time` from `" + this.mySqlDatabaseName + "`.`adkat_records` where `adkat_records`.`server_id` = " + record.server_id + " and `adkat_records`.`command_type` = 'Punish' and `adkat_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1";
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             DateTime latestUpload;
@@ -2590,7 +2818,7 @@ namespace PRoConEvents
             {
                 DebugWrite(e.ToString(), 3);
             }
-            DebugWrite("ERROR in canUploadPunish!", 6);
+            DebugWrite("ERROR in canPunish!", 6);
             return false;
         }
 
@@ -2600,9 +2828,9 @@ namespace PRoConEvents
             Boolean success = false;
             try
             {
-                using (this.databaseConnection)
+                using (MySqlConnection databaseConnection = this.getDatabaseConnection())
                 {
-                    using (MySqlCommand command = this.databaseConnection.CreateCommand())
+                    using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
                         //Set the insert command structure
                         command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkat_actionlist` (`server_id`, `player_guid`, `player_name`) VALUES (@server_id, @player_guid, @player_name)";
@@ -2610,11 +2838,6 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@server_id", record.server_id);
                         command.Parameters.AddWithValue("@player_guid", record.target_guid);
                         command.Parameters.AddWithValue("@player_name", record.target_name);
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
                         {
@@ -2647,16 +2870,11 @@ namespace PRoConEvents
 
             try
             {
-                using (this.databaseConnection)
+                using (MySqlConnection databaseConnection = this.getDatabaseConnection())
                 {
-                    using (MySqlCommand command = this.databaseConnection.CreateCommand())
+                    using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
                         command.CommandText = "SELECT playername, playerguid, serverid, totalpoints FROM `" + this.mySqlDatabaseName + "`.`adkat_playerpoints` WHERE `playerguid` = '" + player_guid + "' AND `serverid` = " + server_id;
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             if (reader.Read())
@@ -2687,23 +2905,17 @@ namespace PRoConEvents
             Boolean success = false;
             try
             {
-                using (this.databaseConnection)
+                using (MySqlConnection databaseConnection = this.getDatabaseConnection())
                 {
-                    using (MySqlCommand command = this.databaseConnection.CreateCommand())
+                    using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
-                        command.CommandText = "SELECT name AS admin_name, eaguid AS admin_guid FROM `" + this.mySqlDatabaseName + "`.`tbl_adminlist`";
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
+                        command.CommandText = "SELECT `" + this.columnname_adminname + "` AS `admin_name` FROM `" + this.mySqlDatabaseName + "`.`" + this.tablename_adminlist + "`";
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())
                             {
                                 success = true;
                                 string admin_name = reader.GetString("admin_name");
-                                string admin_guid = reader.GetString("admin_guid");
                                 DebugWrite("Admin found: " + admin_name, 6);
                                 //only use admin names not guids for now
                                 tempAdminList.Add(admin_name);
@@ -2739,16 +2951,11 @@ namespace PRoConEvents
             Boolean success = false;
             try
             {
-                using (this.databaseConnection)
+                using (MySqlConnection databaseConnection = this.getDatabaseConnection())
                 {
-                    using (MySqlCommand command = this.databaseConnection.CreateCommand())
+                    using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
                         command.CommandText = "SELECT player_name AS player_name FROM `" + this.mySqlDatabaseName + "`.`adkat_teamswapwhitelist`";
-                        //Open the connection if needed
-                        if (!this.databaseConnection.Ping())
-                        {
-                            this.databaseConnection.Open();
-                        }
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())
@@ -2795,12 +3002,12 @@ namespace PRoConEvents
                 case ADKAT_CommandType.ForceMovePlayer:
                     return this.isAdmin(player_name);
                 case ADKAT_CommandType.Teamswap:
-                    if (this.isAdmin(player_name))
+                    if (this.requireTeamswapWhitelist)
                     {
-                        return true;
-                    }
-                    else if (this.requireTeamswapWhitelist)
-                    {
+                        if (this.isAdmin(player_name))
+                        {
+                            return true;
+                        }
                         return this.isTeamswapWhitelisted(player_name);
                     }
                     else
@@ -2851,6 +3058,11 @@ namespace PRoConEvents
         {
             if (this.useDatabaseAdminList)
             {
+                //If the cache of admins plugin-side doesnt contain the person, just make sure it doesnt need updating
+                if (!this.databaseAdminCache.Contains(player_name))
+                {
+                    this.fetchAdminList();
+                }
                 return this.databaseAdminCache.Contains(player_name);
             }
             else
@@ -2863,6 +3075,11 @@ namespace PRoConEvents
         {
             if (this.useDatabaseTeamswapWhitelist)
             {
+                //if the cache of teamswap whitelisted players plugin-side doesnt contain the person, just make sure it doesnt need updating
+                if (!this.databaseTeamswapWhitelistCache.Contains(player_name))
+                {
+                    this.fetchTeamswapWhitelist();
+                }
                 return this.databaseTeamswapWhitelistCache.Contains(player_name);
             }
             else
@@ -2970,5 +3187,5 @@ namespace PRoConEvents
 
         #endregion
 
-    } // end ADKATs
+    } // end AdKats
 } // end namespace PRoConEvents
