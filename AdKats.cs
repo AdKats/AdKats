@@ -678,7 +678,7 @@ namespace PRoConEvents
 				    * Cleaned up messaging. Small bug fixes.<br/>
 				<h4>0.1.6 (14-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				    * Optimized calling of listPlayers to only once every 5 seconds or on call from a move command.<br/>
+				    * Optimized calling of listPlayers to a maximum of only once every 5 seconds or on call from a move command.<br/>
 				    * Fixed console spam at start of plugin.<br/>
 				    * Added update of admin list/teamswap list if a player isn't on it and trying a command.<br/>
 				    * Gave plugin control over table creation if not setup beforehand.<br/>
