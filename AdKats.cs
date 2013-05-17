@@ -94,6 +94,9 @@ namespace PRoConEvents
         };
 
         // General settings
+        //Whether to get the release version of plugin description, or the dev version.
+        //This setting is unchangeable by users, and will always be TRUE for released versions of the plugin.
+        private bool isRelease = false;
         //Whether the plugin is enabled
         private bool isEnabled;
         //Current debug level
@@ -297,8 +300,16 @@ namespace PRoConEvents
 
         public string GetPluginDescription()
         {
-            string pluginDescription = WebClient.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
-            string pluginChangelog = WebClient.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
+            if (this.isRelease)
+            {
+                string pluginDescription = WebClient.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
+                string pluginChangelog = WebClient.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
+            }
+            else
+            {
+                string pluginDescription = WebClient.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/README.md");
+                string pluginChangelog = WebClient.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/CHANGELOG.md");
+            }
             return pluginDescription + pluginChangelog;
         }
 
@@ -2349,7 +2360,7 @@ namespace PRoConEvents
                             `server_id` int(11) NOT NULL,
                             `player_guid` varchar(100) NOT NULL,
                             `player_name` varchar(45) NOT NULL,
-                            PRIMARY KEY (`action_id`)	
+                            PRIMARY KEY (`action_id`)    
                             );
                             CREATE TABLE `adkat_teamswapwhitelist` (
                             `player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',
