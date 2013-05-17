@@ -43,7 +43,7 @@ namespace PRoConEvents
     using EventType = PRoCon.Core.Events.EventType;
     using CapturableEvent = PRoCon.Core.Events.CapturableEvents;
 
-    public class ADKATs : PRoConPluginAPI, IPRoConPluginInterface
+    public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         #region Variables
 
@@ -221,7 +221,7 @@ namespace PRoConEvents
 
         #endregion
 
-        public ADKATs()
+        public AdKats()
         {
             isEnabled = false;
             debugLevel = 0;
@@ -678,7 +678,7 @@ namespace PRoConEvents
 				    * Cleaned up messaging. Small bug fixes.<br/>
 				<h4>0.1.6 (14-MAY-2013)</h4>
 				<b>Changes</b> <br/>
-				    * Optimized calling of listPlayers to only once every 5 seconds or on call from a move command.<br/>
+				    * Optimized calling of listPlayers to a maximum of only once every 5 seconds or on call from a move command.<br/>
 				    * Fixed console spam at start of plugin.<br/>
 				    * Added update of admin list/teamswap list if a player isn't on it and trying a command.<br/>
 				    * Gave plugin control over table creation if not setup beforehand.<br/>
@@ -717,7 +717,7 @@ namespace PRoConEvents
             //TODO implement advanced sql settings
 
             //Ban Settings
-            lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.ADKATs_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
+            lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.AdKats_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
 
             //Command Settings
             lstReturn.Add(new CPluginVariable("Command Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
@@ -1124,13 +1124,13 @@ namespace PRoConEvents
             else if (Regex.Match(strVariable, @"Admin Table Name").Success)
             {
                 this.tablename_adminlist = strValue;
-                if(this.useDatabaseAdminList)
+                if (this.useDatabaseAdminList)
                     this.fetchAdminList();
             }
             else if (Regex.Match(strVariable, @"Column That Contains Admin Name").Success)
             {
                 this.columnname_adminname = strValue;
-                if(this.useDatabaseAdminList)
+                if (this.useDatabaseAdminList)
                     this.fetchAdminList();
             }
             #endregion
@@ -2536,7 +2536,7 @@ namespace PRoConEvents
                 catch (Exception e)
                 {
                     //Invalid credentials or no connection to database
-                    this.DebugWrite("Database connection FAILED with EXCEPTION. Probably bad credentials." , 0);
+                    this.DebugWrite("Database connection FAILED with EXCEPTION. Probably bad credentials.", 0);
                 }
             }
             else
@@ -2711,9 +2711,9 @@ namespace PRoConEvents
 
         private void fetchAllAccessLists()
         {
-            if(this.useDatabaseAdminList)
+            if (this.useDatabaseAdminList)
                 fetchAdminList();
-            if(this.useDatabaseTeamswapWhitelist)
+            if (this.useDatabaseTeamswapWhitelist)
                 fetchTeamswapWhitelist();
         }
 
