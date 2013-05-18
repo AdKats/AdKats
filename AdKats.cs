@@ -19,7 +19,6 @@ using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Collections;
 using System.Net;
-using System.Net.WebClient;
 using System.Web;
 using System.Data;
 using System.Threading;
@@ -300,15 +299,18 @@ namespace PRoConEvents
 
         public string GetPluginDescription()
         {
+            string pluginDescription = "DESCRIPTION FETCH FAILED|";
+            string pluginChangelog = "CHANGELOG FETCH FAILED";
+            WebClient client = new WebClient();
             if (this.isRelease)
             {
-                string pluginDescription = WebClient.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
-                string pluginChangelog = WebClient.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
+                pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
+                pluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
             }
             else
             {
-                string pluginDescription = WebClient.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/README.md");
-                string pluginChangelog = WebClient.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/CHANGELOG.md");
+                pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/README.md");
+                pluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/CHANGELOG.md");
             }
             return pluginDescription + pluginChangelog;
         }
@@ -1645,13 +1647,13 @@ namespace PRoConEvents
                             Boolean valid = Int32.TryParse(splitCommand[1], out preSayID);
                             if (valid && (preSayID >= 0) && (preSayID < this.preMessageList.Count))
                             {
-                                record.record_message = this.preMessageList.Get(preSayID);
+                                record.record_message = this.preMessageList[preSayID];
                                 record.command_type = ADKAT_CommandType.AdminSay;
                             }
                             else
                             {
                                 DebugWrite("invalid pre message id", 6);
-                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 0-" + this.preMessageList.Count - 1);
+                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 0-" + (this.preMessageList.Count - 1));
                                 return;
                             }
                         }
@@ -1703,13 +1705,13 @@ namespace PRoConEvents
                             Boolean valid = Int32.TryParse(splitCommand[1], out preYellID);
                             if (valid && (preYellID >= 0) && (preYellID < this.preMessageList.Count))
                             {
-                                record.record_message = this.preMessageList.Get(preYellID);
+                                record.record_message = this.preMessageList[preYellID];
                                 record.command_type = ADKAT_CommandType.AdminYell;
                             }
                             else
                             {
                                 DebugWrite("invalid pre message id", 6);
-                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 0-" + this.preMessageList.Count - 1);
+                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 0-" + (this.preMessageList.Count - 1));
                                 return;
                             }
                         }
