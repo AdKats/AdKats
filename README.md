@@ -1,6 +1,6 @@
 <h1>AdKats</h1>
 <p>
-	Advanced Admin Tool Set for A-Different-Kind, with MySQL database back-end.
+	Advanced Admin Tool Set for ADK, with MySQL database back-end.
 </p>
 <h2>Description</h2>
 <h3>Main</h3>
