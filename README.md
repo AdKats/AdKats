@@ -280,6 +280,6 @@ Action decided after player is punished, and their points incremented.<br/><br/>
 <h2>Database Tables and Views</h2>
 <p>
 The plugin checks the database for needed tables on connect. If it doesnt find the master record table it will run the script below. You can run the script below beforehand if you dont want the plugin changing tables in your database.<br/>
-
+<br/>
 <a href="https://gist.github.com/Prophet731/5606950" target="_blank">SQL Code</a>
 </p>
