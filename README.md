@@ -279,37 +279,7 @@ Action decided after player is punished, and their points incremented.<br/><br/>
 </p>
 <h2>Database Tables and Views</h2>
 <p>
-The plugin checks the database for needed tables on connect. If it doesnt find the master record table it will run the script below. You can run the script below beforehand if you dont want the plugin changing tables in your database.<br/><br/>
-
-DROP TABLE IF EXISTS `adkat_records`;<br/>
-DROP TABLE IF EXISTS `adkat_actionlist`;<br/>
-DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;<br/>
-CREATE TABLE `adkat_records` (<br/>
-`record_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
-`server_id` int(11) NOT NULL,<br/>
-`command_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','PermaBan','Punish','Forgive','Report','CallAdmin', 'AdminSay', 'PlayerSay', 'AdminYell', 'PlayerYell', 'RestartLevel', 'NextLevel', 'EndLevel') NOT NULL,<br/>
-`record_durationMinutes` int(11) NOT NULL,<br/>
-`target_guid` varchar(100) NOT NULL,<br/>
-`target_name` varchar(45) NOT NULL,<br/>
-`source_name` varchar(45) NOT NULL,<br/>
-`record_message` varchar(100) NOT NULL,<br/>
-`record_time` datetime NOT NULL,<br/>
-PRIMARY KEY (`record_id`)<br/>
-);<br/>
-CREATE TABLE `adkat_actionlist` (<br/>
-`action_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
-`server_id` int(11) NOT NULL,<br/>
-`player_guid` varchar(100) NOT NULL,<br/>
-`player_name` varchar(45) NOT NULL,<br/>
-PRIMARY KEY (`action_id`)	<br/>
-);<br/>
-CREATE TABLE `adkat_teamswapwhitelist` (<br/>
-`player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',<br/>
-PRIMARY KEY (`player_name`),<br/>
-UNIQUE KEY `player_name_UNIQUE` (`player_name`)<br/>
-);<br/>
-CREATE OR REPLACE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by `adkat_records`.`target_name`;<br/>
-CREATE OR REPLACE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints` from `adkat_playerlist`;<br/>
-CREATE OR REPLACE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));<br/>
-CREATE OR REPLACE VIEW `adkat_naughtylist` AS select `adkat_playerpoints`.`serverid` AS `server_id`,`adkat_playerpoints`.`playername` AS `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;
+The plugin checks the database for needed tables on connect. If it doesnt find the master record table it will run the script below. You can run the script below beforehand if you dont want the plugin changing tables in your database.<br/>
+<br/>
+<a href="https://github.com/ColColonCleaner/AdKats/blob/master/adkats.sql" target="_blank">SQL Code</a>
 </p>
