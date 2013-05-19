@@ -7,8 +7,6 @@
  * 
  * Requires a MySQL Database connection for proper use. Will set up needed tables in the database if they are not there already.
  * 
- * Current version: 0.1.7.3
- * 
  * AdKats.cs
  */
 
@@ -46,6 +44,8 @@ namespace PRoConEvents
     public class ADKATs : PRoConPluginAPI, IPRoConPluginInterface
     {
         #region Variables
+
+        string plugin_version = "0.1.7.4";
 
         // Enumerations
         //Messaging
@@ -284,7 +284,7 @@ namespace PRoConEvents
 
         public string GetPluginVersion()
         {
-            return "0.1.7.3";
+            return this.plugin_version;
         }
 
         public string GetPluginAuthor()
@@ -323,84 +323,91 @@ namespace PRoConEvents
         {
             List<CPluginVariable> lstReturn = new List<CPluginVariable>();
 
-            //Debug settings
-            lstReturn.Add(new CPluginVariable("Debugging|Debug level", typeof(int), this.debugLevel));
-
-            //Server Settings
-            lstReturn.Add(new CPluginVariable("Server Settings|Server ID", typeof(int), this.serverID));
-
-            //SQL Settings
-            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Hostname", typeof(string), mySqlHostname));
-            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Port", typeof(string), mySqlPort));
-            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Database", typeof(string), mySqlDatabaseName));
-            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Username", typeof(string), mySqlUsername));
-            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Password", typeof(string), mySqlPassword));
-            //TODO implement advanced sql settings
-
-            //Ban Settings
-            lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.ADKATs_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
-
-            //Command Settings
-            lstReturn.Add(new CPluginVariable("Command Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
-            lstReturn.Add(new CPluginVariable("Command Settings|Yell display time seconds", typeof(int), this.m_iShowMessageLength));
-            lstReturn.Add(new CPluginVariable("Command Settings|Confirm Command", typeof(string), m_strConfirmCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Cancel Command", typeof(string), m_strCancelCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Kill Player", typeof(string), m_strKillCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Kick Player", typeof(string), m_strKickCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Temp-Ban Player", typeof(string), m_strTemporaryBanCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Permaban Player", typeof(string), m_strPermanentBanCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Punish Player", typeof(string), m_strPunishCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Forgive Player", typeof(string), m_strForgiveCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|OnDeath Move Player", typeof(string), m_strMoveCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Force Move Player", typeof(string), m_strForceMoveCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Teamswap Self", typeof(string), m_strTeamswapCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Report Player", typeof(string), m_strReportCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Call Admin on Player", typeof(string), m_strCallAdminCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Admin Say", typeof(string), m_strSayCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Admin Pre-Say", typeof(string), m_strPreSayCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Player Say", typeof(string), m_strPlayerSayCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Admin Yell", typeof(string), m_strYellCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Admin Pre-Yell", typeof(string), m_strPreYellCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Player Yell", typeof(string), m_strPlayerYellCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Restart Level", typeof(string), m_strRestartLevelCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Next Level", typeof(string), m_strNextLevelCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|End Level", typeof(string), m_strEndLevelCommand));
-
-            //Punishment Settings
-            lstReturn.Add(new CPluginVariable("Punishment Settings|Act on Punishments", typeof(Boolean), this.actOnPunishments));
-            lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Hierarchy", typeof(string[]), this.punishmentHierarchy));
-            lstReturn.Add(new CPluginVariable("Punishment Settings|Only Kill Players when Server in low population", typeof(Boolean), this.onlyKillOnLowPop));
-            if (this.onlyKillOnLowPop)
+            try
             {
-                lstReturn.Add(new CPluginVariable("Punishment Settings|Low Population Value", typeof(int), this.lowPopPlayerCount));
-            }
-            lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Timeout", typeof(Double), this.punishmentTimeout));
+                //Debug settings
+                lstReturn.Add(new CPluginVariable("Debugging|Debug level", typeof(int), this.debugLevel));
 
-            //Admin Settings
-            lstReturn.Add(new CPluginVariable("Admin Settings|Use Database Admin List", typeof(Boolean), this.useDatabaseAdminList));
-            if (!this.useDatabaseAdminList)
-            {
-                lstReturn.Add(new CPluginVariable("Admin Settings|Static Admin List", typeof(string[]), this.staticAdminCache.ToArray()));
-            }
-            else
-            {
-                lstReturn.Add(new CPluginVariable("Admin Settings|Admin Table Name", typeof(string), this.tablename_adminlist));
-                lstReturn.Add(new CPluginVariable("Admin Settings|Column That Contains Admin Name", typeof(string), this.columnname_adminname));
-            }
-            //TeamSwap Settings
-            lstReturn.Add(new CPluginVariable("TeamSwap Settings|Require Whitelist for Access", typeof(Boolean), this.requireTeamswapWhitelist));
-            if (this.requireTeamswapWhitelist)
-            {
-                lstReturn.Add(new CPluginVariable("TeamSwap Settings|Use Database Whitelist", typeof(Boolean), this.useDatabaseTeamswapWhitelist));
-                if (!this.useDatabaseTeamswapWhitelist)
+                //Server Settings
+                lstReturn.Add(new CPluginVariable("Server Settings|Server ID", typeof(int), this.serverID));
+
+                //SQL Settings
+                lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Hostname", typeof(string), mySqlHostname));
+                lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Port", typeof(string), mySqlPort));
+                lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Database", typeof(string), mySqlDatabaseName));
+                lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Username", typeof(string), mySqlUsername));
+                lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Password", typeof(string), mySqlPassword));
+                //TODO implement advanced sql settings
+
+                //Ban Settings
+                lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.ADKATs_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
+
+                //Command Settings
+                lstReturn.Add(new CPluginVariable("Command Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
+                lstReturn.Add(new CPluginVariable("Command Settings|Yell display time seconds", typeof(int), this.m_iShowMessageLength));
+                lstReturn.Add(new CPluginVariable("Command Settings|Confirm Command", typeof(string), m_strConfirmCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Cancel Command", typeof(string), m_strCancelCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Kill Player", typeof(string), m_strKillCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Kick Player", typeof(string), m_strKickCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Temp-Ban Player", typeof(string), m_strTemporaryBanCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Permaban Player", typeof(string), m_strPermanentBanCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Punish Player", typeof(string), m_strPunishCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Forgive Player", typeof(string), m_strForgiveCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|OnDeath Move Player", typeof(string), m_strMoveCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Force Move Player", typeof(string), m_strForceMoveCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Teamswap Self", typeof(string), m_strTeamswapCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Report Player", typeof(string), m_strReportCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Call Admin on Player", typeof(string), m_strCallAdminCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Admin Say", typeof(string), m_strSayCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Admin Pre-Say", typeof(string), m_strPreSayCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Player Say", typeof(string), m_strPlayerSayCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Admin Yell", typeof(string), m_strYellCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Admin Pre-Yell", typeof(string), m_strPreYellCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Player Yell", typeof(string), m_strPlayerYellCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Restart Level", typeof(string), m_strRestartLevelCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Next Level", typeof(string), m_strNextLevelCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|End Level", typeof(string), m_strEndLevelCommand));
+
+                //Punishment Settings
+                lstReturn.Add(new CPluginVariable("Punishment Settings|Act on Punishments", typeof(Boolean), this.actOnPunishments));
+                lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Hierarchy", typeof(string[]), this.punishmentHierarchy));
+                lstReturn.Add(new CPluginVariable("Punishment Settings|Only Kill Players when Server in low population", typeof(Boolean), this.onlyKillOnLowPop));
+                if (this.onlyKillOnLowPop)
                 {
-                    lstReturn.Add(new CPluginVariable("TeamSwap Settings|Static Player Whitelist", typeof(string[]), this.staticTeamswapWhitelistCache.ToArray()));
+                    lstReturn.Add(new CPluginVariable("Punishment Settings|Low Population Value", typeof(int), this.lowPopPlayerCount));
                 }
-            }
-            lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window High", typeof(int), this.teamSwapTicketWindowHigh));
-            lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window Low", typeof(int), this.teamSwapTicketWindowLow));
+                lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Timeout", typeof(Double), this.punishmentTimeout));
 
-            lstReturn.Add(new CPluginVariable("Messaging Settings|Pre-Message List", typeof(string[]), this.preMessageList));
+                //Admin Settings
+                lstReturn.Add(new CPluginVariable("Admin Settings|Use Database Admin List", typeof(Boolean), this.useDatabaseAdminList));
+                if (!this.useDatabaseAdminList)
+                {
+                    lstReturn.Add(new CPluginVariable("Admin Settings|Static Admin List", typeof(string[]), this.staticAdminCache.ToArray()));
+                }
+                else
+                {
+                    lstReturn.Add(new CPluginVariable("Admin Settings|Admin Table Name", typeof(string), this.tablename_adminlist));
+                    lstReturn.Add(new CPluginVariable("Admin Settings|Column That Contains Admin Name", typeof(string), this.columnname_adminname));
+                }
+                //TeamSwap Settings
+                lstReturn.Add(new CPluginVariable("TeamSwap Settings|Require Whitelist for Access", typeof(Boolean), this.requireTeamswapWhitelist));
+                if (this.requireTeamswapWhitelist)
+                {
+                    lstReturn.Add(new CPluginVariable("TeamSwap Settings|Use Database Whitelist", typeof(Boolean), this.useDatabaseTeamswapWhitelist));
+                    if (!this.useDatabaseTeamswapWhitelist)
+                    {
+                        lstReturn.Add(new CPluginVariable("TeamSwap Settings|Static Player Whitelist", typeof(string[]), this.staticTeamswapWhitelistCache.ToArray()));
+                    }
+                }
+                lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window High", typeof(int), this.teamSwapTicketWindowHigh));
+                lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window Low", typeof(int), this.teamSwapTicketWindowLow));
+
+                lstReturn.Add(new CPluginVariable("Messaging Settings|Pre-Message List", typeof(string[]), this.preMessageList.ToArray()));
+            }
+            catch (Exception e)
+            {
+                this.ConsoleException(e.ToString());
+            }
             return lstReturn;
         }
 
@@ -1810,37 +1817,63 @@ namespace PRoConEvents
         //Used for player name suggestion
         public void confirmPlayerName(ADKAT_Record record)
         {
-            //Check if player exists in the game, or suggest a player
-            foreach (CPlayerInfo playerInfo in this.playerList)
+            //Code brought in part by PapaCharlie9
+            Converter<String, List<CPlayerInfo>> ExactNameMatches = delegate(String sub)
             {
-                //If they entered the full player name, dont ask for completion just process it
-                if (playerInfo.SoldierName.ToLower().Equals(record.target_name.ToLower()))
+                List<CPlayerInfo> matches = new List<CPlayerInfo>();
+
+                if (String.IsNullOrEmpty(sub)) return matches;
+
+                foreach (CPlayerInfo player in this.playerList)
                 {
-                    //Player found, grab guid and name
-                    record.target_guid = playerInfo.GUID;
-                    record.target_name = playerInfo.SoldierName;
-                    record.targetPlayerInfo = playerInfo;
-                    //Process record right away
-                    this.processRecord(record);
-                    return;
+                    if (Regex.Match(player.SoldierName, sub, RegexOptions.IgnoreCase).Success)
+                    {
+                        matches.Add(player);
+                    }
                 }
-                //If they entered a partial name then suggest the first player that contains the partial they entered
-                else if (playerInfo.SoldierName.ToLower().Contains(record.target_name.ToLower()))
-                {
-                    //Possible player found, grab guid
-                    record.target_guid = playerInfo.GUID;
-                    record.target_name = playerInfo.SoldierName;
-                    record.targetPlayerInfo = playerInfo;
-                    //Send record to attempt list
-                    this.playerSayMessage(record.source_name, "Did you mean: " + playerInfo.SoldierName + "?");
-                    this.actionAttemptList.Remove(record.source_name);
-                    this.actionAttemptList.Add(record.source_name, record);
-                    return;
-                }
+                return matches;
+            };
+            // Use the function to find all matches
+            List<CPlayerInfo> playerMatches = ExactNameMatches(record.target_name);
+            String msg = null;
+
+            if (playerMatches.Count == 0)
+            {
+                this.playerSayMessage(record.source_name, "No match for: " + record.target_name);
+                return;
             }
-            //No player found
-            DebugWrite("player not found", 6);
-            this.playerSayMessage(record.source_name, "Player not found.");
+            if (playerMatches.Count > 1)
+            {
+                msg = @"'" + record.target_name + @"' matches multiple players: ";
+                bool first = true;
+                foreach (CPlayerInfo player in playerMatches)
+                {
+                    if (first)
+                    {
+                        msg = msg + player.SoldierName;
+                        first = false;
+                    }
+                    else
+                    {
+                        msg = msg + ", " + player.SoldierName;
+                    }
+                }
+                this.playerSayMessage(record.source_name, msg);
+                //Possible player found, grab guid
+                record.target_guid = playerMatches[0].GUID;
+                record.target_name = playerMatches[0].SoldierName;
+                //Send record to attempt list
+                this.playerSayMessage(record.source_name, record.command_type + ": " + playerMatches[0].SoldierName + "?");
+                this.actionAttemptList.Remove(record.source_name);
+                this.actionAttemptList.Add(record.source_name, record);
+                return;
+            }
+            // Otherwise just one exact match
+            record.target_name = playerMatches[0].SoldierName;
+            record.target_guid = playerMatches[0].GUID;
+            record.targetPlayerInfo = playerMatches[0];
+            //Process record right away
+            this.processRecord(record);
             return;
         }
 
