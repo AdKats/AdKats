@@ -1,13 +1,13 @@
 <h1>AdKats</h1>
 <p>
-Advanced Admin Tool Set, with MySQL database back-end.
+A MySQL reflected admin toolset which includes editable in-game commands, database reflected punishment and
+forgiveness, proper player report and admin call handling, player name completion,  player muting, yell/say 
+help for admins, and internal implementation of TeamSwap.
 </p>
 <h2>Description</h2>
 <h3>Main</h3>
 <p>
-This plugin should be used by groups with high traffic servers, set rules on each server, and many admins. It is a
-MySQL database reflected admin tool set that includes editable in-game commands, database reflected punishment and
-forgiveness, proper player report and admin call handling, and internal implementation of TeamSwap.
+This plugin should be used by groups with high traffic servers, set rules on each server, and many admins.
 </p>
 <p>
 Certain aspects like TeamSwap will only work properly for servers running TWO teamed matches (i.e. Rounds with RU and US teams). For example sqaud deathmatch which has 4 teams will not work properly.
@@ -16,21 +16,22 @@ Certain aspects like TeamSwap will only work properly for servers running TWO te
 <p>
 Players who break rules over time usually don't end up doing it in front of the same admin twice, so minimal or
 'incorrect' action is taken. On very active servers with high player turn-around it's impossible for admins to track a player's history in their
-head, now the punish system tracks that instead and takes proper action based on a player's history. This was only the initial goal, but it turned into a complete admin tool.
+head, now the punish system tracks that instead and takes proper action based on a player's history. This was only the 
+initial goal, but it turned into a complete admin tool.
 </p>
 <h3>Punishment/Forgiveness System</h3>
 <p>
-NOTE: This is NOT the player based punish/forgive system normally used for teamkilling, and is only usable by
+<b>NOTE:</b> This is NOT the player based punish/forgive system normally used for teamkilling, and is only usable by
 admins.<br/><br/>
 
-BASIC VERSION:<br/>
+<b>BASIC VERSION:</b><br/>
 Use of punish and forgive commands takes the load off admins remembering what players have broken server rules, and how many times. 
 Each time a player is punished it's logged in the database, and the more punishes they get the more severe the punishment. 
 Available punishments include kill, kick, temp-ban 60 minutes, temp-ban 1 week, and permaban. 
 Order that the punishments are given can be configured to your needs. 
 The default is kill, kill, kick, kick, tban60, tban60, tbanweek, tbanweek, ban.<br/><br/>
 
-DETAILED VERSION:<br/>
+<b>DETAILED VERSION:</b><br/>
 When a player is 'punished' by an admin a log is made in the database, their total points are calculated using this basic formula:<br/>
 <b>(Punishment Count - Forgiveness Count = Total Points)</b><br/>
 Then an action is decided using total points from the punishment hierarchy. Punishments should get more harsh as the
@@ -75,6 +76,12 @@ Players may be muted using the mute command, muting lasts until the end of the r
 killed each time they talk up through 5 chat messages, on the 6th they are kicked from the server. No action other than kill or kick 
 is used by this system. There will be no way to un-mute players, there was a reason they were muted, they can talk again next round. 
 Admins cannot mute other admins.
+</p>
+<h3>Pre-Yell and Pre-Say</h3>
+<p>
+A list of editable pre-defined messages can be added in settings, then admins can use the message ID instead of typing 
+the whole message in. Example: @presay 2 will call the second pre-defined message, admin is asked to confirm the message 
+with @yes to make sure it's the one they wanted.
 </p>
 <h3>TeamSwap</h3>
 <p>
