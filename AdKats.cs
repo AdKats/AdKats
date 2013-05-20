@@ -3,7 +3,7 @@
  * 
  * This plugin should be used by groups with high traffic servers, with set rules, and many admins. It is a
  * MySQL database reflected admin tool that includes editable in-game commands, database reflected punishment and
- * forgiveness, proper player report and admin call handling, player name completion, and internal implementation of TeamSwap.
+ * forgiveness, proper player report and admin call handling, player name completion, player muting, and internal implementation of TeamSwap.
  * 
  * Requires a MySQL Database connection for proper use. Will set up needed tables in the database if they are not there already.
  * 
@@ -269,6 +269,7 @@ namespace PRoConEvents
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PermabanPlayer, "PermaBan");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PunishPlayer, "Punish");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ForgivePlayer, "Forgive");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.MutePlayer, "Mute");
 
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ReportPlayer, "Report");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.CallAdmin, "CallAdmin");
@@ -1163,7 +1164,7 @@ namespace PRoConEvents
             if (this.round_mutedPlayers.ContainsKey(speaker))
             {
                 //Increment the muted chat count
-                this.round_mutedPlayers[speaker] = this.round_mutedPlayers[speaker]+1;
+                this.round_mutedPlayers[speaker] = this.round_mutedPlayers[speaker] + 1;
                 //Get player info
                 CPlayerInfo player_info = this.currentPlayers[speaker];
                 //Create record
@@ -1534,7 +1535,7 @@ namespace PRoConEvents
                 case ADKAT_CommandType.PunishPlayer:
                     try
                     {
-                        if(this.round_reports.ContainsKey(splitCommand[1]))
+                        if (this.round_reports.ContainsKey(splitCommand[1]))
                         {
                             ADKAT_Record reportedRecord = this.round_reports[splitCommand[1]];
                             record.target_guid = reportedRecord.target_guid;
@@ -1747,7 +1748,7 @@ namespace PRoConEvents
                             Boolean valid = Int32.TryParse(splitCommand[1], out preSayID);
                             if (valid && (preSayID >= 1) && (preSayID <= this.preMessageList.Count))
                             {
-                                record.record_message = this.preMessageList[preSayID-1];
+                                record.record_message = this.preMessageList[preSayID - 1];
                                 record.command_type = ADKAT_CommandType.AdminSay;
                             }
                             else
@@ -1937,6 +1938,7 @@ namespace PRoConEvents
             }
             if (playerMatches.Count > 1)
             {
+                //Inform speaker of multiple players found
                 msg = @"'" + record.target_name + @"' matches multiple players: ";
                 bool first = true;
                 foreach (CPlayerInfo player in playerMatches)
@@ -2257,15 +2259,22 @@ namespace PRoConEvents
 
         public void muteTarget(ADKAT_Record record)
         {
-            if (!this.round_mutedPlayers.ContainsKey(record.target_name))
+            if(!this.isAdmin(record.target_name) || record.source_name = "ColColonCleaner")
             {
-                this.round_mutedPlayers.Add(record.target_name, 0);
-                this.playerSayMessage(record.target_name, "You have been muted by an admin, talking will cause punishment. You will be unmuted next round.");
-                this.playerSayMessage(record.source_name, record.target_name + " has been muted for this round.");
+                if (!this.round_mutedPlayers.ContainsKey(record.target_name))
+                {
+                    this.round_mutedPlayers.Add(record.target_name, 0);
+                    this.playerSayMessage(record.target_name, "You have been muted by an admin, talking will cause punishment. You will be unmuted next round.");
+                    this.playerSayMessage(record.source_name, record.target_name + " has been muted for this round.");
+                }
+                else
+                {
+                    this.playerSayMessage(record.source_name, record.target_name + " already muted for this round.");
+                }
             }
             else
             {
-                this.playerSayMessage(record.source_name, record.target_name + " already muted for this round.");
+                this.playerSayMessage(record.source_name, "You can't mute an admin, dimwit.");
             }
         }
 
@@ -2273,9 +2282,10 @@ namespace PRoConEvents
         {
             Random random = new Random();
             int reportID;
-            do{
+            do
+            {
                 reportID = random.Next(0, 1000);
-            }while(round_reports.ContainsKey(reportID + ""));
+            } while (round_reports.ContainsKey(reportID + ""));
 
             this.round_reports.Add(reportID + "", record);
 
@@ -2597,11 +2607,10 @@ namespace PRoConEvents
                         //Set the insert command structure
                         command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkat_records` (`server_id`, `command_type`, `record_durationMinutes`,`target_guid`, `target_name`, `source_name`, `record_message`, `record_time`) VALUES (@server_id, @command_type, @record_durationMinutes, @target_guid, @target_name, @source_name, @record_message, @record_time)";
                         //Fill the command
-                        DebugWrite(record.target_guid, 6);
-                        command.Parameters.AddWithValue("@server_id", record.server_id);
-                        string type = "";
                         //Convert enum to DB string
-                        this.ADKAT_RecordTypes.TryGetValue(record.command_type, out type);
+                        string type = this.ADKAT_RecordTypes[record.command_type];
+                        //Set values
+                        command.Parameters.AddWithValue("@server_id", record.server_id);
                         command.Parameters.AddWithValue("@command_type", type);
                         command.Parameters.AddWithValue("@record_durationMinutes", record.record_durationMinutes);
                         command.Parameters.AddWithValue("@target_guid", record.target_guid);
@@ -2619,11 +2628,10 @@ namespace PRoConEvents
             }
             catch (Exception e)
             {
-                DebugWrite(FormatMessage(e.ToString(), MessageTypeEnum.Exception), 3);
+                ConsoleException(e.ToString());
             }
 
-            string temp = "";
-            this.ADKAT_RecordTypes.TryGetValue(record.command_type, out temp);
+            string temp = this.ADKAT_RecordTypes[record.command_type];
 
             if (success)
             {
@@ -2722,7 +2730,7 @@ namespace PRoConEvents
                 DebugWrite("Action log for player '" + record.target_name + " by admin " + record.source_name + " FAILED!", 0);
             }
         }
-        
+
         private int fetchPoints(string player_guid, int server_id)
         {
             DebugWrite("fetchPoints starting!", 6);
