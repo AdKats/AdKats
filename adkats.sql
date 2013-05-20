@@ -54,6 +54,43 @@ SELECT `adkat_playerlist`.`player_name` AS `playername`,
                   AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
                   AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints`
 FROM `adkat_playerlist`;
+
+CREATE OR REPLACE VIEW `adkat_weeklyplayerpoints` AS SELECT `adkat_playerlist`.`player_name` AS `playername`,
+       `adkat_playerlist`.`player_guid` AS `playerguid`,
+       `adkat_playerlist`.`server_id` AS `serverid`,
+ 
+  (SELECT count(`adkat_records`.`target_guid`)
+   FROM `adkat_records`
+   WHERE (   (`adkat_records`.`command_type` = 'Punish')
+          AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
+          AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
+          AND (`adkat_records`.`record_time` between date_sub(now(),INTERVAL 7 DAY) and now()))
+  ) AS `punishpoints`,
+ 
+  (SELECT count(`adkat_records`.`target_guid`)
+   FROM `adkat_records`
+   WHERE (    (`adkat_records`.`command_type` = 'Forgive')
+          AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
+          AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
+          AND (`adkat_records`.`record_time` between date_sub(now(),INTERVAL 7 DAY) and now()))
+   ) AS `forgivepoints`,
+
+   (
+	  (SELECT count(`adkat_records`.`target_guid`)
+	   FROM `adkat_records`
+	   WHERE (    (`adkat_records`.`command_type` = 'Punish')
+			  AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
+			  AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
+              AND (`adkat_records`.`record_time` between date_sub(now(),INTERVAL 7 DAY) and now()))) -
+	  (SELECT count(`adkat_records`.`target_guid`)
+	   FROM `adkat_records`
+	   WHERE (    (`adkat_records`.`command_type` = 'Forgive')
+			  AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
+			  AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
+              AND (`adkat_records`.`record_time` between date_sub(now(),INTERVAL 7 DAY) and now())))
+	) AS `totalpoints`
+
+FROM `adkat_playerlist`;
  
  
 CREATE OR REPLACE VIEW `adkat_reports` AS
