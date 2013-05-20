@@ -90,7 +90,14 @@ fine for performance). Right now only Punish and Forgive are required to be logg
    * Console Errors displayed when players enter invalid settings made more descriptive.<br/>
 <h4>0.1.7.2 (16-MAY-2013)</h4>
 <b>Changes</b> <br/>
-   * Added presay and preyell commands. Need testing.<br/>
+   * Added presay and preyell commands.<br/>
 <h4>0.1.7.3 (17-MAY-2013)</h4>
 <b>Changes</b> <br/>
    * Made plugin description download github stored README and CHANGELOG instead of storing as static string.<br/>
+<h4>0.1.8.0 (17-MAY-2013)</h4>
+<b>Changes</b> <br/>
+   * Improve the player name prediction system.<br/>
+<h4>0.1.9.0 (17-MAY-2013)</h4>
+<b>Changes</b> <br/>
+   * Add a report ID to reports, so admins can act on reports directly.<br/>
+   * Add a thank you for reporting when a report gets acted on.<br/>
