@@ -98,3 +98,4 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <b>Changes</b> <br/>
    * Add a report ID to reports, so admins can act on reports directly.<br/>
    * Add a thank you for reporting when a report gets acted on.<br/>
+</blockquote>
