@@ -7,10 +7,8 @@ help for admins, and internal implementation of TeamSwap.
 <h2>Description</h2>
 <h3>Main</h3>
 <p>
-This plugin should be used by groups with high traffic servers, set rules on each server, and many admins.
-</p>
-<p>
-Certain aspects like TeamSwap will only work properly for servers running TWO teamed matches (i.e. Rounds with RU and US teams). For example sqaud deathmatch which has 4 teams will not work properly.
+This tool was designed for use by groups with high traffic servers and many admins, but will function just as well 
+for small servers.
 </p>
 <h3>Reason For Initial Development</h3>
 <p>
