@@ -104,4 +104,7 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <h4>0.1.9.2 (20-MAY-2013)</h4>
 <b>Changes</b> <br/>
    * Added player mute system.<br/>
+<h4>0.1.9.4 (20-MAY-2013)</h4>
+<b>Changes</b> <br/>
+   * Added round-whitelisting for players.<br/>
 </blockquote>
