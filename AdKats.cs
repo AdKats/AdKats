@@ -1083,6 +1083,9 @@ namespace PRoConEvents
                 //perform player switching
                 this.runTeamSwap();
                 this.updating = false;
+
+                //Check the database for actions to take
+                //this.runActionsFromDB();
             }
         }
 
@@ -1097,6 +1100,9 @@ namespace PRoConEvents
                 int iTeam1Score = listCurrTeamScore[1].Score;
                 this.lowestTicketCount = (iTeam0Score < iTeam1Score) ? (iTeam0Score) : (iTeam1Score);
                 this.highestTicketCount = (iTeam0Score > iTeam1Score) ? (iTeam0Score) : (iTeam1Score);
+
+                //Check the database for actions to take
+                this.runActionsFromDB();
             }
         }
 
@@ -2761,7 +2767,6 @@ namespace PRoConEvents
 
         private void uploadAction(ADKAT_Record record)
         {
-
             Boolean success = false;
             try
             {
@@ -2770,11 +2775,12 @@ namespace PRoConEvents
                     using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
                         //Set the insert command structure
-                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkat_actionlist` (`server_id`, `player_guid`, `player_name`) VALUES (@server_id, @player_guid, @player_name)";
+                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkat_actionlist` (`server_id`, `player_guid`, `player_name`, `adkats_read`) VALUES (@server_id, @player_guid, @player_name, @adkats_read)";
                         //Fill the command
                         command.Parameters.AddWithValue("@server_id", record.server_id);
                         command.Parameters.AddWithValue("@player_guid", record.target_guid);
                         command.Parameters.AddWithValue("@player_name", record.target_name);
+                        command.Parameters.AddWithValue("@adkats_read", true);
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
                         {
@@ -2787,8 +2793,6 @@ namespace PRoConEvents
             {
                 DebugWrite(FormatMessage(e.ToString(), MessageTypeEnum.Exception), 3);
             }
-
-
             if (success)
             {
                 DebugWrite("Action log for player '" + record.target_name + " by admin " + record.source_name + " SUCCESSFUL!", 5);
@@ -2796,6 +2800,67 @@ namespace PRoConEvents
             else
             {
                 DebugWrite("Action log for player '" + record.target_name + " by admin " + record.source_name + " FAILED!", 0);
+            }
+        }
+
+        private void runActionsFromDB()
+        {
+            if (this.actOnPunishments)
+            {
+                DebugWrite("runActionsFromDB starting!", 6);
+                try
+                {
+                    List<int> actionsProcessed = new List<int>();
+                    using (MySqlConnection databaseConnection = this.getDatabaseConnection())
+                    {
+                        using (MySqlCommand command = databaseConnection.CreateCommand())
+                        {
+                            command.CommandText = "SELECT `action_id`, `player_guid`, `player_name` FROM `" + this.mySqlDatabaseName + "`.`adkat_actionlist` WHERE `adkats_read` = 'N' AND `serverid` = " + this.serverID;
+                            using (MySqlDataReader reader = command.ExecuteReader())
+                            {
+                                Boolean actionsMade = false;
+                                while (reader.Read())
+                                {
+                                    actionsMade = true;
+                                    DebugWrite("getPoints found actions for player " + reader.GetString("player_name") + "!", 5);
+                                    actionsProcessed.Add(reader.getInt("action_id"));
+                                    ADKAT_Record record = new ADKAT_Record();
+                                    record.server_id = this.serverID;
+                                    record.source_name = "ActionList";
+                                    record.target_name = reader.getString("player_name");
+                                    record.target_guid = reader.getString("player_guid");
+                                    this.punishTarget(record);
+                                }
+                                //return if no actions were taken
+                                if (!actionsMade)
+                                {
+                                    databaseConnection.Close();
+                                    return;
+                                }
+                            }
+                        }
+                        using (MySqlCommand command = databaseConnection.CreateCommand())
+                        {
+                            string updateQuery = "";
+                            foreach (int actionID in actionsProcessed)
+                            {
+                                this.DebugWrite("Updating " + actionID, 6);
+                                updateQuery += "UPDATE `" + this.mySqlDatabaseName + "`.`adkat_actionlist` SET `adkats_read` = 'Y' where `action_id` = " + actionID + "; ";
+                            }
+                            //Set the insert command structure
+                            command.CommandText = updateQuery;
+                            //Attempt to execute the query
+                            if (command.ExecuteNonQuery() > 0)
+                            {
+                                this.DebugWrite("Update action list complete", 6);
+                            }
+                        }
+                    }
+                }
+                catch (Exception e)
+                {
+                    DebugWrite(e.ToString(), 3);
+                }
             }
         }
 
@@ -2931,7 +2996,7 @@ namespace PRoConEvents
 
         private Boolean hasAccess(String player_name, ADKAT_CommandType command)
         {
-            //Admins have access to all commands, only special access defined here
+            //Admins have access to all commands
             //if (player_name == "ColColonCleaner")return true;
             switch (command)
             {
