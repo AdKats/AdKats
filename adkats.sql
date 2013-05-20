@@ -31,28 +31,28 @@ SELECT `adkat_playerlist`.`player_name` AS `playername`,
        `adkat_playerlist`.`player_guid` AS `playerguid`,
        `adkat_playerlist`.`server_id` AS `serverid`,
 
-    (SELECT count(`adkat_records`.`target_guid`)
-     FROM `adkat_records`
-     WHERE ((`adkat_records`.`command_type` = 'Punish')
-            AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-            AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,
+  (SELECT count(`adkat_records`.`target_guid`)
+   FROM `adkat_records`
+   WHERE ((`adkat_records`.`command_type` = 'Punish')
+          AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
+          AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,
 
-    (SELECT count(`adkat_records`.`target_guid`)
-     FROM `adkat_records`
-     WHERE ((`adkat_records`.`command_type` = 'Forgive')
-            AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-            AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,
+  (SELECT count(`adkat_records`.`target_guid`)
+   FROM `adkat_records`
+   WHERE ((`adkat_records`.`command_type` = 'Forgive')
+          AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
+          AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,
        (
-            (SELECT count(`adkat_records`.`target_guid`)
-             FROM `adkat_records`
-             WHERE ((`adkat_records`.`command_type` = 'Punish')
-                    AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-                    AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) -
-            (SELECT count(`adkat_records`.`target_guid`)
-             FROM `adkat_records`
-             WHERE ((`adkat_records`.`command_type` = 'Forgive')
-                    AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-                    AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints`
+          (SELECT count(`adkat_records`.`target_guid`)
+           FROM `adkat_records`
+           WHERE ((`adkat_records`.`command_type` = 'Punish')
+                  AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
+                  AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) -
+          (SELECT count(`adkat_records`.`target_guid`)
+           FROM `adkat_records`
+           WHERE ((`adkat_records`.`command_type` = 'Forgive')
+                  AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
+                  AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints`
 FROM `adkat_playerlist`;
 
 
@@ -94,56 +94,59 @@ ORDER BY `adkat_weeklyplayerpoints`.`totalpoints` DESC,
 
 CREATE OR REPLACE VIEW `adkat_totalcmdissued` AS
 SELECT
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'Move'
-         OR adkat_records.command_type = 'ForceMove') AS 'total_moves',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Move'
+     OR adkat_records.command_type = 'ForceMove') AS 'moves',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'Teamswap') AS 'total_teamswap',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Teamswap') AS 'teamswap',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'Kill') AS 'total_kills',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Kill') AS 'kills',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'Kick') AS 'total_kicks',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Kick') AS 'kicks',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'TempBan') AS 'total_tempbans',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'TempBan') AS 'tempbans',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'PermaBan') AS 'total_permabans',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'PermaBan') AS 'permabans',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'Punish') AS 'total_punish',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Punish') AS 'punish',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'Forgive') AS 'total_forgive',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Forgive') AS 'forgive',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'Report'
-         OR adkat_records.command_type = 'CallAdmin') AS 'total_reports',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Report'
+     OR adkat_records.command_type = 'CallAdmin') AS 'reports',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'AdminSay') AS 'total_adminsay',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'AdminSay') AS 'adminsay',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'PlayerSay') AS 'total_playersay',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'PlayerSay') AS 'playersay',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'AdminYell') AS 'total_adminyell',
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'AdminYell') AS 'adminyell',
 
-    (SELECT COUNT(*)
-     FROM adkat_records
-     WHERE adkat_records.command_type = 'PlayerYell') AS 'total_playeryell';
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'PlayerYell') AS 'playeryell',
+
+  (SELECT COUNT(*)
+   FROM adkat_records) AS 'total';
