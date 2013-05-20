@@ -116,3 +116,13 @@ FROM `adkat_playerpoints`
 WHERE (`adkat_playerpoints`.`totalpoints` > 0)
 ORDER BY `adkat_playerpoints`.`serverid`,
          `adkat_playerpoints`.`playername`;
+         
+CREATE OR REPLACE VIEW `adkat_weeklynaughtylist` AS 
+SELECT `adkat_weeklyplayerpoints`.`serverid` AS `server_id`,
+       `adkat_weeklyplayerpoints`.`playername` AS `player_name`,
+       `adkat_weeklyplayerpoints`.`totalpoints` AS `total_points`
+FROM `adkat_weeklyplayerpoints`
+WHERE (`adkat_weeklyplayerpoints`.`totalpoints` > 0)
+ORDER BY `adkat_weeklyplayerpoints`.`totalpoints` DESC,
+	 `adkat_weeklyplayerpoints`.`serverid`,
+         `adkat_weeklyplayerpoints`.`playername`;
