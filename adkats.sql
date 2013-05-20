@@ -1,13 +1,33 @@
---Was dropping tables, removed so no risk of users losing data if this gets run at the wrong time.
+--Was dropping tables, removed to remove risk of data loss if this gets run at the wrong time.
 --DROP TABLE IF EXISTS `adkat_records`;
 --DROP TABLE IF EXISTS `adkat_actionlist`;
 --DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;
 
-CREATE TABLE `adkat_records` (`record_id` int(11) NOT NULL AUTO_INCREMENT, `server_id` int(11) NOT NULL, `command_type` varchar(20) NOT NULL, `record_durationMinutes` int(11) NOT NULL, `target_guid` varchar(100) NOT NULL, `target_name` varchar(45) NOT NULL, `source_name` varchar(45) NOT NULL, `record_message` varchar(100) NOT NULL, `record_time` datetime NOT NULL, PRIMARY KEY (`record_id`));
+CREATE TABLE `adkat_records` (
+       `record_id` int(11) NOT NULL AUTO_INCREMENT, 
+       `server_id` int(11) NOT NULL, 
+       `command_type` varchar(45) NOT NULL, 
+       `record_durationMinutes` int(11) NOT NULL, 
+       `target_guid` varchar(100) NOT NULL, 
+       `target_name` varchar(45) NOT NULL, 
+       `source_name` varchar(45) NOT NULL, 
+       `record_message` varchar(100) NOT NULL, 
+       `record_time` datetime NOT NULL, 
+       PRIMARY KEY (`record_id`));
 
-CREATE TABLE `adkat_actionlist` (`action_id` int(11) NOT NULL AUTO_INCREMENT, `server_id` int(11) NOT NULL, `player_guid` varchar(100) NOT NULL, `player_name` varchar(45) NOT NULL, PRIMARY KEY (`action_id`));
+CREATE TABLE `adkat_actionlist` (
+       `action_id` int(11) NOT NULL AUTO_INCREMENT, 
+       `server_id` int(11) NOT NULL, 
+       `player_guid` varchar(100) NOT NULL, 
+       `player_name` varchar(45) NOT NULL,  
+       `plugin_read` BOOLEAN NOT NULL, 
+       PRIMARY KEY (`action_id`));
 
-CREATE TABLE `adkat_teamswapwhitelist` (`player_name` varchar(45) NOT NULL, `player_guid` varchar(100) NOT NULL DEFAULT 'WAITING ON USE FOR GUID', PRIMARY KEY (`player_name`), UNIQUE KEY `player_name_UNIQUE` (`player_name`));
+CREATE TABLE `adkat_teamswapwhitelist` (
+       `player_name` varchar(45) NOT NULL, 
+       `player_guid` varchar(100) NOT NULL DEFAULT 'WAITING ON USE FOR GUID', 
+       PRIMARY KEY (`player_name`), 
+       UNIQUE KEY `player_name_UNIQUE` (`player_name`));
 
 CREATE OR REPLACE VIEW `adkat_playerlist` AS
 SELECT `adkat_records`.`target_name` AS `player_name`,
@@ -98,8 +118,9 @@ SELECT `adkat_playerpoints`.`serverid` AS `server_id`,
        `adkat_playerpoints`.`totalpoints` AS `total_points`
 FROM `adkat_playerpoints`
 WHERE (`adkat_playerpoints`.`totalpoints` > 0)
-ORDER BY `adkat_playerpoints`.`serverid`,
-         `adkat_playerpoints`.`playername`;
+ORDER BY  `adkat_playerpoints`.`totalpoints` DESC,
+          `adkat_playerpoints`.`serverid`,
+          `adkat_playerpoints`.`playername`;
 
 CREATE OR REPLACE VIEW `adkat_weeklynaughtylist` AS
 SELECT `adkat_weeklyplayerpoints`.`serverid` AS `server_id`,
