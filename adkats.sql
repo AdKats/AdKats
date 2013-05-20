@@ -2,7 +2,7 @@ DROP TABLE IF EXISTS `adkat_records`;
 DROP TABLE IF EXISTS `adkat_actionlist`;
 DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;
 
-CREATE TABLE `adkat_records` (`record_id` int(11) NOT NULL AUTO_INCREMENT, `server_id` int(11) NOT NULL, `command_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','PermaBan','Punish','Forgive','Report','CallAdmin', 'AdminSay', 'PlayerSay', 'AdminYell', 'PlayerYell', 'RestartLevel', 'NextLevel', 'EndLevel') NOT NULL, `record_durationMinutes` int(11) NOT NULL, `target_guid` varchar(100) NOT NULL, `target_name` varchar(45) NOT NULL, `source_name` varchar(45) NOT NULL, `record_message` varchar(100) NOT NULL, `record_time` datetime NOT NULL, PRIMARY KEY (`record_id`));
+CREATE TABLE `adkat_records` (`record_id` int(11) NOT NULL AUTO_INCREMENT, `server_id` int(11) NOT NULL, `command_type` varchar(20) NOT NULL, `record_durationMinutes` int(11) NOT NULL, `target_guid` varchar(100) NOT NULL, `target_name` varchar(45) NOT NULL, `source_name` varchar(45) NOT NULL, `record_message` varchar(100) NOT NULL, `record_time` datetime NOT NULL, PRIMARY KEY (`record_id`));
 
 CREATE TABLE `adkat_actionlist` (`action_id` int(11) NOT NULL AUTO_INCREMENT, `server_id` int(11) NOT NULL, `player_guid` varchar(100) NOT NULL, `player_name` varchar(45) NOT NULL, PRIMARY KEY (`action_id`));
 
