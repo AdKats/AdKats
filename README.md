@@ -1,7 +1,7 @@
 <h1>AdKats</h1>
 <p>
-A MySQL reflected admin toolset which includes editable in-game commands, database reflected punishment and
-forgiveness, proper player report and admin call handling, player name completion,  player muting, yell/say 
+A MySQL reflected admin toolset that includes editable in-game commands, database reflected punishment and
+forgiveness, proper player report and admin call handling, player name completion, player muting, yell/say 
 help for admins, and internal implementation of TeamSwap.
 </p>
 <h2>Description</h2>
