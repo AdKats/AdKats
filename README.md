@@ -23,8 +23,17 @@ head, now the punish system tracks that instead and takes proper action based on
 NOTE: This is NOT the player based punish/forgive system normally used for teamkilling, and is only usable by
 admins.<br/><br/>
 
-When a player is 'punished' by an admin a log is made in the database, their total points
-are calculated <b>(Punishment Count - Forgiveness Count = Total Points)</b> then an action decided from the punishment hierarchy. Punishments should get more harsh as the
+BASIC VERSION:<br/>
+Use of punish and forgive commands takes the load off admins remembering what players have broken server rules, and how many times. 
+Each time a player is punished it's logged in the database, and the more punishes they get the more severe the punishment. 
+Available punishments include kill, kick, temp-ban 60 minutes, temp-ban 1 week, and permaban. 
+Order that the punishments are given can be configured to your needs. 
+The default is kill, kill, kick, kick, tban60, tban60, tbanweek, tbanweek, ban.<br/><br/>
+
+DETAILED VERSION:<br/>
+When a player is 'punished' by an admin a log is made in the database, their total points are calculated using this basic formula:<br/>
+<b>(Punishment Count - Forgiveness Count = Total Points)</b><br/>
+Then an action is decided using total points from the punishment hierarchy. Punishments should get more harsh as the
 player gets more points. The punishment hierarchy is configurable to suit your needs. ADK is rather lenient with
 players, so there are 8 levels before a player is perma-banned in our version. Players may also be 'forgiven', which
 will reduce their total point value by 1 each time, this is useful if you have a website where players can apologize
@@ -43,8 +52,11 @@ action here.<br/><br/>
 All commands which might lead to actions against players are required to have a reason entered, and will cancel if
 no reason is given. When deciding to use this system, 'punish' should be the only command used for player rule-breaking.
 Other commands like kill, or kick are not counted since sometimes players ask to be kill, and admins kill/kick themselves to leave games.
-Direct tban and ban are of course left in here for hacker/glitching situations, but that is the ONLY time they should be used.
-(currently working on adding direct tban counter into this system though, it would immediately escalate the player's hierarchy to tban level)
+Direct tban and ban are of course left in here for hacker/glitching situations, but that is the ONLY time they should be used.<br/><br/>
+
+When using the report system in tandem with this system, the report ID's that are generated can be used to reference players and reason. 
+Simply use that ID instead of a player-name and reason (e.g. @punish 582, instead of @punish player reason). 
+Players are thanked for reporting when an admin uses their report ID.
 </p>
 <h3>Report/CallAdmin System</h3>
 <p>
@@ -59,7 +71,8 @@ database with full player names for reporter/target, and the full reason for rep
 </p>
 <h3>TeamSwap</h3>
 <p>
-This plugin implements TeamSwap. TeamSwap is a server-smart player moving system that offers two major benefits over the default system. It's available as a separate plugin, but in this instance I've merged it with
+This plugin implements TeamSwap. TeamSwap is a server-smart player moving system that offers two major benefits over the default system. 
+It's available as a separate plugin (original is very outdated now, many improvements have been made here), but in this instance I've merged it with
 move and forcemove commands. Normally if the team a player gets @move'd or @fmove'd to
 is full then the command just fails, now they are dropped on a queue until a slot opens on that side. They can keep
 playing on their side until that slot opens, when it does they are immediately slain and moved over to fill it.
@@ -72,7 +85,7 @@ bypasses the ticket window restriction.
 </p>
 <h3>Performance</h3>
 <p>
-There still needs to be more testing done in this section. However, I've designed it to be rather heavy when 
+I've designed it to be rather heavy when 
 changing settings, but lighter when in use. All commands are stored in dictionaries so command meanings are parsed instantly when entered. 
 Also during record parsing there is a hierarchy of checks the command goes through (specific to each command), 
 if any of them fail the process ends immediately and informs the calling player of the error they made.
