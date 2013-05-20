@@ -260,51 +260,38 @@ especially when you have to hold 40+ admins accountable, and has not caused noti
 * <b>'Debug level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step.
 <h3>Admin Settings:</h3>
 * <b>'Use Database Admin List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Admin names are cached in the plugin to save bandwidth. The list is updated when a non-admin is requesting access, to see if list has changed.<br/>
+* <b>'Admin Table Name'</b> - Name of the database table that contains admin names. Default "tbl_adminlist". This table needs to be set up manually right now.<br/>
+* <b>'Column That Contains Admin Name'</b> - Name of the column in admin table that contains admin IGNs.<br/>
 * <b>'Static Admin List'</b> - List of admins input from plugin settings. Use if no admin database table.
 <h3>Messaging Settings:</h3>
 * <b>'Pre-Message List'</b> - List of messages to use for pre-say and pre-yell commands.
 <h3>MySQL Settings:</h3>
 * <b>'MySQL Hostname'</b> - Hostname of the MySQL server AdKats should connect to. <br/>
 * <b>'MySQL Port'</b> - Port of the MySQL server AdKats should connect to. <br/>
-* <b>'MySQL
-Database'</b> - Database name AdKats should use for storage. Hardcoded table names and creation scripts given below.<br/>
+* <b>'MySQL Database'</b> - Database name AdKats should use for storage. Hardcoded table names and creation scripts given below.<br/>
 * <b>'MySQL Username'</b> - Username of the MySQL server AdKats should connect to. <br/>
 * <b>'MySQL Password'</b> - Password of the MySQL server AdKats should connect to.
 <h3>Command Settings:</h3>
 * <b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason to execute.<br/>
 * <b>'Yell display time seconds'</b> - The integer time in seconds that yell messages will be displayed.<br/><br/>
 
-<b>Specific command definitions given in description section above.</b> All command text must be a single string with no whitespace. E.G. kill. All commands can be suffixed with '|log', which will set whether use of that command is logged in the database or not.
+  <b>Specific command definitions given in description section above.</b> All command text must be a single string with no whitespace. E.G. kill. All commands can be suffixed with '|log', which will set whether use of that command is logged in the database or not.
 <h3>Punishment Settings:</h3>
-* <b>'Act on
-Punishments'</b> - Whether the plugin should carry out punishments, or have an external source do it through adkat_actionlist.
-<br/>
-* <b>'Punishment
-Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the action taken at that number of points.
-<br/>
-* <b>'Minimum Reason
-Length'</b> - The minimum number of characters a reason must be to call punish or forgive on a player.<br/>
-* <b>'Only Kill Players when Server in low
-population'</b> - When server population is below 'Low Server Pop Value', only kill players, so server does not empty. Player points will still be incremented normally.
-<br/>
+* <b>'Act on Punishments'</b> - Whether the plugin should carry out punishments, or have an external source do it through adkat_actionlist.<br/>
+* <b>'Punishment Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the action taken at that number of points.<br/>
+* <b>'Minimum Reason Length'</b> - The minimum number of characters a reason must be to call punish or forgive on a player.<br/>
+* <b>'Only Kill Players when Server in low population'</b> - When server population is below 'Low Server Pop Value', only kill players, so server does not empty. Player points will be incremented normally.<br/>
 * <b>'Low Server Pop Value'</b> - Number of players at which the server is deemed 'Low Population'.<br/>
-* <b>'Punishment
-Timeout'</b> - A player cannot be punished more than once every x.xx minutes. This prevents multiple admins from punishing a player multiple times for the same infraction.
+* <b>'Punishment Timeout'</b> - A player cannot be punished more than once every x.xx minutes. This prevents multiple admins from punishing a player multiple times for the same infraction.
 <h3>Server Settings:</h3>
-* <b>'Server
-ID'</b> - ID that will be used to identify this server in the database. This is not linked to any database attributes, instead it's used to differentiate between servers for infraction points.
+* <b>'Server ID'</b> - ID that will be used to identify this server in the database. This is not linked to any specific database attributes, instead it's used to differentiate between servers for infraction points. Set all instances of this tool to the same server ID if you want points to work across servers.
 <br/>
 <h3>TeamSwap Settings:</h3>
-* <b>'Require Whitelist for
-Access'</b> - Whether the 'moveme' command will require whitelisting. Admins are always allowed to use it.<br/>
+* <b>'Require Whitelist for Access'</b> - Whether the 'moveme' command will require whitelisting. Admins are always allowed to use it.<br/>
 * <b>'Static Player Whitelist'</b> - Static list of players plugin-side that will be able to TeamSwap.<br/>
-* <b>'Use Database
-Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Whitelisted names are cached in the plugin to save bandwidth. The list is updated when a non-whitelisted player is requesting access, to see if list has changed.<br/>
-* <b>'Ticket Window
-High'</b> - When either team is above this ticket count, then nobody (except admins) will be able to use TeamSwap.
-<br/>
-* <b>'Ticket Window
-Low'</b> - When either team is below this ticket count, then nobody (except admins) will be able to use TeamSwap.
+* <b>'Use Database Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Whitelisted names are cached in the plugin to save bandwidth. The list is updated when a non-whitelisted player is requesting access, to see if list has changed.<br/>
+* <b>'Ticket Window High'</b> - When either team is above this ticket count, then nobody (except admins) will be able to use TeamSwap.<br/>
+* <b>'Ticket Window Low'</b> - When either team is below this ticket count, then nobody (except admins) will be able to use TeamSwap.
 </p>
 <h2>Default Punishment Levels by Point</h2>
 <p>
