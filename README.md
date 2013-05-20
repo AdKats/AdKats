@@ -1,26 +1,22 @@
 <h1>AdKats</h1>
 <p>
-	Advanced Admin Tool Set for ADK, with MySQL database back-end.
+Advanced Admin Tool Set, with MySQL database back-end.
 </p>
 <h2>Description</h2>
 <h3>Main</h3>
 <p>
-This plugin should be used by groups with high traffic servers, with set rules, and many admins. It is a
-MySQL database reflected admin tool that includes editable in-game commands, database reflected punishment and
+This plugin should be used by groups with high traffic servers, set rules on each server, and many admins. It is a
+MySQL database reflected admin tool set that includes editable in-game commands, database reflected punishment and
 forgiveness, proper player report and admin call handling, and internal implementation of TeamSwap.
 </p>
 <p>
-Certain aspects like TeamSwap will only work for servers running TWO teamed matches (i.e. Rounds with RU and US teams). For example sqaud deathmatch which has 4 teams will not work properly.
+Certain aspects like TeamSwap will only work properly for servers running TWO teamed matches (i.e. Rounds with RU and US teams). For example sqaud deathmatch which has 4 teams will not work properly.
 </p>
-<h3>Reason Behind Development</h3>
+<h3>Reason For Initial Development</h3>
 <p>
 Players who break rules over time usually don't end up doing it in front of the same admin twice, so minimal or
-'incorrect' action is taken. 
-On very active servers with high player turn-around it's impossible for admins to track a player's history in their
-head, now the punish system tracks that instead and takes proper action based on a player's history.<br/><br/>
-
-In general this combines simple in-game admin commands, player name completion, admin punish/forgive,
-report/calladmin, and TeamSwap, into one plugin to reduce the load on your procon layer.
+'incorrect' action is taken. On very active servers with high player turn-around it's impossible for admins to track a player's history in their
+head, now the punish system tracks that instead and takes proper action based on a player's history. This was only the initial goal, but it turned into a complete admin tool.
 </p>
 <h3>Punishment/Forgiveness System</h3>
 <p>
@@ -181,6 +177,18 @@ though, especially when you have to hold 40+ admins accountable for their action
 		<td>The in-game command used for sending a message through admin yell to only a specific player.</td>
 	</tr>
 	<tr>
+		<td><b>Pre-Say</b></td>
+		<td>[message ID]</td>
+		<td>Admin</td>
+		<td>The in-game command used for sending a pre-defined message as an AdminSay.</td>
+	</tr>
+	<tr>
+		<td><b>Pre-Yell</b></td>
+		<td>[message ID]</td>
+		<td>Admin</td>
+		<td>The in-game command used for sending a pre-defined message as an AdminYell.</td>
+	</tr>
+	<tr>
 		<td><b>Restart Level</b></td>
 		<td>None</td>
 		<td>Admin</td>
@@ -215,12 +223,12 @@ though, especially when you have to hold 40+ admins accountable for their action
 <h2>Settings</h2>
 <p>
 <h3>Debugging Settings:</h3>
-* <b>'Debug
-level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step.
+* <b>'Debug level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step.
 <h3>Admin Settings:</h3>
-* <b>'Use Database Admin
-List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Admin names are cached in the plugin to save bandwidth. The list is updated when a non-admin is requesting access, to see if list has changed.<br/>
+* <b>'Use Database Admin List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Admin names are cached in the plugin to save bandwidth. The list is updated when a non-admin is requesting access, to see if list has changed.<br/>
 * <b>'Static Admin List'</b> - List of admins input from plugin settings. Use if no admin database table.
+<h3>Messaging Settings:</h3>
+* <b>'Pre-Message List'</b> - List of messages to use for pre-say and pre-yell commands.
 <h3>MySQL Settings:</h3>
 * <b>'MySQL Hostname'</b> - Hostname of the MySQL server AdKats should connect to. <br/>
 * <b>'MySQL Port'</b> - Port of the MySQL server AdKats should connect to. <br/>
