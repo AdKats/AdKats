@@ -55,27 +55,29 @@ no reason is given. When deciding to use this system, 'punish' should be the onl
 Other commands like kill, or kick are not counted since sometimes players ask to be kill, and admins kill/kick themselves to leave games.
 Direct tban and ban are of course left in here for hacker/glitching situations, but that is the ONLY time they should be used.<br/><br/>
 
-When using the report system in tandem with this system, the report ID's that are generated can be used to reference players and reason. 
-Simply use that ID instead of a player-name and reason (e.g. @punish 582, instead of @punish player reason). 
-Players are thanked for reporting when an admin uses their report ID.
+When using the report system in tandem with this system, the report ID's that are generated can be used to reference 
+players and reason. Simply use that ID instead of a player-name and reason (e.g. waffleman73 baserapes, another player 
+reports them and gets report ID 582, admins just use @punish 582 instead of @punish waffleman73 baserape). Confirmation 
+of command with @yes is required before a report ID is acted on. Players are thanked for reporting when an admin uses 
+their report ID.
 </p>
 <h3>Report/CallAdmin System</h3>
 <p>
-All uses of @report and @admin with this plugin require players to enter a reason, and will tell them if they
-haven't entered one. It will not send the report to admins unless it's in proper format. 
-All reports are given a three digit ID which expires at the end of each round, these ID's can be used in the punish system.
-
-This cleans up what admins
-end up seeing for reports, useful since ADK admins get reports and admin calls whether they are in-game or not. When
+All uses of @report and @admin with this plugin require players to enter a reason, and will tell them if they haven't 
+entered one. It will not send the report to admins unless it's in proper format. This cleans up what admins
+end up seeing for reports (useful if admins get reports and admin calls whether they are in-game or not). When
 a player puts in a proper @report or @admin, all in-game admins are notified, then the report is logged in the
-database with full player names for reporter/target, and the full reason for reporting.
+database with full player names for reporter/target, and the full reason for reporting.<br/><br/>
+
+All reports are given a three digit ID which expires at the end of each round, these ID's can be used in the punish 
+system to lighten the work admins do.
 </p>
 <h3>Player Muting</h3>
 <p>
-Players may be muted using the mute command, muting lasts until the end of the round. Players who talk in chat after being muted will be 
-killed each time they talk up through 5 chat messages, on the 6th they are kicked from the server. No action other than kill or kick 
-is used by this system. There will be no way to un-mute players, there was a reason they were muted, they can talk again next round. 
-Admins cannot mute other admins.
+Players can be muted using the mute command, muting lasts until the end of the round. Players who talk in chat after 
+being muted will be killed each time they talk up through 5 chat messages, on the 6th they are kicked from the server. 
+No action other than kill or kick is used by this system. There will be no way to un-mute players, there was a reason 
+they were muted, they can talk again next round. Admins cannot mute other admins.
 </p>
 <h3>Pre-Yell and Pre-Say</h3>
 <p>
@@ -85,30 +87,28 @@ with @yes to make sure it's the one they wanted.
 </p>
 <h3>TeamSwap</h3>
 <p>
-This plugin implements TeamSwap. TeamSwap is a server-smart player moving system that offers two major benefits over the default system. 
-It's available as a separate plugin (original is very outdated now, many improvements have been made here), but in this instance I've merged it with
-move and forcemove commands. Normally if the team a player gets @move'd or @fmove'd to
-is full then the command just fails, now they are dropped on a queue until a slot opens on that side. They can keep
-playing on their side until that slot opens, when it does they are immediately slain and moved over to fill it.
-Secondly it allows whitelisted (non-admin) players the ability to move themselves between teams as often as they
-want (within a ticket count window). This is currently not an available option in default battlefield aside from
-procon commands, as the game itself limits players to one switch per gaming session. Whitelisted players can type
-'@moveme' and the plugin will queue them. This is meant to be available to players outside the admin list, usually
-by paid usage to your community or to clan members only. Admins can also use '@moveme', and in their case it
-bypasses the ticket window restriction.
+TeamSwap is a server-smart player moving system which offers two major benefits over the default system. Normally when 
+trying to move a player to a full team the command just fails at the server level, now the player is dropped on a 
+queue until a slot opens on that side. They can keep playing on their side until that slot opens, when it does they 
+are immediately slain and moved over to fill it. Secondly it allows whitelisted (non-admin) players the ability to move 
+themselves between teams as often as they want (within a ticket count window). This is currently not an available option 
+in default battlefield aside from procon commands, the game limits players to one switch per gaming session. Whitelisted 
+players can type '@moveme' and teamswap will queue them. This is meant to be available to players outside the admin 
+list, usually by paid usage to your community or to clan members only. Admins can also use '@moveme', and in their 
+case it bypasses the ticket window restriction.
 </p>
 <h3>Performance</h3>
 <p>
-I've designed it to be rather heavy when 
-changing settings, but lighter when in use. All commands are stored in dictionaries so command meanings are parsed instantly when entered. 
-Also during record parsing there is a hierarchy of checks the command goes through (specific to each command), 
-if any of them fail the process ends immediately and informs the calling player of the error they made.
+AdKats is designed to be rather heavy when changing settings, but lighter when in use. All commands are stored in 
+dictionaries so command meanings are parsed instantly when entered. Also during command parsing there is a hierarchy 
+of checks the command goes through (specific to each command), if any of them fail the process ends immediately and 
+informs the calling player of the error they made.
 </p>
 <h3>Available In-Game Commands</h3>
 <p>
 <u><b>You can edit the text typed for each command to suit your needs in plugin settings.</b></u> Usage of all
-commands is database logged by default, but each command can be told whether to log or not. Logging all is useful
-though, especially when you have to hold 40+ admins accountable for their actions.<br/><br/>
+commands is database logged by default, but each command can be told whether to log or not. Logging all is useful 
+especially when you have to hold 40+ admins accountable, and has not caused noticable lag.<br/><br/>
 <table>
 	<tr>
 		<td><b>Command</b></td>
@@ -144,7 +144,7 @@ though, especially when you have to hold 40+ admins accountable for their action
 		<td><b>Punish Player</b></td>
 		<td>[player][reason]<br/>OR<br/>[reportID]</td>
 		<td>Admin</td>
-		<td>The in-game command used for punishing players. Will add a Punish record to the database, increasing a player's total points by 1. When a reportID is used as input, details of the report are given and confirmation needs to be given before the punish is completed.</td>
+		<td>The in-game command used for punishing players. Will add a Punish record to the database, increasing a player's total points by 1. When a reportID is used as input, details of the report are given and confirmation (@yes) needs to be given before the punish is sent.</td>
 	</tr>
 	<tr>
 		<td><b>Forgive Player</b></td>
