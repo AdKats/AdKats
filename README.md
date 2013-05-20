@@ -49,7 +49,10 @@ Direct tban and ban are of course left in here for hacker/glitching situations, 
 <h3>Report/CallAdmin System</h3>
 <p>
 All uses of @report and @admin with this plugin require players to enter a reason, and will tell them if they
-haven't entered one. It will not send the report to admins unless it's in proper format. This cleans up what admins
+haven't entered one. It will not send the report to admins unless it's in proper format. 
+All reports are given a three digit ID which expires at the end of each round, these ID's can be used in the punish system.
+
+This cleans up what admins
 end up seeing for reports, useful since ADK admins get reports and admin calls whether they are in-game or not. When
 a player puts in a proper @report or @admin, all in-game admins are notified, then the report is logged in the
 database with full player names for reporter/target, and the full reason for reporting.
@@ -112,9 +115,9 @@ though, especially when you have to hold 40+ admins accountable for their action
 	</tr>
 	<tr>
 		<td><b>Punish Player</b></td>
-		<td>[player][reason]</td>
+		<td>[player][reason]<br/>OR<br/>[reportID]</td>
 		<td>Admin</td>
-		<td>The in-game command used for punishing players. Will add a Punish record to the database, increasing a player's total points by 1.</td>
+		<td>The in-game command used for punishing players. Will add a Punish record to the database, increasing a player's total points by 1. When a reportID is used as input, details of the report are given and confirmation needs to be given before the punish is completed.</td>
 	</tr>
 	<tr>
 		<td><b>Forgive Player</b></td>
@@ -144,13 +147,13 @@ though, especially when you have to hold 40+ admins accountable for their action
 		<td><b>Report Player</b></td>
 		<td>[player][reason]</td>
 		<td>All Players</td>
-		<td>The in-game command used for reporting players. Must have a reason, and will inform a player otherwise when using. Will log a Report tuple in the database(External GCP polls from there for external admin notifications), and notify all in-game admins.</td>
+		<td>The in-game command used for reporting players. Must have a reason, and will inform a player otherwise when using. Will log a Report in the database(External GCP pulls from there for external admin notifications), and notify all in-game admins. Informs the reporter and admins of the report ID, which the punish system can use.</td>
 	</tr>
 	<tr>
 		<td><b>Call Admin</b></td>
 		<td>[player][reason]</td>
 		<td>All Players</td>
-		<td>The in-game command used for calling admin attention to a player. Same deal as report, but used for a different reason.</td>
+		<td>The in-game command used for calling admin attention to a player. Same deal as report, but used for a different reason. Informs the reporter and admins of the report ID, which the punish system can use.</td>
 	</tr>
 	<tr>
 		<td><b>Admin Say</b></td>
@@ -287,7 +290,7 @@ Action decided after player is punished, and their points incremented.<br/><br/>
 </p>
 <h2>Database Tables and Views</h2>
 <p>
-The plugin checks the database for needed tables on connect. If it doesnt find the master record table it will run the script below. You can run the script below beforehand if you dont want the plugin changing tables in your database.<br/>
+The plugin checks the database for needed tables on connect. If it doesn't find the master record table it will run the script linked below. You can run the script beforehand if you dont want the plugin changing tables in your database.<br/>
 <br/>
 <a href="https://github.com/ColColonCleaner/AdKats/blob/master/adkats.sql" target="_blank">SQL Code</a>
 </p>
