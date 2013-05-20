@@ -45,7 +45,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.1.9.1";
+        string plugin_version = "0.1.9.2";
 
         // Enumerations
         //Messaging
@@ -69,6 +69,7 @@ namespace PRoConEvents
             PermabanPlayer,
             PunishPlayer,
             ForgivePlayer,
+            MutePlayer,
             //Reporting players
             ReportPlayer,
             CallAdmin,
@@ -152,6 +153,7 @@ namespace PRoConEvents
         private string m_strPermanentBanCommand = "ban|log";
         private string m_strPunishCommand = "punish|log";
         private string m_strForgiveCommand = "forgive|log";
+        private string m_strMuteCommand = "mute|log";
         private string m_strMoveCommand = "move|log";
         private string m_strForceMoveCommand = "fmove|log";
         private string m_strTeamswapCommand = "moveme|log";
@@ -230,6 +232,9 @@ namespace PRoConEvents
         //Reports for the current round
         private Dictionary<string, ADKAT_Record> round_reports = new Dictionary<string, ADKAT_Record>();
 
+        //Muted players for the current round
+        private Dictionary<string, int> round_mutedPlayers = new Dictionary<string, int>();
+
         #endregion
 
         public ADKATs()
@@ -237,10 +242,10 @@ namespace PRoConEvents
             isEnabled = false;
             debugLevel = 0;
 
-            preMessageList.Add("US TEAM: DO NOT ENTER THE STREETS BEYOND 'A', YOU WILL BE PUNISHED.");
             preMessageList.Add("US TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.");
-            preMessageList.Add("RU TEAM: DO NOT GO BEYOND 'C' FLAG, YOU WILL BE PUNISHED.");
             preMessageList.Add("RU TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.");
+            preMessageList.Add("US TEAM: DO NOT ENTER THE STREETS BEYOND 'A', YOU WILL BE PUNISHED.");
+            preMessageList.Add("RU TEAM: DO NOT GO BEYOND 'C' FLAG, YOU WILL BE PUNISHED.");
 
             //Create command and logging dictionaries
             this.ADKAT_CommandStrings = new Dictionary<string, ADKAT_CommandType>();
@@ -356,6 +361,7 @@ namespace PRoConEvents
                 lstReturn.Add(new CPluginVariable("Command Settings|Permaban Player", typeof(string), m_strPermanentBanCommand));
                 lstReturn.Add(new CPluginVariable("Command Settings|Punish Player", typeof(string), m_strPunishCommand));
                 lstReturn.Add(new CPluginVariable("Command Settings|Forgive Player", typeof(string), m_strForgiveCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Mute Player", typeof(string), m_strMuteCommand));
                 lstReturn.Add(new CPluginVariable("Command Settings|OnDeath Move Player", typeof(string), m_strMoveCommand));
                 lstReturn.Add(new CPluginVariable("Command Settings|Force Move Player", typeof(string), m_strForceMoveCommand));
                 lstReturn.Add(new CPluginVariable("Command Settings|Teamswap Self", typeof(string), m_strTeamswapCommand));
@@ -565,6 +571,18 @@ namespace PRoConEvents
                         strValue += "|log";
                     }
                     this.m_strForgiveCommand = strValue;
+                    rebindAllCommands();
+                }
+                else
+                {
+                    this.m_strForgiveCommand = ADKAT_CommandType.ForgivePlayer + " COMMAND BLANK";
+                }
+            }
+            else if (Regex.Match(strVariable, @"Mute Player").Success)
+            {
+                if (strValue.Length > 0)
+                {
+                    this.m_strMuteCommand = strValue;
                     rebindAllCommands();
                 }
                 else
@@ -885,6 +903,7 @@ namespace PRoConEvents
             this.m_strPermanentBanCommand = this.parseAddCommand(tempDictionary, this.m_strPermanentBanCommand, ADKAT_CommandType.PermabanPlayer);
             this.m_strPunishCommand = this.parseAddCommand(tempDictionary, this.m_strPunishCommand, ADKAT_CommandType.PunishPlayer);
             this.m_strForgiveCommand = this.parseAddCommand(tempDictionary, this.m_strForgiveCommand, ADKAT_CommandType.ForgivePlayer);
+            this.m_strMuteCommand = this.parseAddCommand(tempDictionary, this.m_strMuteCommand, ADKAT_CommandType.MutePlayer);
             this.m_strMoveCommand = this.parseAddCommand(tempDictionary, this.m_strMoveCommand, ADKAT_CommandType.MovePlayer);
             this.m_strForceMoveCommand = this.parseAddCommand(tempDictionary, this.m_strForceMoveCommand, ADKAT_CommandType.ForceMovePlayer);
             this.m_strTeamswapCommand = this.parseAddCommand(tempDictionary, this.m_strTeamswapCommand, ADKAT_CommandType.Teamswap);
@@ -1065,6 +1084,7 @@ namespace PRoConEvents
         public override void OnRoundOver(int winningTeamId)
         {
             this.round_reports = new Dictionary<string, ADKAT_Record>();
+            this.round_mutedPlayers = new Dictionary<string, int>();
         }
 
         //execute the swap code on player leaving
@@ -1139,6 +1159,35 @@ namespace PRoConEvents
         //all messaging is redirected to global chat for analysis
         public override void OnGlobalChat(string speaker, string message)
         {
+            //Check if the player is muted
+            if (this.round_mutedPlayers.ContainsKey(speaker))
+            {
+                //Increment the muted chat count
+                this.round_mutedPlayers[speaker] = this.round_mutedPlayers[speaker]+1;
+                //Get player info
+                CPlayerInfo player_info = this.currentPlayers[speaker];
+                //Create record
+                ADKAT_Record record = new ADKAT_Record();
+                record.server_id = this.serverID;
+                record.record_time = DateTime.Now;
+                record.record_durationMinutes = 0;
+                record.source_name = "PlayerMuteSystem";
+                record.target_guid = player_info.GUID;
+                record.target_name = speaker;
+                record.targetPlayerInfo = player_info;
+                if (this.round_mutedPlayers[speaker] > 5)
+                {
+                    record.record_message = "Kicking Muted Player. >5 Chat messages while muted.";
+                    record.command_type = ADKAT_CommandType.KickPlayer;
+                }
+                else
+                {
+                    record.record_message = "Muted player speaking in chat.";
+                    record.command_type = ADKAT_CommandType.KillPlayer;
+                }
+                this.processRecord(record);
+                return;
+            }
             if (isEnabled)
             {
                 if (message.StartsWith("@") || message.StartsWith("!"))
@@ -1542,6 +1591,31 @@ namespace PRoConEvents
                     confirmPlayerName(record);
                     break;
                 #endregion
+                #region MutePlayer
+                case ADKAT_CommandType.MutePlayer:
+                    try
+                    {
+                        record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
+                        DebugWrite("target: " + record.target_name, 6);
+                        record.record_message = message;
+                        DebugWrite("reason: " + record.record_message, 6);
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
+                        return;
+                    }
+                    if (record.record_message.Length < this.requiredReasonLength)
+                    {
+                        DebugWrite("reason too short", 6);
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
+                        return;
+                    }
+                    confirmPlayerName(record);
+                    break;
+                #endregion
                 #region ReportPlayer
                 case ADKAT_CommandType.ReportPlayer:
                     try
@@ -1671,15 +1745,15 @@ namespace PRoConEvents
                             int preSayID = 0;
                             DebugWrite("Raw preSayID: " + splitCommand[1], 6);
                             Boolean valid = Int32.TryParse(splitCommand[1], out preSayID);
-                            if (valid && (preSayID >= 0) && (preSayID < this.preMessageList.Count))
+                            if (valid && (preSayID >= 1) && (preSayID <= this.preMessageList.Count))
                             {
-                                record.record_message = this.preMessageList[preSayID];
+                                record.record_message = this.preMessageList[preSayID-1];
                                 record.command_type = ADKAT_CommandType.AdminSay;
                             }
                             else
                             {
                                 DebugWrite("invalid pre message id", 6);
-                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 0-" + (this.preMessageList.Count - 1));
+                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 1-" + (this.preMessageList.Count));
                                 return;
                             }
                         }
@@ -1952,6 +2026,12 @@ namespace PRoConEvents
                     this.uploadRecord(record);
                     this.forgiveTarget(record);
                     break;
+                case ADKAT_CommandType.MutePlayer:
+                    //Upload for forgive is required
+                    //No restriction on forgives/minute
+                    this.conditionalUploadRecord(record);
+                    this.muteTarget(record);
+                    break;
                 case ADKAT_CommandType.ReportPlayer:
                     this.conditionalUploadRecord(record);
                     this.reportTarget(record);
@@ -2060,7 +2140,7 @@ namespace PRoConEvents
             //Perform Actions
             ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_name, record.record_message + ". " + additionalMessage);
             this.playerSayMessage(record.source_name, "You KICKED " + record.target_name + " for " + record.record_message + ". ");
-            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was KICKED by admin for " + record.record_message + ". " + additionalMessage, "all");
+            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was KICKED by admin: " + record.record_message + ". " + additionalMessage, "all");
         }
 
         public void tempBanTarget(ADKAT_Record record, string additionalMessage)
@@ -2158,7 +2238,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.playerSayMessage(record.source_name, "Plugin options are set incorrectly. Inform plugin setting manager.");
+                    this.playerSayMessage(record.source_name, "Punish options are set incorrectly. Inform plugin setting manager.");
                     this.killTarget(record, additionalMessage);
                 }
             }
@@ -2173,6 +2253,20 @@ namespace PRoConEvents
         {
             this.playerSayMessage(record.source_name, "Forgive Logged for " + record.target_name);
             this.playerSayMessage(record.target_name, "Forgiven 1 infraction point. You now have " + this.fetchPoints(record.target_guid, record.server_id) + " point(s) against you.");
+        }
+
+        public void muteTarget(ADKAT_Record record)
+        {
+            if (!this.round_mutedPlayers.ContainsKey(record.target_name))
+            {
+                this.round_mutedPlayers.Add(record.target_name, 0);
+                this.playerSayMessage(record.target_name, "You have been muted by an admin, talking will cause punishment. You will be unmuted next round.");
+                this.playerSayMessage(record.source_name, record.target_name + " has been muted for this round.");
+            }
+            else
+            {
+                this.playerSayMessage(record.source_name, record.target_name + " already muted for this round.");
+            }
         }
 
         public void reportTarget(ADKAT_Record record)
@@ -2761,13 +2855,10 @@ namespace PRoConEvents
 
         private Boolean hasAccess(String player_name, ADKAT_CommandType command)
         {
+            //Admins have access to all commands, only special access defined here
             //if (player_name == "ColColonCleaner")return true;
             switch (command)
             {
-                case ADKAT_CommandType.MovePlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.ForceMovePlayer:
-                    return this.isAdmin(player_name);
                 case ADKAT_CommandType.Teamswap:
                     if (this.requireTeamswapWhitelist)
                     {
@@ -2781,47 +2872,16 @@ namespace PRoConEvents
                     {
                         return true;
                     }
-                case ADKAT_CommandType.KillPlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.KickPlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.TempBanPlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.PermabanPlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.PunishPlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.ForgivePlayer:
-                    return this.isAdmin(player_name);
                 case ADKAT_CommandType.ReportPlayer:
                     return true;
                 case ADKAT_CommandType.CallAdmin:
                     return true;
-                case ADKAT_CommandType.RestartLevel:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.NextLevel:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.EndLevel:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.AdminSay:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.PlayerSay:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.AdminYell:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.PlayerYell:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.PreYell:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.PreSay:
-                    return this.isAdmin(player_name);
                 case ADKAT_CommandType.ConfirmCommand:
                     return true;
                 case ADKAT_CommandType.CancelCommand:
                     return true;
                 default:
-                    this.DebugWrite("Command not recognized in hasAccess", 6);
-                    return false;
+                    return this.isAdmin(player_name);
             }
         }
 
