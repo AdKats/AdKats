@@ -227,6 +227,9 @@ namespace PRoConEvents
         //the lowest ticket count of either team to allow self move
         private int teamSwapTicketWindowLow = 0;
 
+        //Reports for the current round
+        private Dictionary<string, ADKAT_Record> round_reports = new Dictionary<string, ADKAT_Record>();
+
         #endregion
 
         public ADKATs()
@@ -1059,6 +1062,11 @@ namespace PRoConEvents
             }
         }
 
+        public override void OnRoundOver(int winningTeamId)
+        {
+            this.round_reports = new Dictionary<string, ADKAT_Record>();
+        }
+
         //execute the swap code on player leaving
         public override void OnPlayerLeft(CPlayerInfo playerInfo)
         {
@@ -1299,7 +1307,7 @@ namespace PRoConEvents
                 this.playerSayMessage(speaker, "Invalid command format.");
                 return;
             }
-            message = message.TrimStart(commandString.ToCharArray()).Trim();
+            message = message.TrimStart(splitCommand[0].ToCharArray()).Trim();
             record.command_type = commandType;
 
             //GATE 3: Add source
@@ -1477,6 +1485,17 @@ namespace PRoConEvents
                 case ADKAT_CommandType.PunishPlayer:
                     try
                     {
+                        if(this.round_reports.ContainsKey(splitCommand[1]))
+                        {
+                            ADKAT_Record reportedRecord = this.round_reports[splitCommand[1]];
+                            record.target_guid = reportedRecord.target_guid;
+                            record.target_name = reportedRecord.target_name;
+                            record.targetPlayerInfo = reportedRecord.targetPlayerInfo;
+                            record.record_message = reportedRecord.record_message;
+                            this.playerSayMessage(speaker, "Your report has been acted on. Thank you.");
+                            this.confirmAction(record);
+                            return;
+                        }
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -1809,7 +1828,7 @@ namespace PRoConEvents
         public void confirmAction(ADKAT_Record record)
         {
             //Send record to attempt list
-            this.playerSayMessage(record.source_name, "Confirm " + record.command_type + ": " + record.record_message);
+            this.playerSayMessage(record.source_name, "Confirm " + record.command_type + "->" + record.target_name + ": " + record.record_message);
             this.actionAttemptList.Remove(record.source_name);
             this.actionAttemptList.Add(record.source_name, record);
         }
@@ -2040,8 +2059,8 @@ namespace PRoConEvents
         {
             //Perform Actions
             ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_name, record.record_message + ". " + additionalMessage);
-            this.playerSayMessage(record.target_name, "Killed by admin for: " + record.record_message + "." + additionalMessage);
             this.playerSayMessage(record.source_name, "You KICKED " + record.target_name + " for " + record.record_message + ". ");
+            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was KICKED by admin for " + record.record_message + ". " + additionalMessage, "all");
         }
 
         public void tempBanTarget(ADKAT_Record record, string additionalMessage)
@@ -2067,6 +2086,7 @@ namespace PRoConEvents
                     break;
             }
             this.playerSayMessage(record.source_name, "You TEMP BANNED " + record.target_name + " for " + record.record_durationMinutes + " minutes. " + additionalMessage);
+            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was TEMP BANNED by admin for " + record.record_message + ". " + additionalMessage, "all");
         }
 
         public void permaBanTarget(ADKAT_Record record, string additionalMessage)
@@ -2090,7 +2110,8 @@ namespace PRoConEvents
                 default:
                     break;
             }
-            this.playerSayMessage(record.source_name, "You PERMA BANNED " + record.target_name + "! Get a vet admin NOW!" + additionalMessage);
+            this.playerSayMessage(record.source_name, "You PERMA BANNED " + record.target_name + "! Get a vet admin NOW! " + additionalMessage);
+            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was BANNED by admin for " + record.record_message + ". " + additionalMessage, "all");
         }
 
         public void punishTarget(ADKAT_Record record)
@@ -2135,6 +2156,11 @@ namespace PRoConEvents
                 {
                     this.permaBanTarget(record, additionalMessage);
                 }
+                else
+                {
+                    this.playerSayMessage(record.source_name, "Plugin options are set incorrectly. Inform plugin setting manager.");
+                    this.killTarget(record, additionalMessage);
+                }
             }
             else
             {
@@ -2151,26 +2177,43 @@ namespace PRoConEvents
 
         public void reportTarget(ADKAT_Record record)
         {
+            Random random = new Random();
+            int reportID;
+            do{
+                reportID = random.Next(0, 1000);
+            }while(round_reports.ContainsKey(reportID + ""));
+
+            this.round_reports.Add(reportID + "", record);
+
             foreach (String admin_name in this.databaseAdminCache)
             {
-                this.playerSayMessage(admin_name, "REPORT: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
+                this.playerSayMessage(admin_name, "REPORT [" + reportID + "]: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
             }
             foreach (String admin_name in this.staticAdminCache)
             {
-                this.playerSayMessage(admin_name, "REPORT: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
+                this.playerSayMessage(admin_name, "REPORT [" + reportID + "]: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
             }
-            this.playerSayMessage(record.source_name, "Report sent to admins on " + record.target_name + " for " + record.record_message);
+            this.playerSayMessage(record.source_name, "Report ID[" + reportID + "] sent. " + record.target_name + " for " + record.record_message);
         }
 
         public void callAdminOnTarget(ADKAT_Record record)
         {
+            Random random = new Random();
+            int reportID;
+            do
+            {
+                reportID = random.Next(0, 1000);
+            } while (round_reports.ContainsKey(reportID + ""));
+
+            this.round_reports.Add(reportID + "", record);
+
             foreach (String admin_name in this.databaseAdminCache)
             {
-                this.playerSayMessage(admin_name, "ADMIN CALL: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
+                this.playerSayMessage(admin_name, "ADMIN CALL [" + reportID + "]: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
             }
             foreach (String admin_name in this.staticAdminCache)
             {
-                this.playerSayMessage(admin_name, "ADMIN CALL: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
+                this.playerSayMessage(admin_name, "ADMIN CALL [" + reportID + "]: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
             }
             this.playerSayMessage(record.source_name, "Admin call sent on " + record.target_name + " for " + record.record_message);
         }
@@ -2372,40 +2415,16 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
+                        WebClient downloader = new WebClient();
                         //Set the insert command structure
-                        command.CommandText =
-                            @"
-                            DROP TABLE IF EXISTS `adkat_records`;
-                            DROP TABLE IF EXISTS `adkat_actionlist`;
-                            DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;
-                            CREATE TABLE `adkat_records` (
-                            `record_id` int(11) NOT NULL AUTO_INCREMENT,
-                            `server_id` int(11) NOT NULL,
-                            `command_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','PermaBan','Punish','Forgive','Report','CallAdmin', 'AdminSay', 'PlayerSay', 'AdminYell', 'PlayerYell', 'RestartLevel', 'NextLevel', 'EndLevel') NOT NULL,
-                            `record_durationMinutes` int(11) NOT NULL,
-                            `target_guid` varchar(100) NOT NULL,
-                            `target_name` varchar(45) NOT NULL,
-                            `source_name` varchar(45) NOT NULL,
-                            `record_message` varchar(100) NOT NULL,
-                            `record_time` datetime NOT NULL,
-                            PRIMARY KEY (`record_id`)
-                            );
-                            CREATE TABLE `adkat_actionlist` (
-                            `action_id` int(11) NOT NULL AUTO_INCREMENT,
-                            `server_id` int(11) NOT NULL,
-                            `player_guid` varchar(100) NOT NULL,
-                            `player_name` varchar(45) NOT NULL,
-                            PRIMARY KEY (`action_id`)    
-                            );
-                            CREATE TABLE `adkat_teamswapwhitelist` (
-                            `player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',
-                            PRIMARY KEY (`player_name`),
-                            UNIQUE KEY `player_name_UNIQUE` (`player_name`)
-                            );
-                            CREATE OR REPLACE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by `adkat_records`.`target_name`;
-                            CREATE OR REPLACE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints` from `adkat_playerlist`;
-                            CREATE OR REPLACE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));
-                            CREATE OR REPLACE VIEW `adkat_naughtylist` AS select `adkat_playerpoints`.`serverid` AS `server_id`,`adkat_playerpoints`.`playername` AS `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;";
+                        if (this.isRelease)
+                        {
+                            command.CommandText = downloader.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql");
+                        }
+                        else
+                        {
+                            command.CommandText = downloader.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/adkats.sql");
+                        }
                         try
                         {
                             //Attempt to execute the query
@@ -2609,7 +2628,7 @@ namespace PRoConEvents
                 DebugWrite("Action log for player '" + record.target_name + " by admin " + record.source_name + " FAILED!", 0);
             }
         }
-
+        
         private int fetchPoints(string player_guid, int server_id)
         {
             DebugWrite("fetchPoints starting!", 6);
@@ -2791,6 +2810,10 @@ namespace PRoConEvents
                 case ADKAT_CommandType.AdminYell:
                     return this.isAdmin(player_name);
                 case ADKAT_CommandType.PlayerYell:
+                    return this.isAdmin(player_name);
+                case ADKAT_CommandType.PreYell:
+                    return this.isAdmin(player_name);
+                case ADKAT_CommandType.PreSay:
                     return this.isAdmin(player_name);
                 case ADKAT_CommandType.ConfirmCommand:
                     return true;
