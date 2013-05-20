@@ -69,6 +69,13 @@ end up seeing for reports, useful since ADK admins get reports and admin calls w
 a player puts in a proper @report or @admin, all in-game admins are notified, then the report is logged in the
 database with full player names for reporter/target, and the full reason for reporting.
 </p>
+<h3>Player Muting</h3>
+<p>
+Players may be muted using the mute command, muting lasts until the end of the round. Players who talk in chat after being muted will be 
+killed each time they talk up through 5 chat messages, on the 6th they are kicked from the server. No action other than kill or kick 
+is used by this system. There will be no way to un-mute players, there was a reason they were muted, they can talk again next round. 
+Admins cannot mute other admins.
+</p>
 <h3>TeamSwap</h3>
 <p>
 This plugin implements TeamSwap. TeamSwap is a server-smart player moving system that offers two major benefits over the default system. 
@@ -137,6 +144,12 @@ though, especially when you have to hold 40+ admins accountable for their action
 		<td>[player][reason]</td>
 		<td>Admin</td>
 		<td>The in-game command used for forgiving players. Will add a Forgive record to the database, decreasing a player's total points by 1.</td>
+	</tr>
+	<tr>
+		<td><b>Mute Player</b></td>
+		<td>[player][reason]</td>
+		<td>Admin</td>
+		<td>The in-game command used for muting players. Players will be muted till the end of the round, 5 kills then kick if they keep talking. Admins cannot be muted.</td>
 	</tr>
 	<tr>
 		<td><b>Move Player</b></td>
