@@ -84,11 +84,9 @@ fine for performance). Right now only Punish and Forgive are required to be logg
     * Fixed bugs in the database structure confirmation and table setup sequence.<br/>
     * All yell messages will now be changed to uppercase before sending.<br/>
     * Added confirm action to all round targeted commands.<br/>
-<h4>0.1.7.1(16-MAY-2013)</h4>
-<b>Changes</b> <br/>
-   * Console Errors displayed when players enter invalid settings made more descriptive.<br/>
 <h4>0.1.7.2 (16-MAY-2013)</h4>
 <b>Changes</b> <br/>
+   * Console Errors displayed when players enter invalid settings made more descriptive.<br/>
    * Added presay and preyell commands.<br/>
 <h4>0.1.7.3 (17-MAY-2013)</h4>
 <b>Changes</b> <br/>
