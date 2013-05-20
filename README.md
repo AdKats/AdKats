@@ -175,6 +175,12 @@ especially when you have to hold 40+ admins accountable, and has not caused noti
 		<td>The in-game command used for moving yourself between teams. Will immediately send the speaker to TeamSwap.</td>
 	</tr>
 	<tr>
+		<td><b>Round Whitelist Player</b></td>
+		<td>[player][reason]</td>
+		<td>Admin</td>
+		<td>The in-game command used for round-whitelisting players. 2 players may be whitelisted per round. Once whitelisted they can use teamswap.</td>
+	</tr>
+	<tr>
 		<td><b>Report Player</b></td>
 		<td>[player][reason]</td>
 		<td>All Players</td>
