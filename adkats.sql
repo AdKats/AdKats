@@ -79,3 +79,59 @@ FROM `adkat_playerpoints`
 WHERE (`adkat_playerpoints`.`totalpoints` > 0)
 ORDER BY `adkat_playerpoints`.`serverid`,
          `adkat_playerpoints`.`playername`;
+
+CREATE OR REPLACE VIEW `adkat_totalcmdissued` AS
+SELECT
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Move'
+     OR adkat_records.command_type = 'ForceMove') AS 'total_moves',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Teamswap') AS 'total_teamswap',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Kill') AS 'total_kills',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Kick') AS 'total_kicks',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'TempBan') AS 'total_tempbans',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'PermaBan') AS 'total_permabans',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Punish') AS 'total_punish',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Forgive') AS 'total_forgive',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Report'
+     OR adkat_records.command_type = 'CallAdmin') AS 'total_reports',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'AdminSay') AS 'total_adminsay',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'PlayerSay') AS 'total_playersay',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'AdminYell') AS 'total_adminyell',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'PlayerYell') AS 'total_playeryell';
