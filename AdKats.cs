@@ -45,7 +45,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.1.9.3";
+        string plugin_version = "0.1.9.4";
 
         // Enumerations
         //Messaging
@@ -62,6 +62,7 @@ namespace PRoConEvents
             MovePlayer,
             ForceMovePlayer,
             Teamswap,
+            RoundWhitelistPlayer,
             //Punishing players
             KillPlayer,
             KickPlayer,
@@ -113,7 +114,6 @@ namespace PRoConEvents
         Dictionary<string, CPlayerInfo> currentPlayers = new Dictionary<string, CPlayerInfo>();
         List<CPlayerInfo> playerList = new List<CPlayerInfo>();
 
-        //Teamswap
         //Delayed move list
         private List<CPlayerInfo> onDeathMoveList = new List<CPlayerInfo>();
         //The list of players on RU wishing to move to US (This list takes first priority)
@@ -146,7 +146,7 @@ namespace PRoConEvents
         private ADKAT_BanType m_banMethod;
 
         //Command Strings for Input
-        //Player punishment
+        //Player Interaction
         private string m_strKillCommand = "kill|log";
         private string m_strKickCommand = "kick|log";
         private string m_strTemporaryBanCommand = "tban|log";
@@ -154,6 +154,7 @@ namespace PRoConEvents
         private string m_strPunishCommand = "punish|log";
         private string m_strForgiveCommand = "forgive|log";
         private string m_strMuteCommand = "mute|log";
+        private string m_strRoundWhitelistCommand = "roundwhitelist|log";
         private string m_strMoveCommand = "move|log";
         private string m_strForceMoveCommand = "fmove|log";
         private string m_strTeamswapCommand = "moveme|log";
@@ -228,6 +229,8 @@ namespace PRoConEvents
         private int teamSwapTicketWindowHigh = 500000;
         //the lowest ticket count of either team to allow self move
         private int teamSwapTicketWindowLow = 0;
+        //Round only whitelist
+        private List<string> teamswapRoundWhitelist = new List<string>();
 
         //Reports for the current round
         private Dictionary<string, ADKAT_Record> round_reports = new Dictionary<string, ADKAT_Record>();
@@ -270,6 +273,7 @@ namespace PRoConEvents
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PunishPlayer, "Punish");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ForgivePlayer, "Forgive");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.MutePlayer, "Mute");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.RoundWhitelistPlayer, "RoundWhitelist");
 
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ReportPlayer, "Report");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.CallAdmin, "CallAdmin");
@@ -363,6 +367,7 @@ namespace PRoConEvents
                 lstReturn.Add(new CPluginVariable("Command Settings|Punish Player", typeof(string), m_strPunishCommand));
                 lstReturn.Add(new CPluginVariable("Command Settings|Forgive Player", typeof(string), m_strForgiveCommand));
                 lstReturn.Add(new CPluginVariable("Command Settings|Mute Player", typeof(string), m_strMuteCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Round Whitelist Player", typeof(string), m_strRoundWhitelistCommand));
                 lstReturn.Add(new CPluginVariable("Command Settings|OnDeath Move Player", typeof(string), m_strMoveCommand));
                 lstReturn.Add(new CPluginVariable("Command Settings|Force Move Player", typeof(string), m_strForceMoveCommand));
                 lstReturn.Add(new CPluginVariable("Command Settings|Teamswap Self", typeof(string), m_strTeamswapCommand));
@@ -588,7 +593,19 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.m_strForgiveCommand = ADKAT_CommandType.ForgivePlayer + " COMMAND BLANK";
+                    this.m_strMuteCommand = ADKAT_CommandType.MutePlayer + " COMMAND BLANK";
+                }
+            }
+            else if (Regex.Match(strVariable, @"Round Whitelist Player").Success)
+            {
+                if (strValue.Length > 0)
+                {
+                    this.m_strRoundWhitelistCommand = strValue;
+                    rebindAllCommands();
+                }
+                else
+                {
+                    this.m_strRoundWhitelistCommand = ADKAT_CommandType.RoundWhitelistPlayer + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"OnDeath Move Player").Success)
@@ -905,6 +922,7 @@ namespace PRoConEvents
             this.m_strPunishCommand = this.parseAddCommand(tempDictionary, this.m_strPunishCommand, ADKAT_CommandType.PunishPlayer);
             this.m_strForgiveCommand = this.parseAddCommand(tempDictionary, this.m_strForgiveCommand, ADKAT_CommandType.ForgivePlayer);
             this.m_strMuteCommand = this.parseAddCommand(tempDictionary, this.m_strMuteCommand, ADKAT_CommandType.MutePlayer);
+            this.m_strRoundWhitelistCommand = this.parseAddCommand(tempDictionary, this.m_strRoundWhitelistCommand, ADKAT_CommandType.RoundWhitelistPlayer);
             this.m_strMoveCommand = this.parseAddCommand(tempDictionary, this.m_strMoveCommand, ADKAT_CommandType.MovePlayer);
             this.m_strForceMoveCommand = this.parseAddCommand(tempDictionary, this.m_strForceMoveCommand, ADKAT_CommandType.ForceMovePlayer);
             this.m_strTeamswapCommand = this.parseAddCommand(tempDictionary, this.m_strTeamswapCommand, ADKAT_CommandType.Teamswap);
@@ -1086,6 +1104,7 @@ namespace PRoConEvents
         {
             this.round_reports = new Dictionary<string, ADKAT_Record>();
             this.round_mutedPlayers = new Dictionary<string, int>();
+            this.teamswapRoundWhitelist = new List<string>();
         }
 
         //execute the swap code on player leaving
@@ -1160,37 +1179,37 @@ namespace PRoConEvents
         //all messaging is redirected to global chat for analysis
         public override void OnGlobalChat(string speaker, string message)
         {
-            //Check if the player is muted
-            if (this.round_mutedPlayers.ContainsKey(speaker))
-            {
-                //Increment the muted chat count
-                this.round_mutedPlayers[speaker] = this.round_mutedPlayers[speaker] + 1;
-                //Get player info
-                CPlayerInfo player_info = this.currentPlayers[speaker];
-                //Create record
-                ADKAT_Record record = new ADKAT_Record();
-                record.server_id = this.serverID;
-                record.record_time = DateTime.Now;
-                record.record_durationMinutes = 0;
-                record.source_name = "PlayerMuteSystem";
-                record.target_guid = player_info.GUID;
-                record.target_name = speaker;
-                record.targetPlayerInfo = player_info;
-                if (this.round_mutedPlayers[speaker] > 5)
-                {
-                    record.record_message = "Kicking Muted Player. >5 Chat messages while muted.";
-                    record.command_type = ADKAT_CommandType.KickPlayer;
-                }
-                else
-                {
-                    record.record_message = "Muted player speaking in chat.";
-                    record.command_type = ADKAT_CommandType.KillPlayer;
-                }
-                this.processRecord(record);
-                return;
-            }
             if (isEnabled)
             {
+                //Check if the player is muted
+                if (this.round_mutedPlayers.ContainsKey(speaker))
+                {
+                    //Increment the muted chat count
+                    this.round_mutedPlayers[speaker] = this.round_mutedPlayers[speaker] + 1;
+                    //Get player info
+                    CPlayerInfo player_info = this.currentPlayers[speaker];
+                    //Create record
+                    ADKAT_Record record = new ADKAT_Record();
+                    record.server_id = this.serverID;
+                    record.record_time = DateTime.Now;
+                    record.record_durationMinutes = 0;
+                    record.source_name = "PlayerMuteSystem";
+                    record.target_guid = player_info.GUID;
+                    record.target_name = speaker;
+                    record.targetPlayerInfo = player_info;
+                    if (this.round_mutedPlayers[speaker] > 5)
+                    {
+                        record.record_message = "Kicking Muted Player. >5 Chat messages while muted.";
+                        record.command_type = ADKAT_CommandType.KickPlayer;
+                    }
+                    else
+                    {
+                        record.record_message = "Muted player speaking in chat.";
+                        record.command_type = ADKAT_CommandType.KillPlayer;
+                    }
+                    this.processRecord(record);
+                    return;
+                }
                 if (message.StartsWith("@") || message.StartsWith("!"))
                 {
                     message = message.Substring(1);
@@ -1354,7 +1373,6 @@ namespace PRoConEvents
             if (commandType == ADKAT_CommandType.Default)
             {
                 DebugWrite("Command not parsable", 6);
-                this.playerSayMessage(speaker, "Invalid command format.");
                 return;
             }
             message = message.TrimStart(splitCommand[0].ToCharArray()).Trim();
@@ -1365,7 +1383,7 @@ namespace PRoConEvents
             if (!this.hasAccess(speaker, record.command_type))
             {
                 DebugWrite("No rights to call command", 6);
-                this.playerSayMessage(speaker, "No rights to use " + commandString + " command. Inquire about access on ADKGamers.com");
+                this.playerSayMessage(speaker, "No rights to use " + commandString + " command. Inquire about access with admins.");
                 //Return without creating if player doesn't have rights to do it
                 return;
             }
@@ -1594,6 +1612,31 @@ namespace PRoConEvents
                 #endregion
                 #region MutePlayer
                 case ADKAT_CommandType.MutePlayer:
+                    try
+                    {
+                        record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
+                        DebugWrite("target: " + record.target_name, 6);
+                        record.record_message = message;
+                        DebugWrite("reason: " + record.record_message, 6);
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
+                        return;
+                    }
+                    if (record.record_message.Length < this.requiredReasonLength)
+                    {
+                        DebugWrite("reason too short", 6);
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
+                        return;
+                    }
+                    confirmPlayerName(record);
+                    break;
+                #endregion
+                #region RoundWhitelistPlayer
+                case ADKAT_CommandType.RoundWhitelistPlayer:
                     try
                     {
                         record.target_name = splitCommand[1];
@@ -2034,6 +2077,12 @@ namespace PRoConEvents
                     this.conditionalUploadRecord(record);
                     this.muteTarget(record);
                     break;
+                case ADKAT_CommandType.RoundWhitelistPlayer:
+                    //Upload for forgive is required
+                    //No restriction on forgives/minute
+                    this.conditionalUploadRecord(record);
+                    this.roundWhitelistTarget(record);
+                    break;
                 case ADKAT_CommandType.ReportPlayer:
                     this.conditionalUploadRecord(record);
                     this.reportTarget(record);
@@ -2275,6 +2324,26 @@ namespace PRoConEvents
             else
             {
                 this.playerSayMessage(record.source_name, "You can't mute an admin, dimwit.");
+            }
+        }
+
+        public void roundWhitelistTarget(ADKAT_Record record)
+        {
+            if (!this.teamswapRoundWhitelist.Contains(record.target_name))
+            {
+                if (this.teamswapRoundWhitelist.Count < 2)
+                {
+                    this.teamswapRoundWhitelist.Add(record.target_name);
+                    this.ExecuteCommand("procon.protected.send", "admin.say", record.target_name + " can now use '@moveme' for this round.", "all");
+                }
+                else
+                {
+                    this.playerSayMessage(record.source_name, "Cannot whitelist more than two people per round.");
+                }
+            }
+            else
+            {
+                this.playerSayMessage(record.source_name, record.target_name + " is already in this round's teamswap whitelist.");
             }
         }
 
@@ -2655,7 +2724,6 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
-                        //command.CommandText = "select latest_time from (select record_time as `latest_time` from `" + this.mySqlDatabase + "`.`adkat_records` where `adkat_records`.`server_id` = " + record.server_id + " and `adkat_records`.`command_type` = 'Punish' and `adkat_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1) as temp where latest_time < (NOW() - INTERVAL '1' MINUTE)";
                         command.CommandText = "select record_time as `latest_time` from `" + this.mySqlDatabaseName + "`.`adkat_records` where `adkat_records`.`server_id` = " + record.server_id + " and `adkat_records`.`command_type` = 'Punish' and `adkat_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1";
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
@@ -2914,12 +2982,19 @@ namespace PRoConEvents
         {
             if (this.useDatabaseTeamswapWhitelist)
             {
-                //if the cache of teamswap whitelisted players plugin-side doesnt contain the person, just make sure it doesnt need updating
-                if (!this.databaseTeamswapWhitelistCache.Contains(player_name))
+                if (this.teamswapRoundWhitelist.Count > 0 && this.teamswapRoundWhitelist.Contains(player_name))
                 {
-                    this.fetchTeamswapWhitelist();
+                    return true;
                 }
-                return this.databaseTeamswapWhitelistCache.Contains(player_name);
+                else
+                {
+                    //if the cache of teamswap whitelisted players plugin-side doesnt contain the person, just make sure it doesnt need updating
+                    if (!this.databaseTeamswapWhitelistCache.Contains(player_name))
+                    {
+                        this.fetchTeamswapWhitelist();
+                    }
+                    return this.databaseTeamswapWhitelistCache.Contains(player_name);
+                }
             }
             else
             {
