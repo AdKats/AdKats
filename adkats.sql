@@ -20,7 +20,7 @@ CREATE TABLE `adkat_actionlist` (
        `server_id` int(11) NOT NULL, 
        `player_guid` varchar(100) NOT NULL, 
        `player_name` varchar(45) NOT NULL,  
-       `plugin_read` BOOLEAN NOT NULL, 
+       `plugin_read` ENUM('Y', 'N') NOT NULL, 
        PRIMARY KEY (`action_id`));
 
 CREATE TABLE `adkat_teamswapwhitelist` (
