@@ -112,7 +112,8 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <h4>0.1.9.9 (21-MAY-2013)</h4>
 <b>Changes</b> <br/>
    * Removed actionlist, made entire record table two-way accessible.<br/>
-   * Added report ID usage to all to all player interaction commands.<br/>
+   * Added report ID usage to all player interaction commands.<br/>
    * Added display of current database admins and whitelisted players in plugin settings.<br/>
    * Added pyell to dev for plugin information in certain cases.<br/>
+   * All action commands can be called via the database now.<br/>
 </blockquote>
