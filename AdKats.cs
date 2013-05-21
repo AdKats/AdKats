@@ -1,11 +1,12 @@
 /* 
  * AdKats is a MySQL reflected admin tool for Procon Frostbite.
  * 
- * This plugin should be used by groups with high traffic servers, with set rules, and many admins. It is a
- * MySQL database reflected admin tool that includes editable in-game commands, database reflected punishment and
- * forgiveness, proper player report and admin call handling, player name completion, player muting, and internal implementation of TeamSwap.
+ * A MySQL reflected admin toolset that includes editable in-game commands, database reflected punishment and
+ * forgiveness, proper player report and admin call handling, player name completion, player muting, yell/say 
+ * pre-recording, and internal implementation of TeamSwap.
  * 
- * Requires a MySQL Database connection for proper use. Will set up needed tables in the database if they are not there already.
+ * Requires a MySQL Database connection for proper use. Will set up needed tables in the database if they are 
+ * not there already.
  * 
  * AdKats.cs
  */
@@ -2449,7 +2450,7 @@ namespace PRoConEvents
             {
                 this.playerSayMessage(admin_name, "REPORT [" + reportID + "]: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
             }
-            this.playerSayMessage(record.source_name, "Report [" + reportID + "] sent. " + record.target_name + " for " + record.record_message);
+            this.playerSayMessage(record.source_name, "REPORT [" + reportID + "] sent. " + record.target_name + " for " + record.record_message);
         }
 
         public void callAdminOnTarget(ADKAT_Record record)
@@ -2458,7 +2459,7 @@ namespace PRoConEvents
             int reportID;
             do
             {
-                reportID = random.Next(0, 1000);
+                reportID = random.Next(100, 999);
             } while (round_reports.ContainsKey(reportID + ""));
 
             this.round_reports.Add(reportID + "", record);
@@ -2471,7 +2472,7 @@ namespace PRoConEvents
             {
                 this.playerSayMessage(admin_name, "ADMIN CALL [" + reportID + "]: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
             }
-            this.playerSayMessage(record.source_name, "Admin call sent on " + record.target_name + " for " + record.record_message);
+            this.playerSayMessage(record.source_name, "ADMIN CALL [" + reportID + "] sent. " + record.target_name + " for " + record.record_message);
         }
 
         public void restartLevel(ADKAT_Record record)
