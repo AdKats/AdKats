@@ -12,12 +12,6 @@ Visit the tool's github page to submit bugs/enhancements, or to view more comple
 This tool was designed for use by groups with high traffic servers and many admins, but will function just as well 
 for small servers.
 </p>
-<p>
-Original reason it was made, if you're interested: Players who break rules over time usually don't end up doing it in front of the same admin twice, so minimal or
-'incorrect' action is taken. On very active servers with high player turn-around it's impossible for admins to track a player's history in their
-head, now the punish system tracks that instead and takes proper action based on a player's history. This was the 
-initial goal, but it turned into a complete admin tool.
-</p>
 <h3>Punishment/Forgiveness System</h3>
 <p>
 <b>NOTE:</b> This is NOT the player based punish/forgive system normally used for teamkilling, and is only usable by
