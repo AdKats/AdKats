@@ -35,12 +35,10 @@ player is forgiven which will reduce their points by 1.<br/>
 
 <h4>DETAILS</h4>
 When a player is 'punished' by an admin a Punish log is made in the database, their total points are calculated using 
-this basic formula:<br/><br/>
-
-<b>(Punishment Count - Forgiveness Count = Total Points)</b><br/><br/>
-
+this basic formula:<br/>
+<b>(Punishment Count - Forgiveness Count = Total Points)</b><br/>
 Then an action is decided using total points from the punishment hierarchy. Punishments should get more harsh as the
-player gets more points. The punishment hierarchy is configurable to suit your needs, but the default is below.<br/><br/>
+player gets more points. The punishment hierarchy is configurable to suit your needs, but the default is below.<br/>
 
 <table>
 	<tr>
