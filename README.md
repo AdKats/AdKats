@@ -26,9 +26,7 @@ Order that the punishments are given can be configured to your needs.<br/>
 <br/>
 After a player is 'punished' (and the Punish log is made in the database), their total points are calculated using 
 this basic formula:<br/>
-<br/>
 <b>(Punishment Count - Forgiveness Count = Total Points)</b></center><br/>
-<br/>
 Then an action is decided using total points from the punishment hierarchy. Punishments should get more harsh as the
 player gets more points. The punishment hierarchy is configurable to suit your needs, but the default is below.<br/>
 
