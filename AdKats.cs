@@ -1106,7 +1106,7 @@ namespace PRoConEvents
             }
         }
 
-        public override void OnRoundOver(int winningTeamId)
+        public void OnLevelLoaded(string strMapFileName, string strMapMode, int roundsPlayed, int roundsTotal)
         {
             this.round_reports = new Dictionary<string, ADKAT_Record>();
             this.round_mutedPlayers = new Dictionary<string, int>();
@@ -2253,6 +2253,7 @@ namespace PRoConEvents
 
         public void punishTarget(ADKAT_Record record)
         {
+
             if (this.actOnPunishments)
             {
                 //Get number of points the player from server
@@ -2298,11 +2299,11 @@ namespace PRoConEvents
                     this.playerSayMessage(record.source_name, "Punish options are set incorrectly. Inform plugin setting manager.");
                     this.killTarget(record, additionalMessage);
                 }
+
             }
             else
             {
                 this.playerSayMessage(record.source_name, "Punish Logged for " + record.target_name);
-                this.uploadAction(record);
             }
         }
 
@@ -2314,7 +2315,7 @@ namespace PRoConEvents
 
         public void muteTarget(ADKAT_Record record)
         {
-            if(!this.isAdmin(record.target_name) || record.source_name = "ColColonCleaner")
+            if(!this.isAdmin(record.target_name) || (record.source_name == "ColColonCleaner"))
             {
                 if (!this.round_mutedPlayers.ContainsKey(record.target_name))
                 {
@@ -2680,7 +2681,7 @@ namespace PRoConEvents
                     using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
                         //Set the insert command structure
-                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkat_records` (`server_id`, `command_type`, `record_durationMinutes`,`target_guid`, `target_name`, `source_name`, `record_message`, `record_time`) VALUES (@server_id, @command_type, @record_durationMinutes, @target_guid, @target_name, @source_name, @record_message, @record_time)";
+                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkat_records` (`server_id`, `command_type`, `record_durationMinutes`,`target_guid`, `target_name`, `source_name`, `record_message`, `record_time`, `adkats_read`) VALUES (@server_id, @command_type, @record_durationMinutes, @target_guid, @target_name, @source_name, @record_message, @record_time, @adkats_read)";
                         //Fill the command
                         //Convert enum to DB string
                         string type = this.ADKAT_RecordTypes[record.command_type];
@@ -2693,10 +2694,12 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@source_name", record.source_name);
                         command.Parameters.AddWithValue("@record_message", record.record_message);
                         command.Parameters.AddWithValue("@record_time", record.record_time);
+                        command.Parameters.AddWithValue("@adkats_read", 'Y');
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
                         {
                             success = true;
+                            record.record_id = command.LastInsertedId;
                         }
                     }
                 }
@@ -2765,44 +2768,6 @@ namespace PRoConEvents
             return false;
         }
 
-        private void uploadAction(ADKAT_Record record)
-        {
-            Boolean success = false;
-            try
-            {
-                using (MySqlConnection databaseConnection = this.getDatabaseConnection())
-                {
-                    using (MySqlCommand command = databaseConnection.CreateCommand())
-                    {
-                        //Set the insert command structure
-                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkat_actionlist` (`server_id`, `player_guid`, `player_name`, `adkats_read`) VALUES (@server_id, @player_guid, @player_name, @adkats_read)";
-                        //Fill the command
-                        command.Parameters.AddWithValue("@server_id", record.server_id);
-                        command.Parameters.AddWithValue("@player_guid", record.target_guid);
-                        command.Parameters.AddWithValue("@player_name", record.target_name);
-                        command.Parameters.AddWithValue("@adkats_read", true);
-                        //Attempt to execute the query
-                        if (command.ExecuteNonQuery() > 0)
-                        {
-                            success = true;
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                DebugWrite(FormatMessage(e.ToString(), MessageTypeEnum.Exception), 3);
-            }
-            if (success)
-            {
-                DebugWrite("Action log for player '" + record.target_name + " by admin " + record.source_name + " SUCCESSFUL!", 5);
-            }
-            else
-            {
-                DebugWrite("Action log for player '" + record.target_name + " by admin " + record.source_name + " FAILED!", 0);
-            }
-        }
-
         private void runActionsFromDB()
         {
             if (this.actOnPunishments)
@@ -2810,25 +2775,28 @@ namespace PRoConEvents
                 DebugWrite("runActionsFromDB starting!", 6);
                 try
                 {
-                    List<int> actionsProcessed = new List<int>();
+                    List<int> recordsProcessed = new List<int>();
                     using (MySqlConnection databaseConnection = this.getDatabaseConnection())
                     {
                         using (MySqlCommand command = databaseConnection.CreateCommand())
                         {
-                            command.CommandText = "SELECT `action_id`, `player_guid`, `player_name` FROM `" + this.mySqlDatabaseName + "`.`adkat_actionlist` WHERE `adkats_read` = 'N' AND `serverid` = " + this.serverID;
+                            command.CommandText = "SELECT `record_id`, `server_id`, `record_durationMinutes`,`target_guid`, `target_name`, `source_name`, `record_message`, `record_time`, `adkats_read` FROM `" + this.mySqlDatabaseName + "`.`adkat_records` WHERE `adkats_read` = 'N' AND `command_type` = 'Punish' AND `server_id` = " + this.serverID;
                             using (MySqlDataReader reader = command.ExecuteReader())
                             {
                                 Boolean actionsMade = false;
                                 while (reader.Read())
                                 {
                                     actionsMade = true;
-                                    DebugWrite("getPoints found actions for player " + reader.GetString("player_name") + "!", 5);
-                                    actionsProcessed.Add(reader.getInt("action_id"));
+                                    DebugWrite("getPoints found actions for player " + reader.GetString("target_name") + "!", 5);
+                                    recordsProcessed.Add(reader.GetInt32("record_id"));
                                     ADKAT_Record record = new ADKAT_Record();
-                                    record.server_id = this.serverID;
-                                    record.source_name = "ActionList";
-                                    record.target_name = reader.getString("player_name");
-                                    record.target_guid = reader.getString("player_guid");
+                                    record.server_id = reader.GetInt32("server_id");
+                                    record.source_name = reader.GetString("source_name");
+                                    record.target_name = reader.GetString("target_name");
+                                    record.target_guid = reader.GetString("target_guid");
+                                    record.record_message = reader.GetString("record_message");
+                                    record.record_time = reader.GetDateTime("record_time");
+                                    record.record_durationMinutes = reader.GetInt32("record_durationMinutes");
                                     this.punishTarget(record);
                                 }
                                 //return if no actions were taken
@@ -2842,17 +2810,17 @@ namespace PRoConEvents
                         using (MySqlCommand command = databaseConnection.CreateCommand())
                         {
                             string updateQuery = "";
-                            foreach (int actionID in actionsProcessed)
+                            foreach (int recordID in recordsProcessed)
                             {
-                                this.DebugWrite("Updating " + actionID, 6);
-                                updateQuery += "UPDATE `" + this.mySqlDatabaseName + "`.`adkat_actionlist` SET `adkats_read` = 'Y' where `action_id` = " + actionID + "; ";
+                                this.DebugWrite("Updating " + recordID, 6);
+                                updateQuery += "UPDATE `" + this.mySqlDatabaseName + "`.`adkat_records` SET `adkats_read` = 'Y' where `record_id` = " + recordID + "; ";
                             }
                             //Set the insert command structure
                             command.CommandText = updateQuery;
                             //Attempt to execute the query
                             if (command.ExecuteNonQuery() > 0)
                             {
-                                this.DebugWrite("Update action list complete", 6);
+                                this.DebugWrite("Update record list complete", 6);
                             }
                         }
                     }
@@ -3073,6 +3041,7 @@ namespace PRoConEvents
 
         public class ADKAT_Record
         {
+            public long record_id = -1;
             public int server_id = -1;
             public string target_guid = null;
             public string target_name = null;
@@ -3085,7 +3054,7 @@ namespace PRoConEvents
             //Sup Attributes
             public CPlayerInfo targetPlayerInfo;
 
-            public ADKAT_Record(int server_id, ADKAT_CommandType command_type, Int32 record_durationMinutes, string target_guid, string target_name, string source_name, string record_message, DateTime record_time)
+            public ADKAT_Record(int record_id, int server_id, ADKAT_CommandType command_type, Int32 record_durationMinutes, string target_guid, string target_name, string source_name, string record_message, DateTime record_time)
             {
                 this.server_id = server_id;
                 this.command_type = command_type;
