@@ -90,7 +90,7 @@ fine for performance). Right now only Punish and Forgive are required to be logg
    * Added presay and preyell commands.<br/>
 <h4>0.1.7.3 (17-MAY-2013)</h4>
 <b>Changes</b> <br/>
-   * Made plugin description download github stored README and CHANGELOG instead of storing as static string.<br/>
+   * Made plugin description download github stored README and CHANGELOG instead of storing it plugin-side.<br/>
 <h4>0.1.8.0 (18-MAY-2013)</h4>
 <b>Changes</b> <br/>
    * Improve the player name prediction system.<br/>
@@ -100,11 +100,19 @@ fine for performance). Right now only Punish and Forgive are required to be logg
    * Add a thank you for reporting when a report gets acted on.<br/>
 <h4>0.1.9.1 (20-MAY-2013)</h4>
 <b>Changes</b> <br/>
-   * Added banning admin name to all ban logs.<br/>
+   * Added banning admin name to all kick/ban logs.<br/>
+   * Fixed bug in logging when commands were given in uppercase.<br/>
 <h4>0.1.9.2 (20-MAY-2013)</h4>
 <b>Changes</b> <br/>
    * Added player mute system.<br/>
+   * Added global adminsay when a player gets kicked or banned by an admin.<br/>
 <h4>0.1.9.4 (20-MAY-2013)</h4>
 <b>Changes</b> <br/>
    * Added round-whitelisting for players.<br/>
+<h4>0.1.9.9 (21-MAY-2013)</h4>
+<b>Changes</b> <br/>
+   * Removed actionlist, made entire record table two-way accessible.<br/>
+   * Added report ID usage to all to all player interaction commands.<br/>
+   * Added display of current database admins and whitelisted players in plugin settings.<br/>
+   * Added pyell to dev for plugin information in certain cases.<br/>
 </blockquote>
