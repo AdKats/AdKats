@@ -1,7 +1,6 @@
--- Was dropping tables, removed to remove risk of data loss if this gets run at the wrong time.
--- DROP TABLE IF EXISTS `adkat_records`;
--- DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;
-
+-- AdKats Database Setup Script
+-- This is run automatically if AdKats does not find the main record table in your database.
+-- If you don't want the plugin changing tables in your database, run this beforehand.
 CREATE TABLE `adkat_records` (
        `record_id` int(11) NOT NULL AUTO_INCREMENT, 
        `server_id` int(11) NOT NULL, 
@@ -12,7 +11,7 @@ CREATE TABLE `adkat_records` (
        `source_name` varchar(45) NOT NULL, 
        `record_message` varchar(100) NOT NULL, 
        `record_time` DATETIME NOT NULL, 
-          `adkats_read` ENUM('Y', 'N') NOT NULL,
+       `adkats_read` ENUM('Y', 'N') NOT NULL,
        PRIMARY KEY (`record_id`));
 
 CREATE TABLE `adkat_teamswapwhitelist` (
