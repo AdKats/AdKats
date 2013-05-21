@@ -17,9 +17,7 @@ CREATE TABLE `adkat_records` (
 
 CREATE TABLE `adkat_actionlist` (
        `action_id` int(11) NOT NULL AUTO_INCREMENT, 
-       `server_id` int(11) NOT NULL, 
-       `player_guid` varchar(100) NOT NULL, 
-       `player_name` varchar(45) NOT NULL,  
+       `record_id` int(11) NOT NULL,
        `plugin_read` ENUM('Y', 'N') NOT NULL, 
        PRIMARY KEY (`action_id`));
 
