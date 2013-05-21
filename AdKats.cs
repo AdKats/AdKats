@@ -182,13 +182,12 @@ namespace PRoConEvents
         public Dictionary<string, ADKAT_CommandType> ADKAT_CommandStrings;
         //Database record types
         public Dictionary<ADKAT_CommandType, string> ADKAT_RecordTypes;
+        public Dictionary<string, ADKAT_CommandType> ADKAT_RecordTypesInv;
         //Logging settings
         public Dictionary<ADKAT_CommandType, Boolean> ADKAT_LoggingSettings;
 
         //When a player partially completes a name, this dictionary holds those actions until player confirms action
         private Dictionary<string, ADKAT_Record> actionAttemptList = new Dictionary<string, ADKAT_Record>();
-        //Whether to act on punishments within the plugin
-        private Boolean actOnPunishments = true;
         //Default hierarchy of punishments
         private string[] punishmentHierarchy = 
         {
@@ -261,8 +260,9 @@ namespace PRoConEvents
 
             //Create database dictionaries
             this.ADKAT_RecordTypes = new Dictionary<ADKAT_CommandType, string>();
+            this.ADKAT_RecordTypesInv = new Dictionary<string, ADKAT_CommandType>();
 
-            //Fill DB record types
+            //Fill DB record types for outgoing database commands
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.MovePlayer, "Move");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ForceMovePlayer, "ForceMove");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.Teamswap, "Teamswap");
@@ -287,6 +287,32 @@ namespace PRoConEvents
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.RestartLevel, "RestartLevel");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.NextLevel, "NextLevel");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.EndLevel, "EndLevel");
+
+            //Fill DB Inverse record types for incoming database commands
+            this.ADKAT_RecordTypesInv.Add("Move", ADKAT_CommandType.MovePlayer);
+            this.ADKAT_RecordTypesInv.Add("ForceMove", ADKAT_CommandType.ForceMovePlayer);
+            this.ADKAT_RecordTypesInv.Add("Teamswap", ADKAT_CommandType.Teamswap);
+
+            this.ADKAT_RecordTypesInv.Add("Kill", ADKAT_CommandType.KillPlayer);
+            this.ADKAT_RecordTypesInv.Add("Kick", ADKAT_CommandType.KickPlayer);
+            this.ADKAT_RecordTypesInv.Add("TempBan", ADKAT_CommandType.TempBanPlayer);
+            this.ADKAT_RecordTypesInv.Add("PermaBan", ADKAT_CommandType.PermabanPlayer);
+            this.ADKAT_RecordTypesInv.Add("Punish", ADKAT_CommandType.PunishPlayer);
+            this.ADKAT_RecordTypesInv.Add("Forgive", ADKAT_CommandType.ForgivePlayer);
+            this.ADKAT_RecordTypesInv.Add("Mute", ADKAT_CommandType.MutePlayer);
+            this.ADKAT_RecordTypesInv.Add("RoundWhitelist", ADKAT_CommandType.RoundWhitelistPlayer);
+
+            this.ADKAT_RecordTypesInv.Add("Report", ADKAT_CommandType.ReportPlayer);
+            this.ADKAT_RecordTypesInv.Add("CallAdmin", ADKAT_CommandType.CallAdmin);
+
+            this.ADKAT_RecordTypesInv.Add("AdminSay", ADKAT_CommandType.AdminSay);
+            this.ADKAT_RecordTypesInv.Add("PlayerSay", ADKAT_CommandType.PlayerSay);
+            this.ADKAT_RecordTypesInv.Add("AdminYell", ADKAT_CommandType.AdminYell);
+            this.ADKAT_RecordTypesInv.Add("PlayerYell", ADKAT_CommandType.PlayerYell);
+
+            this.ADKAT_RecordTypesInv.Add("RestartLevel", ADKAT_CommandType.RestartLevel);
+            this.ADKAT_RecordTypesInv.Add("NextLevel", ADKAT_CommandType.NextLevel);
+            this.ADKAT_RecordTypesInv.Add("EndLevel", ADKAT_CommandType.EndLevel);
         }
 
         #region Plugin details
@@ -759,10 +785,6 @@ namespace PRoConEvents
             }
             #endregion
             #region punishment settings
-            else if (Regex.Match(strVariable, @"Act on Punishments").Success)
-            {
-                this.actOnPunishments = Boolean.Parse(strValue);
-            }
             else if (Regex.Match(strVariable, @"Punishment Hierarchy").Success)
             {
                 this.punishmentHierarchy = CPluginVariable.DecodeStringArray(strValue);
@@ -1972,11 +1994,19 @@ namespace PRoConEvents
             return;
         }
 
-        //Attempts to parse the command from a string
+        //Attempts to parse the command from a in-game string
         private ADKAT_CommandType getCommand(string commandString)
         {
             ADKAT_CommandType command = ADKAT_CommandType.Default;
             this.ADKAT_CommandStrings.TryGetValue(commandString, out command);
+            return command;
+        }
+        
+        //Attempts to parse the command from a database string
+        private ADKAT_CommandType getDBCommand(string commandString)
+        {
+            ADKAT_CommandType command = ADKAT_CommandType.Default;
+            this.ADKAT_RecordTypesInv.TryGetValue(commandString, out command);
             return command;
         }
 
@@ -2052,50 +2082,102 @@ namespace PRoConEvents
             return;
         }
 
-        /*
-         * This method handles uploading of records and calling their action methods
-         * Will only upload a record if upload setting for that command is true, or if uploading is required
-         */
         private void processRecord(ADKAT_Record record)
+        {
+            //Call handle upload with the record. And if handled properly, call record actions.
+            if (this.handleRecordUpload(record))
+            {
+                this.runAction(record);
+            }
+        }
+        
+        private void runAction(ADKAT_Record record)
         {
             //Perform Actions
             switch (record.command_type)
             {
                 case ADKAT_CommandType.MovePlayer:
-                    this.conditionalUploadRecord(record);
                     this.moveTarget(record);
                     break;
                 case ADKAT_CommandType.ForceMovePlayer:
-                    this.conditionalUploadRecord(record);
                     this.forceMoveTarget(record);
                     break;
                 case ADKAT_CommandType.Teamswap:
-                    this.conditionalUploadRecord(record);
                     this.forceMoveTarget(record);
                     break;
                 case ADKAT_CommandType.KillPlayer:
-                    this.conditionalUploadRecord(record);
                     this.killTarget(record, "");
                     break;
                 case ADKAT_CommandType.KickPlayer:
-                    this.conditionalUploadRecord(record);
                     this.kickTarget(record, "");
                     break;
                 case ADKAT_CommandType.TempBanPlayer:
-                    this.conditionalUploadRecord(record);
                     this.tempBanTarget(record, "");
                     break;
                 case ADKAT_CommandType.PermabanPlayer:
-                    this.conditionalUploadRecord(record);
                     this.permaBanTarget(record, "");
                     break;
+                case ADKAT_CommandType.PunishPlayer:
+                    this.punishTarget(record);
+                    break;
+                case ADKAT_CommandType.ForgivePlayer:
+                    this.forgiveTarget(record);
+                    break;
+                case ADKAT_CommandType.MutePlayer:
+                    this.muteTarget(record);
+                    break;
+                case ADKAT_CommandType.RoundWhitelistPlayer:
+                    this.roundWhitelistTarget(record);
+                    break;
+                case ADKAT_CommandType.ReportPlayer:
+                    this.reportTarget(record);
+                    break;
+                case ADKAT_CommandType.CallAdmin:
+                    this.callAdminOnTarget(record);
+                    break;
+                case ADKAT_CommandType.RestartLevel:
+                    this.restartLevel(record);
+                    break;
+                case ADKAT_CommandType.NextLevel:
+                    this.nextLevel(record);
+                    break;
+                case ADKAT_CommandType.EndLevel:
+                    this.endLevel(record);
+                    break;
+                case ADKAT_CommandType.AdminSay:
+                    this.adminSay(record);
+                    break;
+                case ADKAT_CommandType.PlayerSay:
+                    this.playerSay(record);
+                    break;
+                case ADKAT_CommandType.AdminYell:
+                    this.adminYell(record);
+                    break;
+                case ADKAT_CommandType.PlayerYell:
+                    this.playerYell(record);
+                    break;
+                default:
+                    this.DebugWrite("Command not found in runAction", 5);
+                    break;
+            }
+        }
+
+        /*
+         * This method handles uploading of records and calling their action methods
+         * Will only upload a record if upload setting for that command is true, or if uploading is required
+         */
+        private Boolean handleRecordUpload(ADKAT_Record record)
+        {
+            Boolean couldHandle = false;
+            switch (record.command_type)
+            {
                 case ADKAT_CommandType.PunishPlayer:
                     //If the record is a punish, check if it can be uploaded
                     if (this.canPunish(record))
                     {
                         //Upload for punish is required
                         this.uploadRecord(record);
-                        this.punishTarget(record);
+                        couldHandle = true;
                     }
                     else
                     {
@@ -2106,59 +2188,14 @@ namespace PRoConEvents
                     //Upload for forgive is required
                     //No restriction on forgives/minute
                     this.uploadRecord(record);
-                    this.forgiveTarget(record);
-                    break;
-                case ADKAT_CommandType.MutePlayer:
-                    //Upload for forgive is required
-                    //No restriction on forgives/minute
-                    this.conditionalUploadRecord(record);
-                    this.muteTarget(record);
-                    break;
-                case ADKAT_CommandType.RoundWhitelistPlayer:
-                    //Upload for forgive is required
-                    //No restriction on forgives/minute
-                    this.conditionalUploadRecord(record);
-                    this.roundWhitelistTarget(record);
-                    break;
-                case ADKAT_CommandType.ReportPlayer:
-                    this.conditionalUploadRecord(record);
-                    this.reportTarget(record);
-                    break;
-                case ADKAT_CommandType.CallAdmin:
-                    this.conditionalUploadRecord(record);
-                    this.callAdminOnTarget(record);
-                    break;
-                case ADKAT_CommandType.RestartLevel:
-                    this.conditionalUploadRecord(record);
-                    this.restartLevel(record);
-                    break;
-                case ADKAT_CommandType.NextLevel:
-                    this.conditionalUploadRecord(record);
-                    this.nextLevel(record);
-                    break;
-                case ADKAT_CommandType.EndLevel:
-                    this.conditionalUploadRecord(record);
-                    this.endLevel(record);
-                    break;
-                case ADKAT_CommandType.AdminSay:
-                    this.conditionalUploadRecord(record);
-                    this.adminSay(record);
-                    break;
-                case ADKAT_CommandType.PlayerSay:
-                    this.conditionalUploadRecord(record);
-                    this.playerSay(record);
-                    break;
-                case ADKAT_CommandType.AdminYell:
-                    this.conditionalUploadRecord(record);
-                    this.adminYell(record);
-                    break;
-                case ADKAT_CommandType.PlayerYell:
-                    this.conditionalUploadRecord(record);
-                    this.playerYell(record);
+                    couldHandle = true;
                     break;
                 default:
+                    this.conditionalUploadRecord(record);
+                    couldHandle = true;
                     break;
             }
+            return couldHandle;
         }
 
         //Checks the logging setting for a record type to see if it should be sent to database
@@ -2301,57 +2338,48 @@ namespace PRoConEvents
 
         public void punishTarget(ADKAT_Record record)
         {
-
-            if (this.actOnPunishments)
+            //Get number of points the player from server
+            int points = this.fetchPoints(record.target_guid, this.serverID);
+            //Get the proper action to take for player punishment
+            string action = "noaction";
+            if (points > (this.punishmentHierarchy.Length - 1))
             {
-                //Get number of points the player from server
-                int points = this.fetchPoints(record.target_guid, this.serverID);
-                //Get the proper action to take for player punishment
-                string action = "noaction";
-                if (points > (this.punishmentHierarchy.Length - 1))
-                {
-                    action = this.punishmentHierarchy[this.punishmentHierarchy.Length - 1];
-                }
-                else if (points > 0)
-                {
-                    action = this.punishmentHierarchy[points - 1];
-                }
-                //Set additional message
-                string additionalMessage = "(" + points + " infraction points)";
+                action = this.punishmentHierarchy[this.punishmentHierarchy.Length - 1];
+            }
+            else if (points > 0)
+            {
+                action = this.punishmentHierarchy[points - 1];
+            }
+            //Set additional message
+            string additionalMessage = "(" + points + " infraction points)";
 
-                //Call correct action
-                if (action.Equals("kill") || (this.onlyKillOnLowPop && this.playerList.Count < this.lowPopPlayerCount))
-                {
-                    this.killTarget(record, additionalMessage);
-                }
-                else if (action.Equals("kick"))
-                {
-                    this.kickTarget(record, additionalMessage);
-                }
-                else if (action.Equals("tban60"))
-                {
-                    record.record_durationMinutes = 60;
-                    this.tempBanTarget(record, additionalMessage);
-                }
-                else if (action.Equals("tbanweek"))
-                {
-                    record.record_durationMinutes = 10080;
-                    this.tempBanTarget(record, additionalMessage);
-                }
-                else if (action.Equals("ban"))
-                {
-                    this.permaBanTarget(record, additionalMessage);
-                }
-                else
-                {
-                    this.playerSayMessage(record.source_name, "Punish options are set incorrectly. Inform plugin setting manager.");
-                    this.killTarget(record, additionalMessage);
-                }
-
+            //Call correct action
+            if (action.Equals("kill") || (this.onlyKillOnLowPop && this.playerList.Count < this.lowPopPlayerCount))
+            {
+                this.killTarget(record, additionalMessage);
+            }
+            else if (action.Equals("kick"))
+            {
+                this.kickTarget(record, additionalMessage);
+            }
+            else if (action.Equals("tban60"))
+            {
+                record.record_durationMinutes = 60;
+                this.tempBanTarget(record, additionalMessage);
+            }
+            else if (action.Equals("tbanweek"))
+            {
+                record.record_durationMinutes = 10080;
+                this.tempBanTarget(record, additionalMessage);
+            }
+            else if (action.Equals("ban"))
+            {
+                this.permaBanTarget(record, additionalMessage);
             }
             else
             {
-                this.playerSayMessage(record.source_name, "Punish Logged for " + record.target_name);
+                this.playerSayMessage(record.source_name, "Punish options are set incorrectly. Inform plugin setting manager.");
+                this.killTarget(record, additionalMessage);
             }
         }
 
@@ -2803,65 +2831,71 @@ namespace PRoConEvents
 
         private void runActionsFromDB()
         {
-            if (this.actOnPunishments)
+            DebugWrite("runActionsFromDB starting!", 6);
+            try
             {
-                DebugWrite("runActionsFromDB starting!", 6);
-                try
+                List<int> recordsProcessed = new List<int>();
+                using (MySqlConnection databaseConnection = this.getDatabaseConnection())
                 {
-                    List<int> recordsProcessed = new List<int>();
-                    using (MySqlConnection databaseConnection = this.getDatabaseConnection())
+                    using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
-                        using (MySqlCommand command = databaseConnection.CreateCommand())
+                        command.CommandText = "SELECT `record_id`, `server_id`, `command_type`, `record_durationMinutes`, `target_guid`, `target_name`, `source_name`, `record_message`, `record_time` FROM `" + this.mySqlDatabaseName + "`.`adkat_records` WHERE `adkats_read` = 'N' AND `server_id` = " + this.serverID;
+                        using (MySqlDataReader reader = command.ExecuteReader())
                         {
-                            command.CommandText = "SELECT `record_id`, `server_id`, `record_durationMinutes`,`target_guid`, `target_name`, `source_name`, `record_message`, `record_time`, `adkats_read` FROM `" + this.mySqlDatabaseName + "`.`adkat_records` WHERE `adkats_read` = 'N' AND `command_type` = 'Punish' AND `server_id` = " + this.serverID;
-                            using (MySqlDataReader reader = command.ExecuteReader())
+                            Boolean actionsMade = false;
+                            while (reader.Read())
                             {
-                                Boolean actionsMade = false;
-                                while (reader.Read())
+                                DebugWrite("getPoints found actions for player " + reader.GetString("target_name") + "!", 5);
+                                recordsProcessed.Add(reader.GetInt32("record_id"));
+                                ADKAT_Record record = new ADKAT_Record();
+                                record.server_id = reader.GetInt32("server_id");
+                                string commandString = reader.GetInt32("command_type");
+                                record.command_type = this.getDBCommand(commandString);
+                                //If command not parsable, return without creating
+                                if (record.command_type == ADKAT_CommandType.Default)
                                 {
-                                    actionsMade = true;
-                                    DebugWrite("getPoints found actions for player " + reader.GetString("target_name") + "!", 5);
-                                    recordsProcessed.Add(reader.GetInt32("record_id"));
-                                    ADKAT_Record record = new ADKAT_Record();
-                                    record.server_id = reader.GetInt32("server_id");
-                                    record.source_name = reader.GetString("source_name");
-                                    record.target_name = reader.GetString("target_name");
-                                    record.target_guid = reader.GetString("target_guid");
-                                    record.record_message = reader.GetString("record_message");
-                                    record.record_time = reader.GetDateTime("record_time");
-                                    record.record_durationMinutes = reader.GetInt32("record_durationMinutes");
-                                    this.punishTarget(record);
+                                    ConsoleError("Command '" + command + "' Not Parsable. Check AdKats doc for valid DB commands.");
+                                    //break this loop iteration and go to the next one
+                                    continue;
                                 }
-                                //return if no actions were taken
-                                if (!actionsMade)
-                                {
-                                    databaseConnection.Close();
-                                    return;
-                                }
+                                record.source_name = reader.GetString("source_name");
+                                record.target_name = reader.GetString("target_name");
+                                record.target_guid = reader.GetString("target_guid");
+                                record.record_message = reader.GetString("record_message");
+                                record.record_time = reader.GetDateTime("record_time");
+                                record.record_durationMinutes = reader.GetInt32("record_durationMinutes");
+                                this.runAction(record);
+                                actionsMade = true;
                             }
-                        }
-                        using (MySqlCommand command = databaseConnection.CreateCommand())
-                        {
-                            string updateQuery = "";
-                            foreach (int recordID in recordsProcessed)
+                            //close and return if no actions were taken
+                            if (!actionsMade)
                             {
-                                this.DebugWrite("Updating " + recordID, 6);
-                                updateQuery += "UPDATE `" + this.mySqlDatabaseName + "`.`adkat_records` SET `adkats_read` = 'Y' where `record_id` = " + recordID + "; ";
-                            }
-                            //Set the insert command structure
-                            command.CommandText = updateQuery;
-                            //Attempt to execute the query
-                            if (command.ExecuteNonQuery() > 0)
-                            {
-                                this.DebugWrite("Update record list complete", 6);
+                                databaseConnection.Close();
+                                return;
                             }
                         }
                     }
+                    using (MySqlCommand command = databaseConnection.CreateCommand())
+                    {
+                        string updateQuery = "";
+                        foreach (int recordID in recordsProcessed)
+                        {
+                            this.DebugWrite("Updating " + recordID, 6);
+                            updateQuery += "UPDATE `" + this.mySqlDatabaseName + "`.`adkat_records` SET `adkats_read` = 'Y' where `record_id` = " + recordID + "; ";
+                        }
+                        //Set the insert command structure
+                        command.CommandText = updateQuery;
+                        //Attempt to execute the query
+                        if (command.ExecuteNonQuery() > 0)
+                        {
+                            this.DebugWrite("Update record list complete", 6);
+                        }
+                    }
                 }
-                catch (Exception e)
-                {
-                    DebugWrite(e.ToString(), 3);
-                }
+            }
+            catch (Exception e)
+            {
+                DebugWrite(e.ToString(), 3);
             }
         }
 
