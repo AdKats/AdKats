@@ -105,8 +105,8 @@ When a player puts in a proper @report or @admin all in-game admins are notified
 database with full player names for reporter/target, and the full reason for reporting. All uses of @report and 
 @admin with this plugin require players to enter a reason, and will tell them if they haven't entered one. It will 
 not send the report to admins unless reports are complete. This cleans up what admins end up seeing for reports 
-(useful if admins get reports and admin calls whether they are in-game or not).<br/><br/>
-
+(useful if admins get reports and admin calls whether they are in-game or not).
+<br/>
 <h4>Using Report IDs</h4>
 All reports are issued a three digit ID which expires at the end of each round. These ID's can be used in any other 
 action command, simply use that ID instead of a player-name and reason (e.g. waffleman73 baserapes, another player 
