@@ -12,6 +12,14 @@ Visit the tool's github page to submit bugs/enhancements, or to view more comple
 This tool was designed for use by groups with high traffic servers and many admins, but will function just as well 
 for small servers.
 </p>
+<h3>Database Usage</h3>
+<p>
+If you do not have an online MySQL database accessible from your procon layer you must create one to use this. If 
+you have your own website you can make one there, or you can use an online service. My clan runs our own, but I 
+found this online one and it seems to be ok, and has a free usage option. http://www.freesqldatabase.com/ But any 
+online accessible MySql database will work. Be careful with that free option though, the size is limited, and these 
+things log A LOT of data if it's an active server.
+</p>
 <h3>Punishment/Forgiveness System</h3>
 <p>
 <b>NOTE:</b> This is NOT the player based punish/forgive system normally used for teamkilling, and is only usable by
