@@ -84,10 +84,8 @@ player gets more points. The punishment hierarchy is configurable to suit your n
 	</tr>
 </table>
 
-ADK is rather lenient with
-players, so there are 8 levels before a player is perma-banned in our version. Players may also be 'forgiven', which
-will reduce their total point value by 1 each time, this is useful if you have a website where players can apologize
-for their actions in-game.<br/><br/>
+Players may also be 'forgiven', which will reduce their total point value by 1 each time, this is useful if you have a
+website where players can apologize for their actions in-game.<br/><br/>
 
 You can run multiple servers with this plugin on the same database, as long as you use different serverID's for each 
 one in plugin settings. By setting each server to a different ID, rule breaking on one server won't cause increase in 
