@@ -155,13 +155,12 @@ any noticable lag even when logging everything on a very active server.
 </p>
 <h3>Database Usage</h3>
 <p>
-If you do not have an online MySQL database accessible from your procon layer you must create one to use this. If 
-you have your own website you can make one there, or you can use an online service. My clan runs our own, but I 
-found this online one and it seems to be ok, and has a free usage option. http://www.freesqldatabase.com/ But any 
-online accessible MySql database will work. Be careful with that free option though, the size is limited, and these 
-things log A LOT of data if it's an active server.
+If must use an online MySQL database accessible from your procon layer. If you have your own website you can make one 
+there, or you can use an online service. My clan runs our own, but I found this online one to be ok, and has a free 
+usage option. http://www.freesqldatabase.com/ But any online accessible MySql database will work. Be careful with that 
+free option though, the size is limited, and these things can log A LOT of data if it's an active server.
 
-The plugin checks the database for needed tables on connect. If it doesn't find the master record table it will run 
+The plugin checks the database for needed tables on connect. If it doesn't find the proper tables/views it will run 
 the script linked below. You can run the script beforehand if you dont want the plugin changing table structure in 
 your database.<br/>
 <br/>
@@ -261,13 +260,13 @@ especially when you have to hold 40+ admins accountable, and has not caused noti
 		<td><b>Admin Say</b></td>
 		<td>[message]</td>
 		<td>Admin</td>
-		<td>The in-game command used to send a message through admin chat.</td>
+		<td>The in-game command used to send a message through admin chat to the whole server.</td>
 	</tr>
 	<tr>
 		<td><b>Admin Yell</b></td>
 		<td>[message]</td>
 		<td>Admin</td>
-		<td>The in-game command used for to send a message through admin yell.</td>
+		<td>The in-game command used for to send a message through admin yell to the whole server.</td>
 	</tr>
 	<tr>
 		<td><b>Player Say</b></td>
@@ -285,13 +284,13 @@ especially when you have to hold 40+ admins accountable, and has not caused noti
 		<td><b>Pre-Say</b></td>
 		<td>[message ID]</td>
 		<td>Admin</td>
-		<td>The in-game command used for sending a pre-defined message as an AdminSay.</td>
+		<td>The in-game command used for sending a pre-defined message as an Admin Say.</td>
 	</tr>
 	<tr>
 		<td><b>Pre-Yell</b></td>
 		<td>[message ID]</td>
 		<td>Admin</td>
-		<td>The in-game command used for sending a pre-defined message as an AdminYell.</td>
+		<td>The in-game command used for sending a pre-defined message as an Admin Yell.</td>
 	</tr>
 	<tr>
 		<td><b>Restart Level</b></td>
@@ -412,13 +411,13 @@ them if found. Valid 'command_type's that can be acted on include the following:
 <h3>Debugging Settings:</h3>
 * <b>'Debug level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step.
 <h3>Admin Settings:</h3>
-* <b>'Use Database Admin List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Admin names are cached in the plugin to save bandwidth. The list is updated when a non-admin is requesting access, to see if list has changed.<br/>
-* <b>'Admin Table Name'</b> - Name of the database table that contains admin names. Default "tbl_adminlist". This table needs to be set up by groups manually right now, as they might already have an admin table.<br/>
+* <b>'Use Database Admin List'</b> - Whether to use list list of admins from database instead of static list. Admin names are cached in the plugin to save bandwidth. The list is updated when a non-admin tries a command, to see if list has changed.<br/>
+* <b>'Admin Table Name'</b> - Name of the database table that contains admin names. Default "tbl_adminlist". This table needs to be set up manually right now, as some people might have an existing admin table.<br/>
 * <b>'Column That Contains Admin Name'</b> - Name of the column in admin table that contains admin IGNs.<br/>
 * <b>'Current Database Admin List'</b> - <b>(NOT EDITABLE)</b> When using the database admin list, this will show what players are currently admins.<br/>
-* <b>'Static Admin List'</b> - List of admins input from plugin settings. Use if no admin database table.
+* <b>'Static Admin List'</b> - List of admins input from plugin settings. Use if no admin database table. Each admin should have their own line.
 <h3>Messaging Settings:</h3>
-* <b>'Pre-Message List'</b> - List of messages to use for pre-say and pre-yell commands.
+* <b>'Pre-Message List'</b> - List of messages for use in pre-say and pre-yell commands.
 <h3>MySQL Settings:</h3>
 * <b>'MySQL Hostname'</b> - Hostname of the MySQL server AdKats should connect to. <br/>
 * <b>'MySQL Port'</b> - Port of the MySQL server AdKats should connect to, most of the time it's 3306. <br/>
@@ -429,10 +428,9 @@ them if found. Valid 'command_type's that can be acted on include the following:
 * <b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason to execute.<br/>
 * <b>'Yell display time seconds'</b> - The integer time in seconds that yell messages will be displayed.
   <br/><br/>
-  <b>Specific command definitions given in description section above.</b> All command text must be a single string with no whitespace. E.G. kill. All commands can be suffixed with '|log', which will set whether use of that command is logged in the database or not.
+  <b>Specific command definitions given in features section above.</b> All command text must be a single string with no whitespace. E.G. kill. All commands can be suffixed with '|log', which will set whether use of that command is logged in the database or not.
 <h3>Punishment Settings:</h3>
 * <b>'Punishment Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the action taken at that number of points.<br/>
-* <b>'Minimum Reason Length'</b> - The minimum number of characters a reason must be to call punish or forgive on a player.<br/>
 * <b>'Only Kill Players when Server in low population'</b> - When server population is below 'Low Server Pop Value', only kill players, so server does not empty. Player points will be incremented normally.<br/>
 * <b>'Low Server Pop Value'</b> - Number of players at which the server is deemed 'Low Population'.<br/>
 * <b>'Punishment Timeout'</b> - A player cannot be punished more than once every x.xx minutes. This prevents multiple admins from punishing a player multiple times for the same infraction.
@@ -444,19 +442,6 @@ them if found. Valid 'command_type's that can be acted on include the following:
 * <b>'Static Player Whitelist'</b> - Static list of players plugin-side that will be able to TeamSwap.<br/>
 * <b>'Use Database Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Whitelisted names are cached in the plugin to save bandwidth. The list is updated when a non-whitelisted player is requesting access, to see if list has changed.<br/>
 * <b>'Current Database Whitelist'</b> - <b>(NOT EDITABLE)</b> When using the database whitelist, this will show what players are currently whitelisted.<br/>
-* <b>'Ticket Window High'</b> - When either team is above this ticket count, then nobody (except admins) will be able to use TeamSwap.<br/>
-* <b>'Ticket Window Low'</b> - When either team is below this ticket count, then nobody (except admins) will be able to use TeamSwap.
-</p>
-<h2>Default Punishment Levels by Point</h2>
-<p>
-Action decided after player is punished, and their points incremented.<br/><br/>
-* 1 point - Player Killed. <br/>
-* 2 points - Player Killed. <br/>
-* 3 points - Player Kicked. <br/>
-* 4 points - Player Kicked. <br/>
-* 5 points - Player Temp-Banned for 60 minutes. <br/>
-* 6 points - Player Temp-Banned for 60 minutes. <br/>
-* 7 points - Player Temp-Banned for 1 week. <br/>
-* 8 points - Player Temp-Banned for 1 week. <br/>
-* 9 points - Player Perma-Banned. <br/>
+* <b>'Ticket Window High'</b> - When either team is above this ticket count, nobody (except admins) will be able to use TeamSwap.<br/>
+* <b>'Ticket Window Low'</b> - When either team is below this ticket count, nobody (except admins) will be able to use TeamSwap.
 </p>
