@@ -45,7 +45,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.1.9.4";
+        string plugin_version = "0.1.9.9";
 
         // Enumerations
         //Messaging
@@ -128,6 +128,7 @@ namespace PRoConEvents
         private Boolean useDatabaseAdminList = false;
         private List<string> databaseAdminCache = new List<string>();
         private List<string> staticAdminCache = new List<string>();
+        private Boolean toldCol = false;
 
         // MySQL Settings
         private string mySqlHostname;
@@ -307,7 +308,7 @@ namespace PRoConEvents
 
         public string GetPluginWebsite()
         {
-            return "http://www.adkgamers.com/";
+            return "https://github.com/ColColonCleaner/AdKats/";
         }
 
         public string GetPluginDescription()
@@ -384,7 +385,6 @@ namespace PRoConEvents
                 lstReturn.Add(new CPluginVariable("Command Settings|End Level", typeof(string), m_strEndLevelCommand));
 
                 //Punishment Settings
-                lstReturn.Add(new CPluginVariable("Punishment Settings|Act on Punishments", typeof(Boolean), this.actOnPunishments));
                 lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Hierarchy", typeof(string[]), this.punishmentHierarchy));
                 lstReturn.Add(new CPluginVariable("Punishment Settings|Only Kill Players when Server in low population", typeof(Boolean), this.onlyKillOnLowPop));
                 if (this.onlyKillOnLowPop)
@@ -403,6 +403,7 @@ namespace PRoConEvents
                 {
                     lstReturn.Add(new CPluginVariable("Admin Settings|Admin Table Name", typeof(string), this.tablename_adminlist));
                     lstReturn.Add(new CPluginVariable("Admin Settings|Column That Contains Admin Name", typeof(string), this.columnname_adminname));
+                    lstReturn.Add(new CPluginVariable("Admin Settings|Current Database Admin List", typeof(string[]), this.databaseAdminCache.ToArray()));
                 }
                 //TeamSwap Settings
                 lstReturn.Add(new CPluginVariable("TeamSwap Settings|Require Whitelist for Access", typeof(Boolean), this.requireTeamswapWhitelist));
@@ -412,6 +413,10 @@ namespace PRoConEvents
                     if (!this.useDatabaseTeamswapWhitelist)
                     {
                         lstReturn.Add(new CPluginVariable("TeamSwap Settings|Static Player Whitelist", typeof(string[]), this.staticTeamswapWhitelistCache.ToArray()));
+                    }
+                    else
+                    {
+                        lstReturn.Add(new CPluginVariable("TeamSwap Settings|Current Database Whitelist", typeof(string[]), this.databaseTeamswapWhitelistCache.ToArray()));
                     }
                 }
                 lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window High", typeof(int), this.teamSwapTicketWindowHigh));
@@ -1178,6 +1183,15 @@ namespace PRoConEvents
             }
         }
 
+        public override void OnPlayerSpawned(String soldierName, Inventory spawnedInventory)
+        {
+            if (!toldCol && soldierName == "ColColonCleaner" && isRelease)
+            {
+                this.ExecuteCommand("procon.protected.send", "admin.yell", "CONGRATS! This server has version " + this.plugin_version + " of AdKats installed!", "20", "player", soldierName);
+                this.toldCol = true;
+            }
+        }
+
         #endregion
 
         #region Procon Events : Messaging
@@ -1410,6 +1424,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.MovePlayer:
                     try
                     {
+                        //Handle based on record ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         DebugWrite("target: " + record.target_name, 6);
                     }
@@ -1428,6 +1445,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.ForceMovePlayer:
                     try
                     {
+                        //Handle based on record ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         DebugWrite("target: " + record.target_name, 6);
                         record.record_message = "ForceMove";
@@ -1454,6 +1474,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.KillPlayer:
                     try
                     {
+                        //Handle based on record ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -1479,6 +1502,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.KickPlayer:
                     try
                     {
+                        //Handle based on record ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -1508,6 +1534,10 @@ namespace PRoConEvents
                         DebugWrite("Raw Duration: " + splitCommand[1], 6);
                         Boolean valid = Int32.TryParse(splitCommand[1], out record_duration);
                         record.record_durationMinutes = record_duration;
+
+                        //Handle based on record ID if possible
+                        if (this.handleRoundReport(record, splitCommand[2])) { return; }
+
                         message = message.TrimStart(splitCommand[1].ToCharArray()).Trim();
                         record.target_name = splitCommand[2];
                         DebugWrite("target: " + record.target_name, 6);
@@ -1534,6 +1564,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.PermabanPlayer:
                     try
                     {
+                        //Handle based on record ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -1559,17 +1592,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.PunishPlayer:
                     try
                     {
-                        if (this.round_reports.ContainsKey(splitCommand[1]))
-                        {
-                            ADKAT_Record reportedRecord = this.round_reports[splitCommand[1]];
-                            record.target_guid = reportedRecord.target_guid;
-                            record.target_name = reportedRecord.target_name;
-                            record.targetPlayerInfo = reportedRecord.targetPlayerInfo;
-                            record.record_message = reportedRecord.record_message;
-                            this.playerSayMessage(speaker, "Your report has been acted on. Thank you.");
-                            this.confirmAction(record);
-                            return;
-                        }
+                        //Handle based on record ID if possible
+                        if(this.handleRoundReport(record, splitCommand[1])){return;}
+
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -1620,6 +1645,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.MutePlayer:
                     try
                     {
+                        //Handle based on record ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -1645,6 +1673,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.RoundWhitelistPlayer:
                     try
                     {
+                        //Handle based on record ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -2150,6 +2181,23 @@ namespace PRoConEvents
 
         #region Action Methods
 
+        public Boolean handleRoundReport(ADKAT_Record record, String reportID)
+        {
+            Boolean acted = false;
+            if (this.round_reports.ContainsKey(reportID))
+            {
+                ADKAT_Record reportedRecord = this.round_reports[reportID];
+                record.target_guid = reportedRecord.target_guid;
+                record.target_name = reportedRecord.target_name;
+                record.targetPlayerInfo = reportedRecord.targetPlayerInfo;
+                record.record_message = reportedRecord.record_message;
+                this.playerSayMessage(speaker, "Your report/admincall has been acted on. Thank you.");
+                this.confirmAction(record);
+                acted = true;
+            }
+            return acted;
+        }
+
         public void moveTarget(ADKAT_Record record)
         {
             this.onDeathMoveList.Add(record.targetPlayerInfo);
@@ -2188,16 +2236,16 @@ namespace PRoConEvents
         {
             //Perform actions
             ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_name);
-            this.playerSayMessage(record.target_name, "Killed by admin for: " + record.record_message + ". " + additionalMessage);
+            this.playerSayMessage(record.target_name, "Killed by admin for: " + record.record_message + " " + additionalMessage);
             this.playerSayMessage(record.source_name, "You KILLED " + record.target_name + " for " + record.record_message + ". " + additionalMessage);
         }
 
         public void kickTarget(ADKAT_Record record, string additionalMessage)
         {
             //Perform Actions
-            ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_name, record.record_message + ". " + additionalMessage);
-            this.playerSayMessage(record.source_name, "You KICKED " + record.target_name + " for " + record.record_message + ". ");
-            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was KICKED by admin: " + record.record_message + ". " + additionalMessage, "all");
+            ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_name, record.record_message + " " + additionalMessage);
+            this.playerSayMessage(record.source_name, "You KICKED " + record.target_name + " for " + record.record_message + " ");
+            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was KICKED by admin: " + record.record_message + " " + additionalMessage, "all");
         }
 
         public void tempBanTarget(ADKAT_Record record, string additionalMessage)
@@ -2207,23 +2255,23 @@ namespace PRoConEvents
             switch (this.m_banMethod)
             {
                 case ADKAT_BanType.FrostbiteName:
-                    ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_name, "seconds", seconds + "", "(" + record.source_name + ") " + record.record_message + ". " + additionalMessage);
+                    ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_name, "seconds", seconds + "", "(" + record.source_name + ") " + record.record_message + " " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
                 case ADKAT_BanType.FrostbiteEaGuid:
-                    ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "seconds", seconds + "", "(" + record.source_name + ") " + record.record_message + ". " + additionalMessage);
+                    ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "seconds", seconds + "", "(" + record.source_name + ") " + record.record_message + " " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
                 case ADKAT_BanType.PunkbusterGuid:
-                    this.ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", String.Format("pb_sv_kick \"{0}\" {1} \"{2}\"", record.target_name, record.record_durationMinutes.ToString(), "BC2! " + "(" + record.source_name + ") " + record.record_message + ". " + additionalMessage));
+                    this.ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", String.Format("pb_sv_kick \"{0}\" {1} \"{2}\"", record.target_name, record.record_durationMinutes.ToString(), "BC2! " + "(" + record.source_name + ") " + record.record_message + " " + additionalMessage));
                     break;
                 default:
                     break;
             }
             this.playerSayMessage(record.source_name, "You TEMP BANNED " + record.target_name + " for " + record.record_durationMinutes + " minutes. " + additionalMessage);
-            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was TEMP BANNED by admin for " + record.record_message + ". " + additionalMessage, "all");
+            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was TEMP BANNED by admin for " + record.record_message + " " + additionalMessage, "all");
         }
 
         public void permaBanTarget(ADKAT_Record record, string additionalMessage)
@@ -2232,23 +2280,23 @@ namespace PRoConEvents
             switch (this.m_banMethod)
             {
                 case ADKAT_BanType.FrostbiteName:
-                    ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_name, "perm", "(" + record.source_name + ") " + record.record_message + ". " + additionalMessage);
+                    ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_name, "perm", "(" + record.source_name + ") " + record.record_message + " " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
                 case ADKAT_BanType.FrostbiteEaGuid:
-                    ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "perm", "(" + record.source_name + ") " + record.record_message + ". " + additionalMessage);
+                    ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "perm", "(" + record.source_name + ") " + record.record_message + " " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
                 case ADKAT_BanType.PunkbusterGuid:
-                    this.ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", String.Format("pb_sv_ban \"{0}\" \"{1}\"", record.target_name, "BC2! " + "(" + record.source_name + ") " + record.record_message + ". " + additionalMessage));
+                    this.ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", String.Format("pb_sv_ban \"{0}\" \"{1}\"", record.target_name, "BC2! " + "(" + record.source_name + ") " + record.record_message + " " + additionalMessage));
                     break;
                 default:
                     break;
             }
             this.playerSayMessage(record.source_name, "You PERMA BANNED " + record.target_name + "! Get a vet admin NOW! " + additionalMessage);
-            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was BANNED by admin for " + record.record_message + ". " + additionalMessage, "all");
+            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was BANNED by admin for " + record.record_message + " " + additionalMessage, "all");
         }
 
         public void punishTarget(ADKAT_Record record)
@@ -2315,7 +2363,7 @@ namespace PRoConEvents
 
         public void muteTarget(ADKAT_Record record)
         {
-            if(!this.isAdmin(record.target_name) || (record.source_name == "ColColonCleaner"))
+            if (!this.isAdmin(record.target_name) || (record.source_name == "ColColonCleaner"))
             {
                 if (!this.round_mutedPlayers.ContainsKey(record.target_name))
                 {
@@ -2544,11 +2592,6 @@ namespace PRoConEvents
                     ConsoleError(this.tablename_adminlist + " not present in the database. AdKats will not function properly.");
                     confirmed = false;
                 }
-                if (!this.confirmTable("adkat_actionlist"))
-                {
-                    ConsoleError("adkat_actionlist not present in the database. AdKats will not function properly.");
-                    confirmed = false;
-                }
                 if (!this.confirmTable("adkat_playerlist"))
                 {
                     ConsoleError("adkat_playerlist not present in the database. AdKats will not function properly.");
@@ -2557,16 +2600,6 @@ namespace PRoConEvents
                 if (!this.confirmTable("adkat_playerpoints"))
                 {
                     ConsoleError("adkat_playerpoints not present in the database. AdKats will not function properly.");
-                    confirmed = false;
-                }
-                if (!this.confirmTable("adkat_reports"))
-                {
-                    ConsoleError("adkat_reports not present in the database. AdKats will not function properly.");
-                    confirmed = false;
-                }
-                if (!this.confirmTable("adkat_naughtylist"))
-                {
-                    ConsoleError("adkat_naughtylist not present in the database. AdKats will not function properly.");
                     confirmed = false;
                 }
                 if (confirmed)
@@ -2622,7 +2655,7 @@ namespace PRoConEvents
             }
             catch (Exception e)
             {
-                this.ConsoleException("ERROR in runDBSetupScript: " + e.ToString());
+                this.ConsoleException("ERROR when setting up DB, you might not have connection to github: " + e.ToString());
             }
         }
 
