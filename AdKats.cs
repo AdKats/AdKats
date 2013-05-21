@@ -2436,7 +2436,7 @@ namespace PRoConEvents
             int reportID;
             do
             {
-                reportID = random.Next(0, 1000);
+                reportID = random.Next(100, 999);
             } while (round_reports.ContainsKey(reportID + ""));
 
             this.round_reports.Add(reportID + "", record);
@@ -2449,7 +2449,7 @@ namespace PRoConEvents
             {
                 this.playerSayMessage(admin_name, "REPORT [" + reportID + "]: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
             }
-            this.playerSayMessage(record.source_name, "Report ID[" + reportID + "] sent. " + record.target_name + " for " + record.record_message);
+            this.playerSayMessage(record.source_name, "Report [" + reportID + "] sent. " + record.target_name + " for " + record.record_message);
         }
 
         public void callAdminOnTarget(ADKAT_Record record)
