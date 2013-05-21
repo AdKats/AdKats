@@ -19,10 +19,10 @@ for small servers.
 <b>NOTE:</b> This is NOT the player-based punish/forgive system normally used for teamkilling, and is only usable by
 admins.<br/>
 <br/>
-Use of punish and forgive commands takes the load off admins remembering what players have broken server rules, and 
-how many times. Each time a player is punished it's logged in the database, and the more punishes they get the more 
-severe the punishment. Available punishments include kill, kick, temp-ban 60 minutes, temp-ban 1 week, and permaban. 
-Order that the punishments are given can be configured to your needs.<br/>
+<B>Summary:</b> Use of punish and forgive commands takes the load off admins remembering what players have broken 
+server rules, and how many times. Each time a player is punished it's logged in the database, and the more punishes 
+they get the more  severe the punishment. Available punishments include kill, kick, temp-ban 60 minutes, temp-ban 1 
+week, and permaban. Order that the punishments are given can be configured to your needs.<br/>
 <br/>
 After a player is 'punished' (and the Punish log is made in the database), their total points are calculated using 
 this basic formula:<br/>
