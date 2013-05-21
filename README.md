@@ -98,13 +98,6 @@ When deciding to use this system, 'punish' should be the only command used for p
 like kill, or kick are not counted in the system since sometimes players ask to be killed, admins kill/kick themselves, 
 or players get kicked for AFKing. Kill and kick should only be used for server management. Direct tban 
 and ban are of course still available for hacker/glitching situations, but that is the ONLY time they should be used.
-<br/><br/>
-
-When using the report system in tandem with this system, the report ID's that are generated can be used to reference 
-players and reasons. Simply use that ID instead of a player-name and reason (e.g. waffleman73 baserapes, another player 
-reports them and gets report ID 582, admins just use @punish 582 instead of @punish waffleman73 baserape). Confirmation 
-of command with @yes is required before a report ID is acted on. Players are thanked for reporting when an admin uses 
-their report ID.
 </p>
 <h3>Report/CallAdmin System</h3>
 <p>
@@ -114,8 +107,12 @@ database with full player names for reporter/target, and the full reason for rep
 not send the report to admins unless reports are complete. This cleans up what admins end up seeing for reports 
 (useful if admins get reports and admin calls whether they are in-game or not).<br/><br/>
 
-All reports are given a three digit ID which expires at the end of each round, these ID's can be used in the punish 
-system to lighten the work admins do.
+<h4>Using Report IDs</h4>
+All reports are issued a three digit ID which expires at the end of each round. These ID's can be used in any other 
+action command, simply use that ID instead of a player-name and reason (e.g. waffleman73 baserapes, another player 
+reports them and gets report ID 582, admins just use @punish 582 instead of @punish waffleman73 baserape). Confirmation 
+of command with @yes is required before a report ID is acted on. Players are thanked for reporting when an admin uses 
+their report ID.
 </p>
 <h3>Player Muting</h3>
 <p>
