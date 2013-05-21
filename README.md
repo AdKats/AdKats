@@ -4,7 +4,9 @@ A MySQL reflected admin toolset that includes editable in-game commands, databas
 forgiveness, proper player report and admin call handling, player name completion, player muting, yell/say 
 pre-recording, and internal implementation of TeamSwap.
 
-Visit the tool's github page to submit bugs/enhancements, or to view more complete docs.
+Visit the tool's github page 
+<a href="https://github.com/ColColonCleaner/AdKats/" target="_blank">here</a> 
+to submit bugs or wanted features.
 </p>
 <h2>Description</h2>
 <h3>Main</h3>
@@ -12,31 +14,21 @@ Visit the tool's github page to submit bugs/enhancements, or to view more comple
 This tool was designed for use by groups with high traffic servers and many admins, but will function just as well 
 for small servers.
 </p>
-<h3>Database Usage</h3>
-<p>
-If you do not have an online MySQL database accessible from your procon layer you must create one to use this. If 
-you have your own website you can make one there, or you can use an online service. My clan runs our own, but I 
-found this online one and it seems to be ok, and has a free usage option. http://www.freesqldatabase.com/ But any 
-online accessible MySql database will work. Be careful with that free option though, the size is limited, and these 
-things log A LOT of data if it's an active server.
-</p>
 <h3>Punishment/Forgiveness System</h3>
 <p>
-<b>NOTE:</b> This is NOT the player based punish/forgive system normally used for teamkilling, and is only usable by
+<b>NOTE:</b> This is NOT the player-based punish/forgive system normally used for teamkilling, and is only usable by
 admins.<br/>
-
-<h4>BASICS</h4>
+<br/>
 Use of punish and forgive commands takes the load off admins remembering what players have broken server rules, and 
 how many times. Each time a player is punished it's logged in the database, and the more punishes they get the more 
 severe the punishment. Available punishments include kill, kick, temp-ban 60 minutes, temp-ban 1 week, and permaban. 
-Order that the punishments are given can be configured to your needs. The default is kill, kill, kick, kick, tban60, 
-tban60, tbanweek, tbanweek, ban. Punishment points never go down, they will last until your database dies, unless a 
-player is forgiven which will reduce their points by 1.<br/>
-
-<h4>DETAILS</h4>
-When a player is 'punished' by an admin a Punish log is made in the database, their total points are calculated using 
+Order that the punishments are given can be configured to your needs.<br/>
+<br/>
+After a player is 'punished' (and the Punish log is made in the database), their total points are calculated using 
 this basic formula:<br/>
-<b>(Punishment Count - Forgiveness Count = Total Points)</b><br/>
+<br/>
+<b>(Punishment Count - Forgiveness Count = Total Points)</b></center><br/>
+<br/>
 Then an action is decided using total points from the punishment hierarchy. Punishments should get more harsh as the
 player gets more points. The punishment hierarchy is configurable to suit your needs, but the default is below.<br/>
 
@@ -101,14 +93,11 @@ make the serverID the same for all. This is available since many groups run diff
 own, so players breaking rules on one server may not know rules on another, they get a clean slate on each server.
 <br/><br/>
 
-If you have an external system (such as a web-based tool with access to bf3 server information), then have your 
-external system update the record table with new commands to be acted on. Every 5-10 seconds the plugin checks for 
-new input from external systems, and will act on them if found.<br/><br/>
-
 When deciding to use this system, 'punish' should be the only command used for player rule-breaking. Other commands 
-like kill, or kick are not counted since sometimes players ask to be killed, admins kill/kick themselves to leave 
-games, or players get kicked for AFKing. Kill and kick should only be used for server management. Direct tban and ban 
-are of course still available for hacker/glitching situations, but that is the ONLY time they should be used.<br/><br/>
+like kill, or kick are not counted in the system since sometimes players ask to be killed, admins kill/kick themselves, 
+or players get kicked for AFKing. Kill and kick should only be used for server management. Direct tban 
+and ban are of course still available for hacker/glitching situations, but that is the ONLY time they should be used.
+<br/><br/>
 
 When using the report system in tandem with this system, the report ID's that are generated can be used to reference 
 players and reasons. Simply use that ID instead of a player-name and reason (e.g. waffleman73 baserapes, another player 
@@ -118,11 +107,11 @@ their report ID.
 </p>
 <h3>Report/CallAdmin System</h3>
 <p>
-All uses of @report and @admin with this plugin require players to enter a reason, and will tell them if they haven't 
-entered one. It will not send the report to admins unless it's done correctly. This cleans up what admins
-end up seeing for reports (useful if admins get reports and admin calls whether they are in-game or not). When
-a player puts in a proper @report or @admin all in-game admins are notified, then the report is logged in the
-database with full player names for reporter/target, and the full reason for reporting.<br/><br/>
+When a player puts in a proper @report or @admin all in-game admins are notified, then the report is logged in the
+database with full player names for reporter/target, and the full reason for reporting. All uses of @report and 
+@admin with this plugin require players to enter a reason, and will tell them if they haven't entered one. It will 
+not send the report to admins unless reports are complete. This cleans up what admins end up seeing for reports 
+(useful if admins get reports and admin calls whether they are in-game or not).<br/><br/>
 
 All reports are given a three digit ID which expires at the end of each round, these ID's can be used in the punish 
 system to lighten the work admins do.
@@ -166,6 +155,20 @@ there is a hierarchy of checks the command goes through (specific to each comman
 ends immediately and informs the calling player of the error they made. Database connections are fast and do not cause 
 any noticable lag even when logging everything on a very active server.
 </p>
+<h3>Database Usage</h3>
+<p>
+If you do not have an online MySQL database accessible from your procon layer you must create one to use this. If 
+you have your own website you can make one there, or you can use an online service. My clan runs our own, but I 
+found this online one and it seems to be ok, and has a free usage option. http://www.freesqldatabase.com/ But any 
+online accessible MySql database will work. Be careful with that free option though, the size is limited, and these 
+things log A LOT of data if it's an active server.
+
+The plugin checks the database for needed tables on connect. If it doesn't find the master record table it will run 
+the script linked below. You can run the script beforehand if you dont want the plugin changing table structure in 
+your database.<br/>
+<br/>
+<a href="https://github.com/ColColonCleaner/AdKats/blob/master/adkats.sql" target="_blank">SQL Code</a>
+</p>
 <h3>Available In-Game Commands</h3>
 <p>
 <u><b>You can edit the text typed for each command to suit your needs in plugin settings.</b></u> Usage of all
@@ -192,7 +195,7 @@ especially when you have to hold 40+ admins accountable, and has not caused noti
 	</tr>
 	<tr>
 		<td><b>Temp-Ban Player</b></td>
-		<td>[minutes] [player] [reason]</td>
+		<td>[minutes][player][reason]</td>
 		<td>Admin</td>
 		<td>The in-game command used temp-banning players.</td>
 	</tr>
@@ -324,6 +327,88 @@ especially when you have to hold 40+ admins accountable, and has not caused noti
 	</tr>
 </table>
 </p>
+<h3>Commanding AdKats from Outside the Game</h3>
+<p>
+AdKats can take orders from external systems via the database. If you have an external system (such as a web-based tool with access to bf3 server information), then have your 
+external system add a row to the record table with a new record to be acted on. All information is needed in the row 
+just like the ones sent from AdKats to the database. Just make the 'adkats_read' column for that row = "N" and adkats 
+will act on that record. Every 5-10 seconds the plugin checks for new input from external systems, and will act on 
+them if found. Valid 'command_type's that can be acted on include the following:<br/>
+<table>
+	<tr>
+		<td><b>Action To be Performed</b></td>
+		<td><b>command_type</b></td>
+	</tr>
+	<tr>
+		<td><b>Move Player</b></td>
+		<td>Move</td>
+	</tr>
+	<tr>
+		<td><b>Force-Move Player</b></td>
+		<td>ForceMove</td>
+	</tr>
+	<tr>
+		<td><b>Kill Player</b></td>
+		<td>Kick</td>
+	</tr>
+	<tr>
+		<td><b>Kick Player</b></td>
+		<td>Kick</td>
+	</tr>
+	<tr>
+		<td><b>Temp-Ban Player</b></td>
+		<td>TempBan</td>
+	</tr>
+	<tr>
+		<td><b>Permaban Player</b></td>
+		<td>PermaBan</td>
+	</tr>
+	<tr>
+		<td><b>Punish Player</b></td>
+		<td>Punish</td>
+	</tr>
+	<tr>
+		<td><b>Forgive Player</b></td>
+		<td>Forgive</td>
+	</tr>
+	<tr>
+		<td><b>Mute Player</b></td>
+		<td>Mute</td>
+	</tr>
+	<tr>
+		<td><b>Round Whitelist Player</b></td>
+		<td>RoundWhitelist</td>
+	</tr>
+	<tr>
+		<td><b>Admin Say</b></td>
+		<td>AdminSay</td>
+	</tr>
+	<tr>
+		<td><b>Player Say</b></td>
+		<td>PlayerSay</td>
+	</tr>
+	<tr>
+		<td><b>Admin Yell</b></td>
+		<td>AdminYell</td>
+	</tr>
+	<tr>
+		<td><b>Player Yell</b></td>
+		<td>PlayerYell</td>
+	</tr>
+	<tr>
+		<td><b>Restart Level</b></td>
+		<td>RestartLevel</td>
+	</tr>
+	<tr>
+		<td><b>Next Level</b></td>
+		<td>NextLevel</td>
+	</tr>
+	<tr>
+		<td><b>End Level</b></td>
+		<td>EndLevel</td>
+	</tr>
+</table>
+</p>
 <h2>Settings</h2>
 <p>
 <h3>Debugging Settings:</h3>
@@ -376,10 +461,4 @@ Action decided after player is punished, and their points incremented.<br/><br/>
 * 7 points - Player Temp-Banned for 1 week. <br/>
 * 8 points - Player Temp-Banned for 1 week. <br/>
 * 9 points - Player Perma-Banned. <br/>
-</p>
-<h2>Database Tables and Views</h2>
-<p>
-The plugin checks the database for needed tables on connect. If it doesn't find the master record table it will run the script linked below. You can run the script beforehand if you dont want the plugin changing tables in your database.<br/>
-<br/>
-<a href="https://github.com/ColColonCleaner/AdKats/blob/master/adkats.sql" target="_blank">SQL Code</a>
 </p>
