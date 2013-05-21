@@ -84,7 +84,8 @@ player gets more points. The punishment hierarchy is configurable to suit your n
 </table>
 
 Players may also be 'forgiven', which will reduce their total point value by 1 each time, this is useful if you have a
-website where players can apologize for their actions in-game.<br/><br/>
+website where players can apologize for their actions in-game. Players can be forgiven into negative total point values 
+which is why a 'less than 1' clause is needed.<br/><br/>
 
 You can run multiple servers with this plugin on the same database, as long as you use different serverID's for each 
 one in plugin settings. By setting each server to a different ID, rule breaking on one server won't cause increase in 
