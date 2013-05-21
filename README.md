@@ -8,7 +8,7 @@ Visit the tool's github page
 <a href="https://github.com/ColColonCleaner/AdKats/" target="_blank">here</a> 
 to submit bugs or wanted features.
 </p>
-<h2>Description</h2>
+<h2>Features</h2>
 <h3>Main</h3>
 <p>
 This tool was designed for use by groups with high traffic servers and many admins, but will function just as well 
