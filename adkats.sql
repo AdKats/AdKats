@@ -1,7 +1,6 @@
---Was dropping tables, removed to remove risk of data loss if this gets run at the wrong time.
---DROP TABLE IF EXISTS `adkat_records`;
---DROP TABLE IF EXISTS `adkat_actionlist`;
---DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;
+-- Was dropping tables, removed to remove risk of data loss if this gets run at the wrong time.
+-- DROP TABLE IF EXISTS `adkat_records`;
+-- DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;
 
 CREATE TABLE `adkat_records` (
        `record_id` int(11) NOT NULL AUTO_INCREMENT, 
@@ -12,14 +11,9 @@ CREATE TABLE `adkat_records` (
        `target_name` varchar(45) NOT NULL, 
        `source_name` varchar(45) NOT NULL, 
        `record_message` varchar(100) NOT NULL, 
-       `record_time` datetime NOT NULL, 
+       `record_time` DATETIME NOT NULL, 
+          `adkats_read` ENUM('Y', 'N') NOT NULL,
        PRIMARY KEY (`record_id`));
-
-CREATE TABLE `adkat_actionlist` (
-       `action_id` int(11) NOT NULL AUTO_INCREMENT, 
-       `record_id` int(11) NOT NULL,
-       `plugin_read` ENUM('Y', 'N') NOT NULL, 
-       PRIMARY KEY (`action_id`));
 
 CREATE TABLE `adkat_teamswapwhitelist` (
        `player_name` varchar(45) NOT NULL, 
