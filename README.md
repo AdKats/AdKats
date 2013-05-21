@@ -159,10 +159,12 @@ no reason is given. Players (even the most atrocious in some cases) should know 
 </p>
 <h3>Performance</h3>
 <p>
-AdKats is designed to be rather heavy when changing settings, but lighter when in use. All commands are stored in 
-dictionaries so command meanings are parsed instantly when entered. During command parsing there is a hierarchy 
-of checks the command goes through (specific to each command), if any of them fail the process ends immediately and 
-informs the calling player of the error they made.
+This plugin has been tested on a 64 player Operation Metro server that is full nearly 24/7 and does not cause any 
+noticable lag. AdKats is designed to be rather heavy when changing settings, but much lighter when in use. All 
+commands are stored in dictionaries so command meanings are parsed instantly when entered. During command parsing 
+there is a hierarchy of checks the command goes through (specific to each command), if any of them fail the process 
+ends immediately and informs the calling player of the error they made. Database connections are fast and do not cause 
+any noticable lag even when logging everything on a very active server.
 </p>
 <h3>Available In-Game Commands</h3>
 <p>
