@@ -345,7 +345,7 @@ them if found. Valid 'command_type's that can be acted on include the following:
 	</tr>
 	<tr>
 		<td><b>Kill Player</b></td>
-		<td>Kick</td>
+		<td>Kill</td>
 	</tr>
 	<tr>
 		<td><b>Kick Player</b></td>
