@@ -42,7 +42,7 @@ namespace PRoConEvents
     using EventType = PRoCon.Core.Events.EventType;
     using CapturableEvent = PRoCon.Core.Events.CapturableEvents;
 
-    public class ADKATs : PRoConPluginAPI, IPRoConPluginInterface
+    public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         #region Variables
 
@@ -241,7 +241,7 @@ namespace PRoConEvents
 
         #endregion
 
-        public ADKATs()
+        public AdKats()
         {
             isEnabled = false;
             debugLevel = 0;
@@ -381,7 +381,7 @@ namespace PRoConEvents
                 //TODO implement advanced sql settings
 
                 //Ban Settings
-                lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.ADKATs_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
+                lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.AdKats_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
 
                 //Command Settings
                 lstReturn.Add(new CPluginVariable("Command Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
