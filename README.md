@@ -156,7 +156,8 @@ any noticable lag even when logging everything on a very active server.
 If must use an online MySQL database accessible from your procon layer. If you have your own website you can make one 
 there, or you can use an online service. My clan runs our own, but I found this online one to be ok, and has a free 
 usage option. http://www.freesqldatabase.com/ But any online accessible MySql database will work. Be careful with that 
-free option though, the size is limited, and these things can log A LOT of data if it's an active server.
+free option though, the size is limited, and these things can log A LOT of data if it's an active server. When I first 
+activated it on a busy metro server we had over 1500 records in just a few days of use.
 
 The plugin checks the database for needed tables on connect. If it doesn't find the proper tables/views it will run 
 the script linked below. You can run the script beforehand if you dont want the plugin changing table structure in 
@@ -168,7 +169,7 @@ your database.<br/>
 <p>
 <u><b>You can edit the text typed for each command to suit your needs in plugin settings.</b></u> Usage of all
 commands is database logged by default, but each command can be told whether to log or not. Logging all is useful 
-especially when you have to hold 40+ admins accountable, and has not caused noticable lag.<br/><br/>
+especially when you have to hold 40+ admins accountable, and has not caused any noticable lag.<br/><br/>
 <table>
 	<tr>
 		<td><b>Command</b></td>
