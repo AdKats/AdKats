@@ -178,25 +178,25 @@ especially when you have to hold 40+ admins accountable, and has not caused noti
 	</tr>
 	<tr>
 		<td><b>Kill Player</b></td>
-		<td>[player][reason]</td>
+		<td>[player][reason]<br/>OR<br/>[reportID]</td>
 		<td>Admin</td>
 		<td>The in-game command used for killing players.</td>
 	</tr>
 	<tr>
 		<td><b>Kick Player</b></td>
-		<td>[player][reason]</td>
+		<td>[player][reason]<br/>OR<br/>[reportID]</td>
 		<td>Admin</td>
 		<td>The in-game command used for kicking players.</td>
 	</tr>
 	<tr>
 		<td><b>Temp-Ban Player</b></td>
-		<td>[minutes][player][reason]</td>
+		<td>[minutes][player][reason]<br/>OR<br/>[minutes][reportID]</td>
 		<td>Admin</td>
 		<td>The in-game command used temp-banning players.</td>
 	</tr>
 	<tr>
 		<td><b>Perma-Ban Player</b></td>
-		<td>[player][reason]</td>
+		<td>[player][reason]<br/>OR<br/>[reportID]</td>
 		<td>Admin</td>
 		<td>The in-game command used for perma-banning players.</td>
 	</tr>
@@ -214,18 +214,18 @@ especially when you have to hold 40+ admins accountable, and has not caused noti
 	</tr>
 	<tr>
 		<td><b>Mute Player</b></td>
-		<td>[player][reason]</td>
+		<td>[player][reason]<br/>OR<br/>[reportID]</td>
 		<td>Admin</td>
 		<td>The in-game command used for muting players. Players will be muted till the end of the round, 5 kills then kick if they keep talking. Admins cannot be muted.</td>
 	</tr>
 	<tr>
-		<td><b>Move Player</b></td>
+		<td><b>Move Player<br/>OR<br/>[reportID]</b></td>
 		<td>[player]</td>
 		<td>Admin</td>
 		<td>The in-game command used for moving players between teams. Will add players to a death move list, when they die they will be sent to TeamSwap.</td>
 	</tr>
 	<tr>
-		<td><b>Force-Move Player</b></td>
+		<td><b>Force-Move Player<br/>OR<br/>[reportID]</b></td>
 		<td>[player]</td>
 		<td>Admin</td>
 		<td>The in-game command used for force-moving players between teams. Will immediately send the given player to TeamSwap.</td>
