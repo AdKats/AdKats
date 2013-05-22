@@ -1,13 +1,12 @@
 /* 
  * AdKats is a MySQL reflected admin tool for Procon Frostbite.
  * 
- * This plugin should be used by groups with high traffic servers, with set rules, and many admins. It is a
- * MySQL database reflected admin tool that includes editable in-game commands, database reflected punishment and
- * forgiveness, proper player report and admin call handling, player name completion, and internal implementation of TeamSwap.
+ * A MySQL reflected admin toolset that includes editable in-game commands, database reflected punishment and
+ * forgiveness, proper player report and admin call handling, player name completion, player muting, yell/say 
+ * pre-recording, and internal implementation of TeamSwap.
  * 
- * Requires a MySQL Database connection for proper use. Will set up needed tables in the database if they are not there already.
- * 
- * Current version: 0.1.7
+ * Requires a MySQL Database connection for proper use. Will set up needed tables in the database if they are 
+ * not there already.
  * 
  * AdKats.cs
  */
@@ -43,9 +42,11 @@ namespace PRoConEvents
     using EventType = PRoCon.Core.Events.EventType;
     using CapturableEvent = PRoCon.Core.Events.CapturableEvents;
 
-    public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
+    public class ADKATs : PRoConPluginAPI, IPRoConPluginInterface
     {
         #region Variables
+
+        string plugin_version = "0.2.0.0";
 
         // Enumerations
         //Messaging
@@ -62,6 +63,7 @@ namespace PRoConEvents
             MovePlayer,
             ForceMovePlayer,
             Teamswap,
+            RoundWhitelistPlayer,
             //Punishing players
             KillPlayer,
             KickPlayer,
@@ -69,6 +71,7 @@ namespace PRoConEvents
             PermabanPlayer,
             PunishPlayer,
             ForgivePlayer,
+            MutePlayer,
             //Reporting players
             ReportPlayer,
             CallAdmin,
@@ -80,7 +83,9 @@ namespace PRoConEvents
             AdminSay,
             PlayerSay,
             AdminYell,
-            PlayerYell
+            PlayerYell,
+            PreYell,
+            PreSay
         };
         //enum for player ban types
         public enum ADKAT_BanType
@@ -91,6 +96,9 @@ namespace PRoConEvents
         };
 
         // General settings
+        //Whether to get the release version of plugin description, or the dev version.
+        //This setting is unchangeable by users, and will always be TRUE for released versions of the plugin.
+        private bool isRelease = true;
         //Whether the plugin is enabled
         private bool isEnabled;
         //Current debug level
@@ -107,7 +115,6 @@ namespace PRoConEvents
         Dictionary<string, CPlayerInfo> currentPlayers = new Dictionary<string, CPlayerInfo>();
         List<CPlayerInfo> playerList = new List<CPlayerInfo>();
 
-        //Teamswap
         //Delayed move list
         private List<CPlayerInfo> onDeathMoveList = new List<CPlayerInfo>();
         //The list of players on RU wishing to move to US (This list takes first priority)
@@ -122,6 +129,7 @@ namespace PRoConEvents
         private Boolean useDatabaseAdminList = false;
         private List<string> databaseAdminCache = new List<string>();
         private List<string> staticAdminCache = new List<string>();
+        private Boolean toldCol = false;
 
         // MySQL Settings
         private string mySqlHostname;
@@ -140,13 +148,15 @@ namespace PRoConEvents
         private ADKAT_BanType m_banMethod;
 
         //Command Strings for Input
-        //Player punishment
+        //Player Interaction
         private string m_strKillCommand = "kill|log";
         private string m_strKickCommand = "kick|log";
         private string m_strTemporaryBanCommand = "tban|log";
         private string m_strPermanentBanCommand = "ban|log";
         private string m_strPunishCommand = "punish|log";
         private string m_strForgiveCommand = "forgive|log";
+        private string m_strMuteCommand = "mute|log";
+        private string m_strRoundWhitelistCommand = "roundwhitelist|log";
         private string m_strMoveCommand = "move|log";
         private string m_strForceMoveCommand = "fmove|log";
         private string m_strTeamswapCommand = "moveme|log";
@@ -157,6 +167,9 @@ namespace PRoConEvents
         private string m_strPlayerSayCommand = "psay|log";
         private string m_strYellCommand = "yell|log";
         private string m_strPlayerYellCommand = "pyell|log";
+        private string m_strPreYellCommand = "preyell|log";
+        private string m_strPreSayCommand = "presay|log";
+        private List<string> preMessageList = new List<string>();
         private int m_iShowMessageLength = 5;
         private string m_strShowMessageLength = "5";
         //Map control
@@ -170,13 +183,12 @@ namespace PRoConEvents
         public Dictionary<string, ADKAT_CommandType> ADKAT_CommandStrings;
         //Database record types
         public Dictionary<ADKAT_CommandType, string> ADKAT_RecordTypes;
+        public Dictionary<string, ADKAT_CommandType> ADKAT_RecordTypesInv;
         //Logging settings
         public Dictionary<ADKAT_CommandType, Boolean> ADKAT_LoggingSettings;
 
         //When a player partially completes a name, this dictionary holds those actions until player confirms action
         private Dictionary<string, ADKAT_Record> actionAttemptList = new Dictionary<string, ADKAT_Record>();
-        //Whether to act on punishments within the plugin
-        private Boolean actOnPunishments = true;
         //Default hierarchy of punishments
         private string[] punishmentHierarchy = 
         {
@@ -218,13 +230,26 @@ namespace PRoConEvents
         private int teamSwapTicketWindowHigh = 500000;
         //the lowest ticket count of either team to allow self move
         private int teamSwapTicketWindowLow = 0;
+        //Round only whitelist
+        private List<string> teamswapRoundWhitelist = new List<string>();
+
+        //Reports for the current round
+        private Dictionary<string, ADKAT_Record> round_reports = new Dictionary<string, ADKAT_Record>();
+
+        //Muted players for the current round
+        private Dictionary<string, int> round_mutedPlayers = new Dictionary<string, int>();
 
         #endregion
 
-        public AdKats()
+        public ADKATs()
         {
             isEnabled = false;
             debugLevel = 0;
+
+            preMessageList.Add("US TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.");
+            preMessageList.Add("RU TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.");
+            preMessageList.Add("US TEAM: DO NOT ENTER THE STREETS BEYOND 'A', YOU WILL BE PUNISHED.");
+            preMessageList.Add("RU TEAM: DO NOT GO BEYOND 'C' FLAG, YOU WILL BE PUNISHED.");
 
             //Create command and logging dictionaries
             this.ADKAT_CommandStrings = new Dictionary<string, ADKAT_CommandType>();
@@ -236,8 +261,9 @@ namespace PRoConEvents
 
             //Create database dictionaries
             this.ADKAT_RecordTypes = new Dictionary<ADKAT_CommandType, string>();
+            this.ADKAT_RecordTypesInv = new Dictionary<string, ADKAT_CommandType>();
 
-            //Fill DB record types
+            //Fill DB record types for outgoing database commands
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.MovePlayer, "Move");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ForceMovePlayer, "ForceMove");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.Teamswap, "Teamswap");
@@ -248,6 +274,8 @@ namespace PRoConEvents
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PermabanPlayer, "PermaBan");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.PunishPlayer, "Punish");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ForgivePlayer, "Forgive");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.MutePlayer, "Mute");
+            this.ADKAT_RecordTypes.Add(ADKAT_CommandType.RoundWhitelistPlayer, "RoundWhitelist");
 
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.ReportPlayer, "Report");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.CallAdmin, "CallAdmin");
@@ -260,6 +288,32 @@ namespace PRoConEvents
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.RestartLevel, "RestartLevel");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.NextLevel, "NextLevel");
             this.ADKAT_RecordTypes.Add(ADKAT_CommandType.EndLevel, "EndLevel");
+
+            //Fill DB Inverse record types for incoming database commands
+            this.ADKAT_RecordTypesInv.Add("Move", ADKAT_CommandType.MovePlayer);
+            this.ADKAT_RecordTypesInv.Add("ForceMove", ADKAT_CommandType.ForceMovePlayer);
+            this.ADKAT_RecordTypesInv.Add("Teamswap", ADKAT_CommandType.Teamswap);
+
+            this.ADKAT_RecordTypesInv.Add("Kill", ADKAT_CommandType.KillPlayer);
+            this.ADKAT_RecordTypesInv.Add("Kick", ADKAT_CommandType.KickPlayer);
+            this.ADKAT_RecordTypesInv.Add("TempBan", ADKAT_CommandType.TempBanPlayer);
+            this.ADKAT_RecordTypesInv.Add("PermaBan", ADKAT_CommandType.PermabanPlayer);
+            this.ADKAT_RecordTypesInv.Add("Punish", ADKAT_CommandType.PunishPlayer);
+            this.ADKAT_RecordTypesInv.Add("Forgive", ADKAT_CommandType.ForgivePlayer);
+            this.ADKAT_RecordTypesInv.Add("Mute", ADKAT_CommandType.MutePlayer);
+            this.ADKAT_RecordTypesInv.Add("RoundWhitelist", ADKAT_CommandType.RoundWhitelistPlayer);
+
+            this.ADKAT_RecordTypesInv.Add("Report", ADKAT_CommandType.ReportPlayer);
+            this.ADKAT_RecordTypesInv.Add("CallAdmin", ADKAT_CommandType.CallAdmin);
+
+            this.ADKAT_RecordTypesInv.Add("AdminSay", ADKAT_CommandType.AdminSay);
+            this.ADKAT_RecordTypesInv.Add("PlayerSay", ADKAT_CommandType.PlayerSay);
+            this.ADKAT_RecordTypesInv.Add("AdminYell", ADKAT_CommandType.AdminYell);
+            this.ADKAT_RecordTypesInv.Add("PlayerYell", ADKAT_CommandType.PlayerYell);
+
+            this.ADKAT_RecordTypesInv.Add("RestartLevel", ADKAT_CommandType.RestartLevel);
+            this.ADKAT_RecordTypesInv.Add("NextLevel", ADKAT_CommandType.NextLevel);
+            this.ADKAT_RecordTypesInv.Add("EndLevel", ADKAT_CommandType.EndLevel);
         }
 
         #region Plugin details
@@ -271,7 +325,7 @@ namespace PRoConEvents
 
         public string GetPluginVersion()
         {
-            return "0.1.7";
+            return this.plugin_version;
         }
 
         public string GetPluginAuthor()
@@ -281,417 +335,25 @@ namespace PRoConEvents
 
         public string GetPluginWebsite()
         {
-            return "http://www.adkgamers.com/";
+            return "https://github.com/ColColonCleaner/AdKats/";
         }
 
         public string GetPluginDescription()
         {
-            return @"
-            <h1>AdKats</h1>
-  		<p>
-				Advanced Admin Tool Set for A-Different-Kind, with MySQL database back-end.
-			</p>
-			<h2>Description</h2>
-			<h3>Main</h3>
-			<p>
-				This plugin should be used by groups with high traffic servers, with set rules, and many admins. It is a
-				MySQL database reflected admin tool that includes editable in-game commands, database reflected punishment and
-				forgiveness, proper player report and admin call handling, and internal implementation of TeamSwap.
-			</p>
-			<p>
-				Certain aspects like TeamSwap will only work for servers running TWO teamed matches (i.e. Rounds with RU and US teams). For example sqaud deathmatch which has 4 teams will not work properly.
-			</p>
-			<h3>Reason Behind Development</h3>
-			<p>
-				Players who break rules over time usually don't end up doing it in front of the same admin twice, so minimal or
-				'incorrect' action is taken. 
-				On very active servers with high player turn-around it's impossible for admins to track a player's history in their
-				head, now the punish system tracks that instead and takes proper action based on a player's history.<br/><br/>
-
-				In general this combines simple in-game admin commands, player name completion, admin punish/forgive,
-				report/calladmin, and TeamSwap, into one plugin to reduce the load on your procon layer.
-			</p>
-			<h3>Punishment/Forgiveness System</h3>
-			<p>
-				NOTE: This is NOT the player based punish/forgive system normally used for teamkilling, and is only usable by
-				admins.<br/><br/>
-
-				When a player is 'punished' by an admin a log is made in the database, their total points
-				are calculated <b>(Punishment Count - Forgiveness Count = Total Points)</b> then an action decided from the punishment hierarchy. Punishments should get more harsh as the
-				player gets more points. The punishment hierarchy is configurable to suit your needs. ADK is rather lenient with
-				players, so there are 8 levels before a player is perma-banned in our version. Players may also be 'forgiven', which
-				will reduce their total point value by 1 each time, this is useful if you have a website where players can apologize
-				for their actions in-game.<br/><br/>
-
-				Logs can be made server specific (The case of running multiple servers with this plugin on the same database),
-				meaning rule breaking on one server won't cause increase in punishments on another server for that same player. This
-				is available since many groups run different rule sets on each server they own. You can set all servers to the same
-				ID for punishments to act across servers.<br/><br/>
-
-				If you have a procon-external system (such as a web-based tool with direct rcon connection for server control), then
-				use the ActionList table by turning 'act on punishments' off. The plugin will then send player Id's who need
-				punishment (along with the server they are in) to that table for your external system to act on, instead of taking
-				action here.<br/><br/>
-
-				All commands which might lead to actions against players are required to have a reason entered, and will cancel if
-				no reason is given. When deciding to use this system, 'punish' should be the only command used for player rule-breaking.
-				Other commands like kill, or kick are not counted since sometimes players ask to be kill, and admins kill/kick themselves to leave games.
-				Direct tban and ban are of course left in here for hacker/glitching situations, but that is the ONLY time they should be used.
-				(currently working on adding direct tban counter into this system though, it would immediately escalate the player's hierarchy to tban level)
-			</p>
-			<h3>Report/CallAdmin System</h3>
-			<p>
-				All uses of @report and @admin with this plugin require players to enter a reason, and will tell them if they
-				haven't entered one. It will not send the report to admins unless it's in proper format. This cleans up what admins
-				end up seeing for reports, useful since ADK admins get reports and admin calls whether they are in-game or not. When
-				a player puts in a proper @report or @admin, all in-game admins are notified, then the report is logged in the
-				database with full player names for reporter/target, and the full reason for reporting.
-			</p>
-			<h3>TeamSwap</h3>
-			<p>
-				This plugin implements TeamSwap. TeamSwap is a server-smart player moving system that offers two major benefits over the default system. It's available as a separate plugin, but in this instance I've merged it with
-				move and forcemove commands. Normally if the team a player gets @move'd or @fmove'd to
-				is full then the command just fails, now they are dropped on a queue until a slot opens on that side. They can keep
-				playing on their side until that slot opens, when it does they are immediately slain and moved over to fill it.
-				Secondly it allows whitelisted (non-admin) players the ability to move themselves between teams as often as they
-				want (within a ticket count window). This is currently not an available option in default battlefield aside from
-				procon commands, as the game itself limits players to one switch per gaming session. Whitelisted players can type
-				'@moveme' and the plugin will queue them. This is meant to be available to players outside the admin list, usually
-				by paid usage to your community or to clan members only. Admins can also use '@moveme', and in their case it
-				bypasses the ticket window restriction.
-			</p>
-			<h3>Performance</h3>
-			<p>
-				There still needs to be more testing done in this section. However, I've designed it to be rather heavy when 
-				changing settings, but lighter when in use. All commands are stored in dictionaries so command meanings are parsed instantly when entered. 
-				Also during record parsing there is a hierarchy of checks the command goes through (specific to each command), 
-				if any of them fail the process ends immediately and informs the calling player of the error they made.
-			</p>
-			<h3>Available In-Game Commands</h3>
-			<p>
-				<u><b>You can edit the text typed for each command to suit your needs in plugin settings.</b></u> Usage of all
-				commands is database logged by default, but each command can be told whether to log or not. Logging all is useful
-				though, especially when you have to hold 40+ admins accountable for their actions.<br/><br/>
-				<table>
-					<tr>
-						<td><b>Command</b></td>
-						<td><b>Params</b></td>
-						<td><b>Access</b></td>
-						<td><b>Description</b></td>
-					</tr>
-					<tr>
-						<td><b>Kill Player</b></td>
-						<td>[player][reason]</td>
-						<td>Admin</td>
-						<td>The in-game command used for killing players.</td>
-					</tr>
-					<tr>
-						<td><b>Kick Player</b></td>
-						<td>[player][reason]</td>
-						<td>Admin</td>
-						<td>The in-game command used for kicking players.</td>
-					</tr>
-					<tr>
-						<td><b>Temp-Ban Player</b></td>
-						<td>[minutes] [player] [reason]</td>
-						<td>Admin</td>
-						<td>The in-game command used temp-banning players.</td>
-					</tr>
-					<tr>
-						<td><b>Perma-Ban Player</b></td>
-						<td>[player][reason]</td>
-						<td>Admin</td>
-						<td>The in-game command used for perma-banning players.</td>
-					</tr>
-					<tr>
-						<td><b>Punish Player</b></td>
-						<td>[player][reason]</td>
-						<td>Admin</td>
-						<td>The in-game command used for punishing players. Will add a Punish record to the database, increasing a player's total points by 1.</td>
-					</tr>
-					<tr>
-						<td><b>Forgive Player</b></td>
-						<td>[player][reason]</td>
-						<td>Admin</td>
-						<td>The in-game command used for forgiving players. Will add a Forgive record to the database, decreasing a player's total points by 1.</td>
-					</tr>
-					<tr>
-						<td><b>Move Player</b></td>
-						<td>[player]</td>
-						<td>Admin</td>
-						<td>The in-game command used for moving players between teams. Will add players to a death move list, when they die they will be sent to TeamSwap.</td>
-					</tr>
-					<tr>
-						<td><b>Force-Move Player</b></td>
-						<td>[player]</td>
-						<td>Admin</td>
-						<td>The in-game command used for force-moving players between teams. Will immediately send the given player to TeamSwap.</td>
-					</tr>
-					<tr>
-						<td><b>TeamSwap Player</b></td>
-						<td>None</td>
-						<td>Admin and TeamSwap Whitelist</td>
-						<td>The in-game command used for moving yourself between teams. Will immediately send the speaker to TeamSwap.</td>
-					</tr>
-					<tr>
-						<td><b>Report Player</b></td>
-						<td>[player][reason]</td>
-						<td>All Players</td>
-						<td>The in-game command used for reporting players. Must have a reason, and will inform a player otherwise when using. Will log a Report tuple in the database(External GCP polls from there for external admin notifications), and notify all in-game admins.</td>
-					</tr>
-					<tr>
-						<td><b>Call Admin</b></td>
-						<td>[player][reason]</td>
-						<td>All Players</td>
-						<td>The in-game command used for calling admin attention to a player. Same deal as report, but used for a different reason.</td>
-					</tr>
-					<tr>
-						<td><b>Admin Say</b></td>
-						<td>[message]</td>
-						<td>Admin</td>
-						<td>The in-game command used to send a message through admin chat.</td>
-					</tr>
-					<tr>
-						<td><b>Admin Yell</b></td>
-						<td>[message]</td>
-						<td>Admin</td>
-						<td>The in-game command used for to send a message through admin yell.</td>
-					</tr>
-					<tr>
-						<td><b>Player Say</b></td>
-						<td>[player][message]</td>
-						<td>Admin</td>
-						<td>The in-game command used for sending a message through admin chat to only a specific player.</td>
-					</tr>
-					<tr>
-						<td><b>Player Yell</b></td>
-						<td>[player][message]</td>
-						<td>Admin</td>
-						<td>The in-game command used for sending a message through admin yell to only a specific player.</td>
-					</tr>
-					<tr>
-						<td><b>Restart Level</b></td>
-						<td>None</td>
-						<td>Admin</td>
-						<td>The in-game command used for restarting the round.</td>
-					</tr>
-					<tr>
-						<td><b>Run Next Level</b></td>
-						<td>None</td>
-						<td>Admin</td>
-						<td>The in-game command used for running the next map in current rotation, but keep all points and KDRs from this round.</td>
-					</tr>
-					<tr>
-						<td><b>End Level</b></td>
-						<td>[US/RU]</td>
-						<td>Admin</td>
-						<td>The in-game command used for ending the current round with a winning team. Either US or RU.</td>
-					</tr>
-					<tr>
-						<td><b>Confirm Command</b></td>
-						<td>None</td>
-						<td>All Players</td>
-						<td>The in-game command used for confirming other commands when needed.</td>
-					</tr>
-					<tr>
-						<td><b>Cancel Command</b></td>
-						<td>None</td>
-						<td>All Players</td>
-						<td>The in-game command used to cancel other commands when needed.</td>
-					</tr>
-				</table>
-			</p>
-			<h2>Settings</h2>
-			<p>
-			<h3>Debugging Settings:</h3>
-			* <b>'Debug
-				level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step.
-			<h3>Admin Settings:</h3>
-			* <b>'Use Database Admin
-				List'</b> - Whether to use list of admins from 'adminlist' table to cached admin list on plugin start. Admin names are cached in the plugin to save bandwidth. The list is updated when a non-admin is requesting access, to see if list has changed.<br/>
-			* <b>'Static Admin List'</b> - List of admins input from plugin settings. Use if no admin database table.
-			<h3>MySQL Settings:</h3>
-			* <b>'MySQL Hostname'</b> - Hostname of the MySQL server AdKats should connect to. <br/>
-			* <b>'MySQL Port'</b> - Port of the MySQL server AdKats should connect to. <br/>
-			* <b>'MySQL
-				Database'</b> - Database name AdKats should use for storage. Hardcoded table names and creation scripts given below.<br/>
-			* <b>'MySQL Username'</b> - Username of the MySQL server AdKats should connect to. <br/>
-			* <b>'MySQL Password'</b> - Password of the MySQL server AdKats should connect to.
-			<h3>Command Settings:</h3>
-			* <b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason to execute.<br/>
-			* <b>'Yell display time seconds'</b> - The integer time in seconds that yell messages will be displayed.<br/><br/>
-
-			<b>Specific command definitions given in description section above.</b> All command text must be a single string with no whitespace. E.G. kill. All commands can be suffixed with '|log', which will set whether use of that command is logged in the database or not.
-			<h3>Punishment Settings:</h3>
-			* <b>'Act on
-				Punishments'</b> - Whether the plugin should carry out punishments, or have an external source do it through adkat_actionlist.
-			<br/>
-			* <b>'Punishment
-				Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the action taken at that number of points.
-			<br/>
-			* <b>'Minimum Reason
-				Length'</b> - The minimum number of characters a reason must be to call punish or forgive on a player.<br/>
-			* <b>'Only Kill Players when Server in low
-				population'</b> - When server population is below 'Low Server Pop Value', only kill players, so server does not empty. Player points will still be incremented normally.
-			<br/>
-			* <b>'Low Server Pop Value'</b> - Number of players at which the server is deemed 'Low Population'.<br/>
-			* <b>'Punishment
-				Timeout'</b> - A player cannot be punished more than once every x.xx minutes. This prevents multiple admins from punishing a player multiple times for the same infraction.
-			<h3>Server Settings:</h3>
-			* <b>'Server
-				ID'</b> - ID that will be used to identify this server in the database. This is not linked to any database attributes, instead it's used to differentiate between servers for infraction points.
-			<br/>
-			<h3>TeamSwap Settings:</h3>
-			* <b>'Require Whitelist for
-				Access'</b> - Whether the 'moveme' command will require whitelisting. Admins are always allowed to use it.<br/>
-			* <b>'Static Player Whitelist'</b> - Static list of players plugin-side that will be able to TeamSwap.<br/>
-			* <b>'Use Database
-				Whitelist'</b> - Whether to use 'adkat_teamswapwhitelist' table in the database for player whitelisting. Whitelisted names are cached in the plugin to save bandwidth. The list is updated when a non-whitelisted player is requesting access, to see if list has changed.<br/>
-			* <b>'Ticket Window
-				High'</b> - When either team is above this ticket count, then nobody (except admins) will be able to use TeamSwap.
-			<br/>
-			* <b>'Ticket Window
-				Low'</b> - When either team is below this ticket count, then nobody (except admins) will be able to use TeamSwap.
-			</p>
-			<h2>Default Punishment Levels by Point</h2>
-			<p>
-				Action decided after player is punished, and their points incremented.<br/><br/>
-				* 1 point - Player Killed. <br/>
-				* 2 points - Player Killed. <br/>
-				* 3 points - Player Kicked. <br/>
-				* 4 points - Player Kicked. <br/>
-				* 5 points - Player Temp-Banned for 60 minutes. <br/>
-				* 6 points - Player Temp-Banned for 60 minutes. <br/>
-				* 7 points - Player Temp-Banned for 1 week. <br/>
-				* 8 points - Player Temp-Banned for 1 week. <br/>
-				* 9 points - Player Perma-Banned. <br/>
-			</p>
-			<h2>Database Tables and Views</h2>
-			<p>
-                The plugin checks the database for needed tables on connect. If it doesnt find the master record table it will run the script below. You can run the script below beforehand if you dont want the plugin changing tables in your database.<br/><br/>
-				
-				DROP TABLE IF EXISTS `adkat_records`;<br/>
-				DROP TABLE IF EXISTS `adkat_actionlist`;<br/>
-				DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;<br/>
-				CREATE TABLE `adkat_records` (<br/>
-				`record_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
-				`server_id` int(11) NOT NULL,<br/>
-				`command_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','PermaBan','Punish','Forgive','Report','CallAdmin', 'AdminSay', 'PlayerSay', 'AdminYell', 'PlayerYell', 'RestartLevel', 'NextLevel', 'EndLevel') NOT NULL,<br/>
-				`record_durationMinutes` int(11) NOT NULL,<br/>
-				`target_guid` varchar(100) NOT NULL,<br/>
-				`target_name` varchar(45) NOT NULL,<br/>
-				`source_name` varchar(45) NOT NULL,<br/>
-				`record_message` varchar(100) NOT NULL,<br/>
-				`record_time` datetime NOT NULL,<br/>
-				PRIMARY KEY (`record_id`)<br/>
-				);<br/>
-				CREATE TABLE `adkat_actionlist` (<br/>
-				`action_id` int(11) NOT NULL AUTO_INCREMENT,<br/>
-				`server_id` int(11) NOT NULL,<br/>
-				`player_guid` varchar(100) NOT NULL,<br/>
-				`player_name` varchar(45) NOT NULL,<br/>
-				PRIMARY KEY (`action_id`)	<br/>
-				);<br/>
-				CREATE TABLE `adkat_teamswapwhitelist` (<br/>
-				`player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',<br/>
-				PRIMARY KEY (`player_name`),<br/>
-				UNIQUE KEY `player_name_UNIQUE` (`player_name`)<br/>
-				);<br/>
-				CREATE OR REPLACE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by `adkat_records`.`target_name`;<br/>
-				CREATE OR REPLACE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints` from `adkat_playerlist`;<br/>
-				CREATE OR REPLACE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));<br/>
-				CREATE OR REPLACE VIEW `adkat_naughtylist` AS select `adkat_playerpoints`.`serverid` AS `server_id`,`adkat_playerpoints`.`playername` AS `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;
-			</p>
-			<h2>Development</h2>
-			<p>
-				Started by ColColonCleaner for ADK Gamers on Apr. 20, 2013
-			</p>
-			<h3>Changelog</h3>
-			<blockquote>
-				<h4>0.0.1 (20-APR-2013)</h4>
-				<b>Main: </b> <br/>
-				    * Initial Version <br/>
-				<h4>0.0.2 (25-APR-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Added plugin-side punishment. <br/>
-				    * Initial DB test, tables updated. <br/>
-				<h4>0.0.3 (28-APR-2013)</h4>
-				<b>Changes</b> <br/>
-				    * In-game commands no longer case sensitive. <br/>
-				    * External DB test, tables updated. <br/>
-				    * First in-game run during match, minor bugs fixed. <br/>
-				<h4>0.0.4 (29-APR-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Added editable in-game commands for forgive/punish. <br/>
-				<h4>0.0.5 (30-APR-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Removed global player access for production version. <br/>
-				    * Added admin list for access. <br/>
-				    * Added 'Low Server Pop' override system
-				<h4>0.0.6 (1-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Added access to database admin list. <br/>
-				    * Fixed minor bugs during testing. <br/>
-				<h4>0.0.7 (1-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Added view definitions to display current player point values. <br/>
-				<h4>0.0.8 (2-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Updated player-say messages when punishment acted on. More informative message used.<br/>
-				    * Added editable minimum reason length.<br/>
-				<h4>0.0.9 (3-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Added direct kill, kick, tban, and ban commands.<br/>
-				    * Made direct commands work with database.<br/>
-				    * Removed editable command list.<br/>
-				<h4>0.1.0 (5-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Refactor record creation to increase speed.<br/>
-				    * Enumerate all database commands to parse in-game commands.<br/>
-				    * Implement xTeamSwap functions within this plugin.<br/>
-				    * Create database whitelist definitions for TeamSwap.<br/>
-				    * Add move, fmove, moveme as commands that use TeamSwap.<br/>
-				    * Refactor database logging to work with all commands.<br/>
-				    * Code cleanup and organize.<br/>
-				    * Player and admin messaging changes.<br/>
-				<h4>0.1.1 (6-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Punish and forgive commands changed to 'pun' and 'for', for ease of use in high punish/minute instances.<br/>
-				    * Now a player may only be punished once every x minutes, this removes the case where two admins can punish a player
-				for the same infraction.<br/>
-				<h4>0.1.2 (8-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Re-added editable command list.<br/>
-				<h4>0.1.3 (9-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Refactored settings and parsing to make the plugin more heavy while changing settings, but much lighter once in
-				use.<br/>
-				    * Added setting for whether a command will be logged or not. Adding '|log' to the end of a setting name will make
-				the plugin log uses of that command in the database. Default is logging for all action commands (which should be
-				fine for performance). Right now only Punish and Forgive are required to be logged.<br/>
-				    * Fixed move command, now sends player to TeamSwap once they have died.<br/>
-				<h4>0.1.4 (10-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Fixed bugs in command logging interface and command setting initialization.<br/>
-				<h4>0.1.5 (12-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Cleaned up messaging. Small bug fixes.<br/>
-				<h4>0.1.6 (14-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Optimized calling of listPlayers to a maximum of only once every 5 seconds or on call from a move command.<br/>
-				    * Fixed console spam at start of plugin.<br/>
-				    * Added update of admin list/teamswap list if a player isn't on it and trying a command.<br/>
-				    * Gave plugin control over table creation if not setup beforehand.<br/>
-                <h4>0.1.7 (15-MAY-2013)</h4>
-				<b>Changes</b> <br/>
-				    * Reconfigured Database connection handling and connection testing to follow best practices seen elsewhere.<br/>
-				    * Fixed bugs in the database structure confirmation and table setup sequence.<br/>
-				    * All yell messages will now be changed to uppercase before sending.<br/>
-				    * Added confirm action to all round targeted commands.<br/>
-				<br/>
-				TODO 1: Add watchlist use.
-			</blockquote>
-            ";
+            string pluginDescription = "DESCRIPTION FETCH FAILED|";
+            string pluginChangelog = "CHANGELOG FETCH FAILED";
+            WebClient client = new WebClient();
+            if (this.isRelease)
+            {
+                pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
+                pluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
+            }
+            else
+            {
+                pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/README.md");
+                pluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/CHANGELOG.md");
+            }
+            return pluginDescription + pluginChangelog;
         }
 
         #endregion
@@ -702,80 +364,97 @@ namespace PRoConEvents
         {
             List<CPluginVariable> lstReturn = new List<CPluginVariable>();
 
-            //Debug settings
-            lstReturn.Add(new CPluginVariable("Debugging|Debug level", typeof(int), this.debugLevel));
-
-            //Server Settings
-            lstReturn.Add(new CPluginVariable("Server Settings|Server ID", typeof(int), this.serverID));
-
-            //SQL Settings
-            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Hostname", typeof(string), mySqlHostname));
-            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Port", typeof(string), mySqlPort));
-            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Database", typeof(string), mySqlDatabaseName));
-            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Username", typeof(string), mySqlUsername));
-            lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Password", typeof(string), mySqlPassword));
-            //TODO implement advanced sql settings
-
-            //Ban Settings
-            lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.AdKats_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
-
-            //Command Settings
-            lstReturn.Add(new CPluginVariable("Command Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
-            lstReturn.Add(new CPluginVariable("Command Settings|Yell display time seconds", typeof(int), this.m_iShowMessageLength));
-            lstReturn.Add(new CPluginVariable("Command Settings|Confirm Command", typeof(string), m_strConfirmCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Cancel Command", typeof(string), m_strCancelCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Kill Player", typeof(string), m_strKillCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Kick Player", typeof(string), m_strKickCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Temp-Ban Player", typeof(string), m_strTemporaryBanCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Permaban Player", typeof(string), m_strPermanentBanCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Punish Player", typeof(string), m_strPunishCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Forgive Player", typeof(string), m_strForgiveCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|OnDeath Move Player", typeof(string), m_strMoveCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Force Move Player", typeof(string), m_strForceMoveCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Teamswap Self", typeof(string), m_strTeamswapCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Report Player", typeof(string), m_strReportCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Call Admin on Player", typeof(string), m_strCallAdminCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Admin Say", typeof(string), m_strSayCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Player Say", typeof(string), m_strPlayerSayCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Admin Yell", typeof(string), m_strYellCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Player Yell", typeof(string), m_strPlayerYellCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Restart Level", typeof(string), m_strRestartLevelCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|Next Level", typeof(string), m_strNextLevelCommand));
-            lstReturn.Add(new CPluginVariable("Command Settings|End Level", typeof(string), m_strEndLevelCommand));
-
-            //Punishment Settings
-            lstReturn.Add(new CPluginVariable("Punishment Settings|Act on Punishments", typeof(Boolean), this.actOnPunishments));
-            lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Hierarchy", typeof(string[]), this.punishmentHierarchy));
-            lstReturn.Add(new CPluginVariable("Punishment Settings|Only Kill Players when Server in low population", typeof(Boolean), this.onlyKillOnLowPop));
-            if (this.onlyKillOnLowPop)
+            try
             {
-                lstReturn.Add(new CPluginVariable("Punishment Settings|Low Population Value", typeof(int), this.lowPopPlayerCount));
-            }
-            lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Timeout", typeof(Double), this.punishmentTimeout));
+                //Debug settings
+                lstReturn.Add(new CPluginVariable("Debugging|Debug level", typeof(int), this.debugLevel));
 
-            //Admin Settings
-            lstReturn.Add(new CPluginVariable("Admin Settings|Use Database Admin List", typeof(Boolean), this.useDatabaseAdminList));
-            if (!this.useDatabaseAdminList)
-            {
-                lstReturn.Add(new CPluginVariable("Admin Settings|Static Admin List", typeof(string[]), this.staticAdminCache.ToArray()));
-            }
-            else
-            {
-                lstReturn.Add(new CPluginVariable("Admin Settings|Admin Table Name", typeof(string), this.tablename_adminlist));
-                lstReturn.Add(new CPluginVariable("Admin Settings|Column That Contains Admin Name", typeof(string), this.columnname_adminname));
-            }
-            //TeamSwap Settings
-            lstReturn.Add(new CPluginVariable("TeamSwap Settings|Require Whitelist for Access", typeof(Boolean), this.requireTeamswapWhitelist));
-            if (this.requireTeamswapWhitelist)
-            {
-                lstReturn.Add(new CPluginVariable("TeamSwap Settings|Use Database Whitelist", typeof(Boolean), this.useDatabaseTeamswapWhitelist));
-                if (!this.useDatabaseTeamswapWhitelist)
+                //Server Settings
+                lstReturn.Add(new CPluginVariable("Server Settings|Server ID", typeof(int), this.serverID));
+
+                //SQL Settings
+                lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Hostname", typeof(string), mySqlHostname));
+                lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Port", typeof(string), mySqlPort));
+                lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Database", typeof(string), mySqlDatabaseName));
+                lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Username", typeof(string), mySqlUsername));
+                lstReturn.Add(new CPluginVariable("MySQL Settings|MySQL Password", typeof(string), mySqlPassword));
+                //TODO implement advanced sql settings
+
+                //Ban Settings
+                lstReturn.Add(new CPluginVariable("Banning|Ban Type", "enum.ADKATs_BanType(Frostbite - Name|Frostbite - EA GUID|Punkbuster - GUID)", this.m_strBanTypeOption));
+
+                //Command Settings
+                lstReturn.Add(new CPluginVariable("Command Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
+                lstReturn.Add(new CPluginVariable("Command Settings|Yell display time seconds", typeof(int), this.m_iShowMessageLength));
+                lstReturn.Add(new CPluginVariable("Command Settings|Confirm Command", typeof(string), m_strConfirmCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Cancel Command", typeof(string), m_strCancelCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Kill Player", typeof(string), m_strKillCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Kick Player", typeof(string), m_strKickCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Temp-Ban Player", typeof(string), m_strTemporaryBanCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Permaban Player", typeof(string), m_strPermanentBanCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Punish Player", typeof(string), m_strPunishCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Forgive Player", typeof(string), m_strForgiveCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Mute Player", typeof(string), m_strMuteCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Round Whitelist Player", typeof(string), m_strRoundWhitelistCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|OnDeath Move Player", typeof(string), m_strMoveCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Force Move Player", typeof(string), m_strForceMoveCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Teamswap Self", typeof(string), m_strTeamswapCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Report Player", typeof(string), m_strReportCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Call Admin on Player", typeof(string), m_strCallAdminCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Admin Say", typeof(string), m_strSayCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Admin Pre-Say", typeof(string), m_strPreSayCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Player Say", typeof(string), m_strPlayerSayCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Admin Yell", typeof(string), m_strYellCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Admin Pre-Yell", typeof(string), m_strPreYellCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Player Yell", typeof(string), m_strPlayerYellCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Restart Level", typeof(string), m_strRestartLevelCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|Next Level", typeof(string), m_strNextLevelCommand));
+                lstReturn.Add(new CPluginVariable("Command Settings|End Level", typeof(string), m_strEndLevelCommand));
+
+                //Punishment Settings
+                lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Hierarchy", typeof(string[]), this.punishmentHierarchy));
+                lstReturn.Add(new CPluginVariable("Punishment Settings|Only Kill Players when Server in low population", typeof(Boolean), this.onlyKillOnLowPop));
+                if (this.onlyKillOnLowPop)
                 {
-                    lstReturn.Add(new CPluginVariable("TeamSwap Settings|Static Player Whitelist", typeof(string[]), this.staticTeamswapWhitelistCache.ToArray()));
+                    lstReturn.Add(new CPluginVariable("Punishment Settings|Low Population Value", typeof(int), this.lowPopPlayerCount));
                 }
+                lstReturn.Add(new CPluginVariable("Punishment Settings|Punishment Timeout", typeof(Double), this.punishmentTimeout));
+
+                //Admin Settings
+                lstReturn.Add(new CPluginVariable("Admin Settings|Use Database Admin List", typeof(Boolean), this.useDatabaseAdminList));
+                if (!this.useDatabaseAdminList)
+                {
+                    lstReturn.Add(new CPluginVariable("Admin Settings|Static Admin List", typeof(string[]), this.staticAdminCache.ToArray()));
+                }
+                else
+                {
+                    lstReturn.Add(new CPluginVariable("Admin Settings|Admin Table Name", typeof(string), this.tablename_adminlist));
+                    lstReturn.Add(new CPluginVariable("Admin Settings|Column That Contains Admin Name", typeof(string), this.columnname_adminname));
+                    lstReturn.Add(new CPluginVariable("Admin Settings|Current Database Admin List", typeof(string[]), this.databaseAdminCache.ToArray()));
+                }
+                //TeamSwap Settings
+                lstReturn.Add(new CPluginVariable("TeamSwap Settings|Require Whitelist for Access", typeof(Boolean), this.requireTeamswapWhitelist));
+                if (this.requireTeamswapWhitelist)
+                {
+                    lstReturn.Add(new CPluginVariable("TeamSwap Settings|Use Database Whitelist", typeof(Boolean), this.useDatabaseTeamswapWhitelist));
+                    if (!this.useDatabaseTeamswapWhitelist)
+                    {
+                        lstReturn.Add(new CPluginVariable("TeamSwap Settings|Static Player Whitelist", typeof(string[]), this.staticTeamswapWhitelistCache.ToArray()));
+                    }
+                    else
+                    {
+                        lstReturn.Add(new CPluginVariable("TeamSwap Settings|Current Database Whitelist", typeof(string[]), this.databaseTeamswapWhitelistCache.ToArray()));
+                    }
+                }
+                lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window High", typeof(int), this.teamSwapTicketWindowHigh));
+                lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window Low", typeof(int), this.teamSwapTicketWindowLow));
+
+                lstReturn.Add(new CPluginVariable("Messaging Settings|Pre-Message List", typeof(string[]), this.preMessageList.ToArray()));
             }
-            lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window High", typeof(int), this.teamSwapTicketWindowHigh));
-            lstReturn.Add(new CPluginVariable("TeamSwap Settings|Ticket Window Low", typeof(int), this.teamSwapTicketWindowLow));
+            catch (Exception e)
+            {
+                this.ConsoleException(e.ToString());
+            }
             return lstReturn;
         }
 
@@ -859,7 +538,6 @@ namespace PRoConEvents
             {
                 if (strValue.Length > 0)
                 {
-                    this.DebugWrite("ASSIGNING KILL: " + strValue, 6);
                     this.m_strKillCommand = strValue;
                     rebindAllCommands();
                 }
@@ -936,6 +614,30 @@ namespace PRoConEvents
                 else
                 {
                     this.m_strForgiveCommand = ADKAT_CommandType.ForgivePlayer + " COMMAND BLANK";
+                }
+            }
+            else if (Regex.Match(strVariable, @"Mute Player").Success)
+            {
+                if (strValue.Length > 0)
+                {
+                    this.m_strMuteCommand = strValue;
+                    rebindAllCommands();
+                }
+                else
+                {
+                    this.m_strMuteCommand = ADKAT_CommandType.MutePlayer + " COMMAND BLANK";
+                }
+            }
+            else if (Regex.Match(strVariable, @"Round Whitelist Player").Success)
+            {
+                if (strValue.Length > 0)
+                {
+                    this.m_strRoundWhitelistCommand = strValue;
+                    rebindAllCommands();
+                }
+                else
+                {
+                    this.m_strRoundWhitelistCommand = ADKAT_CommandType.RoundWhitelistPlayer + " COMMAND BLANK";
                 }
             }
             else if (Regex.Match(strVariable, @"OnDeath Move Player").Success)
@@ -1084,10 +786,6 @@ namespace PRoConEvents
             }
             #endregion
             #region punishment settings
-            else if (Regex.Match(strVariable, @"Act on Punishments").Success)
-            {
-                this.actOnPunishments = Boolean.Parse(strValue);
-            }
             else if (Regex.Match(strVariable, @"Punishment Hierarchy").Success)
             {
                 this.punishmentHierarchy = CPluginVariable.DecodeStringArray(strValue);
@@ -1227,6 +925,12 @@ namespace PRoConEvents
                 this.teamSwapTicketWindowLow = tmp;
             }
             #endregion
+            #region Messaging Settings
+            else if (Regex.Match(strVariable, @"Pre-Message List").Success)
+            {
+                this.preMessageList = new List<string>(CPluginVariable.DecodeStringArray(strValue));
+            }
+            #endregion
         }
 
         private void rebindAllCommands()
@@ -1245,6 +949,8 @@ namespace PRoConEvents
             this.m_strPermanentBanCommand = this.parseAddCommand(tempDictionary, this.m_strPermanentBanCommand, ADKAT_CommandType.PermabanPlayer);
             this.m_strPunishCommand = this.parseAddCommand(tempDictionary, this.m_strPunishCommand, ADKAT_CommandType.PunishPlayer);
             this.m_strForgiveCommand = this.parseAddCommand(tempDictionary, this.m_strForgiveCommand, ADKAT_CommandType.ForgivePlayer);
+            this.m_strMuteCommand = this.parseAddCommand(tempDictionary, this.m_strMuteCommand, ADKAT_CommandType.MutePlayer);
+            this.m_strRoundWhitelistCommand = this.parseAddCommand(tempDictionary, this.m_strRoundWhitelistCommand, ADKAT_CommandType.RoundWhitelistPlayer);
             this.m_strMoveCommand = this.parseAddCommand(tempDictionary, this.m_strMoveCommand, ADKAT_CommandType.MovePlayer);
             this.m_strForceMoveCommand = this.parseAddCommand(tempDictionary, this.m_strForceMoveCommand, ADKAT_CommandType.ForceMovePlayer);
             this.m_strTeamswapCommand = this.parseAddCommand(tempDictionary, this.m_strTeamswapCommand, ADKAT_CommandType.Teamswap);
@@ -1255,6 +961,10 @@ namespace PRoConEvents
             this.m_strPlayerSayCommand = this.parseAddCommand(tempDictionary, this.m_strPlayerSayCommand, ADKAT_CommandType.PlayerSay);
             this.m_strYellCommand = this.parseAddCommand(tempDictionary, this.m_strYellCommand, ADKAT_CommandType.AdminYell);
             this.m_strPlayerYellCommand = this.parseAddCommand(tempDictionary, this.m_strPlayerYellCommand, ADKAT_CommandType.PlayerYell);
+            this.m_strPreYellCommand = this.parseAddCommand(tempDictionary, this.m_strPreYellCommand, ADKAT_CommandType.PreYell);
+            this.m_strPreSayCommand = this.parseAddCommand(tempDictionary, this.m_strPreSayCommand, ADKAT_CommandType.PreSay);
+
+
             //Update level controls
             this.m_strRestartLevelCommand = this.parseAddCommand(tempDictionary, this.m_strRestartLevelCommand, ADKAT_CommandType.RestartLevel);
             this.m_strNextLevelCommand = this.parseAddCommand(tempDictionary, this.m_strNextLevelCommand, ADKAT_CommandType.NextLevel);
@@ -1289,7 +999,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.DebugWrite("Invalid command format for: " + enumCommand, 0);
+                        this.ConsoleError("Invalid command format for: " + enumCommand);
                         return enumCommand + " INVALID FORMAT";
                     }
                 }
@@ -1304,12 +1014,12 @@ namespace PRoConEvents
             catch (ArgumentException e)
             {
                 //The command attempting to add was the same name as another command currently in the dictionary, inform the user.
-                this.DebugWrite("Duplicate Command detected for " + enumCommand + ". That command will not work.", 0);
+                this.ConsoleError("Duplicate Command detected for " + enumCommand + ". That command will not work.");
                 return enumCommand + " DUPLICATE COMMAND";
             }
             catch (Exception e)
             {
-                this.DebugWrite("Unknown error for  " + enumCommand + ". Message: " + e.Message + ". Contact ColColonCleaner.", 0);
+                this.ConsoleError("Unknown error for  " + enumCommand + ". Message: " + e.Message + ". Contact ColColonCleaner.");
                 return enumCommand + " UNKNOWN ERROR";
             }
         }
@@ -1401,6 +1111,9 @@ namespace PRoConEvents
                 //perform player switching
                 this.runTeamSwap();
                 this.updating = false;
+
+                //Check the database for actions to take
+                //this.runActionsFromDB();
             }
         }
 
@@ -1415,7 +1128,17 @@ namespace PRoConEvents
                 int iTeam1Score = listCurrTeamScore[1].Score;
                 this.lowestTicketCount = (iTeam0Score < iTeam1Score) ? (iTeam0Score) : (iTeam1Score);
                 this.highestTicketCount = (iTeam0Score > iTeam1Score) ? (iTeam0Score) : (iTeam1Score);
+
+                //Check the database for actions to take
+                this.runActionsFromDB();
             }
+        }
+
+        public void OnLevelLoaded(string strMapFileName, string strMapMode, int roundsPlayed, int roundsTotal)
+        {
+            this.round_reports = new Dictionary<string, ADKAT_Record>();
+            this.round_mutedPlayers = new Dictionary<string, int>();
+            this.teamswapRoundWhitelist = new List<string>();
         }
 
         //execute the swap code on player leaving
@@ -1483,6 +1206,15 @@ namespace PRoConEvents
             }
         }
 
+        public override void OnPlayerSpawned(String soldierName, Inventory spawnedInventory)
+        {
+            if (!toldCol && soldierName == "ColColonCleaner" && isRelease)
+            {
+                this.ExecuteCommand("procon.protected.send", "admin.yell", "CONGRATS! This server has version " + this.plugin_version + " of AdKats installed!", "20", "player", soldierName);
+                this.toldCol = true;
+            }
+        }
+
         #endregion
 
         #region Procon Events : Messaging
@@ -1492,6 +1224,35 @@ namespace PRoConEvents
         {
             if (isEnabled)
             {
+                //Check if the player is muted
+                if (this.round_mutedPlayers.ContainsKey(speaker))
+                {
+                    //Increment the muted chat count
+                    this.round_mutedPlayers[speaker] = this.round_mutedPlayers[speaker] + 1;
+                    //Get player info
+                    CPlayerInfo player_info = this.currentPlayers[speaker];
+                    //Create record
+                    ADKAT_Record record = new ADKAT_Record();
+                    record.server_id = this.serverID;
+                    record.record_time = DateTime.Now;
+                    record.record_durationMinutes = 0;
+                    record.source_name = "PlayerMuteSystem";
+                    record.target_guid = player_info.GUID;
+                    record.target_name = speaker;
+                    record.targetPlayerInfo = player_info;
+                    if (this.round_mutedPlayers[speaker] > 5)
+                    {
+                        record.record_message = "Kicking Muted Player. >5 Chat messages while muted.";
+                        record.command_type = ADKAT_CommandType.KickPlayer;
+                    }
+                    else
+                    {
+                        record.record_message = "Muted player speaking in chat.";
+                        record.command_type = ADKAT_CommandType.KillPlayer;
+                    }
+                    this.processRecord(record);
+                    return;
+                }
                 if (message.StartsWith("@") || message.StartsWith("!"))
                 {
                     message = message.Substring(1);
@@ -1655,10 +1416,9 @@ namespace PRoConEvents
             if (commandType == ADKAT_CommandType.Default)
             {
                 DebugWrite("Command not parsable", 6);
-                this.playerSayMessage(speaker, "Invalid command format.");
                 return;
             }
-            message = message.TrimStart(commandString.ToCharArray()).Trim();
+            message = message.TrimStart(splitCommand[0].ToCharArray()).Trim();
             record.command_type = commandType;
 
             //GATE 3: Add source
@@ -1666,7 +1426,7 @@ namespace PRoConEvents
             if (!this.hasAccess(speaker, record.command_type))
             {
                 DebugWrite("No rights to call command", 6);
-                this.playerSayMessage(speaker, "No rights to use " + commandString + " command. Inquire about access on ADKGamers.com");
+                this.playerSayMessage(speaker, "No rights to use " + commandString + " command. Inquire about access with admins.");
                 //Return without creating if player doesn't have rights to do it
                 return;
             }
@@ -1687,6 +1447,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.MovePlayer:
                     try
                     {
+                        //Handle based on report ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         DebugWrite("target: " + record.target_name, 6);
                     }
@@ -1705,6 +1468,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.ForceMovePlayer:
                     try
                     {
+                        //Handle based on report ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         DebugWrite("target: " + record.target_name, 6);
                         record.record_message = "ForceMove";
@@ -1731,6 +1497,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.KillPlayer:
                     try
                     {
+                        //Handle based on report ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -1756,6 +1525,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.KickPlayer:
                     try
                     {
+                        //Handle based on report ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -1785,6 +1557,10 @@ namespace PRoConEvents
                         DebugWrite("Raw Duration: " + splitCommand[1], 6);
                         Boolean valid = Int32.TryParse(splitCommand[1], out record_duration);
                         record.record_durationMinutes = record_duration;
+
+                        //Handle based on report ID if possible
+                        if (this.handleRoundReport(record, splitCommand[2])) { return; }
+
                         message = message.TrimStart(splitCommand[1].ToCharArray()).Trim();
                         record.target_name = splitCommand[2];
                         DebugWrite("target: " + record.target_name, 6);
@@ -1811,6 +1587,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.PermabanPlayer:
                     try
                     {
+                        //Handle based on report ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -1836,6 +1615,9 @@ namespace PRoConEvents
                 case ADKAT_CommandType.PunishPlayer:
                     try
                     {
+                        //Handle based on report ID if possible
+                        if(this.handleRoundReport(record, splitCommand[1])){return;}
+
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -1861,6 +1643,62 @@ namespace PRoConEvents
                 case ADKAT_CommandType.ForgivePlayer:
                     try
                     {
+                        record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
+                        DebugWrite("target: " + record.target_name, 6);
+                        record.record_message = message;
+                        DebugWrite("reason: " + record.record_message, 6);
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
+                        return;
+                    }
+                    if (record.record_message.Length < this.requiredReasonLength)
+                    {
+                        DebugWrite("reason too short", 6);
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
+                        return;
+                    }
+                    confirmPlayerName(record);
+                    break;
+                #endregion
+                #region MutePlayer
+                case ADKAT_CommandType.MutePlayer:
+                    try
+                    {
+                        //Handle based on report ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
+                        record.target_name = splitCommand[1];
+                        message = message.TrimStart(record.target_name.ToCharArray()).Trim();
+                        DebugWrite("target: " + record.target_name, 6);
+                        record.record_message = message;
+                        DebugWrite("reason: " + record.record_message, 6);
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format or no reason given, unable to submit.");
+                        return;
+                    }
+                    if (record.record_message.Length < this.requiredReasonLength)
+                    {
+                        DebugWrite("reason too short", 6);
+                        this.playerSayMessage(speaker, "Reason too short, unable to submit.");
+                        return;
+                    }
+                    confirmPlayerName(record);
+                    break;
+                #endregion
+                #region RoundWhitelistPlayer
+                case ADKAT_CommandType.RoundWhitelistPlayer:
+                    try
+                    {
+                        //Handle based on report ID if possible
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
+
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
                         DebugWrite("target: " + record.target_name, 6);
@@ -2000,6 +1838,45 @@ namespace PRoConEvents
                     this.processRecord(record);
                     break;
                 #endregion
+                #region PreSay
+                case ADKAT_CommandType.PreSay:
+                    record.target_name = "Server";
+                    record.target_guid = "Server";
+                    try
+                    {
+                        if (this.preMessageList.Count > 0)
+                        {
+                            int preSayID = 0;
+                            DebugWrite("Raw preSayID: " + splitCommand[1], 6);
+                            Boolean valid = Int32.TryParse(splitCommand[1], out preSayID);
+                            if (valid && (preSayID > 0) && (preSayID <= this.preMessageList.Count))
+                            {
+                                record.record_message = this.preMessageList[preSayID - 1];
+                                record.command_type = ADKAT_CommandType.AdminSay;
+                            }
+                            else
+                            {
+                                DebugWrite("invalid pre message id", 6);
+                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 1-" + (this.preMessageList.Count));
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            DebugWrite("no premessages stored", 6);
+                            this.playerSayMessage(speaker, "No Pre-Messages stored");
+                            return;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format, no pre-message ID given. Valid IDs 1-" + (this.preMessageList.Count));
+                        return;
+                    }
+                    confirmAction(record);
+                    break;
+                #endregion
                 #region AdminYell
                 case ADKAT_CommandType.AdminYell:
                     record.target_name = "Server";
@@ -2017,6 +1894,45 @@ namespace PRoConEvents
                         return;
                     }
                     this.processRecord(record);
+                    break;
+                #endregion
+                #region PreYell
+                case ADKAT_CommandType.PreYell:
+                    record.target_name = "Server";
+                    record.target_guid = "Server";
+                    try
+                    {
+                        if (this.preMessageList.Count > 0)
+                        {
+                            int preYellID = 0;
+                            DebugWrite("Raw preYellID: " + splitCommand[1], 6);
+                            Boolean valid = Int32.TryParse(splitCommand[1], out preYellID);
+                            if (valid && (preYellID > 0) && (preYellID <= this.preMessageList.Count))
+                            {
+                                record.record_message = this.preMessageList[preYellID-1];
+                                record.command_type = ADKAT_CommandType.AdminYell;
+                            }
+                            else
+                            {
+                                DebugWrite("invalid pre message id", 6);
+                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 1-" + (this.preMessageList.Count));
+                                return;
+                            }
+                        }
+                        else
+                        {
+                            DebugWrite("no premessages stored", 6);
+                            this.playerSayMessage(speaker, "No Pre-Messages stored");
+                            return;
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        DebugWrite("invalid format", 6);
+                        this.playerSayMessage(speaker, "Invalid command format, no Pre-Message ID given. Valid IDs 1-" + (this.preMessageList.Count));
+                        return;
+                    }
+                    confirmAction(record);
                     break;
                 #endregion
                 #region PlayerSay
@@ -2079,18 +1995,26 @@ namespace PRoConEvents
             return;
         }
 
-        //Attempts to parse the command from a string
+        //Attempts to parse the command from a in-game string
         private ADKAT_CommandType getCommand(string commandString)
         {
             ADKAT_CommandType command = ADKAT_CommandType.Default;
             this.ADKAT_CommandStrings.TryGetValue(commandString, out command);
             return command;
         }
+        
+        //Attempts to parse the command from a database string
+        private ADKAT_CommandType getDBCommand(string commandString)
+        {
+            ADKAT_CommandType command = ADKAT_CommandType.Default;
+            this.ADKAT_RecordTypesInv.TryGetValue(commandString, out command);
+            return command;
+        }
 
         public void confirmAction(ADKAT_Record record)
         {
             //Send record to attempt list
-            this.playerSayMessage(record.source_name, "Confirm Action: " + record.record_message);
+            this.playerSayMessage(record.source_name, "Confirm " + record.command_type + "->" + record.target_name + ": " + record.record_message);
             this.actionAttemptList.Remove(record.source_name);
             this.actionAttemptList.Add(record.source_name, record);
         }
@@ -2098,84 +2022,163 @@ namespace PRoConEvents
         //Used for player name suggestion
         public void confirmPlayerName(ADKAT_Record record)
         {
-            //Check if player exists in the game, or suggest a player
-            foreach (CPlayerInfo playerInfo in this.playerList)
+            //Code brought in part by PapaCharlie9
+            Converter<String, List<CPlayerInfo>> ExactNameMatches = delegate(String sub)
             {
-                //If they entered the full player name, dont ask for completion just process it
-                if (playerInfo.SoldierName.ToLower().Equals(record.target_name.ToLower()))
+                List<CPlayerInfo> matches = new List<CPlayerInfo>();
+
+                if (String.IsNullOrEmpty(sub)) return matches;
+
+                foreach (CPlayerInfo player in this.playerList)
                 {
-                    //Player found, grab guid and name
-                    record.target_guid = playerInfo.GUID;
-                    record.target_name = playerInfo.SoldierName;
-                    record.targetPlayerInfo = playerInfo;
-                    //Process record right away
-                    this.processRecord(record);
-                    return;
+                    if (Regex.Match(player.SoldierName, sub, RegexOptions.IgnoreCase).Success)
+                    {
+                        matches.Add(player);
+                    }
                 }
-                //If they entered a partial name then suggest the first player that contains the partial they entered
-                else if (playerInfo.SoldierName.ToLower().Contains(record.target_name.ToLower()))
-                {
-                    //Possible player found, grab guid
-                    record.target_guid = playerInfo.GUID;
-                    record.target_name = playerInfo.SoldierName;
-                    record.targetPlayerInfo = playerInfo;
-                    //Send record to attempt list
-                    this.playerSayMessage(record.source_name, "Did you mean: " + playerInfo.SoldierName + "?");
-                    this.actionAttemptList.Remove(record.source_name);
-                    this.actionAttemptList.Add(record.source_name, record);
-                    return;
-                }
+                return matches;
+            };
+            // Use the function to find all matches
+            List<CPlayerInfo> playerMatches = ExactNameMatches(record.target_name);
+            String msg = null;
+
+            if (playerMatches.Count == 0)
+            {
+                this.playerSayMessage(record.source_name, "No match for: " + record.target_name);
+                return;
             }
-            //No player found
-            DebugWrite("player not found", 6);
-            this.playerSayMessage(record.source_name, "Player not found.");
+            if (playerMatches.Count > 1)
+            {
+                //Inform speaker of multiple players found
+                msg = @"'" + record.target_name + @"' matches multiple players: ";
+                bool first = true;
+                foreach (CPlayerInfo player in playerMatches)
+                {
+                    if (first)
+                    {
+                        msg = msg + player.SoldierName;
+                        first = false;
+                    }
+                    else
+                    {
+                        msg = msg + ", " + player.SoldierName;
+                    }
+                }
+                this.playerSayMessage(record.source_name, msg);
+                //Possible player found, grab guid
+                record.target_guid = playerMatches[0].GUID;
+                record.target_name = playerMatches[0].SoldierName;
+                //Send record to attempt list
+                this.playerSayMessage(record.source_name, record.command_type + ": " + playerMatches[0].SoldierName + "?");
+                this.actionAttemptList.Remove(record.source_name);
+                this.actionAttemptList.Add(record.source_name, record);
+                return;
+            }
+            // Otherwise just one exact match
+            record.target_name = playerMatches[0].SoldierName;
+            record.target_guid = playerMatches[0].GUID;
+            record.targetPlayerInfo = playerMatches[0];
+            //Process record right away
+            this.processRecord(record);
             return;
+        }
+
+        private void processRecord(ADKAT_Record record)
+        {
+            //Call handle upload with the record. And if handled properly, call record actions.
+            if (this.handleRecordUpload(record))
+            {
+                this.runAction(record);
+            }
+        }
+        
+        private void runAction(ADKAT_Record record)
+        {
+            //Perform Actions
+            switch (record.command_type)
+            {
+                case ADKAT_CommandType.MovePlayer:
+                    this.moveTarget(record);
+                    break;
+                case ADKAT_CommandType.ForceMovePlayer:
+                    this.forceMoveTarget(record);
+                    break;
+                case ADKAT_CommandType.Teamswap:
+                    this.forceMoveTarget(record);
+                    break;
+                case ADKAT_CommandType.KillPlayer:
+                    this.killTarget(record, "");
+                    break;
+                case ADKAT_CommandType.KickPlayer:
+                    this.kickTarget(record, "");
+                    break;
+                case ADKAT_CommandType.TempBanPlayer:
+                    this.tempBanTarget(record, "");
+                    break;
+                case ADKAT_CommandType.PermabanPlayer:
+                    this.permaBanTarget(record, "");
+                    break;
+                case ADKAT_CommandType.PunishPlayer:
+                    this.punishTarget(record);
+                    break;
+                case ADKAT_CommandType.ForgivePlayer:
+                    this.forgiveTarget(record);
+                    break;
+                case ADKAT_CommandType.MutePlayer:
+                    this.muteTarget(record);
+                    break;
+                case ADKAT_CommandType.RoundWhitelistPlayer:
+                    this.roundWhitelistTarget(record);
+                    break;
+                case ADKAT_CommandType.ReportPlayer:
+                    this.reportTarget(record);
+                    break;
+                case ADKAT_CommandType.CallAdmin:
+                    this.callAdminOnTarget(record);
+                    break;
+                case ADKAT_CommandType.RestartLevel:
+                    this.restartLevel(record);
+                    break;
+                case ADKAT_CommandType.NextLevel:
+                    this.nextLevel(record);
+                    break;
+                case ADKAT_CommandType.EndLevel:
+                    this.endLevel(record);
+                    break;
+                case ADKAT_CommandType.AdminSay:
+                    this.adminSay(record);
+                    break;
+                case ADKAT_CommandType.PlayerSay:
+                    this.playerSay(record);
+                    break;
+                case ADKAT_CommandType.AdminYell:
+                    this.adminYell(record);
+                    break;
+                case ADKAT_CommandType.PlayerYell:
+                    this.playerYell(record);
+                    break;
+                default:
+                    this.DebugWrite("Command not found in runAction", 5);
+                    break;
+            }
         }
 
         /*
          * This method handles uploading of records and calling their action methods
          * Will only upload a record if upload setting for that command is true, or if uploading is required
          */
-        private void processRecord(ADKAT_Record record)
+        private Boolean handleRecordUpload(ADKAT_Record record)
         {
-            //Perform Actions
+            Boolean couldHandle = false;
             switch (record.command_type)
             {
-                case ADKAT_CommandType.MovePlayer:
-                    this.conditionalUploadRecord(record);
-                    this.moveTarget(record);
-                    break;
-                case ADKAT_CommandType.ForceMovePlayer:
-                    this.conditionalUploadRecord(record);
-                    this.forceMoveTarget(record);
-                    break;
-                case ADKAT_CommandType.Teamswap:
-                    this.conditionalUploadRecord(record);
-                    this.forceMoveTarget(record);
-                    break;
-                case ADKAT_CommandType.KillPlayer:
-                    this.conditionalUploadRecord(record);
-                    this.killTarget(record, "");
-                    break;
-                case ADKAT_CommandType.KickPlayer:
-                    this.conditionalUploadRecord(record);
-                    this.kickTarget(record, "");
-                    break;
-                case ADKAT_CommandType.TempBanPlayer:
-                    this.conditionalUploadRecord(record);
-                    this.tempBanTarget(record, "");
-                    break;
-                case ADKAT_CommandType.PermabanPlayer:
-                    this.conditionalUploadRecord(record);
-                    this.permaBanTarget(record, "");
-                    break;
                 case ADKAT_CommandType.PunishPlayer:
                     //If the record is a punish, check if it can be uploaded
                     if (this.canPunish(record))
                     {
                         //Upload for punish is required
                         this.uploadRecord(record);
-                        this.punishTarget(record);
+                        couldHandle = true;
                     }
                     else
                     {
@@ -2186,47 +2189,14 @@ namespace PRoConEvents
                     //Upload for forgive is required
                     //No restriction on forgives/minute
                     this.uploadRecord(record);
-                    this.forgiveTarget(record);
-                    break;
-                case ADKAT_CommandType.ReportPlayer:
-                    this.conditionalUploadRecord(record);
-                    this.reportTarget(record);
-                    break;
-                case ADKAT_CommandType.CallAdmin:
-                    this.conditionalUploadRecord(record);
-                    this.callAdminOnTarget(record);
-                    break;
-                case ADKAT_CommandType.RestartLevel:
-                    this.conditionalUploadRecord(record);
-                    this.restartLevel(record);
-                    break;
-                case ADKAT_CommandType.NextLevel:
-                    this.conditionalUploadRecord(record);
-                    this.nextLevel(record);
-                    break;
-                case ADKAT_CommandType.EndLevel:
-                    this.conditionalUploadRecord(record);
-                    this.endLevel(record);
-                    break;
-                case ADKAT_CommandType.AdminSay:
-                    this.conditionalUploadRecord(record);
-                    this.adminSay(record);
-                    break;
-                case ADKAT_CommandType.PlayerSay:
-                    this.conditionalUploadRecord(record);
-                    this.playerSay(record);
-                    break;
-                case ADKAT_CommandType.AdminYell:
-                    this.conditionalUploadRecord(record);
-                    this.adminYell(record);
-                    break;
-                case ADKAT_CommandType.PlayerYell:
-                    this.conditionalUploadRecord(record);
-                    this.playerYell(record);
+                    couldHandle = true;
                     break;
                 default:
+                    this.conditionalUploadRecord(record);
+                    couldHandle = true;
                     break;
             }
+            return couldHandle;
         }
 
         //Checks the logging setting for a record type to see if it should be sent to database
@@ -2248,6 +2218,24 @@ namespace PRoConEvents
         #endregion
 
         #region Action Methods
+
+        public Boolean handleRoundReport(ADKAT_Record record, String reportID)
+        {
+            Boolean acted = false;
+            if (this.round_reports.ContainsKey(reportID))
+            {
+                ADKAT_Record reportedRecord = this.round_reports[reportID];
+                record.target_guid = reportedRecord.target_guid;
+                record.target_name = reportedRecord.target_name;
+                record.targetPlayerInfo = reportedRecord.targetPlayerInfo;
+                record.record_message = reportedRecord.record_message;
+                this.playerSayMessage(reportedRecord.source_name, "Your report/admincall has been acted on. Thank you.");
+                this.confirmAction(record);
+                this.round_reports.Remove(reportID);
+                acted = true;
+            }
+            return acted;
+        }
 
         public void moveTarget(ADKAT_Record record)
         {
@@ -2287,16 +2275,16 @@ namespace PRoConEvents
         {
             //Perform actions
             ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_name);
-            this.playerSayMessage(record.target_name, "Killed by admin for: " + record.record_message + ". " + additionalMessage);
+            this.playerSayMessage(record.target_name, "Killed by admin for: " + record.record_message + " " + additionalMessage);
             this.playerSayMessage(record.source_name, "You KILLED " + record.target_name + " for " + record.record_message + ". " + additionalMessage);
         }
 
         public void kickTarget(ADKAT_Record record, string additionalMessage)
         {
             //Perform Actions
-            ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_name, record.record_message + ". " + additionalMessage);
-            this.playerSayMessage(record.target_name, "Killed by admin for: " + record.record_message + "." + additionalMessage);
-            this.playerSayMessage(record.source_name, "You KICKED " + record.target_name + " for " + record.record_message + ". ");
+            ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_name, "(" + record.source_name + ") " + record.record_message + " " + additionalMessage);
+            this.playerSayMessage(record.source_name, "You KICKED " + record.target_name + " for " + record.record_message + " ");
+            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was KICKED by admin: " + record.record_message + " " + additionalMessage, "all");
         }
 
         public void tempBanTarget(ADKAT_Record record, string additionalMessage)
@@ -2306,22 +2294,23 @@ namespace PRoConEvents
             switch (this.m_banMethod)
             {
                 case ADKAT_BanType.FrostbiteName:
-                    ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_name, "seconds", seconds + "", record.record_message + ". " + additionalMessage);
+                    ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_name, "seconds", seconds + "", "(" + record.source_name + ") " + record.record_message + " " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
                 case ADKAT_BanType.FrostbiteEaGuid:
-                    ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "seconds", seconds + "", record.record_message + ". " + additionalMessage);
+                    ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "seconds", seconds + "", "(" + record.source_name + ") " + record.record_message + " " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
                 case ADKAT_BanType.PunkbusterGuid:
-                    this.ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", String.Format("pb_sv_kick \"{0}\" {1} \"{2}\"", record.target_name, record.record_durationMinutes.ToString(), "BC2! " + record.record_message + ". " + additionalMessage));
+                    this.ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", String.Format("pb_sv_kick \"{0}\" {1} \"{2}\"", record.target_name, record.record_durationMinutes.ToString(), "BC2! " + "(" + record.source_name + ") " + record.record_message + " " + additionalMessage));
                     break;
                 default:
                     break;
             }
             this.playerSayMessage(record.source_name, "You TEMP BANNED " + record.target_name + " for " + record.record_durationMinutes + " minutes. " + additionalMessage);
+            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was TEMP BANNED by admin for " + record.record_message + " " + additionalMessage, "all");
         }
 
         public void permaBanTarget(ADKAT_Record record, string additionalMessage)
@@ -2330,71 +2319,69 @@ namespace PRoConEvents
             switch (this.m_banMethod)
             {
                 case ADKAT_BanType.FrostbiteName:
-                    ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_name, "perm", record.record_message + ". " + additionalMessage);
+                    ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_name, "perm", "(" + record.source_name + ") " + record.record_message + " " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
                 case ADKAT_BanType.FrostbiteEaGuid:
-                    ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "perm", record.record_message + ". " + additionalMessage);
+                    ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_guid, "perm", "(" + record.source_name + ") " + record.record_message + " " + additionalMessage);
                     ExecuteCommand("procon.protected.send", "banList.save");
                     ExecuteCommand("procon.protected.send", "banList.list");
                     break;
                 case ADKAT_BanType.PunkbusterGuid:
-                    this.ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", String.Format("pb_sv_ban \"{0}\" \"{1}\"", record.target_name, "BC2! " + record.record_message + ". " + additionalMessage));
+                    this.ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", String.Format("pb_sv_ban \"{0}\" \"{1}\"", record.target_name, "BC2! " + "(" + record.source_name + ") " + record.record_message + " " + additionalMessage));
                     break;
                 default:
                     break;
             }
-            this.playerSayMessage(record.source_name, "You PERMA BANNED " + record.target_name + "! Get a vet admin NOW!" + additionalMessage);
+            this.playerSayMessage(record.source_name, "You PERMA BANNED " + record.target_name + "! Get a vet admin NOW! " + additionalMessage);
+            this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was BANNED by admin for " + record.record_message + " " + additionalMessage, "all");
         }
 
         public void punishTarget(ADKAT_Record record)
         {
-            if (this.actOnPunishments)
+            //Get number of points the player from server
+            int points = this.fetchPoints(record.target_guid, this.serverID);
+            //Get the proper action to take for player punishment
+            string action = "noaction";
+            if (points > (this.punishmentHierarchy.Length - 1))
             {
-                //Get number of points the player from server
-                int points = this.fetchPoints(record.target_guid, this.serverID);
-                //Get the proper action to take for player punishment
-                string action = "noaction";
-                if (points > (this.punishmentHierarchy.Length - 1))
-                {
-                    action = this.punishmentHierarchy[this.punishmentHierarchy.Length - 1];
-                }
-                else if (points > 0)
-                {
-                    action = this.punishmentHierarchy[points - 1];
-                }
-                //Set additional message
-                string additionalMessage = "(" + points + " infraction points)";
+                action = this.punishmentHierarchy[this.punishmentHierarchy.Length - 1];
+            }
+            else if (points > 0)
+            {
+                action = this.punishmentHierarchy[points - 1];
+            }
+            //Set additional message
+            string additionalMessage = "(" + points + " infraction points)";
 
-                //Call correct action
-                if (action.Equals("kill") || (this.onlyKillOnLowPop && this.playerList.Count < this.lowPopPlayerCount))
-                {
-                    this.killTarget(record, additionalMessage);
-                }
-                else if (action.Equals("kick"))
-                {
-                    this.kickTarget(record, additionalMessage);
-                }
-                else if (action.Equals("tban60"))
-                {
-                    record.record_durationMinutes = 60;
-                    this.tempBanTarget(record, additionalMessage);
-                }
-                else if (action.Equals("tbanweek"))
-                {
-                    record.record_durationMinutes = 10080;
-                    this.tempBanTarget(record, additionalMessage);
-                }
-                else if (action.Equals("ban"))
-                {
-                    this.permaBanTarget(record, additionalMessage);
-                }
+            //Call correct action
+            if (action.Equals("kill") || (this.onlyKillOnLowPop && this.playerList.Count < this.lowPopPlayerCount))
+            {
+                this.killTarget(record, additionalMessage);
+            }
+            else if (action.Equals("kick"))
+            {
+                this.kickTarget(record, additionalMessage);
+            }
+            else if (action.Equals("tban60"))
+            {
+                record.record_durationMinutes = 60;
+                this.tempBanTarget(record, additionalMessage);
+            }
+            else if (action.Equals("tbanweek"))
+            {
+                record.record_durationMinutes = 10080;
+                this.tempBanTarget(record, additionalMessage);
+            }
+            else if (action.Equals("ban"))
+            {
+                this.permaBanTarget(record, additionalMessage);
             }
             else
             {
-                this.playerSayMessage(record.source_name, "Punish Logged for " + record.target_name);
-                this.uploadAction(record);
+                this.playerSayMessage(record.source_name, "Punish options are set incorrectly. Inform plugin setting manager.");
+                this.killTarget(record, additionalMessage);
             }
         }
 
@@ -2404,30 +2391,89 @@ namespace PRoConEvents
             this.playerSayMessage(record.target_name, "Forgiven 1 infraction point. You now have " + this.fetchPoints(record.target_guid, record.server_id) + " point(s) against you.");
         }
 
+        public void muteTarget(ADKAT_Record record)
+        {
+            if (!this.isAdmin(record.target_name))
+            {
+                if (!this.round_mutedPlayers.ContainsKey(record.target_name))
+                {
+                    this.round_mutedPlayers.Add(record.target_name, 0);
+                    this.playerSayMessage(record.target_name, "You have been muted by an admin, talking will cause punishment. You will be unmuted next round.");
+                    this.playerSayMessage(record.source_name, record.target_name + " has been muted for this round.");
+                }
+                else
+                {
+                    this.playerSayMessage(record.source_name, record.target_name + " already muted for this round.");
+                }
+            }
+            else
+            {
+                this.playerSayMessage(record.source_name, "You can't mute an admin, dimwit.");
+            }
+        }
+
+        public void roundWhitelistTarget(ADKAT_Record record)
+        {
+            if (!this.teamswapRoundWhitelist.Contains(record.target_name))
+            {
+                if (this.teamswapRoundWhitelist.Count < 2)
+                {
+                    this.teamswapRoundWhitelist.Add(record.target_name);
+                    this.ExecuteCommand("procon.protected.send", "admin.say", record.target_name + " can now use '@moveme' for this round.", "all");
+                }
+                else
+                {
+                    this.playerSayMessage(record.source_name, "Cannot whitelist more than two people per round.");
+                }
+            }
+            else
+            {
+                this.playerSayMessage(record.source_name, record.target_name + " is already in this round's teamswap whitelist.");
+            }
+        }
+
         public void reportTarget(ADKAT_Record record)
         {
+            Random random = new Random();
+            int reportID;
+            do
+            {
+                reportID = random.Next(100, 999);
+            } while (round_reports.ContainsKey(reportID + ""));
+
+            this.round_reports.Add(reportID + "", record);
+
             foreach (String admin_name in this.databaseAdminCache)
             {
-                this.playerSayMessage(admin_name, "REPORT: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
+                this.playerSayMessage(admin_name, "REPORT [" + reportID + "]: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
             }
             foreach (String admin_name in this.staticAdminCache)
             {
-                this.playerSayMessage(admin_name, "REPORT: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
+                this.playerSayMessage(admin_name, "REPORT [" + reportID + "]: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
             }
-            this.playerSayMessage(record.source_name, "Report sent to admins on " + record.target_name + " for " + record.record_message);
+            this.playerSayMessage(record.source_name, "REPORT [" + reportID + "] sent. " + record.target_name + " for " + record.record_message);
         }
 
         public void callAdminOnTarget(ADKAT_Record record)
         {
+            Random random = new Random();
+            int reportID;
+            do
+            {
+                reportID = random.Next(100, 999);
+            } while (round_reports.ContainsKey(reportID + ""));
+
+            this.round_reports.Add(reportID + "", record);
+
             foreach (String admin_name in this.databaseAdminCache)
             {
-                this.playerSayMessage(admin_name, "ADMIN CALL: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
+                this.playerSayMessage(admin_name, "ADMIN CALL [" + reportID + "]: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
             }
             foreach (String admin_name in this.staticAdminCache)
             {
-                this.playerSayMessage(admin_name, "ADMIN CALL: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
+                this.playerSayMessage(admin_name, "ADMIN CALL [" + reportID + "]: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
             }
-            this.playerSayMessage(record.source_name, "Admin call sent on " + record.target_name + " for " + record.record_message);
+            this.playerSayMessage(record.source_name, "ADMIN CALL [" + reportID + "] sent. " + record.target_name + " for " + record.record_message);
         }
 
         public void restartLevel(ADKAT_Record record)
@@ -2493,7 +2539,7 @@ namespace PRoConEvents
             }
             else
             {
-                this.DebugWrite("Attempted to connect to database without all variables in place", 0);
+                this.DebugWrite("Attempted to connect to database without all variables in place", 2);
                 return null;
             }
         }
@@ -2509,18 +2555,18 @@ namespace PRoConEvents
                     //Prepare the connection string and create the connection object
                     using (MySqlConnection databaseConnection = this.getDatabaseConnection())
                     {
-                        this.DebugWrite("Attempting database connection.", 0);
+                        this.ConsoleWrite("Attempting database connection.");
                         //Attempt a ping through the connection
                         if (databaseConnection.Ping())
                         {
                             //Connection good
-                            this.DebugWrite("Database connection SUCCESS.", 0);
+                            this.ConsoleWrite("Database connection SUCCESS.");
                             success = true;
                         }
                         else
                         {
                             //Connection poor
-                            this.DebugWrite("Database connection FAILED ping test.", 0);
+                            this.ConsoleError("Database connection FAILED ping test.");
                         }
                     } //databaseConnection gets closed here
                     if (success)
@@ -2536,12 +2582,12 @@ namespace PRoConEvents
                 catch (Exception e)
                 {
                     //Invalid credentials or no connection to database
-                    this.DebugWrite("Database connection FAILED with EXCEPTION. Probably bad credentials.", 0);
+                    this.ConsoleError("Database connection FAILED with EXCEPTION. Bad credentials, invalid hostname, or invalid port.");
                 }
             }
             else
             {
-                this.DebugWrite("Not DB connection capable yet, complete sql connection variables.", 0);
+                this.ConsoleWrite("Not DB connection capable yet, complete sql connection variables.");
             }
             DebugWrite("testDatabaseConnection finished!", 6);
         }
@@ -2558,47 +2604,32 @@ namespace PRoConEvents
                 Boolean confirmed = true;
                 if (!this.confirmTable("adkat_records"))
                 {
-                    ConsoleWrite("^b^1Main Record table not present in the database.^n^0");
+                    this.ConsoleError("Main Record table not present in the database.");
                     this.runDBSetupScript();
                     if (!this.confirmTable("adkat_records"))
                     {
-                        this.DebugWrite("After running setup script main record table still not present. ColonCleaner is fail :(", 3);
+                        this.ConsoleError("After running setup script main record table still not present.");
                         confirmed = false;
                     }
                 }
                 if (this.useDatabaseTeamswapWhitelist && !this.confirmTable("adkat_teamswapwhitelist"))
                 {
-                    ConsoleWrite("^b^1adkat_teamswapwhitelist not present in the database. AdKats will not function properly.^n^0");
+                    ConsoleError("adkat_teamswapwhitelist not present in the database. AdKats will not function properly.");
                     confirmed = false;
                 }
                 if (this.useDatabaseAdminList && !this.confirmTable(this.tablename_adminlist))
                 {
-                    ConsoleWrite("^b^1" + this.tablename_adminlist + " not present in the database. AdKats will not function properly.^n^0");
-                    confirmed = false;
-                }
-                if (!this.confirmTable("adkat_actionlist"))
-                {
-                    ConsoleWrite("^b^1adkat_actionlist not present in the database. AdKats will not function properly.^n^0");
+                    ConsoleError(this.tablename_adminlist + " not present in the database. AdKats will not function properly.");
                     confirmed = false;
                 }
                 if (!this.confirmTable("adkat_playerlist"))
                 {
-                    ConsoleWrite("^b^1adkat_playerlist not present in the database. AdKats will not function properly.^n^0");
+                    ConsoleError("adkat_playerlist not present in the database. AdKats will not function properly.");
                     confirmed = false;
                 }
                 if (!this.confirmTable("adkat_playerpoints"))
                 {
-                    ConsoleWrite("^b^1adkat_playerpoints not present in the database. AdKats will not function properly.^n^0");
-                    confirmed = false;
-                }
-                if (!this.confirmTable("adkat_reports"))
-                {
-                    ConsoleWrite("^b^1adkat_reports not present in the database. AdKats will not function properly.^n^0");
-                    confirmed = false;
-                }
-                if (!this.confirmTable("adkat_naughtylist"))
-                {
-                    ConsoleWrite("^b^1adkat_naughtylist not present in the database. AdKats will not function properly.^n^0");
+                    ConsoleError("adkat_playerpoints not present in the database. AdKats will not function properly.");
                     confirmed = false;
                 }
                 if (confirmed)
@@ -2607,13 +2638,13 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    this.DebugWrite("^b^1Database ERROR, not set up for AdKats use.^n^0", 0);
+                    this.ConsoleError("Database structure errors detected, not set up for AdKats use.");
                 }
                 return confirmed;
             }
             catch (Exception e)
             {
-                this.DebugWrite("ERROR in helper_confirmDatabaseSetup: " + e.ToString(), 6);
+                ConsoleException("ERROR in helper_confirmDatabaseSetup: " + e.ToString());
                 return false;
             }
         }
@@ -2627,55 +2658,34 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
+                        WebClient downloader = new WebClient();
                         //Set the insert command structure
-                        command.CommandText =
-                            @"
-                            DROP TABLE IF EXISTS `adkat_records`;
-                            DROP TABLE IF EXISTS `adkat_actionlist`;
-                            DROP TABLE IF EXISTS `adkat_teamswapwhitelist`;
-                            CREATE TABLE `adkat_records` (
-                            `record_id` int(11) NOT NULL AUTO_INCREMENT,
-                            `server_id` int(11) NOT NULL,
-                            `command_type` enum('Move','ForceMove','Teamswap','Kill','Kick','TempBan','PermaBan','Punish','Forgive','Report','CallAdmin', 'AdminSay', 'PlayerSay', 'AdminYell', 'PlayerYell', 'RestartLevel', 'NextLevel', 'EndLevel') NOT NULL,
-                            `record_durationMinutes` int(11) NOT NULL,
-                            `target_guid` varchar(100) NOT NULL,
-                            `target_name` varchar(45) NOT NULL,
-                            `source_name` varchar(45) NOT NULL,
-                            `record_message` varchar(100) NOT NULL,
-                            `record_time` datetime NOT NULL,
-                            PRIMARY KEY (`record_id`)
-                            );
-                            CREATE TABLE `adkat_actionlist` (
-                            `action_id` int(11) NOT NULL AUTO_INCREMENT,
-                            `server_id` int(11) NOT NULL,
-                            `player_guid` varchar(100) NOT NULL,
-                            `player_name` varchar(45) NOT NULL,
-                            PRIMARY KEY (`action_id`)	
-                            );
-                            CREATE TABLE `adkat_teamswapwhitelist` (
-                            `player_name` varchar(45) NOT NULL DEFAULT 'NOTSET',
-                            PRIMARY KEY (`player_name`),
-                            UNIQUE KEY `player_name_UNIQUE` (`player_name`)
-                            );
-                            CREATE OR REPLACE VIEW `adkat_playerlist` AS select `adkat_records`.`target_name` AS `player_name`,`adkat_records`.`target_guid` AS `player_guid`,`adkat_records`.`server_id` AS `server_id` from `adkat_records` group by `adkat_records`.`target_guid`,`adkat_records`.`server_id` order by `adkat_records`.`target_name`;
-                            CREATE OR REPLACE VIEW `adkat_playerpoints` AS select `adkat_playerlist`.`player_name` AS `playername`,`adkat_playerlist`.`player_guid` AS `playerguid`,`adkat_playerlist`.`server_id` AS `serverid`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,(select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,((select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Punish') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) - (select count(`adkat_records`.`target_guid`) from `adkat_records` where ((`adkat_records`.`command_type` = 'Forgive') and (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`) and (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints` from `adkat_playerlist`;
-                            CREATE OR REPLACE VIEW `adkat_reports` AS select `adkat_records`.`record_id` AS `record_id`,`adkat_records`.`server_id` AS `server_id`,`adkat_records`.`command_type` AS `command_type`,`adkat_records`.`record_durationMinutes` AS `record_durationMinutes`,`adkat_records`.`target_guid` AS `target_guid`,`adkat_records`.`target_name` AS `target_name`,`adkat_records`.`source_name` AS `source_name`,`adkat_records`.`record_message` AS `record_message`,`adkat_records`.`record_time` AS `record_time` from `adkat_records` where ((`adkat_records`.`command_type` = 'Report') or (`adkat_records`.`command_type` = 'CallAdmin'));
-                            CREATE OR REPLACE VIEW `adkat_naughtylist` AS select `adkat_playerpoints`.`serverid` AS `server_id`,`adkat_playerpoints`.`playername` AS `player_name`,`adkat_playerpoints`.`totalpoints` AS `total_points` from `adkat_playerpoints` where (`adkat_playerpoints`.`totalpoints` > 0) order by `adkat_playerpoints`.`serverid`,`adkat_playerpoints`.`playername`;";
-                        //Attempt to execute the query
-                        if (command.ExecuteNonQuery() >= 0)
+                        if (this.isRelease)
                         {
-                            ConsoleWrite("Creation script successful, your database is now setup for AdKats use.");
+                            command.CommandText = downloader.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql");
                         }
                         else
                         {
-                            ConsoleWrite("^b^1Your database did not accept the script. Does your account have access to table creation? AdKats will not function properly.^n^0");
+                            command.CommandText = downloader.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/adkats.sql");
+                        }
+                        try
+                        {
+                            //Attempt to execute the query
+                            if (command.ExecuteNonQuery() >= 0)
+                            {
+                                ConsoleWrite("Creation script successful, your database is now setup for AdKats use.");
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            ConsoleException("Your database did not accept the script. Does your account have access to table creation? AdKats will not function properly. Exception: " + e.ToString());
                         }
                     }
                 }
             }
             catch (Exception e)
             {
-                this.DebugWrite("ERROR in runDBSetupScript: " + e.ToString(), 6);
+                this.ConsoleException("ERROR when setting up DB, you might not have connection to github: " + e.ToString());
             }
         }
 
@@ -2704,7 +2714,7 @@ namespace PRoConEvents
             }
             catch (Exception e)
             {
-                this.DebugWrite("ERROR in helper_confirmTable: " + e.ToString(), 6);
+                this.ConsoleException("ERROR in helper_confirmTable: " + e.ToString());
                 return false;
             }
         }
@@ -2734,13 +2744,12 @@ namespace PRoConEvents
                     using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
                         //Set the insert command structure
-                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkat_records` (`server_id`, `command_type`, `record_durationMinutes`,`target_guid`, `target_name`, `source_name`, `record_message`, `record_time`) VALUES (@server_id, @command_type, @record_durationMinutes, @target_guid, @target_name, @source_name, @record_message, @record_time)";
+                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkat_records` (`server_id`, `command_type`, `record_durationMinutes`,`target_guid`, `target_name`, `source_name`, `record_message`, `record_time`, `adkats_read`) VALUES (@server_id, @command_type, @record_durationMinutes, @target_guid, @target_name, @source_name, @record_message, @record_time, @adkats_read)";
                         //Fill the command
-                        DebugWrite(record.target_guid, 6);
-                        command.Parameters.AddWithValue("@server_id", record.server_id);
-                        string type = "";
                         //Convert enum to DB string
-                        this.ADKAT_RecordTypes.TryGetValue(record.command_type, out type);
+                        string type = this.ADKAT_RecordTypes[record.command_type];
+                        //Set values
+                        command.Parameters.AddWithValue("@server_id", record.server_id);
                         command.Parameters.AddWithValue("@command_type", type);
                         command.Parameters.AddWithValue("@record_durationMinutes", record.record_durationMinutes);
                         command.Parameters.AddWithValue("@target_guid", record.target_guid);
@@ -2748,21 +2757,22 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@source_name", record.source_name);
                         command.Parameters.AddWithValue("@record_message", record.record_message);
                         command.Parameters.AddWithValue("@record_time", record.record_time);
+                        command.Parameters.AddWithValue("@adkats_read", 'Y');
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
                         {
                             success = true;
+                            record.record_id = command.LastInsertedId;
                         }
                     }
                 }
             }
             catch (Exception e)
             {
-                DebugWrite(FormatMessage(e.ToString(), MessageTypeEnum.Exception), 3);
+                ConsoleException(e.ToString());
             }
 
-            string temp = "";
-            this.ADKAT_RecordTypes.TryGetValue(record.command_type, out temp);
+            string temp = this.ADKAT_RecordTypes[record.command_type];
 
             if (success)
             {
@@ -2770,7 +2780,7 @@ namespace PRoConEvents
             }
             else
             {
-                DebugWrite(temp + " log for player '" + record.target_name + " by " + record.source_name + " FAILED!", 0);
+                ConsoleError(temp + " log for player '" + record.target_name + " by " + record.source_name + " FAILED!");
             }
 
             DebugWrite("postRecord finished!", 6);
@@ -2786,7 +2796,6 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
-                        //command.CommandText = "select latest_time from (select record_time as `latest_time` from `" + this.mySqlDatabase + "`.`adkat_records` where `adkat_records`.`server_id` = " + record.server_id + " and `adkat_records`.`command_type` = 'Punish' and `adkat_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1) as temp where latest_time < (NOW() - INTERVAL '1' MINUTE)";
                         command.CommandText = "select record_time as `latest_time` from `" + this.mySqlDatabaseName + "`.`adkat_records` where `adkat_records`.`server_id` = " + record.server_id + " and `adkat_records`.`command_type` = 'Punish' and `adkat_records`.`target_guid` = '" + record.target_guid + "' order by latest_time desc limit 1";
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
@@ -2822,43 +2831,73 @@ namespace PRoConEvents
             return false;
         }
 
-        private void uploadAction(ADKAT_Record record)
+        private void runActionsFromDB()
         {
-
-            Boolean success = false;
+            DebugWrite("runActionsFromDB starting!", 6);
             try
             {
+                List<int> recordsProcessed = new List<int>();
                 using (MySqlConnection databaseConnection = this.getDatabaseConnection())
                 {
                     using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
+                        command.CommandText = "SELECT `record_id`, `server_id`, `command_type`, `record_durationMinutes`, `target_guid`, `target_name`, `source_name`, `record_message`, `record_time` FROM `" + this.mySqlDatabaseName + "`.`adkat_records` WHERE `adkats_read` = 'N' AND `server_id` = " + this.serverID;
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            Boolean actionsMade = false;
+                            while (reader.Read())
+                            {
+                                DebugWrite("getPoints found actions for player " + reader.GetString("target_name") + "!", 5);
+                                recordsProcessed.Add(reader.GetInt32("record_id"));
+                                ADKAT_Record record = new ADKAT_Record();
+                                record.server_id = reader.GetInt32("server_id");
+                                string commandString = reader.GetString("command_type");
+                                record.command_type = this.getDBCommand(commandString);
+                                //If command not parsable, return without creating
+                                if (record.command_type == ADKAT_CommandType.Default)
+                                {
+                                    ConsoleError("Command '" + command + "' Not Parsable. Check AdKats doc for valid DB commands.");
+                                    //break this loop iteration and go to the next one
+                                    continue;
+                                }
+                                record.source_name = reader.GetString("source_name");
+                                record.target_name = reader.GetString("target_name");
+                                record.target_guid = reader.GetString("target_guid");
+                                record.record_message = reader.GetString("record_message");
+                                record.record_time = reader.GetDateTime("record_time");
+                                record.record_durationMinutes = reader.GetInt32("record_durationMinutes");
+                                this.runAction(record);
+                                actionsMade = true;
+                            }
+                            //close and return if no actions were taken
+                            if (!actionsMade)
+                            {
+                                databaseConnection.Close();
+                                return;
+                            }
+                        }
+                    }
+                    using (MySqlCommand command = databaseConnection.CreateCommand())
+                    {
+                        string updateQuery = "";
+                        foreach (int recordID in recordsProcessed)
+                        {
+                            this.DebugWrite("Updating " + recordID, 6);
+                            updateQuery += "UPDATE `" + this.mySqlDatabaseName + "`.`adkat_records` SET `adkats_read` = 'Y' where `record_id` = " + recordID + "; ";
+                        }
                         //Set the insert command structure
-                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkat_actionlist` (`server_id`, `player_guid`, `player_name`) VALUES (@server_id, @player_guid, @player_name)";
-                        //Fill the command
-                        command.Parameters.AddWithValue("@server_id", record.server_id);
-                        command.Parameters.AddWithValue("@player_guid", record.target_guid);
-                        command.Parameters.AddWithValue("@player_name", record.target_name);
+                        command.CommandText = updateQuery;
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
                         {
-                            success = true;
+                            this.DebugWrite("Update record list complete", 6);
                         }
                     }
                 }
             }
             catch (Exception e)
             {
-                DebugWrite(FormatMessage(e.ToString(), MessageTypeEnum.Exception), 3);
-            }
-
-
-            if (success)
-            {
-                DebugWrite("Action log for player '" + record.target_name + " by admin " + record.source_name + " SUCCESSFUL!", 5);
-            }
-            else
-            {
-                DebugWrite("Action log for player '" + record.target_name + " by admin " + record.source_name + " FAILED!", 0);
+                DebugWrite(e.ToString(), 3);
             }
         }
 
@@ -2932,11 +2971,11 @@ namespace PRoConEvents
             if (success)
             {
                 this.databaseAdminCache = tempAdminList;
-                DebugWrite("Admin List Fetched from Database. Length:" + this.databaseAdminCache.Count, 0);
+                ConsoleWrite("Admin List Fetched from Database. Admin Count: " + this.databaseAdminCache.Count);
             }
             else
             {
-                DebugWrite("Failed to fetch admin list. Restart plugin to re-call fetch.", 0);
+                ConsoleError("Either no admins in the admin table, or admin table/column names set incorrectly.");
             }
 
             DebugWrite("fetchAdminList finished!", 6);
@@ -2978,11 +3017,11 @@ namespace PRoConEvents
             if (success)
             {
                 this.databaseTeamswapWhitelistCache = tempTeamswapWhitelist;
-                DebugWrite("Teamswap Whitelist Fetched from Database. Length:" + this.databaseTeamswapWhitelistCache.Count, 0);
+                DebugWrite("Teamswap Whitelist Fetched from Database. Whitelist Player Count: " + this.databaseTeamswapWhitelistCache.Count, 0);
             }
             else
             {
-                DebugWrite("Failed to fetch teamswap whitelist. Restart plugin to re-call fetch.", 0);
+                DebugWrite("No whitelisted players found in the teamswap whitelist table.", 0);
             }
 
             DebugWrite("fetchTeamswapWhitelist finished!", 6);
@@ -2994,13 +3033,10 @@ namespace PRoConEvents
 
         private Boolean hasAccess(String player_name, ADKAT_CommandType command)
         {
+            //Admins have access to all commands
             //if (player_name == "ColColonCleaner")return true;
             switch (command)
             {
-                case ADKAT_CommandType.MovePlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.ForceMovePlayer:
-                    return this.isAdmin(player_name);
                 case ADKAT_CommandType.Teamswap:
                     if (this.requireTeamswapWhitelist)
                     {
@@ -3014,43 +3050,16 @@ namespace PRoConEvents
                     {
                         return true;
                     }
-                case ADKAT_CommandType.KillPlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.KickPlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.TempBanPlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.PermabanPlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.PunishPlayer:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.ForgivePlayer:
-                    return this.isAdmin(player_name);
                 case ADKAT_CommandType.ReportPlayer:
                     return true;
                 case ADKAT_CommandType.CallAdmin:
                     return true;
-                case ADKAT_CommandType.RestartLevel:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.NextLevel:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.EndLevel:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.AdminSay:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.PlayerSay:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.AdminYell:
-                    return this.isAdmin(player_name);
-                case ADKAT_CommandType.PlayerYell:
-                    return this.isAdmin(player_name);
                 case ADKAT_CommandType.ConfirmCommand:
                     return true;
                 case ADKAT_CommandType.CancelCommand:
                     return true;
                 default:
-                    this.DebugWrite("Command not recognized in hasAccess", 6);
-                    return false;
+                    return this.isAdmin(player_name);
             }
         }
 
@@ -3075,12 +3084,19 @@ namespace PRoConEvents
         {
             if (this.useDatabaseTeamswapWhitelist)
             {
-                //if the cache of teamswap whitelisted players plugin-side doesnt contain the person, just make sure it doesnt need updating
-                if (!this.databaseTeamswapWhitelistCache.Contains(player_name))
+                if (this.teamswapRoundWhitelist.Count > 0 && this.teamswapRoundWhitelist.Contains(player_name))
                 {
-                    this.fetchTeamswapWhitelist();
+                    return true;
                 }
-                return this.databaseTeamswapWhitelistCache.Contains(player_name);
+                else
+                {
+                    //if the cache of teamswap whitelisted players plugin-side doesnt contain the person, just make sure it doesnt need updating
+                    if (!this.databaseTeamswapWhitelistCache.Contains(player_name))
+                    {
+                        this.fetchTeamswapWhitelist();
+                    }
+                    return this.databaseTeamswapWhitelistCache.Contains(player_name);
+                }
             }
             else
             {
@@ -3094,6 +3110,7 @@ namespace PRoConEvents
 
         public class ADKAT_Record
         {
+            public long record_id = -1;
             public int server_id = -1;
             public string target_guid = null;
             public string target_name = null;
@@ -3106,7 +3123,7 @@ namespace PRoConEvents
             //Sup Attributes
             public CPlayerInfo targetPlayerInfo;
 
-            public ADKAT_Record(int server_id, ADKAT_CommandType command_type, Int32 record_durationMinutes, string target_guid, string target_name, string source_name, string record_message, DateTime record_time)
+            public ADKAT_Record(int record_id, int server_id, ADKAT_CommandType command_type, Int32 record_durationMinutes, string target_guid, string target_name, string source_name, string record_message, DateTime record_time)
             {
                 this.server_id = server_id;
                 this.command_type = command_type;
