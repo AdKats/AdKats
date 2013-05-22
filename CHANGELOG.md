@@ -116,4 +116,7 @@ fine for performance). Right now only Punish and Forgive are required to be logg
    * Added display of current database admins and whitelisted players in plugin settings.<br/>
    * Added pyell to dev for plugin information in certain cases.<br/>
    * All action commands can be called via the database now.<br/>
+<h4>0.2.0.0 (21-MAY-2013)</h4>
+<b>Changes</b> <br/>
+   * Minor bug fixes for version 2 release.<br/>
 </blockquote>
