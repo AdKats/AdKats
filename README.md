@@ -2,11 +2,11 @@
 <p>
 A MySQL reflected admin toolset that includes editable in-game commands, database reflected punishment and
 forgiveness, proper player report and admin call handling, player name completion, player muting, yell/say 
-pre-recording, and internal implementation of TeamSwap.</br></br>
+pre-recording, and internal implementation of TeamSwap.<br/><br/>
 
 Visit the tool's github page 
 <a href="https://github.com/ColColonCleaner/AdKats/" target="_blank">here</a> 
-to submit bugs or wanted features.</br></br>
+to submit bugs or wanted features.<br/><br/>
 
 Download the latest plugin (version 0.2.0.0) here: 
 <a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.2.0.0.zip/download" target="_blank">Version 2</a>
