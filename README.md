@@ -232,7 +232,7 @@ especially when you have to hold 40+ admins accountable, and has not caused any 
 		<td>The in-game command used for force-moving players between teams. Will immediately send the given player to TeamSwap.</td>
 	</tr>
 	<tr>
-		<td><b>TeamSwap Player</b></td>
+		<td><b>TeamSwap Self</b></td>
 		<td>None</td>
 		<td>Admin and TeamSwap Whitelist</td>
 		<td>The in-game command used for moving yourself between teams. Will immediately send the speaker to TeamSwap.</td>
