@@ -46,7 +46,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.1.9.9";
+        string plugin_version = "0.2.0.0";
 
         // Enumerations
         //Messaging
@@ -98,7 +98,7 @@ namespace PRoConEvents
         // General settings
         //Whether to get the release version of plugin description, or the dev version.
         //This setting is unchangeable by users, and will always be TRUE for released versions of the plugin.
-        private bool isRelease = false;
+        private bool isRelease = true;
         //Whether the plugin is enabled
         private bool isEnabled;
         //Current debug level
@@ -1447,7 +1447,7 @@ namespace PRoConEvents
                 case ADKAT_CommandType.MovePlayer:
                     try
                     {
-                        //Handle based on record ID if possible
+                        //Handle based on report ID if possible
                         if (this.handleRoundReport(record, splitCommand[1])) { return; }
 
                         record.target_name = splitCommand[1];
@@ -1468,7 +1468,7 @@ namespace PRoConEvents
                 case ADKAT_CommandType.ForceMovePlayer:
                     try
                     {
-                        //Handle based on record ID if possible
+                        //Handle based on report ID if possible
                         if (this.handleRoundReport(record, splitCommand[1])) { return; }
 
                         record.target_name = splitCommand[1];
@@ -1497,7 +1497,7 @@ namespace PRoConEvents
                 case ADKAT_CommandType.KillPlayer:
                     try
                     {
-                        //Handle based on record ID if possible
+                        //Handle based on report ID if possible
                         if (this.handleRoundReport(record, splitCommand[1])) { return; }
 
                         record.target_name = splitCommand[1];
@@ -1525,7 +1525,7 @@ namespace PRoConEvents
                 case ADKAT_CommandType.KickPlayer:
                     try
                     {
-                        //Handle based on record ID if possible
+                        //Handle based on report ID if possible
                         if (this.handleRoundReport(record, splitCommand[1])) { return; }
 
                         record.target_name = splitCommand[1];
@@ -1558,7 +1558,7 @@ namespace PRoConEvents
                         Boolean valid = Int32.TryParse(splitCommand[1], out record_duration);
                         record.record_durationMinutes = record_duration;
 
-                        //Handle based on record ID if possible
+                        //Handle based on report ID if possible
                         if (this.handleRoundReport(record, splitCommand[2])) { return; }
 
                         message = message.TrimStart(splitCommand[1].ToCharArray()).Trim();
@@ -1587,7 +1587,7 @@ namespace PRoConEvents
                 case ADKAT_CommandType.PermabanPlayer:
                     try
                     {
-                        //Handle based on record ID if possible
+                        //Handle based on report ID if possible
                         if (this.handleRoundReport(record, splitCommand[1])) { return; }
 
                         record.target_name = splitCommand[1];
@@ -1615,7 +1615,7 @@ namespace PRoConEvents
                 case ADKAT_CommandType.PunishPlayer:
                     try
                     {
-                        //Handle based on record ID if possible
+                        //Handle based on report ID if possible
                         if(this.handleRoundReport(record, splitCommand[1])){return;}
 
                         record.target_name = splitCommand[1];
@@ -1668,7 +1668,7 @@ namespace PRoConEvents
                 case ADKAT_CommandType.MutePlayer:
                     try
                     {
-                        //Handle based on record ID if possible
+                        //Handle based on report ID if possible
                         if (this.handleRoundReport(record, splitCommand[1])) { return; }
 
                         record.target_name = splitCommand[1];
@@ -1696,7 +1696,7 @@ namespace PRoConEvents
                 case ADKAT_CommandType.RoundWhitelistPlayer:
                     try
                     {
-                        //Handle based on record ID if possible
+                        //Handle based on report ID if possible
                         if (this.handleRoundReport(record, splitCommand[1])) { return; }
 
                         record.target_name = splitCommand[1];
@@ -1849,7 +1849,7 @@ namespace PRoConEvents
                             int preSayID = 0;
                             DebugWrite("Raw preSayID: " + splitCommand[1], 6);
                             Boolean valid = Int32.TryParse(splitCommand[1], out preSayID);
-                            if (valid && (preSayID >= 1) && (preSayID <= this.preMessageList.Count))
+                            if (valid && (preSayID > 0) && (preSayID <= this.preMessageList.Count))
                             {
                                 record.record_message = this.preMessageList[preSayID - 1];
                                 record.command_type = ADKAT_CommandType.AdminSay;
@@ -1871,7 +1871,7 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         DebugWrite("invalid format", 6);
-                        this.playerSayMessage(speaker, "Invalid command format, no pre-message ID given.");
+                        this.playerSayMessage(speaker, "Invalid command format, no pre-message ID given. Valid IDs 1-" + (this.preMessageList.Count));
                         return;
                     }
                     confirmAction(record);
@@ -1907,15 +1907,15 @@ namespace PRoConEvents
                             int preYellID = 0;
                             DebugWrite("Raw preYellID: " + splitCommand[1], 6);
                             Boolean valid = Int32.TryParse(splitCommand[1], out preYellID);
-                            if (valid && (preYellID >= 0) && (preYellID < this.preMessageList.Count))
+                            if (valid && (preYellID > 0) && (preYellID <= this.preMessageList.Count))
                             {
-                                record.record_message = this.preMessageList[preYellID];
+                                record.record_message = this.preMessageList[preYellID-1];
                                 record.command_type = ADKAT_CommandType.AdminYell;
                             }
                             else
                             {
                                 DebugWrite("invalid pre message id", 6);
-                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 0-" + (this.preMessageList.Count - 1));
+                                this.playerSayMessage(speaker, "Invalid Pre-Message ID. Valid IDs 1-" + (this.preMessageList.Count));
                                 return;
                             }
                         }
@@ -1929,7 +1929,7 @@ namespace PRoConEvents
                     catch (Exception e)
                     {
                         DebugWrite("invalid format", 6);
-                        this.playerSayMessage(speaker, "Invalid command format, no Pre-Message ID given.");
+                        this.playerSayMessage(speaker, "Invalid command format, no Pre-Message ID given. Valid IDs 1-" + (this.preMessageList.Count));
                         return;
                     }
                     confirmAction(record);
@@ -2229,8 +2229,9 @@ namespace PRoConEvents
                 record.target_name = reportedRecord.target_name;
                 record.targetPlayerInfo = reportedRecord.targetPlayerInfo;
                 record.record_message = reportedRecord.record_message;
-                this.playerSayMessage(speaker, "Your report/admincall has been acted on. Thank you.");
+                this.playerSayMessage(reportedRecord.source_name, "Your report/admincall has been acted on. Thank you.");
                 this.confirmAction(record);
+                this.round_reports.Remove(reportID);
                 acted = true;
             }
             return acted;
@@ -2281,7 +2282,7 @@ namespace PRoConEvents
         public void kickTarget(ADKAT_Record record, string additionalMessage)
         {
             //Perform Actions
-            ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_name, record.record_message + " " + additionalMessage);
+            ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_name, "(" + record.source_name + ") " + record.record_message + " " + additionalMessage);
             this.playerSayMessage(record.source_name, "You KICKED " + record.target_name + " for " + record.record_message + " ");
             this.ExecuteCommand("procon.protected.send", "admin.say", "Player " + record.target_name + " was KICKED by admin: " + record.record_message + " " + additionalMessage, "all");
         }
@@ -2392,7 +2393,7 @@ namespace PRoConEvents
 
         public void muteTarget(ADKAT_Record record)
         {
-            if (!this.isAdmin(record.target_name) || (record.source_name == "ColColonCleaner"))
+            if (!this.isAdmin(record.target_name))
             {
                 if (!this.round_mutedPlayers.ContainsKey(record.target_name))
                 {
@@ -2850,7 +2851,7 @@ namespace PRoConEvents
                                 recordsProcessed.Add(reader.GetInt32("record_id"));
                                 ADKAT_Record record = new ADKAT_Record();
                                 record.server_id = reader.GetInt32("server_id");
-                                string commandString = reader.GetInt32("command_type");
+                                string commandString = reader.GetString("command_type");
                                 record.command_type = this.getDBCommand(commandString);
                                 //If command not parsable, return without creating
                                 if (record.command_type == ADKAT_CommandType.Default)
