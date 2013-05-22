@@ -156,7 +156,7 @@ any noticable lag even when logging everything on a very active server.
 </p>
 <h3>Database Usage</h3>
 <p>
-If must use an online MySQL database accessible from your procon layer. If you have your own website you can make one 
+You must use an online MySQL database accessible from your procon layer. If you have your own website you can make one 
 there, or you can use an online service. My clan runs our own, but I found this online one to be ok, and has a free 
 usage option. http://www.freesqldatabase.com/ But any online accessible MySql database will work. Be careful with that 
 free option though, the size is limited, and these things can log A LOT of data if it's an active server. When I first 
