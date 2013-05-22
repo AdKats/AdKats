@@ -106,7 +106,7 @@ not send the report to admins unless reports are complete. This cleans up what a
 (useful if admins get reports and admin calls whether they are in-game or not).
 <br/>
 <h4>Using Report IDs</h4>
-All reports are issued a random three digit ID which expires at the end of each round. These ID's can be used in any 
+All reports are issued a random three digit ID which expires either at the end of each round, or when it is used. These ID's can be used in any 
 other action command, simply use that ID instead of a player-name and reason (e.g. waffleman73 baserapes, another player 
 reports them and gets report ID 582, admins just use @punish 582 instead of @punish waffleman73 baserape). Confirmation 
 of command with @yes is required before a report ID is acted on. Players are thanked for reporting when an admin uses 
