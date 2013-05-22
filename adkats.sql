@@ -1,6 +1,8 @@
--- AdKats Database Setup Script
+-- AdKats Database Setup Script by ColColonCleaner
+
 -- This is run automatically if AdKats does not find the main record table in your database.
 -- If you don't want the plugin changing tables in your database, run this beforehand.
+
 CREATE TABLE `adkat_records` (
        `record_id` int(11) NOT NULL AUTO_INCREMENT, 
        `server_id` int(11) NOT NULL, 
