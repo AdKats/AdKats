@@ -1,26 +1,43 @@
 -- AdKats Database Setup Script by ColColonCleaner
 
--- This is run automatically if AdKats does not find the main record table in your database.
--- If you don't want the plugin changing tables in your database, run this beforehand.
+-- This is run automatically if AdKats senses the database is not set up properly.
+-- If you don't want the plugin changing tables/views in your database, you must run this beforehand.
 
-CREATE TABLE `adkat_records` (
-       `record_id` int(11) NOT NULL AUTO_INCREMENT, 
-       `server_id` int(11) NOT NULL, 
-       `command_type` varchar(45) NOT NULL, 
-       `record_durationMinutes` int(11) NOT NULL, 
-       `target_guid` varchar(100) NOT NULL, 
-       `target_name` varchar(45) NOT NULL, 
-       `source_name` varchar(45) NOT NULL, 
-       `record_message` varchar(100) NOT NULL, 
-       `record_time` DATETIME NOT NULL, 
-       `adkats_read` ENUM('Y', 'N') NOT NULL,
-       PRIMARY KEY (`record_id`));
+-- If the tables needed are not in the database yet, the below two queries will be success
+CREATE TABLE IF NOT EXISTS `adkat_records` ( 
+`record_id` int(11) NOT NULL AUTO_INCREMENT, 
+`server_id` int(11) NOT NULL DEFAULT -1, 
+`server_ip` varchar(45) NOT NULL DEFAULT "0.0.0.0:0000", 
+`command_type` varchar(45) NOT NULL DEFAULT "DefaultCommand", 
+`command_action` varchar(45) NOT NULL DEFAULT "DefaultAction", 
+`record_durationMinutes` int(11) NOT NULL DEFAULT 0, 
+`target_guid` varchar(100) NOT NULL DEFAULT "EA_NoGUID", 
+`target_name` varchar(45) NOT NULL DEFAULT "NoTarget", 
+`source_name` varchar(45) NOT NULL DEFAULT "NoNameAdmin", 
+`record_message` varchar(100) NOT NULL DEFAULT "NoMessage", 
+`record_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+`adkats_read` ENUM('Y', 'N') NOT NULL DEFAULT 'N', 
+PRIMARY KEY (`record_id`)
+);
+CREATE TABLE IF NOT EXISTS `adkat_accesslist` ( 
+`player_name` varchar(45) NOT NULL DEFAULT "NoPlayer", 
+`player_guid` varchar(100) NOT NULL DEFAULT 'WAITING ON USE FOR GUID', 
+`access_level` int(11) NOT NULL DEFAULT 6, 
+PRIMARY KEY (`player_name`), UNIQUE KEY `player_name_UNIQUE` (`player_name`));
 
-CREATE TABLE `adkat_teamswapwhitelist` (
-       `player_name` varchar(45) NOT NULL, 
-       `player_guid` varchar(100) NOT NULL DEFAULT 'WAITING ON USE FOR GUID', 
-       PRIMARY KEY (`player_name`), 
-       UNIQUE KEY `player_name_UNIQUE` (`player_name`));
+-- If the tables already exist and just need updating, the above will warn and below will be success.
+ALTER TABLE `adkat_records` MODIFY `record_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE `adkat_records` MODIFY `server_id` int(11) NOT NULL DEFAULT -1;
+ALTER TABLE `adkat_records` ADD `server_ip` varchar(45) NOT NULL DEFAULT "0.0.0.0:0000";
+ALTER TABLE `adkat_records` MODIFY `command_type` varchar(45) NOT NULL DEFAULT "DefaultCommand"; 
+ALTER TABLE `adkat_records` ADD `command_action` varchar(45) NOT NULL DEFAULT "DefaultAction"; 
+ALTER TABLE `adkat_records` MODIFY `record_durationMinutes` int(11) NOT NULL DEFAULT 0; 
+ALTER TABLE `adkat_records` MODIFY `target_guid` varchar(100) NOT NULL DEFAULT "EA_NoGUID"; 
+ALTER TABLE `adkat_records` MODIFY `target_name` varchar(45) NOT NULL DEFAULT "NoTarget"; 
+ALTER TABLE `adkat_records` MODIFY `source_name` varchar(45) NOT NULL DEFAULT "NoNameAdmin"; 
+ALTER TABLE `adkat_records` MODIFY `record_message` varchar(100) NOT NULL DEFAULT "NoMessage"; 
+ALTER TABLE `adkat_records` MODIFY `adkats_read` ENUM('Y', 'N') NOT NULL DEFAULT 'N';
+DROP TABLE `adkat_teamswapwhitelist`;
 
 CREATE OR REPLACE VIEW `adkat_playerlist` AS
 SELECT `adkat_records`.`target_name` AS `player_name`,
@@ -31,15 +48,18 @@ GROUP BY `adkat_records`.`target_guid`,
          `adkat_records`.`server_id`
 ORDER BY `adkat_records`.`target_name`;
 
+
 CREATE OR REPLACE VIEW `adkat_playerpoints` AS
 SELECT `adkat_playerlist`.`player_name` AS `playername`,
        `adkat_playerlist`.`player_guid` AS `playerguid`,
        `adkat_playerlist`.`server_id` AS `serverid`,
+
   (SELECT count(`adkat_records`.`target_guid`)
    FROM `adkat_records`
    WHERE ((`adkat_records`.`command_type` = 'Punish')
           AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
           AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,
+
   (SELECT count(`adkat_records`.`target_guid`)
    FROM `adkat_records`
    WHERE ((`adkat_records`.`command_type` = 'Forgive')
@@ -58,34 +78,31 @@ SELECT `adkat_playerlist`.`player_name` AS `playername`,
                   AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints`
 FROM `adkat_playerlist`;
 
-CREATE OR REPLACE VIEW `adkat_weeklyplayerpoints` AS SELECT `adkat_playerlist`.`player_name` AS `playername`,
-       `adkat_playerlist`.`player_guid` AS `playerguid`,
-       `adkat_playerlist`.`server_id` AS `serverid`,
+
+CREATE OR REPLACE VIEW `adkat_weeklyplayerpoints` AS
+SELECT `adkat_playerlist`.`player_name` AS `playername`, `adkat_playerlist`.`player_guid` AS `playerguid`, `adkat_playerlist`.`server_id` AS `serverid`,
   (SELECT count(`adkat_records`.`target_guid`)
    FROM `adkat_records`
-   WHERE (         (`adkat_records`.`command_type` = 'Punish')
+   WHERE ((`adkat_records`.`command_type` = 'Punish')
           AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
           AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
-          AND (`adkat_records`.`record_time` between date_sub(now(),INTERVAL 7 DAY) and now()))
-  ) AS `punishpoints`,
+          AND (`adkat_records`.`record_time` BETWEEN date_sub(now(),INTERVAL 7 DAY) AND now())) ) AS `punishpoints`,
   (SELECT count(`adkat_records`.`target_guid`)
    FROM `adkat_records`
-   WHERE (    (`adkat_records`.`command_type` = 'Forgive')
+   WHERE ((`adkat_records`.`command_type` = 'Forgive')
           AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
           AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
-          AND (`adkat_records`.`record_time` between date_sub(now(),INTERVAL 7 DAY) and now()))
-   ) AS `forgivepoints`,
-   (
-         (SELECT count(`adkat_records`.`target_guid`)
+          AND (`adkat_records`.`record_time` BETWEEN date_sub(now(),INTERVAL 7 DAY) AND now())) ) AS `forgivepoints`, ( (
+SELECT count(`adkat_records`.`target_guid`)
           FROM `adkat_records`
           WHERE (    (`adkat_records`.`command_type` = 'Punish')
-              	  AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-       		  AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
+                       AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
+                       AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
               AND (`adkat_records`.`record_time` between date_sub(now(),INTERVAL 7 DAY) and now()))) -
          (SELECT count(`adkat_records`.`target_guid`)
           FROM `adkat_records`
           WHERE (    (`adkat_records`.`command_type` = 'Forgive')
-       		  AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
+              	  AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
        		  AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
               AND (`adkat_records`.`record_time` between date_sub(now(),INTERVAL 7 DAY) and now())))
        ) AS `totalpoints`
@@ -131,42 +148,63 @@ SELECT
    FROM adkat_records
    WHERE adkat_records.command_type = 'Move'
      OR adkat_records.command_type = 'ForceMove') AS 'Moves',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'Teamswap') AS 'TeamSwaps',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'Kill') AS 'Kills',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'Kick') AS 'Kicks',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'TempBan') AS 'TempBans',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'PermaBan') AS 'PermaBans',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'Punish') AS 'Punishes',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'Forgive') AS 'Forgives',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'Report'
      OR adkat_records.command_type = 'CallAdmin') AS 'Reports',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'ConfirmReport') AS 'UsedReports',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'AdminSay') AS 'AdminSays',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'PlayerSay') AS 'PlayerSays',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'AdminYell') AS 'AdminYells',
+
   (SELECT COUNT(*)
    FROM adkat_records
    WHERE adkat_records.command_type = 'PlayerYell') AS 'PlayerYells',
+
+  (SELECT COUNT(*)
+   FROM adkat_records
+   WHERE adkat_records.command_type = 'Mute') AS 'PlayerMutes',
+
   (SELECT COUNT(*)
    FROM adkat_records) AS 'TotalCommands';
