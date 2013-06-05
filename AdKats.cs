@@ -1616,7 +1616,7 @@ namespace PRoConEvents
                     try
                     {
                         //Handle based on report ID if possible
-                        if(this.handleRoundReport(record, splitCommand[1])){return;}
+                        if (this.handleRoundReport(record, splitCommand[1])) { return; }
 
                         record.target_name = splitCommand[1];
                         message = message.TrimStart(record.target_name.ToCharArray()).Trim();
@@ -1909,7 +1909,7 @@ namespace PRoConEvents
                             Boolean valid = Int32.TryParse(splitCommand[1], out preYellID);
                             if (valid && (preYellID > 0) && (preYellID <= this.preMessageList.Count))
                             {
-                                record.record_message = this.preMessageList[preYellID-1];
+                                record.record_message = this.preMessageList[preYellID - 1];
                                 record.command_type = ADKAT_CommandType.AdminYell;
                             }
                             else
@@ -2002,7 +2002,7 @@ namespace PRoConEvents
             this.ADKAT_CommandStrings.TryGetValue(commandString, out command);
             return command;
         }
-        
+
         //Attempts to parse the command from a database string
         private ADKAT_CommandType getDBCommand(string commandString)
         {
@@ -2091,7 +2091,7 @@ namespace PRoConEvents
                 this.runAction(record);
             }
         }
-        
+
         private void runAction(ADKAT_Record record)
         {
             //Perform Actions
@@ -2913,12 +2913,23 @@ namespace PRoConEvents
                 {
                     using (MySqlCommand command = databaseConnection.CreateCommand())
                     {
-                        command.CommandText = "SELECT playername, playerguid, serverid, totalpoints FROM `" + this.mySqlDatabaseName + "`.`adkat_playerpoints` WHERE `playerguid` = '" + player_guid + "' AND `serverid` = " + server_id;
+                        command.CommandText = @"SELECT 
+                                                (SELECT count(`adkat_records`.`target_guid`) 
+                                                    FROM `adkat_records` 
+	                                                WHERE   `adkat_records`.`command_type` = 'Punish' 
+		                                                AND `adkat_records`.`target_guid` = @player_guid 
+		                                                AND `adkat_records`.`server_id` = @server_id) - 
+                                                (SELECT count(`adkat_records`.`target_guid`)
+	                                                FROM `adkat_records`
+	                                                WHERE   `adkat_records`.`command_type` = 'Forgive'
+		                                                AND `adkat_records`.`target_guid` = @player_guid
+		                                                AND `adkat_records`.`server_id` = @server_id) as `totalpoints`";
+                        command.Parameters.AddWithValue("@player_guid", player_guid);
+                        command.Parameters.AddWithValue("@server_id", server_id);
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             if (reader.Read())
                             {
-                                DebugWrite("getPoints found records for player " + reader.GetString("playername") + "!", 5);
                                 returnVal = reader.GetInt32("totalpoints");
                             }
                         }
