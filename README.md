@@ -11,7 +11,7 @@ Visit the tool's github page
 to submit bugs or wanted features.<br/><br/>
 
 Download the latest version here: 
-<a href="http://sourceforge.net/projects/adkats/files/" target="_blank">Version 2.5</a>
+<a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.2.5.0.zip/download" target="_blank">Version 2.5</a>
 </p>
 <h2>Features</h2>
 <h3>Main</h3>
