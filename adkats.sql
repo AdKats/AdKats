@@ -132,8 +132,7 @@ CREATE OR REPLACE VIEW `adkat_totalcmdissued` AS
 SELECT
   (SELECT COUNT(*)
    FROM adkat_records
-   WHERE adkat_records.command_type = 'Move'
-     OR adkat_records.command_type = 'ForceMove') AS 'Moves',
+   WHERE adkat_records.command_type = 'Move' OR adkat_records.command_type = 'ForceMove') AS 'Moves',
 
   (SELECT COUNT(*)
    FROM adkat_records
@@ -149,11 +148,11 @@ SELECT
 
   (SELECT COUNT(*)
    FROM adkat_records
-   WHERE adkat_records.command_type = 'TempBan') AS 'TempBans',
+   WHERE adkat_records.command_type = 'TempBan' OR adkat_records.command_action = 'TempBan') AS 'TempBans',
 
   (SELECT COUNT(*)
    FROM adkat_records
-   WHERE adkat_records.command_type = 'PermaBan') AS 'PermaBans',
+   WHERE adkat_records.command_type = 'PermaBan' OR adkat_records.command_action = 'PermaBan') AS 'PermaBans',
 
   (SELECT COUNT(*)
    FROM adkat_records
@@ -165,8 +164,7 @@ SELECT
 
   (SELECT COUNT(*)
    FROM adkat_records
-   WHERE adkat_records.command_type = 'Report'
-     OR adkat_records.command_type = 'CallAdmin') AS 'Reports',
+   WHERE adkat_records.command_type = 'Report' OR adkat_records.command_type = 'CallAdmin') AS 'Reports',
 
   (SELECT COUNT(*)
    FROM adkat_records
