@@ -46,7 +46,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.2.0.0";
+        string plugin_version = "0.2.0.1";
 
         // Enumerations
         //Messaging
@@ -2915,7 +2915,7 @@ namespace PRoConEvents
                     {
                         command.CommandText = @"SELECT 
                                                 (SELECT count(`adkat_records`.`target_guid`) 
-                                                    FROM `adkat_records` 
+	                                                FROM `adkat_records` 
 	                                                WHERE   `adkat_records`.`command_type` = 'Punish' 
 		                                                AND `adkat_records`.`target_guid` = @player_guid 
 		                                                AND `adkat_records`.`server_id` = @server_id) - 
