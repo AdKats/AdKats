@@ -119,4 +119,47 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <h4>0.2.0.0 (21-MAY-2013)</h4>
 <b>Changes</b> <br/>
    * Minor bug fixes for version 2 release.<br/>
+<h4>0.2.5.0 (4-JUNE-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Admin List GUI.</b> You can now modify the database reflected admin list through AdKats 
+  settings. You can edit who the admins are, and what level of access they have, without needing to access the database 
+  manually. All instances of the plugin on your database will reflect the admins you enter.</li>
+  <li><b>Admins now have multiple levels of access.</b> They range from full admin (0) to normal player (6). List of 
+  commands for each level is given below. Admins can issue commands at or below their level. All commands on an admin's 
+  access level can be used on other admins of any level with the exception of muting.</li>
+  <li><b>Commands now have levels of access.</b> Admins need to be at or above certain levels of access to use certain 
+  commands.</li>
+  <li><b>HTTP Server Online.</b> Commands can now be sent to AdKats using procon's internal HTTP server, or through the 
+  database. Info given below on security of this system.</li>
+  <li><b>Player name suggestion system improved.</b> System now considers player names starting with what was typed more 
+  correct than those with it just somewhere in their name. System will also perform a "fuzzy" player-name search if the 
+  text admins entered is not valid for any players.</li>
+  <li><b>Ghost Commands Fixed.</b> Commands admins send but don't confirm will be auto-canceled if they move on to other 
+  things. This stops unwanted commands from being acted on after the fact.</li>
+  <li><b>TeamSwap can now auto-whitelist X random players in the server each round.</b> The random list is changed each 
+  round. Use this to generate hype for players to get full access to teamswap. Players are told the first time they 
+  spawn that they have access. Players who already have access are not added to the auto-whitelist.</li>
+  <li><b>Player report logging improved.</b> Whether a report was used by an admin is now logged.</li>
+  <li><b>"Admin Assistant" position added.</b> Players who consistently send useful player reports get a small bonus. 
+  Details below. This can be disabled.</li>
+  <li><b>Round Report Handling Improved.</b> Handling changed so admins can enter new reasons that override the report 
+  reason. The new reason entered will be used instead, and must follow the requirements for a reason defined in 
+  settings.</li>
+  <li><b>Pre-defined messages usable in all commands.</b> All player interaction commands (not say or yell), will 
+  accept preMessageIDs as input for reasons now. e.g. @kill charlietheunicorn 4 --> 
+  charlietheunicorn killed for Baseraping Enemy Spawn Area.</li>
+  <li><b>Server IDs can be different now, yet still have punishments increase across servers.</b> Now the origin of 
+  reports wont show as coming from the same server, since same server ID was required before for global punishments.</li>
+  <li><b>Added new commands.</b> Kick all Players, and Nuke Server.</li>
+  <li><b>Commands can now operate in shortened hidden mode.</b> When commands are issued in hidden mode they normally 
+  require an extra character. e.g. /@kill target reason. They now work with just the slash. e.g. /kill target reason. 
+  </li>
+  <li><b>Commands will target the speaker when entered with no parameters.</b> Most player interaction commands will 
+  now target the speaker when entered with no parameters. So "@kill" == "@kill SourcePlayerName Self-Inflicted". Report 
+  and call admin will not do this, in addition to commands meant for targeting multiple players.</li>
+  <li><b>Additional ban message option added.</b> e.g. Optionally add "appeal at www.yoursite.com" to the end of bans.</li>
+  <li><b>30 seconds now hardcoded as punishment timeout.</b> Setting was only editable for testing purposes.</li>
+  <li><b>Optimizations in code, database, and settings handling.</b></li>
+</ul>
 </blockquote>
