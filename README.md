@@ -138,11 +138,12 @@ being muted will be killed each time they talk (up through 5 chat messages), on 
 the server. No action other than kill or kick is used by this system. There will be no way to un-mute players, there 
 was a reason they were muted, and they can talk again next round. Admins cannot mute other admins.
 </p>
-<h3>Pre-Yell and Pre-Say</h3>
+<h3>Pre-Messaging</h3>
 <p>
 A list of editable pre-defined messages can be added in settings, then admins can use the message ID instead of typing 
-the whole message in. Example: @presay 2 will call the second pre-defined message, admin is asked to confirm the message 
-with @yes to make sure it's the one they wanted.
+the whole message in. Example: @say 2 will call the second pre-defined message.
+
+Use @whatis [preMessageID] to find out what a particular ID links to before using it in commands.
 </p>
 <h3>TeamSwap</h3>
 <p>
@@ -262,33 +263,28 @@ especially when you have to hold 40+ admins accountable, and has not caused any 
 	</tr>
 	<tr>
 		<td><b>Admin Say</b></td>
-		<td>[message]</td>
+		<td>[message]<br/>OR<br/>[preMessageID]</td>
 		<td>The in-game command used to send a message through admin chat to the whole server.</td>
 	</tr>
 	<tr>
 		<td><b>Admin Yell</b></td>
-		<td>[message]</td>
+		<td>[message]<br/>OR<br/>[preMessageID]</td>
 		<td>The in-game command used for to send a message through admin yell to the whole server.</td>
 	</tr>
 	<tr>
 		<td><b>Player Say</b></td>
-		<td>[player][message]</td>
+		<td>[player][message]<br/>OR<br/>[player][preMessageID]</td>
 		<td>The in-game command used for sending a message through admin chat to only a specific player.</td>
 	</tr>
 	<tr>
 		<td><b>Player Yell</b></td>
-		<td>[player][message]</td>
+		<td>[player][message]<br/>OR<br/>[player][preMessageID]</td>
 		<td>The in-game command used for sending a message through admin yell to only a specific player.</td>
 	</tr>
 	<tr>
-		<td><b>Pre-Say</b></td>
-		<td>[messageID]</td>
-		<td>The in-game command used for sending a pre-defined message as an Admin Say.</td>
-	</tr>
-	<tr>
-		<td><b>Pre-Yell</b></td>
-		<td>[messageID]</td>
-		<td>The in-game command used for sending a pre-defined message as an Admin Yell.</td>
+		<td><b>What Is</b></td>
+		<td>[preMessageID]</td>
+		<td>The in-game command used for finding out what a particular preMessage ID links to.</td>
 	</tr>
 	<tr>
 		<td><b>Restart Level</b></td>
