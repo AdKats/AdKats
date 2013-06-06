@@ -141,9 +141,11 @@ was a reason they were muted, and they can talk again next round. Admins cannot 
 <h3>Pre-Messaging</h3>
 <p>
 A list of editable pre-defined messages can be added in settings, then admins can use the message ID instead of typing 
-the whole message in. Example: @say 2 will call the second pre-defined message.
+the whole message in. Example: @say 2 will call the second pre-defined message.<br/><br/>
 
-Use @whatis [preMessageID] to find out what a particular ID links to before using it in commands.
+Use @whatis [preMessageID] to find out what a particular ID links to before using it in commands.<br/><br/>
+
+<b>Anywhere a reason or message is needed, a preMessage ID can be used instead.</b>
 </p>
 <h3>TeamSwap</h3>
 <p>
