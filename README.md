@@ -1,5 +1,5 @@
-<h2 style="color:#FF0000;">Version 0.2.5.0 released! Your version is listed above (Procon Only).</h2>
-New in version 0.2.5.0 at the bottom of this document. Download link available.
+<h2 style="color:#FF0000;">Version 0.2.5.1 released! Your version is listed above (Procon Only).</h2>
+New in version 0.2.5.1 at the bottom of this document. Download link available.
 <h1>AdKats</h1>
 <p>
 A MySQL reflected admin toolset that includes editable in-game commands, an out-of-game controller, database 
@@ -11,7 +11,7 @@ Visit the tool's github page
 to submit bugs or wanted features.<br/><br/>
 
 Download the latest version here: 
-<a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.2.5.0.zip/download" target="_blank">Version 2.5</a>
+<a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.2.5.1.zip/download" target="_blank">Version 2.5.1</a>
 </p>
 <h2>Features</h2>
 <h3>Main</h3>
