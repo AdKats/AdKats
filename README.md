@@ -569,8 +569,8 @@ Valid 'command_type's that can be acted on include the following:<br/>
 </ul>
 <h3>3. Player Access Settings:</h3>
 <ul>
-  <li><b>'Add Access'</b> - Add players to the access list by entering their exact IGN here.<br/></li>
-  <li><b>'Remove Access'</b> - Remove players already on the access list by typing their exact IGN here.<br/></li>
+  <li><b>'Add Access'</b> - Add a player to the access list by entering their exact IGN here.<br/></li>
+  <li><b>'Remove Access'</b> - Remove a player already on the access list by typing their exact IGN here.<br/></li>
   <li><b>*PlayerName*</b> - Players in the current database access list are appeneded here with their access level.</li>
 </ul> 
 <h3>4. In-Game Command Settings:</h3>
