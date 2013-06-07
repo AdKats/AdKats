@@ -34,8 +34,10 @@ this basic formula:<br/>
 <b>(Punishment Count - Forgiveness Count = Total Points)</b></center><br/>
 Then an action is decided using total points from the punishment hierarchy. Punishments should get more harsh as the
 player gets more points. A player cannot be punished more than once every 30 seconds, this prevents multiple admins from 
-accidentally punishing a player multiple times for the same thing. The punishment hierarchy is configurable to suit 
-your needs, but the default is below.<br/>
+accidentally punishing a player multiple times for the same thing. When a player is punished, and has already been 
+punished in the past 5 minutes, the new punish counts for 2 points instead of 1, as the player is immediately breaking 
+server rules after being punished. The punishment hierarchy is configurable to suit your needs, but the default is 
+below.<br/>
 
 <table>
 	<tr>
@@ -90,7 +92,7 @@ your needs, but the default is below.<br/>
 
 Players may also be 'forgiven', which will reduce their total point value by 1 each time, this is useful if you have a
 website where players can apologize for their actions in-game. Players can be forgiven into negative total point values 
-which is why a 'less than 1' clause is needed.<br/><br/>
+which is why a 'less than 1' clause is needed. <br/><br/>
 
 You can run multiple servers with this plugin on the same database, just use different serverIDs for each 
 one in plugin settings. If you want punishments to increase on this server when infractions are commited on others set 
