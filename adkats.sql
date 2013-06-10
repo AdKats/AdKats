@@ -168,7 +168,7 @@ SELECT
 
   (SELECT COUNT(*)
    FROM adkat_records
-   WHERE adkat_records.command_type = 'ConfirmReport') AS 'UsedReports',
+   WHERE adkat_records.command_action = 'ConfirmReport') AS 'UsedReports',
 
   (SELECT COUNT(*)
    FROM adkat_records
