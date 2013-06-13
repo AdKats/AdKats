@@ -27,7 +27,8 @@ admins.<br/>
 <B>TLDR:</b> Use of punish and forgive commands takes the load off admins remembering what players have broken 
 server rules, and how many times. Each time a player is punished it's logged in the database, and the more punishes 
 they get the more  severe the punishment. Available punishments include kill, kick, temp-ban 60 minutes, temp-ban 1 
-week, and permaban. Order that the punishments are given can be configured to your needs.<br/>
+day, temp-ban 1 week, temp-ban 2 weeks, temp-ban 1 month, and permaban. Order that the punishments are given can be 
+configured to your needs.<br/>
 <br/>
 After a player is 'punished' (and the Punish log is made in the database), their total points are calculated using 
 this basic formula:<br/>
@@ -43,50 +44,62 @@ below.<br/>
 	<tr>
 		<td><b>Total Points</b></td>
 		<td><b>Punishment Outcome</b></td>
+		<td><b>Hierarchy String</b></td>
 	</tr>
 	<tr>
 		<td><b>Less than 1</b></td>
 		<td>Kill</td>
+		<td>kill</td>
 	</tr>
 	<tr>
 		<td><b>1</b></td>
 		<td>Kill</td>
+		<td>kill</td>
 	</tr>
 	<tr>
 		<td><b>2</b></td>
 		<td>Kill</td>
+		<td>kill</td>
 	</tr>
 	<tr>
 		<td><b>3</b></td>
 		<td>Kick</td>
+		<td>kick</td>
 	</tr>
 	<tr>
 		<td><b>4</b></td>
-		<td>Kick</td>
+		<td>Temp-Ban 60 Minutes</td>
+		<td>tban60</td>
 	</tr>
 	<tr>
 		<td><b>5</b></td>
-		<td>Temp-Ban 60 Minutes</td>
+		<td>Temp-Ban 1 Day</td>
+		<td>tbanday</td>
 	</tr>
 	<tr>
 		<td><b>6</b></td>
-		<td>Temp-Ban 60 Minutes</td>
+		<td>Temp-Ban 1 Week</td>
+		<td>tbanweek</td>
 	</tr>
 	<tr>
 		<td><b>7</b></td>
-		<td>Temp-Ban 1 Week</td>
+		<td>Temp-Ban 2 Weeks</td>
+		<td>tban2weeks</td>
 	</tr>
 	<tr>
 		<td><b>8</b></td>
-		<td>Temp-Ban 1 Week</td>
+		<td>Temp-Ban 1 Month</td>
+		<td>tbanmonth</td>
 	</tr>
 	<tr>
 		<td><b>9</b></td>
 		<td>Perma-Ban</td>
+		<td>ban</td>
 	</tr>
 	<tr>
 		<td><b>Greater Than 9</b></td>
 		<td>Perma-Ban</td>
+		<td>ban</td>
 	</tr>
 </table>
 
