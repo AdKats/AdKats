@@ -34,7 +34,7 @@ After a player is 'punished' (and the Punish log is made in the database), their
 this basic formula:<br/>
 <b>(Punishment Count - Forgiveness Count = Total Points)</b></center><br/>
 Then an action is decided using total points from the punishment hierarchy. Punishments should get more harsh as the
-player gets more points. A player cannot be punished more than once every 30 seconds, this prevents multiple admins from 
+player gets more points. A player cannot be punished more than once every 20 seconds, this prevents multiple admins from 
 accidentally punishing a player multiple times for the same thing. When a player is punished, and has already been 
 punished in the past 5 minutes, the new punish counts for 2 points instead of 1, as the player is immediately breaking 
 server rules after being punished. The punishment hierarchy is configurable to suit your needs, but the default is 
