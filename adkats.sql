@@ -3,192 +3,275 @@
 -- This is run automatically if AdKats senses the database is not set up properly.
 -- If you don't want the plugin changing tables/views in your database, you must run this beforehand.
 
--- If the tables needed are not in the database yet, the below two queries will be success
-CREATE TABLE IF NOT EXISTS `adkat_records` ( 
-`record_id` int(11) NOT NULL AUTO_INCREMENT, 
-`server_id` int(11) NOT NULL DEFAULT -1, 
-`server_ip` varchar(45) NOT NULL DEFAULT "0.0.0.0:0000", 
-`command_type` varchar(45) NOT NULL DEFAULT "DefaultCommand", 
-`command_action` varchar(45) NOT NULL DEFAULT "DefaultAction", 
-`record_durationMinutes` int(11) NOT NULL DEFAULT 0, 
-`target_guid` varchar(100) NOT NULL DEFAULT "EA_NoGUID", 
-`target_name` varchar(45) NOT NULL DEFAULT "NoTarget", 
-`source_name` varchar(45) NOT NULL DEFAULT "NoNameAdmin", 
-`record_message` varchar(100) NOT NULL DEFAULT "NoMessage", 
-`record_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
-`adkats_read` ENUM('Y', 'N') NOT NULL DEFAULT 'N', 
-PRIMARY KEY (`record_id`)
-);
-CREATE TABLE IF NOT EXISTS `adkat_accesslist` ( 
-`player_name` varchar(45) NOT NULL DEFAULT "NoPlayer", 
-`player_guid` varchar(100) NOT NULL DEFAULT 'WAITING ON USE FOR GUID', 
-`access_level` int(11) NOT NULL DEFAULT 6, 
-PRIMARY KEY (`player_name`), UNIQUE KEY `player_name_UNIQUE` (`player_name`));
+CREATE TABLE IF NOT EXISTS `adkats_accesslist` ( 
+       `player_name` VARCHAR(20) NOT NULL, 
+	`member_id` INT(11) UNSIGNED NOT NULL DEFAULT 0, 
+	`player_email` VARCHAR(254) NOT NULL DEFAULT "test@gmail.com", 
+	`access_level` INT(11) NOT NULL DEFAULT 6, 
+	PRIMARY KEY (`player_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='AdKats Access List';
 
-CREATE OR REPLACE VIEW `adkat_playerlist` AS
-SELECT `adkat_records`.`target_name` AS `player_name`,
-       `adkat_records`.`target_guid` AS `player_guid`,
-       `adkat_records`.`server_id` AS `server_id`
-FROM `adkat_records`
-GROUP BY `adkat_records`.`target_guid`,
-         `adkat_records`.`server_id`
-ORDER BY `adkat_records`.`target_name`;
+CREATE TABLE IF NOT EXISTS `adkats_records` (
+	`record_id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT, 
+	`server_id` SMALLINT(5) UNSIGNED NOT NULL, 
+	`command_type` VARCHAR(45) NOT NULL DEFAULT "DefaultCommand", 
+	`command_action` VARCHAR(45) NOT NULL DEFAULT "DefaultAction", 
+	`command_numeric` INT(11) NOT NULL DEFAULT 0, 
+	`target_name` VARCHAR(45) NOT NULL DEFAULT "NoTarget", 
+	`target_id` INT(11) UNSIGNED DEFAULT NULL, 
+	`source_name` VARCHAR(45) NOT NULL DEFAULT "NoNameAdmin", 
+	`record_message` VARCHAR(100) NOT NULL DEFAULT "NoMessage", 
+	`record_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
+	`adkats_read` ENUM('Y', 'N') NOT NULL DEFAULT 'N', 
+	`adkats_web` BOOL NOT NULL DEFAULT 0,
+	PRIMARY KEY (`record_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='AdKats Records';
+-- ALTER TABLE `adkats_records` ADD 
+-- 	CONSTRAINT `adkats_records_fk_server_id` 
+-- 		FOREIGN KEY (`server_id`) 
+-- 		REFERENCES tbl_server(ServerID) 
+-- 		ON DELETE CASCADE 
+-- 		ON UPDATE NO ACTION;
+-- ALTER TABLE `adkats_records` ADD 
+-- 	CONSTRAINT `adkats_records_fk_target_id` 
+-- 		FOREIGN KEY (`target_id`) 
+-- 		REFERENCES tbl_playerdata(PlayerID) 
+-- 		ON DELETE CASCADE 
+-- 		ON UPDATE NO ACTION;
 
+CREATE TABLE IF NOT EXISTS `adkats_serverPlayerPoints` (
+	`player_id` INT(11) UNSIGNED NOT NULL, 
+	`server_id` SMALLINT(5) UNSIGNED NOT NULL, 
+	`punish_points` INT(11) NOT NULL, 
+	`forgive_points` INT(11) NOT NULL, 
+	`total_points` INT(11) NOT NULL, 
+	PRIMARY KEY (`player_id`, `server_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='AdKats Server Specific Player Points';
+-- ALTER TABLE `adkats_serverPlayerPoints` ADD 
+-- 	CONSTRAINT `adkats_serverPlayerPoints_fk_player_id` 
+-- 		FOREIGN KEY (`player_id`) 
+-- 		REFERENCES tbl_playerdata(PlayerID) 
+-- 		ON DELETE CASCADE 
+-- 		ON UPDATE NO ACTION;
+-- ALTER TABLE `adkats_serverPlayerPoints` ADD 
+-- 	CONSTRAINT `adkats_serverPlayerPoints_fk_server_id` 
+-- 		FOREIGN KEY (`server_id`) 
+-- 		REFERENCES tbl_server(ServerID) 
+-- 		ON DELETE CASCADE 
+-- 		ON UPDATE NO ACTION;
 
-CREATE OR REPLACE VIEW `adkat_playerpoints` AS
-SELECT `adkat_playerlist`.`player_name` AS `playername`,
-       `adkat_playerlist`.`player_guid` AS `playerguid`,
-       `adkat_playerlist`.`server_id` AS `serverid`,
+CREATE TABLE IF NOT EXISTS `adkats_globalPlayerPoints` (
+	`player_id` INT(11) UNSIGNED NOT NULL, 
+	`punish_points` INT(11) NOT NULL, 
+	`forgive_points` INT(11) NOT NULL, 
+	`total_points` INT(11) NOT NULL, 
+	PRIMARY KEY (`player_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='AdKats Global Player Points';
+-- ALTER TABLE `adkats_globalPlayerPoints` ADD 
+-- 	CONSTRAINT `adkats_globalPlayerPoints_fk_player_id` 
+-- 		FOREIGN KEY (`player_id`) 
+-- 		REFERENCES tbl_playerdata(PlayerID) 
+-- 		ON DELETE CASCADE 
+-- 		ON UPDATE NO ACTION;
 
-  (SELECT count(`adkat_records`.`target_guid`)
-   FROM `adkat_records`
-   WHERE ((`adkat_records`.`command_type` = 'Punish')
-          AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-          AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `punishpoints`,
+CREATE TABLE IF NOT EXISTS `adkats_banlist` ( 
+	`ban_id` INT(11) UNSIGNED NOT NULL AUTO_INCREMENT, 
+	`player_id` INT(11) UNSIGNED NOT NULL, 
+	`latest_record_id` INT(11) UNSIGNED NOT NULL, 
+	`ban_notes` VARCHAR(150) NOT NULL DEFAULT 'NoNotes', 
+	`ban_status` enum('Active', 'Expired', 'Disabled') NOT NULL DEFAULT 'Active',
+	`ban_startTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, 
+	`ban_endTime` DATETIME NOT NULL, 
+	`ban_enforceName` ENUM('Y', 'N') NOT NULL DEFAULT 'N', 
+	`ban_enforceGUID` ENUM('Y', 'N') NOT NULL DEFAULT 'Y', 
+	`ban_enforceIP` ENUM('Y', 'N') NOT NULL DEFAULT 'N', 
+	`ban_sync` VARCHAR(100) NOT NULL DEFAULT "-sync-", 
+	PRIMARY KEY (`ban_id`), 
+	UNIQUE KEY `player_id_UNIQUE` (`player_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='AdKats Ban Enforcer List';
+-- ALTER TABLE `adkats_banlist` ADD 
+-- 	CONSTRAINT `adkats_banlist_fk_player_id` 
+-- 		FOREIGN KEY (`player_id`) 
+-- 		REFERENCES tbl_playerdata(PlayerID) 
+-- 		ON DELETE CASCADE 
+-- 		ON UPDATE NO ACTION;
+-- ALTER TABLE `adkats_banlist` ADD 
+-- 	CONSTRAINT `adkats_banlist_fk_latest_record_id` 
+-- 		FOREIGN KEY (`latest_record_id`) 
+-- 		REFERENCES adkats_records(record_id) 
+-- 		ON DELETE CASCADE 
+-- 		ON UPDATE NO ACTION;
 
-  (SELECT count(`adkat_records`.`target_guid`)
-   FROM `adkat_records`
-   WHERE ((`adkat_records`.`command_type` = 'Forgive')
-          AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-          AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) AS `forgivepoints`,
-       (
-          (SELECT count(`adkat_records`.`target_guid`)
-           FROM `adkat_records`
-           WHERE ((`adkat_records`.`command_type` = 'Punish')
-                  AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-                  AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`))) -
-          (SELECT count(`adkat_records`.`target_guid`)
-           FROM `adkat_records`
-           WHERE ((`adkat_records`.`command_type` = 'Forgive')
-                  AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-                  AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)))) AS `totalpoints`
-FROM `adkat_playerlist`;
+CREATE TABLE IF NOT EXISTS `adkats_settings` ( 
+	`server_id` SMALLINT(5) UNSIGNED NOT NULL, 
+	`setting_name` VARCHAR(200) NOT NULL DEFAULT "SettingName", 
+	`setting_type` VARCHAR(45) NOT NULL DEFAULT "SettingType", 
+	`setting_value` VARCHAR(500) NOT NULL DEFAULT "SettingValue", 
+	PRIMARY KEY (`server_id`, `setting_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='AdKats Setting Sync';
+-- ALTER TABLE `adkats_settings` ADD 
+-- 	CONSTRAINT `adkats_settings_fk_server_id` 
+-- 		FOREIGN KEY (`server_id`) 
+-- 		REFERENCES tbl_server(ServerID) 
+-- 		ON DELETE CASCADE 
+-- 		ON UPDATE NO ACTION;
 
+DROP TRIGGER IF EXISTS adkats_update_point_insert;
+DROP TRIGGER IF EXISTS adkats_update_point_delete;
 
-CREATE OR REPLACE VIEW `adkat_weeklyplayerpoints` AS
-SELECT `adkat_playerlist`.`player_name` AS `playername`, `adkat_playerlist`.`player_guid` AS `playerguid`, `adkat_playerlist`.`server_id` AS `serverid`,
-  (SELECT count(`adkat_records`.`target_guid`)
-   FROM `adkat_records`
-   WHERE ((`adkat_records`.`command_type` = 'Punish')
-          AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-          AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
-          AND (`adkat_records`.`record_time` BETWEEN date_sub(now(),INTERVAL 7 DAY) AND now())) ) AS `punishpoints`,
-  (SELECT count(`adkat_records`.`target_guid`)
-   FROM `adkat_records`
-   WHERE ((`adkat_records`.`command_type` = 'Forgive')
-          AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-          AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
-          AND (`adkat_records`.`record_time` BETWEEN date_sub(now(),INTERVAL 7 DAY) AND now())) ) AS `forgivepoints`, ( (
-SELECT count(`adkat_records`.`target_guid`)
-          FROM `adkat_records`
-          WHERE (    (`adkat_records`.`command_type` = 'Punish')
-                       AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-                       AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
-              AND (`adkat_records`.`record_time` between date_sub(now(),INTERVAL 7 DAY) and now()))) -
-         (SELECT count(`adkat_records`.`target_guid`)
-          FROM `adkat_records`
-          WHERE (    (`adkat_records`.`command_type` = 'Forgive')
-                       AND (`adkat_records`.`target_guid` = `adkat_playerlist`.`player_guid`)
-       		  AND (`adkat_records`.`server_id` = `adkat_playerlist`.`server_id`)
-              AND (`adkat_records`.`record_time` between date_sub(now(),INTERVAL 7 DAY) and now())))
-       ) AS `totalpoints`
-FROM `adkat_playerlist`;
+delimiter |
 
-CREATE OR REPLACE VIEW `adkat_reports` AS
-SELECT `adkat_records`.`record_id` AS `record_id`,
-       `adkat_records`.`server_id` AS `server_id`,
-       `adkat_records`.`command_type` AS `command_type`,
-       `adkat_records`.`record_durationMinutes` AS `record_durationMinutes`,
-       `adkat_records`.`target_guid` AS `target_guid`,
-       `adkat_records`.`target_name` AS `target_name`,
-       `adkat_records`.`source_name` AS `source_name`,
-       `adkat_records`.`record_message` AS `record_message`,
-       `adkat_records`.`record_time` AS `record_time`
-FROM `adkat_records`
-WHERE ((`adkat_records`.`command_type` = 'Report')
-       OR (`adkat_records`.`command_type` = 'CallAdmin'));
+CREATE TRIGGER adkats_update_point_insert BEFORE INSERT ON `adkats_records`
+	FOR EACH ROW 
+	BEGIN 
+		DECLARE command_type VARCHAR(45);
+		DECLARE server_id INT(11);
+		DECLARE player_id INT(11);
+		SET command_type = NEW.command_type;
+		SET server_id = NEW.server_id;
+		SET player_id = NEW.target_id;
 
-CREATE OR REPLACE VIEW `adkat_naughtylist` AS
-SELECT `adkat_playerpoints`.`serverid` AS `server_id`,
-       `adkat_playerpoints`.`playername` AS `player_name`,
-       `adkat_playerpoints`.`totalpoints` AS `total_points`
-FROM `adkat_playerpoints`
-WHERE (`adkat_playerpoints`.`totalpoints` > 0)
-ORDER BY  `adkat_playerpoints`.`totalpoints` DESC,
-          `adkat_playerpoints`.`serverid`,
-          `adkat_playerpoints`.`playername`;
+		IF(command_type = 'Punish') THEN
+			INSERT INTO `adkats_serverPlayerPoints` 
+				(`player_id`, `server_id`, `punish_points`, `forgive_points`, `total_points`) 
+			VALUES 
+				(player_id, server_id, 1, 0, 1) 
+			ON DUPLICATE KEY UPDATE 
+				`punish_points` = `punish_points` + 1, 
+				`total_points` = `total_points` + 1;
+			INSERT INTO `adkats_globalPlayerPoints` 
+				(`player_id`, `punish_points`, `forgive_points`, `total_points`) 
+			VALUES 
+				(player_id, 1, 0, 1) 
+			ON DUPLICATE KEY UPDATE 
+				`punish_points` = `punish_points` + 1, 
+				`total_points` = `total_points` + 1;
+		ELSEIF (command_type = 'Forgive') THEN
+			INSERT INTO `adkats_serverPlayerPoints` 
+				(`player_id`, `server_id`, `punish_points`, `forgive_points`, `total_points`) 
+			VALUES 
+				(player_id, server_id, 0, 1, -1) 
+			ON DUPLICATE KEY UPDATE 
+				`forgive_points` = `forgive_points` + 1, 
+				`total_points` = `total_points` - 1;
+			INSERT INTO `adkats_globalPlayerPoints` 
+				(`player_id`, `punish_points`, `forgive_points`, `total_points`) 
+			VALUES 
+				(player_id, 0, 1, -1) 
+			ON DUPLICATE KEY UPDATE 
+				`forgive_points` = `forgive_points` + 1, 
+				`total_points` = `total_points` - 1;
+		END IF;
+	END;
+| 
 
-CREATE OR REPLACE VIEW `adkat_weeklynaughtylist` AS
-SELECT `adkat_weeklyplayerpoints`.`serverid` AS `server_id`,
-       `adkat_weeklyplayerpoints`.`playername` AS `player_name`,
-       `adkat_weeklyplayerpoints`.`totalpoints` AS `total_points`
-FROM `adkat_weeklyplayerpoints`
-WHERE (`adkat_weeklyplayerpoints`.`totalpoints` > 0)
-ORDER BY `adkat_weeklyplayerpoints`.`totalpoints` DESC,
-         `adkat_weeklyplayerpoints`.`serverid`,
-         `adkat_weeklyplayerpoints`.`playername`;
+CREATE TRIGGER adkats_update_point_delete AFTER DELETE ON `adkats_records`
+	FOR EACH ROW 
+	BEGIN 
+		DECLARE command_type VARCHAR(45);
+		DECLARE server_id INT(11);
+		DECLARE player_id INT(11);
+		SET command_type = OLD.command_type;
+		SET server_id = OLD.server_id;
+		SET player_id = OLD.target_id;
 
-CREATE OR REPLACE VIEW `adkat_totalcmdissued` AS
+		IF(command_type = 'Punish') THEN
+			INSERT INTO `adkats_serverPlayerPoints` 
+				(`player_id`, `server_id`, `punish_points`, `forgive_points`, `total_points`) 
+			VALUES 
+				(player_id, server_id, 0, 0, 0) 
+			ON DUPLICATE KEY UPDATE 
+				`punish_points` = `punish_points` - 1, 
+				`total_points` = `total_points` - 1;
+			INSERT INTO `adkats_globalPlayerPoints` 
+				(`player_id`, `punish_points`, `forgive_points`, `total_points`) 
+			VALUES 
+				(player_id, 0, 0, 0) 
+			ON DUPLICATE KEY UPDATE 
+				`punish_points` = `punish_points` - 1, 
+				`total_points` = `total_points` - 1;
+		ELSEIF (command_type = 'Forgive') THEN
+			INSERT INTO `adkats_serverPlayerPoints` 
+				(`player_id`, `server_id`, `punish_points`, `forgive_points`, `total_points`) 
+			VALUES 
+				(player_id, server_id, 0, 0, 0) 
+			ON DUPLICATE KEY UPDATE 
+				`forgive_points` = `forgive_points` - 1, 
+				`total_points` = `total_points` + 1;
+			INSERT INTO `adkats_globalPlayerPoints` 
+				(`player_id`, `punish_points`, `forgive_points`, `total_points`) 
+			VALUES 
+				(player_id, 0, 0, 0) 
+			ON DUPLICATE KEY UPDATE 
+				`forgive_points` = `forgive_points` - 1, 
+				`total_points` = `total_points` + 1;
+		END IF;
+	END;
+|
+
+delimiter ;
+
+CREATE OR REPLACE VIEW `adkats_totalcmdissued` AS
 SELECT
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'Move' OR adkat_records.command_type = 'ForceMove') AS 'Moves',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'Move' OR adkats_records.command_type = 'ForceMove') AS 'Moves',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'Teamswap') AS 'TeamSwaps',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'Teamswap') AS 'TeamSwaps',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'Kill') AS 'Kills',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'Kill') AS 'Kills',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'Kick') AS 'Kicks',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'Kick') AS 'Kicks',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'TempBan' OR adkat_records.command_action = 'TempBan') AS 'TempBans',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'TempBan' OR adkats_records.command_action = 'TempBan') AS 'TempBans',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'PermaBan' OR adkat_records.command_action = 'PermaBan') AS 'PermaBans',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'PermaBan' OR adkats_records.command_action = 'PermaBan') AS 'PermaBans',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'Punish') AS 'Punishes',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'Punish') AS 'Punishes',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'Forgive') AS 'Forgives',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'Forgive') AS 'Forgives',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'Report' OR adkat_records.command_type = 'CallAdmin') AS 'Reports',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'Report' OR adkats_records.command_type = 'CallAdmin') AS 'Reports',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_action = 'ConfirmReport') AS 'UsedReports',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'ConfirmReport') AS 'UsedReports',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'AdminSay') AS 'AdminSays',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'AdminSay') AS 'AdminSays',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'PlayerSay') AS 'PlayerSays',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'PlayerSay') AS 'PlayerSays',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'AdminYell') AS 'AdminYells',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'AdminYell') AS 'AdminYells',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'PlayerYell') AS 'PlayerYells',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'PlayerYell') AS 'PlayerYells',
 
   (SELECT COUNT(*)
-   FROM adkat_records
-   WHERE adkat_records.command_type = 'Mute') AS 'PlayerMutes',
+   FROM adkats_records
+   WHERE adkats_records.command_type = 'Mute') AS 'PlayerMutes',
 
   (SELECT COUNT(*)
-   FROM adkat_records) AS 'TotalCommands';
+   FROM adkats_records) AS 'TotalCommands';
