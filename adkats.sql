@@ -4,7 +4,7 @@
 -- If you don't want the plugin changing tables/views in your database, you must run this beforehand.
 
 CREATE TABLE IF NOT EXISTS `adkats_accesslist` ( 
-       `player_name` VARCHAR(20) NOT NULL, 
+	`player_name` VARCHAR(20) NOT NULL, 
 	`member_id` INT(11) UNSIGNED NOT NULL DEFAULT 0, 
 	`player_email` VARCHAR(254) NOT NULL DEFAULT "test@gmail.com", 
 	`access_level` INT(11) NOT NULL DEFAULT 6, 
@@ -164,7 +164,7 @@ CREATE TRIGGER adkats_update_point_insert BEFORE INSERT ON `adkats_records`
 		END IF;
 	END;
 
-| 
+|
 
 CREATE TRIGGER adkats_update_point_delete AFTER DELETE ON `adkats_records`
 	FOR EACH ROW 
