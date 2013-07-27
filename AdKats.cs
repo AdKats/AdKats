@@ -352,6 +352,8 @@ namespace PRoConEvents
         private Queue<AdKat_Player> banEnforcerCheckingQueue = new Queue<AdKat_Player>();
         private Queue<AdKat_Ban> banEnforcerProcessingQueue = new Queue<AdKat_Ban>();
 
+        private Queue<CBanInfo> cBanProcessingQueue = new Queue<CBanInfo>();
+
         //Force move action queue
         private Queue<CPlayerInfo> teamswapForceMoveQueue = new Queue<CPlayerInfo>();
         //Delayed move list
@@ -364,6 +366,7 @@ namespace PRoConEvents
         //Ban Settings
         private Boolean useBanEnforcer = false;
         private Boolean useBanEnforcerPreviousState = false;
+        private Boolean bansFirstListed = false;
         private Boolean defaultEnforceName = false;
         private Boolean defaultEnforceGUID = true;
         private Boolean defaultEnforceIP = false;
@@ -823,44 +826,62 @@ namespace PRoConEvents
                     int tmp = 2;
                     if (int.TryParse(strValue, out tmp))
                     {
-                        this.debugLevel = tmp;
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Debug level", typeof(Int32), this.debugLevel));
+                        if (tmp != this.debugLevel)
+                        {
+                            this.debugLevel = tmp;
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Debug level", typeof(Int32), this.debugLevel));
+                        }
                     }
                 }
                 else if (Regex.Match(strVariable, @"Debug Soldier Name").Success)
                 {
                     if (this.soldierNameValid(strValue))
                     {
-                        this.debugSoldierName = strValue;
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof(string), this.debugSoldierName));
+                        if (strValue != this.debugSoldierName)
+                        {
+                            this.debugSoldierName = strValue;
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof(string), this.debugSoldierName));
+                        }
                     }
                 }
                 #endregion
                 #region HTTP settings
                 else if (Regex.Match(strVariable, @"External Access Key").Success)
                 {
-                    this.externalCommandAccessKey = strValue;
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"External Access Key", typeof(string), this.externalCommandAccessKey));
+                    if (strValue != this.externalCommandAccessKey)
+                    {
+                        this.externalCommandAccessKey = strValue;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"External Access Key", typeof(string), this.externalCommandAccessKey));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Fetch Actions from Database").Success)
                 {
-                    if (fetchActionsFromDB = Boolean.Parse(strValue))
+                    Boolean fetch;
+                    if (fetch = Boolean.Parse(strValue))
                     {
-                        this.dbCommHandle.Set();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Fetch Actions from Database", typeof(Boolean), this.fetchActionsFromDB));
+                        if (fetch != this.fetchActionsFromDB)
+                        {
+                            this.fetchActionsFromDB = fetch;
+                            this.dbCommHandle.Set();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Fetch Actions from Database", typeof(Boolean), this.fetchActionsFromDB));
+                        }
                     }
                 }
                 #endregion
                 #region ban settings
                 else if (Regex.Match(strVariable, @"Use Additional Ban Message").Success)
                 {
-                    this.useBanAppend = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Use Additional Ban Message", typeof(Boolean), this.useBanAppend));
+                    Boolean use = Boolean.Parse(strValue);
+                    if (this.useBanAppend != use)
+                    {
+                        this.useBanAppend = use;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Use Additional Ban Message", typeof(Boolean), this.useBanAppend));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Additional Ban Message").Success)
                 {
@@ -871,51 +892,74 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.banAppend = strValue;
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Additional Ban Message", typeof(string), this.banAppend));
+                        if (this.banAppend != strValue)
+                        {
+                            this.banAppend = strValue;
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Additional Ban Message", typeof(string), this.banAppend));
+                        }
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Ban Enforcer").Success)
                 {
-                    this.useBanEnforcer = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Use Ban Enforcer", typeof(Boolean), this.useBanEnforcer));
-                    if (this.useBanEnforcer)
+                    Boolean use = Boolean.Parse(strValue);
+                    if (this.useBanEnforcer != use)
                     {
-                        this.fetchActionsFromDB = true;
-                        this.dbCommHandle.Set();
+                        this.useBanEnforcer = use;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Use Ban Enforcer", typeof(Boolean), this.useBanEnforcer));
+                        if (this.useBanEnforcer)
+                        {
+                            this.fetchActionsFromDB = true;
+                            this.dbCommHandle.Set();
+                        }
                     }
                 }
                 else if (Regex.Match(strVariable, @"Enforce New Bans by NAME").Success)
                 {
-                    this.defaultEnforceName = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Enforce New Bans by NAME", typeof(Boolean), this.defaultEnforceName));
+                    Boolean enforceName = Boolean.Parse(strValue);
+                    if (this.defaultEnforceName != enforceName)
+                    {
+                        this.defaultEnforceName = enforceName;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Enforce New Bans by NAME", typeof(Boolean), this.defaultEnforceName));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Enforce New Bans by GUID").Success)
                 {
-                    this.defaultEnforceGUID = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Enforce New Bans by GUID", typeof(Boolean), this.defaultEnforceGUID));
+                    Boolean enforceGUID = Boolean.Parse(strValue);
+                    if (this.defaultEnforceGUID != enforceGUID)
+                    {
+                        this.defaultEnforceGUID = enforceGUID;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Enforce New Bans by GUID", typeof(Boolean), this.defaultEnforceGUID));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Enforce New Bans by IP").Success)
                 {
-                    this.defaultEnforceIP = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Enforce New Bans by IP", typeof(Boolean), this.defaultEnforceIP));
+                    Boolean enforceIP = Boolean.Parse(strValue);
+                    if (this.defaultEnforceIP != enforceIP)
+                    {
+                        this.defaultEnforceIP = enforceIP;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Enforce New Bans by IP", typeof(Boolean), this.defaultEnforceIP));
+                    }
                 }
                 #endregion
                 #region In-Game Command Settings
                 else if (Regex.Match(strVariable, @"Minimum Required Reason Length").Success)
                 {
-                    this.requiredReasonLength = Int32.Parse(strValue);
-                    if (this.requiredReasonLength < 1)
+                    Int32 required = Int32.Parse(strValue);
+                    if (this.requiredReasonLength != required)
                     {
-                        this.requiredReasonLength = 1;
+                        this.requiredReasonLength = required;
+                        if (this.requiredReasonLength < 1)
+                        {
+                            this.requiredReasonLength = 1;
+                        }
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Minimum Required Reason Length", typeof(Int32), this.requiredReasonLength));
                     }
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Minimum Required Reason Length", typeof(Int32), this.requiredReasonLength));
                 }
                 else if (Regex.Match(strVariable, @"Confirm Command").Success)
                 {
@@ -926,10 +970,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strConfirmCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Confirm Command", typeof(string), this.m_strConfirmCommand));
+                        if (this.m_strConfirmCommand != strValue)
+                        {
+                            this.m_strConfirmCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Confirm Command", typeof(string), this.m_strConfirmCommand));
+                        }
                     }
                     else
                     {
@@ -945,10 +992,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strCancelCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Cancel Command", typeof(string), this.m_strCancelCommand));
+                        if (this.m_strCancelCommand != strValue)
+                        {
+                            this.m_strCancelCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Cancel Command", typeof(string), this.m_strCancelCommand));
+                        }
                     }
                     else
                     {
@@ -964,10 +1014,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strKillCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Kill Player", typeof(string), this.m_strKillCommand));
+                        if (this.m_strKillCommand != strValue)
+                        {
+                            this.m_strKillCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Kill Player", typeof(string), this.m_strKillCommand));
+                        }
                     }
                     else
                     {
@@ -983,10 +1036,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strKickCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Kick Player", typeof(string), this.m_strKickCommand));
+                        if (this.m_strKickCommand != strValue)
+                        {
+                            this.m_strKickCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Kick Player", typeof(string), this.m_strKickCommand));
+                        }
                     }
                     else
                     {
@@ -1002,10 +1058,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strTemporaryBanCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Temp-Ban Player", typeof(string), this.m_strTemporaryBanCommand));
+                        if (this.m_strTemporaryBanCommand != strValue)
+                        {
+                            this.m_strTemporaryBanCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Temp-Ban Player", typeof(string), this.m_strTemporaryBanCommand));
+                        }
                     }
                     else
                     {
@@ -1021,10 +1080,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strPermanentBanCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Permaban Player", typeof(string), this.m_strPermanentBanCommand));
+                        if (this.m_strPermanentBanCommand != strValue)
+                        {
+                            this.m_strPermanentBanCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Permaban Player", typeof(string), this.m_strPermanentBanCommand));
+                        }
                     }
                     else
                     {
@@ -1040,10 +1102,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strPunishCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Punish Player", typeof(string), this.m_strPunishCommand));
+                        if (this.m_strPunishCommand != strValue)
+                        {
+                            this.m_strPunishCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Punish Player", typeof(string), this.m_strPunishCommand));
+                        }
                     }
                     else
                     {
@@ -1059,10 +1124,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strForgiveCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Forgive Player", typeof(string), this.m_strForgiveCommand));
+                        if (this.m_strForgiveCommand != strValue)
+                        {
+                            this.m_strForgiveCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Forgive Player", typeof(string), this.m_strForgiveCommand));
+                        }
                     }
                     else
                     {
@@ -1078,10 +1146,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strMuteCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Mute Player", typeof(string), this.m_strMuteCommand));
+                        if (this.m_strMuteCommand != strValue)
+                        {
+                            this.m_strMuteCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Mute Player", typeof(string), this.m_strMuteCommand));
+                        }
                     }
                     else
                     {
@@ -1097,10 +1168,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strRoundWhitelistCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Round Whitelist Player", typeof(string), this.m_strRoundWhitelistCommand));
+                        if (this.m_strRoundWhitelistCommand != strValue)
+                        {
+                            this.m_strRoundWhitelistCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Round Whitelist Player", typeof(string), this.m_strRoundWhitelistCommand));
+                        }
                     }
                     else
                     {
@@ -1116,10 +1190,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strMoveCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"OnDeath Move Player", typeof(string), this.m_strMoveCommand));
+                        if (this.m_strMoveCommand != strValue)
+                        {
+                            this.m_strMoveCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"OnDeath Move Player", typeof(string), this.m_strMoveCommand));
+                        }
                     }
                     else
                     {
@@ -1135,10 +1212,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strForceMoveCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Force Move Player", typeof(string), this.m_strForceMoveCommand));
+                        if (this.m_strForceMoveCommand != strValue)
+                        {
+                            this.m_strForceMoveCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Force Move Player", typeof(string), this.m_strForceMoveCommand));
+                        }
                     }
                     else
                     {
@@ -1154,10 +1234,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strTeamswapCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Teamswap Self", typeof(string), this.m_strTeamswapCommand));
+                        if (this.m_strTeamswapCommand != strValue)
+                        {
+                            this.m_strTeamswapCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Teamswap Self", typeof(string), this.m_strTeamswapCommand));
+                        }
                     }
                     else
                     {
@@ -1173,10 +1256,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strReportCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Report Player", typeof(string), this.m_strReportCommand));
+                        if (this.m_strReportCommand != strValue)
+                        {
+                            this.m_strReportCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Report Player", typeof(string), this.m_strReportCommand));
+                        }
                     }
                     else
                     {
@@ -1192,10 +1278,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strCallAdminCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Call Admin on Player", typeof(string), this.m_strCallAdminCommand));
+                        if (this.m_strCallAdminCommand != strValue)
+                        {
+                            this.m_strCallAdminCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Call Admin on Player", typeof(string), this.m_strCallAdminCommand));
+                        }
                     }
                     else
                     {
@@ -1211,10 +1300,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strSayCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Admin Say", typeof(string), this.m_strSayCommand));
+                        if (this.m_strSayCommand != strValue)
+                        {
+                            this.m_strSayCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Admin Say", typeof(string), this.m_strSayCommand));
+                        }
                     }
                     else
                     {
@@ -1230,10 +1322,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strPlayerSayCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Player Say", typeof(string), this.m_strPlayerSayCommand));
+                        if (this.m_strPlayerSayCommand != strValue)
+                        {
+                            this.m_strPlayerSayCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Player Say", typeof(string), this.m_strPlayerSayCommand));
+                        }
                     }
                     else
                     {
@@ -1249,10 +1344,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strYellCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Admin Yell", typeof(string), this.m_strYellCommand));
+                        if (this.m_strYellCommand != strValue)
+                        {
+                            this.m_strYellCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Admin Yell", typeof(string), this.m_strYellCommand));
+                        }
                     }
                     else
                     {
@@ -1268,10 +1366,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strPlayerYellCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Player Yell", typeof(string), this.m_strPlayerYellCommand));
+                        if (this.m_strPlayerYellCommand != strValue)
+                        {
+                            this.m_strPlayerYellCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Player Yell", typeof(string), this.m_strPlayerYellCommand));
+                        }
                     }
                     else
                     {
@@ -1287,10 +1388,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strWhatIsCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"What Is", typeof(string), this.m_strWhatIsCommand));
+                        if (this.m_strWhatIsCommand != strValue)
+                        {
+                            this.m_strWhatIsCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"What Is", typeof(string), this.m_strWhatIsCommand));
+                        }
                     }
                     else
                     {
@@ -1306,10 +1410,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strRestartLevelCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Restart Level", typeof(string), this.m_strRestartLevelCommand));
+                        if (this.m_strRestartLevelCommand != strValue)
+                        {
+                            this.m_strRestartLevelCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Restart Level", typeof(string), this.m_strRestartLevelCommand));
+                        }
                     }
                     else
                     {
@@ -1325,10 +1432,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strNextLevelCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Next Level", typeof(string), this.m_strNextLevelCommand));
+                        if (this.m_strNextLevelCommand != strValue)
+                        {
+                            this.m_strNextLevelCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Next Level", typeof(string), this.m_strNextLevelCommand));
+                        }
                     }
                     else
                     {
@@ -1344,10 +1454,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strEndLevelCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"End Level", typeof(string), this.m_strEndLevelCommand));
+                        if (this.m_strEndLevelCommand != strValue)
+                        {
+                            this.m_strEndLevelCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"End Level", typeof(string), this.m_strEndLevelCommand));
+                        }
                     }
                     else
                     {
@@ -1363,10 +1476,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strNukeCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Nuke Server", typeof(string), this.m_strNukeCommand));
+                        if (this.m_strNukeCommand != strValue)
+                        {
+                            this.m_strNukeCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Nuke Server", typeof(string), this.m_strNukeCommand));
+                        }
                     }
                     else
                     {
@@ -1382,10 +1498,13 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        this.m_strKickAllCommand = strValue;
-                        rebindAllCommands();
-                        //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Kick All NonAdmins", typeof(string), this.m_strKickAllCommand));
+                        if (this.m_strKickAllCommand != strValue)
+                        {
+                            this.m_strKickAllCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Kick All NonAdmins", typeof(string), this.m_strKickAllCommand));
+                        }
                     }
                     else
                     {
@@ -1402,27 +1521,43 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Combine Server Punishments").Success)
                 {
-                    this.combineServerPunishments = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof(Boolean), this.combineServerPunishments));
+                    Boolean combine = Boolean.Parse(strValue);
+                    if (this.combineServerPunishments != combine)
+                    {
+                        this.combineServerPunishments = combine;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof(Boolean), this.combineServerPunishments));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Only Kill Players when Server in low population").Success)
                 {
-                    this.onlyKillOnLowPop = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof(Boolean), this.onlyKillOnLowPop));
+                    Boolean onlyKill = Boolean.Parse(strValue);
+                    if (onlyKill != this.onlyKillOnLowPop)
+                    {
+                        this.onlyKillOnLowPop = onlyKill;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof(Boolean), this.onlyKillOnLowPop));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Low Population Value").Success)
                 {
-                    this.lowPopPlayerCount = Int32.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof(Int32), this.lowPopPlayerCount));
+                    Int32 lowPop = Int32.Parse(strValue);
+                    if (lowPop != this.lowPopPlayerCount)
+                    {
+                        this.lowPopPlayerCount = lowPop;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof(Int32), this.lowPopPlayerCount));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"IRO Punishment Overrides Low Pop").Success)
                 {
-                    this.IROOverridesLowPop = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"IRO Punishment Overrides Low Pop", typeof(Boolean), this.IROOverridesLowPop));
+                    Boolean overrideIRO = Boolean.Parse(strValue);
+                    if (overrideIRO != this.IROOverridesLowPop)
+                    {
+                        this.IROOverridesLowPop = overrideIRO;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"IRO Punishment Overrides Low Pop", typeof(Boolean), this.IROOverridesLowPop));
+                    }
                 }
                 #endregion
                 #region sql settings
@@ -1548,86 +1683,123 @@ namespace PRoConEvents
                 #region mute settings
                 else if (Regex.Match(strVariable, @"On-Player-Muted Message").Success)
                 {
-                    this.mutedPlayerMuteMessage = strValue;
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"On-Player-Muted Message", typeof(string), this.mutedPlayerMuteMessage));
+                    if (this.mutedPlayerMuteMessage != strValue)
+                    {
+                        this.mutedPlayerMuteMessage = strValue;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"On-Player-Muted Message", typeof(string), this.mutedPlayerMuteMessage));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"On-Player-Killed Message").Success)
                 {
-                    this.mutedPlayerKillMessage = strValue;
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"On-Player-Killed Message", typeof(string), this.mutedPlayerKillMessage));
+                    if (this.mutedPlayerKillMessage != strValue)
+                    {
+                        this.mutedPlayerKillMessage = strValue;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"On-Player-Killed Message", typeof(string), this.mutedPlayerKillMessage));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"On-Player-Kicked Message").Success)
                 {
-                    this.mutedPlayerKickMessage = strValue;
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"On-Player-Kicked Message", typeof(string), this.mutedPlayerKickMessage));
+                    if (this.mutedPlayerKickMessage != strValue)
+                    {
+                        this.mutedPlayerKickMessage = strValue;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"On-Player-Kicked Message", typeof(string), this.mutedPlayerKickMessage));
+                    }
                 }
                 if (Regex.Match(strVariable, @"# Chances to give player before kicking").Success)
                 {
                     int tmp = 5;
                     int.TryParse(strValue, out tmp);
-                    this.mutedPlayerChances = tmp;
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"# Chances to give player before kicking", typeof(Int32), this.mutedPlayerChances));
+                    if (this.mutedPlayerChances != tmp)
+                    {
+                        this.mutedPlayerChances = tmp;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"# Chances to give player before kicking", typeof(Int32), this.mutedPlayerChances));
+                    }
                 }
                 #endregion
                 #region teamswap settings
                 else if (Regex.Match(strVariable, @"Require Whitelist for Access").Success)
                 {
-                    this.requireTeamswapWhitelist = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Require Whitelist for Access", typeof(Boolean), this.requireTeamswapWhitelist));
+                    Boolean require = Boolean.Parse(strValue);
+                    if (this.requireTeamswapWhitelist != require)
+                    {
+                        this.requireTeamswapWhitelist = require;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Require Whitelist for Access", typeof(Boolean), this.requireTeamswapWhitelist));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Auto-Whitelist Count").Success)
                 {
                     int tmp = 1;
                     int.TryParse(strValue, out tmp);
-                    if (tmp < 1)
-                        tmp = 1;
-                    this.playersToAutoWhitelist = tmp;
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Auto-Whitelist Count", typeof(Int32), this.playersToAutoWhitelist));
+                    if (tmp != this.playersToAutoWhitelist)
+                    {
+                        if (tmp < 1)
+                            tmp = 1;
+                        this.playersToAutoWhitelist = tmp;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Auto-Whitelist Count", typeof(Int32), this.playersToAutoWhitelist));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Ticket Window High").Success)
                 {
                     int tmp = 2;
                     int.TryParse(strValue, out tmp);
-                    this.teamSwapTicketWindowHigh = tmp;
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Ticket Window High", typeof(Int32), this.teamSwapTicketWindowHigh));
+                    if (tmp != this.teamSwapTicketWindowHigh)
+                    {
+                        this.teamSwapTicketWindowHigh = tmp;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Ticket Window High", typeof(Int32), this.teamSwapTicketWindowHigh));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Ticket Window Low").Success)
                 {
                     int tmp = 2;
                     int.TryParse(strValue, out tmp);
-                    this.teamSwapTicketWindowLow = tmp;
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Ticket Window Low", typeof(Int32), this.teamSwapTicketWindowLow));
+                    if (tmp != this.teamSwapTicketWindowLow)
+                    {
+                        this.teamSwapTicketWindowLow = tmp;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Ticket Window Low", typeof(Int32), this.teamSwapTicketWindowLow));
+                    }
                 }
                 #endregion
                 #region Admin Assistants
                 else if (Regex.Match(strVariable, @"Enable Admin Assistant Perk").Success)
                 {
-                    this.enableAdminAssistants = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof(Boolean), this.enableAdminAssistants));
+                    Boolean enableAA = Boolean.Parse(strValue);
+                    if (this.enableAdminAssistants != enableAA)
+                    {
+                        this.enableAdminAssistants = enableAA;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof(Boolean), this.enableAdminAssistants));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Minimum Confirmed Reports Per Week").Success)
                 {
-                    this.minimumRequiredWeeklyReports = Int32.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Minimum Confirmed Reports Per Week", typeof(Int32), this.minimumRequiredWeeklyReports));
+                    Int32 weeklyReports = Int32.Parse(strValue);
+                    if (this.minimumRequiredWeeklyReports != weeklyReports)
+                    {
+                        this.minimumRequiredWeeklyReports = weeklyReports;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Minimum Confirmed Reports Per Week", typeof(Int32), this.minimumRequiredWeeklyReports));
+                    }
                 }
                 #endregion
                 #region Messaging Settings
                 else if (Regex.Match(strVariable, @"Yell display time seconds").Success)
                 {
-                    this.m_iShowMessageLength = Int32.Parse(strValue);
-                    this.m_strShowMessageLength = m_iShowMessageLength + "";
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Yell display time seconds", typeof(Int32), this.m_iShowMessageLength));
+                    Int32 yellTime = Int32.Parse(strValue);
+                    if (this.m_iShowMessageLength != yellTime)
+                    {
+                        this.m_iShowMessageLength = yellTime;
+                        this.m_strShowMessageLength = m_iShowMessageLength + "";
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Yell display time seconds", typeof(Int32), this.m_iShowMessageLength));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Pre-Message List").Success)
                 {
@@ -1637,9 +1809,13 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Require Use of Pre-Messages").Success)
                 {
-                    this.requirePreMessageUse = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof(Boolean), this.requirePreMessageUse));
+                    Boolean require = Boolean.Parse(strValue);
+                    if (require != this.requirePreMessageUse)
+                    {
+                        this.requirePreMessageUse = require;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof(Boolean), this.requirePreMessageUse));
+                    }
                 }
                 #endregion
                 #region access settings
@@ -1984,10 +2160,10 @@ namespace PRoConEvents
                         this.InitThreads();
                         this.StartThreads();
 
-                        TimeSpan duration = TimeSpan.MinValue;
+                        /*TimeSpan duration = TimeSpan.MinValue;
                         while (!this.allThreadsReady())
                         {
-                            Thread.Sleep(10);
+                            Thread.Sleep(250);
                             duration = DateTime.Now.Subtract(startTime);
                             if (duration.TotalSeconds > 300)
                             {
@@ -2004,7 +2180,7 @@ namespace PRoConEvents
                                 this.ConsoleWrite("AdKats disabled during the enable process.");
                                 return;
                             }
-                        }
+                        }*/
 
                         this.threadsReady = true;
                         this.updateSettingPage();
@@ -2012,7 +2188,7 @@ namespace PRoConEvents
                         //Register a command to indicate availibility to other plugins
                         this.RegisterCommand(AdKatsAvailableIndicator);
 
-                        this.ConsoleWrite("^b^2Enabled!^n^0 Version: " + this.GetPluginVersion() + " in " + duration.TotalMilliseconds + "ms.");
+                        this.ConsoleWrite("^b^2Enabled!^n^0 Version: " + this.GetPluginVersion());
                     }
                     catch (Exception e)
                     {
@@ -2120,6 +2296,9 @@ namespace PRoConEvents
                         this.unprocessedActionQueue.Clear();
                         this.unprocessedRecordQueue.Clear();
                         this.banEnforcerCheckingQueue.Clear();
+                        this.AdKat_BanList_Name.Clear();
+                        this.AdKat_BanList_IP.Clear();
+                        this.AdKat_BanList_GUID.Clear();
 
                         this.updateSettingPage();
 
@@ -2539,71 +2718,47 @@ namespace PRoConEvents
 
         public override void OnBanAdded(CBanInfo ban)
         {
-            if (!this.isEnabled) return;
-            this.DebugWrite("OnBanAdded fired", 6);
-            this.ExecuteCommand("procon.protected.send", "banList.list");
+            if (!this.isEnabled || !this.useBanEnforcer) return;
+            //this.DebugWrite("OnBanAdded fired", 6);
+            //this.ExecuteCommand("procon.protected.send", "banList.list");
         }
 
         public override void OnBanList(List<CBanInfo> banList)
         {
+            DateTime startTime = DateTime.Now;
             if (!this.isEnabled) return;
-            this.DebugWrite("OnBanList fired", 6);
+            this.DebugWrite("OnBanList fired", 3);
             if (this.useBanEnforcer)
             {
-                AdKat_Ban aBan;
-                AdKat_Record record;
-                Boolean bansFound = false;
-                foreach (CBanInfo cBan in banList)
+                if (banList.Count > 0)
                 {
-                    bansFound = true;
-                    //Create the record
-                    record = new AdKat_Record();
-                    record.command_source = AdKat_CommandSource.InGame;
-                    if (cBan.BanLength.Seconds > 0)
+                    lock (this.cBanProcessingQueue)
                     {
-                        record.command_type = AdKat_CommandType.TempBanPlayer;
-                        record.command_action = AdKat_CommandType.TempBanPlayer;
-                        record.command_numeric = cBan.BanLength.Seconds / 60;
+                        if (!this.useBanEnforcerPreviousState)
+                        {
+                            //Only allow one banlist to happen during initial startup
+                            if(this.bansFirstListed)
+                            {
+                                return;
+                            }
+                            this.ConsoleWarn("Preparing to queue procon bans for import. Please wait.");
+                        }
+                        foreach (CBanInfo cBan in banList)
+                        {
+                            this.cBanProcessingQueue.Enqueue(cBan);
+                            if(DateTime.Now - startTime > TimeSpan.FromSeconds(50))
+                            {
+                                this.ConsoleException("OnBanList took longer than 50 seconds, exiting so procon doesn't panic.");
+                                return;
+                            }
+                        }
+                        if (!this.useBanEnforcerPreviousState)
+                        {
+                            this.ConsoleWrite(banList.Count + " procon bans queued for import. Import might take several minutes if you have many bans!");
+                        }
+                        this.bansFirstListed = true;
+                        this.dbCommHandle.Set();
                     }
-                    else
-                    {
-                        record.command_type = AdKat_CommandType.PermabanPlayer;
-                        record.command_action = AdKat_CommandType.PermabanPlayer;
-                        record.command_numeric = 0;
-                    }
-                    record.source_name = "BanEnforcer";
-                    record.server_id = this.server_id;
-                    record.target_player = this.fetchPlayer(-1, cBan.SoldierName, cBan.Guid, cBan.IpAddress);
-                    if (!String.IsNullOrEmpty(record.target_player.player_name))
-                    {
-                        record.target_name = record.target_player.player_name;
-                    }
-                    record.isIRO = false;
-                    record.record_message = cBan.Reason;
-
-                    //Create the ban
-                    aBan = new AdKat_Ban();
-                    aBan.ban_record = record;
-
-                    //Update the ban enforcement depending on available information
-                    Boolean nameAvailable = !String.IsNullOrEmpty(record.target_player.player_name);
-                    Boolean GUIDAvailable = !String.IsNullOrEmpty(record.target_player.player_guid);
-                    Boolean IPAvailable = !String.IsNullOrEmpty(record.target_player.player_ip);
-                    aBan.ban_enforceName = nameAvailable && (this.defaultEnforceName || (!GUIDAvailable && !IPAvailable) || !String.IsNullOrEmpty(cBan.SoldierName));
-                    aBan.ban_enforceGUID = GUIDAvailable && (this.defaultEnforceGUID || (!nameAvailable && !IPAvailable) || !String.IsNullOrEmpty(cBan.Guid));
-                    aBan.ban_enforceIP = IPAvailable && (this.defaultEnforceIP || (!nameAvailable && !GUIDAvailable) || !String.IsNullOrEmpty(cBan.IpAddress));
-                    if (!aBan.ban_enforceName && !aBan.ban_enforceGUID && !aBan.ban_enforceIP)
-                    {
-                        this.ConsoleError("Unable to create ban, no proper player information");
-                        continue;
-                    }
-                    //Queue the ban for processing
-                    this.queueBanForProcessing(aBan);
-                }
-                if (bansFound)
-                {
-                    //If all bans have been queued for processing, clear the ban list
-                    this.ExecuteCommand("procon.protected.send", "banList.clear");
                 }
             }
         }
@@ -4390,7 +4545,10 @@ namespace PRoConEvents
                             if (!this.hasAccess(player.player_name, AdKat_CommandType.Teamswap))
                             {
                                 this.DebugWrite("player doesnt have access, adding them to chance list", 6);
-                                playerListCopy.Add(player.player_name);
+                                if (!playerListCopy.Contains(player.player_name))
+                                {
+                                    playerListCopy.Add(player.player_name);
+                                }
                             }
                         }
                         if (playerListCopy.Count > 0)
@@ -4405,7 +4563,10 @@ namespace PRoConEvents
                                 {
                                     playerName = playerListCopy[random.Next(0, playerListCopy.Count - 1)];
                                 } while (this.teamswapRoundWhitelist.ContainsKey(playerName) && (iterations++ < 100));
-                                this.teamswapRoundWhitelist.Add(playerName, false);
+                                if (!this.teamswapRoundWhitelist.ContainsKey(playerName))
+                                {
+                                    this.teamswapRoundWhitelist.Add(playerName, false);
+                                }
                             }
                         }
                     }
@@ -5246,6 +5407,7 @@ namespace PRoConEvents
                 Queue<AdKat_Access> inboundAccessUpdates;
                 Queue<String> inboundAccessRemoval;
                 Queue<CPluginVariable> inboundSettingUpload;
+                Queue<CBanInfo> inboundCBans;
                 while (true)
                 {
                     this.DebugWrite("DBCOMM: Entering Database Comm Thread Loop", 7);
@@ -5279,7 +5441,7 @@ namespace PRoConEvents
                         if (this.fetchServerID() >= 0)
                         {
                             this.ConsoleSuccess("Database Server Info Fetched. Server ID is " + this.server_id + "!");
-                            
+
                             //Now that we have the current server ID from stat logger, import all records from previous versions of AdKats
                             this.updateDB_0251_0300();
 
@@ -5383,6 +5545,18 @@ namespace PRoConEvents
                         this.DebugWrite("DBCOMM: No inbound access changes.", 7);
                     }
 
+                    //Start the other threads
+                    if (firstRun)
+                    {
+                        //Start other threads
+                        this.MessagingThread.Start();
+                        this.CommandParsingThread.Start();
+                        this.ActionHandlingThread.Start();
+                        this.TeamSwapThread.Start();
+                        this.BanEnforcerThread.Start();
+                        firstRun = false;
+                    }
+
                     //Ban Enforcer
                     if (this.useBanEnforcer)
                     {
@@ -5391,13 +5565,17 @@ namespace PRoConEvents
                             //Load all bans on startup
                             if (!this.useBanEnforcerPreviousState)
                             {
+                                this.DebugWrite("Calling fetch of all bans for import.", 2);
                                 //Get all bans from the database
                                 this.fetchAllDatabaseBans();
                                 //Get all bans from procon
                                 this.ExecuteCommand("procon.protected.send", "banList.list");
+                                this.dbCommHandle.Reset();
+                                this.dbCommHandle.WaitOne(Timeout.Infinite);
                             }
                             else
                             {
+                                this.DebugWrite("Calling fetch of new bans for import.", 5);
                                 //Get new bans from the database
                                 this.fetchNewDatabaseBans();
                             }
@@ -5423,6 +5601,11 @@ namespace PRoConEvents
                             //Loop through all bans in order that they came in
                             while (inboundBans != null && inboundBans.Count > 0)
                             {
+                                if (!this.isEnabled || !this.useBanEnforcer)
+                                {
+                                    this.ConsoleWarn("Canceling ban import mid-operation.");
+                                    break;
+                                }
                                 //Grab the ban
                                 AdKat_Ban aBan = inboundBans.Dequeue();
 
@@ -5448,6 +5631,110 @@ namespace PRoConEvents
                             }
                         }
 
+                        //Handle Inbound CBan Uploads
+                        if (this.cBanProcessingQueue.Count > 0)
+                        {
+                            if (!this.useBanEnforcerPreviousState)
+                            {
+                                this.ConsoleWarn("Do not disable AdKats or change any settings until upload is complete!");
+                            }
+                            this.DebugWrite("DBCOMM: Preparing to lock inbound cBan queue to retrive new cBans", 7);
+                            double totalCBans = 0;
+                            double bansImported = 0;
+                            Boolean earlyExit = false;
+                            DateTime startTime = DateTime.Now;
+                            lock (this.cBanProcessingQueue)
+                            {
+                                this.DebugWrite("DBCOMM: Inbound cBans found. Grabbing.", 6);
+                                //Grab all cBans in the queue
+                                inboundCBans = new Queue<CBanInfo>(this.cBanProcessingQueue.ToArray());
+                                totalCBans = inboundCBans.Count;
+                                //Clear the queue for next run
+                                this.cBanProcessingQueue.Clear();
+                            }
+                            //Loop through all cBans in order that they came in
+                            AdKat_Ban aBan;
+                            AdKat_Record record;
+                            Boolean bansFound = false;
+                            while (inboundCBans != null && inboundCBans.Count > 0)
+                            {
+                                //Break from the loop if the plugin is disabled or the setting is reverted.
+                                if (!this.isEnabled || !this.useBanEnforcer)
+                                {
+                                    this.ConsoleWarn("You exited the ban upload process early, the process was not completed.");
+                                    earlyExit = true;
+                                    break;
+                                }
+
+                                bansFound = true;
+
+                                CBanInfo cBan = inboundCBans.Dequeue();
+
+                                //Create the record
+                                record = new AdKat_Record();
+                                record.command_source = AdKat_CommandSource.InGame;
+                                //Permabans and Temp bans longer than 1 year will be defaulted to permaban
+                                if (cBan.BanLength.Seconds > 0 && cBan.BanLength.Seconds < 31536000)
+                                {
+                                    record.command_type = AdKat_CommandType.TempBanPlayer;
+                                    record.command_action = AdKat_CommandType.TempBanPlayer;
+                                    record.command_numeric = cBan.BanLength.Seconds / 60;
+                                }
+                                else
+                                {
+                                    record.command_type = AdKat_CommandType.PermabanPlayer;
+                                    record.command_action = AdKat_CommandType.PermabanPlayer;
+                                    record.command_numeric = 0;
+                                }
+                                record.source_name = "BanEnforcer";
+                                record.server_id = this.server_id;
+                                record.target_player = this.fetchPlayer(-1, cBan.SoldierName, cBan.Guid, cBan.IpAddress);
+                                if (!String.IsNullOrEmpty(record.target_player.player_name))
+                                {
+                                    record.target_name = record.target_player.player_name;
+                                }
+                                record.isIRO = false;
+                                record.record_message = cBan.Reason;
+
+                                //Create the ban
+                                aBan = new AdKat_Ban();
+                                aBan.ban_record = record;
+
+                                //Update the ban enforcement depending on available information
+                                Boolean nameAvailable = !String.IsNullOrEmpty(record.target_player.player_name);
+                                Boolean GUIDAvailable = !String.IsNullOrEmpty(record.target_player.player_guid);
+                                Boolean IPAvailable = !String.IsNullOrEmpty(record.target_player.player_ip);
+                                aBan.ban_enforceName = nameAvailable && (this.defaultEnforceName || (!GUIDAvailable && !IPAvailable) || !String.IsNullOrEmpty(cBan.SoldierName));
+                                aBan.ban_enforceGUID = GUIDAvailable && (this.defaultEnforceGUID || (!nameAvailable && !IPAvailable) || !String.IsNullOrEmpty(cBan.Guid));
+                                aBan.ban_enforceIP = IPAvailable && (this.defaultEnforceIP || (!nameAvailable && !GUIDAvailable) || !String.IsNullOrEmpty(cBan.IpAddress));
+                                if (!aBan.ban_enforceName && !aBan.ban_enforceGUID && !aBan.ban_enforceIP)
+                                {
+                                    this.ConsoleError("Unable to create ban, no proper player information");
+                                    continue;
+                                }
+
+                                //Upload the ban
+                                this.uploadBan(aBan);
+
+                                //Update this server's ban lists
+                                this.updateBanLists(aBan);
+
+                                if (!this.useBanEnforcerPreviousState && (++bansImported % 25 == 0))
+                                {
+                                    this.ConsoleWrite(Math.Round(100 * bansImported / totalCBans, 2) + "% of bans uploaded. AVG " + Math.Round(bansImported / ((DateTime.Now - startTime).TotalSeconds), 2) + " uploads/sec.");
+                                }
+                            }
+                            if (bansFound && !earlyExit)
+                            {
+                                //If all bans have been queued for processing, clear the ban list
+                                this.ExecuteCommand("procon.protected.send", "banList.clear");
+                                if (!this.useBanEnforcerPreviousState)
+                                {
+                                    this.ConsoleSuccess("All bans uploaded into AdKats database.");
+                                }
+                            }
+                        }
+
                         this.useBanEnforcerPreviousState = true;
                     }
                     else
@@ -5457,6 +5744,7 @@ namespace PRoConEvents
                         {
                             this.repopulateProconBanList();
                             this.useBanEnforcerPreviousState = false;
+                            this.bansFirstListed = false;
                         }
                         //If not, completely ignore all ban enforcer code
                     }
@@ -5505,17 +5793,6 @@ namespace PRoConEvents
                     {
                         this.DebugWrite("DBCOMM: No unprocessed records. Waiting for input", 7);
                         this.dbCommHandle.Reset();
-
-                        if (firstRun)
-                        {
-                            //Start other threads
-                            this.MessagingThread.Start();
-                            this.CommandParsingThread.Start();
-                            this.ActionHandlingThread.Start();
-                            this.TeamSwapThread.Start();
-                            this.BanEnforcerThread.Start();
-                            firstRun = false;
-                        }
 
                         if (this.fetchActionsFromDB || this.useBanEnforcer || this.usingAWA)
                         {
@@ -5814,6 +6091,7 @@ namespace PRoConEvents
         private void uploadAllSettings()
         {
             DebugWrite("uploadAllSettings starting!", 6);
+            this.queueSettingForUpload(new CPluginVariable(@"Plugin Version", typeof(string), this.GetPluginVersion()));
             this.queueSettingForUpload(new CPluginVariable(@"Debug level", typeof(Int32), this.debugLevel));
             this.queueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof(string), this.debugSoldierName));
             this.queueSettingForUpload(new CPluginVariable(@"External Access Key", typeof(string), this.externalCommandAccessKey));
@@ -6079,7 +6357,7 @@ namespace PRoConEvents
                             `target_id`, 
                             `source_name`, 
                             `record_message`, 
-                            `adkats_read` "  + ((record.record_time != DateTime.MinValue) ? (", `record_time` ") : ("")) + @"
+                            `adkats_read` " + ((record.record_time != DateTime.MinValue) ? (", `record_time` ") : ("")) + @"
                         ) 
                         VALUES 
                         ( 
@@ -6884,6 +7162,31 @@ namespace PRoConEvents
 
                 using (MySqlConnection connection = this.getDatabaseConnection())
                 {
+                    double totalBans = 0;
+                    double bansImported = 0;
+                    Boolean earlyExit = false;
+                    DateTime startTime = DateTime.Now;
+
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        SELECT 
+                            COUNT(*) AS `ban_count`
+                        FROM 
+	                        `adkats_banlist`";
+
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                totalBans = reader.GetInt64("ban_count");
+                            }
+                        }
+                    }
+                    if (totalBans < 1)
+                    {
+                        return true;
+                    }
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
@@ -6904,9 +7207,23 @@ namespace PRoConEvents
 
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
+                            Boolean told = false;
                             //Loop through all incoming bans
                             while (reader.Read())
                             {
+                                if (!told)
+                                {
+                                    this.ConsoleWarn("Downloading bans from database, please wait. This might take several minutes depending on your ban count!");
+                                    told = true;
+                                }
+                                //Break from the loop if the plugin is disabled or the setting is reverted.
+                                if (!this.isEnabled || !this.useBanEnforcer)
+                                {
+                                    this.ConsoleWarn("You exited the ban download process early, the process was not completed.");
+                                    earlyExit = true;
+                                    break;
+                                }
+
                                 //Bans have been found
                                 success = true;
 
@@ -6937,26 +7254,27 @@ namespace PRoConEvents
                                 //Get the record information
                                 aBan.ban_record = this.fetchRecordByID(reader.GetInt64("latest_record_id"));
 
-                                //Add it to the temp banlist
-                                tempBanList.Add(aBan);
+                                //Update the ban lists with the downloaded ban
+                                this.updateBanLists(aBan);
+
+                                if (!this.useBanEnforcerPreviousState && (++bansImported % 25 == 0))
+                                {
+                                    this.ConsoleWrite(Math.Round(100 * bansImported / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansImported / ((DateTime.Now - startTime).TotalSeconds), 2) + " downloads/sec.");
+                                }
                             }
+                            if (success && !earlyExit)
+                            {
+                                this.ConsoleSuccess("All bans downloaded from the database.");
+
+                                //Queue all current players for a ban check
+                                this.banCheckAllPlayers();
+                            }
+
+                            //Update the last db ban fetch time
+                            this.lastDBBanFetch = DateTime.Now;
+
+                            return true;
                         }
-                    }
-                    //If bans were fetched successfully, update the ban lists and sync back
-                    if (success)
-                    {
-                        foreach (AdKat_Ban aBan in tempBanList)
-                        {
-                            this.updateBanLists(aBan);
-                        }
-
-                        //Queue all current players for a ban check
-                        this.banCheckAllPlayers();
-
-                        //Update the last db ban fetch time
-                        this.lastDBBanFetch = DateTime.Now;
-
-                        return true;
                     }
                 }
             }
@@ -7141,9 +7459,13 @@ namespace PRoConEvents
         {
             try
             {
+                this.ConsoleWarn("Repopulating all AdKats enforced bans into procon's ban list.");
+                double totalBans = this.AdKat_BanList_GUID.Count + this.AdKat_BanList_IP.Count + this.AdKat_BanList_Name.Count;
+                double bansRepopulated = 0;
                 long totalSeconds;
                 foreach (AdKat_Ban aBan in this.AdKat_BanList_Name.Values)
                 {
+                    Thread.Sleep(75);
                     totalSeconds = (long)this.convertToProconTime(aBan.ban_endTime).Subtract(DateTime.Now).TotalSeconds;
                     if (totalSeconds < 0)
                     {
@@ -7155,10 +7477,16 @@ namespace PRoConEvents
                         this.DebugWrite("Re-ProconBanning: " + aBan.ban_record.target_player.player_name + " for " + totalSeconds + "sec for " + aBan.ban_record.record_message, 4);
                         this.ExecuteCommand("procon.protected.send", "banList.add", "name", aBan.ban_record.target_player.player_name, "seconds", totalSeconds + "", aBan.ban_record.record_message);
                     }
+                    if (++bansRepopulated % 25 == 0)
+                    {
+                        this.ConsoleWrite(Math.Round(100 * bansRepopulated / totalBans, 2) + "% of bans repopulated.");
+                    }
                 }
+                this.ConsoleWrite("All Name bans repopulated.");
                 this.AdKat_BanList_Name.Clear();
                 foreach (AdKat_Ban aBan in this.AdKat_BanList_IP.Values)
                 {
+                    Thread.Sleep(75);
                     totalSeconds = (long)this.convertToProconTime(aBan.ban_endTime).Subtract(DateTime.Now).TotalSeconds;
                     if (totalSeconds < 0)
                     {
@@ -7170,10 +7498,16 @@ namespace PRoConEvents
                         this.DebugWrite("Re-ProconBanning: " + aBan.ban_record.target_player.player_ip + " for " + totalSeconds + "sec for " + aBan.ban_record.record_message, 4);
                         this.ExecuteCommand("procon.protected.send", "banList.add", "ip", aBan.ban_record.target_player.player_ip, "seconds", totalSeconds + "", aBan.ban_record.record_message);
                     }
+                    if (++bansRepopulated % 25 == 0)
+                    {
+                        this.ConsoleWrite(Math.Round(100 * bansRepopulated / totalBans, 2) + "% of bans repopulated.");
+                    }
                 }
+                this.ConsoleWrite("All IP bans repopulated.");
                 this.AdKat_BanList_IP.Clear();
                 foreach (AdKat_Ban aBan in this.AdKat_BanList_GUID.Values)
                 {
+                    Thread.Sleep(75);
                     totalSeconds = (long)this.convertToProconTime(aBan.ban_endTime).Subtract(DateTime.Now).TotalSeconds;
                     if (totalSeconds < 0)
                     {
@@ -7185,7 +7519,12 @@ namespace PRoConEvents
                         this.DebugWrite("Re-ProconBanning: " + aBan.ban_record.target_player.player_guid + " for " + totalSeconds + "sec for " + aBan.ban_record.record_message, 4);
                         this.ExecuteCommand("procon.protected.send", "banList.add", "guid", aBan.ban_record.target_player.player_guid, "seconds", totalSeconds + "", aBan.ban_record.record_message);
                     }
+                    if (++bansRepopulated % 25 == 0)
+                    {
+                        this.ConsoleWrite(Math.Round(100 * bansRepopulated / totalBans, 2) + "% of bans repopulated.");
+                    }
                 }
+                this.ConsoleWrite("All GUID bans repopulated.");
                 this.AdKat_BanList_GUID.Clear();
                 this.ExecuteCommand("procon.protected.send", "banList.save");
                 this.ExecuteCommand("procon.protected.send", "banList.list");
@@ -7234,7 +7573,7 @@ namespace PRoConEvents
                     }
                     if (currentRecordCount == 0)
                     {
-                        this.ConsoleWrite("^1^bWARNING!^0^n Updating records from previous versions to 0.3.0.0! Do not turn off AdKats until it's finished!");
+                        this.ConsoleWarn("Updating records from previous versions to 0.3.0.0! Do not turn off AdKats until it's finished!");
 
                         List<AdKat_Record> newRecords = new List<AdKat_Record>();
 
@@ -7305,7 +7644,7 @@ namespace PRoConEvents
 
                         this.ConsoleSuccess(uploadCount + " records imported from previous versions of AdKats!");
                     }
-                    
+
                     //Get player access count from current version table
                     int currentAccessCount = 0;
                     using (MySqlCommand command = connection.CreateCommand())
@@ -7330,7 +7669,7 @@ namespace PRoConEvents
                     }
                     if (currentAccessCount == 0)
                     {
-                        this.ConsoleWrite("^1^bWARNING!^0^n Updating player access from previous versions to 0.3.0.0! Do not turn off AdKats until it's finished!");
+                        this.ConsoleWarn("Updating player access from previous versions to 0.3.0.0! Do not turn off AdKats until it's finished!");
 
                         List<AdKat_Access> newAccess = new List<AdKat_Access>();
 
@@ -7355,7 +7694,7 @@ namespace PRoConEvents
                                     access.access_level = reader.GetInt32("access_level");
                                     access.member_id = 0;
                                     access.player_email = "test@gmail.com";
-                                    
+
                                     //Push to lists
                                     newAccess.Add(access);
 
@@ -7610,7 +7949,7 @@ namespace PRoConEvents
             }
             else
             {
-                ConsoleError("No admins in the admin table.");
+                this.ConsoleWarn("No admins in the admin table.");
             }
 
             DebugWrite("fetchAccessList finished!", 6);
