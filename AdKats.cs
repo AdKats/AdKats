@@ -1737,8 +1737,8 @@ namespace PRoConEvents
                     int.TryParse(strValue, out tmp);
                     if (tmp != this.playersToAutoWhitelist)
                     {
-                        if (tmp < 1)
-                            tmp = 1;
+                        if (tmp < 0)
+                            tmp = 0;
                         this.playersToAutoWhitelist = tmp;
                         //Once setting has been changed, upload the change to database
                         this.queueSettingForUpload(new CPluginVariable(@"Auto-Whitelist Count", typeof(Int32), this.playersToAutoWhitelist));
@@ -2734,29 +2734,20 @@ namespace PRoConEvents
                 {
                     lock (this.cBanProcessingQueue)
                     {
-                        if (!this.useBanEnforcerPreviousState)
+                        //Only allow one banlist to happen during initial startup
+                        if (!this.bansFirstListed)
                         {
-                            //Only allow one banlist to happen during initial startup
-                            if(this.bansFirstListed)
+                            foreach (CBanInfo cBan in banList)
                             {
-                                return;
+                                this.cBanProcessingQueue.Enqueue(cBan);
+                                if (DateTime.Now - startTime > TimeSpan.FromSeconds(50))
+                                {
+                                    this.ConsoleException("OnBanList took longer than 50 seconds, exiting so procon doesn't panic.");
+                                    return;
+                                }
                             }
-                            this.ConsoleWarn("Preparing to queue procon bans for import. Please wait.");
+                            this.bansFirstListed = true;
                         }
-                        foreach (CBanInfo cBan in banList)
-                        {
-                            this.cBanProcessingQueue.Enqueue(cBan);
-                            if(DateTime.Now - startTime > TimeSpan.FromSeconds(50))
-                            {
-                                this.ConsoleException("OnBanList took longer than 50 seconds, exiting so procon doesn't panic.");
-                                return;
-                            }
-                        }
-                        if (!this.useBanEnforcerPreviousState)
-                        {
-                            this.ConsoleWrite(banList.Count + " procon bans queued for import. Import might take several minutes if you have many bans!");
-                        }
-                        this.bansFirstListed = true;
                         this.dbCommHandle.Set();
                     }
                 }
@@ -3048,7 +3039,10 @@ namespace PRoConEvents
                     this.listPlayersHandle.Reset();
                     this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                     //Wait for listPlayers to finish
-                    this.listPlayersHandle.WaitOne(5000);
+                    if (!this.listPlayersHandle.WaitOne(10000))
+                    {
+                        this.DebugWrite("ListPlayers ran out of time for teamswap. 10 sec.", 1);
+                    }
 
                     //Refresh Max Player Count, needed for responsive server size
                     CServerInfo info = this.getServerInfo();
@@ -3099,7 +3093,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        this.playerSayMessage(player.SoldierName, "(US -> RU) queue: Position " + (this.indexOfCPlayerInfo(this.USMoveQueue, player.SoldierName) + 1));
+                                        this.playerSayMessage(player.SoldierName, "RU Team Full (" + this.RUPlayerCount + "/" + maxPlayerCount + "). You are in queue position " + (this.indexOfCPlayerInfo(this.USMoveQueue, player.SoldierName) + 1));
                                     }
                                 }
                                 else
@@ -3111,7 +3105,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        this.playerSayMessage(player.SoldierName, "(RU -> US) queue: Position " + (this.indexOfCPlayerInfo(this.RUMoveQueue, player.SoldierName) + 1));
+                                        this.playerSayMessage(player.SoldierName, "US Team Full (" + this.USPlayerCount + "/" + maxPlayerCount + "). You are in queue position " + (this.indexOfCPlayerInfo(this.RUMoveQueue, player.SoldierName) + 1));
                                     }
                                 }
                             }
@@ -4862,9 +4856,12 @@ namespace PRoConEvents
             this.DebugWrite("Killing player. Player last died " + seconds + " seconds ago.", 3);
             if (seconds < 10)
             {
-                lock (this.actOnSpawnDictionary)
+                if(!this.actOnSpawnDictionary.ContainsKey(record.target_player.player_name))
                 {
-                    this.actOnSpawnDictionary.Add(record.target_player.player_name, record);
+                    lock (this.actOnSpawnDictionary)
+                    {
+                        this.actOnSpawnDictionary.Add(record.target_player.player_name, record);
+                    }
                 }
             }
             return this.sendMessageToSource(record, "You KILLED " + record.target_name + " for " + record.record_message + additionalMessage);
@@ -5569,9 +5566,11 @@ namespace PRoConEvents
                                 //Get all bans from the database
                                 this.fetchAllDatabaseBans();
                                 //Get all bans from procon
+                                this.ConsoleWarn("Preparing to queue procon bans for import. Please wait.");
                                 this.ExecuteCommand("procon.protected.send", "banList.list");
                                 this.dbCommHandle.Reset();
                                 this.dbCommHandle.WaitOne(Timeout.Infinite);
+                                this.ConsoleWrite(this.cBanProcessingQueue.Count + " procon bans queued for import. Import might take several minutes if you have many bans!");
                             }
                             else
                             {
@@ -6163,6 +6162,12 @@ namespace PRoConEvents
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         string value = var.Value.Replace("'", "*").Replace('"', '*');
+                        //Check for length too great
+                        if (value.Length > 1499)
+                        {
+                            this.ConsoleError("Unable to upload setting. Length of setting too great. Really dude? It's 1500 chars. This is battlefield, not a book club.");
+                            return;
+                        }
                         this.DebugWrite(value, 7);
                         //Set the insert command structure
                         command.CommandText = @"
@@ -7257,7 +7262,7 @@ namespace PRoConEvents
                                 //Update the ban lists with the downloaded ban
                                 this.updateBanLists(aBan);
 
-                                if (!this.useBanEnforcerPreviousState && (++bansImported % 25 == 0))
+                                if (!this.useBanEnforcerPreviousState && (++bansImported % 15 == 0))
                                 {
                                     this.ConsoleWrite(Math.Round(100 * bansImported / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansImported / ((DateTime.Now - startTime).TotalSeconds), 2) + " downloads/sec.");
                                 }
@@ -7477,7 +7482,7 @@ namespace PRoConEvents
                         this.DebugWrite("Re-ProconBanning: " + aBan.ban_record.target_player.player_name + " for " + totalSeconds + "sec for " + aBan.ban_record.record_message, 4);
                         this.ExecuteCommand("procon.protected.send", "banList.add", "name", aBan.ban_record.target_player.player_name, "seconds", totalSeconds + "", aBan.ban_record.record_message);
                     }
-                    if (++bansRepopulated % 25 == 0)
+                    if (++bansRepopulated % 15 == 0)
                     {
                         this.ConsoleWrite(Math.Round(100 * bansRepopulated / totalBans, 2) + "% of bans repopulated.");
                     }
@@ -7498,7 +7503,7 @@ namespace PRoConEvents
                         this.DebugWrite("Re-ProconBanning: " + aBan.ban_record.target_player.player_ip + " for " + totalSeconds + "sec for " + aBan.ban_record.record_message, 4);
                         this.ExecuteCommand("procon.protected.send", "banList.add", "ip", aBan.ban_record.target_player.player_ip, "seconds", totalSeconds + "", aBan.ban_record.record_message);
                     }
-                    if (++bansRepopulated % 25 == 0)
+                    if (++bansRepopulated % 15 == 0)
                     {
                         this.ConsoleWrite(Math.Round(100 * bansRepopulated / totalBans, 2) + "% of bans repopulated.");
                     }
@@ -7519,7 +7524,7 @@ namespace PRoConEvents
                         this.DebugWrite("Re-ProconBanning: " + aBan.ban_record.target_player.player_guid + " for " + totalSeconds + "sec for " + aBan.ban_record.record_message, 4);
                         this.ExecuteCommand("procon.protected.send", "banList.add", "guid", aBan.ban_record.target_player.player_guid, "seconds", totalSeconds + "", aBan.ban_record.record_message);
                     }
-                    if (++bansRepopulated % 25 == 0)
+                    if (++bansRepopulated % 15 == 0)
                     {
                         this.ConsoleWrite(Math.Round(100 * bansRepopulated / totalBans, 2) + "% of bans repopulated.");
                     }
