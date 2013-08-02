@@ -7166,9 +7166,6 @@ namespace PRoConEvents
                             return null;
                         }
                         query += ")";
-
-                        //TODO remove
-                        this.ConsoleWrite(query);
                             
                         //Assign the query
                         command.CommandText = query;
