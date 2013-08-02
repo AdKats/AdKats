@@ -610,7 +610,23 @@ namespace PRoConEvents
                     lstReturn.Add(new CPluginVariable("3. Player Access Settings|Remove Access", typeof(string), ""));
                     if (this.playerAccessCache.Count > 0)
                     {
+                        //Sort list by access level, then by name
+                        List<AdKat_Access> tempAccess = new List<AdKat_Access>();
                         foreach (AdKat_Access access in this.playerAccessCache.Values)
+                        {
+                            tempAccess.Add(access);
+                        }
+                        tempAccess.Sort(
+                            delegate(AdKat_Access a1, AdKat_Access a2) 
+                            { 
+                                return (a1.access_level==a2.access_level)
+                                            ?
+                                        (String.Compare(a1.player_name, a2.player_name))
+                                            :
+                                        ((a1.access_level<a2.access_level)?(-1):(1)); 
+                            }
+                        );
+                        foreach (AdKat_Access access in tempAccess)
                         {
                             lstReturn.Add(new CPluginVariable("3. Player Access Settings|" + access.player_name + "|Access Level", typeof(int), access.access_level));
                             //lstReturn.Add(new CPluginVariable("3. Player Access Settings|" + access.player_name + "|Email Address", typeof(string), access.player_email));
@@ -2643,30 +2659,33 @@ namespace PRoConEvents
 
                         //this.DebugWrite("Checking " + aPlayer.player_name + " Against " + this.AdKat_BanList_Name.Count + " Name Bans. " + this.AdKat_BanList_GUID.Count + " GUID Bans. And " + this.AdKat_BanList_IP.Count + " IP Bans.", 5);
 
-                        AdKat_Ban aBan = this.fetchPlayerBan(aPlayer);
+                        if (this.playerDictionary.ContainsKey(aPlayer.player_name))
+                        {
+                            AdKat_Ban aBan = this.fetchPlayerBan(aPlayer);
 
-                        if (aBan != null)
-                        {
-                            this.DebugWrite("BANENF: BAN ENFORCED", 3);
-                            //Create the new record
-                            AdKat_Record record = new AdKat_Record();
-                            record.source_name = "BanEnforcer";
-                            record.isIRO = false;
-                            record.server_id = this.server_id;
-                            record.target_name = aBan.ban_record.target_player.player_name;
-                            record.target_player = aBan.ban_record.target_player;
-                            record.command_source = AdKat_CommandSource.InGame;
-                            record.command_type = AdKat_CommandType.EnforceBan;
-                            record.command_numeric = (int)aBan.ban_id;
-                            record.record_message = aBan.ban_record.record_message;
-                            //Queue record for upload
-                            this.queueRecordForProcessing(record);
-                            //Enforce the ban
-                            this.enforceBan(aBan);
-                        }
-                        else
-                        {
-                            this.DebugWrite("BANENF: No ban found for player", 5);
+                            if (aBan != null)
+                            {
+                                this.DebugWrite("BANENF: BAN ENFORCED", 3);
+                                //Create the new record
+                                AdKat_Record record = new AdKat_Record();
+                                record.source_name = "BanEnforcer";
+                                record.isIRO = false;
+                                record.server_id = this.server_id;
+                                record.target_name = aBan.ban_record.target_player.player_name;
+                                record.target_player = aBan.ban_record.target_player;
+                                record.command_source = AdKat_CommandSource.InGame;
+                                record.command_type = AdKat_CommandType.EnforceBan;
+                                record.command_numeric = (int)aBan.ban_id;
+                                record.record_message = aBan.ban_record.record_message;
+                                //Queue record for upload
+                                this.queueRecordForProcessing(record);
+                                //Enforce the ban
+                                this.enforceBan(aBan);
+                            }
+                            else
+                            {
+                                this.DebugWrite("BANENF: No ban found for player", 5);
+                            }
                         }
                     }
                 }
@@ -7332,21 +7351,45 @@ namespace PRoConEvents
                                     if (reader.GetString("ban_enforceName").Equals("Y"))
                                     {
                                         Thread.Sleep(75);
-                                        this.ExecuteCommand("procon.protected.send", "banList.add", "name", aBan.ban_record.target_player.player_name, "seconds", totalBanSeconds + "", aBan.ban_record.record_message);
+                                        //Permabans and Temp bans longer than 1 year will be defaulted to permaban
+                                        if (totalBanSeconds > 0 && totalBanSeconds < 31536000)
+                                        {
+                                            this.ExecuteCommand("procon.protected.send", "banList.add", "name", aBan.ban_record.target_player.player_name, "seconds", totalBanSeconds + "", aBan.ban_record.record_message);
+                                        }
+                                        else
+                                        {
+                                            this.ExecuteCommand("procon.protected.send", "banList.add", "name", aBan.ban_record.target_player.player_name, "perm", aBan.ban_record.record_message);
+                                        }
                                     }
 
                                     //Push the guid ban
                                     if (reader.GetString("ban_enforceGUID").Equals("Y"))
                                     {
                                         Thread.Sleep(75);
-                                        this.ExecuteCommand("procon.protected.send", "banList.add", "guid", aBan.ban_record.target_player.player_guid, "seconds", totalBanSeconds + "", aBan.ban_record.record_message);
+                                        //Permabans and Temp bans longer than 1 year will be defaulted to permaban
+                                        if (totalBanSeconds > 0 && totalBanSeconds < 31536000)
+                                        {
+                                            this.ExecuteCommand("procon.protected.send", "banList.add", "guid", aBan.ban_record.target_player.player_guid, "seconds", totalBanSeconds + "", aBan.ban_record.record_message);
+                                        }
+                                        else
+                                        {
+                                            this.ExecuteCommand("procon.protected.send", "banList.add", "guid", aBan.ban_record.target_player.player_guid, "perm", aBan.ban_record.record_message);
+                                        }
                                     }
 
                                     //Push the IP ban
                                     if (reader.GetString("ban_enforceIP").Equals("Y"))
                                     {
                                         Thread.Sleep(75);
-                                        this.ExecuteCommand("procon.protected.send", "banList.add", "ip", aBan.ban_record.target_player.player_ip, "seconds", totalBanSeconds + "", aBan.ban_record.record_message);
+                                        //Permabans and Temp bans longer than 1 year will be defaulted to permaban
+                                        if (totalBanSeconds > 0 && totalBanSeconds < 31536000)
+                                        {
+                                            this.ExecuteCommand("procon.protected.send", "banList.add", "ip", aBan.ban_record.target_player.player_ip, "seconds", totalBanSeconds + "", aBan.ban_record.record_message);
+                                        }
+                                        else
+                                        {
+                                            this.ExecuteCommand("procon.protected.send", "banList.add", "ip", aBan.ban_record.target_player.player_ip, "perm", aBan.ban_record.record_message);
+                                        }
                                     }
                                 }
 
@@ -8806,6 +8849,7 @@ namespace PRoConEvents
 
         public Boolean soldierNameValid(string input)
         {
+            this.DebugWrite("Checking player '" + input + "' for validity.", 3);
             if (String.IsNullOrEmpty(input))
             {
                 this.ConsoleError("Soldier Name empty or null.");
