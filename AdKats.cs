@@ -5144,7 +5144,6 @@ namespace PRoConEvents
                 message = "Punish options are set incorrectly. Inform plugin setting manager.";
                 this.ConsoleError(message);
             }
-            this.ConsoleSuccess("Punish action: " + record.command_action);
             return message;
         }
 
@@ -9215,7 +9214,7 @@ namespace PRoConEvents
         {
             ConsoleWrite(msg, MessageTypeEnum.Error);
         }
-
+        
         public void ConsoleSuccess(string msg)
         {
             ConsoleWrite(msg, MessageTypeEnum.Success);
