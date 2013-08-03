@@ -2715,13 +2715,15 @@ namespace PRoConEvents
             try
             {
                 //Return if small duration (10 seconds) since last ban list
-                if (DateTime.Now - this.lastSuccessfulBanList < TimeSpan.FromSeconds(10))
+                if ((DateTime.Now - this.lastSuccessfulBanList) < TimeSpan.FromSeconds(10))
                 {
-                    this.ConsoleWarn("Banlist being called rapidly.");
+                    this.DebugWrite("Banlist being called quickly.", 4);
+                    return;
                 }
                 else
                 {
                     DateTime startTime = DateTime.Now;
+                    this.lastSuccessfulBanList = startTime;
                     if (!this.isEnabled) return;
                     this.DebugWrite("OnBanList fired", 3);
                     if (this.useBanEnforcer)
