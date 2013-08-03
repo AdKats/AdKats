@@ -694,10 +694,9 @@ Valid 'command_type's that can be acted on include the following:<br/>
 <h2>Settings</h2>
 <h3>1. Server Settings:</h3>
 <ul>
-  <li><b>'Server ID'</b> - ID of this server. Automatically set via the database.</li>
-  <li><b>'Server IP'</b> - IP address and port of this server. Automatically set via procon.<br/></li>
+  <li><b>'Server ID (Display)'</b> - ID of this server. Automatically set via the database.</li>
+  <li><b>'Server IP (Display)'</b> - IP address and port of this server. Automatically set via procon.<br/></li>
   <li><b>'Setting Import'</b> - Enter an existing server ID here and all settings from that instance will be imported here. All settings on this instance will be overwritten.<br/></li>
-  <li><b>'Using AdKats WebAdmin'</b> - Makes sure all settings are set to allow WebAdmin Use. Enables Ban Enforcer, and begins fetching actions from database.<br/></li>
 </ul>
 <h3>2. MySQL Settings:</h3>
 <ul>
@@ -724,6 +723,7 @@ Valid 'command_type's that can be acted on include the following:<br/>
   <li><b>'Combine Server Punishments'</b> - Whether to make punishes from all servers on this database affect players on this server. Default is false.</li>
   <li><b>'Only Kill Players when Server in low population'</b> - When server population is below 'Low Server Pop Value', only kill players, so server does not empty. Player points will be incremented normally.</li>
   <li><b>'Low Server Pop Value'</b> - Number of players at which the server is deemed 'Low Population'.</li>
+  <li><b>'IRO Punishment Overrides Low Pop'</b> - When punishing players, if a player gets an IRO punish (described above), it will ignore whether server is in low population or not.</li>
 </ul>
 <h3>6. Email Settings:</h3>
 <ul>
@@ -758,12 +758,12 @@ Valid 'command_type's that can be acted on include the following:<br/>
 <ul>
   By default, banning is by GUID only, this is sufficient in most cases. If not using AdKats Ban Enforcer, bans are 
   always done by EA GUID. <br/>
-  <li><b>'Use AdKats Ban Enforcer'</b> - Whether to use the internal AdKats Ban Enforcer. Details Noted Above.</li>
-  <li><b>'Ban By Name'</b> - Whether to use a player's name to ban them. (Insecure, players can change their names)</li>
-  <li><b>'Ban By GUID'</b> - Whether to use a player's EA GUID to ban them. (Secure, players cannot change their GUIDs)</li>
-  <li><b>'Ban By IP'</b> - Whether to use a player's IP Address to ban them. (Secure, but can hit multiple players.)</li>
   <li><b>'Use Additional Ban Message'</b> - Whether to have an additional message append on each ban.</li>
   <li><b>'Additional Ban Message'</b> - Additional ban message to append on each ban. e.g. "Dispute at www.yourclansite.com"</li>
+  <li><b>'Use Ban Enforcer'</b> - Whether to use the internal AdKats Ban Enforcer. Details Noted Above.</li>
+  <li><b>'Enforce New Bans by NAME'</b> - Whether to use a player's name to ban them. (Insecure, players can change their names)</li>
+  <li><b>'Enforce New Bans by GUID'</b> - Whether to use a player's EA GUID to ban them. (Secure, players cannot change their GUIDs)</li>
+  <li><b>'Enforce New Bans by IP'</b> - Whether to use a player's IP Address to ban them. (Somewhat secure, experienced players can change their IP, and IP bans can hit multiple players.)</li>
 </ul>
 <h3>A12. External Command Settings:</h3>
 <ul>
