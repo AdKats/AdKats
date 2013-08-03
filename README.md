@@ -187,25 +187,28 @@ using that ID. To remove a ban change ban_status to "Disabled" (caps important),
 ban_endTime to when you want it to end (remember database timezone might be different from yours).<br/><br/>
 
 SELECT<br/> 
-`adkats_banlist`.`ban_id`, <br/>
-`tbl_playerdata`.`SoldierName` AS `player_name`, <br/>
-`adkats_records`.`record_message` AS `ban_reason`, <br/>
-`adkats_banlist`.`ban_status`, <br/>
-`adkats_banlist`.`ban_startTime`, <br/>
-`adkats_banlist`.`ban_endTime`, <br/>
-`adkats_banlist`.`ban_enforceName`, <br/>
-`adkats_banlist`.`ban_enforceGUID`, <br/>
-`adkats_banlist`.`ban_enforceIP`<br/>
+	`adkats_banlist`.`ban_id`, <br/>
+	`tbl_playerdata`.`SoldierName` AS `player_name`, <br/>
+	`adkats_records`.`record_message` AS `ban_reason`, <br/>
+	`adkats_banlist`.`ban_status`, <br/>
+	`adkats_banlist`.`ban_startTime`, <br/>
+	`adkats_banlist`.`ban_endTime`, <br/>
+	`adkats_banlist`.`ban_enforceName`, <br/>
+	`adkats_banlist`.`ban_enforceGUID`, <br/>
+	`adkats_banlist`.`ban_enforceIP`<br/>
 FROM <br/>
-`adkats_banlist` <br/>
+	`adkats_banlist` <br/>
 INNER JOIN <br/>
-`tbl_playerdata` <br/>
+	`tbl_playerdata` <br/>
 ON <br/>
-`tbl_playerdata`.`PlayerID` = `adkats_banlist`.`player_id` <br/>
+	`tbl_playerdata`.`PlayerID` = `adkats_banlist`.`player_id` <br/>
 INNER JOIN <br/>
-`adkats_records` <br/>
+	`adkats_records` <br/>
 ON <br/>
-`adkats_records`.`record_id` = `adkats_banlist`.`latest_record_id`;
+	`adkats_records`.`record_id` = `adkats_banlist`.`latest_record_id` <br/>
+ORDER BY <br/>
+	`ban_startTime` <br/>
+DESC;
 </p>
 <h3>Report/CallAdmin System</h3>
 <p>
