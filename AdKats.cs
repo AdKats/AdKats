@@ -2473,7 +2473,11 @@ namespace PRoConEvents
             {
                 lock (this.playersMutex)
                 {
-                    this.playerDictionary[kKillerVictimDetails.Victim.SoldierName].lastDeath = DateTime.Now;
+                    //Only add the last death if it's not a death by admin
+                    if(!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName))
+                    {
+                        this.playerDictionary[kKillerVictimDetails.Victim.SoldierName].lastDeath = DateTime.Now;
+                    }
                 }
             }
         }
@@ -4267,7 +4271,7 @@ namespace PRoConEvents
                             this.cancelSourcePendingAction(record);
 
                             //Parse parameters using max param count
-                            String[] parameters = this.parseParameters(remainingMessage, 1);
+                            String[] parameters = this.parseParameters(remainingMessage, 2);
                             switch (parameters.Length)
                             {
                                 case 0:
@@ -4299,7 +4303,7 @@ namespace PRoConEvents
                             this.cancelSourcePendingAction(record);
 
                             //Parse parameters using max param count
-                            String[] parameters = this.parseParameters(remainingMessage, 1);
+                            String[] parameters = this.parseParameters(remainingMessage, 2);
                             switch (parameters.Length)
                             {
                                 case 0:
@@ -8851,7 +8855,7 @@ namespace PRoConEvents
 
         public Boolean soldierNameValid(string input)
         {
-            this.DebugWrite("Checking player '" + input + "' for validity.", 3);
+            this.DebugWrite("Checking player '" + input + "' for validity.", 4);
             if (String.IsNullOrEmpty(input))
             {
                 this.ConsoleError("Soldier Name empty or null.");
