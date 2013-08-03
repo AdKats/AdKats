@@ -63,7 +63,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.3.0.0";
+        string plugin_version = "0.3.0.1";
 
         private MatchCommand AdKatsAvailableIndicator;
 
@@ -566,8 +566,8 @@ namespace PRoConEvents
             string pluginDescription = "DESCRIPTION FETCH FAILED|";
             string pluginChangelog = "CHANGELOG FETCH FAILED";
             WebClient client = new WebClient();
-            pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/test/README.md");
-            pluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/test/CHANGELOG.md");
+            pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
+            pluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
             return pluginDescription + pluginChangelog;
         }
 
@@ -5919,7 +5919,7 @@ namespace PRoConEvents
                     {
                         this.ConsoleError("Main Record table not present in the database.");
                         //Temporary code until delimiters are fixed
-                        this.ConsoleException("For this test release, the adkats database setup script must be run manually. Run the script then restart AdKats.");
+                        this.ConsoleException("For this release the adkats database setup script must be run manually. Run the script then restart AdKats.");
                         return false;
                         this.runDBSetupScript();
                         if (!this.confirmTable("adkats_records"))
@@ -5932,7 +5932,7 @@ namespace PRoConEvents
                     {
                         this.ConsoleError("Access Table not present in the database.");
                         //Temporary code until delimiters are fixed
-                        this.ConsoleException("For this test release, the adkats database setup script must be run manually. Run the script then restart AdKats.");
+                        this.ConsoleException("For this release the adkats database setup script must be run manually. Run the script then restart AdKats.");
                         return false;
                         this.runDBSetupScript();
                         if (!this.confirmTable("adkats_accesslist"))
@@ -5945,7 +5945,7 @@ namespace PRoConEvents
                     {
                         this.ConsoleError("Server Points Table not present in the database.");
                         //Temporary code until delimiters are fixed
-                        this.ConsoleException("For this test release, the adkats database setup script must be run manually. Run the script then restart AdKats.");
+                        this.ConsoleException("For this release the adkats database setup script must be run manually. Run the script then restart AdKats.");
                         return false;
                         this.runDBSetupScript();
                         if (!this.confirmTable("adkats_serverPlayerPoints"))
@@ -5958,7 +5958,7 @@ namespace PRoConEvents
                     {
                         this.ConsoleError("Global Points Table not present in the database.");
                         //Temporary code until delimiters are fixed
-                        this.ConsoleException("For this test release, the adkats database setup script must be run manually. Run the script then restart AdKats.");
+                        this.ConsoleException("For this release the adkats database setup script must be run manually. Run the script then restart AdKats.");
                         return false;
                         this.runDBSetupScript();
                         if (!this.confirmTable("adkats_globalPlayerPoints"))
@@ -5971,7 +5971,7 @@ namespace PRoConEvents
                     {
                         this.ConsoleError("Ban List not present in the database.");
                         //Temporary code until delimiters are fixed
-                        this.ConsoleException("For this test release, the adkats database setup script must be run manually. Run the script then restart AdKats.");
+                        this.ConsoleException("For this release the adkats database setup script must be run manually. Run the script then restart AdKats.");
                         return false;
                         this.runDBSetupScript();
                         if (!this.confirmTable("adkats_accesslist"))
@@ -5984,7 +5984,7 @@ namespace PRoConEvents
                     {
                         this.ConsoleError("Settings Table not present in the database.");
                         //Temporary code until delimiters are fixed
-                        this.ConsoleException("For this test release, the adkats database setup script must be run manually. Run the script then restart AdKats.");
+                        this.ConsoleException("For this release the adkats database setup script must be run manually. Run the script then restart AdKats.");
                         return false;
                         this.runDBSetupScript();
                         if (!this.confirmTable("adkats_settings"))
@@ -6021,7 +6021,7 @@ namespace PRoConEvents
                     {
                         WebClient downloader = new WebClient();
                         //Set the insert command structure
-                        command.CommandText = downloader.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/test/adkats.sql");
+                        command.CommandText = downloader.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql");
                         try
                         {
                             //Attempt to execute the query
