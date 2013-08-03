@@ -1,6 +1,6 @@
 <h2>Development</h2>
 <p>
-Started by ColColonCleaner for ADK Gamers on Apr. 20, 2013
+Started by ColColonCleaner for A Different Kind (ADK) on Apr. 20, 2013
 </p>
 <h3>Changelog</h3>
 <blockquote>
@@ -161,5 +161,56 @@ fine for performance). Right now only Punish and Forgive are required to be logg
   <li><b>Additional ban message option added.</b> e.g. Optionally add "appeal at www.yoursite.com" to the end of bans.</li>
   <li><b>30 seconds now hardcoded as punishment timeout.</b> Setting was only editable for testing purposes.</li>
   <li><b>Optimizations in code, database, and settings handling.</b></li>
+</ul>
+<h4>0.2.5.1 (6-JUNE-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes.</b> Some documented bugs in the issues section (milestone 0.2.5.1) are fixed.</li>
+  <li><b>Punishment Enhancements.</b> Punishment timout has been reduced to 20 seconds.</li>
+  <li><b>IRO Punishments Added.</b> Immediate Repeat Offence. If a player gets punished more than once in a 5 minute 
+  time span, the subsequent punishes were be worth 2 infraction points instead of just 1.</li>
+  <li><b>Messaging Enhancements.</b> Pre-say and pre-yell commands have been removed, and now the preMessage IDs can 
+  be used in regular say, yell, and any other commands that need a reason or message.</li>
+  <li><b>Pre-Message Enhancements.</b> Use of pre-defined messages can be required now.</li>
+</ul>
+<h4>0.3.0.0 (13-JULY-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Performance.</b> All actions, parsing, and database communications take place on their own threads now, 
+  increasing performance greatly.</li>
+  <li><b>Setting Sync.</b> All plugin settings are now stored in the database, specific to each procon instance. 
+  Usage shown in readme.</li>
+  <li><b>Dependencies.</b> XPKiller's Stat logger is now REQUIRED for AdKats to function. It provides much useful 
+  information regarding both player and server statistics, which the new Ban Enforcer and AdKats itself use to improve 
+  your admin abilities.</li>
+  <li><b>AdKats WebAdmin API.</b> A website from which you can manage all aspects of your server and playerbase. 
+  Direct control of players within the server, command feeds, all logs, ban management, and server statistics are all 
+  included in this site.</li>
+  <li><b>AdKats Ban Enforcer.</b> Due to lacking functionality and/or bugs in other ban managers, an internal Ban 
+  Enforcer is now coded into AdKats. AdKats can now enforce bans accross all of your servers. The Ban Enforcer will 
+  import and consolidate all bans from every procon instance it's enabled on. Once enabled, bans made on one of your 
+  servers will be enforced on all others within seconds of issuing the ban. Bans can be made by name, GUID, IP, any 
+  combination, or all at once. The enforcer works with all existing auto-admins, and requires AdKats WebAdmin for 
+  ban management. You can use it without WebAdmin, but you will be unable to manage any bans, lift them early, or modify 
+  them in any way once submitted. Use of the ban enforcer is optional because of this dependency, and is disabled by 
+  default.</li>
+  <li><b>Punishment Enhancements.</b> IRO punishments can now override the low population count and act normally.</li>
+  <li><b>Kick/Ban Messages Improved.</b> Frostbite has a 80 character limit for ban/kick messages, and the new ban/kick 
+  messages comply with that. Also, all kick/ban messages are more descriptive than before, and ban messages in 
+  particular will tell the player how long their ban is. </li>
+  <li><b>Small bug-fixes and enhancements.</b> Messages for errors, player information, and commands, are more 
+  informative to the users now. Small bugs fixed.</li>
+  <li><b>Debug Soldier Added.</b> Set the debug soldier name in settings to get the speed of commands on your server 
+  sent to you in-game. Time is in milliseconds, from the time you entered it until all actions resulting from that 
+  command have finished.</li>
+</ul>
+<h4>0.3.0.1 (3-AUG-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes.</b> Documented bugs in the issues section (milestone 0.3.0.1) are fixed.</li>
+  <li><b>Added delayed kill.</b> When a player dies and is then admin killed, kill will be performed when they spawn.</li>
+  <li><b>Ban-Sync process revamped.</b> All ban enforcer sync methods have been reworked to be more reliable and 
+  efficient.</li>
+  <li><b>Admin list sorted by level then name.</b> Simple visual fix.</li>
 </ul>
 </blockquote>
