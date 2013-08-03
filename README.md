@@ -1,5 +1,4 @@
 <h2 style="color:#009933;">Version 0.3.0.0 released! Your version is listed above (Procon Only).</h2>
-
 <a href="https://github.com/ColColonCleaner/AdKats/blob/dev/CHANGELOG.md" target="_blank">New in Version 0.3.0.0!</a> 
 Download link below.
 <h1>AdKats</h1>
@@ -7,8 +6,11 @@ Download link below.
 Admin Toolset with a plethora of features. It is designed for groups with high-traffic servers and many 
 admins, but will function just as well for small servers.<br/>
 <ul>
+  <li><b>Basic Action Commands.</b> Standard commands for player killing, kicking, banning, moving, etc..</li>
+  <li><b>Admin and setting sync between servers.</b> All changes to admin access or plugin settings can be 
+  automatically synced between procon layers.</li>
   <li><b>Infraction Tracking System.</b> Database reflected system to track player infractions and act accordingly.</li>
-  <li><b>Proper Player Report and Admin Call Handling.</b> Notification system and quick handling features for all admin 
+  <li><b>Quick Player Report and Admin Call Handling.</b> Notification system and quick handling features for all admin 
   calls and player reports.</li>
   <li><b>Fuzzy Player Name Completion.</b> Fully completes accurate or misspelled player names.</li>
   <li><b>Player Muting.</b> Players can be muted if necessary.</li>
@@ -171,13 +173,39 @@ their ban.<br/><br/>
 The Enforcer works properly with all existing auto-admins, and any bans added manually through procon will be imported 
 by the system. However, this system requires AdKats WebAdmin for ban management, it's options are too complicated for 
 procon's interface to house properly. Use of the ban enforcer is optional because of this dependency, and is disabled 
-by default. You can use Ban Enforcer without WebAdmin, but you will be unable to manage any bans, lift them early, or 
-modify them in any way once submitted.<br/><br/>
+by default. You can use Ban Enforcer without WebAdmin but you will need to modify the database ban list directly, which 
+will have a learning curve.<br/><br/>
 
 Ban Enforcer can be enabled with the "Use Ban Enforcer" setting. On enable it will import all bans from your ban list 
 then clear it, once you enable enforcer you will be unable to manage any bans without webadmin. Disabling ban enforcer 
 will repopulate procon's ban list with the imported bans, but you will lose any additional information ban enforcer was 
-able to gather about the banned players.
+able to gather about the banned players.<br/><br/>
+
+To all who will be using the ban enforcer before WebAdmin is released, you can use the below query to get more meaningful 
+information out of the ban list. Once you find the ban ID you want using this query you can modify it in adkats_banlist 
+using that ID. To remove a ban change ban_status to "Disabled" (caps important), and to modify duration change 
+ban_endTime to when you want it to end (remember database timezone might be different from yours).<br/><br/>
+
+SELECT<br/> 
+`adkats_banlist`.`ban_id`, <br/>
+`tbl_playerdata`.`SoldierName` AS `player_name`, <br/>
+`adkats_records`.`record_message` AS `ban_reason`, <br/>
+`adkats_banlist`.`ban_status`, <br/>
+`adkats_banlist`.`ban_startTime`, <br/>
+`adkats_banlist`.`ban_endTime`, <br/>
+`adkats_banlist`.`ban_enforceName`, <br/>
+`adkats_banlist`.`ban_enforceGUID`, <br/>
+`adkats_banlist`.`ban_enforceIP`<br/>
+FROM <br/>
+`adkats_banlist` <br/>
+INNER JOIN <br/>
+`tbl_playerdata` <br/>
+ON <br/>
+`tbl_playerdata`.`PlayerID` = `adkats_banlist`.`player_id` <br/>
+INNER JOIN <br/>
+`adkats_records` <br/>
+ON <br/>
+`adkats_records`.`record_id` = `adkats_banlist`.`latest_record_id`;
 </p>
 <h3>Report/CallAdmin System</h3>
 <p>
@@ -200,8 +228,9 @@ When a player sends a report, then an admin uses that report by ID, it is consid
 has X good reports in the past week a small bonus is given, access to teamswap. When a player gets access it simply 
 tells them "For your consistent player reporting you now have access to TeamSwap. Type @moveme to swap 
 between teams as often as you want." They do not know they are considered an admin assistant, only that they have access 
-to that. The assistant list is recalculated at the beginning of each round. They need to keep that report count up to 
-keep access, if they have less than the required amount they are automatically removed.<br/><br/>
+to that. Whether a player is an admin assistant is calculated when then join the server, and that status will remain 
+for the duration they are in the server (e.g. If they lose status mid-round, it won't cut them off until the next time 
+they join the server). They need to keep that report count up to keep access.<br/><br/>
 
 When an admin assistant sends a report, to the admins that report is prefixed with [AA] to note it as a (most likely) 
 reliable report. Whether admin assistants get the teamswap perk can be disabled, but the prefixes admins see will remain.
@@ -228,7 +257,7 @@ actual reason entered, so you can just do "@punish 283 4", and he will get the p
 </p>
 <h3>TeamSwap</h3>
 <p>
-TeamSwap is NOT an autobalancer (look up other plugins for that functionality), it is for manual player moving 
+<b>TeamSwap is NOT an autobalancer</b> (look up other plugins for that functionality), it is for manual player moving 
 only.<br/><br/>
 
 TeamSwap is a server-smart player moving system which offers two major benefits over the default system. Normally when 
@@ -238,8 +267,14 @@ are immediately slain and moved over to fill it. Secondly it allows whitelisted 
 themselves between teams as often as they want (within a ticket count window). This is currently not an available option 
 in default battlefield aside from procon commands since the game limits players to one switch per gaming session. 
 Whitelisted players can type '@moveme' and teamswap will queue them. This is meant to be available to players outside 
-the admin list, usually by paid usage to your community or to clan members only. Admins can also use '@moveme', and in 
-their case it bypasses the ticket window restriction.
+the admin list, usually by paid usage to your community or to clan members only. Admins (Access levels 0-4) can also use 
+'@moveme', and in their case it bypasses the ticket window restriction.<br/><br/>
+
+<b>Auto-Whitelisting:</b> X players per round can be auto whitelisted for TeamSwap, this means at the start of each 
+round X random players are elevated to access level 5 for that round (this elevation is not persisted in the database, 
+and will only apply to the current server). It is used to make players want full access, so they might buy access, or 
+join your community to get it. The setting is "Auto-Whitelist Count", under TeamSwap settings. This can be disabled by 
+setting auto-whitelist count to 0.
 </p>
 <h3>Requiring Reasons</h3>
 <p>
@@ -433,9 +468,9 @@ database.<br/><br/>
 <p>
 Players need to be at or above certain access levels to perform commands. Players on the access list can have their 
 powers disabled (without removing them from the access list) by lowering their access level. Players can be added to
-or removed from the access from plugin settings using the "Add Access" and "Remove Access" text fields. The access 
-level of a player can be changed once they are on the access list, in addition to their email address. 
-All players are defaulted to level 6 in the system, and have no special access, level 0 is a full admin.
+or removed from the access list using the "Add Access" and "Remove Access" setting fields. The access level of a player 
+can be changed once they are on the access list, in addition to their email address. All players are defaulted to level 
+6 in the system, and have no special access, level 0 is a full admin.
 <br/>
 <table>
 	<tr>
