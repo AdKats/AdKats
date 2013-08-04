@@ -41,6 +41,7 @@ AdKats was inspired by the gaming community A Different Kind (ADK). Visit
 <p>
 Make sure all requirements in the Dependencies section below are met.<br/>
 Run the contents of this sql script on your database: https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql<br/>
+(I would run this automatically if I could, but i'm limited until procon updates their MySQL connector to allow triggers)<br/>
 Enable AdKats on your layer/Procon instance. Simple as that :)
 </p>
 <h2>Dependencies</h2>
