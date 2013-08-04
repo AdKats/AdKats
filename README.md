@@ -37,6 +37,12 @@ Download the latest version here:
 AdKats was inspired by the gaming community A Different Kind (ADK). Visit 
 <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
 </p>
+<h2>Installation</h2>
+<p>
+Make sure all requirements in the Dependencies section below are met.<br/>
+Run the contents of this sql script on your database: https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql<br/>
+Enable AdKats on your layer/Procon instance. Simple as that :)
+</p>
 <h2>Dependencies</h2>
 <h4>XpKiller's "BF3 Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
 <p>
