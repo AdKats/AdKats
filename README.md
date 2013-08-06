@@ -36,7 +36,6 @@ admins, but will function just as well for small servers.<br/>
   their actions is quick and painless. And after WebAdmin is released nobody but your highest admins will need direct 
   procon access.</li>
 </ul>
-<br/>
 
 If you find any bugs, please submit them 
 <a href="https://github.com/ColColonCleaner/AdKats/issues?state=open" target="_blank">HERE</a> 
