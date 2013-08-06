@@ -238,7 +238,8 @@ DESC;<br/><br/>
 appeared to have some significant downfalls. I will not point fingers at any specific plugins other than metabans as 
 most of the problems with those could be solved by active upkeep and improvement, but unfortunately in some cases the 
 original developers have stopped supporting the plugin. For metabans specifically however they only enforce permabans 
-for 28 days, and if we want to keep hackers off our servers by whatever means possible that is simply unacceptable.<br/><br/>
+for 28 days, and if we want to keep unwanted players off our servers by whatever means possible that is simply 
+unacceptable.<br/><br/>
 
 On a lighter note though, developing this allows for some nice features not previously available. I can bypass procon's 
 ban list completely, this way no data is lost on how/why/who created the ban or on who its targeted. I can enforce bans 
