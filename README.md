@@ -66,7 +66,7 @@ AdKats was inspired by the gaming community A Different Kind (ADK). Visit
   commands would be run by both, causing unwanted functionality. Enjoy AdKats!</li>
 </ol>
 If you have any problems installing AdKats please let me know on the MyRCON forums, or here as an issue and I'll respond 
-promtly.
+promptly.
 </p>
 <h2>Dependencies</h2>
 <h4>XpKiller's "BF3 Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
