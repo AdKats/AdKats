@@ -9,20 +9,28 @@ admins, but will function just as well for small servers.<br/>
   <li><b>Basic Action Commands.</b> Standard commands for player killing, kicking, banning, moving, etc..</li>
   <li><b>Admin and setting sync between servers.</b> All changes to admin access or plugin settings can be 
   automatically synced between procon layers.</li>
-  <li><b>Infraction Tracking System.</b> Database reflected system to track player infractions and act accordingly.</li>
+  <li><b>Infraction Tracking System.</b> Punish/Forgive players for infractions against your server. Everything is 
+  tracked, so the more infractions they commit, the worse their punishment gets. Made so all players are treated equally. 
+  Heavily customizable. </li>
   <li><b>Quick Player Report and Admin Call Handling.</b> Notification system and quick handling features for all admin 
-  calls and player reports.</li>
-  <li><b>Fuzzy Player Name Completion.</b> Fully completes accurate or misspelled player names.</li>
+  calls and player reports. Reports can be referenced by number for instant action.</li>
+  <li><b>Admin Assistants.</b> You can choose to give a small perk to players who consistently provide you with accurate 
+  player reports. Documentation linked below.</li>
+  <li><b>Fuzzy Player Name Completion.</b> Fully completes partial or misspelled player names. I've been consistently 
+  able to find almost any player with 3-4 characters from their name.</li>
   <li><b>Player Muting.</b> Players can be muted if necessary.</li>
   <li><b>Yell/Say Pre-Recording.</b> Usable along side plugins such as "server rules on request". Use numbers to 
-  reference predefined messages, avoid typing long reasons or messages.</li>
-  <li><b>External Controller API.</b> AdKats can be controlled from outside the game, through systems like 
-  AdKats WebAdmin</li>
-  <li><b>Internal Implementation of TeamSwap.</b> Server-smart player moving system. Described below.</li>
+  reference predefined messages. Avoid typing long reasons or messages.</li>
+  <li><b>External Controller API.</b> AdKats can be controlled from outside the game, through systems like AdKats 
+  WebAdmin (under development). Once done you will be able to issue any admin command, manage bans, change plugin 
+  settings, track admin activities, and much more from a webpage without being in-game.</li>
+  <li><b>Internal Implementation of TeamSwap.</b> Movement options for both your admins and playerbase if desired. 
+  Greatly improved over the default version. Documentation linked below.</li>
   <li><b>AdKats Ban Enforcer.</b> Bans can be enforced across all of your servers through the internal Ban Enforcer.</li>
   <li><b>Editable In-Game Commands.</b> All command text can be edited to suit your needs.</li>
   <li><b>Full Logging.</b> All admin activity is trackable via the database, so holding your admins accountable for 
-  their actions is quick and painless.</li>
+  their actions is quick and painless. And after WebAdmin is released nobody but your highest admins will need direct 
+  procon access.</li>
 </ul>
 <br/>
 
