@@ -69,12 +69,11 @@ could, but i'm limited until procon updates their MySQL connector to allow trigg
 
 <a href="https://github.com/ColColonCleaner/AdKats/blob/master/adkats.sql" target="_blank">AdKats Setup Script</a><br/><br/>
 
-Getting a Database: If you have your own website you can make one there, or you can use an online service. My 
-clan runs our own, but I found this online one to be ok, and it has a free usage option. 
-<a href="http://www.freesqldatabase.com/" target="_blank">http://www.freesqldatabase.com/</a> But any online accessible 
-MySQL database will work. Be careful with that free option though, the size is limited, and these things can log A LOT 
-of data if it's an active server. For example ADK has 1 million unique logged players, and 40000 logged admin actions on 
-those players, the database size is massive.
+Getting a Database: Usually the hosting company for your layers can provide you a database, and using that is advisable 
+as the latency between procon and the DB will be the lowest possible. Or even better if you're hosting layers on a VPS 
+just create a local database by downloading the appropriate installer from MySQL's website. We use our webserver for 
+database hosting and that seems to work fine. Be cautious of free database options and services, those paths usually 
+have restrictions on database size and are hosted on unreliable servers, which can lead to many problems down the road.
 </p>
 <h2>Features</h2>
 <h3>Infraction Tracking System</h3>
