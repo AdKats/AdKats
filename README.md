@@ -232,7 +232,20 @@ ON <br/>
 	`adkats_records`.`record_id` = `adkats_banlist`.`latest_record_id` <br/>
 ORDER BY <br/>
 	`ban_startTime` <br/>
-DESC;
+DESC;<br/><br/>
+
+<b>Reasoning behind creation for those interested:</b> We had tried many other ban management systems and they all 
+appeared to have some significant downfalls. I will not point fingers at any specific plugins other than metabans as 
+most of the problems with those could be solved by active upkeep and improvement, but unfortunately in some cases the 
+original developers have stopped supporting the plugin. For metabans specifically however they only enforce permabans 
+for 28 days, and if we want to keep hackers off our servers by whatever means possible that is simply unacceptable.<br/><br/>
+
+On a lighter note though, developing this allows for some nice features not previously available. I can bypass procon's 
+ban list completely, this way no data is lost on how/why/who created the ban or on who its targeted. I can enforce bans 
+by any parameter combination (Name, GUID, IP), not just one at a time. Players can now be told how much time is left on 
+their ban dynamically, every time they attempt to join. And tracking of bans added through in-game commands or 
+autoadmins on any server is a cakewalk now, so clan leaders don't need to go great lengths to look things up. Several 
+other reasons as well, but overall it was a fantastic move. And thankfully we had the devs available to make it :) </shamelessSelfPromotion>.
 </p>
 <h3>Report/CallAdmin System</h3>
 <p>
