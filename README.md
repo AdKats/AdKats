@@ -46,8 +46,9 @@ AdKats was inspired by the gaming community A Different Kind (ADK). Visit
   (I would run this automatically if I could, but i'm limited until procon updates their MySQL connector to allow 
   triggers)</li>
   <li><b>Add plugin file to procon.</b> Add the plugin file to procon as you would any other.</li>
-  <li><b>Enter database connection info.</b> All database connection info must be entered before AdKats can run.</li>
-  <li><b>Enable!</b> AdKats will confirm all dependencies and show confirmation in the console. If it gave your server 
+  <li><b>Enter database connection info.</b> All database connection info must be entered in the settings tab before 
+  AdKats can run.</li>
+  <li><b>Enable!</b> AdKats will confirm all dependencies and show confirmation in the console. If it gives your server 
   an ID then all is well. Enjoy!</li>
 </ol>
 </p>
