@@ -349,6 +349,11 @@ database.
 <u><b>You can edit the text for each command to suit your needs in plugin settings.</b></u><br/>
 Commands can be accessed with '@', '!', '/!', '/@', or just '/'. Usage of all commands is logged in the 
 database.<br/><br/>
+
+Any action command given with no parameters (e.g. '@kill') will target the speaker. If admins want to kill, kick, or 
+even ban themselves, simply type the command without any parameters. Any action command when given a player name (other 
+than moving players) will require a reason.<br/><br/>
+
 <table>
 	<tr>
 		<td><b>Command</b></td>
