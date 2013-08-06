@@ -759,13 +759,13 @@ Valid 'command_type's that can be acted on include the following:<br/>
 <ul>
   <li><b>'Add Access'</b> - Add a player to the access list by entering their exact IGN here.<br/></li>
   <li><b>'Remove Access'</b> - Remove a player already on the access list by typing their exact IGN here.<br/></li>
-  <li><b>*PlayerName*</b> - Players in the current database access list are appeneded here with their access level and email address.</li>
+  <li><b>*PlayerName*</b> - Players in the current database access list are appended here with their access level.</li>
 </ul> 
 <h3>4. In-Game Command Settings:</h3>
 <ul>
   <li><b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason to execute.</li>
 </ul>
-<b>Specific command definitions given in features section above.</b> All command text must be a single string with no whitespace. E.G. kill. All commands can be suffixed with '|log', which will set whether use of that command is logged in the database or not.
+<b>Specific command definitions given in features section above.</b> All command text must be a single string with no whitespace. E.G. 'kill'.
 <h3>5. Punishment Settings:</h3>
 <ul>
   <li><b>'Punishment Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the action taken at that number of points.</li>
