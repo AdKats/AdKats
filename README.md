@@ -67,9 +67,9 @@ An online MySQL database accessible from your procon layer is required. AdKats c
 connect. The below setup SQL must be run before AdKats is enabled on your servers. (I would run this automatically if I 
 could, but i'm limited until procon updates their MySQL connector to allow triggers)<br/><br/>
 
-<a href="https://github.com/ColColonCleaner/AdKats/blob/master/adkats.sql" target="_blank">AdKats Setup Script</a><br/><br/>
+<a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">AdKats Setup Script</a><br/><br/>
 
-Getting a Database: Usually the hosting company for your layers can provide you a database, and using that is advisable 
+<b>Getting a Database:</b> Usually the hosting company for your layers can provide you a database, and using that is advisable 
 as the latency between procon and the DB will be the lowest possible. Or even better if you're hosting layers on a VPS 
 just create a local database by downloading the appropriate installer from MySQL's website. We use our webserver for 
 database hosting and that seems to work fine. Be cautious of free database options and services, those paths usually 
