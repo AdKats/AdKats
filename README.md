@@ -72,7 +72,7 @@ connect.<br/><br/>
 <b>Getting a Database:</b> Usually the hosting company for your layers can provide you a database, and using that is advisable 
 as the latency between procon and the DB will be the lowest possible. Or even better if you're hosting layers on a VPS 
 just create a local database by downloading the appropriate installer from MySQL's website. We use our webserver for 
-database hosting and that seems to work fine. Be cautious of free database options and services, those paths usually 
+database hosting and that works great as well. Be cautious of free database options and services, those paths usually 
 have restrictions on database size and are hosted on unreliable servers, which can lead to many problems down the road.
 </p>
 <h2>Features</h2>
