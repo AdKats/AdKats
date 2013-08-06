@@ -59,8 +59,8 @@ promtly.
 <h4>XpKiller's "BF3 Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
 <p>
 Version 1.1.0.0+ of this plugin is required. AdKats will only run if this plugin is (1) using the same database 
-AdKats uses, and (2) running on every BF3 Server you've installed AdKats on. Running it along-side AdKats on each layer
-will ensure these conditions are met.<br/><br/>
+AdKats uses, and (2) running on every BF3 Server you plan to install AdKats on. Running it along-side AdKats on each 
+layer will ensure these conditions are met.<br/><br/>
 
 <a href="https://forum.myrcon.com/showthread.php?2889-BF3-Chat-GUID-Stats-and-Mapstats-Logger-1-1-0-0-BF3/" target="_blank">BF3 Chat, GUID, Stats and Mapstats Logger</a>
 </p>
