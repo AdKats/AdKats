@@ -30,6 +30,8 @@ admins, but will function just as well for small servers.<br/>
   more complete and reliable than others available, including metabans (permabans through metabans are only enforced 
   for 28 days). This system will be further enhanced with the release of AdKats WebAdmin. Documentation linked below.</li>
   <li><b>Editable In-Game Commands.</b> All command text can be edited to suit your needs.</li>
+  <li><b>Performance.</b> All actions, messaging, database communications, and command parsing take place on their own 
+  threads, minimizing performance impacts.</li>
   <li><b>Full Logging.</b> All admin activity is trackable via the database, so holding your admins accountable for 
   their actions is quick and painless. And after WebAdmin is released nobody but your highest admins will need direct 
   procon access.</li>
