@@ -59,8 +59,10 @@ AdKats was inspired by the gaming community A Different Kind (ADK). Visit
   <li><b>Add plugin file to procon.</b> Add the plugin file to procon as you would any other.</li>
   <li><b>Enter database connection info.</b> All database connection info must be entered in the settings tab before 
   AdKats can run.</li>
-  <li><b>Enable!</b> AdKats will confirm all dependencies and show confirmation in the console. If it gives your server 
-  an ID then all is well. Enjoy!</li>
+  <li><b>Enable AdKats.</b> AdKats will confirm all dependencies and show confirmation in the console. If it gives your 
+  server an ID then all is well.</li>
+  <li><b>Disable the default "In-Game Admin".</b>Disable any other plugins that use commands like kill, kick, etc. The 
+  commands would be run by both, causing unwanted functionality. Enjoy AdKats!</li>
 </ol>
 If you have any problems installing AdKats please let me know on the MyRCON forums, or here as an issue and I'll respond 
 promtly.
