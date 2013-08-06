@@ -63,8 +63,8 @@ will ensure these conditions are met.<br/><br/>
 <h4>A MySQL Database</h4>
 <p>
 An online MySQL database accessible from your procon layer is required. AdKats checks the database for needed tables on 
-connect. If it doesn't find the proper tables/views it will run the script linked below. You can run the script 
-beforehand if you don't want the plugin changing table structure in your database.<br/><br/>
+connect. The below setup SQL must be run before AdKats is enabled on your servers. (I would run this automatically if I 
+could, but i'm limited until procon updates their MySQL connector to allow triggers)<br/><br/>
 
 <a href="https://github.com/ColColonCleaner/AdKats/blob/master/adkats.sql" target="_blank">AdKats Setup Script</a><br/><br/>
 
@@ -72,7 +72,8 @@ Getting a Database: If you have your own website you can make one there, or you 
 clan runs our own, but I found this online one to be ok, and it has a free usage option. 
 <a href="http://www.freesqldatabase.com/" target="_blank">http://www.freesqldatabase.com/</a> But any online accessible 
 MySQL database will work. Be careful with that free option though, the size is limited, and these things can log A LOT 
-of data if it's an active server.
+of data if it's an active server. For example ADK has 1 million unique logged players, and 40000 logged admin actions on 
+those players, the database size is massive.
 </p>
 <h2>Features</h2>
 <h3>Infraction Tracking System</h3>
