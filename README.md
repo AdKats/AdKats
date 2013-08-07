@@ -3,8 +3,10 @@
 Download link below.
 <h1>AdKats</h1>
 <p>
-Admin Toolset with a plethora of features. It is designed for groups with high-traffic servers and many 
-admins, but will function just as well for small servers.<br/>
+Admin Toolset with a plethora of features, focused on making in-game admins more efficient and accurate at their jobs. 
+Includes a cross-server ban enforcer more reliable and complete than others available, and a WebAdmin for out-of-game 
+control will be released shortly. Designed for groups with high-traffic servers and many admins, but will function 
+just as well for small servers.<br/>
 <ul>
   <li><b>Basic Action Commands.</b> Standard commands for player killing, kicking, banning, moving, etc..</li>
   <li><b>Admin and setting sync between servers.</b> All changes to admin access or plugin settings can be 
