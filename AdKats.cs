@@ -2070,6 +2070,7 @@ namespace PRoConEvents
             this.ExecuteCommand("procon.protected.plugins.enable", "AdKats", "False");
             //Set enable false
             this.isEnabled = false;
+            this.threadsReady = false;
         }
 
         private void enable()
@@ -2173,36 +2174,6 @@ namespace PRoConEvents
                         this.setAllHandles();
                         this.InitThreads();
                         this.StartThreads();
-
-                        /*TimeSpan duration = TimeSpan.MinValue;
-                        while (!this.allThreadsReady())
-                        {
-                            Thread.Sleep(250);
-                            duration = DateTime.Now.Subtract(startTime);
-                            if (duration.TotalSeconds > 300)
-                            {
-                                //Inform the user
-                                this.ConsoleError("Failed to enable in 5 minutes. Shutting down. Inform ColColonCleaner.");
-                                //Disable the plugin
-                                this.disable();
-                                return;
-                            }
-                            //If there was an error, return from the activator to finalize disable
-                            if (!this.isEnabled)
-                            {
-                                //Inform the user
-                                this.ConsoleWrite("AdKats disabled during the enable process.");
-                                return;
-                            }
-                        }*/
-
-                        this.threadsReady = true;
-                        this.updateSettingPage();
-
-                        //Register a command to indicate availibility to other plugins
-                        this.RegisterCommand(AdKatsAvailableIndicator);
-
-                        this.ConsoleWrite("^b^2Enabled!^n^0 Version: " + this.GetPluginVersion());
                     }
                     catch (Exception e)
                     {
@@ -2238,67 +2209,6 @@ namespace PRoConEvents
 
                         //Open all handles. Threads will finish on their own.
                         this.setAllHandles();
-
-                        //Make sure all threads are finished.
-                        //TODO try removing these and see if it works better
-                        /*int index = 0;
-                        while (this.MessagingThread == null)
-                        {
-                            Thread.Sleep(200);
-                            if (index++ > 50)
-                            {
-                                break;
-                            }
-                        }
-                        if (this.MessagingThread.IsAlive)
-                        {
-                            JoinWith(this.MessagingThread);
-                            while (this.CommandParsingThread == null)
-                            {
-                                Thread.Sleep(200);
-                                if (index++ > 50)
-                                {
-                                    break;
-                                }
-                            }
-                        }
-                        JoinWith(this.CommandParsingThread);
-                        while (this.DatabaseCommThread == null)
-                        {
-                            Thread.Sleep(200);
-                            if (index++ > 50)
-                            {
-                                break;
-                            }
-                        }
-                        JoinWith(this.DatabaseCommThread);
-                        while (this.ActionHandlingThread == null)
-                        {
-                            Thread.Sleep(200);
-                            if (index++ > 50)
-                            {
-                                break;
-                            }
-                        }
-                        JoinWith(this.ActionHandlingThread);
-                        while (this.TeamSwapThread == null)
-                        {
-                            Thread.Sleep(200);
-                            if (index++ > 50)
-                            {
-                                break;
-                            }
-                        }
-                        JoinWith(this.TeamSwapThread);
-                        while (this.BanEnforcerThread == null)
-                        {
-                            Thread.Sleep(200);
-                            if (index++ > 50)
-                            {
-                                break;
-                            }
-                        }
-                        JoinWith(this.BanEnforcerThread);*/
 
                         this.playerAccessRemovalQueue.Clear();
                         this.playerAccessUpdateQueue.Clear();
@@ -2347,7 +2257,7 @@ namespace PRoConEvents
 
         public override void OnListPlayers(List<CPlayerInfo> players, CPlayerSubset subset)
         {
-            if (isEnabled)
+            if (this.threadsReady)
             {
                 this.DebugWrite("Listing Players", 5);
                 //Player list and ban list need to be locked for this operation
@@ -5436,6 +5346,7 @@ namespace PRoConEvents
                         }
                         else
                         {
+                            this.dbSettingsChanged = true;
                             continue;
                         }
                     }
@@ -5561,6 +5472,14 @@ namespace PRoConEvents
                         this.TeamSwapThread.Start();
                         this.BanEnforcerThread.Start();
                         firstRun = false;
+
+                        this.threadsReady = true;
+                        this.updateSettingPage();
+
+                        //Register a command to indicate availibility to other plugins
+                        this.RegisterCommand(AdKatsAvailableIndicator);
+
+                        this.ConsoleWrite("^b^2Enabled!^n^0 Version: " + this.GetPluginVersion());
                     }
 
                     //Ban Enforcer
@@ -5840,7 +5759,7 @@ namespace PRoConEvents
             }
             else
             {
-                this.ConsoleError("Attempted to connect to database without all variables in place");
+                this.ConsoleException("Attempted to connect to database without all variables in place.");
                 return null;
             }
         }
@@ -5851,43 +5770,62 @@ namespace PRoConEvents
             DebugWrite("testDatabaseConnection starting!", 6);
             if (this.connectionCapable())
             {
-                try
+                Boolean success = false;
+                int attempt = 0;
+                do
                 {
-                    Boolean success = false;
-                    //Prepare the connection string and create the connection object
-                    using (MySqlConnection connection = this.getDatabaseConnection())
+                    if (!this.isEnabled) { return false; };
+                    attempt++;
+                    try
                     {
-                        this.ConsoleWrite("Attempting database connection.");
-                        //Attempt a ping through the connection
-                        if (connection.Ping())
+                        //Prepare the connection string and create the connection object
+                        using (MySqlConnection connection = this.getDatabaseConnection())
                         {
-                            //Connection good
-                            this.ConsoleSuccess("Database connection open.");
-                            success = true;
+                            this.ConsoleWrite("Attempting database connection. Attempt " + attempt + " of 5.");
+                            //Attempt a ping through the connection
+                            if (connection.Ping())
+                            {
+                                //Connection good
+                                this.ConsoleSuccess("Database connection open.");
+                                success = true;
+                            }
+                            else
+                            {
+                                //Connection poor
+                                this.ConsoleError("Database connection FAILED ping test.");
+                            }
+                        } //databaseConnection gets closed here
+                        if (success)
+                        {
+                            //Make sure database structure is good
+                            if (this.confirmDatabaseSetup())
+                            {
+                                //Fetch all access lists
+                                this.fetchAccessList();
+                                //Fetch the database time conversion
+                                this.fetchDBTimeConversion();
+                                //Confirm the database is valid
+                                databaseValid = true;
+                                //clear setting change monitor
+                                this.dbSettingsChanged = false;
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        //Only perform retries if the error was a timeout
+                        if (e.ToString().Contains("Unable to connect"))
+                        {
+                            this.ConsoleError("Connection failed on attempt " + attempt + ". " + ((attempt <= 5) ? ("Retrying in 5 seconds. ") : ("")));
+                            Thread.Sleep(5000);
                         }
                         else
                         {
-                            //Connection poor
-                            this.ConsoleError("Database connection FAILED ping test.");
-                        }
-                    } //databaseConnection gets closed here
-                    if (success)
-                    {
-                        //Make sure database structure is good
-                        if (this.confirmDatabaseSetup())
-                        {
-                            //Fetch all access lists
-                            this.fetchAccessList();
-                            //Fetch the database time conversion
-                            this.fetchDBTimeConversion();
-                            //Confirm the database is valid
-                            databaseValid = true;
-                            //clear setting change monitor
-                            this.dbSettingsChanged = false;
+                            break;
                         }
                     }
-                }
-                catch (Exception e)
+                }while(!success && attempt < 5);
+                if (!success)
                 {
                     //Invalid credentials or no connection to database
                     this.ConsoleException("Database connection FAILED with EXCEPTION. Bad credentials, invalid hostname, or invalid port.");
@@ -7510,17 +7448,22 @@ namespace PRoConEvents
 
             try
             {
+                //Get record count from current version table
+                int currentRecordCount = 0;
+                //initial record ID. Fetching 250 records at a time.
+                Int64 initial_record_id = 0;
+                Int64 importCount = 0;
+                Int64 uploadCount = 0;
+
                 using (MySqlConnection connection = this.getDatabaseConnection())
                 {
-                    //Get record count from current version table
-                    int currentRecordCount = 0;
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"
-                        SELECT 
-                            COUNT(*) AS `record_count` 
-                        FROM 
-	                        `adkats_records`";
+                            SELECT 
+                                COUNT(*) AS `record_count` 
+                            FROM 
+	                            `adkats_records`";
 
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
@@ -7534,80 +7477,99 @@ namespace PRoConEvents
                             }
                         }
                     }
-                    if (currentRecordCount == 0)
+                }
+                
+                if (currentRecordCount == 0)
+                {
+                    this.ConsoleWarn("Updating records from previous versions to 0.3.0.0! Do not turn off AdKats until it's finished!");
+                    List<AdKat_Record> newRecords = new List<AdKat_Record>();
+                    do
                     {
-                        this.ConsoleWarn("Updating records from previous versions to 0.3.0.0! Do not turn off AdKats until it's finished!");
+                        newRecords = new List<AdKat_Record>();
 
-                        List<AdKat_Record> newRecords = new List<AdKat_Record>();
-
-                        using (MySqlCommand command = connection.CreateCommand())
+                        using (MySqlConnection connection = this.getDatabaseConnection())
                         {
-                            command.CommandText = @"
-                            SELECT 
-                                `tbl_server`.`ServerID` AS `server_id`,
-                                `command_type`, 
-                                `command_action`, 
-                                `record_durationMinutes`, 
-                                `target_guid`, 
-                                `target_name`, 
-                                `source_name`, 
-                                `record_message`, 
-                                `record_time`
-                            FROM 
-                                `adkat_records` 
-                            INNER JOIN 
-                                `tbl_server` 
-                            ON
-                                `adkat_records`.`server_ip` = `tbl_server`.`IP_Address`";
+                            this.ConsoleWrite("creating connection to update records");
 
-                            using (MySqlDataReader reader = command.ExecuteReader())
+                            using (MySqlCommand command = connection.CreateCommand())
                             {
-                                int importCount = 0;
+                                this.ConsoleWrite("creating fetch command");
+                                command.CommandText = @"
+                                SELECT 
+                                    `record_id`,
+                                    `tbl_server`.`ServerID` AS `server_id`,
+                                    `command_type`, 
+                                    `command_action`, 
+                                    `record_durationMinutes`, 
+                                    `target_guid`, 
+                                    `target_name`, 
+                                    `source_name`, 
+                                    `record_message`, 
+                                    `record_time`
+                                FROM 
+                                    `adkat_records` 
+                                INNER JOIN 
+                                    `tbl_server` 
+                                ON
+                                    `adkat_records`.`server_ip` = `tbl_server`.`IP_Address`
+                                WHERE 
+                                    `record_id` > @initial_record_id 
+                                ORDER BY 
+                                    `record_id` ASC 
+                                LIMIT 
+                                    50";
 
-                                //Loop through all incoming bans
-                                while (reader.Read())
+                                command.Parameters.AddWithValue("@initial_record_id", initial_record_id);
+
+                                this.ConsoleWrite("reading input");
+                                using (MySqlDataReader reader = command.ExecuteReader())
                                 {
-                                    AdKat_Record record = new AdKat_Record();
-                                    //Get server information
-                                    record.server_id = reader.GetInt64("server_id");
-                                    //Get command information
-                                    record.command_type = this.getDBCommand(reader.GetString("command_type"));
-                                    record.command_action = this.getDBCommand(reader.GetString("command_action"));
-                                    record.command_numeric = reader.GetInt32("record_durationMinutes");
-                                    //Get source information
-                                    record.source_name = reader.GetString("source_name");
-                                    //Get target information
-                                    record.target_player = this.fetchPlayer(-1, reader.GetString("target_name"), reader.GetString("target_guid"), null);
-                                    //Get general record information
-                                    record.record_message = reader.GetString("record_message");
-                                    record.record_time = reader.GetDateTime("record_time");
-
-                                    //Push to lists
-                                    newRecords.Add(record);
-
-                                    if ((++importCount % 500) == 0)
+                                    //Loop through all incoming bans
+                                    while (reader.Read())
                                     {
-                                        this.ConsoleWrite(importCount + " records downloaded...");
+                                        //Pull record ID to post as new greatest ID
+                                        initial_record_id = reader.GetInt64("record_id");
+
+                                        AdKat_Record record = new AdKat_Record();
+                                        //Get server information
+                                        record.server_id = reader.GetInt64("server_id");
+                                        //Get command information
+                                        record.command_type = this.getDBCommand(reader.GetString("command_type"));
+                                        record.command_action = this.getDBCommand(reader.GetString("command_action"));
+                                        record.command_numeric = reader.GetInt32("record_durationMinutes");
+                                        //Get source information
+                                        record.source_name = reader.GetString("source_name");
+                                        //Get target information
+                                        record.target_player = this.fetchPlayer(-1, reader.GetString("target_name"), reader.GetString("target_guid"), null);
+                                        //Get general record information
+                                        record.record_message = reader.GetString("record_message");
+                                        record.record_time = reader.GetDateTime("record_time");
+
+                                        //Push to lists
+                                        newRecords.Add(record);
+
+                                        //Increase the import count
+                                        importCount++;
                                     }
+                                    this.ConsoleWrite(importCount + " records downloaded...");
                                 }
-                                this.ConsoleWrite(importCount + " records downloaded...");
                             }
                         }
 
-                        int uploadCount = 0;
                         foreach (AdKat_Record record in newRecords)
                         {
                             this.uploadRecord(record);
 
-                            if ((++uploadCount % 500) == 0)
-                            {
-                                this.ConsoleWrite(uploadCount + " records uploaded...");
-                            }
+                            uploadCount++;
                         }
+                        this.ConsoleWrite(uploadCount + " records uploaded...");
+                    } while (newRecords.Count > 0);
+                }
 
-                        this.ConsoleSuccess(uploadCount + " records imported from previous versions of AdKats!");
-                    }
+                this.ConsoleSuccess(uploadCount + " records imported from previous versions of AdKats!");
 
+                using (MySqlConnection connection = this.getDatabaseConnection())
+                {
                     //Get player access count from current version table
                     int currentAccessCount = 0;
                     using (MySqlCommand command = connection.CreateCommand())
@@ -7647,7 +7609,7 @@ namespace PRoConEvents
 
                             using (MySqlDataReader reader = command.ExecuteReader())
                             {
-                                int importCount = 0;
+                                importCount = 0;
 
                                 //Loop through all incoming bans
                                 while (reader.Read())
@@ -7670,7 +7632,7 @@ namespace PRoConEvents
                             }
                         }
 
-                        int uploadCount = 0;
+                        uploadCount = 0;
                         foreach (AdKat_Access access in newAccess)
                         {
                             this.uploadPlayerAccess(access);
