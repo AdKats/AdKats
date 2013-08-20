@@ -5829,6 +5829,7 @@ namespace PRoConEvents
                 {
                     //Invalid credentials or no connection to database
                     this.ConsoleException("Database connection FAILED with EXCEPTION. Bad credentials, invalid hostname, or invalid port.");
+                    this.disable();
                 }
             }
             else
@@ -9186,7 +9187,7 @@ namespace PRoConEvents
         {
             ConsoleWrite(msg, MessageTypeEnum.Exception);
             //Disable the plugin on exception
-            this.disable();
+            //this.disable();
         }
 
         public void DebugWrite(string msg, int level)
