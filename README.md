@@ -339,7 +339,11 @@ commands like punish which can sometimes require 8 database round-trips to compl
 Use "Debug Soldier Name" to get the speed of commands on your server, any command that soldier enters will tell them the 
 total time it took to complete.
 </p>
-<h3>Setting Sync</h3>
+<h3>Admin and Setting Sync</h3>
+<p>
+Access lists are automatically synced between layers every 5 minutes, so there is no need to go through every layer to 
+change access settings. This can be changed directly in database as well, and will be synced to all running plugins.
+</p>
 <p>
 All settings for each plugin instance are stored in the database by server ID. Enter an existing server ID in the 
 setting sync field and all settings from that instance will be imported to this instance. All settings on the current 
