@@ -617,13 +617,13 @@ namespace PRoConEvents
                             tempAccess.Add(access);
                         }
                         tempAccess.Sort(
-                            delegate(AdKat_Access a1, AdKat_Access a2) 
-                            { 
-                                return (a1.access_level==a2.access_level)
+                            delegate(AdKat_Access a1, AdKat_Access a2)
+                            {
+                                return (a1.access_level == a2.access_level)
                                             ?
                                         (String.Compare(a1.player_name, a2.player_name))
                                             :
-                                        ((a1.access_level<a2.access_level)?(-1):(1)); 
+                                        ((a1.access_level < a2.access_level) ? (-1) : (1));
                             }
                         );
                         foreach (AdKat_Access access in tempAccess)
@@ -2384,7 +2384,7 @@ namespace PRoConEvents
                 lock (this.playersMutex)
                 {
                     //Only add the last death if it's not a death by admin
-                    if(!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName))
+                    if (!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName))
                     {
                         this.playerDictionary[kKillerVictimDetails.Victim.SoldierName].lastDeath = DateTime.Now;
                     }
@@ -2731,7 +2731,7 @@ namespace PRoConEvents
                     response = message;
                     break;
                 default:
-                    this.ConsoleError("Command source not set, or not recognized.");
+                    this.ConsoleWarn("Command source not set, or not recognized.");
                     break;
             }
             return response;
@@ -4776,7 +4776,7 @@ namespace PRoConEvents
             this.DebugWrite("Killing player. Player last died " + seconds + " seconds ago.", 3);
             if (seconds < 10)
             {
-                if(!this.actOnSpawnDictionary.ContainsKey(record.target_player.player_name))
+                if (!this.actOnSpawnDictionary.ContainsKey(record.target_player.player_name))
                 {
                     lock (this.actOnSpawnDictionary)
                     {
@@ -5824,7 +5824,7 @@ namespace PRoConEvents
                             break;
                         }
                     }
-                }while(!success && attempt < 5);
+                } while (!success && attempt < 5);
                 if (!success)
                 {
                     //Invalid credentials or no connection to database
@@ -6584,11 +6584,17 @@ namespace PRoConEvents
                                 record.command_numeric = reader.GetInt32("command_numeric");
                                 record.target_name = reader.GetString("target_name");
                                 object value = reader.GetValue(6);
-                                Int32? target_id_parse = value is DBNull ? (Int32?)null : (Int32)value;
-                                if (target_id_parse != null)
+                                Int64 target_id_parse = -1;
+                                DebugWrite("id fetched!", 6);
+                                if (Int64.TryParse(value.ToString(), out target_id_parse))
                                 {
-                                    record.target_player = this.fetchPlayer((Int32)target_id_parse, null, null, null);
+                                    DebugWrite("id parsed! " + target_id_parse, 6);
+                                    record.target_player = this.fetchPlayer(target_id_parse, null, null, null);
                                     record.target_name = record.target_player.player_name;
+                                }
+                                else
+                                {
+                                    DebugWrite("id parse failed!", 6);
                                 }
                                 record.source_name = reader.GetString("source_name");
                                 record.record_message = reader.GetString("record_message");
@@ -6608,7 +6614,7 @@ namespace PRoConEvents
             DebugWrite("fetchUnreadRecords finished!", 6);
             return records;
         }
-        
+
         //DONE
         private void resetServerBanSync()
         {
@@ -6637,7 +6643,7 @@ namespace PRoConEvents
 
             DebugWrite("resetServerBanSync finished!", 6);
         }
-        
+
         //DONE
         private long fetchBanCount()
         {
@@ -7100,23 +7106,23 @@ namespace PRoConEvents
                         AND 
                         (";
                         Boolean started = false;
-                        if(!String.IsNullOrEmpty(player.player_name))
+                        if (!String.IsNullOrEmpty(player.player_name))
                         {
                             started = true;
                             query += "(`tbl_playerdata`.`SoldierName` = '" + player.player_name + @"' AND `adkats_banlist`.`ban_enforceName` = 'Y')";
                         }
-                        if(!String.IsNullOrEmpty(player.player_guid))
+                        if (!String.IsNullOrEmpty(player.player_guid))
                         {
-                            if(started)
+                            if (started)
                             {
                                 query += " OR ";
                             }
                             started = true;
                             query += "(`tbl_playerdata`.`EAGUID` = '" + player.player_guid + "' AND `adkats_banlist`.`ban_enforceGUID` = 'Y')";
                         }
-                        if(!String.IsNullOrEmpty(player.player_ip))
+                        if (!String.IsNullOrEmpty(player.player_ip))
                         {
-                            if(started)
+                            if (started)
                             {
                                 query += " OR ";
                             }
@@ -7129,7 +7135,7 @@ namespace PRoConEvents
                             return null;
                         }
                         query += ")";
-                            
+
                         //Assign the query
                         command.CommandText = query;
 
@@ -7479,7 +7485,7 @@ namespace PRoConEvents
                         }
                     }
                 }
-                
+
                 if (currentRecordCount == 0)
                 {
                     this.ConsoleWarn("Updating records from previous versions to 0.3.0.0! Do not turn off AdKats until it's finished!");
@@ -9177,7 +9183,7 @@ namespace PRoConEvents
         {
             ConsoleWrite(msg, MessageTypeEnum.Error);
         }
-        
+
         public void ConsoleSuccess(string msg)
         {
             ConsoleWrite(msg, MessageTypeEnum.Success);
