@@ -44,7 +44,7 @@ If you find any bugs, please submit them
 and they will be fixed ASAP.<br/><br/>
 
 Download the latest version here: 
-<a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.3.0.1.zip/download" target="_blank">Version 0.3.0.1</a>
+<a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.3.0.2.zip/download" target="_blank">Version 0.3.0.2</a>
 </p>
 <p>
 AdKats was inspired by the gaming community A Different Kind (ADK). Visit 
