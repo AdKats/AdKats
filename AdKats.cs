@@ -63,7 +63,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.3.0.1";
+        string plugin_version = "0.3.0.2";
 
         private MatchCommand AdKatsAvailableIndicator;
 
@@ -2271,7 +2271,26 @@ namespace PRoConEvents
                         AdKat_Player aPlayer = null;
                         if (this.playerDictionary.TryGetValue(player.SoldierName, out aPlayer))
                         {
-                            this.playerDictionary[player.SoldierName].frostbitePlayerInfo = player;
+                            //If the player does not have an IP address, check the database until they have one.
+                            if (String.IsNullOrEmpty(aPlayer.player_ip))
+                            {
+                                aPlayer = this.fetchPlayer(-1, player.SoldierName, player.GUID, null);
+                                aPlayer.frostbitePlayerInfo = player;
+                                //In case of quick name-change, update their IGN
+                                aPlayer.player_name = player.SoldierName;
+
+                                //if player now has an IP, call a ban check
+                                if (!String.IsNullOrEmpty(aPlayer.player_ip))
+                                {
+                                    //Check with ban enforcer
+                                    this.queuePlayerForBanCheck(aPlayer);
+                                }
+                            }
+                            else
+                            {
+                                //Otherwise, just update the frostbite player info
+                                this.playerDictionary[player.SoldierName].frostbitePlayerInfo = player;
+                            }
                         }
                         else
                         {
@@ -2282,8 +2301,6 @@ namespace PRoConEvents
 
                             this.playerDictionary.Add(player.SoldierName, aPlayer);
 
-                            //Check with ban enforcer
-                            this.queuePlayerForBanCheck(aPlayer);
 
                             if (this.isAdminAssistant(aPlayer))
                             {
@@ -2928,9 +2945,16 @@ namespace PRoConEvents
                 this.DebugWrite("Preparing to add player to 'on-death' move dictionary.", 6);
                 lock (teamswapMutex)
                 {
-                    this.teamswapOnDeathMoveDic.Add(player.SoldierName, player);
-                    this.teamswapHandle.Set();
-                    this.DebugWrite("Player added to 'on-death' move dictionary.", 6);
+                    if (!this.teamswapOnDeathMoveDic.ContainsKey(player.SoldierName))
+                    {
+                        this.teamswapOnDeathMoveDic.Add(player.SoldierName, player);
+                        this.teamswapHandle.Set();
+                        this.DebugWrite("Player added to 'on-death' move dictionary.", 6);
+                    }
+                    else
+                    {
+                        this.DebugWrite("Player already in 'on-death' move dictionary.", 6);
+                    }
                 }
             }
         }
@@ -3009,7 +3033,7 @@ namespace PRoConEvents
                                     if (!this.containsCPlayerInfo(this.USMoveQueue, player.SoldierName))
                                     {
                                         this.USMoveQueue.Enqueue(player);
-                                        this.playerSayMessage(player.SoldierName, "You have been added to the (US -> RU) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.USMoveQueue, player.SoldierName) + 1) + ".");
+                                        //this.playerSayMessage(player.SoldierName, "You have been added to the (US -> RU) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.USMoveQueue, player.SoldierName) + 1) + ".");
                                     }
                                     else
                                     {
@@ -3021,7 +3045,7 @@ namespace PRoConEvents
                                     if (!this.containsCPlayerInfo(this.RUMoveQueue, player.SoldierName))
                                     {
                                         this.RUMoveQueue.Enqueue(player);
-                                        this.playerSayMessage(player.SoldierName, "You have been added to the (RU -> US) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.RUMoveQueue, player.SoldierName) + 1) + ".");
+                                        //this.playerSayMessage(player.SoldierName, "You have been added to the (RU -> US) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.RUMoveQueue, player.SoldierName) + 1) + ".");
                                     }
                                     else
                                     {
@@ -3044,19 +3068,19 @@ namespace PRoConEvents
                                 if (this.USPlayerCount < maxPlayerCount)
                                 {
                                     CPlayerInfo player = this.RUMoveQueue.Dequeue();
-                                    AdKat_Player dicPlayer = null;
-                                    if (this.playerDictionary.TryGetValue(player.SoldierName, out dicPlayer))
+                                    //AdKat_Player dicPlayer = null;
+                                    /*if (this.playerDictionary.TryGetValue(player.SoldierName, out dicPlayer))
                                     {
                                         if (dicPlayer.frostbitePlayerInfo.TeamID == USTeamID)
                                         {
                                             //Skip the kill/swap if they are already on the goal team by some other means
                                             continue;
                                         }
-                                    }
+                                    }*/
                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, USTeamID.ToString(), "1", "true");
                                     this.playerSayMessage(player.SoldierName, "Swapping you from team RU to team US");
                                     movedPlayer = true;
-                                    this.USPlayerCount++;
+                                    //this.USPlayerCount++;
                                 }
                             }
                             if (this.USMoveQueue.Count > 0)
@@ -3064,19 +3088,19 @@ namespace PRoConEvents
                                 if (this.RUPlayerCount < maxPlayerCount)
                                 {
                                     CPlayerInfo player = this.USMoveQueue.Dequeue();
-                                    AdKat_Player dicPlayer = null;
-                                    if (this.playerDictionary.TryGetValue(player.SoldierName, out dicPlayer))
+                                    //AdKat_Player dicPlayer = null;
+                                    /*if (this.playerDictionary.TryGetValue(player.SoldierName, out dicPlayer))
                                     {
                                         if (dicPlayer.frostbitePlayerInfo.TeamID == RUTeamID)
                                         {
                                             //Skip the kill/swap if they are already on the goal team by some other means
                                             continue;
                                         }
-                                    }
+                                    }*/
                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, RUTeamID.ToString(), "1", "true");
                                     this.playerSayMessage(player.SoldierName, "Swapping you from team US to team RU");
                                     movedPlayer = true;
-                                    this.RUPlayerCount++;
+                                    //this.RUPlayerCount++;
                                 }
                             }
                         } while (movedPlayer);
@@ -5546,6 +5570,13 @@ namespace PRoConEvents
                             }
                         }
 
+                        //Handle BF3 Ban Manager imports
+                        if (!this.useBanEnforcerPreviousState)
+                        {
+                            //Import all bans from BF3 Ban Manager
+                            this.importBansFromBBM5108();
+                        }
+
                         //Handle Inbound CBan Uploads
                         if (this.cBanProcessingQueue.Count > 0)
                         {
@@ -5641,6 +5672,8 @@ namespace PRoConEvents
                             {
                                 //If all bans have been queued for processing, clear the ban list
                                 this.ExecuteCommand("procon.protected.send", "banList.clear");
+                                this.ExecuteCommand("procon.protected.send", "banList.save");
+                                this.ExecuteCommand("procon.protected.send", "banList.list");
                                 if (!this.useBanEnforcerPreviousState)
                                 {
                                     this.ConsoleSuccess("All bans uploaded into AdKats database.");
@@ -6311,7 +6344,7 @@ namespace PRoConEvents
                             `target_id`, 
                             `source_name`, 
                             `record_message`, 
-                            `adkats_read` " + ((record.record_time != DateTime.MinValue) ? (", `record_time` ") : ("")) + @"
+                            `adkats_read`
                         ) 
                         VALUES 
                         ( 
@@ -6323,7 +6356,7 @@ namespace PRoConEvents
                             @target_id, 
                             @source_name, 
                             @record_message, 
-                            'Y' " + ((record.record_time != DateTime.MinValue) ? (", @record_time ") : ("")) + @"
+                            'Y'
                         )";
 
                         //Fill the command
@@ -6375,12 +6408,9 @@ namespace PRoConEvents
                         }
                         command.Parameters.AddWithValue("@target_name", tName);
                         command.Parameters.AddWithValue("@source_name", record.source_name);
-                        command.Parameters.AddWithValue("@record_message", record.record_message + ((record.isIRO) ? (" [IRO]") : ("")));
-                        //Add the time if needed
-                        if (record.record_time != DateTime.MinValue)
-                        {
-                            command.Parameters.AddWithValue("@record_time", record.record_time);
-                        }
+                        string messageIRO = record.record_message + ((record.isIRO) ? (" [IRO]") : (""));
+                        messageIRO = messageIRO.Length <= 150 ? messageIRO : messageIRO.Substring(0, 150);
+                        command.Parameters.AddWithValue("@record_message", messageIRO);
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
                         {
@@ -7663,6 +7693,190 @@ namespace PRoConEvents
             }
         }
 
+        private void importBansFromBBM5108()
+        {
+            //Check if tables exist from BF3 Ban Manager
+            if (!this.confirmTable("bm_banlist"))
+            {
+                return;
+            }
+            this.ConsoleWarn("BF3 Ban Manager tables detected. Checking validity....");
+
+            //Check if any BBM5108 bans exist in the AdKats Banlist
+            try
+            {
+                using (MySqlConnection connection = this.getDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        SELECT 
+                            * 
+                        FROM 
+                            `" + this.mySqlDatabaseName + @"`.`adkats_banlist` 
+                        WHERE 
+                            `adkats_banlist`.`ban_notes` = 'BBM5108' 
+                        LIMIT 1";
+
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                this.ConsoleWarn("BF3 Ban Manager bans already imported, canceling import.");
+                                return;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.ConsoleException(e.ToString());
+                return;
+            }
+
+            this.ConsoleWarn("Validity confirmed. Preparing to fetch all BF3 Ban Manager Bans...");
+            double totalBans = 0;
+            double bansImported = 0;
+            Queue<BBM5108_Ban> inboundBBMBans = new Queue<BBM5108_Ban>();
+            DateTime startTime = DateTime.Now;
+            try
+            {
+                using (MySqlConnection connection = this.getDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        this.DebugWrite("Creating query to import BBM5108", 3);
+                        command.CommandText = @"
+                        SELECT 
+                            soldiername, eaguid, ban_length, ban_duration, ban_reason 
+                        FROM 
+                            bm_banlist 
+                        INNER JOIN 
+                            bm_soldiers 
+                        ON 
+                            bm_banlist.soldierID = bm_soldiers.soldierID";
+
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            BBM5108_Ban BBMBan;
+                            Boolean told = false;
+                            while (reader.Read())
+                            {
+                                if (!told)
+                                {
+                                    this.DebugWrite("BBM5108 bans found, grabbing.", 3);
+                                }
+                                BBMBan = new BBM5108_Ban();
+                                BBMBan.soldiername = reader.IsDBNull(reader.GetOrdinal("soldiername")) ? null : reader.GetString("soldiername");
+                                BBMBan.eaguid = reader.IsDBNull(reader.GetOrdinal("eaguid")) ? null : reader.GetString("eaguid");
+                                BBMBan.ban_length = reader.GetString("ban_length");
+                                BBMBan.ban_duration = reader.GetDateTime("ban_duration");
+                                BBMBan.ban_reason = reader.IsDBNull(reader.GetOrdinal("ban_reason")) ? null : reader.GetString("ban_reason");
+                                inboundBBMBans.Enqueue(BBMBan);
+                                totalBans++;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.ConsoleException(e.ToString());
+                return;
+            }
+            this.ConsoleWarn(totalBans + " Ban Manager bans fetched, starting import to AdKats Ban Enforcer...");
+
+            try
+            {
+                //Loop through all BBMBans in order that they came in
+                AdKat_Ban aBan;
+                AdKat_Record record;
+                while (inboundBBMBans.Count > 0)
+                {
+                    //Break from the loop if the plugin is disabled or the setting is reverted.
+                    if (!this.isEnabled || !this.useBanEnforcer)
+                    {
+                        this.ConsoleError("You exited the ban import process process early, the process was not completed and cannot recover without manual override. Talk to ColColonCleaner.");
+                        break;
+                    }
+
+                    BBM5108_Ban BBMBan = inboundBBMBans.Dequeue();
+
+                    //Create the record
+                    record = new AdKat_Record();
+                    //Fetch the player
+                    record.target_player = this.fetchPlayer(-1, BBMBan.soldiername, BBMBan.eaguid, null);
+                
+                    record.command_source = AdKat_CommandSource.InGame;
+                    if (BBMBan.ban_length == "permanent")
+                    {
+                        this.DebugWrite("Ban is permanent", 4);
+                        record.command_type = AdKat_CommandType.PermabanPlayer;
+                        record.command_action = AdKat_CommandType.PermabanPlayer;
+                        record.command_numeric = 0;
+                    }
+                    else if (BBMBan.ban_length == "seconds")
+                    {
+                        this.DebugWrite("Ban is temporary", 4);
+                        record.command_type = AdKat_CommandType.TempBanPlayer;
+                        record.command_action = AdKat_CommandType.TempBanPlayer;
+                        record.command_numeric = (int)(BBMBan.ban_duration - DateTime.UtcNow).TotalMinutes;
+                    }
+                    else
+                    {
+                        //Ignore all other cases e.g. round bans
+                        this.DebugWrite("Ban type '" + BBMBan.ban_length + "' not usable", 3);
+                        continue;
+                    }
+
+                    record.source_name = "BanEnforcer";
+                    record.server_id = this.server_id;
+                    if (!String.IsNullOrEmpty(record.target_player.player_name))
+                    {
+                        record.target_name = record.target_player.player_name;
+                    }
+                    record.isIRO = false;
+                    record.record_message = BBMBan.ban_reason;
+                    //Create the ban
+                    aBan = new AdKat_Ban();
+                    aBan.ban_record = record;
+                    aBan.ban_notes = "BBM5108";
+
+                    //Update the ban enforcement depending on available information
+                    Boolean nameAvailable = !String.IsNullOrEmpty(record.target_player.player_name);
+                    Boolean GUIDAvailable = !String.IsNullOrEmpty(record.target_player.player_guid);
+                    Boolean IPAvailable = !String.IsNullOrEmpty(record.target_player.player_ip);
+                    aBan.ban_enforceName = nameAvailable && (this.defaultEnforceName || (!GUIDAvailable && !IPAvailable) || !String.IsNullOrEmpty(BBMBan.soldiername));
+                    aBan.ban_enforceGUID = GUIDAvailable && (this.defaultEnforceGUID || (!nameAvailable && !IPAvailable) || !String.IsNullOrEmpty(BBMBan.eaguid));
+                    aBan.ban_enforceIP = IPAvailable && this.defaultEnforceIP;
+                    if (!aBan.ban_enforceName && !aBan.ban_enforceGUID && !aBan.ban_enforceIP)
+                    {
+                        this.ConsoleError("Unable to create ban, no proper player information");
+                        continue;
+                    }
+
+                    //Upload the ban
+                    this.DebugWrite("Uploading Ban Manager ban.", 5);
+                    this.uploadBan(aBan);
+
+                    if (++bansImported % 25 == 0)
+                    {
+                        this.ConsoleWrite(Math.Round(100 * bansImported / totalBans, 2) + "% of Ban Manager bans uploaded. AVG " + Math.Round(bansImported / ((DateTime.Now - startTime).TotalSeconds), 2) + " uploads/sec.");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.ConsoleException(e.ToString());
+                return;
+            }
+            if (inboundBBMBans.Count == 0)
+            {
+                this.ConsoleSuccess("All Ban Manager bans imported into AdKats Ban Enforcer!");
+            }
+        }
+
         //DONE
         private Boolean canPunish(AdKat_Record record)
         {
@@ -7761,6 +7975,7 @@ namespace PRoConEvents
             return false;
         }
 
+        //DONE
         private void runActionsFromDB()
         {
             DebugWrite("runActionsFromDB starting!", 7);
@@ -9127,6 +9342,19 @@ namespace PRoConEvents
             public Boolean ban_enforceIP = false;
 
             public AdKat_Ban()
+            {
+            }
+        }
+
+        public class BBM5108_Ban
+        {
+            public string soldiername = null;
+            public string eaguid = null;
+            public string ban_length = null;
+            public DateTime ban_duration;
+            public string ban_reason = null;
+
+            public BBM5108_Ban()
             {
             }
         }
