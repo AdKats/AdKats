@@ -213,4 +213,13 @@ fine for performance). Right now only Punish and Forgive are required to be logg
   efficient.</li>
   <li><b>Admin list sorted by level then name.</b> Simple visual fix.</li>
 </ul>
+<h4>0.3.0.2(6-SEP-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes/Enhancements</b> Documented bugs in the issues section (milestone 0.3.0.2) are fixed.</li>
+  <li><b>Teamswap Queues Removed Temporarily.</b> Until the queuing problem can be fixed, queues for teamswap have been 
+  removed. All moves, force-moves, and self-moves will be called directly.</li>
+  <li><b>Import from BF3 Ban Manager Added.</b> When AdKats Ban Enforcer is enabled, a check for BF3 Ban Manager tables 
+  is performed. All bans managed by BF3 Ban Manager will be automatically imported into AdKats.</li>
+</ul>
 </blockquote>
