@@ -63,7 +63,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.3.0.2";
+        string plugin_version = "0.3.0.3";
 
         private MatchCommand AdKatsAvailableIndicator;
 
@@ -2748,7 +2748,7 @@ namespace PRoConEvents
                     response = message;
                     break;
                 default:
-                    this.ConsoleWarn("Command source not set, or not recognized.");
+                    //this.ConsoleWarn("Command source not set, or not recognized.");
                     break;
             }
             return response;
@@ -6598,7 +6598,9 @@ namespace PRoConEvents
                         FROM 
                             `" + this.mySqlDatabaseName + @"`.`adkats_records` 
                         WHERE 
-                            `adkats_read` = 'N'";
+                            `adkats_read` = 'N' 
+                        AND 
+                            `server_id` = " + this.server_id;
                         command.CommandText = sql;
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
@@ -7807,7 +7809,7 @@ namespace PRoConEvents
                     record = new AdKat_Record();
                     //Fetch the player
                     record.target_player = this.fetchPlayer(-1, BBMBan.soldiername, BBMBan.eaguid, null);
-                
+
                     record.command_source = AdKat_CommandSource.InGame;
                     if (BBMBan.ban_length == "permanent")
                     {
