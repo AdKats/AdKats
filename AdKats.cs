@@ -63,7 +63,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.3.0.3";
+        string plugin_version = "0.3.0.4";
 
         private MatchCommand AdKatsAvailableIndicator;
 
