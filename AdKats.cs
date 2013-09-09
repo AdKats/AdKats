@@ -2301,6 +2301,8 @@ namespace PRoConEvents
 
                             this.playerDictionary.Add(player.SoldierName, aPlayer);
 
+                            //Check with ban enforcer
+                            this.queuePlayerForBanCheck(aPlayer);
 
                             if (this.isAdminAssistant(aPlayer))
                             {
