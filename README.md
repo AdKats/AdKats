@@ -28,9 +28,10 @@ just as well for small servers.<br/>
   settings, track admin activities, and much more from a webpage without being in-game.</li>
   <li><b>Internal Implementation of TeamSwap.</b> Movement options for both your admins and playerbase if desired. 
   Greatly improved over the default version. Documentation linked below.</li>
-  <li><b>AdKats Ban Enforcer.</b> AdKats can enforce bans across all of your servers. This system has been built to be 
-  more complete and reliable than others available, including metabans (permabans through metabans are only enforced 
-  for 28 days). This system will be further enhanced with the release of AdKats WebAdmin. Documentation linked below.</li>
+  <li><b>AdKats Ban Enforcer.</b> AdKats can enforce bans across all of your servers. The internal system has been built 
+  to be more complete and reliable than others available, including metabans, and will be further enhanced with the 
+  release of AdKats WebAdmin. It will automatically import all procon bans from all your servers and consolidate them. 
+  It will also import any existing bans from the BF3 Ban Manager plugin's tables. Full documentation linked below.</li>
   <li><b>Editable In-Game Commands.</b> All command text can be edited to suit your needs.</li>
   <li><b>Performance.</b> All actions, messaging, database communications, and command parsing take place on their own 
   threads, minimizing performance impacts.</li>
