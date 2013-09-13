@@ -626,42 +626,14 @@ can be changed once they are on the access list, in addition to their email addr
 <h3>Commanding AdKats from Outside the Game</h3>
 <h4>AdKats WebAdmin can be used for this.</h4>
 <p>
-If you have an external system (such as a web-based tool with access to bf3 server information), then there are two 
-ways to interact with AdKats externally.<br/>
-
-<h4>1. Procon HTTP Server</h4>
-Send commands to AdKats through procon's internal HTTP server, it just takes a couple setup steps. Turn on procon's 
-HTTP server by going to Tools (Upper right) --> Options --> HTTP Tab and enable the server. The default port should be 
-fine for most cases. Then in AdKats settings set the external access key to what you want for a password. Action taken 
-is almost instant, and a helpful error message is given if incorrect params are entered. You can then query the plugin 
-in following manner.<br/><br/>
-
-<b>The BF3 server ip and port are shown in AdKats settings.</b><br/>
-http://[procon_server_ip]:[server_port]/[bf3_server_ip]:[bf3_server_port]/plugins/AdKats/?[Parameters]<br/><br/>
-
-<b>Required Parameters:</b><br/>
-command_type=[Command from list Below]<br/>
-target_name=[Full or Partial Player Name]<br/>
-record_message=[reason for action]<br/>
-access_key=[Your Access Key from AdKats Settings]<br/>
-<b>Optional Parameters:</b><br/>
-source_name=[Name of admin sending this command. This system has access level 0 (full admin) regardless of this entry.]<br/>
-record_durationMinutes=[Used for Temp-Bans, duration of time in minutes]<br/><br/>
-
-<b>Example of Command:</b><br/>
-http://293.182.39.230:27360/173.199.91.187:25210/plugins/AdKats/?command_type=TempBan&source_name=ColonsEnemy&<br/>
-target_name=ColColonCleaner&record_message=Testing&record_durationMinutes=60&access_key=MyPassword<br/><br/>
-
-<b>SECURITY NOTE: As some will notice this works through GET commands, which are insecure, if you issue commands and 
-someone outside gets the command URL you entered they will have full access to issue commands on your instance of this 
-plugin. It is only insecure if you use this method though, as internally the key is randomized. I am working on securing 
-this system, as it is ultimately better than option 2.</b></b>
-
-<h4>2. Adding Database Records</h4>
+If you have an external system (such as a web-based tool with access to bf3 server information), then there is currently 
+one way to interact with AdKats externally (A second comming soon if possible).<br/>
+<h4>Adding Database Records</h4>
 Have your external system add a row to the record table with a new record to be acted on. All information is needed 
-in the row just like the ones sent from AdKats to the database. Just make the 'adkats_read' column for that row = "N" 
-and adkats will act on that record. Every ~20 seconds the plugin checks for new input in the table, and will 
-act on them if found, this is a much slower acting system than the HTTP server option, but is much MUCH more secure.<br/>
+in the row just like the ones sent from AdKats to the database, review the ones already in your database before 
+attempting this, and ask ColColonCleaner any questions you may have. The only exception is you need to make the 
+'adkats_read' column for that row = "N", this way AdKats will act on that record. Every 5-10 seconds the plugin checks 
+for new input in the table, and will act on them if found.<br/>
 
 Valid 'command_type's that can be acted on include the following:<br/>
 <table>
