@@ -2289,16 +2289,6 @@ namespace PRoConEvents
 
         public override void OnPlayerTeamChange(string soldierName, int teamId, int squadId)
         {
-            if (teamId == USTeamID)
-            {
-                this.USPlayerCount++;
-                this.RUPlayerCount--;
-            }
-            else
-            {
-                this.RUPlayerCount++;
-                this.USPlayerCount--;
-            }
             this.teamswapHandle.Set();
         }
 
@@ -2582,16 +2572,6 @@ namespace PRoConEvents
         public override void OnPlayerLeft(CPlayerInfo playerInfo)
         {
             this.removePlayerFromDictionary(playerInfo.SoldierName);
-
-            if (playerInfo.TeamID == USTeamID)
-            {
-                this.USPlayerCount--;
-            }
-            else
-            {
-                this.RUPlayerCount--;
-            }
-
             this.teamswapHandle.Set();
         }
 
