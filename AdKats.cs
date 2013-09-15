@@ -63,7 +63,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.3.1.0";
+        string plugin_version = "0.3.1.1";
 
         private MatchCommand AdKatsAvailableIndicator;
 
@@ -2292,73 +2292,76 @@ namespace PRoConEvents
             this.teamswapHandle.Set();
         }
 
-        public override void OnListPlayers(List<CPlayerInfo> players, CPlayerSubset subset)
+        public override void OnListPlayers(List<CPlayerInfo> players, CPlayerSubset cpsSubset)
         {
             try
             {
-                if (this.threadsReady)
+                if (cpsSubset.Subset == CPlayerSubset.PlayerSubsetType.All)
                 {
-                    this.DebugWrite("Listing Players", 5);
-                    //Player list and ban list need to be locked for this operation
-                    lock (playersMutex)
+                    if (this.threadsReady)
                     {
-                        //Reset the player counts of both sides and recount everything
-                        this.USPlayerCount = 0;
-                        this.RUPlayerCount = 0;
-                        foreach (CPlayerInfo player in players)
+                        this.DebugWrite("Listing Players", 5);
+                        //Player list and ban list need to be locked for this operation
+                        lock (playersMutex)
                         {
-                            AdKat_Player aPlayer = null;
-                            if (this.playerDictionary.TryGetValue(player.SoldierName, out aPlayer))
+                            //Reset the player counts of both sides and recount everything
+                            this.USPlayerCount = 0;
+                            this.RUPlayerCount = 0;
+                            foreach (CPlayerInfo player in players)
                             {
-                                //Otherwise, just update the frostbite player info
-                                this.playerDictionary[player.SoldierName].frostbitePlayerInfo = player;
-                            }
-                            else
-                            {
-                                aPlayer = this.fetchPlayer(-1, player.SoldierName, player.GUID, null);
-                                aPlayer.frostbitePlayerInfo = player;
-                                aPlayer.lastDeath = DateTime.Now;
-                                aPlayer.lastSpawn = DateTime.Now;
-                                //In case of quick name-change, update their IGN
-                                aPlayer.player_name = player.SoldierName;
-
-                                this.playerDictionary.Add(player.SoldierName, aPlayer);
-
-                                //Check with ban enforcer
-                                this.queuePlayerForBanCheck(aPlayer);
-
-                                if (this.isAdminAssistant(aPlayer))
+                                AdKat_Player aPlayer = null;
+                                if (this.playerDictionary.TryGetValue(player.SoldierName, out aPlayer))
                                 {
-                                    this.DebugWrite(player.SoldierName + " IS an Admin Assistant.", 3);
-                                    if (!this.adminAssistantCache.ContainsKey(player.SoldierName))
-                                    {
-                                        this.adminAssistantCache.Add(player.SoldierName, false);
-                                        this.DebugWrite(player.SoldierName + " added to the Admin Assistant Cache.", 4);
-                                    }
-                                    else
-                                    {
-                                        this.DebugWrite("Player is already in the admin assitant cache, this is abnormal.", 3);
-                                    }
+                                    //Otherwise, just update the frostbite player info
+                                    this.playerDictionary[player.SoldierName].frostbitePlayerInfo = player;
                                 }
                                 else
                                 {
-                                    this.DebugWrite(player.SoldierName + " is NOT an Admin Assistant.", 4);
+                                    aPlayer = this.fetchPlayer(-1, player.SoldierName, player.GUID, null);
+                                    aPlayer.frostbitePlayerInfo = player;
+                                    aPlayer.lastDeath = DateTime.Now;
+                                    aPlayer.lastSpawn = DateTime.Now;
+                                    //In case of quick name-change, update their IGN
+                                    aPlayer.player_name = player.SoldierName;
+
+                                    this.playerDictionary.Add(player.SoldierName, aPlayer);
+
+                                    //Check with ban enforcer
+                                    this.queuePlayerForBanCheck(aPlayer);
+
+                                    if (this.isAdminAssistant(aPlayer))
+                                    {
+                                        this.DebugWrite(player.SoldierName + " IS an Admin Assistant.", 3);
+                                        if (!this.adminAssistantCache.ContainsKey(player.SoldierName))
+                                        {
+                                            this.adminAssistantCache.Add(player.SoldierName, false);
+                                            this.DebugWrite(player.SoldierName + " added to the Admin Assistant Cache.", 4);
+                                        }
+                                        else
+                                        {
+                                            this.DebugWrite("Player is already in the admin assitant cache, this is abnormal.", 3);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        this.DebugWrite(player.SoldierName + " is NOT an Admin Assistant.", 4);
+                                    }
+                                }
+
+                                if (player.TeamID == USTeamID)
+                                {
+                                    this.USPlayerCount++;
+                                }
+                                else
+                                {
+                                    this.RUPlayerCount++;
                                 }
                             }
-
-                            if (player.TeamID == USTeamID)
-                            {
-                                this.USPlayerCount++;
-                            }
-                            else
-                            {
-                                this.RUPlayerCount++;
-                            }
                         }
-                    }
 
-                    //Set the handle for teamswap
-                    this.listPlayersHandle.Set();
+                        //Set the handle for teamswap
+                        this.listPlayersHandle.Set();
+                    }
                 }
             }
             catch (Exception e)
@@ -7178,14 +7181,16 @@ namespace PRoConEvents
                                 ) 
                                 VALUES 
                                 (
-                                    @player_name, 
-                                    @player_guid, 
-                                    @player_ip
-                                )";
-                                //Set values
-                                command.Parameters.AddWithValue("@player_name", player_name);
-                                command.Parameters.AddWithValue("@player_guid", player_guid);
-                                command.Parameters.AddWithValue("@player_ip", player_ip);
+                                    '" + player_name + @"', 
+                                    '" + player_guid + @"',
+                                    '" + player_ip + @"'
+                                )
+                                ON DUPLICATE KEY 
+                                UPDATE 
+                                    `PlayerID` = LAST_INSERT_ID(`PlayerID`),
+                                    `SoldierName` = '" + player_name + @"',
+                                    `EAGUID` = '" + player_guid + @"',
+                                    `IP_Address` = '" + player_ip +"'";
                                 //Attempt to execute the query
                                 if (command.ExecuteNonQuery() > 0)
                                 {
