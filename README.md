@@ -1,5 +1,5 @@
-<h2 style="color:#B40404;">Version 0.3.0.3 released! Your version is listed above (Procon Only).</h2>
-<a href="https://github.com/ColColonCleaner/AdKats/blob/master/CHANGELOG.md" target="_blank">New in Version 0.3.0.3!</a> 
+<h2 style="color:#B40404;">Version 0.3.1.1 released! Your version is listed above (Procon Only).</h2>
+<a href="https://github.com/ColColonCleaner/AdKats/blob/master/CHANGELOG.md" target="_blank">New in Version 0.3.1.1!</a> 
 Download link below.
 <h1>AdKats</h1>
 <p>
@@ -45,7 +45,7 @@ If you find any bugs, please submit them
 and they will be fixed ASAP.<br/><br/>
 
 Download the latest version here: 
-<a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.3.0.3.zip/download" target="_blank">Version 0.3.0.3</a>
+<a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.3.1.1.zip/download" target="_blank">Version 0.3.1.1</a>
 </p>
 <p>
 AdKats was inspired by the gaming community A Different Kind (ADK). Visit 
