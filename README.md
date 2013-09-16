@@ -4,8 +4,8 @@ Download link below.
 <h1>AdKats</h1>
 <p>
 Admin Toolset with a plethora of features, focused on making in-game admins more efficient and accurate at their jobs. 
-Includes a cross-server ban enforcer more reliable and complete than others available, and a WebAdmin for out-of-game 
-control will be released shortly. Designed for groups with high-traffic servers and many admins, but will function 
+Includes a cross-server ban enforcer more reliable and complete than others available, and the AdKats WebAdmin for 
+out-of-game control has been released. Designed for groups with high-traffic servers and many admins, but will function 
 just as well for small servers.<br/>
 <ul>
   <li><b>Basic Action Commands.</b> Standard commands for player killing, kicking, banning, moving, etc..</li>
@@ -24,20 +24,20 @@ just as well for small servers.<br/>
   <li><b>Yell/Say Pre-Recording.</b> Usable along side plugins such as "server rules on request". Use numbers to 
   reference predefined messages. Avoid typing long reasons or messages.</li>
   <li><b>External Controller API.</b> AdKats can be controlled from outside the game, through systems like AdKats 
-  WebAdmin (under development). Once done you will be able to issue any admin command, manage bans, change plugin 
+  WebAdmin. Once done you will be able to issue any admin command, manage bans, change plugin 
   settings, track admin activities, and much more from a webpage without being in-game.</li>
   <li><b>Internal Implementation of TeamSwap.</b> Movement options for both your admins and playerbase if desired. 
   Greatly improved over the default version. Documentation linked below.</li>
   <li><b>AdKats Ban Enforcer.</b> AdKats can enforce bans across all of your servers. The internal system has been built 
-  to be more complete and reliable than others available, including metabans, and will be further enhanced with the 
-  release of AdKats WebAdmin. It will automatically import all procon bans from all your servers and consolidate them. 
+  to be more complete and reliable than others available, including metabans, and is further enhanced by using AdKats 
+  WebAdmin. It will automatically import all procon bans from all your servers and consolidate them. 
   It will also import any existing bans from the BF3 Ban Manager plugin's tables. Full documentation linked below.</li>
   <li><b>Editable In-Game Commands.</b> All command text can be edited to suit your needs.</li>
   <li><b>Performance.</b> All actions, messaging, database communications, and command parsing take place on their own 
   threads, minimizing performance impacts.</li>
   <li><b>Full Logging.</b> All admin activity is trackable via the database, so holding your admins accountable for 
-  their actions is quick and painless. And after WebAdmin is released nobody but your highest admins will need direct 
-  procon access.</li>
+  their actions is quick and painless. And if you are using AdKats WebAdmin nobody but your highest admins will need 
+  direct procon access.</li>
 </ul>
 
 If you find any bugs, please submit them 
@@ -210,35 +210,6 @@ Ban Enforcer can be enabled with the "Use Ban Enforcer" setting. On enable it wi
 then clear it, once you enable enforcer you will be unable to manage any bans without webadmin. Disabling ban enforcer 
 will repopulate procon's ban list with the imported bans, but you will lose any additional information ban enforcer was 
 able to gather about the banned players.<br/><br/>
-
-To all who will be using the ban enforcer before WebAdmin is released, you can use the below query to get more meaningful 
-information out of the ban list. Once you find the ban ID you want using this query you can modify it in adkats_banlist 
-using that ID. To remove a ban change ban_status to "Disabled" (caps important), and to modify duration change 
-ban_endTime to when you want it to end (remember database timezone might be different from yours).<br/><br/>
-
-SELECT<br/> 
-	`adkats_banlist`.`ban_id`, <br/>
-	`tbl_playerdata`.`SoldierName` AS `player_name`, <br/>
-	`adkats_records`.`record_message` AS `ban_reason`, <br/>
-	`adkats_banlist`.`ban_status`, <br/>
-	`adkats_banlist`.`ban_startTime`, <br/>
-	`adkats_banlist`.`ban_endTime`, <br/>
-	`adkats_banlist`.`ban_enforceName`, <br/>
-	`adkats_banlist`.`ban_enforceGUID`, <br/>
-	`adkats_banlist`.`ban_enforceIP`<br/>
-FROM <br/>
-	`adkats_banlist` <br/>
-INNER JOIN <br/>
-	`tbl_playerdata` <br/>
-ON <br/>
-	`tbl_playerdata`.`PlayerID` = `adkats_banlist`.`player_id` <br/>
-INNER JOIN <br/>
-	`adkats_records` <br/>
-ON <br/>
-	`adkats_records`.`record_id` = `adkats_banlist`.`latest_record_id` <br/>
-ORDER BY <br/>
-	`ban_startTime` <br/>
-DESC;<br/><br/>
 
 <b>Reasoning behind creation for those interested:</b> We had tried many other ban management systems and they all 
 appeared to have some significant downfalls. I will not point fingers at any specific plugins other than metabans as 
