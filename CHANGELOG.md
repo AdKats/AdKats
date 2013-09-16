@@ -231,5 +231,6 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <b>Changes</b> <br/>
 <ul>
   <li><b>Bug-fixes/Enhancements</b> Small bugs fixed. Some commands simplified. Necessary for WebAdmin.</li>
+  <li><b>Performance Fix</b> IP checking was causing lag in the previous verion.</li>
 </ul>
 </blockquote>
