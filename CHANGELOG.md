@@ -227,4 +227,9 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <ul>
   <li><b>Bug-fixes/Enhancements</b> Small but extremely important bug fixed. Necessary for WebAdmin.</li>
 </ul>
+<h4>0.3.1.1(16-SEP-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes/Enhancements</b> Small bugs fixed. Some commands simplified. Necessary for WebAdmin.</li>
+</ul>
 </blockquote>
