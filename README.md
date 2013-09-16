@@ -278,6 +278,9 @@ actual reason entered, so you can just do "@punish 283 4", and he will get the p
 <b>TeamSwap is NOT an autobalancer</b> (look up other plugins for that functionality), it is for manual player moving 
 only.<br/><br/>
 
+NOTE 3.1.1: Teamswap queues have been disabled while more testing is completed, all commands are called instantly 
+for the time being. Queues will be re-enabled when testing of the queue control is complete.
+
 TeamSwap is a server-smart player moving system which offers two major benefits over the default system. Normally when 
 trying to move a player to a full team the command just fails at the server level, now the player is dropped on a 
 queue until a slot opens on that side. They can keep playing on their side until that slot opens, since when it does they 
