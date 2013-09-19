@@ -63,7 +63,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.3.1.1";
+        string plugin_version = "0.3.1.2";
 
         private MatchCommand AdKatsAvailableIndicator;
 
@@ -146,6 +146,7 @@ namespace PRoConEvents
         private Boolean isADK = false;
         private Boolean useExperimentalTools = false;
         private Boolean useNoExplosivesLimit = false;
+        private Boolean useGrenadeCookCatcher = false;
         //IDs of the two teams as the server understands it
         private static int USTeamID = 1;
         private static int RUTeamID = 2;
@@ -774,6 +775,7 @@ namespace PRoConEvents
                     if (this.useExperimentalTools)
                     {
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use NO EXPLOSIVES Limiter", typeof(Boolean), this.useNoExplosivesLimit));
+                        lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof(Boolean), this.useGrenadeCookCatcher));
                     }
                 }
             }
@@ -887,6 +889,7 @@ namespace PRoConEvents
                         {
                             this.ConsoleWarn("Experimental tools disabled.");
                             this.useNoExplosivesLimit = false;
+                            this.useGrenadeCookCatcher = false;
                         }
                     }
                 }
@@ -903,6 +906,22 @@ namespace PRoConEvents
                         else
                         {
                             this.ConsoleWarn("Internal NO EXPLOSIVES punish limit disabled.");
+                        }
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Use Grenade Cook Catcher").Success)
+                {
+                    Boolean useCookCatcher = Boolean.Parse(strValue);
+                    if (useCookCatcher != this.useGrenadeCookCatcher)
+                    {
+                        this.useGrenadeCookCatcher = useCookCatcher;
+                        if (this.useGrenadeCookCatcher)
+                        {
+                            this.ConsoleWarn("Internal Grenade Cook Catcher activated.");
+                        }
+                        else
+                        {
+                            this.ConsoleWarn("Internal Grenade Cook Catcher disabled.");
                         }
                     }
                 }
@@ -2451,6 +2470,7 @@ namespace PRoConEvents
         //Move delayed players when they are killed
         public override void OnPlayerKilled(Kill kKillerVictimDetails)
         {
+            DateTime killTime = DateTime.Now;
             //Used for delayed player moving
             if (isEnabled && this.teamswapOnDeathMoveDic.Count > 0)
             {
@@ -2461,21 +2481,120 @@ namespace PRoConEvents
                 }
             }
 
+            Boolean gKillHandled = false;
             //Update player death information
             if (this.playerDictionary.ContainsKey(kKillerVictimDetails.Victim.SoldierName))
             {
                 lock (this.playersMutex)
                 {
+                    AdKat_Player victim = this.playerDictionary[kKillerVictimDetails.Victim.SoldierName];
                     //Only add the last death if it's not a death by admin
                     if (!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName))
                     {
-                        this.playerDictionary[kKillerVictimDetails.Victim.SoldierName].lastDeath = DateTime.Now;
+                        victim.lastDeath = killTime;
+
+                        //ADK grenade cooking catcher
+                        if (this.useGrenadeCookCatcher)
+                        {
+                            //Update killer information
+                            AdKat_Player killer = null;
+                            if (this.playerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer))
+                            {
+                                //Initialize / clean up the recent kills queue
+                                if (killer.recentKills == null)
+                                {
+                                    killer.recentKills = new Queue<KeyValuePair<AdKat_Player, DateTime>>();
+                                }
+                                //Only keep the last 6 kills in memory
+                                if (killer.recentKills.Count > 6)
+                                {
+                                    killer.recentKills.Dequeue();
+                                }
+                                //Add the player
+                                killer.recentKills.Enqueue(new KeyValuePair<AdKat_Player, DateTime>(victim, killTime));
+                                //Check for cooked grenade and non-suicide
+                                if (kKillerVictimDetails.DamageType == "M67" && kKillerVictimDetails.Killer.SoldierName != kKillerVictimDetails.Victim.SoldierName)
+                                {
+                                    double milli = 0;
+                                    Boolean told = false;
+                                    List<AdKat_Player> possible = new List<AdKat_Player>();
+                                    List<AdKat_Player> sure = new List<AdKat_Player>();
+                                    foreach (KeyValuePair<AdKat_Player, DateTime> cooker in killer.recentKills)
+                                    {
+                                        milli = killTime.Subtract(cooker.Value).TotalMilliseconds;
+                                        //Use a 90ms window to detect possible grenade cookers
+                                        if (milli > 3690.00 && milli < 3780.00)
+                                        {
+                                            gKillHandled = true;
+                                            if (!told)
+                                            {
+                                                this.playerSayMessage(kKillerVictimDetails.Killer.SoldierName, "You appear to be a victim of grenade cooking. You will NOT be punished.");
+                                            }
+                                            //Use a 10ms window to be sure about cooked grenade
+                                            if (milli > 3730.00 && milli < 3740.00)
+                                            {
+                                                sure.Add(cooker.Key);
+                                            }
+                                            else
+                                            {
+                                                possible.Add(cooker.Key);
+                                            }
+                                        }
+                                    }
+                                    if (sure.Count == 1 && possible.Count == 0)
+                                    {
+                                        //Create the ban record
+                                        AdKat_Record record = new AdKat_Record();
+                                        record.server_id = this.server_id;
+                                        record.command_type = AdKat_CommandType.TempBanPlayer;
+                                        record.command_numeric = 10080;
+                                        record.target_name = sure[0].player_name;
+                                        record.target_player = sure[0];
+                                        record.source_name = "AutoAdmin";
+                                        record.record_message = "Cooking Grenades";
+                                        //Process the record
+                                        this.queueRecordForProcessing(record);
+                                    }
+                                    else
+                                    {
+                                        foreach (AdKat_Player player in sure)
+                                        {
+                                            //Create the report record
+                                            AdKat_Record record = new AdKat_Record();
+                                            record.server_id = this.server_id;
+                                            record.command_type = AdKat_CommandType.ReportPlayer;
+                                            record.command_numeric = 0;
+                                            record.target_name = player.player_name;
+                                            record.target_player = player;
+                                            record.source_name = "AutoAdmin";
+                                            record.record_message = "Possible Grenade Cooker";
+                                            //Process the record
+                                            this.queueRecordForProcessing(record);
+                                        }
+                                        foreach (AdKat_Player player in possible)
+                                        {
+                                            //Create the report record
+                                            AdKat_Record record = new AdKat_Record();
+                                            record.server_id = this.server_id;
+                                            record.command_type = AdKat_CommandType.ReportPlayer;
+                                            record.command_numeric = 0;
+                                            record.target_name = player.player_name;
+                                            record.target_player = player;
+                                            record.source_name = "AutoAdmin";
+                                            record.record_message = "Possible Grenade Cooker";
+                                            //Process the record
+                                            this.queueRecordForProcessing(record);
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
 
-            //ADK Metro No EXPLOSIVES special enforcement
-            if (this.useNoExplosivesLimit)
+            //ADK No EXPLOSIVES special enforcement
+            if (this.useNoExplosivesLimit && !gKillHandled)
             {
                 //Check if restricted weapon
                 if (Regex.Match(kKillerVictimDetails.DamageType, @"(?:M320|RPG|SMAW|C4|M67|Claymore|MAV|FGM-148|FIM92|ROADKILL)", RegexOptions.IgnoreCase).Success)
@@ -9422,6 +9541,8 @@ namespace PRoConEvents
 
             public DateTime lastSpawn = DateTime.Now;
             public DateTime lastDeath = DateTime.Now;
+
+            public Queue<KeyValuePair<AdKat_Player, DateTime>> recentKills = null;
 
             public AdKat_Player()
             {
