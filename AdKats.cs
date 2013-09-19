@@ -2529,6 +2529,7 @@ namespace PRoConEvents
                                             if (!told)
                                             {
                                                 this.playerSayMessage(kKillerVictimDetails.Killer.SoldierName, "You appear to be a victim of grenade cooking. You will NOT be punished.");
+                                                told = true;
                                             }
                                             //Use a 10ms window to be sure about cooked grenade
                                             if (milli > 3730.00 && milli < 3740.00)
