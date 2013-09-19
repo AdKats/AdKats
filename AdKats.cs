@@ -2528,7 +2528,7 @@ namespace PRoConEvents
                                             gKillHandled = true;
                                             if (!told)
                                             {
-                                                this.playerSayMessage(kKillerVictimDetails.Killer.SoldierName, "You appear to be a victim of grenade cooking. You will NOT be punished.");
+                                                this.playerSayMessage(kKillerVictimDetails.Killer.SoldierName, "You appear to be a victim of grenade cooking and will NOT be punished.");
                                                 told = true;
                                             }
                                             //Use a 10ms window to be sure about cooked grenade
