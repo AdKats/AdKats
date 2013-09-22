@@ -63,7 +63,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.3.1.2";
+        string plugin_version = "0.3.1.5";
 
         private MatchCommand AdKatsAvailableIndicator;
 
@@ -98,6 +98,7 @@ namespace PRoConEvents
             PunishPlayer,
             ForgivePlayer,
             MutePlayer,
+            JoinPlayer,
             //Reporting players
             ReportPlayer,
             CallAdmin,
@@ -147,6 +148,7 @@ namespace PRoConEvents
         private Boolean useExperimentalTools = false;
         private Boolean useNoExplosivesLimit = false;
         private Boolean useGrenadeCookCatcher = false;
+        private Dictionary<string, AdKat_Player> roundCookers = null;
         //IDs of the two teams as the server understands it
         private static int USTeamID = 1;
         private static int RUTeamID = 2;
@@ -197,6 +199,7 @@ namespace PRoConEvents
         private string m_strPunishCommand = "punish";
         private string m_strForgiveCommand = "forgive";
         private string m_strMuteCommand = "mute";
+        private string m_strJoinCommand = "join";
         private string m_strRoundWhitelistCommand = "roundwhitelist";
         private string m_strMoveCommand = "move";
         private string m_strForceMoveCommand = "fmove";
@@ -257,6 +260,7 @@ namespace PRoConEvents
             "tbanmonth",
             "ban"
         };
+        private List<string> punishmentSeverityIndex = null;
         //When punishing, only kill players when server is in low population
         private Boolean onlyKillOnLowPop = true;
         //Default for low populations
@@ -393,6 +397,18 @@ namespace PRoConEvents
 
             this.externalCommandAccessKey = AdKats.GetRandom32BitHashCode();
 
+            //Init the punishment severity index
+            this.punishmentSeverityIndex = new List<string>();
+            this.punishmentSeverityIndex.Add("kill");
+            this.punishmentSeverityIndex.Add("kick");
+            this.punishmentSeverityIndex.Add("tban60");
+            this.punishmentSeverityIndex.Add("tbanday");
+            this.punishmentSeverityIndex.Add("tbanweek");
+            this.punishmentSeverityIndex.Add("tban2weeks");
+            this.punishmentSeverityIndex.Add("tbanmonth");
+            this.punishmentSeverityIndex.Add("ban");
+
+            //Init the pre-message list
             preMessageList.Add("US TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.");
             preMessageList.Add("RU TEAM: DO NOT BASERAPE, YOU WILL BE PUNISHED.");
             preMessageList.Add("US TEAM: DO NOT ENTER THE STREETS BEYOND 'A', YOU WILL BE PUNISHED.");
@@ -424,6 +440,7 @@ namespace PRoConEvents
             this.AdKat_RecordTypes.Add(AdKat_CommandType.PunishPlayer, "Punish");
             this.AdKat_RecordTypes.Add(AdKat_CommandType.ForgivePlayer, "Forgive");
             this.AdKat_RecordTypes.Add(AdKat_CommandType.MutePlayer, "Mute");
+            this.AdKat_RecordTypes.Add(AdKat_CommandType.JoinPlayer, "Join");
             this.AdKat_RecordTypes.Add(AdKat_CommandType.RoundWhitelistPlayer, "RoundWhitelist");
 
             this.AdKat_RecordTypes.Add(AdKat_CommandType.ReportPlayer, "Report");
@@ -456,6 +473,7 @@ namespace PRoConEvents
             this.AdKat_RecordTypesInv.Add("Punish", AdKat_CommandType.PunishPlayer);
             this.AdKat_RecordTypesInv.Add("Forgive", AdKat_CommandType.ForgivePlayer);
             this.AdKat_RecordTypesInv.Add("Mute", AdKat_CommandType.MutePlayer);
+            this.AdKat_RecordTypesInv.Add("Join", AdKat_CommandType.JoinPlayer);
             this.AdKat_RecordTypesInv.Add("RoundWhitelist", AdKat_CommandType.RoundWhitelistPlayer);
 
             this.AdKat_RecordTypesInv.Add("Report", AdKat_CommandType.ReportPlayer);
@@ -506,6 +524,7 @@ namespace PRoConEvents
 
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.ReportPlayer, 6);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.CallAdmin, 6);
+            this.AdKat_CommandAccessRank.Add(AdKat_CommandType.JoinPlayer, 6);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.ConfirmReport, 6);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.ConfirmCommand, 6);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.CancelCommand, 6);
@@ -526,6 +545,7 @@ namespace PRoConEvents
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.KillPlayer, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.MovePlayer, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.MutePlayer, true);
+            this.AdKat_LoggingSettings.Add(AdKat_CommandType.JoinPlayer, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.NextLevel, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.NukeServer, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.PermabanPlayer, true);
@@ -675,6 +695,7 @@ namespace PRoConEvents
                 lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Punish Player", typeof(string), m_strPunishCommand));
                 lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Forgive Player", typeof(string), m_strForgiveCommand));
                 lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Mute Player", typeof(string), m_strMuteCommand));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Join Player", typeof(string), m_strJoinCommand));
                 lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Round Whitelist Player", typeof(string), m_strRoundWhitelistCommand));
                 lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|OnDeath Move Player", typeof(string), m_strMoveCommand));
                 lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Force Move Player", typeof(string), m_strForceMoveCommand));
@@ -1059,7 +1080,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strConfirmCommand = AdKat_CommandType.ConfirmCommand + " COMMAND BLANK";
+                        this.m_strConfirmCommand = AdKat_CommandType.ConfirmCommand + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Cancel Command").Success)
@@ -1081,7 +1102,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strCancelCommand = AdKat_CommandType.CancelCommand + " COMMAND BLANK";
+                        this.m_strCancelCommand = AdKat_CommandType.CancelCommand + "CommandDisabled";
                     }
                 }
                 else if (strVariable.EndsWith(@"Kill Player"))
@@ -1103,7 +1124,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strKillCommand = AdKat_CommandType.KillPlayer + " COMMAND BLANK";
+                        this.m_strKillCommand = AdKat_CommandType.KillPlayer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Kick Player").Success)
@@ -1125,7 +1146,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strKickCommand = AdKat_CommandType.KickPlayer + " COMMAND BLANK";
+                        this.m_strKickCommand = AdKat_CommandType.KickPlayer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Temp-Ban Player").Success)
@@ -1147,7 +1168,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strTemporaryBanCommand = AdKat_CommandType.TempBanPlayer + " COMMAND BLANK";
+                        this.m_strTemporaryBanCommand = AdKat_CommandType.TempBanPlayer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Permaban Player").Success)
@@ -1169,7 +1190,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strPermanentBanCommand = AdKat_CommandType.PermabanPlayer + " COMMAND BLANK";
+                        this.m_strPermanentBanCommand = AdKat_CommandType.PermabanPlayer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Punish Player").Success)
@@ -1191,7 +1212,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strPunishCommand = AdKat_CommandType.PunishPlayer + " COMMAND BLANK";
+                        this.m_strPunishCommand = AdKat_CommandType.PunishPlayer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Forgive Player").Success)
@@ -1213,7 +1234,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strForgiveCommand = AdKat_CommandType.ForgivePlayer + " COMMAND BLANK";
+                        this.m_strForgiveCommand = AdKat_CommandType.ForgivePlayer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Mute Player").Success)
@@ -1235,7 +1256,29 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strMuteCommand = AdKat_CommandType.MutePlayer + " COMMAND BLANK";
+                        this.m_strMuteCommand = AdKat_CommandType.MutePlayer + "CommandDisabled";
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Join Player").Success)
+                {
+                    if (strValue.Length > 0)
+                    {
+                        //trim variable
+                        if (strValue.ToLower().EndsWith("|log"))
+                        {
+                            strValue = strValue.Remove(strValue.IndexOf("|log"));
+                        }
+                        if (this.m_strJoinCommand != strValue)
+                        {
+                            this.m_strJoinCommand = strValue;
+                            rebindAllCommands();
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"Join Player", typeof(string), this.m_strJoinCommand));
+                        }
+                    }
+                    else
+                    {
+                        this.m_strJoinCommand = AdKat_CommandType.JoinPlayer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Round Whitelist Player").Success)
@@ -1257,7 +1300,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strRoundWhitelistCommand = AdKat_CommandType.RoundWhitelistPlayer + " COMMAND BLANK";
+                        this.m_strRoundWhitelistCommand = AdKat_CommandType.RoundWhitelistPlayer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"OnDeath Move Player").Success)
@@ -1279,7 +1322,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strMoveCommand = AdKat_CommandType.MovePlayer + " COMMAND BLANK";
+                        this.m_strMoveCommand = AdKat_CommandType.MovePlayer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Force Move Player").Success)
@@ -1301,7 +1344,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strForceMoveCommand = AdKat_CommandType.ForceMovePlayer + " COMMAND BLANK";
+                        this.m_strForceMoveCommand = AdKat_CommandType.ForceMovePlayer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Teamswap Self").Success)
@@ -1323,7 +1366,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strTeamswapCommand = AdKat_CommandType.Teamswap + " COMMAND BLANK";
+                        this.m_strTeamswapCommand = AdKat_CommandType.Teamswap + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Report Player").Success)
@@ -1345,7 +1388,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strReportCommand = AdKat_CommandType.ReportPlayer + " COMMAND BLANK";
+                        this.m_strReportCommand = AdKat_CommandType.ReportPlayer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Call Admin on Player").Success)
@@ -1367,7 +1410,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strCallAdminCommand = AdKat_CommandType.CallAdmin + " COMMAND BLANK";
+                        this.m_strCallAdminCommand = AdKat_CommandType.CallAdmin + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Admin Say").Success)
@@ -1389,7 +1432,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strSayCommand = AdKat_CommandType.AdminSay + " COMMAND BLANK";
+                        this.m_strSayCommand = AdKat_CommandType.AdminSay + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Player Say").Success)
@@ -1411,7 +1454,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strPlayerSayCommand = AdKat_CommandType.PlayerSay + " COMMAND BLANK";
+                        this.m_strPlayerSayCommand = AdKat_CommandType.PlayerSay + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Admin Yell").Success)
@@ -1433,7 +1476,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strYellCommand = AdKat_CommandType.AdminYell + " COMMAND BLANK";
+                        this.m_strYellCommand = AdKat_CommandType.AdminYell + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Player Yell").Success)
@@ -1455,7 +1498,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strPlayerYellCommand = AdKat_CommandType.PlayerYell + " COMMAND BLANK";
+                        this.m_strPlayerYellCommand = AdKat_CommandType.PlayerYell + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"What Is").Success)
@@ -1477,7 +1520,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strWhatIsCommand = AdKat_CommandType.WhatIs + " COMMAND BLANK";
+                        this.m_strWhatIsCommand = AdKat_CommandType.WhatIs + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Restart Level").Success)
@@ -1499,7 +1542,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strRestartLevelCommand = AdKat_CommandType.RestartLevel + " COMMAND BLANK";
+                        this.m_strRestartLevelCommand = AdKat_CommandType.RestartLevel + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Next Level").Success)
@@ -1521,7 +1564,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strNextLevelCommand = AdKat_CommandType.NextLevel + " COMMAND BLANK";
+                        this.m_strNextLevelCommand = AdKat_CommandType.NextLevel + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"End Level").Success)
@@ -1543,7 +1586,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strEndLevelCommand = AdKat_CommandType.EndLevel + " COMMAND BLANK";
+                        this.m_strEndLevelCommand = AdKat_CommandType.EndLevel + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Nuke Server").Success)
@@ -1565,7 +1608,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strNukeCommand = AdKat_CommandType.NukeServer + " COMMAND BLANK";
+                        this.m_strNukeCommand = AdKat_CommandType.NukeServer + "CommandDisabled";
                     }
                 }
                 else if (Regex.Match(strVariable, @"Kick All NonAdmins").Success)
@@ -1587,7 +1630,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.m_strKickAllCommand = AdKat_CommandType.KickAll + " COMMAND BLANK";
+                        this.m_strKickAllCommand = AdKat_CommandType.KickAll + "CommandDisabled";
                     }
                 }
                 #endregion
@@ -1956,6 +1999,7 @@ namespace PRoConEvents
             this.m_strPunishCommand = this.parseAddCommand(tempDictionary, this.m_strPunishCommand, AdKat_CommandType.PunishPlayer);
             this.m_strForgiveCommand = this.parseAddCommand(tempDictionary, this.m_strForgiveCommand, AdKat_CommandType.ForgivePlayer);
             this.m_strMuteCommand = this.parseAddCommand(tempDictionary, this.m_strMuteCommand, AdKat_CommandType.MutePlayer);
+            this.m_strJoinCommand = this.parseAddCommand(tempDictionary, this.m_strJoinCommand, AdKat_CommandType.JoinPlayer);
             this.m_strRoundWhitelistCommand = this.parseAddCommand(tempDictionary, this.m_strRoundWhitelistCommand, AdKat_CommandType.RoundWhitelistPlayer);
             this.m_strMoveCommand = this.parseAddCommand(tempDictionary, this.m_strMoveCommand, AdKat_CommandType.MovePlayer);
             this.m_strForceMoveCommand = this.parseAddCommand(tempDictionary, this.m_strForceMoveCommand, AdKat_CommandType.ForceMovePlayer);
@@ -2227,8 +2271,6 @@ namespace PRoConEvents
                             }
                         }*/
 
-                        //this.twitterHandler = new TwitterHandler(this);
-
                         //Inform of IP
                         this.ConsoleSuccess("Server IP is " + this.server_ip + "!");
 
@@ -2267,7 +2309,6 @@ namespace PRoConEvents
                 {
                     try
                     {
-                        ConsoleWrite("Disabling all functionality. Please Wait.");
                         this.isEnabled = false;
                         this.threadsReady = false;
 
@@ -2276,16 +2317,57 @@ namespace PRoConEvents
                         //Open all handles. Threads will finish on their own.
                         this.setAllHandles();
 
-                        this.playerAccessRemovalQueue.Clear();
-                        this.playerAccessUpdateQueue.Clear();
-                        this.teamswapForceMoveQueue.Clear();
-                        this.teamswapOnDeathCheckingQueue.Clear();
-                        this.teamswapOnDeathMoveDic.Clear();
-                        this.unparsedCommandQueue.Clear();
-                        this.unparsedMessageQueue.Clear();
-                        this.unprocessedActionQueue.Clear();
-                        this.unprocessedRecordQueue.Clear();
-                        this.banEnforcerCheckingQueue.Clear();
+                        //Reset all caches and storage
+                        if(this.playerAccessRemovalQueue != null)
+                            this.playerAccessRemovalQueue.Clear();
+                        if (this.playerAccessUpdateQueue != null)
+                            this.playerAccessUpdateQueue.Clear();
+                        if (this.teamswapForceMoveQueue != null)
+                            this.teamswapForceMoveQueue.Clear();
+                        if (this.teamswapOnDeathCheckingQueue != null)
+                            this.teamswapOnDeathCheckingQueue.Clear();
+                        if (this.teamswapOnDeathMoveDic != null)
+                            this.teamswapOnDeathMoveDic.Clear();
+                        if (this.unparsedCommandQueue != null)
+                            this.unparsedCommandQueue.Clear();
+                        if (this.unparsedMessageQueue != null)
+                            this.unparsedMessageQueue.Clear();
+                        if (this.unprocessedActionQueue != null)
+                            this.unprocessedActionQueue.Clear();
+                        if (this.unprocessedRecordQueue != null)
+                            this.unprocessedRecordQueue.Clear();
+                        if (this.banEnforcerCheckingQueue != null)
+                            this.banEnforcerCheckingQueue.Clear();
+                        this.server_id = -1;
+                        this.toldCol = false;
+                        this.RUPlayerCount = 0;
+                        if (this.RUMoveQueue != null)
+                            this.RUMoveQueue.Clear();
+                        this.USPlayerCount = 0;
+                        if (this.USMoveQueue != null)
+                            this.USMoveQueue.Clear();
+                        if (this.roundCookers != null)
+                            this.roundCookers.Clear();
+                        if (this.round_reports != null)
+                            this.round_reports.Clear();
+                        if (this.round_mutedPlayers != null)
+                            this.round_mutedPlayers.Clear();
+                        if (this.playerDictionary != null)
+                            this.playerDictionary.Clear();
+                        if (this.playerAccessCache != null)
+                            this.playerAccessCache.Clear();
+                        if (this.FrostbitePlayerInfoList != null)
+                            this.FrostbitePlayerInfoList.Clear();
+                        if (this.cBanProcessingQueue != null)
+                            this.cBanProcessingQueue.Clear();
+                        if (this.banEnforcerProcessingQueue != null)
+                            this.banEnforcerProcessingQueue.Clear();
+                        if (this.adminAssistantCache != null)
+                            this.adminAssistantCache.Clear();
+                        if (this.actOnSpawnDictionary != null)
+                            this.actOnSpawnDictionary.Clear();
+                        if (this.actionConfirmDic != null)
+                            this.actionConfirmDic.Clear();
 
                         this.updateSettingPage();
 
@@ -2371,7 +2453,7 @@ namespace PRoConEvents
                                 {
                                     this.USPlayerCount++;
                                 }
-                                else
+                                else if (player.TeamID == RUTeamID)
                                 {
                                     this.RUPlayerCount++;
                                 }
@@ -2458,6 +2540,7 @@ namespace PRoConEvents
                 this.autoWhitelistPlayers();
                 this.USMoveQueue.Clear();
                 this.RUMoveQueue.Clear();
+                this.roundCookers = new Dictionary<string, AdKat_Player>();
 
                 //Reset whether they have been informed
                 foreach (string assistantName in this.adminAssistantCache.Keys)
@@ -2496,6 +2579,12 @@ namespace PRoConEvents
                         //ADK grenade cooking catcher
                         if (this.useGrenadeCookCatcher)
                         {
+                            if (this.roundCookers == null)
+                            {
+                                this.roundCookers = new Dictionary<string, AdKat_Player>();
+                            }
+                            double fuseTime = 3735.00;
+                            double possibleRange = 1000.00;
                             //Update killer information
                             AdKat_Player killer = null;
                             if (this.playerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer))
@@ -2506,85 +2595,152 @@ namespace PRoConEvents
                                     killer.recentKills = new Queue<KeyValuePair<AdKat_Player, DateTime>>();
                                 }
                                 //Only keep the last 6 kills in memory
-                                if (killer.recentKills.Count > 6)
+                                if (killer.recentKills.Count >= 6)
                                 {
                                     killer.recentKills.Dequeue();
                                 }
                                 //Add the player
                                 killer.recentKills.Enqueue(new KeyValuePair<AdKat_Player, DateTime>(victim, killTime));
                                 //Check for cooked grenade and non-suicide
-                                if (kKillerVictimDetails.DamageType == "M67" && kKillerVictimDetails.Killer.SoldierName != kKillerVictimDetails.Victim.SoldierName)
+                                if (kKillerVictimDetails.DamageType == "M67")
                                 {
-                                    double milli = 0;
-                                    Boolean told = false;
-                                    List<AdKat_Player> possible = new List<AdKat_Player>();
-                                    List<AdKat_Player> sure = new List<AdKat_Player>();
-                                    foreach (KeyValuePair<AdKat_Player, DateTime> cooker in killer.recentKills)
+                                    if (kKillerVictimDetails.Killer.SoldierName != kKillerVictimDetails.Victim.SoldierName)
                                     {
-                                        milli = killTime.Subtract(cooker.Value).TotalMilliseconds;
-                                        //Use a 90ms window to detect possible grenade cookers
-                                        if (milli > 3690.00 && milli < 3780.00)
+                                        double milli = 0.00;
+                                        double probability = 0.00;
+                                        Boolean told = false;
+                                        List<KeyValuePair<AdKat_Player, string>> possible = new List<KeyValuePair<AdKat_Player, string>>();
+                                        List<KeyValuePair<AdKat_Player, string>> sure = new List<KeyValuePair<AdKat_Player, string>>();
+                                        foreach (KeyValuePair<AdKat_Player, DateTime> cooker in killer.recentKills)
                                         {
-                                            gKillHandled = true;
-                                            if (!told)
+
+                                            //Get the actual time since cooker value
+                                            milli = killTime.Subtract(cooker.Value).TotalMilliseconds;
+                                            //Calculate the percentage probability
+                                            if(Math.Abs(milli - fuseTime) < possibleRange)
                                             {
-                                                this.playerSayMessage(kKillerVictimDetails.Killer.SoldierName, "You appear to be a victim of grenade cooking and will NOT be punished.");
-                                                told = true;
-                                            }
-                                            //Use a 10ms window to be sure about cooked grenade
-                                            if (milli > 3730.00 && milli < 3740.00)
-                                            {
-                                                sure.Add(cooker.Key);
+                                                probability = (1 - Math.Abs((milli - fuseTime) / possibleRange)) * 100;
+                                                this.DebugWrite(cooker.Key.player_name + " cooking probability: " + probability + "%", 2);
                                             }
                                             else
                                             {
-                                                possible.Add(cooker.Key);
+                                                probability = 0.00;
+                                            }
+
+                                            //If probability > 60% report the player and add them to the round cookers list
+                                            if (probability > 60.00)
+                                            {
+                                                gKillHandled = true;
+                                                //Code to avoid spam
+                                                if (cooker.Key.lastAction.AddSeconds(5) < DateTime.Now)
+                                                {
+                                                    cooker.Key.lastAction = DateTime.Now;
+                                                }
+                                                else
+                                                {
+                                                    this.DebugWrite("Skipping additional auto-actions for multi-kill event.", 2);
+                                                    continue;
+                                                }
+
+                                                if (!told)
+                                                {
+                                                    //Inform the victim player that they will not be punished
+                                                    this.playerSayMessage(kKillerVictimDetails.Killer.SoldierName, "You appear to be a victim of grenade cooking and will NOT be punished.");
+                                                    told = true;
+                                                }
+
+                                                //Create the probability string
+                                                string probString = ((int)probability) + "-" + ((int)milli);
+
+                                                //If the player is already on the round cooker list, ban them
+                                                if (this.roundCookers.ContainsKey(cooker.Key.player_name))
+                                                {
+                                                    //Create the ban record
+                                                    AdKat_Record record = new AdKat_Record();
+                                                    record.server_id = this.server_id;
+                                                    record.command_type = AdKat_CommandType.TempBanPlayer;
+                                                    record.command_numeric = 10080;
+                                                    record.target_name = cooker.Key.player_name;
+                                                    record.target_player = cooker.Key;
+                                                    record.source_name = "AutoAdmin";
+                                                    record.record_message = "Cooking Grenades [" + probString + "-X]";
+                                                    //Process the record
+                                                    this.queueRecordForProcessing(record);
+                                                    this.DebugWrite(record.target_player.player_name + " banned for " + record.record_message, 2);
+                                                    return;
+                                                }
+                                                //else if probability > 92.5% add them to the sure list, and round cooker list
+                                                else if (probability > 92.5)
+                                                {
+                                                    this.roundCookers.Add(cooker.Key.player_name, cooker.Key);
+                                                    this.DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
+                                                    sure.Add(new KeyValuePair<AdKat_Player, string>(cooker.Key, probString));
+                                                }
+                                                //Otherwise add them to the round cooker list, and add to possible list
+                                                else
+                                                {
+                                                    this.roundCookers.Add(cooker.Key.player_name, cooker.Key);
+                                                    this.DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
+                                                    possible.Add(new KeyValuePair<AdKat_Player, string>(cooker.Key, probString));
+                                                }
                                             }
                                         }
-                                    }
-                                    if (sure.Count == 1 && possible.Count == 0)
-                                    {
-                                        //Create the ban record
-                                        AdKat_Record record = new AdKat_Record();
-                                        record.server_id = this.server_id;
-                                        record.command_type = AdKat_CommandType.TempBanPlayer;
-                                        record.command_numeric = 10080;
-                                        record.target_name = sure[0].player_name;
-                                        record.target_player = sure[0];
-                                        record.source_name = "AutoAdmin";
-                                        record.record_message = "Cooking Grenades";
-                                        //Process the record
-                                        this.queueRecordForProcessing(record);
-                                    }
-                                    else
-                                    {
-                                        foreach (AdKat_Player player in sure)
+                                        //This method used for dealing with multiple kills at the same instant i.e twin/triple headshots
+                                        if (sure.Count == 1 && possible.Count == 0)
                                         {
-                                            //Create the report record
+                                            AdKat_Player player = sure[0].Key;
+                                            string probString = sure[0].Value;
+                                            //Create the ban record
                                             AdKat_Record record = new AdKat_Record();
                                             record.server_id = this.server_id;
-                                            record.command_type = AdKat_CommandType.ReportPlayer;
-                                            record.command_numeric = 0;
+                                            record.command_type = AdKat_CommandType.TempBanPlayer;
+                                            record.command_numeric = 10080;
                                             record.target_name = player.player_name;
                                             record.target_player = player;
                                             record.source_name = "AutoAdmin";
-                                            record.record_message = "Possible Grenade Cooker";
+                                            record.record_message = "Cooking Grenades [" + probString +"]";
                                             //Process the record
                                             this.queueRecordForProcessing(record);
+                                            this.DebugWrite(record.target_player.player_name + " banned for " + record.record_message, 2);
                                         }
-                                        foreach (AdKat_Player player in possible)
+                                        else
                                         {
-                                            //Create the report record
-                                            AdKat_Record record = new AdKat_Record();
-                                            record.server_id = this.server_id;
-                                            record.command_type = AdKat_CommandType.ReportPlayer;
-                                            record.command_numeric = 0;
-                                            record.target_name = player.player_name;
-                                            record.target_player = player;
-                                            record.source_name = "AutoAdmin";
-                                            record.record_message = "Possible Grenade Cooker";
-                                            //Process the record
-                                            this.queueRecordForProcessing(record);
+                                            AdKat_Player player = null;
+                                            string probString = null;
+                                            foreach (KeyValuePair<AdKat_Player, string> playerPair in sure)
+                                            {
+                                                player = playerPair.Key;
+                                                probString = playerPair.Value;
+                                                //Create the report record
+                                                AdKat_Record record = new AdKat_Record();
+                                                record.server_id = this.server_id;
+                                                record.command_type = AdKat_CommandType.ReportPlayer;
+                                                record.command_numeric = 0;
+                                                record.target_name = player.player_name;
+                                                record.target_player = player;
+                                                record.source_name = "AutoAdmin";
+                                                record.record_message = "Possible Grenade Cooker [" + probString + "]";
+                                                //Process the record
+                                                //this.queueRecordForProcessing(record);
+                                                this.DebugWrite(record.target_player.player_name + " reported for " + record.record_message, 2);
+                                            }
+                                            foreach (KeyValuePair<AdKat_Player, string> playerPair in possible)
+                                            {
+                                                player = playerPair.Key;
+                                                probString = playerPair.Value;
+                                                //Create the report record
+                                                AdKat_Record record = new AdKat_Record();
+                                                record.server_id = this.server_id;
+                                                record.command_type = AdKat_CommandType.ReportPlayer;
+                                                record.command_numeric = 0;
+                                                record.target_name = player.player_name;
+                                                record.target_player = player;
+                                                record.source_name = "AutoAdmin";
+                                                record.record_message = "Possible Grenade Cooker [" + probString + "]";
+                                                //Process the record
+                                                this.queueRecordForProcessing(record);
+                                                this.DebugWrite(record.target_player.player_name + " reported for " + record.record_message, 2);
+                                            }
                                         }
                                     }
                                 }
@@ -2607,25 +2763,35 @@ namespace PRoConEvents
                         AdKat_Player killer = null;
                         if (this.playerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer))
                         {
-                            //Create the punish record
-                            AdKat_Record record = new AdKat_Record();
-                            record.server_id = this.server_id;
-                            record.command_type = AdKat_CommandType.PunishPlayer;
-                            record.command_numeric = 0;
-                            record.target_name = killer.player_name;
-                            record.target_player = killer;
-                            record.source_name = "AutoAdmin";
-                            String removeWeapon = "Weapons/";
-                            String removeGadgets = "Gadgets/";
-                            String weapon = kKillerVictimDetails.DamageType;
-                            int index = weapon.IndexOf(removeWeapon);
-                            weapon = (index < 0) ? (weapon):(weapon.Remove(index, removeWeapon.Length));
-                            index = weapon.IndexOf(removeGadgets);
-                            weapon = (index < 0) ? (weapon):(weapon.Remove(index, removeGadgets.Length));
-                            record.record_message = "Using Explosives [" + weapon + "]";
-                            this.adminSay("Punishing " + killer.player_name + " for " + record.record_message);
-                            //Process the record
-                            this.queueRecordForProcessing(record);
+                            //Code to avoid spam
+                            if (killer.lastAction.AddSeconds(5) < DateTime.Now)
+                            {
+                                killer.lastAction = DateTime.Now;
+
+                                //Create the punish record
+                                AdKat_Record record = new AdKat_Record();
+                                record.server_id = this.server_id;
+                                record.command_type = AdKat_CommandType.PunishPlayer;
+                                record.command_numeric = 0;
+                                record.target_name = killer.player_name;
+                                record.target_player = killer;
+                                record.source_name = "AutoAdmin";
+                                String removeWeapon = "Weapons/";
+                                String removeGadgets = "Gadgets/";
+                                String weapon = kKillerVictimDetails.DamageType;
+                                int index = weapon.IndexOf(removeWeapon);
+                                weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeWeapon.Length));
+                                index = weapon.IndexOf(removeGadgets);
+                                weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeGadgets.Length));
+                                record.record_message = "Using Explosives [" + weapon + "]";
+                                this.adminSay("Punishing " + killer.player_name + " for " + record.record_message);
+                                //Process the record
+                                this.queueRecordForProcessing(record);
+                            }
+                            else
+                            {
+                                this.DebugWrite("Skipping additional auto-actions for multi-kill event.", 2);
+                            }
                         }
                     }
                 }
@@ -2643,7 +2809,7 @@ namespace PRoConEvents
                 {
                     if (informed == false)
                     {
-                        this.ExecuteCommand("procon.protected.send", "admin.yell", "For your consistent player reporting you can now use TeamSwap. Type @" + command + " to move yourself between teams.", "10", "player", soldierName);
+                        this.ExecuteCommand("procon.protected.send", "admin.yell", "For your consistent player reporting you can now use @" + command + ". Type @" + command + " to move yourself between teams.", "10", "player", soldierName);
                         this.adminAssistantCache[soldierName] = true;
                     }
                 }
@@ -2651,7 +2817,7 @@ namespace PRoConEvents
                 {
                     if (informed == false)
                     {
-                        this.ExecuteCommand("procon.protected.send", "admin.yell", "You can use TeamSwap for this round. Type @" + command + " to move yourself between teams.", "10", "player", soldierName);
+                        this.ExecuteCommand("procon.protected.send", "admin.yell", "By random selection you can use @" + command + " for this round. Type @" + command + " to move yourself between teams.", "10", "player", soldierName);
                         this.teamswapRoundWhitelist[soldierName] = true;
                     }
                 }
@@ -2681,7 +2847,7 @@ namespace PRoConEvents
                         {
                             //Remove it from the dic
                             this.actOnSpawnDictionary.Remove(soldierName);
-                            //Wait two seconds to kill them again
+                            //Wait 1.5 seconds to kill them again
                             Thread.Sleep(1500);
                             //Queue the action
                             this.queueRecordForActionHandling(record);
@@ -3246,7 +3412,7 @@ namespace PRoConEvents
                                     if (!this.containsCPlayerInfo(this.USMoveQueue, player.SoldierName))
                                     {
                                         this.USMoveQueue.Enqueue(player);
-                                        //this.playerSayMessage(player.SoldierName, "You have been added to the (US -> RU) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.USMoveQueue, player.SoldierName) + 1) + ".");
+                                        this.playerSayMessage(player.SoldierName, "You have been added to the (US -> RU) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.USMoveQueue, player.SoldierName) + 1) + ".");
                                     }
                                     else
                                     {
@@ -3258,7 +3424,7 @@ namespace PRoConEvents
                                     if (!this.containsCPlayerInfo(this.RUMoveQueue, player.SoldierName))
                                     {
                                         this.RUMoveQueue.Enqueue(player);
-                                        //this.playerSayMessage(player.SoldierName, "You have been added to the (RU -> US) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.RUMoveQueue, player.SoldierName) + 1) + ".");
+                                        this.playerSayMessage(player.SoldierName, "You have been added to the (RU -> US) TeamSwap queue in position " + (this.indexOfCPlayerInfo(this.RUMoveQueue, player.SoldierName) + 1) + ".");
                                     }
                                     else
                                     {
@@ -3278,44 +3444,40 @@ namespace PRoConEvents
                             movedPlayer = false;
                             if (this.RUMoveQueue.Count > 0)
                             {
-                                //Disable queue for now
-                                if (this.USPlayerCount < maxPlayerCount || true)
+                                if (this.USPlayerCount < maxPlayerCount)
                                 {
                                     CPlayerInfo player = this.RUMoveQueue.Dequeue();
-                                    //AdKat_Player dicPlayer = null;
-                                    /*if (this.playerDictionary.TryGetValue(player.SoldierName, out dicPlayer))
+                                    AdKat_Player dicPlayer = null;
+                                    if (this.playerDictionary.TryGetValue(player.SoldierName, out dicPlayer))
                                     {
                                         if (dicPlayer.frostbitePlayerInfo.TeamID == USTeamID)
                                         {
                                             //Skip the kill/swap if they are already on the goal team by some other means
                                             continue;
                                         }
-                                    }*/
+                                    }
                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, USTeamID.ToString(), "1", "true");
                                     this.playerSayMessage(player.SoldierName, "Swapping you from team RU to team US");
                                     movedPlayer = true;
-                                    //this.USPlayerCount++;
                                 }
                             }
                             if (this.USMoveQueue.Count > 0)
                             {
-                                //Disable queue for now
-                                if (this.RUPlayerCount < maxPlayerCount || true)
+                                if (this.RUPlayerCount < maxPlayerCount)
                                 {
                                     CPlayerInfo player = this.USMoveQueue.Dequeue();
-                                    //AdKat_Player dicPlayer = null;
-                                    /*if (this.playerDictionary.TryGetValue(player.SoldierName, out dicPlayer))
+                                    AdKat_Player dicPlayer = null;
+                                    if (this.playerDictionary.TryGetValue(player.SoldierName, out dicPlayer))
                                     {
                                         if (dicPlayer.frostbitePlayerInfo.TeamID == RUTeamID)
                                         {
                                             //Skip the kill/swap if they are already on the goal team by some other means
                                             continue;
                                         }
-                                    }*/
+                                    }
                                     ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, RUTeamID.ToString(), "1", "true");
                                     this.playerSayMessage(player.SoldierName, "Swapping you from team US to team RU");
                                     movedPlayer = true;
-                                    //this.RUPlayerCount++;
                                 }
                             }
                         } while (movedPlayer);
@@ -3397,6 +3559,7 @@ namespace PRoConEvents
             this.DebugWrite("Preparing to queue record for processing", 6);
             lock (unprocessedRecordMutex)
             {
+                //Queue the record for processing
                 this.unprocessedRecordQueue.Enqueue(record);
                 this.DebugWrite("Record queued for processing", 6);
                 this.dbCommHandle.Set();
@@ -4063,6 +4226,31 @@ namespace PRoConEvents
                                             this.sendMessageToSource(record, "Reason too short, unable to submit.");
                                         }
                                     }
+                                    break;
+                                default:
+                                    this.sendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    return;
+                            }
+                        }
+                        break;
+                    #endregion
+                    #region JoinPlayer
+                    case AdKat_CommandType.JoinPlayer:
+                        {
+                            //Remove previous commands awaiting confirmation
+                            this.cancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = this.parseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    this.sendMessageToSource(record, "foreveralone.jpg");
+                                    return;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Joining Player";
+                                    this.completeTargetInformation(record, false);
                                     break;
                                 default:
                                     this.sendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -4925,6 +5113,9 @@ namespace PRoConEvents
                 case AdKat_CommandType.MutePlayer:
                     response = this.muteTarget(record);
                     break;
+                case AdKat_CommandType.JoinPlayer:
+                    response = this.joinTarget(record);
+                    break;
                 case AdKat_CommandType.RoundWhitelistPlayer:
                     response = this.roundWhitelistTarget(record);
                     break;
@@ -5233,6 +5424,7 @@ namespace PRoConEvents
             this.DebugWrite(record.target_player.player_name + " has " + points + " points.", 5);
             //Get the proper action to take for player punishment
             string action = "noaction";
+            string skippedAction = null;
             if (points > (this.punishmentHierarchy.Length - 1))
             {
                 action = this.punishmentHierarchy[this.punishmentHierarchy.Length - 1];
@@ -5240,12 +5432,29 @@ namespace PRoConEvents
             else if (points > 0)
             {
                 action = this.punishmentHierarchy[points - 1];
+                if (record.isIRO)
+                {
+                    skippedAction = this.punishmentHierarchy[points - 2];
+                }
             }
+            else
+            {
+                action = this.punishmentHierarchy[0];
+            }
+
+            //Handle the case where and IRO punish skips higher level punishment for a lower one, use the higher one
+            if (skippedAction != null && this.punishmentSeverityIndex.IndexOf(skippedAction) > this.punishmentSeverityIndex.IndexOf(action))
+            {
+                action = skippedAction;
+            }
+
             //Set additional message
             string additionalMessage = "[" + ((record.isIRO) ? ("IRO ") : ("")) + points + "pts]";
 
             Boolean isLowPop = this.onlyKillOnLowPop && (this.playerDictionary.Count < this.lowPopPlayerCount);
             Boolean IROOverride = record.isIRO && this.IROOverridesLowPop;
+
+            this.DebugWrite("Server low population: " + isLowPop + " (" + this.playerDictionary.Count + " <? " + this.lowPopPlayerCount + ") | Override: " + IROOverride, 5);
 
             //Call correct action
             if (action.Equals("kill") || (isLowPop && !IROOverride))
@@ -5331,6 +5540,43 @@ namespace PRoConEvents
                 message = this.sendMessageToSource(record, "You can't mute an admin, dimwit.");
             }
             return this.sendMessageToSource(record, message);
+        }
+
+        public string joinTarget(AdKat_Record record)
+        {
+            //Get source player
+            AdKat_Player source_player = null;
+            if(this.playerDictionary.TryGetValue(record.source_name, out source_player))
+            {
+                //If the source has basic admin access, then the squad will be unlocked (if needed) for their entry
+                if (this.hasAccess(record.source_name, AdKat_CommandType.MovePlayer))
+                {
+                    //Unlock target squad
+                    //squad.private <team id: integer> <squad id: integer> [private: boolean]
+                    this.sendMessageToSource(record, "Unlocking target squad if needed, please wait.");
+                    this.ExecuteCommand("procon.protected.send", "squad.private", record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "false");
+                    //If anything longer is needed...tisk tisk
+                    Thread.Sleep(1500);
+                }
+                //Check for player access to change teams
+                if (record.target_player.frostbitePlayerInfo.TeamID != source_player.frostbitePlayerInfo.TeamID &&
+                    !this.hasAccess(record.source_name, AdKat_CommandType.Teamswap))
+                {
+                    return this.sendMessageToSource(record, "Target player is not on your team, you need @moveme/teamswap access to join them.");
+                }
+                else
+                {
+                    //Attempt the move to squad alpha of the other team (may not be needed)
+                    //ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.frostbitePlayerInfo.TeamID + "", "1", "true");
+                    //Move to specific squad
+                    ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "true");
+                    return this.sendMessageToSource(record, "Attempting to join " + record.target_name);
+                }
+            }
+            else
+            {
+                return this.sendMessageToSource(record, "Unable to find you in the player list, please try again.");
+            }
         }
 
         public string roundWhitelistTarget(AdKat_Record record)
@@ -5711,6 +5957,17 @@ namespace PRoConEvents
                         this.fetchAccessList();
                         //Update the setting page with new information
                         this.updateSettingPage();
+                    }
+                    else if (this.playerAccessCache.Count == 0)
+                    {
+                        //Handle access updates directly from the database
+                        this.fetchAccessList();
+                        //If there are now people in the access list, update the UI
+                        if (this.playerAccessCache.Count > 0)
+                        {
+                            //Update the setting page with new information
+                            this.updateSettingPage();
+                        }
                     }
                     else
                     {
@@ -6311,6 +6568,7 @@ namespace PRoConEvents
                 this.queueSettingForUpload(new CPluginVariable(@"Punish Player", typeof(string), this.m_strPunishCommand));
                 this.queueSettingForUpload(new CPluginVariable(@"Forgive Player", typeof(string), this.m_strForgiveCommand));
                 this.queueSettingForUpload(new CPluginVariable(@"Mute Player", typeof(string), this.m_strMuteCommand));
+                this.queueSettingForUpload(new CPluginVariable(@"Join Player", typeof(string), this.m_strJoinCommand));
                 this.queueSettingForUpload(new CPluginVariable(@"Round Whitelist Player", typeof(string), this.m_strRoundWhitelistCommand));
                 this.queueSettingForUpload(new CPluginVariable(@"OnDeath Move Player", typeof(string), this.m_strMoveCommand));
                 this.queueSettingForUpload(new CPluginVariable(@"Force Move Player", typeof(string), this.m_strForceMoveCommand));
@@ -6686,12 +6944,15 @@ namespace PRoConEvents
                         command.CommandText = "UPDATE `" + this.mySqlDatabaseName + @"`.`adkats_records` 
                         SET 
                             `command_action` = @command_action, 
+                            `command_numeric` = @command_numeric, 
+                            `record_message` = @record_message, 
                             `adkats_read` = 'Y' 
                         WHERE 
                             `record_id` = @record_id";
                         //Fill the command
-                        //Convert enum to DB string
                         command.Parameters.AddWithValue("@record_id", record.record_id);
+                        command.Parameters.AddWithValue("@command_numeric", record.command_numeric);
+                        command.Parameters.AddWithValue("@record_message", record.record_message);
                         command.Parameters.AddWithValue("@command_action", this.AdKat_RecordTypes[record.command_action]);
 
                         //Attempt to execute the query
@@ -7310,7 +7571,7 @@ namespace PRoConEvents
                                     `PlayerID` = LAST_INSERT_ID(`PlayerID`),
                                     `SoldierName` = '" + player_name + @"',
                                     `EAGUID` = '" + player_guid + @"',
-                                    `IP_Address` = '" + player_ip +"'";
+                                    `IP_Address` = '" + player_ip + "'";
                                 //Attempt to execute the query
                                 if (command.ExecuteNonQuery() > 0)
                                 {
@@ -9542,6 +9803,7 @@ namespace PRoConEvents
 
             public DateTime lastSpawn = DateTime.Now;
             public DateTime lastDeath = DateTime.Now;
+            public DateTime lastAction = DateTime.Now;
 
             public Queue<KeyValuePair<AdKat_Player, DateTime>> recentKills = null;
 
