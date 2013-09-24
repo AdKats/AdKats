@@ -1,5 +1,5 @@
-<h2 style="color:#FF00BF;">Version 0.3.1.1 released! Your version is listed above (Procon Only).</h2>
-<a href="https://github.com/ColColonCleaner/AdKats/blob/master/CHANGELOG.md" target="_blank">New in Version 0.3.1.1!</a> 
+<h2 style="color:#DF0101;">Version 0.3.1.6 released! Your version is listed above (Procon Only).</h2>
+<a href="https://github.com/ColColonCleaner/AdKats/blob/master/CHANGELOG.md" target="_blank">New in Version 0.3.1.6!</a> 
 Download link below.
 <h1>AdKats</h1>
 <p>
@@ -21,6 +21,8 @@ just as well for small servers.<br/>
   <li><b>Fuzzy Player Name Completion.</b> Fully completes partial or misspelled player names. I've been consistently 
   able to find almost any player with 3-4 characters from their name.</li>
   <li><b>Player Muting.</b> Players can be muted if necessary.</li>
+  <li><b>Player Joining.</b> Player's squads can be joined via command, and locked squads can be unlocked for 
+  admin entry.</li>
   <li><b>Yell/Say Pre-Recording.</b> Usable along side plugins such as "server rules on request". Use numbers to 
   reference predefined messages. Avoid typing long reasons or messages.</li>
   <li><b>External Controller API.</b> AdKats can be controlled from outside the game, through systems like AdKats 
@@ -45,7 +47,7 @@ If you find any bugs, please submit them
 and they will be fixed ASAP.<br/><br/>
 
 Download the latest version here: 
-<a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.3.1.1.zip/download" target="_blank">Version 0.3.1.1</a>
+<a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.3.1.6.zip/download" target="_blank">Version 0.3.1.6</a>
 </p>
 <p>
 AdKats was inspired by the gaming community A Different Kind (ADK). Visit 
@@ -260,6 +262,15 @@ being muted will be killed each time they talk (up through X chat messages), on 
 the server. No action other than kill or kick is used by this system. There will be no way to un-mute players, there 
 was a reason they were muted, and they can talk again next round. Admins cannot mute other admins.
 </p>
+<h3>Player Joining</h3>
+<p>
+Players can be joined using the join command. Joining either works off player name or report ID. Issuing the command will 
+place you in the targeted player's squad if there is room available. The command is available to all players, but for 
+the general public will only operate for the same team. If TeamSwap or higher access is used (levels 5-0), this will 
+work across teams. If admin or higher access is used (levels 4-0), the target squad will be unlocked for your entry. 
+NOTE: For cross-team joining, TeamSwap queues are not used, so if there is no room on the target team you will 
+need to retry the command once room is available.
+</p>
 <h3>Pre-Messaging</h3>
 <p>
 A list of editable pre-defined messages can be added in settings, then admins can use the message ID instead of typing 
@@ -278,9 +289,6 @@ actual reason entered, so you can just do "@punish 283 4", and he will get the p
 <b>TeamSwap is NOT an autobalancer</b> (look up other plugins for that functionality), it is for manual player moving 
 only.<br/><br/>
 
-NOTE 3.1.1: Teamswap queues have been disabled while more testing is completed, all commands are called instantly 
-for the time being. Queues will be re-enabled when testing of the queue control is complete.<br/><br/>
-
 TeamSwap is a server-smart player moving system which offers two major benefits over the default system. Normally when 
 trying to move a player to a full team the command just fails at the server level, now the player is dropped on a 
 queue until a slot opens on that side. They can keep playing on their side until that slot opens, since when it does they 
@@ -297,6 +305,7 @@ and will only apply to the current server). It is used to make players want full
 join your community to get it. The setting is "Auto-Whitelist Count", under TeamSwap settings. This can be disabled by 
 setting auto-whitelist count to 0.
 </p>
+
 <h3>Requiring Reasons</h3>
 <p>
 All commands which might lead to actions against players are required to have a reason entered, and will cancel if
@@ -395,6 +404,12 @@ than moving players) will require a reason.<br/><br/>
 		<td>fmove</td>
 		<td>[player]<br/>OR<br/>[reportID]</td>
 		<td>The in-game command used for force-moving players between teams. Will immediately send the given player to TeamSwap.</td>
+	</tr>
+	<tr>
+		<td><b>Join Player</b></td>
+		<td>join</td>
+		<td>[player]<br/>OR<br/>[reportID]</td>
+		<td>The in-game command used for joining player's squads. Will immediately send the speaker to the target if possible, within access limitations.</td>
 	</tr>
 	<tr>
 		<td><b>TeamSwap Self</b></td>
