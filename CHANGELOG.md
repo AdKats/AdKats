@@ -233,4 +233,14 @@ fine for performance). Right now only Punish and Forgive are required to be logg
   <li><b>Bug-fixes/Enhancements</b> Small bugs fixed. Some commands simplified. Necessary for WebAdmin.</li>
   <li><b>Performance Fix</b> IP checking was causing lag in the previous verion.</li>
 </ul>
+<h4>0.3.1.6(24-SEP-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes/Enhancements</b> Teamswap queues have been brought back after being fixed. Listplayers calls 
+  shortened and only handled every 5 seconds, and ban enforcer enforcement should now cause less chat spam.</li>
+  <li><b>Added join command</b> @|!|/ join playername will join on that player, with certain access levels.</li>
+  <li><b>Punishment logging improved</b> # of player points is now stored in the record message for each punish.</li>
+  <li><b>Permaban punish overrides low population</b>Used to not happen.</li>
+  <li><b>Remove text to disable command</b>Command name will autofill with command disabled text when removed.</li>
+</ul>
 </blockquote>
