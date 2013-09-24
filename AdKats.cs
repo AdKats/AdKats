@@ -5097,86 +5097,93 @@ namespace PRoConEvents
 
         private string runAction(AdKat_Record record)
         {
-            string response = "No Message";
-            //Perform Actions
-            switch (record.command_type)
+            string response = "ERROR";
+            try
             {
-                case AdKat_CommandType.MovePlayer:
-                    response = this.moveTarget(record);
-                    break;
-                case AdKat_CommandType.ForceMovePlayer:
-                    response = this.forceMoveTarget(record);
-                    break;
-                case AdKat_CommandType.Teamswap:
-                    response = this.forceMoveTarget(record);
-                    break;
-                case AdKat_CommandType.KillPlayer:
-                    response = this.killTarget(record, "");
-                    break;
-                case AdKat_CommandType.KickPlayer:
-                    response = this.kickTarget(record, "");
-                    break;
-                case AdKat_CommandType.TempBanPlayer:
-                    response = this.tempBanTarget(record, "");
-                    break;
-                case AdKat_CommandType.PermabanPlayer:
-                    response = this.permaBanTarget(record, "");
-                    break;
-                case AdKat_CommandType.PunishPlayer:
-                    response = this.punishTarget(record);
-                    break;
-                case AdKat_CommandType.ForgivePlayer:
-                    response = this.forgiveTarget(record);
-                    break;
-                case AdKat_CommandType.MutePlayer:
-                    response = this.muteTarget(record);
-                    break;
-                case AdKat_CommandType.JoinPlayer:
-                    response = this.joinTarget(record);
-                    break;
-                case AdKat_CommandType.RoundWhitelistPlayer:
-                    response = this.roundWhitelistTarget(record);
-                    break;
-                case AdKat_CommandType.ReportPlayer:
-                    response = this.reportTarget(record);
-                    break;
-                case AdKat_CommandType.CallAdmin:
-                    response = this.callAdminOnTarget(record);
-                    break;
-                case AdKat_CommandType.RestartLevel:
-                    response = this.restartLevel(record);
-                    break;
-                case AdKat_CommandType.NextLevel:
-                    response = this.nextLevel(record);
-                    break;
-                case AdKat_CommandType.EndLevel:
-                    response = this.endLevel(record);
-                    break;
-                case AdKat_CommandType.NukeServer:
-                    response = this.nukeTarget(record);
-                    break;
-                case AdKat_CommandType.KickAll:
-                    response = this.kickAllPlayers(record);
-                    break;
-                case AdKat_CommandType.AdminSay:
-                    response = this.adminSay(record);
-                    break;
-                case AdKat_CommandType.PlayerSay:
-                    response = this.playerSay(record);
-                    break;
-                case AdKat_CommandType.AdminYell:
-                    response = this.adminYell(record);
-                    break;
-                case AdKat_CommandType.PlayerYell:
-                    response = this.playerYell(record);
-                    break;
-                case AdKat_CommandType.EnforceBan:
-                    //Don't do anything here, ban enforcer handles this
-                    break;
-                default:
-                    response = "Command not recognized when running action.";
-                    this.DebugWrite("Command not found in runAction", 5);
-                    break;
+                //Perform Actions
+                switch (record.command_type)
+                {
+                    case AdKat_CommandType.MovePlayer:
+                        response = this.moveTarget(record);
+                        break;
+                    case AdKat_CommandType.ForceMovePlayer:
+                        response = this.forceMoveTarget(record);
+                        break;
+                    case AdKat_CommandType.Teamswap:
+                        response = this.forceMoveTarget(record);
+                        break;
+                    case AdKat_CommandType.KillPlayer:
+                        response = this.killTarget(record, "");
+                        break;
+                    case AdKat_CommandType.KickPlayer:
+                        response = this.kickTarget(record, "");
+                        break;
+                    case AdKat_CommandType.TempBanPlayer:
+                        response = this.tempBanTarget(record, "");
+                        break;
+                    case AdKat_CommandType.PermabanPlayer:
+                        response = this.permaBanTarget(record, "");
+                        break;
+                    case AdKat_CommandType.PunishPlayer:
+                        response = this.punishTarget(record);
+                        break;
+                    case AdKat_CommandType.ForgivePlayer:
+                        response = this.forgiveTarget(record);
+                        break;
+                    case AdKat_CommandType.MutePlayer:
+                        response = this.muteTarget(record);
+                        break;
+                    case AdKat_CommandType.JoinPlayer:
+                        response = this.joinTarget(record);
+                        break;
+                    case AdKat_CommandType.RoundWhitelistPlayer:
+                        response = this.roundWhitelistTarget(record);
+                        break;
+                    case AdKat_CommandType.ReportPlayer:
+                        response = this.reportTarget(record);
+                        break;
+                    case AdKat_CommandType.CallAdmin:
+                        response = this.callAdminOnTarget(record);
+                        break;
+                    case AdKat_CommandType.RestartLevel:
+                        response = this.restartLevel(record);
+                        break;
+                    case AdKat_CommandType.NextLevel:
+                        response = this.nextLevel(record);
+                        break;
+                    case AdKat_CommandType.EndLevel:
+                        response = this.endLevel(record);
+                        break;
+                    case AdKat_CommandType.NukeServer:
+                        response = this.nukeTarget(record);
+                        break;
+                    case AdKat_CommandType.KickAll:
+                        response = this.kickAllPlayers(record);
+                        break;
+                    case AdKat_CommandType.AdminSay:
+                        response = this.adminSay(record);
+                        break;
+                    case AdKat_CommandType.PlayerSay:
+                        response = this.playerSay(record);
+                        break;
+                    case AdKat_CommandType.AdminYell:
+                        response = this.adminYell(record);
+                        break;
+                    case AdKat_CommandType.PlayerYell:
+                        response = this.playerYell(record);
+                        break;
+                    case AdKat_CommandType.EnforceBan:
+                        //Don't do anything here, ban enforcer handles this
+                        break;
+                    default:
+                        response = "Command not recognized when running action.";
+                        this.DebugWrite("Command not found in runAction", 5);
+                        break;
+                }
+            }
+            catch (Exception e)
+            {
+                this.ConsoleException(e.ToString());
             }
             return response;
         }
