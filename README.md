@@ -366,7 +366,7 @@ than moving players) will require a reason.<br/><br/>
 	<tr>
 		<td><b>Temp-Ban Player</b></td>
 		<td>tban</td>
-		<td>[minutes]<br/>OR<br/>[player][reason]<br/>OR<br/>[minutes][reportID]<br/>OR<br/>[minutes][reportID][reason]</td>
+		<td>[minutes]<br/>OR<br/>[minutes][player][reason]<br/>OR<br/>[minutes][reportID]<br/>OR<br/>[minutes][reportID][reason]</td>
 		<td>The in-game command used temp-banning players.</td>
 	</tr>
 	<tr>
