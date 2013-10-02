@@ -354,37 +354,37 @@ than moving players) will require a reason.<br/><br/>
 	<tr>
 		<td><b>Kill Player</b></td>
 		<td>kill</td>
-		<td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
+		<td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
 		<td>The in-game command used for killing players.</td>
 	</tr>
 	<tr>
 		<td><b>Kick Player</b></td>
 		<td>kick</td>
-		<td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
+		<td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
 		<td>The in-game command used for kicking players.</td>
 	</tr>
 	<tr>
 		<td><b>Temp-Ban Player</b></td>
 		<td>tban</td>
-		<td>[minutes][player][reason]<br/>OR<br/>[minutes][reportID]<br/>OR<br/>[minutes][reportID][reason]</td>
+		<td>[minutes]<br/>OR<br/>[player][reason]<br/>OR<br/>[minutes][reportID]<br/>OR<br/>[minutes][reportID][reason]</td>
 		<td>The in-game command used temp-banning players.</td>
 	</tr>
 	<tr>
 		<td><b>Perma-Ban Player</b></td>
 		<td>ban</td>
-		<td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
+		<td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
 		<td>The in-game command used for perma-banning players.</td>
 	</tr>
 	<tr>
 		<td><b>Punish Player</b></td>
 		<td>punish</td>
-		<td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
+		<td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
 		<td>The in-game command used for punishing players. Will add a Punish record to the database, increasing a player's total points by 1. When a reportID is used as input, details of the report are given and confirmation (@yes) needs to be given before the punish is sent.</td>
 	</tr>
 	<tr>
 		<td><b>Forgive Player</b></td>
 		<td>forgive</td>
-		<td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
+		<td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
 		<td>The in-game command used for forgiving players. Will add a Forgive record to the database, decreasing a player's total points by 1.</td>
 	</tr>
 	<tr>
@@ -402,7 +402,7 @@ than moving players) will require a reason.<br/><br/>
 	<tr>
 		<td><b>Force-Move Player</b></td>
 		<td>fmove</td>
-		<td>[player]<br/>OR<br/>[reportID]</td>
+		<td>None<br/>OR<br/>[player]<br/>OR<br/>[reportID]</td>
 		<td>The in-game command used for force-moving players between teams. Will immediately send the given player to TeamSwap.</td>
 	</tr>
 	<tr>
