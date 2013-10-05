@@ -63,7 +63,7 @@ namespace PRoConEvents
     {
         #region Variables
 
-        string plugin_version = "0.3.2.0";
+        string plugin_version = "0.3.4.9";
         Boolean slowmo = false;
 
         private MatchCommand AdKatsAvailableIndicator;
@@ -169,10 +169,15 @@ namespace PRoConEvents
 
         // Admin Settings
         private Dictionary<string, AdKat_Access> playerAccessCache = new Dictionary<string, AdKat_Access>();
+        private Boolean toldCol = false;
+
+        //Orchestration Settings
         private Boolean feedMULTIBalancerWhitelist = false;
         private Boolean feedServerReservedSlots = false;
+        private Boolean feedStatLoggerSettings = false;
         private List<string> currentReservedSlotPlayers = null;
-        private Boolean toldCol = false;
+        private Hashtable lastStatLoggerStatusUpdate = null;
+        private DateTime lastStatLoggerStatusUpdateTime = DateTime.MinValue;
 
         //MySQL Settings
         private volatile Boolean dbSettingsChanged = true;
@@ -355,6 +360,7 @@ namespace PRoConEvents
         private EventWaitHandle actionHandlingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle banEnforcerHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle serverInfoHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle statLoggerStatusHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
         //Threading Queues
         private Queue<KeyValuePair<String, String>> unparsedMessageQueue = new Queue<KeyValuePair<String, String>>();
@@ -794,9 +800,12 @@ namespace PRoConEvents
                     lstReturn.Add(new CPluginVariable("A11. Banning Settings|Enforce New Bans by NAME", typeof(Boolean), this.defaultEnforceName));
                     lstReturn.Add(new CPluginVariable("A11. Banning Settings|Enforce New Bans by GUID", typeof(Boolean), this.defaultEnforceGUID));
                     lstReturn.Add(new CPluginVariable("A11. Banning Settings|Enforce New Bans by IP", typeof(Boolean), this.defaultEnforceIP));
-                    lstReturn.Add(new CPluginVariable("A11. Banning Settings|NAME Ban Count", typeof(int), (int)this.fetchNameBanCount()));
-                    lstReturn.Add(new CPluginVariable("A11. Banning Settings|GUID Ban Count", typeof(int), (int)this.fetchGUIDBanCount()));
-                    lstReturn.Add(new CPluginVariable("A11. Banning Settings|IP Ban Count", typeof(int), (int)this.fetchIPBanCount()));
+                    if (this.threadsReady)
+                    {
+                        lstReturn.Add(new CPluginVariable("A11. Banning Settings|NAME Ban Count", typeof(int), (int)this.fetchNameBanCount()));
+                        lstReturn.Add(new CPluginVariable("A11. Banning Settings|GUID Ban Count", typeof(int), (int)this.fetchGUIDBanCount()));
+                        lstReturn.Add(new CPluginVariable("A11. Banning Settings|IP Ban Count", typeof(int), (int)this.fetchIPBanCount()));
+                    }
                 }
 
                 //External Command Settings
@@ -2298,12 +2307,6 @@ namespace PRoConEvents
             this.ExecuteCommand("procon.protected.plugins.enable", "AdKats", "True");
         }
 
-        private void enableLogger()
-        {
-            //Call Enable
-            this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
-        }
-
         public void OnPluginLoaded(string strHostName, string strPort, string strPRoConVersion)
         {
             this.server_ip = strHostName + ":" + strPort;
@@ -2347,40 +2350,23 @@ namespace PRoConEvents
                 {
                     try
                     {
-                        ConsoleWrite("Enabling command functionality. Please Wait.");
-
-                        //Wait on all settings to be imported by procon for initial start.
-                        //5000ms is overkill, but no need to be hasty
+                        ConsoleWrite("Waiting a few seconds for requirements to initialize, please wait...");
+                        //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
                         Thread.Sleep(3000);
-
+                        ConsoleWrite("Initializing AdKats " + this.GetPluginVersion() + " components.");
                         DateTime startTime = DateTime.Now;
 
-                        //Temporarily remove this code, official stat logger does not allow this functionality
-                        /*
-                        //Check for stat logger
-                        if (this.isStatLoggerEnabled())
+                        //Confirm Stat Logger active and properly configured
+                        this.ConsoleWrite("Confirming proper setup for CChatGUIDStatsLoggerBF3, please wait...");
+                        if (this.confirmStatLoggerSetup())
                         {
-                            this.ConsoleSuccess("^bCChatGUIDStatsLoggerBF3^n plugin found and running!");
+                            this.ConsoleSuccess("^bCChatGUIDStatsLoggerBF3^n enabled and active!");
                         }
                         else
                         {
-                            this.ConsoleWrite("^bCChatGUIDStatsLoggerBF3^n not enabled! Attempting to enable.");
-                            this.enableLogger();
-                            //Wait for enable
-                            Thread.Sleep(1000);
-                            if (this.isStatLoggerEnabled())
-                            {
-                                this.ConsoleSuccess("^bCChatGUIDStatsLoggerBF3^n enabled!");
-                            }
-                            else
-                            {
-                                //Inform the user
-                                this.ConsoleError("^1^bCChatGUIDStatsLoggerBF3^n plugin not found or disabled. Installing and enabling that plugin is required for AdKats!");
-                                //Disable the plugin
-                                this.disable();
-                                return;
-                            }
-                        }*/
+                            this.disable();
+                            return;
+                        }
 
                         //Inform of IP
                         this.ConsoleSuccess("Server IP is " + this.server_ip + "!");
@@ -6082,6 +6068,12 @@ namespace PRoConEvents
                             this.dbSettingsChanged = true;
                             continue;
                         }
+                    }
+
+                    //Every 30 seconds make sure stat logger is running and fully operational
+                    if (this.lastStatLoggerStatusUpdateTime.AddSeconds(30) < DateTime.Now)
+                    {
+                        this.confirmStatLoggerSetup();
                     }
 
                     //Update server ID
@@ -10051,17 +10043,151 @@ namespace PRoConEvents
             return aBan.ban_endTime.Subtract(this.convertToDBTime(DateTime.Now));
         }
 
-        public bool isStatLoggerEnabled()
+        public Boolean confirmStatLoggerSetup()
         {
-            List<MatchCommand> registered = this.GetRegisteredCommands();
-            foreach (MatchCommand command in registered)
+            try
             {
-                if (command.RegisteredClassname.CompareTo("CChatGUIDStatsLoggerBF3") == 0)
+                List<MatchCommand> registered = this.GetRegisteredCommands();
+                MatchCommand loggerStatusCommand = null;
+                foreach (MatchCommand command in registered)
                 {
+                    if (command.RegisteredClassname.CompareTo("CChatGUIDStatsLoggerBF3") == 0 && command.RegisteredMethodName.CompareTo("GetStatus") == 0)
+                    {
+                        loggerStatusCommand = command;
+                        this.DebugWrite("Found command for stat logger.", 5);
+                        break;
+                    }
+                }
+                if (loggerStatusCommand != null)
+                {
+                    //Stat logger is installed, fetch its status
+                    Hashtable statLoggerStatus = this.getStatLoggerStatus();
+
+                    //Only continue if response value
+                    if (statLoggerStatus == null)
+                    {
+                        return false;
+                    }
+                    foreach (String key in statLoggerStatus.Keys)
+                    {
+                        this.DebugWrite("Logger response: (" + key + "): " + statLoggerStatus[key], 5);
+                    }
+                    if (!((String)statLoggerStatus["pluginVersion"]).Equals("1.1.0.2"))
+                    {
+                        this.ConsoleError("Invalid version of CChatGUIDStatsLoggerBF3 installed. Version 1.1.0.2 is required. If there is a new version, inform ColColonCleaner.");
+                        return false;
+                    }
+                    if (!((String)statLoggerStatus["DBHost"]).Equals(this.mySqlHostname) ||
+                        !((String)statLoggerStatus["DBPort"]).Equals(this.mySqlPort) ||
+                        !((String)statLoggerStatus["DBName"]).Equals(this.mySqlDatabaseName))
+                    {
+                        //Are db settings set for AdKats? If not, import them from stat logger.
+                        if (String.IsNullOrEmpty(this.mySqlHostname) || String.IsNullOrEmpty(this.mySqlPort) || String.IsNullOrEmpty(this.mySqlDatabaseName))
+                        {
+                            this.mySqlHostname = (String)statLoggerStatus["DBHost"];
+                            this.mySqlPort = (String)statLoggerStatus["DBPort"];
+                            this.mySqlDatabaseName = (String)statLoggerStatus["DBName"];
+                            this.updateSettingPage();
+                        }
+                        this.ConsoleError("CChatGUIDStatsLoggerBF3 is not set up to use the same database as AdKats. Modify settings so they both use the same database.");
+                        return false;
+                    }
+                    if (!((String)statLoggerStatus["DBConnectionActive"]).Equals("True"))
+                    {
+                        this.ConsoleError("CChatGUIDStatsLoggerBF3's connection to the database is not active. Backup mode Enabled...");
+                    }
                     return true;
                 }
+                else
+                {
+                    this.ConsoleError("^1^bCChatGUIDStatsLoggerBF3^n plugin not found. Installing special release version 1.1.0.2 of that plugin is required for AdKats!");
+                    return false;
+                }
             }
-            return false;
+            catch (Exception e)
+            {
+                this.ConsoleException(e.ToString());
+                return false;
+            }
+        }
+
+        public Hashtable getStatLoggerStatus()
+        {
+            try
+            {
+                //Check if enabled
+                if (!this.isEnabled && false)
+                {
+                    this.DebugWrite("Attempted to fetch stat logger status while plugin disabled.", 4);
+                    return null;
+                }
+                //Build request
+                Hashtable request = new Hashtable();
+                request["pluginName"] = "AdKats";
+                request["pluginMethod"] = "HandleStatLoggerStatusResponse";
+                // Send request
+                this.statLoggerStatusHandle.Reset();
+                this.ExecuteCommand("procon.protected.plugins.call", "CChatGUIDStatsLoggerBF3", "GetStatus", JSON.JsonEncode(request));
+                //Wait a maximum of 5 seconds for stat logger response
+                if (!this.statLoggerStatusHandle.WaitOne(5000))
+                {
+                    this.ConsoleWarn("^bCChatGUIDStatsLoggerBF3^n is not enabled or is lagging! Attempting to enable, please wait...");
+                    //Issue the command to enable stat logger
+                    this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
+                    //Wait 2 seconds for enable and initial connect
+                    Thread.Sleep(2000);
+                    //Refetch the status
+                    this.statLoggerStatusHandle.Reset();
+                    this.ExecuteCommand("procon.protected.plugins.call", "CChatGUIDStatsLoggerBF3", "GetStatus", JSON.JsonEncode(request));
+                    if (!this.statLoggerStatusHandle.WaitOne(5000))
+                    {
+                        this.ConsoleError("CChatGUIDStatsLoggerBF3 could not be enabled automatically. Please enable manually.");
+                    }
+                }
+                if (this.lastStatLoggerStatusUpdate != null &&
+                    this.lastStatLoggerStatusUpdateTime != DateTime.MinValue &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("pluginVersion") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("pluginEnabled") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("DBHost") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("DBPort") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("DBName") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("DBTimeOffset") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("DBConnectionActive") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("ChatloggingEnabled") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("InstantChatLoggingEnabled") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("StatsLoggingEnabled") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("DBliveScoreboardEnabled") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("DebugMode") &&
+                    this.lastStatLoggerStatusUpdate.ContainsKey("Error"))
+                {
+                    //Response appears to be valid, return it
+                    return this.lastStatLoggerStatusUpdate;
+                }
+                else
+                {
+                    //Response is invalid, throw error and return null
+                    this.ConsoleError("Status response from CChatGUIDStatsLoggerBF3 was not valid.");
+                    return null;
+                }
+            }
+            catch (Exception e)
+            {
+                this.ConsoleException(e.ToString());
+                return null;
+            }
+        }
+
+        public void HandleStatLoggerStatusResponse(params String[] commands)
+        {
+            if (commands.Length < 1)
+            {
+                this.ConsoleError("Status fetch response handle canceled, no parameters provided.");
+                return;
+            }
+
+            this.lastStatLoggerStatusUpdate = (Hashtable)JSON.JsonDecode(commands[0]);
+            this.lastStatLoggerStatusUpdateTime = DateTime.Now;
+            this.statLoggerStatusHandle.Set();
         }
 
         public static string GetRandom32BitHashCode()
