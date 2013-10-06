@@ -1,8 +1,5 @@
 /* 
- * AdKats is a MySQL reflected admin tool for Procon Frostbite. It includes editable in-game commands, database 
- * reflected punishment and forgiveness, proper player report and admin call handling, player name completion, 
- * player muting, yell/say pre-recording, and internal implementation of TeamSwap. It requires a MySQL Database 
- * connection for proper use, and will set up needed tables in the database if they are not there already.
+ * AdKats is an Advanced In-Game Admin and Ban Enforcer for Procon Frostbite.
  * 
  * Copyright 2013 A Different Kind, LLC
  * 
@@ -819,6 +816,7 @@ namespace PRoConEvents
 
                 lstReturn.Add(new CPluginVariable("A14. Orchestration Settings|Feed MULTIBalancer Whitelist", typeof(Boolean), this.feedMULTIBalancerWhitelist));
                 lstReturn.Add(new CPluginVariable("A14. Orchestration Settings|Feed Server Reserved Slots", typeof(Boolean), this.feedServerReservedSlots));
+                lstReturn.Add(new CPluginVariable("A14. Orchestration Settings|Feed Stat Logger Settings", typeof(Boolean), this.feedStatLoggerSettings));
 
                 //Debug settings
                 lstReturn.Add(new CPluginVariable("D15. Debugging|Debug level", typeof(int), this.debugLevel));
@@ -961,6 +959,17 @@ namespace PRoConEvents
                         this.fetchAccessList();
                         //Once setting has been changed, upload the change to database
                         this.queueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof(Boolean), this.feedServerReservedSlots));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Feed Stat Logger Settings").Success)
+                {
+                    Boolean feedSLS = Boolean.Parse(strValue);
+                    if (feedSLS != this.feedStatLoggerSettings)
+                    {
+                        this.feedStatLoggerSettings = feedSLS;
+                        this.fetchAccessList();
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof(Boolean), this.feedStatLoggerSettings));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Experimental Tools").Success)
@@ -2524,8 +2533,8 @@ namespace PRoConEvents
                                     {
                                         aPlayer = this.fetchPlayer(-1, player.SoldierName, player.GUID, null);
                                         aPlayer.frostbitePlayerInfo = player;
-                                        aPlayer.lastDeath = DateTime.Now;
-                                        aPlayer.lastSpawn = DateTime.Now;
+                                        aPlayer.lastDeath = DateTime.MinValue;
+                                        aPlayer.lastSpawn = DateTime.MinValue;
                                         //In case of quick name-change, update their IGN
                                         aPlayer.player_name = player.SoldierName;
 
@@ -2587,7 +2596,7 @@ namespace PRoConEvents
                 Boolean callBanCheck = false;
                 if (this.playerDictionary.TryGetValue(cpbiPlayer.SoldierName, out targetPlayer))
                 {
-                    this.DebugWrite("OPPI: PB player already in the player list.", 6);
+                    this.DebugWrite("OPPI: PB player already in the player list.", 7);
                     callBanCheck = (targetPlayer.player_ip == null);
                     //Update the player with pb info
                     targetPlayer.PBPlayerInfo = cpbiPlayer;
@@ -2596,7 +2605,7 @@ namespace PRoConEvents
                     targetPlayer.player_ip = cpbiPlayer.Ip;
                     if (callBanCheck)
                     {
-                        this.DebugWrite("OPPI: Queueing existing player for another ban check.", 6);
+                        this.DebugWrite("OPPI: Queueing existing player " + targetPlayer.player_name + "for another ban check.", 4);
                         this.queuePlayerForBanCheck(targetPlayer);
                     }
                 }
@@ -3102,8 +3111,8 @@ namespace PRoConEvents
                                 record.source_name = "BanEnforcer";
                                 record.isIRO = false;
                                 record.server_id = this.server_id;
-                                record.target_name = aBan.ban_record.target_player.player_name;
-                                record.target_player = aBan.ban_record.target_player;
+                                record.target_name = aPlayer.player_name;
+                                record.target_player = aPlayer;
                                 record.command_source = AdKat_CommandSource.InGame;
                                 record.command_type = AdKat_CommandType.EnforceBan;
                                 record.command_numeric = (int)aBan.ban_id;
@@ -6070,8 +6079,8 @@ namespace PRoConEvents
                         }
                     }
 
-                    //Every 30 seconds make sure stat logger is running and fully operational
-                    if (this.lastStatLoggerStatusUpdateTime.AddSeconds(30) < DateTime.Now)
+                    //Every 60 seconds make sure stat logger is running and fully operational
+                    if (this.lastStatLoggerStatusUpdateTime.AddSeconds(60) < DateTime.Now)
                     {
                         this.confirmStatLoggerSetup();
                     }
@@ -7133,8 +7142,8 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@target_name", tName);
                         command.Parameters.AddWithValue("@source_name", record.source_name);
                         string messageIRO = record.record_message + ((record.isIRO) ? (" [IRO]") : (""));
-                        //Trim to 150 characters
-                        messageIRO = messageIRO.Length <= 150 ? messageIRO : messageIRO.Substring(0, 150);
+                        //Trim to 100 characters
+                        messageIRO = messageIRO.Length <= 100 ? messageIRO : messageIRO.Substring(0, 100);
                         command.Parameters.AddWithValue("@record_message", messageIRO);
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
@@ -7188,6 +7197,8 @@ namespace PRoConEvents
                         //Fill the command
                         command.Parameters.AddWithValue("@record_id", record.record_id);
                         command.Parameters.AddWithValue("@command_numeric", record.command_numeric);
+                        //Trim to 100 characters
+                        record.record_message = record.record_message.Length <= 100 ? record.record_message : record.record_message.Substring(0, 100);
                         command.Parameters.AddWithValue("@record_message", record.record_message);
                         command.Parameters.AddWithValue("@command_action", this.AdKat_RecordTypes[record.command_action]);
 
@@ -7902,6 +7913,22 @@ namespace PRoConEvents
                                     player.player_guid = player_guid;
                                     player.player_ip = player_ip;
                                 }
+                            }
+                        }
+                        if (!String.IsNullOrEmpty(player_name) && !String.IsNullOrEmpty(player.player_guid) && !player_name.Equals(player.player_name))
+                        {
+                            this.DebugWrite(player.player_name + " changed their name to " + player_name + ". Updating the database.", 2);
+                            using (MySqlCommand command = connection.CreateCommand())
+                            {
+                                //Set the insert command structure
+                                command.CommandText = @"UPDATE `" + this.mySqlDatabaseName + @"`.`tbl_playerdata` SET `SoldierName` = '" + player_name + "' WHERE `EAGUID` = '" + player.player_guid + "'";
+                                //Attempt to execute the query
+                                if (command.ExecuteNonQuery() <= 0)
+                                {
+                                    this.ConsoleError("Could not update " + player.player_name + "'s name-change to " + player_name + " in the database.");
+                                }
+                                //Update the player name in the player object
+                                player.player_name = player_name;
                             }
                         }
                     }
@@ -9921,7 +9948,7 @@ namespace PRoConEvents
         {
             try
             {
-                this.DebugWrite("Checking player '" + input + "' for validity.", 4);
+                this.DebugWrite("Checking player '" + input + "' for validity.", 7);
                 if (String.IsNullOrEmpty(input))
                 {
                     this.ConsoleError("Soldier Name empty or null.");
@@ -10077,9 +10104,10 @@ namespace PRoConEvents
                         this.ConsoleError("Invalid version of CChatGUIDStatsLoggerBF3 installed. Version 1.1.0.2 is required. If there is a new version, inform ColColonCleaner.");
                         return false;
                     }
-                    if (!((String)statLoggerStatus["DBHost"]).Equals(this.mySqlHostname) ||
-                        !((String)statLoggerStatus["DBPort"]).Equals(this.mySqlPort) ||
-                        !((String)statLoggerStatus["DBName"]).Equals(this.mySqlDatabaseName))
+
+                    if (!Regex.Match((String)statLoggerStatus["DBHost"], this.mySqlHostname, RegexOptions.IgnoreCase).Success ||
+                        !Regex.Match((String)statLoggerStatus["DBPort"], this.mySqlPort, RegexOptions.IgnoreCase).Success ||
+                        !Regex.Match((String)statLoggerStatus["DBName"], this.mySqlDatabaseName, RegexOptions.IgnoreCase).Success)
                     {
                         //Are db settings set for AdKats? If not, import them from stat logger.
                         if (String.IsNullOrEmpty(this.mySqlHostname) || String.IsNullOrEmpty(this.mySqlPort) || String.IsNullOrEmpty(this.mySqlDatabaseName))
@@ -10089,12 +10117,37 @@ namespace PRoConEvents
                             this.mySqlDatabaseName = (String)statLoggerStatus["DBName"];
                             this.updateSettingPage();
                         }
-                        this.ConsoleError("CChatGUIDStatsLoggerBF3 is not set up to use the same database as AdKats. Modify settings so they both use the same database.");
-                        return false;
+                        //Are DB Settings set for stat logger? If not, set them
+                        if (String.IsNullOrEmpty((String)statLoggerStatus["DBHost"]) || String.IsNullOrEmpty((String)statLoggerStatus["DBPort"]) || String.IsNullOrEmpty((String)statLoggerStatus["DBName"]))
+                        {
+                            this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Host", this.mySqlHostname);
+                            this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Port", this.mySqlPort);
+                            this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Database Name", this.mySqlDatabaseName);
+                            this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "UserName", this.mySqlUsername);
+                            this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Password", this.mySqlPassword);
+
+                            this.ConsoleError("CChatGUIDStatsLoggerBF3 database connection was not configured. It has been set up to use the same database and credentials as AdKats."); 
+                            //Update the logger status
+                            statLoggerStatus = this.getStatLoggerStatus();
+                        }
+                        else
+                        {
+                            this.ConsoleError("CChatGUIDStatsLoggerBF3 is not set up to use the same database as AdKats. Modify settings so they both use the same database.");
+                            return false;
+                        }
                     }
                     if (!((String)statLoggerStatus["DBConnectionActive"]).Equals("True"))
                     {
                         this.ConsoleError("CChatGUIDStatsLoggerBF3's connection to the database is not active. Backup mode Enabled...");
+                    }
+                    //Whether to feed stat logger settings per the 
+                    if (this.feedStatLoggerSettings)
+                    {
+                        this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "Yes");
+                        this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "Yes");
+                        //Due to narwhals, Stat logger time offset is in the opposite direction of Adkats time offset
+                        double SLOffset = this.dbTimeConversion.TotalHours * (-1);
+                        this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Servertime Offset", SLOffset + "");
                     }
                     return true;
                 }
@@ -10487,6 +10540,10 @@ namespace PRoConEvents
 
         public void ConsoleException(string msg)
         {
+            if (msg.Contains("System.TimeoutException"))
+            {
+                msg = "Connection to database timed out. Either DB is lagging, or DB is down.";
+            }
             ConsoleWrite(msg, MessageTypeEnum.Exception);
             if (this.threadsReady)
             {
