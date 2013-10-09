@@ -943,7 +943,7 @@ namespace PRoConEvents
                 {
                     if (strValue != this.serverVoipAddress)
                     {
-                        this.debugSoldierName = strValue;
+                        this.serverVoipAddress = strValue;
                         //Once setting has been changed, upload the change to database
                         this.queueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof(string), this.serverVoipAddress));
                     }
