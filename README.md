@@ -1,6 +1,6 @@
-<head style="display:none;">
-	<latest_stable_version>0.3.1.6</latest_stable_version>
-</head>
+<script>
+	<latest_stable_release>0.3.1.6</latest_stable_release>
+</script>
 <h2 style="color:#DF0101;">Version 0.3.1.6 released! Your version is listed above (Procon Only).</h2>
 <a href="https://github.com/ColColonCleaner/AdKats/blob/master/CHANGELOG.md" target="_blank">New in Version 0.3.1.6!</a> 
 Download link below.
