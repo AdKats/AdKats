@@ -2905,7 +2905,7 @@ namespace PRoConEvents
                                         this.roundCookers = new Dictionary<string, AdKat_Player>();
                                     }
                                     double fuseTime = 3735.00;
-                                    double possibleRange = 750.00;
+                                    double possibleRange = 1000.00;
                                     //Update killer information
                                     AdKat_Player killer = null;
                                     if (this.playerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer))
