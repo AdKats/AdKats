@@ -8019,13 +8019,8 @@ namespace PRoConEvents
                         //Attempt to execute the query
                         if (command.ExecuteNonQuery() > 0)
                         {
-                            this.ConsoleError("SUCCESS");
                             success = true;
                             record.record_id = command.LastInsertedId;
-                        }
-                        else
-                        {
-                            this.ConsoleError("FAILURE");
                         }
                     }
                 }
