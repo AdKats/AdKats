@@ -2634,12 +2634,14 @@ namespace PRoConEvents
                             //Player list and ban list need to be locked for this operation
                             lock (playersMutex)
                             {
+                                List<String> playerNames = new List<String>();
                                 //Reset the player counts of both sides and recount everything
                                 this.USPlayerCount = 0;
                                 this.RUPlayerCount = 0;
                                 //Loop over all players in the list
                                 foreach (CPlayerInfo player in players)
                                 {
+                                    playerNames.Add(player.SoldierName);
                                     AdKat_Player aPlayer = null;
                                     //Check if the player is already in the player dictionary
                                     if (this.playerDictionary.TryGetValue(player.SoldierName, out aPlayer))
@@ -2692,6 +2694,20 @@ namespace PRoConEvents
                                     else if (player.TeamID == RUTeamID)
                                     {
                                         this.RUPlayerCount++;
+                                    }
+                                }
+                                //Make sure the player dictionary is clean of any straglers
+                                List<String> dicPlayerNames = new List<string>();
+                                foreach (String player_name in this.playerDictionary.Keys)
+                                {
+                                    dicPlayerNames.Add(player_name);
+                                }
+                                foreach (String player_name in dicPlayerNames)
+                                {
+                                    if (!playerNames.Contains(player_name))
+                                    {
+                                        this.DebugWrite("Removing " + player_name + " from current player list (VIA CLEANUP).", 4);
+                                        this.playerDictionary.Remove(player_name);
                                     }
                                 }
                             }
