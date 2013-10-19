@@ -37,9 +37,7 @@ using System.Threading;
 using System.Timers;
 using System.Diagnostics;
 using System.Reflection;
-
 using MySql.Data.MySqlClient;
-
 using PRoCon.Core;
 using PRoCon.Core.Plugin;
 using PRoCon.Core.Plugin.Commands;
@@ -60,7 +58,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.5.0.0";
+        private string plugin_version = "3.5.0.1";
         private DateTime compileTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -3056,16 +3054,39 @@ namespace PRoConEvents
                 if (this.isEnabled)
                 {
                     //Completely clear all round-centric data
-                    this.round_reports = new Dictionary<string, AdKat_Record>();
-                    this.round_mutedPlayers = new Dictionary<string, int>();
-                    this.teamswapRoundWhitelist = new Dictionary<string, Boolean>();
-                    this.actionConfirmDic = new Dictionary<string, AdKat_Record>();
-                    this.actOnSpawnDictionary = new Dictionary<string, AdKat_Record>();
-                    this.teamswapOnDeathMoveDic = new Dictionary<string, CPlayerInfo>();
+                    lock (this.round_reports)
+                    {
+                        this.round_reports = new Dictionary<string, AdKat_Record>();
+                    }
+                    lock (this.round_mutedPlayers)
+                    {
+                        this.round_mutedPlayers = new Dictionary<string, int>();
+                    }
+                    lock (this.teamswapRoundWhitelist)
+                    {
+                        this.teamswapRoundWhitelist = new Dictionary<string, Boolean>();
+                    }
+                    lock (this.actionConfirmDic)
+                    {
+                        this.actionConfirmDic = new Dictionary<string, AdKat_Record>();
+                    }
+                    lock (this.actOnSpawnDictionary)
+                    {
+                        this.actOnSpawnDictionary = new Dictionary<string, AdKat_Record>();
+                    }
+                    lock (this.teamswapOnDeathMoveDic)
+                    {
+                        this.teamswapOnDeathMoveDic = new Dictionary<string, CPlayerInfo>();
+                    }
+
                     this.autoWhitelistPlayers();
                     this.USMoveQueue.Clear();
                     this.RUMoveQueue.Clear();
-                    this.roundCookers = new Dictionary<string, AdKat_Player>();
+
+                    lock (this.roundCookers)
+                    {
+                        this.roundCookers = new Dictionary<string, AdKat_Player>();
+                    }
 
                     //Reset whether they have been informed
                     lock (this.adminAssistantCache)
@@ -6697,7 +6718,7 @@ namespace PRoConEvents
                     else
                     {
                         this.ConsoleError("Player has no information to ban with.");
-                        return "ERROR";
+                        message = "ERROR";
                     }
                     this.removePlayerFromDictionary(record.target_player.player_name);
                 }
@@ -6783,7 +6804,7 @@ namespace PRoConEvents
                     else
                     {
                         this.ConsoleError("Player has no information to ban with.");
-                        return "ERROR";
+                        message = "ERROR";
                     }
                     this.removePlayerFromDictionary(record.target_player.player_name);
                 }
@@ -6995,7 +7016,7 @@ namespace PRoConEvents
                 {
                     int points = this.fetchPoints(record.target_player);
                     this.playerSayMessage(record.target_name, "Forgiven 1 infraction point. You now have " + points + " point(s) against you.");
-                    return this.sendMessageToSource(record, "Forgive Logged for " + record.target_name + ". They now have " + points + " infraction points.");
+                    message = this.sendMessageToSource(record, "Forgive Logged for " + record.target_name + ". They now have " + points + " infraction points.");
                 }
                 record.record_action_executed = true;
             }
