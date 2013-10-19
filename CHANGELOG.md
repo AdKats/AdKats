@@ -243,4 +243,22 @@ fine for performance). Right now only Punish and Forgive are required to be logg
   <li><b>Permaban punish overrides low population</b>Used to not happen.</li>
   <li><b>Remove text to disable command</b>Command name will autofill with command disabled text when removed.</li>
 </ul>
+<h4>3.5.0.0(19-OCT-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes/Enhancements.</b> Record upload for certain commands optimized, kicks/bans on yourself no-longer 
+  tell the whole server, auto-whitelisted players are logged, MutePlayer doesn't cause momentary disconnect, etc, etc, 
+  full list on github.</li>
+  <li><b>Beta Version of Stat Logger Required.</b> Version 1.1.0.2 of stat logger is required for this version of AdKats. 
+  That version of stat logger has been included with this release.</li>
+  <li><b>MULTIBalancer Orchestration.</b> All players access level 0-5 can be automatically whitelisted.</li>
+  <li><b>Reserved Slot Orchestration.</b> All players on the access list can be automatically given reserved slots.</li>
+  <li><b>Added VOIP Command.</b> Voip command can be used by all players to get teamspeak or other voip server info.</li>
+  <li><b>User based kill command added.</b> Players can kill themselves with @killme. Disable by removing command text.</li>
+  <li><b>Push errors to database.</b> All errors and exceptions are now pushed to the database for logging.</li>
+  <li><b>Server Crash Reporter Added.</b> Server crash/Blaze DC reporter added (Only meaningful to those using webadmin).</li>
+  <li><b>Admin Assistant Logic Changed.</b> Admin Assistants are now on a 30 day report calculation, instead of 7 days.</li>
+  <li><b>Database connection backup added.</b> Commands will now still carry out their actions if the database 
+  connection is temporarily lost. It will spam console errors like there's no tomorrow but will still act on commands.</li>
+</ul>
 </blockquote>
