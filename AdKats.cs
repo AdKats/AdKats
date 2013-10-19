@@ -3053,45 +3053,31 @@ namespace PRoConEvents
             {
                 if (this.isEnabled)
                 {
-                    //Completely clear all round-centric data
-                    lock (this.round_reports)
-                    {
-                        this.round_reports = new Dictionary<string, AdKat_Record>();
-                    }
-                    lock (this.round_mutedPlayers)
-                    {
-                        this.round_mutedPlayers = new Dictionary<string, int>();
-                    }
-                    lock (this.teamswapRoundWhitelist)
-                    {
-                        this.teamswapRoundWhitelist = new Dictionary<string, Boolean>();
-                    }
-                    lock (this.actionConfirmDic)
-                    {
-                        this.actionConfirmDic = new Dictionary<string, AdKat_Record>();
-                    }
-                    lock (this.actOnSpawnDictionary)
-                    {
-                        this.actOnSpawnDictionary = new Dictionary<string, AdKat_Record>();
-                    }
-                    lock (this.teamswapOnDeathMoveDic)
-                    {
-                        this.teamswapOnDeathMoveDic = new Dictionary<string, CPlayerInfo>();
-                    }
-
+                    //Completely clear all round-specific data
+                    this.round_reports = new Dictionary<string, AdKat_Record>();
+                    this.round_mutedPlayers = new Dictionary<string, int>();
+                    this.teamswapRoundWhitelist = new Dictionary<string, Boolean>();
+                    this.actionConfirmDic = new Dictionary<string, AdKat_Record>();
+                    this.actOnSpawnDictionary = new Dictionary<string, AdKat_Record>();
+                    this.teamswapOnDeathMoveDic = new Dictionary<string, CPlayerInfo>();
                     this.autoWhitelistPlayers();
-                    this.USMoveQueue.Clear();
-                    this.RUMoveQueue.Clear();
-
-                    lock (this.roundCookers)
-                    {
-                        this.roundCookers = new Dictionary<string, AdKat_Player>();
-                    }
+                    this.USMoveQueue = new Queue<CPlayerInfo>();
+                    this.RUMoveQueue = new Queue<CPlayerInfo>();
+                    this.roundCookers = new Dictionary<string, AdKat_Player>();
 
                     //Reset whether they have been informed
+                    if (this.adminAssistantCache == null)
+                    {
+                        this.adminAssistantCache = new Dictionary<string, bool>();
+                    }
+                    List<string> assistants = new List<string>();
+                    foreach (string assistantName in this.adminAssistantCache.Keys)
+                    {
+                        assistants.Add(assistantName);
+                    }
                     lock (this.adminAssistantCache)
                     {
-                        foreach (string assistantName in this.adminAssistantCache.Keys)
+                        foreach (string assistantName in assistants)
                         {
                             this.adminAssistantCache[assistantName] = false;
                         }
