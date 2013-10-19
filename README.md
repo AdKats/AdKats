@@ -47,7 +47,7 @@ If you find any bugs, please submit them
 and they will be fixed ASAP.<br/><br/>
 
 Download the latest version here: 
-<a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.3.1.6.zip/download" target="_blank">Version 0.3.1.6</a>
+<a href="http://sourceforge.net/projects/adkats/files/AdKats_v3.5.0.0.zip/download" target="_blank">Version 3.5.0.0</a>
 </p>
 <p>
 AdKats was inspired by the gaming community A Different Kind (ADK). Visit 
@@ -76,11 +76,11 @@ promptly.
 <h2>Dependencies</h2>
 <h4>XpKiller's "BF3 Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
 <p>
-Version 1.1.0.0+ of this plugin is required. AdKats will only run if this plugin is (1) using the same database 
+Version 1.1.0.2 of this plugin is required. AdKats will only run if this plugin is (1) using the same database 
 AdKats uses, and (2) running on every BF3 Server you plan to install AdKats on. Running it along-side AdKats on each 
-layer will ensure these conditions are met.<br/><br/>
+layer will ensure these conditions are met. 1.1.0.2 is a beta version of that logger, and is included in the AdKats 
+download.<br/><br/>
 
-<a href="https://forum.myrcon.com/showthread.php?2889-BF3-Chat-GUID-Stats-and-Mapstats-Logger-1-1-0-0-BF3/" target="_blank">BF3 Chat, GUID, Stats and Mapstats Logger</a>
 </p>
 <h4>A MySQL Database</h4>
 <p>
@@ -466,6 +466,18 @@ than moving players) will require a reason.<br/><br/>
 		<td>The in-game command used for finding out what a particular preMessage ID links to.</td>
 	</tr>
 	<tr>
+		<td><b>VOIP</b></td>
+		<td>voip</td>
+		<td>None</td>
+		<td>The in-game command used for sending VOIP server info to the speaker.</td>
+	</tr>
+	<tr>
+		<td><b>Kill Self</b></td>
+		<td>killme</td>
+		<td>None</td>
+		<td>The in-game command used for killing the speaker.</td>
+	</tr>
+	<tr>
 		<td><b>Restart Level</b></td>
 		<td>restart</td>
 		<td>None</td>
@@ -601,6 +613,14 @@ can be changed once they are on the access list, in addition to their email addr
 	<tr>
 		<td><b>TeamSwap</b></td>
 		<td>5</td>
+	</tr>
+	<tr>
+		<td><b>VOIP</b></td>
+		<td>6</td>
+	</tr>
+	<tr>
+		<td><b>Kill Self</b></td>
+		<td>6</td>
 	</tr>
 	<tr>
 		<td><b>Report Player</b></td>
@@ -786,6 +806,16 @@ Valid 'command_type's that can be acted on include the following:<br/>
 <ul>
   <li><b>'External Access Key'</b> - The access key required to use any HTTP commands, can be changed to whatever is desired, but the default is a random 64Bit hashcode generated when the plugin first runs.</li>
   <li><b>'Fetch Actions from Database'</b> - Whether to use the database as a source for new commands.</li>
+</ul>
+<h3>A13. VOIP Settings:</h3>
+<ul>
+  <li><b>'Server VOIP Address'</b> - String that will be sent to players using the VOIP command.</li>
+</ul>
+<h3>A14. Orchestration Settings:</h3>
+<ul>
+  <li><b>'Feed MULTIBalancer Whitelist'</b> - When enabled, MULTIBalancer's whitelist will include all players access level 0-5 in the AdKats access list.</li>
+  <li><b>'Feed Server Reserved Slots'</b> - When enabled, the servers reserved slots will include all players in the AdKats access list.</li>
+  <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including correct database time offset, instant chat logging, etc. This is experimental.</li>
 </ul>
 <h3>A13. Debug Settings:</h3>
 <ul>
