@@ -37,9 +37,7 @@ using System.Threading;
 using System.Timers;
 using System.Diagnostics;
 using System.Reflection;
-
 using MySql.Data.MySqlClient;
-
 using PRoCon.Core;
 using PRoCon.Core.Plugin;
 using PRoCon.Core.Plugin.Commands;
@@ -60,7 +58,8 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        string plugin_version = "3.4.9.5";
+        private string plugin_version = "3.5.1.0";
+        private DateTime compileTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
         Boolean slowmo = false;
@@ -178,7 +177,11 @@ namespace PRoConEvents
         private DateTime lastDBActionFetch = DateTime.Now;
         //frequency in seconds to fetch actions at
         private int dbActionFrequency = 10;
-        private Boolean dbConnectionActive = false;
+        //Error Catching
+        private Boolean databaseConnectionCriticalState = false;
+        private int databaseTimeoutThreshold = 3;
+        private int databaseTimeouts = 0;
+        private DateTime lastDatabaseTimeout = DateTime.Now;
 
         //Server Settings
         private Int64 server_id = -1;
@@ -384,6 +387,7 @@ namespace PRoConEvents
         private Thread HackerCheckerThread;
         private Thread activator;
         private Thread finalizer;
+        private Thread disconnectHandlingThread;
         //Mutexes
         public Object playersMutex = new Object();
         public Object banListMutex = new Object();
@@ -443,6 +447,7 @@ namespace PRoConEvents
             //By default plugin is not enabled or ready
             this.isEnabled = false;
             this.threadsReady = false;
+            this.compileTime = DateTime.Now;
             //Assign the match command
             this.AdKatsAvailableIndicator = new MatchCommand("AdKats", "NoCallableMethod", new List<string>(), "AdKats_NoCallableMethod", new List<MatchArgumentFormat>(), new ExecutionRequirements(ExecutionScope.None), "Useable by other plugins to determine whether this one is installed and enabled.");
             //Debug level is 0 by default
@@ -651,8 +656,8 @@ namespace PRoConEvents
                     if (!String.IsNullOrEmpty(latestStableVersion))
                     {
                         //Convert it to an integer
-                        latestStableVersion = latestStableVersion.Replace(".", "");
-                        int latestStableVersionInt = Int32.Parse(latestStableVersion);
+                        string trimmedLatestStableVersion = latestStableVersion.Replace(".", "");
+                        int latestStableVersionInt = Int32.Parse(trimmedLatestStableVersion);
                         //Get current plugin version
                         int currentVersionInt = Int32.Parse(this.plugin_version.Replace(".", ""));
 
@@ -1104,7 +1109,10 @@ namespace PRoConEvents
                         this.useExperimentalTools = useEXP;
                         if (this.useExperimentalTools)
                         {
-                            this.ConsoleWarn("Using experimental tools. Take caution.");
+                            if (this.threadsReady)
+                            {
+                                this.ConsoleWarn("Using experimental tools. Take caution.");
+                            }
                         }
                         else
                         {
@@ -1131,7 +1139,10 @@ namespace PRoConEvents
                         this.useNoExplosivesLimit = useLimiter;
                         if (this.useNoExplosivesLimit)
                         {
-                            this.ConsoleWarn("Internal NO EXPLOSIVES punish limit activated.");
+                            if (this.threadsReady)
+                            {
+                                this.ConsoleWarn("Internal NO EXPLOSIVES punish limit activated.");
+                            }
                         }
                         else
                         {
@@ -1149,7 +1160,10 @@ namespace PRoConEvents
                         this.useGrenadeCookCatcher = useCookCatcher;
                         if (this.useGrenadeCookCatcher)
                         {
-                            this.ConsoleWarn("Internal Grenade Cook Catcher activated.");
+                            if (this.threadsReady)
+                            {
+                                this.ConsoleWarn("Internal Grenade Cook Catcher activated.");
+                            }
                         }
                         else
                         {
@@ -1167,7 +1181,10 @@ namespace PRoConEvents
                         this.useHackerChecker = useHackChecker;
                         if (this.useHackerChecker)
                         {
-                            this.ConsoleWarn("Internal Hacker Checker activated.");
+                            if (this.threadsReady)
+                            {
+                                this.ConsoleWarn("Internal Hacker Checker activated.");
+                            }
                         }
                         else
                         {
@@ -1185,7 +1202,10 @@ namespace PRoConEvents
                         this.useDPSChecker = useDamageChecker;
                         if (this.useDPSChecker)
                         {
-                            this.ConsoleWarn("Internal Damage Mod Checker activated.");
+                            if (this.threadsReady)
+                            {
+                                this.ConsoleWarn("Internal Damage Mod Checker activated.");
+                            }
                         }
                         else
                         {
@@ -1217,7 +1237,10 @@ namespace PRoConEvents
                         this.useHSKChecker = useAimbotChecker;
                         if (this.useHSKChecker)
                         {
-                            this.ConsoleWarn("Internal Aimbot Checker activated.");
+                            if (this.threadsReady)
+                            {
+                                this.ConsoleWarn("Internal Aimbot Checker activated.");
+                            }
                         }
                         else
                         {
@@ -2625,9 +2648,13 @@ namespace PRoConEvents
                         //Initialize the stat library
                         this.statLibrary = new StatLibrary();
 
-                        ConsoleWrite("Waiting a few seconds for requirements to initialize, please wait...");
+                        ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
                         //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
-                        Thread.Sleep(5000);
+                        for (int index = 10; index > 0; index--)
+                        {
+                            this.DebugWrite(index + "...", 1);
+                            Thread.Sleep(1000);
+                        }
                         ConsoleWrite("Initializing AdKats " + this.GetPluginVersion() + " components.");
                         DateTime startTime = DateTime.Now;
 
@@ -3031,7 +3058,7 @@ namespace PRoConEvents
             {
                 if (this.isEnabled)
                 {
-                    //Completely clear all round-centric data
+                    //Completely clear all round-specific data
                     this.round_reports = new Dictionary<string, AdKat_Record>();
                     this.round_mutedPlayers = new Dictionary<string, int>();
                     this.teamswapRoundWhitelist = new Dictionary<string, Boolean>();
@@ -3039,14 +3066,23 @@ namespace PRoConEvents
                     this.actOnSpawnDictionary = new Dictionary<string, AdKat_Record>();
                     this.teamswapOnDeathMoveDic = new Dictionary<string, CPlayerInfo>();
                     this.autoWhitelistPlayers();
-                    this.USMoveQueue.Clear();
-                    this.RUMoveQueue.Clear();
+                    this.USMoveQueue = new Queue<CPlayerInfo>();
+                    this.RUMoveQueue = new Queue<CPlayerInfo>();
                     this.roundCookers = new Dictionary<string, AdKat_Player>();
 
                     //Reset whether they have been informed
+                    if (this.adminAssistantCache == null)
+                    {
+                        this.adminAssistantCache = new Dictionary<string, bool>();
+                    }
+                    List<string> assistants = new List<string>();
+                    foreach (string assistantName in this.adminAssistantCache.Keys)
+                    {
+                        assistants.Add(assistantName);
+                    }
                     lock (this.adminAssistantCache)
                     {
-                        foreach (string assistantName in this.adminAssistantCache.Keys)
+                        foreach (string assistantName in assistants)
                         {
                             this.adminAssistantCache[assistantName] = false;
                         }
@@ -3634,6 +3670,11 @@ namespace PRoConEvents
 
         public override void OnBanList(List<CBanInfo> banList)
         {
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return;
+            }
             try
             {
                 //Return if small duration (10 seconds) since last ban list
@@ -3844,13 +3885,16 @@ namespace PRoConEvents
 
                             if (this.useHackerChecker)
                             {
+                                this.DebugWrite("HackerChecker running on " + aPlayer.player_name, 5);
                                 Boolean acted = false;
                                 if (this.useDPSChecker)
                                 {
+                                    this.DebugWrite("Preparing to DPS check " + aPlayer.player_name, 5);
                                     acted = this.damageHackCheck(aPlayer, false);
                                 }
                                 if (this.useHSKChecker && !acted)
                                 {
+                                    this.DebugWrite("Preparing to HSK check " + aPlayer.player_name, 5);
                                     acted = this.aimbotHackCheck(aPlayer, false);
                                 }
                                 if (acted)
@@ -3940,7 +3984,6 @@ namespace PRoConEvents
                                 {
                                     //Get the percentage over normal
                                     double percDiff = (weaponStat.dps - weapon.damage_max) / weaponStat.dps;
-
                                     if (percDiff > (this.DPSTriggerLevel/100))
                                     {
                                         if (percDiff > actedPerc)
@@ -4025,6 +4068,7 @@ namespace PRoConEvents
                             if (weaponStat.kills > 100)
                             {
                                 //Check for aimbot hack
+                                this.DebugWrite("Checking " + weaponStat.name + " HSKR (" + weaponStat.hskr + " >? " + (this.HSKTriggerLevel / 100) + ")", 6);
                                 if (weaponStat.hskr > (this.HSKTriggerLevel/100))
                                 {
                                     if (weaponStat.hskr > actedHskr)
@@ -5896,7 +5940,6 @@ namespace PRoConEvents
             {
                 lock (playersMutex)
                 {
-                    this.ConsoleError("Completing target info");
                     //Check for an exact match
                     if (playerDictionary.ContainsKey(record.target_name))
                     {
@@ -6360,6 +6403,11 @@ namespace PRoConEvents
             string response = "ERROR";
             try
             {
+                //Make sure record has an action
+                if (record.command_action == AdKat_CommandType.Default)
+                {
+                    record.command_action = record.command_type;
+                }
                 //Perform Actions
                 switch (record.command_action)
                 {
@@ -6444,9 +6492,14 @@ namespace PRoConEvents
                     case AdKat_CommandType.EnforceBan:
                         //Don't do anything here, ban enforcer handles this
                         break;
+                    case AdKat_CommandType.Exception:
+                        record.record_action_executed = true;
+                        //Don't do anything here, exception case
+                        break;
                     default:
+                        record.record_action_executed = true;
                         response = "Command not recognized when running action.";
-                        record.record_exception = this.HandleException(new AdKat_Exception("Command not found in runAction"));
+                        record.record_exception = this.HandleException(new AdKat_Exception("Command " + record.command_action + " not found in runAction"));
                         break;
                 }
             }
@@ -6671,7 +6724,7 @@ namespace PRoConEvents
                     else
                     {
                         this.ConsoleError("Player has no information to ban with.");
-                        return "ERROR";
+                        message = "ERROR";
                     }
                     this.removePlayerFromDictionary(record.target_player.player_name);
                 }
@@ -6757,7 +6810,7 @@ namespace PRoConEvents
                     else
                     {
                         this.ConsoleError("Player has no information to ban with.");
-                        return "ERROR";
+                        message = "ERROR";
                     }
                     this.removePlayerFromDictionary(record.target_player.player_name);
                 }
@@ -6969,7 +7022,7 @@ namespace PRoConEvents
                 {
                     int points = this.fetchPoints(record.target_player);
                     this.playerSayMessage(record.target_name, "Forgiven 1 infraction point. You now have " + points + " point(s) against you.");
-                    return this.sendMessageToSource(record, "Forgive Logged for " + record.target_name + ". They now have " + points + " infraction points.");
+                    message = this.sendMessageToSource(record, "Forgive Logged for " + record.target_name + ". They now have " + points + " infraction points.");
                 }
                 record.record_action_executed = true;
             }
@@ -7523,7 +7576,7 @@ namespace PRoConEvents
                         //Fetch new settings from the database
                         this.fetchSettings(this.settingImportID);
                         //Update the database with setting logic employed here
-                        this.uploadAllSettings();
+                        //this.uploadAllSettings();
                     }
 
                     //Handle Inbound Setting Uploads
@@ -7960,7 +8013,6 @@ namespace PRoConEvents
                                 //Connection good
                                 this.ConsoleSuccess("Database connection open.");
                                 success = true;
-                                this.dbConnectionActive = true;
                             }
                             else
                             {
@@ -8235,6 +8287,11 @@ namespace PRoConEvents
         private void uploadAllSettings()
         {
             if (!this.isEnabled) { return; }
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return;
+            }
             try
             {
                 DebugWrite("uploadAllSettings starting!", 6);
@@ -8308,8 +8365,11 @@ namespace PRoConEvents
         private void uploadSetting(CPluginVariable var)
         {
             DebugWrite("uploadSetting starting!", 7);
-
-            //List<CPluginVariable> vars = this.GetPluginVariables();
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return;
+            }
 
             try
             {
@@ -8364,6 +8424,11 @@ namespace PRoConEvents
         {
             DebugWrite("fetchSettings starting!", 6);
             Boolean success = false;
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return success;
+            }
             try
             {
                 //Success fetching settings
@@ -8416,6 +8481,12 @@ namespace PRoConEvents
 
         private AdKat_Record handleRecordUpload(AdKat_Record record)
         {
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                record.record_exception = new AdKat_Exception("Database not connected.");
+                return record;
+            }
             try
             {
                 this.DebugWrite("DBCOMM: Entering handle record upload", 5);
@@ -8506,6 +8577,12 @@ namespace PRoConEvents
             DebugWrite("uploadRecord starting!", 6);
 
             Boolean success = false;
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                record.record_exception = new AdKat_Exception("Database not connected.");
+                return success;
+            }
             MySqlCommand commandAttempt = null;
             try
             {
@@ -8653,6 +8730,12 @@ namespace PRoConEvents
             DebugWrite("updateRecord starting!", 6);
 
             Boolean success = false;
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                record.record_exception = new AdKat_Exception("Database not connected.");
+                return success;
+            }
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -8712,6 +8795,11 @@ namespace PRoConEvents
             //Handle data too long case
             //Length for message used to be 100. Change to 500.
             Boolean success = false;
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return success;
+            }
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -8740,6 +8828,11 @@ namespace PRoConEvents
         {
             DebugWrite("fetchRecordByID starting!", 6);
             AdKat_Record record = null;
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return record;
+            }
             try
             {
                 //Success fetching record
@@ -8820,8 +8913,12 @@ namespace PRoConEvents
         {
             DebugWrite("fetchUnreadRecords starting!", 6);
             //Create return list
-
             List<AdKat_Record> records = new List<AdKat_Record>();
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return records;
+            }
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -8896,6 +8993,11 @@ namespace PRoConEvents
         private long fetchNameBanCount()
         {
             DebugWrite("fetchNameBanCount starting!", 6);
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return 0;
+            }
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -8935,6 +9037,11 @@ namespace PRoConEvents
         private long fetchGUIDBanCount()
         {
             DebugWrite("fetchGUIDBanCount starting!", 6);
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return 0;
+            }
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -8974,6 +9081,11 @@ namespace PRoConEvents
         private long fetchIPBanCount()
         {
             DebugWrite("fetchIPBanCount starting!", 6);
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return 0;
+            }
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -9013,6 +9125,11 @@ namespace PRoConEvents
         private void removePlayerAccess(string player_name)
         {
             DebugWrite("removePlayerAccess starting!", 6);
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return;
+            }
             try
             {
                 if (!this.playerAccessCache.ContainsKey(player_name))
@@ -9044,6 +9161,11 @@ namespace PRoConEvents
         private void uploadPlayerAccess(AdKat_Access access)
         {
             DebugWrite("uploadPlayerAccess(Email) starting!", 6);
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return;
+            }
             try
             {
                 this.DebugWrite("NEW Access: " + access.player_name + "|" + access.access_level + "|" + access.player_email, 5);
@@ -9127,6 +9249,11 @@ namespace PRoConEvents
             DebugWrite("uploadBan starting!", 6);
 
             Boolean success = false;
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return success;
+            }
             if (aBan == null)
             {
                 this.ConsoleError("Ban invalid in uploadBan.");
@@ -9264,6 +9391,15 @@ namespace PRoConEvents
             DebugWrite("fetchPlayer starting!", 6);
             //Create return list
             AdKat_Player player = null;
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                //If AdKats is disconnected from the database, return the player as-is
+                player = new AdKat_Player();
+                player.player_name = player_name;
+                player.player_guid = player_guid;
+                return player;
+            }
             if (player_id < 0 && String.IsNullOrEmpty(player_name) && String.IsNullOrEmpty(player_guid) && String.IsNullOrEmpty(player_ip))
             {
                 this.ConsoleError("Attempted to fetch player with no information.");
@@ -9426,6 +9562,11 @@ namespace PRoConEvents
         private AdKat_Player updatePlayer(AdKat_Player player)
         {
             DebugWrite("updatePlayer starting!", 6);
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return player;
+            }
             if (player == null || player.player_id < 0 || String.IsNullOrEmpty(player.player_name) || String.IsNullOrEmpty(player.player_guid) || String.IsNullOrEmpty(player.player_ip))
             {
                 this.ConsoleError("Attempted to updated player without required information.");
@@ -9469,6 +9610,11 @@ namespace PRoConEvents
             DebugWrite("fetchPlayerBan starting!", 6);
 
             AdKat_Ban aBan = null;
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return aBan;
+            }
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -9604,6 +9750,11 @@ namespace PRoConEvents
             DebugWrite("repopulateProconBanList starting!", 6);
             this.ConsoleWarn("Downloading bans from database, please wait. This might take several minutes depending on your ban count!");
 
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return;
+            }
             double totalBans = 0;
             double bansRepopulated = 0;
             Boolean earlyExit = false;
@@ -9768,6 +9919,11 @@ namespace PRoConEvents
         private Boolean updateBanStatus(AdKat_Ban aBan)
         {
             DebugWrite("updateBanStatus starting!", 6);
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return false;
+            }
 
             Boolean success = false;
             if (aBan == null)
@@ -10226,6 +10382,12 @@ namespace PRoConEvents
         private Boolean canPunish(AdKat_Record record)
         {
             DebugWrite("canPunish starting!", 6);
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                record.record_exception = new AdKat_Exception("Database not connected.");
+                return false;
+            }
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -10275,6 +10437,12 @@ namespace PRoConEvents
         private Boolean isDoubleCounted(AdKat_Record record)
         {
             DebugWrite("isDoubleCounted starting!", 6);
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                record.record_exception = new AdKat_Exception("Database not connected.");
+                return false;
+            }
 
             try
             {
@@ -10324,6 +10492,11 @@ namespace PRoConEvents
         private void runActionsFromDB()
         {
             DebugWrite("runActionsFromDB starting!", 7);
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return;
+            }
             try
             {
                 foreach (AdKat_Record record in this.fetchUnreadRecords())
@@ -10345,6 +10518,11 @@ namespace PRoConEvents
             DebugWrite("fetchPoints starting!", 6);
 
             int returnVal = -1;
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return returnVal;
+            }
 
             try
             {
@@ -10386,6 +10564,11 @@ namespace PRoConEvents
         {
             DebugWrite("fetchAccessList starting!", 6);
 
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return;
+            }
             Boolean success = false;
             Dictionary<String, AdKat_Access> tempAccessCache = new Dictionary<String, AdKat_Access>();
             try
@@ -10453,6 +10636,12 @@ namespace PRoConEvents
         private Boolean isAdminAssistant(AdKat_Player player)
         {
             DebugWrite("fetchAdminAssistants starting!", 6);
+            
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return false;
+            }
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -10492,6 +10681,11 @@ namespace PRoConEvents
             DebugWrite("fetchServerID starting!", 6);
 
             Int64 returnVal = -1;
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return returnVal;
+            }
 
             try
             {
@@ -10538,6 +10732,12 @@ namespace PRoConEvents
 
             TimeSpan returnVal = new TimeSpan(0);
 
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return TimeSpan.MinValue;
+            }
+
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -10574,6 +10774,52 @@ namespace PRoConEvents
             DebugWrite("fetchDBTimeConversion finished!", 6);
 
             return returnVal;
+        }
+
+        private Boolean handlePossibleDisconnect()
+        {
+            Boolean returnVal = false;
+            //Make sure database connection active
+            if (this.databaseConnectionCriticalState || !this.debugDatabaseConnectionActive())
+            {
+                if (!this.databaseConnectionCriticalState)
+                {
+                    this.HandleDatabaseConnectionInteruption();
+                }
+                returnVal = true;
+            }
+            return returnVal;
+        }
+
+        private Boolean debugDatabaseConnectionActive()
+        {
+            DebugWrite("databaseConnectionActive starting!", 8);
+
+            Boolean active = false;
+
+            try
+            {
+                using (MySqlConnection connection = this.getDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT NOW() AS `current_time`";
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                active = true;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                //there was an error, database connection not established
+            }
+            DebugWrite("databaseConnectionActive finished!", 8);
+            return active;
         }
 
         #endregion
@@ -11831,6 +12077,11 @@ namespace PRoConEvents
 
         public Boolean confirmStatLoggerSetup()
         {
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return false;
+            }
             try
             {
                 List<MatchCommand> registered = this.GetRegisteredCommands();
@@ -11925,6 +12176,11 @@ namespace PRoConEvents
 
         public Hashtable getStatLoggerStatus()
         {
+            //Make sure AdKats database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return null;
+            }
             try
             {
                 //Check if enabled
@@ -12835,9 +13091,9 @@ namespace PRoConEvents
             if (aException.internalException.GetType() == typeof(System.TimeoutException) || 
                 aException.internalException.ToString().Contains("Unable to connect to any of the specified MySQL hosts"))
             {
-                this.dbConnectionActive = false;
+                this.HandleDatabaseConnectionInteruption();
             }
-            else if (false)
+            else
             {
                 //Create the Exception record
                 AdKat_Record record = new AdKat_Record();
@@ -12852,6 +13108,105 @@ namespace PRoConEvents
                 this.queueRecordForProcessing(record);
             }
             return aException;
+        }
+
+        public void HandleDatabaseConnectionInteruption()
+        {
+            //Only handle these errors if all threads are already functioning normally
+            if (this.threadsReady)
+            {
+                this.ConsoleError("Database timeout detected. This is timeout " + (++this.databaseTimeouts) + ". Critical disconnect at " + this.databaseTimeoutThreshold + ".");
+                //Check for critical state (timeouts > threshold, and last timeout less than 1 minute ago)
+                if (this.databaseTimeouts >= this.databaseTimeoutThreshold && ((DateTime.Now - this.lastDatabaseTimeout).TotalSeconds < 60))
+                {
+                    try
+                    {
+                        //If the handler is already alive, return
+                        if (this.disconnectHandlingThread != null && this.disconnectHandlingThread.IsAlive)
+                        {
+                            this.DebugWrite("Attempted to start disconnect handling thread when it was already running.", 2);
+                            return;
+                        }
+                        //Create a new thread to handle the disconnect orchestration
+                        this.disconnectHandlingThread = new Thread(new ThreadStart(delegate()
+                        {
+                            try
+                            {
+                                //Log the time of critical disconnect
+                                DateTime criticalDisconnectTime = DateTime.Now;
+                                //Immediately disable Stat Logger
+                                this.ConsoleError("Database connection in critial failure state. Disabling Stat Logger and putting AdKats in Backup Mode.");
+                                this.databaseConnectionCriticalState = true;
+                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "False");
+                                //Sleep 10 seconds
+                                Thread.Sleep(10000);
+                                //Set resolved
+                                Boolean restored = false;
+                                //Enter loop to check for database reconnection
+                                do
+                                {
+                                    //If someone manually disables AdKats, exit everything
+                                    if (!this.isEnabled)
+                                    {
+                                        return;
+                                    }
+                                    //Check if the connection has been restored
+                                    restored = this.debugDatabaseConnectionActive();
+                                    if (!restored)
+                                    {
+                                        //Inform the user database still not connectable
+                                        this.ConsoleError("Database still not accessible. (" + (DateTime.Now - criticalDisconnectTime).TotalSeconds + " seconds since critical disconnect at " + criticalDisconnectTime.ToShortTimeString() + ".");
+                                        //Wait 30 seconds to retry
+                                        Thread.Sleep(30000);
+                                    }
+                                } while (!restored);
+                                //Connection has been restored, inform the user
+                                this.ConsoleSuccess("Database connection restored, re-enabling Stat Logger and returning AdKats to Normal Mode.");
+                                //Reset timeout count
+                                this.databaseTimeouts = 0;
+                                //re-enable AdKats and Stat Logger
+                                this.databaseConnectionCriticalState = false;
+                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
+                                
+                                //Clear the player dinctionary, causing all players to be fetched from the database again
+                                this.playerDictionary.Clear();
+                                
+                                //Create the Exception record
+                                AdKat_Record record = new AdKat_Record();
+                                record.server_id = this.server_id;
+                                record.command_type = AdKat_CommandType.Exception;
+                                record.command_numeric = 0;
+                                record.target_name = "Database";
+                                record.target_player = null;
+                                record.source_name = "AdKats";
+                                record.record_message = "Critical Database Disconnect Handled. Server " + this.server_id + " functioning normally again.";
+                                //Process the record
+                                this.queueRecordForProcessing(record);
+                            }
+                            catch (Exception e)
+                            {
+                                this.ConsoleError("Error handling database disconnect.");
+                            }
+                            this.ConsoleSuccess("Exiting Critical Disconnect Handler.");
+                        }));
+
+                        //Start the thread
+                        this.disconnectHandlingThread.Start();
+                    }
+                    catch (Exception e)
+                    {
+                        this.ConsoleError("Error while initializing disconnect handling thread.");
+                    }
+                }
+                else
+                {
+                    this.lastDatabaseTimeout = DateTime.Now;
+                }
+            }
+            else
+            {
+                this.DebugWrite("Attempted to handle database timeout when threads not running.", 2);
+            }
         }
 
         public void DebugWrite(string msg, int level)
