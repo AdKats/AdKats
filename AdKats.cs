@@ -58,7 +58,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.5.1.0";
+        private string plugin_version = "3.5.1.1";
         private DateTime compileTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -159,6 +159,7 @@ namespace PRoConEvents
         private int dbAccessFetchFrequency = 300;
 
         //Database Settings
+        private Boolean useDatabase = true;
         private string mySqlHostname = "";
         private string mySqlPort = "";
         private string mySqlDatabaseName = "";
@@ -2924,7 +2925,7 @@ namespace PRoConEvents
                                     record.target_name = "Server";
                                     record.target_player = null;
                                     record.source_name = "AdKats";
-                                    record.record_message = "Server Crashed / Blaze Disconnected";
+                                    record.record_message = "Server Crashed / Blaze Disconnected (" + dicCount + " Players Lost)";
                                     //Process the record
                                     this.queueRecordForProcessing(record);
                                     this.ConsoleError(record.record_message);
@@ -6873,11 +6874,6 @@ namespace PRoConEvents
                         this.adminSay("Enforcing ban on " + aBan.ban_record.target_player.player_name + " for " + aBan.ban_record.record_message);
                     }
                     message = "Ban Enforced";
-                }
-                else
-                {
-                    aBan.ban_exception = new AdKat_Exception("Attempted to kick a player who wasn't in the server.");
-                    this.HandleException(aBan.ban_exception);
                 }
             }
             catch (Exception e)
@@ -12200,16 +12196,31 @@ namespace PRoConEvents
                 if (!this.statLoggerStatusHandle.WaitOne(5000))
                 {
                     this.ConsoleWarn("^bCChatGUIDStatsLoggerBF3^n is not enabled or is lagging! Attempting to enable, please wait...");
-                    //Issue the command to enable stat logger
-                    this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
-                    //Wait 5 seconds for enable and initial connect
-                    Thread.Sleep(5000);
-                    //Refetch the status
-                    this.statLoggerStatusHandle.Reset();
-                    this.ExecuteCommand("procon.protected.plugins.call", "CChatGUIDStatsLoggerBF3", "GetStatus", JSON.JsonEncode(request));
-                    if (!this.statLoggerStatusHandle.WaitOne(5000))
+                    int attempts = 0;
+                    Boolean success = false;
+                    do
+                    {
+                        if (!this.isEnabled)
+                        {
+                            return null;
+                        }
+                        //Issue the command to enable stat logger
+                        this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
+                        attempts++;
+                        //Wait 5 seconds for enable and initial connect
+                        Thread.Sleep(5000);
+                        //Refetch the status
+                        this.statLoggerStatusHandle.Reset();
+                        this.ExecuteCommand("procon.protected.plugins.call", "CChatGUIDStatsLoggerBF3", "GetStatus", JSON.JsonEncode(request));
+                        if (this.statLoggerStatusHandle.WaitOne(5000))
+                        {
+                            success = true;
+                        }
+                    } while (!success && attempts < 10);
+                    if (!success)
                     {
                         this.ConsoleError("CChatGUIDStatsLoggerBF3 could not be enabled automatically. Please enable manually.");
+                        return null;
                     }
                 }
                 if (this.lastStatLoggerStatusUpdate != null &&
