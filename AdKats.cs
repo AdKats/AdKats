@@ -58,7 +58,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.5.1.1";
+        private string plugin_version = "3.5.1.2";
         private DateTime compileTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -135,6 +135,12 @@ namespace PRoConEvents
             Database,
             HTTP
         }
+
+        //Plugin Info
+        private volatile Boolean fetchedPluginInformation = false;
+        private volatile string pluginVersionStatus = null;
+        private volatile string pluginDescription = null;
+        private volatile string pluginChangelog = null;
 
         //Constants
         //IDs of the two teams as the server understands it
@@ -252,6 +258,10 @@ namespace PRoConEvents
         private DateTime lastDBBanFetch = DateTime.Now - TimeSpan.FromSeconds(5);
         private int dbBanFetchFrequency = 60;
         private DateTime permaBanEndTime = DateTime.Now.AddYears(20);
+        private int nameBanCount = -1;
+        private int guidBanCount = -1;
+        private int ipBanCount = -1;
+        private DateTime lastBanCountFetch = DateTime.Now;
 
         //AdKats WebAdmin Settings
         //This is currently a constant
@@ -379,6 +389,7 @@ namespace PRoConEvents
 
         //Multi-Threading Settings
         //Threads
+        private Thread PlayerListingThread;
         private Thread MessagingThread;
         private Thread CommandParsingThread;
         private Thread DatabaseCommThread;
@@ -405,7 +416,8 @@ namespace PRoConEvents
         public Object hackerCheckerMutex = new Object();
         //Handles
         private EventWaitHandle teamswapHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private EventWaitHandle listPlayersHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle playerListProcessingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle playerListUpdateHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle messageParsingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle commandParsingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle dbCommHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -414,7 +426,10 @@ namespace PRoConEvents
         private EventWaitHandle serverInfoHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle statLoggerStatusHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle hackerCheckerHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle httpFetchHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+
         //Threading Queues
+        private Queue<List<CPlayerInfo>> playerListProcessingQueue = new Queue<List<CPlayerInfo>>();
         private Queue<KeyValuePair<String, String>> unparsedMessageQueue = new Queue<KeyValuePair<String, String>>();
         private Queue<KeyValuePair<String, String>> unparsedCommandQueue = new Queue<KeyValuePair<String, String>>();
         private Queue<AdKat_Record> unprocessedRecordQueue = new Queue<AdKat_Record>();
@@ -615,6 +630,9 @@ namespace PRoConEvents
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.TempBanPlayer, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.WhatIs, false);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.Voip, false);
+
+            //Fetch the plugin description and changelog
+            this.fetchPluginDescAndChangelog();
         }
 
         #region Plugin details
@@ -641,62 +659,122 @@ namespace PRoConEvents
 
         public string GetPluginDescription()
         {
-            //Plugin description gets downloaded from github so updates can be pushed automatically
-            string pluginDescription = "DESCRIPTION FETCH FAILED|";
-            string pluginChangelog = "CHANGELOG FETCH FAILED";
-            try
+            if (!this.fetchedPluginInformation)
             {
-                //Create web client
-                WebClient client = new WebClient();
-                //Download the readme and changelog
-                pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
-                if (pluginDescription != "DESCRIPTION FETCH FAILED|")
+                //Wait up to 10 seconds for the description to fetch
+                this.DebugWrite("Waiting for plugin description...", 1);
+                if (!this.httpFetchHandle.WaitOne(10000))
                 {
-                    //Extract the latest stable version
-                    string latestStableVersion = this.extractString(pluginDescription, "latest_stable_release");
-                    if (!String.IsNullOrEmpty(latestStableVersion))
-                    {
-                        //Convert it to an integer
-                        string trimmedLatestStableVersion = latestStableVersion.Replace(".", "");
-                        int latestStableVersionInt = Int32.Parse(trimmedLatestStableVersion);
-                        //Get current plugin version
-                        int currentVersionInt = Int32.Parse(this.plugin_version.Replace(".", ""));
+                    this.ConsoleError("Unable to fetch plugin description.");
+                }
+            }
 
-                        String prepend = String.Empty;
-                        //Add the appropriate message to plugin description
-                        if (latestStableVersionInt > currentVersionInt)
+            //Parse out the descriptions
+            string concat = String.Empty;
+            if(!String.IsNullOrEmpty(this.pluginVersionStatus))
+            {
+                concat += this.pluginVersionStatus;
+            }
+            if(!String.IsNullOrEmpty(this.pluginDescription))
+            {
+                concat += this.pluginDescription;
+            }
+            if (!String.IsNullOrEmpty(this.pluginChangelog))
+            {
+                concat += this.pluginChangelog;
+            }
+            
+            //Check if the description fetched
+            if (String.IsNullOrEmpty(concat))
+            {
+                concat = "Plugin description failed to download. Please visit AdKats on github to view the plugin description.";
+            }
+
+            return concat;
+        }
+
+        private void fetchPluginDescAndChangelog()
+        {
+            this.ConsoleWarn("preparing to fetch the plugin desc");
+            this.httpFetchHandle.Reset();
+            //Create a new thread to fetch the plugin description and changelog
+            Thread HTTPFetcher = new Thread(new ThreadStart(delegate()
+            {
+                try
+                {
+                    //Create web client
+                    WebClient client = new WebClient();
+                    //Download the readme and changelog
+                    this.DebugWrite("Fetching plugin readme...", 2);
+                    try
+                    {
+                        this.pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
+                        this.DebugWrite("Plugin description fetched.", 1);
+                    }
+                    catch (Exception e)
+                    {
+                        this.ConsoleError("Failed to fetch plugin description.");
+                    }
+                    this.DebugWrite("Fetching plugin changelog...", 2);
+                    try
+                    {
+                        this.pluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
+                        this.DebugWrite("Plugin changelog fetched.", 1);
+                    }
+                    catch (Exception e)
+                    {
+                        this.ConsoleError("Failed to fetch plugin changelog.");
+                    }
+                    if (this.pluginDescription != "DESCRIPTION FETCH FAILED|")
+                    {
+                        //Extract the latest stable version
+                        string latestStableVersion = this.extractString(this.pluginDescription, "latest_stable_release");
+                        if (!String.IsNullOrEmpty(latestStableVersion))
                         {
-                            prepend = @"<h2 style='color:#DF0101;'>
+                            //Convert it to an integer
+                            string trimmedLatestStableVersion = latestStableVersion.Replace(".", "");
+                            int latestStableVersionInt = Int32.Parse(trimmedLatestStableVersion);
+                            //Get current plugin version
+                            int currentVersionInt = Int32.Parse(this.plugin_version.Replace(".", ""));
+
+                            String versionStatus = String.Empty;
+                            //Add the appropriate message to plugin description
+                            if (latestStableVersionInt > currentVersionInt)
+                            {
+                                versionStatus = @"<h2 style='color:#DF0101;'>
                                 You are running an outdated build of AdKats! Version " + latestStableVersion + @" is available for download!
                             </h2>
                             <a href='https://github.com/ColColonCleaner/AdKats/blob/master/CHANGELOG.md' target='_blank'>
                                 New in Version " + latestStableVersion + @"!
                             </a> Download link below.";
-                        }
-                        else if (latestStableVersionInt == currentVersionInt)
-                        {
-                            prepend = @"<h2 style='color:#01DF01;'>
+                            }
+                            else if (latestStableVersionInt == currentVersionInt)
+                            {
+                                versionStatus = @"<h2 style='color:#01DF01;'>
                                 Congrats! You are running the latest stable build of AdKats!
                             </h2>";
-                        }
-                        else if (latestStableVersionInt < currentVersionInt)
-                        {
-                            prepend = @"<h2 style='color:#FF8000;'>
+                            }
+                            else if (latestStableVersionInt < currentVersionInt)
+                            {
+                                versionStatus = @"<h2 style='color:#FF8000;'>
                                 CAUTION! You are running a BETA or TEST build of AdKats! Functionality might be untested.
                             </h2> Below documentation is for stable build " + latestStableVersion + ".";
+                            }
+                            //Prepend the message
+                            this.pluginVersionStatus = versionStatus;
                         }
-                        //Prepend the message
-                        pluginDescription = prepend + pluginDescription;
                     }
+                    this.DebugWrite("Setting desc fetch handle.", 1);
+                    this.fetchedPluginInformation = true;
+                    this.httpFetchHandle.Set();
                 }
-                pluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
-            }
-            catch (Exception e)
-            {
-                this.HandleException(new AdKat_Exception("Error while creating plugin description."));
-            }
-            //Concat and return
-            return pluginDescription + pluginChangelog;
+                catch (Exception e)
+                {
+                    this.HandleException(new AdKat_Exception("Error while fetching plugin description and changelog.", e));
+                }
+            }));
+            //Start the thread
+            HTTPFetcher.Start();
         }
 
         #endregion
@@ -2446,7 +2524,8 @@ namespace PRoConEvents
         {
             //Initializes all wait handles 
             this.teamswapHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-            this.listPlayersHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+            this.playerListProcessingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+            this.playerListUpdateHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             this.messageParsingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             this.commandParsingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             this.dbCommHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -2455,13 +2534,15 @@ namespace PRoConEvents
             this.hackerCheckerHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             this.serverInfoHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             this.statLoggerStatusHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+            this.httpFetchHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         }
 
         public void setAllHandles()
         {
             //Opens all handles to make sure all threads complete one loop
             this.teamswapHandle.Set();
-            this.listPlayersHandle.Set();
+            this.playerListProcessingHandle.Set();
+            this.playerListUpdateHandle.Set();
             this.messageParsingHandle.Set();
             this.commandParsingHandle.Set();
             this.dbCommHandle.Set();
@@ -2477,6 +2558,9 @@ namespace PRoConEvents
             try
             {
                 //Creats all threads with their starting methods and set to run in the background
+                this.PlayerListingThread = new Thread(new ThreadStart(playerListingThreadLoop));
+                this.PlayerListingThread.IsBackground = true;
+
                 this.MessagingThread = new Thread(new ThreadStart(messagingThreadLoop));
                 this.MessagingThread.IsBackground = true;
 
@@ -2825,117 +2909,7 @@ namespace PRoConEvents
                         //Only perform the following if all threads are ready
                         if (this.threadsReady)
                         {
-                            this.DebugWrite("Listing Players", 5);
-                            //Player list and ban list need to be locked for this operation
-                            lock (this.playersMutex)
-                            {
-                                List<String> playerNames = new List<String>();
-                                //Reset the player counts of both sides and recount everything
-                                this.USPlayerCount = 0;
-                                this.RUPlayerCount = 0;
-                                //Loop over all players in the list
-                                foreach (CPlayerInfo player in players)
-                                {
-                                    playerNames.Add(player.SoldierName);
-                                    AdKat_Player aPlayer = null;
-                                    //Check if the player is already in the player dictionary
-                                    if (this.playerDictionary.TryGetValue(player.SoldierName, out aPlayer))
-                                    {
-                                        //If they are just update the internal frostbite player info
-                                        this.playerDictionary[player.SoldierName].frostbitePlayerInfo = player;
-                                    }
-                                    else
-                                    {
-                                        //If they aren't in the list, fetch their profile from the database
-                                        aPlayer = this.fetchPlayer(-1, player.SoldierName, player.GUID, null);
-                                        //Add the frostbite player info
-                                        aPlayer.frostbitePlayerInfo = player;
-                                        //Set their last death/spawn times
-                                        aPlayer.lastDeath = DateTime.Now;
-                                        aPlayer.lastSpawn = DateTime.Now;
-                                        //Add them to the dictionary
-                                        this.playerDictionary.Add(player.SoldierName, aPlayer);
-                                        //If using ban enforcer, check the player's ban status
-                                        if (this.useBanEnforcer)
-                                        {
-                                            this.queuePlayerForBanCheck(aPlayer);
-                                        }
-                                        else if (this.useExperimentalTools && this.useHackerChecker)
-                                        {
-                                            //Queue the player for a hacker check
-                                            this.queuePlayerForHackerCheck(aPlayer);
-                                        }
-                                        //Load admin assistat status
-                                        lock (this.adminAssistantCache)
-                                        {
-                                            if (this.isAdminAssistant(aPlayer))
-                                            {
-                                                this.DebugWrite(player.SoldierName + " IS an Admin Assistant.", 3);
-                                                if (!this.adminAssistantCache.ContainsKey(player.SoldierName))
-                                                {
-                                                    this.adminAssistantCache.Add(player.SoldierName, false);
-                                                    this.DebugWrite(player.SoldierName + " added to the Admin Assistant Cache.", 4);
-                                                }
-                                                else
-                                                {
-                                                    this.DebugWrite("Player is already in the admin assitant cache, this is abnormal.", 3);
-                                                }
-                                            }
-                                            else
-                                            {
-                                                this.DebugWrite(player.SoldierName + " is NOT an Admin Assistant.", 4);
-                                            }
-                                        }
-                                    }
-
-                                    if (player.TeamID == USTeamID)
-                                    {
-                                        this.USPlayerCount++;
-                                    }
-                                    else if (player.TeamID == RUTeamID)
-                                    {
-                                        this.RUPlayerCount++;
-                                    }
-                                }
-                                //Make sure the player dictionary is clean of any straglers
-                                List<String> dicPlayerNames = new List<string>();
-                                foreach (String player_name in this.playerDictionary.Keys)
-                                {
-                                    dicPlayerNames.Add(player_name);
-                                }
-                                int straglerCount = 0;
-                                int dicCount = this.playerDictionary.Count;
-                                foreach (String player_name in dicPlayerNames)
-                                {
-                                    if (!playerNames.Contains(player_name))
-                                    {
-                                        straglerCount++;
-                                        this.DebugWrite("Removing " + player_name + " from current player list (VIA CLEANUP).", 4);
-                                        this.playerDictionary.Remove(player_name);
-                                    }
-                                }
-                                //Inform the admins of disconnect
-                                if (straglerCount > (dicCount / 2))
-                                {
-                                    //Create the report record
-                                    AdKat_Record record = new AdKat_Record();
-                                    record.server_id = this.server_id;
-                                    record.command_type = AdKat_CommandType.CallAdmin;
-                                    record.command_numeric = 0;
-                                    record.target_name = "Server";
-                                    record.target_player = null;
-                                    record.source_name = "AdKats";
-                                    record.record_message = "Server Crashed / Blaze Disconnected (" + dicCount + " Players Lost)";
-                                    //Process the record
-                                    this.queueRecordForProcessing(record);
-                                    this.ConsoleError(record.record_message);
-                                }
-                            }
-
-                            //Update last successful player list time
-                            this.lastSuccessfulPlayerList = DateTime.Now;
-                            //Set the handle for TeamSwap 
-                            this.listPlayersHandle.Set();
+                            this.queuePlayerListForProcessing(players);
                         }
                     }
                 }
@@ -2946,6 +2920,205 @@ namespace PRoConEvents
             }
         }
 
+        private void queuePlayerListForProcessing(List<CPlayerInfo> players)
+        {
+            this.DebugWrite("Entering queuePlayerListForProcessing", 7);
+            try
+            {
+                if (this.isEnabled)
+                {
+                    this.DebugWrite("Preparing to queue player list for processing", 6);
+                    lock (this.playerListProcessingQueue)
+                    {
+                        this.playerListProcessingQueue.Enqueue(players);
+                        this.DebugWrite("Player list queued for processing", 6);
+                        this.playerListProcessingHandle.Set();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKat_Exception("Error while queueing player list for processing.", e));
+            }
+            this.DebugWrite("Exiting queuePlayerListForProcessing", 7);
+        }
+
+        public void playerListingThreadLoop()
+        {
+            try
+            {
+                this.DebugWrite("MESSAGE: Starting Player Listing Thread", 2);
+                Thread.CurrentThread.Name = "playerlisting";
+                while (true)
+                {
+                    this.DebugWrite("MESSAGE: Entering Player Listing Thread Loop", 7);
+                    if (!this.isEnabled)
+                    {
+                        this.DebugWrite("MESSAGE: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                        break;
+                    }
+
+                    //Get all unparsed inbound lists
+                    Queue<List<CPlayerInfo>> inboundPlayerLists;
+                    if (this.playerListProcessingQueue.Count > 0)
+                    {
+                        this.DebugWrite("MESSAGE: Preparing to lock player list queues to retrive new player lists", 7);
+                        lock (this.playerListProcessingQueue)
+                        {
+                            this.DebugWrite("MESSAGE: Inbound player lists found. Grabbing.", 6);
+                            //Grab all lists in the queue
+                            inboundPlayerLists = new Queue<List<CPlayerInfo>>(this.playerListProcessingQueue.ToArray());
+                            //Clear the queue for next run
+                            this.playerListProcessingQueue.Clear();
+                        }
+                    }
+                    else
+                    {
+                        this.DebugWrite("MESSAGE: No inbound player lists. Waiting for Input.", 4);
+                        //Wait for input
+                        this.playerListProcessingHandle.Reset();
+                        this.playerListProcessingHandle.WaitOne(Timeout.Infinite);
+                        continue;
+                    }
+
+                    //Loop through all messages in order that they came in
+                    while (inboundPlayerLists != null && inboundPlayerLists.Count > 0)
+                    {
+                        this.DebugWrite("MESSAGE: begin reading player lists", 6);
+                        //Dequeue the first/next message
+                        List<CPlayerInfo> players = inboundPlayerLists.Dequeue();
+
+                        this.DebugWrite("Listing Players", 5);
+                        //Player list and ban list need to be locked for this operation
+                        lock (this.playersMutex)
+                        {
+                            List<String> playerNames = new List<String>();
+                            //Reset the player counts of both sides and recount everything
+                            this.USPlayerCount = 0;
+                            this.RUPlayerCount = 0;
+                            //Loop over all players in the list
+                            foreach (CPlayerInfo player in players)
+                            {
+                                playerNames.Add(player.SoldierName);
+                                AdKat_Player aPlayer = null;
+                                //Check if the player is already in the player dictionary
+                                if (this.playerDictionary.TryGetValue(player.SoldierName, out aPlayer))
+                                {
+                                    //If they are just update the internal frostbite player info
+                                    this.playerDictionary[player.SoldierName].frostbitePlayerInfo = player;
+                                }
+                                else
+                                {
+                                    //If they aren't in the list, fetch their profile from the database
+                                    aPlayer = this.fetchPlayer(-1, player.SoldierName, player.GUID, null);
+                                    //Add the frostbite player info
+                                    aPlayer.frostbitePlayerInfo = player;
+                                    //Set their last death/spawn times
+                                    aPlayer.lastDeath = DateTime.Now;
+                                    aPlayer.lastSpawn = DateTime.Now;
+                                    //Add them to the dictionary
+                                    this.playerDictionary.Add(player.SoldierName, aPlayer);
+                                    //If using ban enforcer, check the player's ban status
+                                    if (this.useBanEnforcer)
+                                    {
+                                        this.queuePlayerForBanCheck(aPlayer);
+                                    }
+                                    else if (this.useExperimentalTools && this.useHackerChecker)
+                                    {
+                                        //Queue the player for a hacker check
+                                        this.queuePlayerForHackerCheck(aPlayer);
+                                    }
+                                    //Load admin assistat status
+                                    lock (this.adminAssistantCache)
+                                    {
+                                        if (this.isAdminAssistant(aPlayer))
+                                        {
+                                            this.DebugWrite(player.SoldierName + " IS an Admin Assistant.", 3);
+                                            if (!this.adminAssistantCache.ContainsKey(player.SoldierName))
+                                            {
+                                                this.adminAssistantCache.Add(player.SoldierName, false);
+                                                this.DebugWrite(player.SoldierName + " added to the Admin Assistant Cache.", 4);
+                                            }
+                                            else
+                                            {
+                                                this.DebugWrite("Player is already in the admin assitant cache, this is abnormal.", 3);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            this.DebugWrite(player.SoldierName + " is NOT an Admin Assistant.", 4);
+                                        }
+                                    }
+                                }
+
+                                if (player.TeamID == USTeamID)
+                                {
+                                    this.USPlayerCount++;
+                                }
+                                else if (player.TeamID == RUTeamID)
+                                {
+                                    this.RUPlayerCount++;
+                                }
+                            }
+                            //Make sure the player dictionary is clean of any straglers
+                            List<String> dicPlayerNames = new List<string>();
+                            foreach (String player_name in this.playerDictionary.Keys)
+                            {
+                                dicPlayerNames.Add(player_name);
+                            }
+                            int straglerCount = 0;
+                            int dicCount = this.playerDictionary.Count;
+                            foreach (String player_name in dicPlayerNames)
+                            {
+                                if (!playerNames.Contains(player_name))
+                                {
+                                    straglerCount++;
+                                    this.DebugWrite("Removing " + player_name + " from current player list (VIA CLEANUP).", 4);
+                                    this.playerDictionary.Remove(player_name);
+                                }
+                            }
+                            //Inform the admins of disconnect
+                            if (straglerCount > (dicCount / 2))
+                            {
+                                //Create the report record
+                                AdKat_Record record = new AdKat_Record();
+                                record.server_id = this.server_id;
+                                record.command_type = AdKat_CommandType.CallAdmin;
+                                record.command_numeric = 0;
+                                record.target_name = "Server";
+                                record.target_player = null;
+                                record.source_name = "AdKats";
+                                record.record_message = "Server Crashed / Blaze Disconnected (" + dicCount + " Players Lost)";
+                                //Process the record
+                                this.queueRecordForProcessing(record);
+                                this.ConsoleError(record.record_message);
+                            }
+                        }
+
+                        //Update last successful player list time
+                        this.lastSuccessfulPlayerList = DateTime.Now;
+                        //Set the handle for TeamSwap 
+                        this.playerListUpdateHandle.Set();
+                    }
+                }
+                this.DebugWrite("MESSAGE: Ending Player Listing Thread", 2);
+            }
+            catch (Exception e)
+            {
+                if (typeof(ThreadAbortException).Equals(e.GetType()))
+                {
+                    this.HandleException(new AdKat_Exception("Player Listing thread aborted. Attempting to restart.", e));
+                    this.DebugWrite("Thread Exception", 4);
+                    Thread.ResetAbort();
+                    return;
+                }
+                else
+                {
+                    this.HandleException(new AdKat_Exception("Error occured in player listing thread.", e));
+                }
+            }
+        }
+
         public override void OnPunkbusterPlayerInfo(CPunkbusterInfo cpbiPlayer)
         {
             try
@@ -2953,27 +3126,30 @@ namespace PRoConEvents
                 this.DebugWrite("OPPI: OnPunkbusterPlayerInfo fired!", 7);
                 AdKat_Player targetPlayer = null;
                 Boolean updatePlayer = false;
-                if (this.playerDictionary.TryGetValue(cpbiPlayer.SoldierName, out targetPlayer))
+                lock(this.playersMutex)
                 {
-                    this.DebugWrite("OPPI: PB player already in the player list.", 7);
-                    updatePlayer = (targetPlayer.player_ip == null);
-                    //Update the player with pb info
-                    targetPlayer.PBPlayerInfo = cpbiPlayer;
-                    targetPlayer.player_pbguid = cpbiPlayer.GUID;
-                    targetPlayer.player_slot = cpbiPlayer.SlotID;
-                    targetPlayer.player_ip = cpbiPlayer.Ip.Split(':')[0];
-                    if (updatePlayer)
+                    if (this.playerDictionary.TryGetValue(cpbiPlayer.SoldierName, out targetPlayer))
                     {
-                        this.DebugWrite("OPPI: Queueing existing player " + targetPlayer.player_name + " for update.", 4);
-                        this.updatePlayer(targetPlayer);
-                        //If using ban enforcer, queue player for update
-                        if (this.useBanEnforcer)
+                        this.DebugWrite("OPPI: PB player already in the player list.", 7);
+                        updatePlayer = (targetPlayer.player_ip == null);
+                        //Update the player with pb info
+                        targetPlayer.PBPlayerInfo = cpbiPlayer;
+                        targetPlayer.player_pbguid = cpbiPlayer.GUID;
+                        targetPlayer.player_slot = cpbiPlayer.SlotID;
+                        targetPlayer.player_ip = cpbiPlayer.Ip.Split(':')[0];
+                        if (updatePlayer)
                         {
-                            this.queuePlayerForBanCheck(targetPlayer);
+                            this.DebugWrite("OPPI: Queueing existing player " + targetPlayer.player_name + " for update.", 4);
+                            this.updatePlayer(targetPlayer);
+                            //If using ban enforcer, queue player for update
+                            if (this.useBanEnforcer)
+                            {
+                                this.queuePlayerForBanCheck(targetPlayer);
+                            }
                         }
                     }
+                    this.DebugWrite("OPPI: Player slot: " + cpbiPlayer.SlotID, 7);
                 }
-                this.DebugWrite("OPPI: Player slot: " + cpbiPlayer.SlotID, 7);
                 this.DebugWrite("OPPI: OnPunkbusterPlayerInfo finished!", 7);
             }
             catch (Exception e)
@@ -4494,10 +4670,10 @@ namespace PRoConEvents
                     }
 
                     //Call List Players
-                    this.listPlayersHandle.Reset();
+                    this.playerListUpdateHandle.Reset();
                     this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                     //Wait for listPlayers to finish
-                    if (!this.listPlayersHandle.WaitOne(10000))
+                    if (!this.playerListUpdateHandle.WaitOne(10000))
                     {
                         this.DebugWrite("ListPlayers ran out of time for TeamSwap. 10 sec.", 1);
                     }
@@ -7672,6 +7848,7 @@ namespace PRoConEvents
                     if (firstRun)
                     {
                         //Start other threads
+                        this.PlayerListingThread.Start();
                         this.MessagingThread.Start();
                         this.CommandParsingThread.Start();
                         this.ActionHandlingThread.Start();
@@ -8994,6 +9171,11 @@ namespace PRoConEvents
             {
                 return 0;
             }
+            if (this.nameBanCount >= 0 && (DateTime.Now - this.lastBanCountFetch).TotalSeconds < 60)
+            {
+                return this.nameBanCount;
+            }
+            this.lastBanCountFetch = DateTime.Now;
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -9038,6 +9220,11 @@ namespace PRoConEvents
             {
                 return 0;
             }
+            if (this.guidBanCount >= 0 && (DateTime.Now - this.lastBanCountFetch).TotalSeconds < 60)
+            {
+                return this.guidBanCount;
+            }
+            this.lastBanCountFetch = DateTime.Now;
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -9082,6 +9269,11 @@ namespace PRoConEvents
             {
                 return 0;
             }
+            if (this.ipBanCount >= 0 && (DateTime.Now - this.lastBanCountFetch).TotalSeconds < 60)
+            {
+                return this.ipBanCount;
+            }
+            this.lastBanCountFetch = DateTime.Now;
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -12200,13 +12392,10 @@ namespace PRoConEvents
                     Boolean success = false;
                     do
                     {
-                        if (!this.isEnabled)
-                        {
-                            return null;
-                        }
+                        attempts++;
+                        this.DebugWrite("Stat Logger Enable Attempt " + attempts, 2);
                         //Issue the command to enable stat logger
                         this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
-                        attempts++;
                         //Wait 5 seconds for enable and initial connect
                         Thread.Sleep(5000);
                         //Refetch the status
@@ -13096,6 +13285,12 @@ namespace PRoConEvents
         
         public AdKat_Exception HandleException(AdKat_Exception aException)
         {
+            //If it's null, just return
+            if (aException == null)
+            {
+                this.ConsoleError("Attempted to handle exception when none was given.");
+                return aException;
+            }
             //Always write the exception to console
             this.ConsoleWrite(aException.ToString(), ConsoleMessageType.Exception);
             //Check if the exception attributes to the database
