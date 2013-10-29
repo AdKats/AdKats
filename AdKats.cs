@@ -58,7 +58,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.5.1.2";
+        private string plugin_version = "3.5.1.3";
         private DateTime compileTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -836,7 +836,7 @@ namespace PRoConEvents
                         foreach (AdKat_Access access in tempAccess)
                         {
                             lstReturn.Add(new CPluginVariable("3. Player Access Settings|" + access.player_name + "|Access Level", typeof(int), access.access_level));
-                            //lstReturn.Add(new CPluginVariable("3. Player Access Settings|" + access.player_name + "|Email Address", typeof(string), access.player_email));
+                            //lstReturn.Add(new CPluginVariable("3. Player Access Settings|" + access.player_name + "|Email Address", typeof(string)));
                         }
                     }
                     else
@@ -2406,11 +2406,6 @@ namespace PRoConEvents
                         this.DebugWrite("Changing access level", 5);
                         access.access_level = Int32.Parse(strValue);
                     }
-                    else if (variableParse[1] == "Email Address")
-                    {
-                        this.DebugWrite("Changing email", 5);
-                        access.player_email = strValue;
-                    }
                     this.queueAccessUpdate(access);
                 }
                 #endregion
@@ -2740,12 +2735,14 @@ namespace PRoConEvents
                             this.DebugWrite(index + "...", 1);
                             Thread.Sleep(1000);
                         }
+
                         ConsoleWrite("Initializing AdKats " + this.GetPluginVersion() + " components.");
                         DateTime startTime = DateTime.Now;
 
                         //Confirm Stat Logger active and properly configured
                         this.ConsoleWrite("Confirming proper setup for CChatGUIDStatsLoggerBF3, please wait...");
-                        if (this.confirmStatLoggerSetup())
+                        //TODO put back
+                        /*if (this.confirmStatLoggerSetup())
                         {
                             this.ConsoleSuccess("^bCChatGUIDStatsLoggerBF3^n enabled and active!");
                         }
@@ -2754,7 +2751,7 @@ namespace PRoConEvents
                             //Stat logger could not be enabled or managed, disabled AdKats
                             this.disable();
                             return;
-                        }
+                        }*/
 
                         //Inform of IP
                         this.ConsoleSuccess("Server IP is " + this.server_ip + "!");
@@ -4301,6 +4298,11 @@ namespace PRoConEvents
                     if (speaker == this.debugSoldierName)
                     {
                         this.commandStartTime = DateTime.Now;
+                    }
+                    //If message contains comorose just return and ignore
+                    if (message.Contains("ComoRose:"))
+                    {
+                        return;
                     }
                     //Only queue the message for parsing if it's from a player
                     if (!speaker.Equals("Server"))
@@ -7710,7 +7712,8 @@ namespace PRoConEvents
                     //Every 60 seconds make sure stat logger is running and fully operational
                     if (this.lastStatLoggerStatusUpdateTime.AddSeconds(60) < DateTime.Now)
                     {
-                        this.confirmStatLoggerSetup();
+                        //TODO put back
+                        //this.confirmStatLoggerSetup();
                     }
 
                     //Update server ID
@@ -9377,7 +9380,7 @@ namespace PRoConEvents
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         //Set the insert command structure
-                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkats_accesslist` (`player_name`, `player_email`, `access_level`) VALUES (@player_name, @player_email, @access_level) ON DUPLICATE KEY UPDATE `player_email` = @player_email, `access_level` = @access_level";
+                        command.CommandText = "INSERT INTO `" + this.mySqlDatabaseName + "`.`adkats_accesslist` (`player_name`, `access_level`) VALUES (@player_name, @access_level) ON DUPLICATE KEY UPDATE `access_level` = @access_level";
                         //Set values
                         command.Parameters.AddWithValue("@player_name", access.player_name);
 
@@ -9399,7 +9402,7 @@ namespace PRoConEvents
                         }
                         command.Parameters.AddWithValue("@access_level", access_level);
 
-                        string player_email = "InvalidEmail@gmail.com";
+                        /*string player_email = "InvalidEmail@gmail.com";
                         if (String.IsNullOrEmpty(access.player_email))
                         {
                             if (oldAccess != null)
@@ -9415,7 +9418,7 @@ namespace PRoConEvents
                         {
                             player_email = access.player_email;
                         }
-                        command.Parameters.AddWithValue("@player_email", player_email);
+                        command.Parameters.AddWithValue("@player_email", player_email);*/
 
                         this.DebugWrite("Uploading Access: " + access.player_name + "|" + access.access_level + "|" + access.player_email, 5);
                         //Attempt to execute the query
@@ -10766,7 +10769,7 @@ namespace PRoConEvents
                     List<string> namesToGUIDUpdate = new List<string>();
                     using (MySqlCommand command = connection.CreateCommand())
                     {
-                        command.CommandText = "SELECT `player_name`, `member_id`, `player_email`, `access_level` FROM `" + this.mySqlDatabaseName + "`.`adkats_accesslist` ORDER BY `access_level` ASC";
+                        command.CommandText = "SELECT `player_name`, `access_level` FROM `adkats_accesslist` ORDER BY `access_level` ASC";
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             while (reader.Read())
@@ -10774,8 +10777,6 @@ namespace PRoConEvents
                                 success = true;
                                 AdKat_Access access = new AdKat_Access();
                                 access.player_name = reader.GetString("player_name");
-                                access.member_id = reader.GetInt32("member_id");
-                                access.player_email = reader.GetString("player_email");
                                 access.access_level = reader.GetInt32("access_level");
                                 if (!String.IsNullOrEmpty(access.player_name))
                                 {
@@ -12362,7 +12363,7 @@ namespace PRoConEvents
             }
         }
 
-        public Hashtable getStatLoggerStatus()
+        public Hashtable getStatLoggerStatus() 
         {
             //Make sure AdKats database connection active
             if (this.handlePossibleDisconnect())
@@ -12569,8 +12570,8 @@ namespace PRoConEvents
                 return m;
             if (m == 0)
                 return n;
-            for (int i = 0; i <= n; d[i, 0] = i++) ;
-            for (int j = 0; j <= m; d[0, j] = j++) ;
+            for (int i = 0; i <= n; d[i, 0] = i++);
+            for (int j = 0; j <= m; d[0, j] = j++);
             for (int i = 1; i <= n; i++)
                 for (int j = 1; j <= m; j++)
                     d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 0), d[i - 1, j - 1] + ((t[j - 1] == s[i - 1]) ? 0 : 1));
