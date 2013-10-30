@@ -58,11 +58,15 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.5.1.3";
+        private string plugin_version = "3.5.1.4";
         private DateTime compileTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
         Boolean slowmo = false;
+
+        //BF4 temp variables
+        Boolean weaponCodesTableTested = false;
+        Boolean weaponCodesTableConfirmed = false;
 
         //Match command showing whether AdKats is installed and running
         private MatchCommand AdKatsAvailableIndicator;
@@ -3276,8 +3280,17 @@ namespace PRoConEvents
             this.DebugWrite("Entering OnPlayerKilled", 7);
             try
             {
+                //If the plugin is not enabled just return
+                if (!this.isEnabled)
+                {
+                    return;
+                }
+
+                //TEMP BF4 weapon code things
+                this.uploadWeaponCode(kKillerVictimDetails.DamageType);
+
                 //Used for delayed player moving
-                if (isEnabled && this.teamswapOnDeathMoveDic.Count > 0)
+                if (this.teamswapOnDeathMoveDic.Count > 0)
                 {
                     lock (this.teamswapMutex)
                     {
@@ -3553,6 +3566,68 @@ namespace PRoConEvents
                 this.HandleException(new AdKat_Exception("Error while processing player kill.", e));
             }
             this.DebugWrite("Exiting OnPlayerKilled", 7);
+        }
+
+        private void uploadWeaponCode(String weaponCode)
+        {
+            DebugWrite("uploadWeaponCode starting!", 7);
+
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                return;
+            }
+
+            try
+            {
+                if (!this.weaponCodesTableTested)
+                {
+                    this.weaponCodesTableTested = true;
+                    this.weaponCodesTableConfirmed = this.confirmTable("tbl_weaponcodes");
+                }
+                if (!this.weaponCodesTableConfirmed)
+                {
+                    return;
+                }
+                //Check for length too great
+                if (weaponCode.Length > 100)
+                {
+                    this.ConsoleError("Weapon name '" + weaponCode + "' too long!!!");
+                    return;
+                }
+
+                using (MySqlConnection connection = this.getDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+
+                        //Set the insert command structure
+                        command.CommandText = @"
+                        INSERT INTO `tbl_weaponcodes` 
+                        (
+                            `weapon_code`
+                        ) 
+                        VALUES 
+                        (  
+                            '" + weaponCode + @"'
+                        ) 
+                        ON DUPLICATE KEY 
+                        UPDATE 
+                            `weapon_usage_count` = `weapon_usage_count` + 1";
+                        //Attempt to execute the query
+                        if (command.ExecuteNonQuery() > 0)
+                        {
+                            this.DebugWrite("Weapon pushed to database", 7);
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKat_Exception("Error while uploading weapon to database.", e));
+            }
+
+            DebugWrite("uploadWeaponCode finished!", 7);
         }
 
         public override void OnPlayerSpawned(String soldierName, Inventory spawnedInventory)
