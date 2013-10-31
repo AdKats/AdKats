@@ -58,7 +58,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.5.1.4";
+        private string plugin_version = "3.5.1.5";
         private DateTime compileTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -4364,7 +4364,22 @@ namespace PRoConEvents
         //all messaging is redirected to global chat for analysis
         public override void OnGlobalChat(string speaker, string message)
         {
-            this.DebugWrite("Entering ", 7);
+            this.uploadChatLog(speaker, "Global", message);
+            this.handleChat(speaker, message);
+        }
+        public override void OnTeamChat(string speaker, string message, int teamId)
+        {
+            this.uploadChatLog(speaker, "Team", message);
+            this.handleChat(speaker, message); 
+        }
+        public override void OnSquadChat(string speaker, string message, int teamId, int squadId)
+        {
+            this.uploadChatLog(speaker, "Squad", message);
+            this.handleChat(speaker, message); 
+        }
+        private void handleChat(string speaker, string message)
+        {
+            this.DebugWrite("Entering handleChat", 7);
             try
             {
                 if (isEnabled)
@@ -4390,10 +4405,8 @@ namespace PRoConEvents
             {
                 this.HandleException(new AdKat_Exception("Error while processing inbound chat messages.", e));
             }
-            this.DebugWrite("Exiting ", 7);
+            this.DebugWrite("Exiting handleChat", 7);
         }
-        public override void OnTeamChat(string speaker, string message, int teamId) { this.OnGlobalChat(speaker, message); }
-        public override void OnSquadChat(string speaker, string message, int teamId, int squadId) { this.OnGlobalChat(speaker, message); }
 
         public string sendMessageToSource(AdKat_Record record, string message)
         {
@@ -8973,6 +8986,99 @@ namespace PRoConEvents
                 record.record_exception = new AdKat_Exception("Unexpected error uploading Record.", e);
                 this.HandleException(record.record_exception);
                 return false;
+            }
+        }
+
+        private Boolean uploadChatLog(string log_source, string log_subset, string log_message)
+        {
+            DebugWrite("uploadChatLog starting!", 6);
+            Boolean success = false;
+            if (!this.threadsReady)
+            {
+                return success;
+            }
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                this.HandleException(new AdKat_Exception("Database not connected."));
+                return success;
+            }
+            MySqlCommand commandAttempt = null;
+            try
+            {
+                using (MySqlConnection connection = this.getDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        //Set the insert command structure
+                        command.CommandText = @"INSERT INTO `tbl_chatlog` 
+                        (
+                            `logDate`, 
+                            `ServerID`, 
+                            `logSubset`, 
+                            `logPlayerID`, 
+                            `logSoldierName`, 
+                            `logMessage`
+                        ) 
+                        VALUES 
+                        (
+                            NOW(), 
+                            @server_id, 
+                            @log_subset, 
+                            @log_player_id, 
+                            @log_player_name, 
+                            @log_message
+                        )";
+
+                        //Fetch the player from player dictionary
+                        AdKat_Player player = null;
+                        if(this.playerDictionary.TryGetValue(log_source, out player))
+                        {
+                            this.DebugWrite("Player found for chat log upload.", 5);
+                        }
+
+                        //Fill the log
+                        command.Parameters.AddWithValue("@server_id", this.server_id);
+                        command.Parameters.AddWithValue("@log_subset", log_subset);
+                        if(player != null && player.player_id > 0)
+                        {
+                            command.Parameters.AddWithValue("@log_player_id", player.player_id);
+                        }
+                        else
+                        {
+                            command.Parameters.AddWithValue("@log_player_id", null);
+                        }
+                        command.Parameters.AddWithValue("@log_player_name", log_source);
+                        //Trim to 255 characters
+                        log_message = log_message.Length <= 255 ? log_message : log_message.Substring(0, 255);
+                        command.Parameters.AddWithValue("@log_message", log_message);
+
+                        //Get reference to the command in case of error
+                        commandAttempt = command;
+                        //Attempt to execute the query
+                        if (command.ExecuteNonQuery() > 0)
+                        {
+                            success = true;
+                        }
+                    }
+                }
+
+                if (success)
+                {
+                    DebugWrite("Chat upload for " + log_source + " SUCCESSFUL!", 5);
+                }
+                else
+                {
+                    this.HandleException(new AdKat_Exception("Error uploading chat log. Success not reached."));
+                    return success;
+                }
+                DebugWrite("uploadChatLog finished!", 6);
+                return success;
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKat_Exception("Unexpected error uploading chat log.", e));
+                return success;
             }
         }
 
