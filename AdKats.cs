@@ -58,8 +58,8 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.5.1.5";
-        private DateTime compileTime = DateTime.Now;
+        private string plugin_version = "3.5.1.9";
+        private DateTime startTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
         Boolean slowmo = false;
@@ -198,11 +198,23 @@ namespace PRoConEvents
         private Int64 server_id = -1;
         private string server_ip = null;
         private CServerInfo serverInfo = null;
+        private string game_version = "UNKNOWN";
+        private string server_type = "UNKNOWN";
+        private Boolean fairFightEnabled = false;
+        private Boolean hitIndicatorEnabled = false;
+        private Boolean commanderEnabled = false;
+        private Boolean forceReloadWholeMags = false;
+        private int maxSpectators = -1;
 
         //Setting Import
         private Int64 settingImportID = -1;
         private DateTime lastDBSettingFetch = DateTime.Now;
         private int dbSettingFetchFrequency = 300;
+
+        //Round Settings
+        private Boolean useRoundTimer = false;
+        private Boolean roundEnded = false;
+        private double roundTimeMinutes = 30;
 
         //ADK Settings
         //This will automatically change to true on ADK servers
@@ -212,10 +224,15 @@ namespace PRoConEvents
         private Boolean useExperimentalTools = false;
         //NO EX Limiter
         private Boolean useNoExplosivesLimit = false;
+        private string noExplosivesWeaponString = "M320|RPG|SMAW|C4|M67|Claymore|MAV|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_Flashbang|_SMK|_Smoke|_FGM148|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
         //Grenade Cook Catcher
         private Boolean useGrenadeCookCatcher = false;
         //Hacker Checker
         private Boolean useHackerChecker = false;
+        private string[] hackerCheckerWhitelist = 
+        {
+            "ColColonCleaner"
+        };
         private Boolean useDPSChecker = false;
         private double DPSTriggerLevel = 100.0;
         private Boolean useHSKChecker = false;
@@ -352,6 +369,8 @@ namespace PRoConEvents
         private volatile int lowestTicketCount = 500000;
         //the highest ticket count of either team
         private volatile int highestTicketCount = 0;
+        private volatile int USTicketCount = 0;
+        private volatile int RUTicketCount = 0;
         //the highest ticket count of either team to allow self move
         private int teamSwapTicketWindowHigh = 500000;
         //the lowest ticket count of either team to allow self move
@@ -404,6 +423,7 @@ namespace PRoConEvents
         private Thread activator;
         private Thread finalizer;
         private Thread disconnectHandlingThread;
+        private Thread roundTimerThread;
         //Mutexes
         public Object playersMutex = new Object();
         public Object banListMutex = new Object();
@@ -418,6 +438,7 @@ namespace PRoConEvents
         public Object unprocessedActionMutex = new Object();
         public Object banEnforcerMutex = new Object();
         public Object hackerCheckerMutex = new Object();
+        public Object roundEndingMutex = new Object();
         //Handles
         private EventWaitHandle teamswapHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle playerListProcessingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -431,6 +452,7 @@ namespace PRoConEvents
         private EventWaitHandle statLoggerStatusHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle hackerCheckerHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle httpFetchHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle roundEndingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
         //Threading Queues
         private Queue<List<CPlayerInfo>> playerListProcessingQueue = new Queue<List<CPlayerInfo>>();
@@ -467,7 +489,7 @@ namespace PRoConEvents
             //By default plugin is not enabled or ready
             this.isEnabled = false;
             this.threadsReady = false;
-            this.compileTime = DateTime.Now;
+            this.startTime = DateTime.Now;
             //Assign the match command
             this.AdKatsAvailableIndicator = new MatchCommand("AdKats", "NoCallableMethod", new List<string>(), "AdKats_NoCallableMethod", new List<MatchArgumentFormat>(), new ExecutionRequirements(ExecutionScope.None), "Useable by other plugins to determine whether this one is installed and enabled.");
             //Debug level is 0 by default
@@ -795,12 +817,16 @@ namespace PRoConEvents
                 lstReturn = new List<CPluginVariable>();
 
                 lstReturn.Add(new CPluginVariable("Complete these settings before enabling.", typeof(string), "Once enabled, more settings will appear."));
-                //SQL Settings
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Hostname", typeof(string), mySqlHostname));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Port", typeof(string), mySqlPort));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Database", typeof(string), mySqlDatabaseName));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof(string), mySqlUsername));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof(string), mySqlPassword));
+                //lstReturn.Add(new CPluginVariable("2. MySQL Settings|Enable Database Usage", typeof(Boolean), this.useDatabase));
+                if (this.useDatabase)
+                {
+                    //SQL Settings
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Hostname", typeof(string), mySqlHostname));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Port", typeof(string), mySqlPort));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Database", typeof(string), mySqlDatabaseName));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof(string), mySqlUsername));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof(string), mySqlPassword));
+                }
                 //Debugging Settings
                 lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof(int), this.debugLevel));
             }
@@ -862,12 +888,16 @@ namespace PRoConEvents
             try
             {
 
-                //SQL Settings
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Hostname", typeof(string), mySqlHostname));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Port", typeof(string), mySqlPort));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Database", typeof(string), mySqlDatabaseName));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof(string), mySqlUsername));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof(string), mySqlPassword));
+                //lstReturn.Add(new CPluginVariable("2. MySQL Settings|Enable Database Usage", typeof(Boolean), this.useDatabase));
+                if (this.useDatabase)
+                {
+                    //SQL Settings
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Hostname", typeof(string), mySqlHostname));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Port", typeof(string), mySqlPort));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Database", typeof(string), mySqlDatabaseName));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof(string), mySqlUsername));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof(string), mySqlPassword));
+                }
 
                 //In-Game Command Settings
                 lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
@@ -993,11 +1023,21 @@ namespace PRoConEvents
                     lstReturn.Add(new CPluginVariable("X99. Experimental|Use Experimental Tools", typeof(Boolean), this.useExperimentalTools));
                     if (this.useExperimentalTools)
                     {
+                        lstReturn.Add(new CPluginVariable("X99. Experimental|Round Timer: Enable", typeof(Boolean), this.useRoundTimer));
+                        if (this.useRoundTimer)
+                        {
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|Round Timer: Round Duration Minutes", typeof(double), this.roundTimeMinutes));
+                        }
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use NO EXPLOSIVES Limiter", typeof(Boolean), this.useNoExplosivesLimit));
+                        if (this.useNoExplosivesLimit)
+                        {
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Weapon String", typeof(string), this.noExplosivesWeaponString));
+                        }
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof(Boolean), this.useGrenadeCookCatcher));
                         lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: Enable", typeof(Boolean), this.useHackerChecker));
                         if (this.useHackerChecker)
                         {
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: Whitelist", typeof(string[]), this.hackerCheckerWhitelist));
                             lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: DPS Checker: Enable", typeof(Boolean), this.useDPSChecker));
                             if (this.useDPSChecker)
                             {
@@ -1214,6 +1254,41 @@ namespace PRoConEvents
                         this.queueSettingForUpload(new CPluginVariable(@"Use HSK Checker", typeof(Boolean), this.useHSKChecker));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Round Timer: Enable").Success)
+                {
+                    Boolean useTimer = Boolean.Parse(strValue);
+                    if (useTimer != this.useRoundTimer)
+                    {
+                        this.useRoundTimer = useTimer;
+                        if (this.useRoundTimer)
+                        {
+                            if (this.threadsReady)
+                            {
+                                this.ConsoleWarn("Internal Round Timer activated, will enable on next round.");
+                            }
+                        }
+                        else
+                        {
+                            this.ConsoleWarn("Internal Round Timer disabled.");
+                        }
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), this.useRoundTimer));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Round Timer: Round Duration Minutes").Success)
+                {
+                    double duration = Double.Parse(strValue);
+                    if (this.roundTimeMinutes != duration)
+                    {
+                        if (duration <= 0)
+                        {
+                            duration = 30.0;
+                        }
+                        this.roundTimeMinutes = duration;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof(double), this.roundTimeMinutes));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Use NO EXPLOSIVES Limiter").Success)
                 {
                     Boolean useLimiter = Boolean.Parse(strValue);
@@ -1233,6 +1308,22 @@ namespace PRoConEvents
                         }
                         //Once setting has been changed, upload the change to database
                         this.queueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), this.useNoExplosivesLimit));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"NO EXPLOSIVES Weapon String").Success)
+                {
+                    if (this.noExplosivesWeaponString != strValue)
+                    {
+                        if (!String.IsNullOrEmpty(strValue))
+                        {
+                            this.noExplosivesWeaponString = strValue;
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Weapon String", typeof(string), this.noExplosivesWeaponString));
+                        }
+                        else
+                        {
+                            this.ConsoleError("Weapon string cannot be empty.");
+                        }
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Grenade Cook Catcher").Success)
@@ -1276,6 +1367,12 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         this.queueSettingForUpload(new CPluginVariable(@"Use Hacker Checker", typeof(Boolean), this.useHackerChecker));
                     }
+                }
+                else if (Regex.Match(strVariable, @"HackerChecker: Whitelist").Success)
+                {
+                    this.hackerCheckerWhitelist = CPluginVariable.DecodeStringArray(strValue);
+                    //Once setting has been changed, upload the change to database
+                    this.queueSettingForUpload(new CPluginVariable(@"Use Hacker Checker", typeof(Boolean), this.useHackerChecker));
                 }
                 else if (Regex.Match(strVariable, @"DPS Checker: Enable").Success)
                 {
@@ -2128,6 +2225,26 @@ namespace PRoConEvents
                 }
                 #endregion
                 #region sql settings
+                else if (Regex.Match(strVariable, @"Enable Database Usage").Success)
+                {
+                    Boolean tmp = false;
+                    if (Boolean.TryParse(strValue, out tmp))
+                    {
+                        //Disable AdKats if enabling database usWage
+                        if (tmp && !this.useDatabase && (this.isEnabled || this.threadsReady))
+                        {
+                            this.ConsoleWarn("AdKats must be restarted to enable database usage.");
+                            this.disable();
+                            Thread.Sleep(1000);
+                        }
+
+                        this.useDatabase = tmp;
+                    }
+                    else
+                    {
+                        this.ConsoleError("Invalid Input for Enable Database Usage");
+                    }
+                }
                 else if (Regex.Match(strVariable, @"MySQL Hostname").Success)
                 {
                     mySqlHostname = strValue;
@@ -2701,7 +2818,26 @@ namespace PRoConEvents
                     "OnBanListClear",
                     "OnBanListSave",
                     "OnBanListLoad",
-                    "OnBanList");
+                    "OnBanList",
+                    "OnEndRound",
+                    "OnSpectatorListLoad",
+                    "OnSpectatorListSave",
+                    "OnSpectatorListPlayerAdded",
+                    "OnSpectatorListPlayerRemoved",
+                    "OnSpectatorListCleared",
+                    "OnSpectatorListList",
+                    "OnGameAdminLoad",
+                    "OnGameAdminSave",
+                    "OnGameAdminPlayerAdded",
+                    "OnGameAdminPlayerRemoved",
+                    "OnGameAdminCleared",
+                    "OnGameAdminList",
+                    "OnFairFight",
+                    "OnIsHitIndicator",
+                    "OnCommander",
+                    "OnForceReloadWholeMags",
+                    "OnServerType",
+                    "OnMaxSpectators");
             }
             catch (Exception e)
             {
@@ -2709,6 +2845,51 @@ namespace PRoConEvents
             }
             this.DebugWrite("Exiting OnPluginLoaded", 7);
         }
+
+        public override void OnFairFight(bool isEnabled)
+        {
+            this.fairFightEnabled = isEnabled;
+            this.ConsoleWarn("this.fairFightEnabled: " + this.fairFightEnabled);
+        }
+        public override void OnIsHitIndicator(bool isEnabled) 
+        {
+            this.hitIndicatorEnabled = isEnabled;
+            this.ConsoleWarn("this.hitIndicatorEnabled: " + this.hitIndicatorEnabled);
+        }
+        public override void OnCommander(bool isEnabled)
+        {
+            this.commanderEnabled = isEnabled;
+            this.ConsoleWarn("this.commanderEnabled: " + this.commanderEnabled);
+        }
+        public override void OnForceReloadWholeMags(bool isEnabled)
+        {
+            this.forceReloadWholeMags = isEnabled;
+            this.ConsoleWarn("this.forceReloadWholeMags: " + this.forceReloadWholeMags);
+        }
+        public override void OnServerType(string value)
+        {
+            this.server_type = value;
+            this.ConsoleWarn("this.server_type: " + this.server_type);
+        }
+        public override void OnMaxSpectators(int limit)
+        {
+            this.maxSpectators = limit;
+            this.ConsoleWarn("this.maxSpectators: " + this.maxSpectators);
+        }
+
+        public override void OnSpectatorListLoad() { }
+        public override void OnSpectatorListSave() { }
+        public override void OnSpectatorListPlayerAdded(string soldierName) { }
+        public override void OnSpectatorListPlayerRemoved(string soldierName) { }
+        public override void OnSpectatorListCleared() { }
+        public override void OnSpectatorListList(List<string> soldierNames) { }
+
+        public override void OnGameAdminLoad() { }
+        public override void OnGameAdminSave() { }
+        public override void OnGameAdminPlayerAdded(string soldierName) { }
+        public override void OnGameAdminPlayerRemoved(string soldierName) { }
+        public override void OnGameAdminCleared() { }
+        public override void OnGameAdminList(List<string> soldierNames) { }
 
         //DONE
         public void OnPluginEnable()
@@ -2732,30 +2913,36 @@ namespace PRoConEvents
                         //Initialize the stat library
                         this.statLibrary = new StatLibrary();
 
-                        ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
-                        //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
-                        for (int index = 10; index > 0; index--)
+                        if (this.useDatabase)
                         {
-                            this.DebugWrite(index + "...", 1);
-                            Thread.Sleep(1000);
+                            ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
+                            //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
+                            for (int index = 10; index > 0; index--)
+                            {
+                                this.DebugWrite(index + "...", 1);
+                                Thread.Sleep(1000);
+                            }
                         }
 
                         ConsoleWrite("Initializing AdKats " + this.GetPluginVersion() + " components.");
                         DateTime startTime = DateTime.Now;
 
-                        //Confirm Stat Logger active and properly configured
-                        this.ConsoleWrite("Confirming proper setup for CChatGUIDStatsLoggerBF3, please wait...");
-                        //TODO put back
-                        /*if (this.confirmStatLoggerSetup())
+                        if (this.useDatabase)
                         {
-                            this.ConsoleSuccess("^bCChatGUIDStatsLoggerBF3^n enabled and active!");
+                            //Confirm Stat Logger active and properly configured
+                            this.ConsoleWrite("Confirming proper setup for CChatGUIDStatsLoggerBF3, please wait...");
+                            //TODO put back
+                            /*if (this.confirmStatLoggerSetup())
+                            {
+                                this.ConsoleSuccess("^bCChatGUIDStatsLoggerBF3^n enabled and active!");
+                            }
+                            else
+                            {
+                                //Stat logger could not be enabled or managed, disabled AdKats
+                                this.disable();
+                                return;
+                            }*/
                         }
-                        else
-                        {
-                            //Stat logger could not be enabled or managed, disabled AdKats
-                            this.disable();
-                            return;
-                        }*/
 
                         //Inform of IP
                         this.ConsoleSuccess("Server IP is " + this.server_ip + "!");
@@ -3081,6 +3268,8 @@ namespace PRoConEvents
                             //Inform the admins of disconnect
                             if (straglerCount > (dicCount / 2))
                             {
+                                this.startTime = DateTime.Now;
+
                                 //Create the report record
                                 AdKat_Record record = new AdKat_Record();
                                 record.server_id = this.server_id;
@@ -3093,6 +3282,14 @@ namespace PRoConEvents
                                 //Process the record
                                 this.queueRecordForProcessing(record);
                                 this.ConsoleError(record.record_message);
+
+                                //Set round ended
+                                if (!this.roundEnded)
+                                {
+                                    this.roundEnded = true;
+                                    Thread.Sleep(3000);
+                                    this.roundEnded = false;
+                                }
                             }
                         }
 
@@ -3166,8 +3363,8 @@ namespace PRoConEvents
             {
                 if (this.isEnabled)
                 {
-                    int USTeamScore = -1;
-                    int RUTeamScore = -1;
+                    this.USTicketCount = -1;
+                    this.RUTicketCount = -1;
                     if (serverInfo != null)
                     {
                         //Get the team scores
@@ -3182,11 +3379,11 @@ namespace PRoConEvents
                                 {
                                     if (score.TeamID == AdKats.USTeamID)
                                     {
-                                        USTeamScore = score.Score;
+                                        this.USTicketCount = score.Score;
                                     }
                                     else if (score.TeamID == AdKats.RUTeamID)
                                     {
-                                        RUTeamScore = score.Score;
+                                        this.RUTicketCount = score.Score;
                                     }
                                     else
                                     {
@@ -3199,10 +3396,10 @@ namespace PRoConEvents
                                 this.DebugWrite("Server info fired while changing rounds, no teams to parse.", 5);
                             }
 
-                            if (USTeamScore >= 0 && RUTeamScore >= 0)
+                            if (this.USTicketCount >= 0 && this.RUTicketCount >= 0)
                             {
-                                this.lowestTicketCount = (USTeamScore < RUTeamScore) ? (USTeamScore) : (RUTeamScore);
-                                this.highestTicketCount = (USTeamScore > RUTeamScore) ? (USTeamScore) : (RUTeamScore);
+                                this.lowestTicketCount = (this.USTicketCount < this.RUTicketCount) ? (this.USTicketCount) : (this.RUTicketCount);
+                                this.highestTicketCount = (this.USTicketCount > this.RUTicketCount) ? (this.USTicketCount) : (this.RUTicketCount);
                             }
                         }
 
@@ -3265,6 +3462,11 @@ namespace PRoConEvents
                             this.adminAssistantCache[assistantName] = false;
                         }
                     }
+                    //Enable round timer
+                    if (this.useRoundTimer)
+                    {
+                        this.startRoundTimer();
+                    }
                 }
             }
             catch (Exception e)
@@ -3272,6 +3474,26 @@ namespace PRoConEvents
                 this.HandleException(new AdKat_Exception("Error while handling level load.", e));
             }
             this.DebugWrite("Exiting OnLevelLoaded", 7);
+        }
+
+        //Round ended stuff
+        public override void OnEndRound(int iWinningTeamID)
+        {
+            if (!this.roundEnded)
+            {
+                this.roundEnded = true;
+                Thread.Sleep(3000);
+                this.roundEnded = false;
+            } 
+        }
+        public override void OnRunNextLevel()
+        {
+            if (!this.roundEnded)
+            {
+                this.roundEnded = true;
+                Thread.Sleep(3000);
+                this.roundEnded = false;
+            }
         }
 
         //Move delayed players when they are killed
@@ -3503,7 +3725,7 @@ namespace PRoConEvents
                     if (this.useExperimentalTools && this.useNoExplosivesLimit && !gKillHandled)
                     {
                         //Check if restricted weapon
-                        if (Regex.Match(kKillerVictimDetails.DamageType, @"(?:M320|RPG|SMAW|C4|M67|Claymore|MAV|FGM-148|FIM92|ROADKILL|Death)", RegexOptions.IgnoreCase).Success)
+                        if (Regex.Match(kKillerVictimDetails.DamageType, @"(?:" + this.noExplosivesWeaponString + ")", RegexOptions.IgnoreCase).Success)
                         {
                             //Check if suicide
                             if (kKillerVictimDetails.Killer.SoldierName != kKillerVictimDetails.Victim.SoldierName)
@@ -3520,30 +3742,30 @@ namespace PRoConEvents
                                         //Create the punish record
                                         AdKat_Record record = new AdKat_Record();
                                         record.server_id = this.server_id;
-                                        record.command_type = AdKat_CommandType.PunishPlayer;
+                                        record.command_type = AdKat_CommandType.Exception;
                                         record.command_numeric = 0;
                                         record.target_name = killer.player_name;
                                         record.target_player = killer;
                                         record.source_name = "AutoAdmin";
                                         String removeWeapon = "Weapons/";
                                         String removeGadgets = "Gadgets/";
+                                        String removePrefix = "U_";
                                         String weapon = kKillerVictimDetails.DamageType;
                                         int index = weapon.IndexOf(removeWeapon);
                                         weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeWeapon.Length));
                                         index = weapon.IndexOf(removeGadgets);
                                         weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeGadgets.Length));
-                                        if (Regex.Match(weapon, "RoadKill", RegexOptions.IgnoreCase).Success)
+                                        index = weapon.IndexOf(removePrefix);
+                                        weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removePrefix.Length));
+                                        if (weapon.Equals("RoadKill"))
                                         {
-                                            record.record_message = "Roadkilling with EOD or MAV";
+                                            weapon = "Roadkilling with EOD or MAV";
                                         }
-                                        else
+                                        else if (weapon.EndsWith("Death"))
                                         {
-                                            if (Regex.Match(weapon, "Death", RegexOptions.IgnoreCase).Success)
-                                            {
-                                                weapon = "Mortar";
-                                            }
-                                            record.record_message = "Rules: Using Explosives [" + weapon + "]";
+                                            weapon = "Mortar/Vehicle";
                                         }
+                                        record.record_message = "Rules: Using Explosives [" + weapon + "]";
                                         //Process the record
                                         this.queueRecordForProcessing(record);
                                     }
@@ -4086,22 +4308,47 @@ namespace PRoConEvents
 
                                 if (this.useHackerChecker)
                                 {
-                                    Boolean acted = false;
-                                    if (this.useDPSChecker)
+                                    Boolean protect = false;
+                                    foreach (String whitelistedValue in this.hackerCheckerWhitelist)
                                     {
-                                        acted = this.damageHackCheck(aPlayer, false);
+                                        if (aPlayer.player_name.Equals(whitelistedValue))
+                                        {
+                                            this.DebugWrite(aPlayer.player_name + " protected from hacker checker by name.", 2);
+                                            protect = true;
+                                            break;
+                                        }
+                                        if (aPlayer.player_guid.Equals(whitelistedValue))
+                                        {
+                                            this.DebugWrite(aPlayer.player_name + " protected from hacker checker by guid.", 2);
+                                            protect = true;
+                                            break;
+                                        }
+                                        if (aPlayer.player_ip.Equals(whitelistedValue))
+                                        {
+                                            this.DebugWrite(aPlayer.player_name + " protected from hacker checker by IP.", 2);
+                                            protect = true;
+                                            break;
+                                        }
                                     }
-                                    if (this.useHSKChecker && !acted)
+                                    if (!protect)
                                     {
-                                        acted = this.aimbotHackCheck(aPlayer, false);
-                                    }
-                                    if (acted)
-                                    {
-                                        this.DebugWrite(aPlayer.player_name + " banned for hacking.", 1);
-                                    }
-                                    else
-                                    {
-                                        this.DebugWrite(aPlayer.player_name + " is clean.", 5);
+                                        Boolean acted = false;
+                                        if (this.useDPSChecker)
+                                        {
+                                            acted = this.damageHackCheck(aPlayer, false);
+                                        }
+                                        if (this.useHSKChecker && !acted)
+                                        {
+                                            acted = this.aimbotHackCheck(aPlayer, false);
+                                        }
+                                        if (acted)
+                                        {
+                                            this.DebugWrite(aPlayer.player_name + " banned for hacking.", 1);
+                                        }
+                                        else
+                                        {
+                                            this.DebugWrite(aPlayer.player_name + " is clean.", 5);
+                                        }
                                     }
                                 }
                                 else
@@ -4135,24 +4382,50 @@ namespace PRoConEvents
                             if (this.useHackerChecker)
                             {
                                 this.DebugWrite("HackerChecker running on " + aPlayer.player_name, 5);
-                                Boolean acted = false;
-                                if (this.useDPSChecker)
+
+                                Boolean protect = false;
+                                foreach (String whitelistedValue in this.hackerCheckerWhitelist)
                                 {
-                                    this.DebugWrite("Preparing to DPS check " + aPlayer.player_name, 5);
-                                    acted = this.damageHackCheck(aPlayer, false);
+                                    if (aPlayer.player_name.Equals(whitelistedValue))
+                                    {
+                                        this.DebugWrite(aPlayer.player_name + " protected from hacker checker by name.", 2);
+                                        protect = true;
+                                        break;
+                                    }
+                                    if (aPlayer.player_guid.Equals(whitelistedValue))
+                                    {
+                                        this.DebugWrite(aPlayer.player_name + " protected from hacker checker by guid.", 2);
+                                        protect = true;
+                                        break;
+                                    }
+                                    if (aPlayer.player_ip.Equals(whitelistedValue))
+                                    {
+                                        this.DebugWrite(aPlayer.player_name + " protected from hacker checker by IP.", 2);
+                                        protect = true;
+                                        break;
+                                    }
                                 }
-                                if (this.useHSKChecker && !acted)
+                                if (!protect)
                                 {
-                                    this.DebugWrite("Preparing to HSK check " + aPlayer.player_name, 5);
-                                    acted = this.aimbotHackCheck(aPlayer, false);
-                                }
-                                if (acted)
-                                {
-                                    this.DebugWrite(aPlayer.player_name + " banned for hacking.", 1);
-                                }
-                                else
-                                {
-                                    this.DebugWrite(aPlayer.player_name + " is clean.", 5);
+                                    Boolean acted = false;
+                                    if (this.useDPSChecker)
+                                    {
+                                        this.DebugWrite("Preparing to DPS check " + aPlayer.player_name, 5);
+                                        acted = this.damageHackCheck(aPlayer, false);
+                                    }
+                                    if (this.useHSKChecker && !acted)
+                                    {
+                                        this.DebugWrite("Preparing to HSK check " + aPlayer.player_name, 5);
+                                        acted = this.aimbotHackCheck(aPlayer, false);
+                                    }
+                                    if (acted)
+                                    {
+                                        this.DebugWrite(aPlayer.player_name + " banned for hacking.", 1);
+                                    }
+                                    else
+                                    {
+                                        this.DebugWrite(aPlayer.player_name + " is clean.", 5);
+                                    }
                                 }
                             }
                             else
@@ -5163,6 +5436,12 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
 
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
+
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 1);
                             switch (parameters.Length)
@@ -5198,6 +5477,12 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
+
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
 
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 1);
@@ -5235,6 +5520,12 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
 
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
+
                             //May only call this command from in-game
                             if (record.command_source != AdKat_CommandSource.InGame)
                             {
@@ -5253,6 +5544,12 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
 
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
+
                             //May only call this command from in-game
                             if (record.command_source != AdKat_CommandSource.InGame)
                             {
@@ -5270,6 +5567,12 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
+
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
 
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 2);
@@ -5330,6 +5633,12 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
 
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
+
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 2);
                             switch (parameters.Length)
@@ -5388,6 +5697,12 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
+
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
 
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 3);
@@ -5485,6 +5800,12 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
 
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
+
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 2);
                             switch (parameters.Length)
@@ -5543,6 +5864,12 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
+
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
 
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 2);
@@ -5662,6 +5989,12 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
 
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
+
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 2);
                             switch (parameters.Length)
@@ -5721,6 +6054,12 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
 
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
+
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 1);
                             switch (parameters.Length)
@@ -5748,6 +6087,12 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
+
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
 
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 2);
@@ -5894,6 +6239,12 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
 
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
+
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 2);
                             switch (parameters.Length)
@@ -5937,6 +6288,13 @@ namespace PRoConEvents
                     #region KickAll
                     case AdKat_CommandType.KickAll:
                         this.cancelSourcePendingAction(record);
+
+                        if (this.server_type == "OFFICIAL")
+                        {
+                            this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                            return;
+                        }
+
                         record.target_name = "Non-Admins";
                         record.record_message = "Kick All Players";
                         this.confirmActionWithSource(record);
@@ -5947,6 +6305,12 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
+
+                            if (this.server_type == "OFFICIAL")
+                            {
+                                this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                                return;
+                            }
 
                             //Parse parameters using max param count
                             String[] parameters = this.parseParameters(remainingMessage, 2);
@@ -5988,6 +6352,13 @@ namespace PRoConEvents
                     #region RestartLevel
                     case AdKat_CommandType.RestartLevel:
                         this.cancelSourcePendingAction(record);
+
+                        if (this.server_type == "OFFICIAL")
+                        {
+                            this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                            return;
+                        }
+
                         record.target_name = "Server";
                         record.record_message = "Restart Round";
                         this.confirmActionWithSource(record);
@@ -5996,6 +6367,13 @@ namespace PRoConEvents
                     #region NextLevel
                     case AdKat_CommandType.NextLevel:
                         this.cancelSourcePendingAction(record);
+
+                        if (this.server_type == "OFFICIAL")
+                        {
+                            this.sendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                            return;
+                        }
+
                         record.target_name = "Server";
                         record.record_message = "Run Next Map";
                         this.confirmActionWithSource(record);
@@ -9939,9 +10317,9 @@ namespace PRoConEvents
             {
                 return player;
             }
-            if (player == null || player.player_id < 0 || String.IsNullOrEmpty(player.player_name) || String.IsNullOrEmpty(player.player_guid) || String.IsNullOrEmpty(player.player_ip))
+            if (player == null || player.player_id < 0 || (String.IsNullOrEmpty(player.player_name) && String.IsNullOrEmpty(player.player_guid) & String.IsNullOrEmpty(player.player_ip)))
             {
-                this.ConsoleError("Attempted to updated player without required information.");
+                this.ConsoleError("Attempted to update player without required information.");
             }
             else
             {
@@ -13464,7 +13842,17 @@ namespace PRoConEvents
         {
             ConsoleWrite(msg, ConsoleMessageType.Success);
         }
-        
+
+        public void DebugWrite(string msg, int level)
+        {
+            if (debugLevel >= level)
+            {
+                ConsoleWrite(msg, ConsoleMessageType.Normal);
+            }
+        }
+
+        #endregion
+
         public AdKat_Exception HandleException(AdKat_Exception aException)
         {
             //If it's null, just return
@@ -13476,7 +13864,7 @@ namespace PRoConEvents
             //Always write the exception to console
             this.ConsoleWrite(aException.ToString(), ConsoleMessageType.Exception);
             //Check if the exception attributes to the database
-            if (aException.internalException.GetType() == typeof(System.TimeoutException) || 
+            if (aException.internalException.GetType() == typeof(System.TimeoutException) ||
                 aException.internalException.ToString().Contains("Unable to connect to any of the specified MySQL hosts"))
             {
                 this.HandleDatabaseConnectionInteruption();
@@ -13555,10 +13943,10 @@ namespace PRoConEvents
                                 //re-enable AdKats and Stat Logger
                                 this.databaseConnectionCriticalState = false;
                                 this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
-                                
+
                                 //Clear the player dinctionary, causing all players to be fetched from the database again
                                 this.playerDictionary.Clear();
-                                
+
                                 //Create the Exception record
                                 AdKat_Record record = new AdKat_Record();
                                 record.server_id = this.server_id;
@@ -13597,14 +13985,96 @@ namespace PRoConEvents
             }
         }
 
-        public void DebugWrite(string msg, int level)
+        public void startRoundTimer()
         {
-            if (debugLevel >= level)
+            //Only handle these errors if all threads are already functioning normally
+            if (this.isEnabled && this.threadsReady)
             {
-                ConsoleWrite(msg, ConsoleMessageType.Normal);
+                try
+                {
+                    //If the thread is still alive, inform the user and return
+                    if (this.roundTimerThread != null && this.roundTimerThread.IsAlive)
+                    {
+                        ConsoleError("Tried to enable a round timer while one was still active.");
+                        return;
+                    }
+                    if (!this.isEnabled || !this.threadsReady)
+                    {
+                        return;
+                    }
+                    //Create a new thread to handle the disconnect orchestration
+                    this.roundTimerThread = new Thread(new ThreadStart(delegate()
+                    {
+                        try
+                        {
+                            this.DebugWrite("starting round timer", 2);
+                            Thread.Sleep(3000);
+                            int roundTimeSeconds = (int)(this.roundTimeMinutes * 60);
+                            for (int secondsRemaining = roundTimeSeconds; secondsRemaining > 0; secondsRemaining--)
+                            {
+                                if (this.roundEnded || !this.isEnabled || !this.threadsReady)
+                                {
+                                    this.ConsoleError("Exiting round timer.");
+                                    return;
+                                }
+                                if (secondsRemaining == roundTimeSeconds - 60 && secondsRemaining > 60)
+                                {
+                                    this.adminSay("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.");
+                                    this.adminYell("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.");
+                                    this.DebugWrite("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.", 3);
+                                }
+                                else if (secondsRemaining == ((int)roundTimeSeconds / 2) && secondsRemaining > 60)
+                                {
+                                    this.adminSay("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.");
+                                    this.adminYell("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.");
+                                    this.DebugWrite("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.", 3);
+                                }
+                                else if (secondsRemaining == 30)
+                                {
+                                    this.adminSay("Round ends in 30 seconds. (Current winning team will win)");
+                                    this.adminYell("Round ends in 30 seconds. (Current winning team will win)");
+                                    this.DebugWrite("Round ends in 30 seconds. (Current winning team will win)", 3);
+                                }
+                                else if (secondsRemaining == 20)
+                                {
+                                    this.adminSay("Round ends in 20 seconds. (Current winning team will win)");
+                                    this.adminYell("Round ends in 20 seconds. (Current winning team will win)");
+                                    this.DebugWrite("Round ends in 20 seconds. (Current winning team will win)", 3);
+                                }
+                                else if (secondsRemaining <= 10)
+                                {
+                                    this.adminSay("Round ends in..." + secondsRemaining);
+                                    this.DebugWrite("Round ends in..." + secondsRemaining, 3);
+                                }
+                                //Sleep for 1 second
+                                Thread.Sleep(1000);
+                            }
+                            if (this.USTicketCount < this.RUTicketCount)
+                            {
+                                this.ExecuteCommand("procon.protected.send", "mapList.endRound", AdKats.RUTeamID + "");
+                                this.DebugWrite("Ended Round (" + AdKats.RUTeamID + ")", 4);
+                            }
+                            else
+                            {
+                                this.ExecuteCommand("procon.protected.send", "mapList.endRound", AdKats.USTeamID + "");
+                                this.DebugWrite("Ended Round (" + AdKats.USTeamID + ")", 4);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            this.HandleException(new AdKat_Exception("Error in round timer thread.", e));
+                        }
+                        this.DebugWrite("Exiting round timer.", 2);
+                    }));
+
+                    //Start the thread
+                    this.roundTimerThread.Start();
+                }
+                catch (Exception e)
+                {
+                    this.HandleException(new AdKat_Exception("Error starting round timer thread.", e));
+                }
             }
         }
-
-        #endregion
     } // end AdKats
 } // end namespace PRoConEvents
