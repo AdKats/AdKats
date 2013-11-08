@@ -2864,6 +2864,11 @@ namespace PRoConEvents
             this.DebugWrite("Exiting OnPluginLoaded", 7);
         }
 
+        public override void OnVersion(string serverType, string version)
+        {
+            this.game_version = version;
+            this.server_type = serverType;
+        }
         public override void OnFairFight(bool isEnabled)
         {
             this.fairFightEnabled = isEnabled;
@@ -2882,7 +2887,7 @@ namespace PRoConEvents
         }
         public override void OnServerType(string value)
         {
-            this.server_type = value;
+            //this.server_type = value;
         }
         public override void OnMaxSpectators(int limit)
         {
@@ -9395,7 +9400,6 @@ namespace PRoConEvents
             {
                 return success;
             }
-            if(
             //Make sure database connection active
             if (this.handlePossibleDisconnect())
             {
