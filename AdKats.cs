@@ -58,7 +58,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.5.1.9";
+        private string plugin_version = "3.5.2.1";
         private DateTime startTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -224,7 +224,8 @@ namespace PRoConEvents
         private Boolean useExperimentalTools = false;
         //NO EX Limiter
         private Boolean useNoExplosivesLimit = false;
-        private string noExplosivesWeaponString = "M320|RPG|SMAW|C4|M67|Claymore|MAV|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_Flashbang|_SMK|_Smoke|_FGM148|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
+        private string noExplosivesWeaponString = "M320|RPG|SMAW|C4|M67|Claymore|MAV|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
+        private string noExplosivesWeaponExceptionString = "_Flechette|_Slug";
         //Grenade Cook Catcher
         private Boolean useGrenadeCookCatcher = false;
         //Hacker Checker
@@ -1032,6 +1033,7 @@ namespace PRoConEvents
                         if (this.useNoExplosivesLimit)
                         {
                             lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Weapon String", typeof(string), this.noExplosivesWeaponString));
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Exception String", typeof(string), this.noExplosivesWeaponExceptionString));
                         }
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof(Boolean), this.useGrenadeCookCatcher));
                         lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: Enable", typeof(Boolean), this.useHackerChecker));
@@ -1323,6 +1325,22 @@ namespace PRoConEvents
                         else
                         {
                             this.ConsoleError("Weapon string cannot be empty.");
+                        }
+                    }
+                }
+                else if (Regex.Match(strVariable, @"NO EXPLOSIVES Exception String").Success)
+                {
+                    if (this.noExplosivesWeaponExceptionString != strValue)
+                    {
+                        if (!String.IsNullOrEmpty(strValue))
+                        {
+                            this.noExplosivesWeaponExceptionString = strValue;
+                            //Once setting has been changed, upload the change to database
+                            this.queueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Exception String", typeof(string), this.noExplosivesWeaponExceptionString));
+                        }
+                        else
+                        {
+                            this.ConsoleError("Weapon exception string cannot be empty.");
                         }
                     }
                 }
@@ -2849,32 +2867,26 @@ namespace PRoConEvents
         public override void OnFairFight(bool isEnabled)
         {
             this.fairFightEnabled = isEnabled;
-            this.ConsoleWarn("this.fairFightEnabled: " + this.fairFightEnabled);
         }
         public override void OnIsHitIndicator(bool isEnabled) 
         {
             this.hitIndicatorEnabled = isEnabled;
-            this.ConsoleWarn("this.hitIndicatorEnabled: " + this.hitIndicatorEnabled);
         }
         public override void OnCommander(bool isEnabled)
         {
             this.commanderEnabled = isEnabled;
-            this.ConsoleWarn("this.commanderEnabled: " + this.commanderEnabled);
         }
         public override void OnForceReloadWholeMags(bool isEnabled)
         {
             this.forceReloadWholeMags = isEnabled;
-            this.ConsoleWarn("this.forceReloadWholeMags: " + this.forceReloadWholeMags);
         }
         public override void OnServerType(string value)
         {
             this.server_type = value;
-            this.ConsoleWarn("this.server_type: " + this.server_type);
         }
         public override void OnMaxSpectators(int limit)
         {
             this.maxSpectators = limit;
-            this.ConsoleWarn("this.maxSpectators: " + this.maxSpectators);
         }
 
         public override void OnSpectatorListLoad() { }
@@ -3724,56 +3736,64 @@ namespace PRoConEvents
                     //ADK No EXPLOSIVES special enforcement
                     if (this.useExperimentalTools && this.useNoExplosivesLimit && !gKillHandled)
                     {
-                        //Check if restricted weapon
+                        //Check for restricted weapon
                         if (Regex.Match(kKillerVictimDetails.DamageType, @"(?:" + this.noExplosivesWeaponString + ")", RegexOptions.IgnoreCase).Success)
                         {
-                            //Check if suicide
-                            if (kKillerVictimDetails.Killer.SoldierName != kKillerVictimDetails.Victim.SoldierName)
+                            //Check for exception type
+                            if (!Regex.Match(kKillerVictimDetails.DamageType, @"(?:" + this.noExplosivesWeaponExceptionString + ")", RegexOptions.IgnoreCase).Success)
                             {
-                                //Get player from the dictionary
-                                AdKat_Player killer = null;
-                                if (this.playerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer))
+                                //Check if suicide
+                                if (kKillerVictimDetails.Killer.SoldierName != kKillerVictimDetails.Victim.SoldierName)
                                 {
-                                    //Code to avoid spam
-                                    if (killer.lastAction.AddSeconds(2) < DateTime.Now)
+                                    //Get player from the dictionary
+                                    AdKat_Player killer = null;
+                                    if (this.playerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer))
                                     {
-                                        killer.lastAction = DateTime.Now;
+                                        //Code to avoid spam
+                                        if (killer.lastAction.AddSeconds(2) < DateTime.Now)
+                                        {
+                                            killer.lastAction = DateTime.Now;
 
-                                        //Create the punish record
-                                        AdKat_Record record = new AdKat_Record();
-                                        record.server_id = this.server_id;
-                                        record.command_type = AdKat_CommandType.Exception;
-                                        record.command_numeric = 0;
-                                        record.target_name = killer.player_name;
-                                        record.target_player = killer;
-                                        record.source_name = "AutoAdmin";
-                                        String removeWeapon = "Weapons/";
-                                        String removeGadgets = "Gadgets/";
-                                        String removePrefix = "U_";
-                                        String weapon = kKillerVictimDetails.DamageType;
-                                        int index = weapon.IndexOf(removeWeapon);
-                                        weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeWeapon.Length));
-                                        index = weapon.IndexOf(removeGadgets);
-                                        weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeGadgets.Length));
-                                        index = weapon.IndexOf(removePrefix);
-                                        weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removePrefix.Length));
-                                        if (weapon.Equals("RoadKill"))
-                                        {
-                                            weapon = "Roadkilling with EOD or MAV";
+                                            //Create the punish record
+                                            AdKat_Record record = new AdKat_Record();
+                                            record.server_id = this.server_id;
+                                            record.command_type = AdKat_CommandType.PunishPlayer;
+                                            record.command_numeric = 0;
+                                            record.target_name = killer.player_name;
+                                            record.target_player = killer;
+                                            record.source_name = "AutoAdmin";
+                                            String removeWeapon = "Weapons/";
+                                            String removeGadgets = "Gadgets/";
+                                            String removePrefix = "U_";
+                                            String weapon = kKillerVictimDetails.DamageType;
+                                            int index = weapon.IndexOf(removeWeapon);
+                                            weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeWeapon.Length));
+                                            index = weapon.IndexOf(removeGadgets);
+                                            weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeGadgets.Length));
+                                            index = weapon.IndexOf(removePrefix);
+                                            weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removePrefix.Length));
+                                            if (weapon.Equals("RoadKill"))
+                                            {
+                                                record.record_message = "Rules: Roadkilling with EOD or MAV";
+                                            }
+                                            else if (weapon.Equals("Death"))
+                                            {
+                                                record.record_message = "Rules: Using Mortar";
+                                            }
+                                            else
+                                            {
+                                                record.record_message = "Rules: Using Explosives [" + weapon + "]";
+                                            }
+                                            //Process the record
+                                            this.queueRecordForProcessing(record);
                                         }
-                                        else if (weapon.EndsWith("Death"))
+                                        else
                                         {
-                                            weapon = "Mortar/Vehicle";
+                                            this.DebugWrite("Skipping additional auto-actions for multi-kill event.", 2);
                                         }
-                                        record.record_message = "Rules: Using Explosives [" + weapon + "]";
-                                        //Process the record
-                                        this.queueRecordForProcessing(record);
-                                    }
-                                    else
-                                    {
-                                        this.DebugWrite("Skipping additional auto-actions for multi-kill event.", 2);
                                     }
                                 }
+
                             }
                         }
                     }
@@ -9375,6 +9395,7 @@ namespace PRoConEvents
             {
                 return success;
             }
+            if(
             //Make sure database connection active
             if (this.handlePossibleDisconnect())
             {
@@ -9473,35 +9494,43 @@ namespace PRoConEvents
             }
             try
             {
-                using (MySqlConnection connection = this.getDatabaseConnection())
+                int attempts = 0;
+                do
                 {
-                    using (MySqlCommand command = connection.CreateCommand())
+                    using (MySqlConnection connection = this.getDatabaseConnection())
                     {
-                        Boolean hasRecordID = (record.record_id > 0);
-                        //Set the insert command structure
-                        command.CommandText = "UPDATE `" + this.mySqlDatabaseName + @"`.`adkats_records` 
-                        SET 
-                            `command_action` = @command_action, 
-                            `command_numeric` = @command_numeric, 
-                            `record_message` = @record_message, 
-                            `adkats_read` = 'Y' 
-                        WHERE 
-                            `record_id` = @record_id";
-                        //Fill the command
-                        command.Parameters.AddWithValue("@record_id", record.record_id);
-                        command.Parameters.AddWithValue("@command_numeric", record.command_numeric);
-                        //Trim to 100 characters
-                        record.record_message = record.record_message.Length <= 500 ? record.record_message : record.record_message.Substring(0, 500);
-                        command.Parameters.AddWithValue("@record_message", record.record_message);
-                        command.Parameters.AddWithValue("@command_action", this.AdKat_RecordTypes[record.command_action]);
-
-                        //Attempt to execute the query
-                        if (command.ExecuteNonQuery() > 0)
+                        using (MySqlCommand command = connection.CreateCommand())
                         {
-                            success = true;
+                            Boolean hasRecordID = (record.record_id > 0);
+                            //Set the insert command structure
+                            command.CommandText = "UPDATE `" + this.mySqlDatabaseName + @"`.`adkats_records` 
+                            SET 
+                                `command_action` = @command_action, 
+                                `command_numeric` = @command_numeric, 
+                                `record_message` = @record_message, 
+                                `adkats_read` = 'Y' 
+                            WHERE 
+                                `record_id` = @record_id";
+                            //Fill the command
+                            command.Parameters.AddWithValue("@record_id", record.record_id);
+                            command.Parameters.AddWithValue("@command_numeric", record.command_numeric);
+                            //Trim to 100 characters
+                            record.record_message = record.record_message.Length <= 500 ? record.record_message : record.record_message.Substring(0, 500);
+                            command.Parameters.AddWithValue("@record_message", record.record_message);
+                            command.Parameters.AddWithValue("@command_action", this.AdKat_RecordTypes[record.command_action]);
+
+                            //Attempt to execute the query
+                            if (command.ExecuteNonQuery() > 0)
+                            {
+                                success = true;
+                            }
                         }
                     }
-                }
+                    if (!success)
+                    {
+                        Thread.Sleep(1000);
+                    }
+                } while (!success && attempts++ < 5);
 
                 string temp = this.AdKat_RecordTypes[record.command_action];
 
@@ -9511,7 +9540,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    ConsoleError(temp + " update for player '" + record.target_name + " by " + record.source_name + " FAILED!");
+                    ConsoleError(temp + " update for player " + record.target_name + " by " + record.source_name + " FAILED!");
                 }
 
                 DebugWrite("updateRecord finished!", 6);
