@@ -58,7 +58,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.5.2.1";
+        private string plugin_version = "3.5.2.2";
         private DateTime startTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -198,7 +198,13 @@ namespace PRoConEvents
         private Int64 server_id = -1;
         private string server_ip = null;
         private CServerInfo serverInfo = null;
-        private string game_version = "UNKNOWN";
+        public enum GameVersion 
+        { 
+            BF3, 
+            BF4 
+        };
+        public GameVersion gameVersion = GameVersion.BF3;
+        private string gamePatchVersion = "UNKNOWN";
         private string server_type = "UNKNOWN";
         private Boolean fairFightEnabled = false;
         private Boolean hitIndicatorEnabled = false;
@@ -2808,6 +2814,21 @@ namespace PRoConEvents
             this.ExecuteCommand("procon.protected.plugins.enable", "AdKats", "True");
         }
 
+        public void OnPluginLoadingEnv(List<string> lstPluginEnv)
+        {
+            foreach (String env in lstPluginEnv)
+            {
+                this.DebugWrite("^9OnPluginLoadingEnv: " + env, 7);
+            }
+            switch (lstPluginEnv[1])
+            {
+                case "BF3": gameVersion = GameVersion.BF3; break;
+                case "BF4": gameVersion = GameVersion.BF4; break;
+                default: break;
+            }
+            this.ConsoleWrite("^1Game Version: " + gameVersion);
+        }
+
         public void OnPluginLoaded(string strHostName, string strPort, string strPRoConVersion)
         {
             this.DebugWrite("Entering OnPluginLoaded", 7);
@@ -2866,8 +2887,7 @@ namespace PRoConEvents
 
         public override void OnVersion(string serverType, string version)
         {
-            this.game_version = version;
-            this.server_type = serverType;
+            this.gamePatchVersion = version;
         }
         public override void OnFairFight(bool isEnabled)
         {
@@ -2887,7 +2907,7 @@ namespace PRoConEvents
         }
         public override void OnServerType(string value)
         {
-            //this.server_type = value;
+            this.server_type = value;
         }
         public override void OnMaxSpectators(int limit)
         {
@@ -2948,17 +2968,20 @@ namespace PRoConEvents
                         {
                             //Confirm Stat Logger active and properly configured
                             this.ConsoleWrite("Confirming proper setup for CChatGUIDStatsLoggerBF3, please wait...");
-                            //TODO put back
-                            /*if (this.confirmStatLoggerSetup())
+
+                            if (this.gameVersion == GameVersion.BF3)
                             {
-                                this.ConsoleSuccess("^bCChatGUIDStatsLoggerBF3^n enabled and active!");
+                                if (this.confirmStatLoggerSetup())
+                                {
+                                    this.ConsoleSuccess("^bCChatGUIDStatsLoggerBF3^n enabled and active!");
+                                }
+                                else
+                                {
+                                    //Stat logger could not be enabled or managed, disabled AdKats
+                                    this.disable();
+                                    return;
+                                }
                             }
-                            else
-                            {
-                                //Stat logger could not be enabled or managed, disabled AdKats
-                                this.disable();
-                                return;
-                            }*/
                         }
 
                         //Inform of IP
@@ -3559,7 +3582,16 @@ namespace PRoConEvents
                                     {
                                         this.roundCookers = new Dictionary<string, AdKat_Player>();
                                     }
-                                    double fuseTime = 3735.00;
+                                    double fuseTime = 0;
+                                    if (this.gameVersion == GameVersion.BF3)
+                                    {
+                                        fuseTime = 3735.00;
+                                    }
+                                    else if (this.gameVersion == GameVersion.BF4)
+                                    {
+                                        fuseTime = 3132.00;
+                                    }
+                                    //2865 MINI
                                     double possibleRange = 750.00;
                                     //Update killer information
                                     AdKat_Player killer = null;
@@ -3571,14 +3603,14 @@ namespace PRoConEvents
                                             killer.recentKills = new Queue<KeyValuePair<AdKat_Player, DateTime>>();
                                         }
                                         //Only keep the last 6 kills in memory
-                                        while (killer.recentKills.Count >= 6)
+                                        while (killer.recentKills.Count > 1)
                                         {
                                             killer.recentKills.Dequeue();
                                         }
                                         //Add the player
                                         killer.recentKills.Enqueue(new KeyValuePair<AdKat_Player, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
                                         //Check for cooked grenade and non-suicide
-                                        if (kKillerVictimDetails.DamageType == "M67")
+                                        if (kKillerVictimDetails.DamageType.Contains("M67"))
                                         {
                                             if (kKillerVictimDetails.Killer.SoldierName != kKillerVictimDetails.Victim.SoldierName)
                                             {
@@ -3589,9 +3621,9 @@ namespace PRoConEvents
                                                 List<KeyValuePair<AdKat_Player, string>> sure = new List<KeyValuePair<AdKat_Player, string>>();
                                                 foreach (KeyValuePair<AdKat_Player, DateTime> cooker in killer.recentKills)
                                                 {
-
                                                     //Get the actual time since cooker value
                                                     milli = kKillerVictimDetails.TimeOfDeath.Subtract(cooker.Value).TotalMilliseconds;
+
                                                     //Calculate the percentage probability
                                                     if (Math.Abs(milli - fuseTime) < possibleRange)
                                                     {
@@ -9396,93 +9428,102 @@ namespace PRoConEvents
         {
             DebugWrite("uploadChatLog starting!", 6);
             Boolean success = false;
-            if (!this.threadsReady)
+            //Only do this for BF4
+            if (this.gameVersion == GameVersion.BF4)
             {
-                return success;
-            }
-            //Make sure database connection active
-            if (this.handlePossibleDisconnect())
-            {
-                this.HandleException(new AdKat_Exception("Database not connected."));
-                return success;
-            }
-            MySqlCommand commandAttempt = null;
-            try
-            {
-                using (MySqlConnection connection = this.getDatabaseConnection())
+                if (!this.threadsReady)
                 {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        //Set the insert command structure
-                        command.CommandText = @"INSERT INTO `tbl_chatlog` 
-                        (
-                            `logDate`, 
-                            `ServerID`, 
-                            `logSubset`, 
-                            `logPlayerID`, 
-                            `logSoldierName`, 
-                            `logMessage`
-                        ) 
-                        VALUES 
-                        (
-                            NOW(), 
-                            @server_id, 
-                            @log_subset, 
-                            @log_player_id, 
-                            @log_player_name, 
-                            @log_message
-                        )";
-
-                        //Fetch the player from player dictionary
-                        AdKat_Player player = null;
-                        if(this.playerDictionary.TryGetValue(log_source, out player))
-                        {
-                            this.DebugWrite("Player found for chat log upload.", 5);
-                        }
-
-                        //Fill the log
-                        command.Parameters.AddWithValue("@server_id", this.server_id);
-                        command.Parameters.AddWithValue("@log_subset", log_subset);
-                        if(player != null && player.player_id > 0)
-                        {
-                            command.Parameters.AddWithValue("@log_player_id", player.player_id);
-                        }
-                        else
-                        {
-                            command.Parameters.AddWithValue("@log_player_id", null);
-                        }
-                        command.Parameters.AddWithValue("@log_player_name", log_source);
-                        //Trim to 255 characters
-                        log_message = log_message.Length <= 255 ? log_message : log_message.Substring(0, 255);
-                        command.Parameters.AddWithValue("@log_message", log_message);
-
-                        //Get reference to the command in case of error
-                        commandAttempt = command;
-                        //Attempt to execute the query
-                        if (command.ExecuteNonQuery() > 0)
-                        {
-                            success = true;
-                        }
-                    }
-                }
-
-                if (success)
-                {
-                    DebugWrite("Chat upload for " + log_source + " SUCCESSFUL!", 5);
-                }
-                else
-                {
-                    this.HandleException(new AdKat_Exception("Error uploading chat log. Success not reached."));
                     return success;
                 }
-                DebugWrite("uploadChatLog finished!", 6);
-                return success;
+                if (log_message.Contains("ID_CHAT"))
+                {
+                    success = true;
+                    return success;
+                }
+                //Make sure database connection active
+                if (this.handlePossibleDisconnect())
+                {
+                    this.HandleException(new AdKat_Exception("Database not connected."));
+                    return success;
+                }
+                MySqlCommand commandAttempt = null;
+                try
+                {
+                    using (MySqlConnection connection = this.getDatabaseConnection())
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            //Set the insert command structure
+                            command.CommandText = @"INSERT INTO `tbl_chatlog` 
+                            (
+                                `logDate`, 
+                                `ServerID`, 
+                                `logSubset`, 
+                                `logPlayerID`, 
+                                `logSoldierName`, 
+                                `logMessage`
+                            ) 
+                            VALUES 
+                            (
+                                NOW(), 
+                                @server_id, 
+                                @log_subset, 
+                                @log_player_id, 
+                                @log_player_name, 
+                                @log_message
+                            )";
+
+                            //Fetch the player from player dictionary
+                            AdKat_Player player = null;
+                            if (this.playerDictionary.TryGetValue(log_source, out player))
+                            {
+                                this.DebugWrite("Player found for chat log upload.", 5);
+                            }
+
+                            //Fill the log
+                            command.Parameters.AddWithValue("@server_id", this.server_id);
+                            command.Parameters.AddWithValue("@log_subset", log_subset);
+                            if (player != null && player.player_id > 0)
+                            {
+                                command.Parameters.AddWithValue("@log_player_id", player.player_id);
+                            }
+                            else
+                            {
+                                command.Parameters.AddWithValue("@log_player_id", null);
+                            }
+                            command.Parameters.AddWithValue("@log_player_name", log_source);
+                            //Trim to 255 characters
+                            log_message = log_message.Length <= 255 ? log_message : log_message.Substring(0, 255);
+                            command.Parameters.AddWithValue("@log_message", log_message);
+
+                            //Get reference to the command in case of error
+                            commandAttempt = command;
+                            //Attempt to execute the query
+                            if (command.ExecuteNonQuery() > 0)
+                            {
+                                success = true;
+                            }
+                        }
+                    }
+                    if (success)
+                    {
+                        DebugWrite("Chat upload for " + log_source + " SUCCESSFUL!", 5);
+                    }
+                    else
+                    {
+                        this.HandleException(new AdKat_Exception("Error uploading chat log. Success not reached."));
+                        return success;
+                    }
+                    DebugWrite("uploadChatLog finished!", 6);
+                    return success;
+                }
+                catch (Exception e)
+                {
+                    this.HandleException(new AdKat_Exception("Unexpected error uploading chat log.", e));
+                    return success;
+                }
             }
-            catch (Exception e)
-            {
-                this.HandleException(new AdKat_Exception("Unexpected error uploading chat log.", e));
-                return success;
-            }
+            return success;
         }
 
         private Boolean updateRecord(AdKat_Record record)
