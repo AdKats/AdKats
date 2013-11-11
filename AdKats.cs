@@ -58,7 +58,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.5.2.2";
+        private string plugin_version = "3.5.2.3";
         private DateTime startTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -1045,6 +1045,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: Enable", typeof(Boolean), this.useHackerChecker));
                         if (this.useHackerChecker)
                         {
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|HackerCheck Player", typeof(string), ""));
                             lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: Whitelist", typeof(string[]), this.hackerCheckerWhitelist));
                             lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: DPS Checker: Enable", typeof(Boolean), this.useDPSChecker));
                             if (this.useDPSChecker)
@@ -1079,36 +1080,57 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"HackerCheck Player").Success)
                 {
-                    if(String.IsNullOrEmpty(strValue))
+                    if (String.IsNullOrEmpty(strValue))
                     {
                         this.ConsoleError("Player name was null.");
                         return;
                     }
+                    else
+                    {
+                        this.ConsoleWarn("Preparing to hacker check " + strValue);
+                    }
                     AdKat_Player aPlayer = new AdKat_Player();
                     aPlayer.player_name = strValue;
-                    //Fetch their stats from BF3Stats
-                    this.fetchPlayerStats(aPlayer);
-                    if (aPlayer.stats != null)
+                    if (this.gameVersion == GameVersion.BF3)
                     {
-                        Boolean hacker = false;
-                        if (this.damageHackCheck(aPlayer, true))
+                        //Fetch their stats from BF3Stats
+                        this.fetchPlayerStats(aPlayer);
+                        if (aPlayer.stats != null)
                         {
-                            hacker = true;
-                            this.ConsoleWarn(aPlayer.player_name + " is using damage mod.");
+                            Boolean hacker = false;
+                            if (this.damageHackCheck(aPlayer, true))
+                            {
+                                hacker = true;
+                                this.ConsoleWarn(aPlayer.player_name + " is using damage mod.");
+                            }
+                            if (this.aimbotHackCheck(aPlayer, true))
+                            {
+                                hacker = true;
+                                this.ConsoleWarn(aPlayer.player_name + " is using aimbot.");
+                            }
+                            if (!hacker)
+                            {
+                                this.ConsoleSuccess(aPlayer.player_name + " is clean.");
+                            }
                         }
-                        if (this.aimbotHackCheck(aPlayer, true))
+                        else
                         {
-                            hacker = true;
-                            this.ConsoleWarn(aPlayer.player_name + " is using aimbot.");
+                            this.ConsoleError(aPlayer.stats.stats_exception.message);
                         }
-                        if (!hacker)
+                    }
+                    else if (this.gameVersion == GameVersion.BF4)
+                    {
+                        //Fetch hack status from GCP servers
+                        Hashtable result = this.fetchGCPHackCheck(aPlayer.player_name);
+                        string status = (string)result["status"];
+                        if(status.Equals("success"))
+                        {
+                            this.ConsoleWarn(aPlayer.player_name + " is hacking.");
+                        }
+                        else
                         {
                             this.ConsoleSuccess(aPlayer.player_name + " is clean.");
                         }
-                    }
-                    else
-                    {
-                        this.ConsoleError(aPlayer.stats.stats_exception.message);
                     }
                 }
                 else if (Regex.Match(strVariable, @"Setting Import").Success)
@@ -2948,7 +2970,7 @@ namespace PRoConEvents
                     {
                         //TODO
                         //Initialize the stat library
-                        this.statLibrary = new StatLibrary();
+                        this.statLibrary = new StatLibrary(this);
 
                         if (this.useDatabase)
                         {
@@ -4315,110 +4337,123 @@ namespace PRoConEvents
                         break;
                     }
 
-                    //Get all unchecked players
-                    if (this.hackerCheckerQueue.Count > 0)
+                    try
                     {
-                        this.DebugWrite("HCKCHK: Preparing to lock hackerCheckerMutex to retrive new players", 6);
-                        lock (this.hackerCheckerMutex)
+                        //Get all unchecked players
+                        if (this.hackerCheckerQueue.Count > 0)
                         {
-                            this.DebugWrite("HCKCHK: Inbound players found. Grabbing.", 5);
-                            //Grab all players in the queue
-                            playerCheckingQueue = new Queue<AdKat_Player>(this.hackerCheckerQueue.ToArray());
-                            //Clear the queue for next run
-                            this.hackerCheckerQueue.Clear();
+                            this.DebugWrite("HCKCHK: Preparing to lock hackerCheckerMutex to retrive new players", 6);
+                            lock (this.hackerCheckerMutex)
+                            {
+                                this.DebugWrite("HCKCHK: Inbound players found. Grabbing.", 5);
+                                //Grab all players in the queue
+                                playerCheckingQueue = new Queue<AdKat_Player>(this.hackerCheckerQueue.ToArray());
+                                //Clear the queue for next run
+                                this.hackerCheckerQueue.Clear();
+                            }
+                        }
+                        else
+                        {
+                            this.DebugWrite("HCKCHK: No inbound hacker checks. Waiting 10 seconds or for input.", 4);
+                            //Wait for input
+                            this.hackerCheckerHandle.Reset();
+                            //Either loop when handle is set, or after 3 minutes
+                            this.hackerCheckerHandle.WaitOne(180000 / ((repeatCheckingQueue.Count > 0) ? (repeatCheckingQueue.Count) : (1)));
                         }
                     }
-                    else
+                    catch(Exception e)
                     {
-                        this.DebugWrite("HCKCHK: No inbound hacker checks. Waiting 10 seconds or for input.", 4);
-                        //Wait for input
-                        this.hackerCheckerHandle.Reset();
-                        //Either loop when handle is set, or after 3 minutes
-                        this.hackerCheckerHandle.WaitOne(180000 / ((repeatCheckingQueue.Count > 0)?(repeatCheckingQueue.Count):(1)));
+                        this.HandleException(new AdKat_Exception("Error while fetching new players to check.", e));
                     }
 
                     //Current player being checked
                     AdKat_Player aPlayer = null;
-
-                    //Check one player from the repeat checking queue
-                    if (repeatCheckingQueue.Count > 0)
+                    try
                     {
-                        //Only keep players still in the server in the repeat checking list
-                        Boolean stillInServer = true;
-                        do
+                        //Check one player from the repeat checking queue
+                        if (repeatCheckingQueue.Count > 0)
                         {
-                            aPlayer = repeatCheckingQueue.Dequeue();
-                            if (!this.playerDictionary.ContainsKey(aPlayer.player_name))
+                            //Only keep players still in the server in the repeat checking list
+                            Boolean stillInServer = true;
+                            do
                             {
-                                stillInServer = false;
-                            }
-                        } while (!stillInServer && repeatCheckingQueue.Count > 0);
-                        if (aPlayer != null)
-                        {
-                            //Fetch their stats from BF3Stats
-                            this.fetchPlayerStats(aPlayer);
-                            //check for dmg mod if stats available
-                            if (aPlayer.stats != null)
-                            {
-                                playersWithStats++;
-                                this.ConsoleSuccess(aPlayer.player_name + " now has stats. Checking.");
-
-                                if (this.useHackerChecker)
+                                aPlayer = repeatCheckingQueue.Dequeue();
+                                if (!this.playerDictionary.ContainsKey(aPlayer.player_name))
                                 {
-                                    Boolean protect = false;
-                                    foreach (String whitelistedValue in this.hackerCheckerWhitelist)
+                                    stillInServer = false;
+                                }
+                            } while (!stillInServer && repeatCheckingQueue.Count > 0);
+                            if (aPlayer != null)
+                            {
+                                //Fetch their stats from BF3Stats
+                                this.fetchPlayerStats(aPlayer);
+                                //check for dmg mod if stats available
+                                if (aPlayer.stats != null)
+                                {
+                                    playersWithStats++;
+                                    this.ConsoleSuccess(aPlayer.player_name + " now has stats. Checking.");
+
+                                    if (this.useHackerChecker)
                                     {
-                                        if (aPlayer.player_name.Equals(whitelistedValue))
+                                        Boolean protect = false;
+                                        foreach (String whitelistedValue in this.hackerCheckerWhitelist)
                                         {
-                                            this.DebugWrite(aPlayer.player_name + " protected from hacker checker by name.", 2);
-                                            protect = true;
-                                            break;
+                                            if (aPlayer.player_name.Equals(whitelistedValue))
+                                            {
+                                                this.DebugWrite(aPlayer.player_name + " protected from hacker checker by name.", 2);
+                                                protect = true;
+                                                break;
+                                            }
+                                            if (aPlayer.player_guid.Equals(whitelistedValue))
+                                            {
+                                                this.DebugWrite(aPlayer.player_name + " protected from hacker checker by guid.", 2);
+                                                protect = true;
+                                                break;
+                                            }
+                                            if (aPlayer.player_ip.Equals(whitelistedValue))
+                                            {
+                                                this.DebugWrite(aPlayer.player_name + " protected from hacker checker by IP.", 2);
+                                                protect = true;
+                                                break;
+                                            }
                                         }
-                                        if (aPlayer.player_guid.Equals(whitelistedValue))
+                                        if (!protect)
                                         {
-                                            this.DebugWrite(aPlayer.player_name + " protected from hacker checker by guid.", 2);
-                                            protect = true;
-                                            break;
-                                        }
-                                        if (aPlayer.player_ip.Equals(whitelistedValue))
-                                        {
-                                            this.DebugWrite(aPlayer.player_name + " protected from hacker checker by IP.", 2);
-                                            protect = true;
-                                            break;
+                                            Boolean acted = false;
+                                            if (this.useDPSChecker)
+                                            {
+                                                acted = this.damageHackCheck(aPlayer, false);
+                                            }
+                                            if (this.useHSKChecker && !acted)
+                                            {
+                                                acted = this.aimbotHackCheck(aPlayer, false);
+                                            }
+                                            if (acted)
+                                            {
+                                                this.DebugWrite(aPlayer.player_name + " banned for hacking.", 1);
+                                            }
+                                            else
+                                            {
+                                                this.DebugWrite(aPlayer.player_name + " is clean.", 5);
+                                            }
                                         }
                                     }
-                                    if (!protect)
+                                    else
                                     {
-                                        Boolean acted = false;
-                                        if (this.useDPSChecker)
-                                        {
-                                            acted = this.damageHackCheck(aPlayer, false);
-                                        }
-                                        if (this.useHSKChecker && !acted)
-                                        {
-                                            acted = this.aimbotHackCheck(aPlayer, false);
-                                        }
-                                        if (acted)
-                                        {
-                                            this.DebugWrite(aPlayer.player_name + " banned for hacking.", 1);
-                                        }
-                                        else
-                                        {
-                                            this.DebugWrite(aPlayer.player_name + " is clean.", 5);
-                                        }
+                                        this.DebugWrite("Player removed from check list after disabling hacker checker.", 2);
                                     }
                                 }
                                 else
                                 {
-                                    this.DebugWrite("Player removed from check list after disabling hacker checker.", 2);
+                                    //If they still dont have stats, add them back to the queue
+                                    repeatCheckingQueue.Enqueue(aPlayer);
                                 }
                             }
-                            else
-                            {
-                                //If they still dont have stats, add them back to the queue
-                                repeatCheckingQueue.Enqueue(aPlayer);
-                            }
                         }
+                    }
+                    catch (Exception e)
+                    {
+                        this.HandleException(new AdKat_Exception("Error while in repeat checking queue handler", e));
                     }
 
                     //Get all checks in order that they came in
@@ -4426,76 +4461,157 @@ namespace PRoConEvents
                     {
                         //Grab first/next player
                         aPlayer = playerCheckingQueue.Dequeue();
-                        this.DebugWrite("HCKCHK: begin reading player", 5);
-
-                        //Fetch their stats from BF3Stats
-                        this.fetchPlayerStats(aPlayer);
-                        checkedPlayers++;
-                        //check for dmg mod if stats available
-                        if (aPlayer.stats != null)
+                        if (aPlayer != null)
                         {
-                            playersWithStats++;
+                            this.DebugWrite("HCKCHK: begin reading player", 5);
 
-                            if (this.useHackerChecker)
+                            Boolean protect = false;
+                            foreach (String whitelistedValue in this.hackerCheckerWhitelist)
                             {
-                                this.DebugWrite("HackerChecker running on " + aPlayer.player_name, 5);
-
-                                Boolean protect = false;
-                                foreach (String whitelistedValue in this.hackerCheckerWhitelist)
+                                if (!String.IsNullOrEmpty(aPlayer.player_name) && aPlayer.player_name.Equals(whitelistedValue))
                                 {
-                                    if (aPlayer.player_name.Equals(whitelistedValue))
-                                    {
-                                        this.DebugWrite(aPlayer.player_name + " protected from hacker checker by name.", 2);
-                                        protect = true;
-                                        break;
-                                    }
-                                    if (aPlayer.player_guid.Equals(whitelistedValue))
-                                    {
-                                        this.DebugWrite(aPlayer.player_name + " protected from hacker checker by guid.", 2);
-                                        protect = true;
-                                        break;
-                                    }
-                                    if (aPlayer.player_ip.Equals(whitelistedValue))
-                                    {
-                                        this.DebugWrite(aPlayer.player_name + " protected from hacker checker by IP.", 2);
-                                        protect = true;
-                                        break;
-                                    }
+                                    this.DebugWrite(aPlayer.player_name + " protected from hacker checker by name.", 2);
+                                    protect = true;
+                                    break;
                                 }
-                                if (!protect)
+                                if (!String.IsNullOrEmpty(aPlayer.player_guid) && aPlayer.player_guid.Equals(whitelistedValue))
                                 {
-                                    Boolean acted = false;
-                                    if (this.useDPSChecker)
+                                    this.DebugWrite(aPlayer.player_name + " protected from hacker checker by guid.", 2);
+                                    protect = true;
+                                    break;
+                                }
+                                if (!String.IsNullOrEmpty(aPlayer.player_ip) && aPlayer.player_ip.Equals(whitelistedValue))
+                                {
+                                    this.DebugWrite(aPlayer.player_name + " protected from hacker checker by IP.", 2);
+                                    protect = true;
+                                    break;
+                                }
+                            }
+                            if (!protect)
+                            {
+                                if (this.gameVersion == GameVersion.BF3)
+                                {
+                                    //Fetch their stats from BF3Stats
+                                    this.fetchPlayerStats(aPlayer);
+                                    checkedPlayers++;
+                                    //check for dmg mod if stats available
+                                    if (aPlayer.stats != null)
                                     {
-                                        this.DebugWrite("Preparing to DPS check " + aPlayer.player_name, 5);
-                                        acted = this.damageHackCheck(aPlayer, false);
-                                    }
-                                    if (this.useHSKChecker && !acted)
-                                    {
-                                        this.DebugWrite("Preparing to HSK check " + aPlayer.player_name, 5);
-                                        acted = this.aimbotHackCheck(aPlayer, false);
-                                    }
-                                    if (acted)
-                                    {
-                                        this.DebugWrite(aPlayer.player_name + " banned for hacking.", 1);
+                                        playersWithStats++;
+
+                                        if (this.useHackerChecker)
+                                        {
+                                            this.DebugWrite("HackerChecker running on " + aPlayer.player_name, 5);
+
+                                            Boolean acted = false;
+                                            if (this.useDPSChecker)
+                                            {
+                                                this.DebugWrite("Preparing to DPS check " + aPlayer.player_name, 5);
+                                                acted = this.damageHackCheck(aPlayer, false);
+                                            }
+                                            if (this.useHSKChecker && !acted)
+                                            {
+                                                this.DebugWrite("Preparing to HSK check " + aPlayer.player_name, 5);
+                                                acted = this.aimbotHackCheck(aPlayer, false);
+                                            }
+                                            if (acted)
+                                            {
+                                                this.DebugWrite(aPlayer.player_name + " banned for hacking.", 1);
+                                            }
+                                            else
+                                            {
+                                                this.DebugWrite(aPlayer.player_name + " is clean.", 5);
+                                            }
+                                        }
+                                        else
+                                        {
+                                            this.DebugWrite("Player skipped after disabling hacker checker.", 2);
+                                        }
                                     }
                                     else
                                     {
-                                        this.DebugWrite(aPlayer.player_name + " is clean.", 5);
+                                        //this.ConsoleError(aPlayer.player_name + " doesn't have stats.");
+                                        repeatCheckingQueue.Enqueue(aPlayer);
+                                    }
+                                    //this.ConsoleSuccess("Players with stats: " + (int)(playersWithStats / checkedPlayers * 100) + "%");
+                                }
+                                else if (this.gameVersion == GameVersion.BF4)
+                                {
+                                    try
+                                    {
+                                        if (String.IsNullOrEmpty(aPlayer.player_name))
+                                        {
+                                            this.ConsoleError("Player name was null or empty, unable to check player.");
+                                            continue;
+                                        }
+                                        //Fetch hack status from GCP servers
+                                        Hashtable result = this.fetchGCPHackCheck(aPlayer.player_name);
+                                        string status = (string)result["status"];
+                                        if (status.Equals("success"))
+                                        {
+                                            this.ConsoleWarn(aPlayer.player_name + " is hacking.");
+                                            try
+                                            {
+                                                List<AdKat_WeaponStats> weaponList = new List<AdKat_WeaponStats>();
+                                                foreach (DictionaryEntry pair in (Hashtable)result["weapons"])
+                                                {
+                                                    AdKat_WeaponStats weapon = new AdKat_WeaponStats();
+                                                    weapon.name = (string)pair.Key;
+                                                    Hashtable weaponStats = (Hashtable)pair.Value;
+                                                    weapon.kills = (double)weaponStats["kills"];
+                                                    weapon.headshots = (double)weaponStats["headshots"];
+                                                    weapon.dps = (double)weaponStats["DPS"];
+                                                    weapon.hskr = (double)weaponStats["HKR"];
+                                                    weapon.hits = (double)weaponStats["hit"];
+                                                    weapon.shots = (double)weaponStats["shot"];
+                                                    weaponList.Add(weapon);
+                                                }
+                                                AdKat_WeaponStats actedWeapon = null;
+                                                double actedDPS = 0;
+                                                double actedHSKR = 0;
+                                                foreach (AdKat_WeaponStats weapon in weaponList)
+                                                {
+                                                    if (weapon.dps > actedDPS)
+                                                    {
+                                                        actedWeapon = weapon;
+                                                        actedDPS = weapon.dps;
+                                                    }
+                                                    else if (weapon.hskr > actedHSKR)
+                                                    {
+                                                        actedWeapon = weapon;
+                                                        actedHSKR = weapon.hskr;
+                                                    }
+                                                }
+                                                //Create record for player in actual player list
+                                                AdKat_Record record = new AdKat_Record();
+                                                record.server_id = this.server_id;
+                                                record.command_type = AdKat_CommandType.PermabanPlayer;
+                                                record.command_numeric = 0;
+                                                record.target_name = aPlayer.player_name;
+                                                record.target_player = aPlayer;
+                                                record.source_name = "AutoAdmin";
+                                                record.record_message = "Hacking/Cheating Automatic Ban [" + actedWeapon.name.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int)actedWeapon.dps + "DPS-" + (int)(actedWeapon.hskr * 100) + "HSKR-" + (int)actedWeapon.kills + "]";
+                                                //Process the record
+                                                this.queueRecordForProcessing(record);
+                                                this.ConsoleWarn(aPlayer.player_name + " auto-banned for hacking. [" + actedWeapon.name.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int)actedWeapon.dps + "DPS-" + (int)(actedWeapon.hskr * 100) + "HSKR-" + (int)actedWeapon.kills + "]");
+                                            }
+                                            catch (Exception e)
+                                            {
+                                                this.HandleException(new AdKat_Exception("Unable to parse player hack information", e));
+                                            }
+                                        }
+                                        else
+                                        {
+                                            //this.ConsoleSuccess(aPlayer.player_name + " is clean.");
+                                        }
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        this.HandleException(new AdKat_Exception("Error while fetching BF4 player hack information", e));
                                     }
                                 }
                             }
-                            else
-                            {
-                                this.DebugWrite("Player skipped after disabling hacker checker.", 2);
-                            }
                         }
-                        else
-                        {
-                            //this.ConsoleError(aPlayer.player_name + " doesn't have stats.");
-                            repeatCheckingQueue.Enqueue(aPlayer);
-                        }
-                        //this.ConsoleSuccess("Players with stats: " + (int)(playersWithStats / checkedPlayers * 100) + "%");
                     }
                 }
                 this.DebugWrite("HCKCHK: Ending Hacker Checker Thread", 2);
@@ -4550,7 +4666,7 @@ namespace PRoConEvents
                     weaponStat.category == "Machine guns" ||
                     weaponStat.category == "Handheld weapons")
                 {
-                    if (this.statLibrary.weapons.TryGetValue(weaponStat.name, out weapon))
+                    if (this.statLibrary.weapons[this.gameVersion].TryGetValue(weaponStat.name, out weapon))
                     {
                         //Only handle weapons that do < 50 max dps
                         if (weapon.damage_max < 50)
@@ -4638,7 +4754,7 @@ namespace PRoConEvents
                     weaponStat.category == "Carbines" ||
                     weaponStat.category == "Machine guns")
                 {
-                    if (this.statLibrary.weapons.TryGetValue(weaponStat.name, out weapon))
+                    if (this.statLibrary.weapons[this.gameVersion].TryGetValue(weaponStat.name, out weapon))
                     {
                         //Only handle weapons that do < 50 max dps
                         if (weapon.damage_max < 50)
@@ -12538,82 +12654,90 @@ namespace PRoConEvents
             try
             {
                 //Fetch from BF3Stats
-                Hashtable playerData = this.fetchBF3StatsPlayer(player.player_name);
-                if(playerData != null)
+                Hashtable playerData = null;
+                if (this.gameVersion == GameVersion.BF3)
                 {
-                    string dataStatus = (String)playerData["status"];
-                    if (dataStatus == "error")
+                    playerData = this.fetchBF3StatsPlayer(player.player_name);
+                    if (playerData != null)
                     {
-                        stats.stats_exception = new AdKat_Exception("BF3 Stats reported error.");
-                    }
-                    else if (dataStatus == "notfound")
-                    {
-                        stats.stats_exception = new AdKat_Exception(player.player_name + " not found");
-                    }
-                    else
-                    {
-                        //Pull the global stats
-                        stats.platform = (String)playerData["plat"];
-                        stats.clanTag = (String)playerData["tag"];
-                        stats.language = (String)playerData["language"];
-                        stats.country = (String)playerData["country"];
-                        stats.country_name = (String)playerData["country_name"];
-                        DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0);
-                        stats.firstSeen = dtDateTime.AddSeconds((Double)playerData["date_insert"]);
-                        stats.lastPlayerUpdate = dtDateTime.AddSeconds((Double)playerData["date_update"]);
-
-                        //Get internal stats
-                        if (dataStatus == "data")
+                        string dataStatus = (String)playerData["status"];
+                        if (dataStatus == "error")
                         {
-                            Hashtable statsList = (Hashtable)playerData["stats"];
-                            stats.lastStatUpdate = dtDateTime.AddSeconds((Double)statsList["date_update"]);
-                            //Get rank
-                            Hashtable rankTable = (Hashtable)statsList["rank"];
-                            stats.rank = (Double)rankTable["nr"];
-                            //Get overall
-                            Hashtable global = (Hashtable)statsList["global"];
-                            stats.kills = (Double)global["kills"];
-                            stats.deaths = (Double)global["deaths"];
-                            stats.wins = (Double)global["wins"];
-                            stats.losses = (Double)global["losses"];
-                            stats.shots = (Double)global["shots"];
-                            stats.hits = (Double)global["hits"];
-                            stats.headshots = (Double)global["headshots"];
-                            stats.time = TimeSpan.FromSeconds((Double)global["time"]);
-                            //Get weapons
-                            stats.weaponStats = new Dictionary<string, AdKat_WeaponStats>();
-                            Hashtable weaponStats = (Hashtable)statsList["weapons"];
-                            Hashtable currentWeapon = null;
-                            AdKat_WeaponStats weapon = null;
-                            foreach (String weaponKey in weaponStats.Keys)
-                            {
-                                //Create new construct
-                                weapon = new AdKat_WeaponStats();
-                                //Grab data
-                                currentWeapon = (Hashtable)weaponStats[weaponKey];
-                                //Parse into construct
-                                weapon.name = (String)currentWeapon["name"];
-                                weapon.shots = (Double)currentWeapon["shots"];
-                                weapon.hits = (Double)currentWeapon["hits"];
-                                weapon.kills = (Double)currentWeapon["kills"];
-                                weapon.headshots = (Double)currentWeapon["headshots"];
-                                weapon.category = (String)currentWeapon["category"];
-                                weapon.kit = (String)currentWeapon["kit"];
-                                weapon.range = (String)currentWeapon["range"];
-                                weapon.time = TimeSpan.FromSeconds((Double)currentWeapon["time"]);
-                                //Calculate values
-                                weapon.hskr = weapon.headshots / weapon.kills;
-                                weapon.kpm = weapon.kills / weapon.time.TotalMinutes;
-                                weapon.dps = weapon.kills / weapon.hits * 100;
-                                //Assign the construct
-                                stats.weaponStats.Add(weapon.name, weapon);
-                            }
+                            stats.stats_exception = new AdKat_Exception("BF3 Stats reported error.");
+                        }
+                        else if (dataStatus == "notfound")
+                        {
+                            stats.stats_exception = new AdKat_Exception(player.player_name + " not found");
                         }
                         else
                         {
-                            stats.stats_exception = new AdKat_Exception(player.player_name + " did not have stats");
+                            //Pull the global stats
+                            stats.platform = (String)playerData["plat"];
+                            stats.clanTag = (String)playerData["tag"];
+                            stats.language = (String)playerData["language"];
+                            stats.country = (String)playerData["country"];
+                            stats.country_name = (String)playerData["country_name"];
+                            DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0);
+                            stats.firstSeen = dtDateTime.AddSeconds((Double)playerData["date_insert"]);
+                            stats.lastPlayerUpdate = dtDateTime.AddSeconds((Double)playerData["date_update"]);
+
+                            //Get internal stats
+                            if (dataStatus == "data")
+                            {
+                                Hashtable statsList = (Hashtable)playerData["stats"];
+                                stats.lastStatUpdate = dtDateTime.AddSeconds((Double)statsList["date_update"]);
+                                //Get rank
+                                Hashtable rankTable = (Hashtable)statsList["rank"];
+                                stats.rank = (Double)rankTable["nr"];
+                                //Get overall
+                                Hashtable global = (Hashtable)statsList["global"];
+                                stats.kills = (Double)global["kills"];
+                                stats.deaths = (Double)global["deaths"];
+                                stats.wins = (Double)global["wins"];
+                                stats.losses = (Double)global["losses"];
+                                stats.shots = (Double)global["shots"];
+                                stats.hits = (Double)global["hits"];
+                                stats.headshots = (Double)global["headshots"];
+                                stats.time = TimeSpan.FromSeconds((Double)global["time"]);
+                                //Get weapons
+                                stats.weaponStats = new Dictionary<string, AdKat_WeaponStats>();
+                                Hashtable weaponStats = (Hashtable)statsList["weapons"];
+                                Hashtable currentWeapon = null;
+                                AdKat_WeaponStats weapon = null;
+                                foreach (String weaponKey in weaponStats.Keys)
+                                {
+                                    //Create new construct
+                                    weapon = new AdKat_WeaponStats();
+                                    //Grab data
+                                    currentWeapon = (Hashtable)weaponStats[weaponKey];
+                                    //Parse into construct
+                                    weapon.name = (String)currentWeapon["name"];
+                                    weapon.shots = (Double)currentWeapon["shots"];
+                                    weapon.hits = (Double)currentWeapon["hits"];
+                                    weapon.kills = (Double)currentWeapon["kills"];
+                                    weapon.headshots = (Double)currentWeapon["headshots"];
+                                    weapon.category = (String)currentWeapon["category"];
+                                    weapon.kit = (String)currentWeapon["kit"];
+                                    weapon.range = (String)currentWeapon["range"];
+                                    weapon.time = TimeSpan.FromSeconds((Double)currentWeapon["time"]);
+                                    //Calculate values
+                                    weapon.hskr = weapon.headshots / weapon.kills;
+                                    weapon.kpm = weapon.kills / weapon.time.TotalMinutes;
+                                    weapon.dps = weapon.kills / weapon.hits * 100;
+                                    //Assign the construct
+                                    stats.weaponStats.Add(weapon.name, weapon);
+                                }
+                            }
+                            else
+                            {
+                                stats.stats_exception = new AdKat_Exception(player.player_name + " did not have stats");
+                            }
                         }
                     }
+                }
+                else if (this.gameVersion == GameVersion.BF4)
+                {
+                    //Do nothing, bf4stats not ready yet
                 }
             }
             catch (Exception e)
@@ -12642,6 +12766,28 @@ namespace PRoConEvents
                 {
                     string textResponse = System.Text.Encoding.Default.GetString(response);
                     playerData = (Hashtable)JSON.JsonDecode(textResponse);
+                }
+            }
+            return playerData;
+        }
+
+        private Hashtable fetchGCPHackCheck(String player_name)
+        {
+            Hashtable playerData = null;
+            using (WebClient client = new WebClient())
+            {
+                try
+                {
+                    string url = "http://bf4cheat.psychedelic-host.info/api/bf4/checkplayer/" + player_name;
+                    string textResponse = client.DownloadString(url).ToString();
+                    if (textResponse != null)
+                    {
+                        playerData = (Hashtable)JSON.JsonDecode(textResponse);
+                    }
+                }
+                catch (Exception e)
+                {
+                    this.ConsoleError(e.ToString());
                 }
             }
             return playerData;
@@ -13340,416 +13486,732 @@ namespace PRoConEvents
 
         public class StatLibrary
         {
-            public Dictionary<String, StatLibrary_Weapon> weapons = null;
+            public Dictionary<GameVersion, Dictionary<String, StatLibrary_Weapon>> weapons = null;
 
-            public StatLibrary()
+            public StatLibrary(AdKats plugin)
             {
-                //Create the weapon library
-                this.weapons = new Dictionary<string, StatLibrary_Weapon>();
-                //Add the weapons
-                StatLibrary_Weapon weapon = new StatLibrary_Weapon();
-                weapon.name = "G17C";
-                weapon.damage_max = 25;
-                weapon.damage_min = 13.75;
-                this.weapons.Add(weapon.name, weapon);
-                weapon.name = "G17C SUPP.";
-                weapon.damage_max = 25;
-                weapon.damage_min = 13.75;
-                this.weapons.Add(weapon.name, weapon);
-                weapon.name = "G17C TACT.";
-                weapon.damage_max = 25;
-                weapon.damage_min = 13.75;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = ".44 MAGNUM";
-                weapon.damage_max = 60;
-                weapon.damage_min = 30;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = ".44 SCOPED";
-                weapon.damage_max = 60;
-                weapon.damage_min = 30;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "93R";
-                weapon.damage_max = 20;
-                weapon.damage_min = 12.5;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "G18";
-                weapon.damage_max = 20;
-                weapon.damage_min = 12.5;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "G18 SUPP.";
-                weapon.damage_max = 20;
-                weapon.damage_min = 12.5;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "G18 TACT.";
-                weapon.damage_max = 20;
-                weapon.damage_min = 12.5;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M9";
-                weapon.damage_max = 25;
-                weapon.damage_min = 13.75;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M9 TACT.";
-                weapon.damage_max = 25;
-                weapon.damage_min = 13.75;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M9 SUPP.";
-                weapon.damage_max = 25;
-                weapon.damage_min = 13.75;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M1911";
-                weapon.damage_max = 34;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M1911 TACT.";
-                weapon.damage_max = 34;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M1911 SUPP.";
-                weapon.damage_max = 34;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M1911 S-TAC";
-                weapon.damage_max = 34;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "MP412 REX";
-                weapon.damage_max = 50;
-                weapon.damage_min = 28;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "MP443";
-                weapon.damage_max = 25;
-                weapon.damage_min = 13.75;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "MP443 TACT.";
-                weapon.damage_max = 25;
-                weapon.damage_min = 13.75;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "MP443 SUPP.";
-                weapon.damage_max = 25;
-                weapon.damage_min = 13.75;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "AS VAL";
-                weapon.damage_max = 20;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M5K";
-                weapon.damage_max = 25;
-                weapon.damage_min = 13.75;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "MP7";
-                weapon.damage_max = 20;
-                weapon.damage_min = 11.2;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "P90";
-                weapon.damage_max = 20;
-                weapon.damage_min = 11.2;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "PDW-R";
-                weapon.damage_max = 25;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "PP-19";
-                weapon.damage_max = 16.7;
-                weapon.damage_min = 12.5;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "PP-2000";
-                weapon.damage_max = 25;
-                weapon.damage_min = 13.75;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "UMP-45";
-                weapon.damage_max = 34;
-                weapon.damage_min = 12.5;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "JNG-90";
-                weapon.damage_max = 80;
-                weapon.damage_min = 59;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "L96";
-                weapon.damage_max = 80;
-                weapon.damage_min = 59;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M39 EMR";
-                weapon.damage_max = 50;
-                weapon.damage_min = 37.5;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M40A5";
-                weapon.damage_max = 80;
-                weapon.damage_min = 59;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M98B";
-                weapon.damage_max = 95;
-                weapon.damage_min = 59;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M417";
-                weapon.damage_max = 50;
-                weapon.damage_min = 37.5;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "MK11";
-                weapon.damage_max = 50;
-                weapon.damage_min = 37.5;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "QBU-88";
-                weapon.damage_max = 50;
-                weapon.damage_min = 37.5;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "SKS";
-                weapon.damage_max = 43;
-                weapon.damage_min = 27;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "SV98";
-                weapon.damage_max = 80;
-                weapon.damage_min = 50;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "SVD";
-                weapon.damage_max = 50;
-                weapon.damage_min = 37.5;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M27 IAR";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "RPK-74M";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "L86A2";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "LSAT";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M60E4";
-                weapon.damage_max = 34;
-                weapon.damage_min = 22;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M240B";
-                weapon.damage_max = 34;
-                weapon.damage_min = 22;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M249";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "MG36";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "PKP PECHENEG";
-                weapon.damage_max = 34;
-                weapon.damage_min = 22;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "QBB-95";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "TYPE 88 LMG";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "A-91";
-                weapon.damage_max = 25;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "ACW-R";
-                weapon.damage_max = 20;
-                weapon.damage_min = 16.7;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "AKS-74u";
-                weapon.damage_max = 25;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "G36C";
-                weapon.damage_max = 25;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "G53";
-                weapon.damage_max = 25;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M4A1";
-                weapon.damage_max = 25;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "MTAR-21";
-                weapon.damage_max = 25;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "QBZ-95B";
-                weapon.damage_max = 25;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "SCAR-H";
-                weapon.damage_max = 30;
-                weapon.damage_min = 20;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "SG553";
-                weapon.damage_max = 25;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M4";
-                weapon.damage_max = 25;
-                weapon.damage_min = 14.3;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "AEK-971";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "AK-74M";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "AN-94";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "AUG A3";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "F2000";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "FAMAS";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "G3A3";
-                weapon.damage_max = 34;
-                weapon.damage_min = 22;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "KH2002";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "L85A2";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M16A3";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M416";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "SCAR-L";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M16A4";
-                weapon.damage_max = 25;
-                weapon.damage_min = 18.4;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "XBOW";
-                weapon.damage_max = 100;
-                weapon.damage_min = 10;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "XBOW SCOPED";
-                weapon.damage_max = 100;
-                weapon.damage_min = 10;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M320";
-                weapon.damage_max = 100;
-                weapon.damage_min = 1;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M26";
-                weapon.damage_max = 100;
-                weapon.damage_min = 1;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M26 MASS";
-                weapon.damage_max = 100;
-                weapon.damage_min = 1;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M26 SLUG";
-                weapon.damage_max = 100;
-                weapon.damage_min = 1;
-                this.weapons.Add(weapon.name, weapon);
-                weapon = new StatLibrary_Weapon();
-                weapon.name = "M26 FRAG";
-                weapon.damage_max = 100;
-                weapon.damage_min = 1;
-                this.weapons.Add(weapon.name, weapon);
+                try
+                {
+                    //Create the weapon library
+                    this.weapons = new Dictionary<GameVersion, Dictionary<String, StatLibrary_Weapon>>();
+
+                    //Create the game specific libraries
+                    Dictionary<String, StatLibrary_Weapon> bf3Weapons = new Dictionary<String, StatLibrary_Weapon>();
+                    Dictionary<String, StatLibrary_Weapon> bf4Weapons = new Dictionary<String, StatLibrary_Weapon>();
+
+                    //Add the weapons
+                    StatLibrary_Weapon weapon = new StatLibrary_Weapon();
+                    weapon.name = "G17C";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 13.75;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "G17C SUPP.";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 13.75;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "G17C TACT.";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 13.75;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = ".44 MAGNUM";
+                    weapon.damage_max = 60;
+                    weapon.damage_min = 30;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = ".44 SCOPED";
+                    weapon.damage_max = 60;
+                    weapon.damage_min = 30;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "93R";
+                    weapon.damage_max = 20;
+                    weapon.damage_min = 12.5;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "G18";
+                    weapon.damage_max = 20;
+                    weapon.damage_min = 12.5;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "G18 SUPP.";
+                    weapon.damage_max = 20;
+                    weapon.damage_min = 12.5;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "G18 TACT.";
+                    weapon.damage_max = 20;
+                    weapon.damage_min = 12.5;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M9";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 13.75;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M9 TACT.";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 13.75;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M9 SUPP.";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 13.75;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M1911";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M1911 TACT.";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M1911 SUPP.";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M1911 S-TAC";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "MP412 REX";
+                    weapon.damage_max = 50;
+                    weapon.damage_min = 28;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "MP443";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 13.75;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "MP443 TACT.";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 13.75;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "MP443 SUPP.";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 13.75;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "AS VAL";
+                    weapon.damage_max = 20;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M5K";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 13.75;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "MP7";
+                    weapon.damage_max = 20;
+                    weapon.damage_min = 11.2;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "P90";
+                    weapon.damage_max = 20;
+                    weapon.damage_min = 11.2;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "PDW-R";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "PP-19";
+                    weapon.damage_max = 16.7;
+                    weapon.damage_min = 12.5;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "PP-2000";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 13.75;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "UMP-45";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 12.5;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "JNG-90";
+                    weapon.damage_max = 80;
+                    weapon.damage_min = 59;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "L96";
+                    weapon.damage_max = 80;
+                    weapon.damage_min = 59;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M39 EMR";
+                    weapon.damage_max = 50;
+                    weapon.damage_min = 37.5;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M40A5";
+                    weapon.damage_max = 80;
+                    weapon.damage_min = 59;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M98B";
+                    weapon.damage_max = 95;
+                    weapon.damage_min = 59;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M417";
+                    weapon.damage_max = 50;
+                    weapon.damage_min = 37.5;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "MK11";
+                    weapon.damage_max = 50;
+                    weapon.damage_min = 37.5;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "QBU-88";
+                    weapon.damage_max = 50;
+                    weapon.damage_min = 37.5;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "SKS";
+                    weapon.damage_max = 43;
+                    weapon.damage_min = 27;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "SV98";
+                    weapon.damage_max = 80;
+                    weapon.damage_min = 50;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "SVD";
+                    weapon.damage_max = 50;
+                    weapon.damage_min = 37.5;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M27 IAR";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "RPK-74M";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "L86A2";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "LSAT";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M60E4";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 22;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M240B";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 22;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M249";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "MG36";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "PKP PECHENEG";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 22;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "QBB-95";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "TYPE 88 LMG";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "A-91";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "ACW-R";
+                    weapon.damage_max = 20;
+                    weapon.damage_min = 16.7;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "AKS-74u";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "G36C";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "G53";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M4A1";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "MTAR-21";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "QBZ-95B";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "SCAR-H";
+                    weapon.damage_max = 30;
+                    weapon.damage_min = 20;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "SG553";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M4";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 14.3;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "AEK-971";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "AK-74M";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "AN-94";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "AUG A3";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "F2000";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "FAMAS";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "G3A3";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 22;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "KH2002";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "L85A2";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M16A3";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M416";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "SCAR-L";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M16A4";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18.4;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "XBOW";
+                    weapon.damage_max = 100;
+                    weapon.damage_min = 10;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "XBOW SCOPED";
+                    weapon.damage_max = 100;
+                    weapon.damage_min = 10;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M320";
+                    weapon.damage_max = 100;
+                    weapon.damage_min = 1;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M26";
+                    weapon.damage_max = 100;
+                    weapon.damage_min = 1;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M26 MASS";
+                    weapon.damage_max = 100;
+                    weapon.damage_min = 1;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M26 SLUG";
+                    weapon.damage_max = 100;
+                    weapon.damage_min = 1;
+                    bf3Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "M26 FRAG";
+                    weapon.damage_max = 100;
+                    weapon.damage_min = 1;
+                    bf3Weapons.Add(weapon.name, weapon);
+
+                    //Add BF4 Weapons
+                    //Carbines
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "ak-5c";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "aku-12";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "sg553";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "acw-r";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "g36c";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "type-95b-1";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "a-91";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "ace-52-cqb";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 20;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "m4";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    //DMRs
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "ace-53-sv";
+                    weapon.damage_max = 43;
+                    weapon.damage_min = 30;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "m39-emr";
+                    weapon.damage_max = 43;
+                    weapon.damage_min = 30;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "qbu-88";
+                    weapon.damage_max = 40;
+                    weapon.damage_min = 28;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "mk11-mod-0";
+                    weapon.damage_max = 43;
+                    weapon.damage_min = 30;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "scar-h-sv";
+                    weapon.damage_max = 43;
+                    weapon.damage_min = 30;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "sks";
+                    weapon.damage_max = 40;
+                    weapon.damage_min = 28;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "rfb";
+                    weapon.damage_max = 43;
+                    weapon.damage_min = 30;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "svd-12";
+                    weapon.damage_max = 43;
+                    weapon.damage_min = 30;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    //Handguns
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "p226";
+                    weapon.damage_max = 27;
+                    weapon.damage_min = 12.1;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "m412-rex";
+                    weapon.damage_max = 56;
+                    weapon.damage_min = 28;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "compact-45";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "m1911";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "44-magnum";
+                    weapon.damage_max = 56;
+                    weapon.damage_min = 37.5;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "93r";
+                    weapon.damage_max = 18;
+                    weapon.damage_min = 10.8;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "mp443";
+                    weapon.damage_max = 27;
+                    weapon.damage_min = 12.1;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "g18";
+                    weapon.damage_max = 18;
+                    weapon.damage_min = 10.8;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "cz-75";
+                    weapon.damage_max = 27;
+                    weapon.damage_min = 13.5;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "qsz-92";
+                    weapon.damage_max = 20;
+                    weapon.damage_min = 11.2;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "m9";
+                    weapon.damage_max = 27;
+                    weapon.damage_min = 12.1;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "fn57";
+                    weapon.damage_max = 20;
+                    weapon.damage_min = 11.2;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    //Assault
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "aek-971";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "m416";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "scar-h";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 28;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "sar-21";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "ak-12";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "aug-a3";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "qbz-95-1";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "m16a4";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "cz-805";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "famas";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "ace-23";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    //PDWs
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "mx4";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 12.1;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "99-2000";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 12.1;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "cbj-ms";
+                    weapon.damage_max = 22;
+                    weapon.damage_min = 12.1;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "ump-45";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "cz-3a1";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 12.1;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "p90";
+                    weapon.damage_max = 21;
+                    weapon.damage_min = 11.2;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "pdw-r";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 15.4;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "ump-9";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 12.1;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "js2";
+                    weapon.damage_max = 20;
+                    weapon.damage_min = 11.2;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    //LMGs
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "mg4";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "lsat";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "m240b";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 25;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "qbb-95-1";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "type-88-lmg";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "u-100-mk5";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "rpk-12";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "pkp-pecheneg";
+                    weapon.damage_max = 34;
+                    weapon.damage_min = 25;
+                    bf4Weapons.Add(weapon.name, weapon);
+                    weapon = new StatLibrary_Weapon();
+                    weapon.name = "m249";
+                    weapon.damage_max = 25;
+                    weapon.damage_min = 18;
+                    bf4Weapons.Add(weapon.name, weapon);
+
+                    //Add the dictionaries
+                    this.weapons.Add(GameVersion.BF3, bf3Weapons);
+                    this.weapons.Add(GameVersion.BF4, bf4Weapons);
+                }
+                catch (Exception e)
+                {
+                    plugin.ConsoleError(e.ToString());
+                }
             }
         }
 
