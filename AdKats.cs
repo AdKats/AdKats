@@ -58,7 +58,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.5.2.3";
+        private string plugin_version = "3.6.9.0";
         private DateTime startTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -203,7 +203,10 @@ namespace PRoConEvents
             BF3, 
             BF4 
         };
-        public GameVersion gameVersion = GameVersion.BF3;
+        private GameVersion gameVersion = GameVersion.BF3;
+        private int gameID = -1;
+        //Assume the BF3 version unless universal is detected
+        private string statLoggerVersion = "BF3";
         private string gamePatchVersion = "UNKNOWN";
         private string server_type = "UNKNOWN";
         private Boolean fairFightEnabled = false;
@@ -873,7 +876,6 @@ namespace PRoConEvents
                         foreach (AdKat_Access access in tempAccess)
                         {
                             lstReturn.Add(new CPluginVariable("3. Player Access Settings|" + access.player_name + "|Access Level", typeof(int), access.access_level));
-                            //lstReturn.Add(new CPluginVariable("3. Player Access Settings|" + access.player_name + "|Email Address", typeof(string)));
                         }
                     }
                     else
@@ -1030,6 +1032,8 @@ namespace PRoConEvents
                     lstReturn.Add(new CPluginVariable("X99. Experimental|Use Experimental Tools", typeof(Boolean), this.useExperimentalTools));
                     if (this.useExperimentalTools)
                     {
+                        lstReturn.Add(new CPluginVariable("X99. Experimental|Send Query", typeof(string), ""));
+                        lstReturn.Add(new CPluginVariable("X99. Experimental|Send Non-Query", typeof(string), ""));
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Round Timer: Enable", typeof(Boolean), this.useRoundTimer));
                         if (this.useRoundTimer)
                         {
@@ -1078,19 +1082,29 @@ namespace PRoConEvents
                 {
                     //Do nothing. Settings page will be updated after return.
                 }
+                else if (Regex.Match(strVariable, @"Send Query").Success)
+                {
+                    this.sendQuery(strValue, true);
+                }
+                else if (Regex.Match(strVariable, @"Send Non-Query").Success)
+                {
+                    this.sendNonQuery(strValue, true);
+                }
                 else if (Regex.Match(strVariable, @"HackerCheck Player").Success)
                 {
                     if (String.IsNullOrEmpty(strValue))
                     {
-                        this.ConsoleError("Player name was null.");
                         return;
                     }
                     else
                     {
                         this.ConsoleWarn("Preparing to hacker check " + strValue);
                     }
-                    AdKat_Player aPlayer = new AdKat_Player();
-                    aPlayer.player_name = strValue;
+                    if (!this.threadsReady)
+                    {
+                        return;
+                    }
+                    AdKat_Player aPlayer = this.fetchPlayer(-1, strValue, null, null);
                     if (this.gameVersion == GameVersion.BF3)
                     {
                         //Fetch their stats from BF3Stats
@@ -1120,17 +1134,7 @@ namespace PRoConEvents
                     }
                     else if (this.gameVersion == GameVersion.BF4)
                     {
-                        //Fetch hack status from GCP servers
-                        Hashtable result = this.fetchGCPHackCheck(aPlayer.player_name);
-                        string status = (string)result["status"];
-                        if(status.Equals("success"))
-                        {
-                            this.ConsoleWarn(aPlayer.player_name + " is hacking.");
-                        }
-                        else
-                        {
-                            this.ConsoleSuccess(aPlayer.player_name + " is clean.");
-                        }
+                        this.runGCPHackCheck(aPlayer, true);
                     }
                 }
                 else if (Regex.Match(strVariable, @"Setting Import").Success)
@@ -1249,7 +1253,6 @@ namespace PRoConEvents
                     if (feedSLS != this.feedStatLoggerSettings)
                     {
                         this.feedStatLoggerSettings = feedSLS;
-                        this.fetchAccessList();
                         //Once setting has been changed, upload the change to database
                         this.queueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof(Boolean), this.feedStatLoggerSettings));
                     }
@@ -2848,7 +2851,7 @@ namespace PRoConEvents
                 case "BF4": gameVersion = GameVersion.BF4; break;
                 default: break;
             }
-            this.ConsoleWrite("^1Game Version: " + gameVersion);
+            this.DebugWrite("^1Game Version: " + gameVersion, 1);
         }
 
         public void OnPluginLoaded(string strHostName, string strPort, string strPRoConVersion)
@@ -2968,7 +2971,6 @@ namespace PRoConEvents
                 {
                     try
                     {
-                        //TODO
                         //Initialize the stat library
                         this.statLibrary = new StatLibrary(this);
 
@@ -2986,7 +2988,8 @@ namespace PRoConEvents
                         ConsoleWrite("Initializing AdKats " + this.GetPluginVersion() + " components.");
                         DateTime startTime = DateTime.Now;
 
-                        if (this.useDatabase)
+                        //Don't directly depend on stat logger being controllable
+                        /*if (this.useDatabase)
                         {
                             //Confirm Stat Logger active and properly configured
                             this.ConsoleWrite("Confirming proper setup for CChatGUIDStatsLoggerBF3, please wait...");
@@ -2999,12 +3002,12 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    //Stat logger could not be enabled or managed, disabled AdKats
-                                    this.disable();
+                                    //Stat logger could not be enabled or managed
+                                    this.ConsoleWarn("The stat logger plugin could not be found or controlled. Running AdKats in backup mode.");
                                     return;
                                 }
                             }
-                        }
+                        }*/
 
                         //Inform of IP
                         this.ConsoleSuccess("Server IP is " + this.server_ip + "!");
@@ -4544,66 +4547,7 @@ namespace PRoConEvents
                                             this.ConsoleError("Player name was null or empty, unable to check player.");
                                             continue;
                                         }
-                                        //Fetch hack status from GCP servers
-                                        Hashtable result = this.fetchGCPHackCheck(aPlayer.player_name);
-                                        string status = (string)result["status"];
-                                        if (status.Equals("success"))
-                                        {
-                                            this.ConsoleWarn(aPlayer.player_name + " is hacking.");
-                                            try
-                                            {
-                                                List<AdKat_WeaponStats> weaponList = new List<AdKat_WeaponStats>();
-                                                foreach (DictionaryEntry pair in (Hashtable)result["weapons"])
-                                                {
-                                                    AdKat_WeaponStats weapon = new AdKat_WeaponStats();
-                                                    weapon.name = (string)pair.Key;
-                                                    Hashtable weaponStats = (Hashtable)pair.Value;
-                                                    weapon.kills = (double)weaponStats["kills"];
-                                                    weapon.headshots = (double)weaponStats["headshots"];
-                                                    weapon.dps = (double)weaponStats["DPS"];
-                                                    weapon.hskr = (double)weaponStats["HKR"];
-                                                    weapon.hits = (double)weaponStats["hit"];
-                                                    weapon.shots = (double)weaponStats["shot"];
-                                                    weaponList.Add(weapon);
-                                                }
-                                                AdKat_WeaponStats actedWeapon = null;
-                                                double actedDPS = 0;
-                                                double actedHSKR = 0;
-                                                foreach (AdKat_WeaponStats weapon in weaponList)
-                                                {
-                                                    if (weapon.dps > actedDPS)
-                                                    {
-                                                        actedWeapon = weapon;
-                                                        actedDPS = weapon.dps;
-                                                    }
-                                                    else if (weapon.hskr > actedHSKR)
-                                                    {
-                                                        actedWeapon = weapon;
-                                                        actedHSKR = weapon.hskr;
-                                                    }
-                                                }
-                                                //Create record for player in actual player list
-                                                AdKat_Record record = new AdKat_Record();
-                                                record.server_id = this.server_id;
-                                                record.command_type = AdKat_CommandType.PermabanPlayer;
-                                                record.command_numeric = 0;
-                                                record.target_name = aPlayer.player_name;
-                                                record.target_player = aPlayer;
-                                                record.source_name = "AutoAdmin";
-                                                record.record_message = "Hacking/Cheating Automatic Ban [" + actedWeapon.name.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int)actedWeapon.dps + "DPS-" + (int)(actedWeapon.hskr * 100) + "HSKR-" + (int)actedWeapon.kills + "]";
-                                                //Process the record
-                                                this.queueRecordForProcessing(record);
-                                                this.ConsoleWarn(aPlayer.player_name + " auto-banned for hacking. [" + actedWeapon.name.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int)actedWeapon.dps + "DPS-" + (int)(actedWeapon.hskr * 100) + "HSKR-" + (int)actedWeapon.kills + "]");
-                                            }
-                                            catch (Exception e)
-                                            {
-                                                this.HandleException(new AdKat_Exception("Unable to parse player hack information", e));
-                                            }
-                                        }
-                                        else
-                                        {
-                                            //this.ConsoleSuccess(aPlayer.player_name + " is clean.");
-                                        }
+                                        this.runGCPHackCheck(aPlayer, false);
                                     }
                                     catch (Exception e)
                                     {
@@ -4628,6 +4572,90 @@ namespace PRoConEvents
                 {
                     this.HandleException(new AdKat_Exception("Error occured in Hacker Checker thread.", e));
                 }
+            }
+        }
+
+        private void runGCPHackCheck(AdKat_Player aPlayer, Boolean verbose)
+        {
+            //Fetch hack status from GCP servers
+            Hashtable hcResponse = this.fetchGCPHackCheck(aPlayer.player_name);
+            string status = (string)hcResponse["status"];
+            if (status.Equals("success"))
+            {
+                Hashtable response = (Hashtable)hcResponse["response"];
+                string result = (string)response["result"];
+                if (result.Equals("dirty"))
+                {
+                    this.ConsoleWarn(aPlayer.player_name + " is hacking.");
+                    try
+                    {
+                        List<AdKat_WeaponStats> weaponList = new List<AdKat_WeaponStats>();
+                        foreach (DictionaryEntry pair in (Hashtable)response["weapons"])
+                        {
+                            AdKat_WeaponStats weapon = new AdKat_WeaponStats();
+                            weapon.name = (string)pair.Key;
+                            Hashtable weaponStats = (Hashtable)pair.Value;
+                            weapon.kills = (double)weaponStats["kills"];
+                            weapon.headshots = (double)weaponStats["headshots"];
+                            weapon.dps = (double)weaponStats["DPS"];
+                            weapon.hskr = (double)weaponStats["HKR"];
+                            weapon.hits = (double)weaponStats["hit"];
+                            weapon.shots = (double)weaponStats["shot"];
+                            weaponList.Add(weapon);
+                        }
+                        AdKat_WeaponStats actedWeapon = null;
+                        double actedDPS = 0;
+                        double actedHSKR = 0;
+                        foreach (AdKat_WeaponStats weapon in weaponList)
+                        {
+                            if (weapon.dps > actedDPS)
+                            {
+                                actedWeapon = weapon;
+                                actedDPS = weapon.dps;
+                            }
+                            else if (weapon.hskr > actedHSKR)
+                            {
+                                actedWeapon = weapon;
+                                actedHSKR = weapon.hskr;
+                            }
+                        }
+                        //Create record for player in actual player list
+                        AdKat_Record record = new AdKat_Record();
+                        record.server_id = this.server_id;
+                        record.command_type = AdKat_CommandType.PermabanPlayer;
+                        record.command_numeric = 0;
+                        record.target_name = aPlayer.player_name;
+                        record.target_player = aPlayer;
+                        record.source_name = "AutoAdmin";
+                        record.record_message = "Hacking/Cheating Automatic Ban [" + actedWeapon.name.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int)actedWeapon.dps + "DPS-" + (int)(actedWeapon.hskr * 100) + "HSKR-" + (int)actedWeapon.kills + "]";
+                        //Process the record
+                        this.queueRecordForProcessing(record);
+                        this.ConsoleWarn(aPlayer.player_name + " auto-banned for hacking. [" + actedWeapon.name.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int)actedWeapon.dps + "DPS-" + (int)(actedWeapon.hskr * 100) + "HSKR-" + (int)actedWeapon.kills + "]");
+                    }
+                    catch (Exception e)
+                    {
+                        this.HandleException(new AdKat_Exception("Unable to parse player hack information", e));
+                    }
+                }
+                else if (result.Equals("clean"))
+                {
+                    if (verbose)
+                    {
+                        this.ConsoleSuccess(aPlayer.player_name + " is clean.");
+                    }
+                    else
+                    {
+                        this.DebugWrite(aPlayer.player_name + " is clean.", 2);
+                    }
+                }
+                else
+                {
+                    this.ConsoleError("Unknown hacker result '" + result + "'.");
+                }
+            }
+            else
+            {
+                this.ConsoleError(aPlayer.player_name + " not found or could not be hacker-checked.");
             }
         }
 
@@ -5209,9 +5237,9 @@ namespace PRoConEvents
                     this.playerListUpdateHandle.Reset();
                     this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                     //Wait for listPlayers to finish
-                    if (!this.playerListUpdateHandle.WaitOne(10000))
+                    if (!this.playerListUpdateHandle.WaitOne(2000))
                     {
-                        this.DebugWrite("ListPlayers ran out of time for TeamSwap. 10 sec.", 1);
+                        this.DebugWrite("ListPlayers ran out of time for TeamSwap. 2 sec.", 1);
                     }
 
                     //Refresh Max Player Count, needed for responsive server size
@@ -8348,10 +8376,41 @@ namespace PRoConEvents
                         }
                     }
 
-                    //Every 60 seconds make sure stat logger is running and fully operational
+                    //Every 60 seconds feed stat logger settings
                     if (this.lastStatLoggerStatusUpdateTime.AddSeconds(60) < DateTime.Now)
                     {
-                        //TODO put back
+                        this.lastStatLoggerStatusUpdateTime = DateTime.Now;
+                        if (this.statLoggerVersion == "BF3")
+                        {
+                            this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "No");
+                            this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Log ServerSPAM?", "No");
+                            this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "No");
+                            this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable chatlog filter(Regex)?", "No");
+                            if (this.feedStatLoggerSettings)
+                            {
+                                //Due to narwhals, Stat logger time offset is in the opposite direction of Adkats time offset
+                                double SLOffset = this.dbTimeConversion.TotalHours * (-1);
+                                this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Servertime Offset", SLOffset + "");
+                            }
+                        }
+                        else if (this.statLoggerVersion == "UNIVERSAL")
+                        {
+                            this.setExternalPluginSetting("CChatGUIDStatsLogger", "Enable Chatlogging?", "No");
+                            this.setExternalPluginSetting("CChatGUIDStatsLogger", "Log ServerSPAM?", "No");
+                            this.setExternalPluginSetting("CChatGUIDStatsLogger", "Instant Logging of Chat Messages?", "No");
+                            this.setExternalPluginSetting("CChatGUIDStatsLogger", "Enable chatlog filter(Regex)?", "No");
+                            if (this.feedStatLoggerSettings)
+                            {
+                                //Due to narwhals, Stat logger time offset is in the opposite direction of Adkats time offset
+                                double SLOffset = this.dbTimeConversion.TotalHours * (-1);
+                                this.setExternalPluginSetting("CChatGUIDStatsLogger", "Servertime Offset", SLOffset + "");
+                            }
+                        }
+                        else
+                        {
+                            this.ConsoleError("Stat logger version is unknown, unable to feed stat logger settings.");
+                        }
+                        //TODO put back in the future
                         //this.confirmStatLoggerSetup();
                     }
 
@@ -8362,9 +8421,6 @@ namespace PRoConEvents
                         if (this.fetchServerID() >= 0)
                         {
                             this.ConsoleSuccess("Database Server Info Fetched. Server ID is " + this.server_id + "!");
-
-                            //Now that we have the current server ID from stat logger, import all records from previous versions of AdKats
-                            this.updateDB_0251_0300();
 
                             //Push all settings for this instance to the database
                             this.uploadAllSettings();
@@ -8887,13 +8943,55 @@ namespace PRoConEvents
             try
             {
                 Boolean confirmed = true;
-                if (!this.confirmTable("tbl_playerdata") || !this.confirmTable("tbl_server"))
+                //All versions of stat logger should have these tables
+                if (!this.confirmTable("tbl_playerdata") || !this.confirmTable("tbl_server") || !this.confirmTable("tbl_chatlog"))
                 {
                     this.ConsoleError("Tables from XPKiller's Stat Logger not found in the database. Enable that plugin then re-run AdKats!");
                     confirmed = false;
                 }
                 else
                 {
+                    //The universal version has a tbl_games table, detect that
+                    if (this.confirmTable("tbl_games"))
+                    {
+                        this.statLoggerVersion = "UNIVERSAL";
+                        Boolean gameIDFound = false;
+                        using (MySqlConnection connection = this.getDatabaseConnection())
+                        {
+                            using (MySqlCommand command = connection.CreateCommand())
+                            {
+                                //Attempt to execute the query
+                                command.CommandText = "SELECT `GameID` AS `game_id`, `Name` AS `game_name` FROM `tbl_games` WHERE `Name` = '" + this.gameVersion + "'";
+                                using (MySqlDataReader reader = command.ExecuteReader())
+                                {
+                                    if (reader.Read())
+                                    {
+                                        gameIDFound = true;
+                                        this.gameID = reader.GetInt32("game_id");
+                                    }
+                                }
+                            }
+                            if (!gameIDFound)
+                            {
+                                using (MySqlCommand command = connection.CreateCommand())
+                                {
+                                    //Attempt to execute the query
+                                    command.CommandText = "INSERT INTO `tbl_games` (`Name`) VALUES ('" + this.gameVersion + "')";
+                                    if (command.ExecuteNonQuery() > 0)
+                                    {
+                                        gameIDFound = true;
+                                        this.gameID = (int)command.LastInsertedId;
+                                    }
+                                    else
+                                    {
+                                        this.ConsoleError("Unable to insert game ID into database.");
+                                    }
+                                }
+                            }
+                            confirmed = gameIDFound;
+                        }
+                    }
+                    //Detect AdKats tables
                     if (!this.confirmTable("adkats_records"))
                     {
                         this.ConsoleError("Main Record table not present in the database.");
@@ -8906,6 +9004,61 @@ namespace PRoConEvents
                             this.ConsoleError("After running setup script main record table still not present.");
                             confirmed = false;
                         }
+                    }
+                    else
+                    {
+                        //Clause to add the source_id column if it doesn't exist
+                        Boolean chatLogAlterSuccess = false;
+                        try
+                        {
+                            if (!this.sendQuery("SELECT `source_id` FROM `adkats_records` LIMIT 1", false))
+                            {
+                                chatLogAlterSuccess = this.sendNonQuery("ALTER TABLE `adkats_records` ADD COLUMN `source_id` INT(11) UNSIGNED DEFAULT NULL AFTER `source_name`", false);
+                                chatLogAlterSuccess = this.sendNonQuery("ALTER TABLE `adkats_records` ADD INDEX (`source_id`)", false);
+                                if (chatLogAlterSuccess)
+                                {
+                                    chatLogAlterSuccess = this.sendNonQuery("ALTER TABLE `adkats_records` ADD FOREIGN KEY (`source_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE SET NULL ON UPDATE CASCADE", false);
+                                    if (chatLogAlterSuccess)
+                                    {
+                                        //All previous records must be updated with source_ids
+                                        chatLogAlterSuccess = this.sendNonQuery(@"
+                                        UPDATE 
+	                                        `adkats_records`
+                                        INNER JOIN 
+	                                        `tbl_playerdata`
+                                        ON 
+	                                        `adkats_records`.`source_name` = `tbl_playerdata`.`SoldierName` 
+                                        SET 
+	                                        `adkats_records`.`source_id` = `tbl_playerdata`.`PlayerID`
+                                        WHERE 
+	                                        `tbl_playerdata`.`SoldierName` <> 'AutoAdmin' 
+                                        AND 
+	                                        `tbl_playerdata`.`SoldierName` <> 'AdKats' 
+                                        AND 
+	                                        `tbl_playerdata`.`SoldierName` <> 'Server' 
+                                        AND 
+	                                        `tbl_playerdata`.`SoldierName` <> 'BanEnforcer'
+                                        AND 
+	                                        `adkats_records`.`source_id` IS NULL
+                                        ", false);
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                //Column already exists
+                                chatLogAlterSuccess = true;
+                            }
+                            if (!chatLogAlterSuccess)
+                            {
+                                this.ConsoleError("Unable to add source_id column to records table.");
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            this.HandleException(new AdKat_Exception("Error while adding source_id column", e));
+                        }
+                        confirmed = chatLogAlterSuccess;
                     }
                     if (!this.confirmTable("adkats_accesslist"))
                     {
@@ -9179,13 +9332,12 @@ namespace PRoConEvents
 
         private void uploadSetting(CPluginVariable var)
         {
-            DebugWrite("uploadSetting starting!", 7);
+            this.DebugWrite("uploadSetting starting!", 7);
             //Make sure database connection active
             if (this.handlePossibleDisconnect())
             {
                 return;
             }
-
             try
             {
                 using (MySqlConnection connection = this.getDatabaseConnection())
@@ -9420,6 +9572,7 @@ namespace PRoConEvents
                             `target_name`, 
                             `target_id`, 
                             `source_name`, 
+                            `source_id`, 
                             `record_message`, 
                             `adkats_read`
                         ) 
@@ -9432,6 +9585,7 @@ namespace PRoConEvents
                             @target_name, 
                             @target_id, 
                             @source_name, 
+                            @source_id, 
                             @record_message, 
                             'Y'
                         )";
@@ -9479,6 +9633,16 @@ namespace PRoConEvents
                         }
                         command.Parameters.AddWithValue("@target_name", tName);
                         command.Parameters.AddWithValue("@source_name", record.source_name);
+                        //Add the source ID if available
+                        AdKat_Player sourcePlayer = null;
+                        if (this.playerDictionary.TryGetValue(record.source_name, out sourcePlayer))
+                        {
+                            command.Parameters.AddWithValue("@source_id", sourcePlayer.player_id);
+                        }
+                        else
+                        {
+                            command.Parameters.AddWithValue("@source_id", null);
+                        }
                         string messageIRO = record.record_message + ((record.isIRO) ? (" [IRO]") : (""));
                         //Trim to 500 characters (Should only hit this limit when processing error messages)
                         messageIRO = messageIRO.Length <= 500 ? messageIRO : messageIRO.Substring(0, 500);
@@ -9540,9 +9704,10 @@ namespace PRoConEvents
             }
         }
 
+        private Boolean chatPlayerIDAdded = false;
         private Boolean uploadChatLog(string log_source, string log_subset, string log_message)
         {
-            DebugWrite("uploadChatLog starting!", 6);
+            this.DebugWrite("uploadChatLog starting!", 6);
             Boolean success = false;
             //Only do this for BF4
             if (this.gameVersion == GameVersion.BF4)
@@ -9559,8 +9724,59 @@ namespace PRoConEvents
                 //Make sure database connection active
                 if (this.handlePossibleDisconnect())
                 {
-                    this.HandleException(new AdKat_Exception("Database not connected."));
+                    this.HandleException(new AdKat_Exception("Database not connected on chat upload."));
                     return success;
+                }
+                if (!this.chatPlayerIDAdded)
+                {
+                    Boolean alterSuccess = false;
+                    if (!this.sendQuery("SELECT `logPlayerID` FROM `tbl_chatlog` LIMIT 1", false))
+                    {
+                        alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD COLUMN `logPlayerID` INT(10) UNSIGNED DEFAULT NULL AFTER `logSubset`", false);
+                        alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD INDEX (`logPlayerID`)", false);
+                        if (alterSuccess)
+                        {
+                            alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD CONSTRAINT `tbl_chatlog_ibfk_2` FOREIGN KEY (`logPlayerID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE", false);
+                            if (alterSuccess)
+                            {
+                                //All previous chat logs must be updated with source_ids
+                                alterSuccess = this.sendNonQuery(@"
+                                UPDATE 
+                                    `tbl_chatlog`
+                                INNER JOIN 
+                                    `tbl_playerdata`
+                                ON 
+                                    `tbl_chatlog`.`logSoldierName` = `tbl_playerdata`.`SoldierName` 
+                                SET 
+                                    `tbl_chatlog`.`logPlayerID` = `tbl_playerdata`.`PlayerID`
+                                WHERE 
+                                    `tbl_playerdata`.`SoldierName` <> 'AutoAdmin' 
+                                AND 
+                                    `tbl_playerdata`.`SoldierName` <> 'AdKats' 
+                                AND 
+                                    `tbl_playerdata`.`SoldierName` <> 'Server' 
+                                AND 
+                                    `tbl_playerdata`.`SoldierName` <> 'BanEnforcer'
+                                AND 
+                                    `tbl_chatlog`.`logPlayerID` IS NULL
+                                ", false);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //Column already exists
+                        alterSuccess = true;
+                    }
+                    if (alterSuccess)
+                    {
+                        this.chatPlayerIDAdded = true;
+                    }
+                    else
+                    {
+                        this.ConsoleError("Unable to add logPlayerID column to chat log table.");
+                        return false;
+                    }
                 }
                 MySqlCommand commandAttempt = null;
                 try
@@ -9640,6 +9856,95 @@ namespace PRoConEvents
                 }
             }
             return success;
+        }
+
+        private Boolean sendQuery(String query, Boolean verbose)
+        {
+            if (String.IsNullOrEmpty(query))
+            {
+                return false;
+            }
+            try
+            {
+                using (MySqlConnection connection = this.getDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        //Attempt to execute the query
+                        command.CommandText = query;
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                if (verbose)
+                                {
+                                    this.ConsoleSuccess("Query returned values.");
+                                }
+                                return true;
+                            }
+                            else
+                            {
+                                if (verbose)
+                                {
+                                    this.ConsoleError("Query returned no results.");
+                                }
+                                return false;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                if (verbose)
+                {
+                    this.ConsoleError(e.ToString());
+                }
+                return false;
+            }
+        }
+
+        private Boolean sendNonQuery(String nonQuery, Boolean verbose)
+        {
+            if (String.IsNullOrEmpty(nonQuery))
+            {
+                return false;
+            }
+            try
+            {
+                using (MySqlConnection connection = this.getDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = nonQuery;
+                        //Attempt to execute the non query
+                        if (command.ExecuteNonQuery() > 0)
+                        {
+                            if (verbose)
+                            {
+                                this.ConsoleSuccess("Non-Query success.");
+                            }
+                            return true;
+                        }
+                        else
+                        {
+                            if (verbose)
+                            {
+                                this.ConsoleError("Non-Query failed.");
+                            }
+                            return false;
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                if (verbose)
+                {
+                    this.ConsoleError(e.ToString());
+                }
+                return false;
+            }
         }
 
         private Boolean updateRecord(AdKat_Record record)
@@ -10444,12 +10749,14 @@ namespace PRoConEvents
                                 command.CommandText = @"
                                 INSERT INTO `" + this.mySqlDatabaseName + @"`.`tbl_playerdata` 
                                 (
+                                    " + ((this.gameID > 0)?("`GameID`,"):("")) + @"
                                     `SoldierName`, 
                                     `EAGUID`, 
                                     `IP_Address`
                                 ) 
                                 VALUES 
                                 (
+                                    " + ((this.gameID > 0) ? (this.gameID + ",") : ("")) + @"
                                     '" + player_name + @"', 
                                     '" + player_guid + @"',
                                     '" + player_ip + @"'
@@ -10912,228 +11219,6 @@ namespace PRoConEvents
         }
 
         //DONE
-        private void updateDB_0251_0300()
-        {
-            if (!this.confirmTable("adkat_records"))
-            {
-                this.DebugWrite("No tables from previous versions. No need for database update.", 3);
-                return;
-            }
-
-            try
-            {
-                //Get record count from current version table
-                int currentRecordCount = 0;
-                //initial record ID. Fetching 250 records at a time.
-                Int64 initial_record_id = 0;
-                Int64 importCount = 0;
-                Int64 uploadCount = 0;
-
-                using (MySqlConnection connection = this.getDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        command.CommandText = @"
-                            SELECT 
-                                COUNT(*) AS `record_count` 
-                            FROM 
-	                            `adkats_records`";
-
-                        using (MySqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                currentRecordCount = reader.GetInt32("record_count");
-                            }
-                            else
-                            {
-                                this.ConsoleError("Unable to fetch current record count.");
-                            }
-                        }
-                    }
-                }
-
-                if (currentRecordCount == 0)
-                {
-                    this.ConsoleWarn("Updating records from previous versions to 0.3.0.0! Do not turn off AdKats until it's finished!");
-                    List<AdKat_Record> newRecords = new List<AdKat_Record>();
-                    do
-                    {
-                        newRecords = new List<AdKat_Record>();
-
-                        using (MySqlConnection connection = this.getDatabaseConnection())
-                        {
-                            this.ConsoleWrite("creating connection to update records");
-
-                            using (MySqlCommand command = connection.CreateCommand())
-                            {
-                                this.ConsoleWrite("creating fetch command");
-                                command.CommandText = @"
-                                SELECT 
-                                    `record_id`,
-                                    `tbl_server`.`ServerID` AS `server_id`,
-                                    `command_type`, 
-                                    `command_action`, 
-                                    `record_durationMinutes`, 
-                                    `target_guid`, 
-                                    `target_name`, 
-                                    `source_name`, 
-                                    `record_message`, 
-                                    `record_time`
-                                FROM 
-                                    `adkat_records` 
-                                INNER JOIN 
-                                    `tbl_server` 
-                                ON
-                                    `adkat_records`.`server_ip` = `tbl_server`.`IP_Address`
-                                WHERE 
-                                    `record_id` > @initial_record_id 
-                                ORDER BY 
-                                    `record_id` ASC 
-                                LIMIT 
-                                    50";
-
-                                command.Parameters.AddWithValue("@initial_record_id", initial_record_id);
-
-                                this.ConsoleWrite("reading input");
-                                using (MySqlDataReader reader = command.ExecuteReader())
-                                {
-                                    //Loop through all incoming bans
-                                    while (reader.Read())
-                                    {
-                                        //Pull record ID to post as new greatest ID
-                                        initial_record_id = reader.GetInt64("record_id");
-
-                                        AdKat_Record record = new AdKat_Record();
-                                        //Get server information
-                                        record.server_id = reader.GetInt64("server_id");
-                                        //Get command information
-                                        record.command_type = this.getDBCommand(reader.GetString("command_type"));
-                                        record.command_action = this.getDBCommand(reader.GetString("command_action"));
-                                        record.command_numeric = reader.GetInt32("record_durationMinutes");
-                                        //Get source information
-                                        record.source_name = reader.GetString("source_name");
-                                        //Get target information
-                                        record.target_player = this.fetchPlayer(-1, reader.GetString("target_name"), reader.GetString("target_guid"), null);
-                                        //Get general record information
-                                        record.record_message = reader.GetString("record_message");
-                                        record.record_time = reader.GetDateTime("record_time");
-
-                                        //Push to lists
-                                        newRecords.Add(record);
-
-                                        //Increase the import count
-                                        importCount++;
-                                    }
-                                    this.ConsoleWrite(importCount + " records downloaded...");
-                                }
-                            }
-                        }
-
-                        foreach (AdKat_Record record in newRecords)
-                        {
-                            if (!this.uploadRecord(record))
-                            {
-                                return;
-                            }
-
-                            uploadCount++;
-                        }
-                        this.ConsoleWrite(uploadCount + " records uploaded...");
-                    } while (newRecords.Count > 0);
-                }
-
-                this.ConsoleSuccess(uploadCount + " records imported from previous versions of AdKats!");
-
-                using (MySqlConnection connection = this.getDatabaseConnection())
-                {
-                    //Get player access count from current version table
-                    int currentAccessCount = 0;
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        command.CommandText = @"
-                        SELECT 
-                            COUNT(*) AS `access_count` 
-                        FROM 
-	                        `adkats_accesslist`";
-
-                        using (MySqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read())
-                            {
-                                currentAccessCount = reader.GetInt32("access_count");
-                            }
-                            else
-                            {
-                                this.ConsoleError("Unable to fetch current access count.");
-                            }
-                        }
-                    }
-                    if (currentAccessCount == 0)
-                    {
-                        this.ConsoleWarn("Updating player access from previous versions to 0.3.0.0! Do not turn off AdKats until it's finished!");
-
-                        List<AdKat_Access> newAccess = new List<AdKat_Access>();
-
-                        using (MySqlCommand command = connection.CreateCommand())
-                        {
-                            command.CommandText = @"
-                            SELECT 
-                                `player_name`,
-                                `access_level`
-                            FROM 
-                                `adkat_accesslist`";
-
-                            using (MySqlDataReader reader = command.ExecuteReader())
-                            {
-                                importCount = 0;
-
-                                //Loop through all incoming bans
-                                while (reader.Read())
-                                {
-                                    AdKat_Access access = new AdKat_Access();
-                                    access.player_name = reader.GetString("player_name");
-                                    access.access_level = reader.GetInt32("access_level");
-                                    access.member_id = 0;
-                                    access.player_email = "test@gmail.com";
-
-                                    //Push to lists
-                                    newAccess.Add(access);
-
-                                    if ((++importCount % 500) == 0)
-                                    {
-                                        this.ConsoleWrite(importCount + " access entries downloaded...");
-                                    }
-                                }
-                                this.ConsoleWrite(importCount + " access entries downloaded...");
-                            }
-                        }
-
-                        uploadCount = 0;
-                        foreach (AdKat_Access access in newAccess)
-                        {
-                            this.uploadPlayerAccess(access);
-
-                            if ((++uploadCount % 500) == 0)
-                            {
-                                this.ConsoleWrite(uploadCount + " access entries uploaded...");
-                            }
-                        }
-                        this.ConsoleSuccess(uploadCount + " access entries imported from previous versions of AdKats!");
-
-                        //Fetch the updated access list
-                        this.fetchAccessList();
-                    }
-                }
-                this.updateSettingPage();
-            }
-            catch (Exception e)
-            {
-                this.HandleException(new AdKat_Exception("Error while updating database from 2.5.1 to 3.0+.", e));
-            }
-        }
-
-        //DONE
         private void importBansFromBBM5108()
         {
             //Check if tables exist from BF3 Ban Manager
@@ -11318,7 +11403,7 @@ namespace PRoConEvents
             }
         }
 
-        //TODO
+        //Done
         private Boolean canPunish(AdKat_Record record)
         {
             DebugWrite("canPunish starting!", 6);
@@ -13045,6 +13130,8 @@ namespace PRoConEvents
 
         public Boolean confirmStatLoggerSetup()
         {
+            //This function has been disabled for now
+
             //Make sure database connection active
             if (this.handlePossibleDisconnect())
             {
@@ -13059,7 +13146,13 @@ namespace PRoConEvents
                     if (command.RegisteredClassname.CompareTo("CChatGUIDStatsLoggerBF3") == 0 && command.RegisteredMethodName.CompareTo("GetStatus") == 0)
                     {
                         loggerStatusCommand = command;
-                        this.DebugWrite("Found command for stat logger.", 5);
+                        this.DebugWrite("Found command for BF3 stat logger.", 5);
+                        break;
+                    }
+                    else if (command.RegisteredClassname.CompareTo("CChatGUIDStatsLogger") == 0 && command.RegisteredMethodName.CompareTo("GetStatus") == 0)
+                    {
+                        loggerStatusCommand = command;
+                        this.DebugWrite("Found command for Universal stat logger.", 5);
                         break;
                     }
                 }
@@ -13118,15 +13211,6 @@ namespace PRoConEvents
                     {
                         this.ConsoleError("CChatGUIDStatsLoggerBF3's connection to the database is not active. Backup mode Enabled...");
                     }
-                    //Whether to feed stat logger settings per the 
-                    if (this.feedStatLoggerSettings)
-                    {
-                        this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "Yes");
-                        this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "Yes");
-                        //Due to narwhals, Stat logger time offset is in the opposite direction of Adkats time offset
-                        double SLOffset = this.dbTimeConversion.TotalHours * (-1);
-                        this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Servertime Offset", SLOffset + "");
-                    }
                     return true;
                 }
                 else
@@ -13144,6 +13228,8 @@ namespace PRoConEvents
 
         public Hashtable getStatLoggerStatus() 
         {
+            //Disabled
+
             //Make sure AdKats database connection active
             if (this.handlePossibleDisconnect())
             {
