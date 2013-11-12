@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `adkats_records` (
 	`target_name` VARCHAR(45) NOT NULL DEFAULT "NoTarget", 
 	`target_id` INT(11) UNSIGNED DEFAULT NULL, 
 	`source_name` VARCHAR(45) NOT NULL DEFAULT "NoNameAdmin", 
+	`source_id` INT(11) UNSIGNED DEFAULT NULL, 
 	`record_message` VARCHAR(500) NOT NULL DEFAULT "NoMessage", 
 	`record_time` TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
 	`adkats_read` ENUM('Y', 'N') NOT NULL DEFAULT 'N', 
