@@ -423,6 +423,7 @@ namespace PRoConEvents
         //Multi-Threading Settings
         //Threads
         private Thread PlayerListingThread;
+        private Thread KillProcessingThread;
         private Thread MessagingThread;
         private Thread CommandParsingThread;
         private Thread DatabaseCommThread;
@@ -436,6 +437,7 @@ namespace PRoConEvents
         private Thread roundTimerThread;
         //Mutexes
         public Object playersMutex = new Object();
+        public Object killProcessingMutex = new Object();
         public Object banListMutex = new Object();
         public Object reportsMutex = new Object();
         public Object actionConfirmMutex = new Object();
@@ -452,6 +454,7 @@ namespace PRoConEvents
         //Handles
         private EventWaitHandle teamswapHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle playerListProcessingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle killProcessingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle playerListUpdateHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle messageParsingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle commandParsingHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -466,6 +469,7 @@ namespace PRoConEvents
 
         //Threading Queues
         private Queue<List<CPlayerInfo>> playerListProcessingQueue = new Queue<List<CPlayerInfo>>();
+        private Queue<Kill> killProcessingQueue = new Queue<Kill>();
         private Queue<KeyValuePair<String, String>> unparsedMessageQueue = new Queue<KeyValuePair<String, String>>();
         private Queue<KeyValuePair<String, String>> unparsedCommandQueue = new Queue<KeyValuePair<String, String>>();
         private Queue<AdKat_Record> unprocessedRecordQueue = new Queue<AdKat_Record>();
@@ -2726,6 +2730,9 @@ namespace PRoConEvents
                 this.PlayerListingThread = new Thread(new ThreadStart(playerListingThreadLoop));
                 this.PlayerListingThread.IsBackground = true;
 
+                this.KillProcessingThread = new Thread(new ThreadStart(killProcessingThreadLoop));
+                this.KillProcessingThread.IsBackground = true;
+
                 this.MessagingThread = new Thread(new ThreadStart(messagingThreadLoop));
                 this.MessagingThread.IsBackground = true;
 
@@ -3200,14 +3207,14 @@ namespace PRoConEvents
         {
             try
             {
-                this.DebugWrite("MESSAGE: Starting Player Listing Thread", 2);
+                this.DebugWrite("PLIST: Starting Player Listing Thread", 2);
                 Thread.CurrentThread.Name = "playerlisting";
                 while (true)
                 {
-                    this.DebugWrite("MESSAGE: Entering Player Listing Thread Loop", 7);
+                    this.DebugWrite("PLIST: Entering Player Listing Thread Loop", 7);
                     if (!this.isEnabled)
                     {
-                        this.DebugWrite("MESSAGE: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                        this.DebugWrite("PLIST: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                         break;
                     }
 
@@ -3215,10 +3222,10 @@ namespace PRoConEvents
                     Queue<List<CPlayerInfo>> inboundPlayerLists;
                     if (this.playerListProcessingQueue.Count > 0)
                     {
-                        this.DebugWrite("MESSAGE: Preparing to lock player list queues to retrive new player lists", 7);
+                        this.DebugWrite("PLIST: Preparing to lock player list queues to retrive new player lists", 7);
                         lock (this.playerListProcessingQueue)
                         {
-                            this.DebugWrite("MESSAGE: Inbound player lists found. Grabbing.", 6);
+                            this.DebugWrite("PLIST: Inbound player lists found. Grabbing.", 6);
                             //Grab all lists in the queue
                             inboundPlayerLists = new Queue<List<CPlayerInfo>>(this.playerListProcessingQueue.ToArray());
                             //Clear the queue for next run
@@ -3227,7 +3234,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        this.DebugWrite("MESSAGE: No inbound player lists. Waiting for Input.", 4);
+                        this.DebugWrite("PLIST: No inbound player lists. Waiting for Input.", 4);
                         //Wait for input
                         this.playerListProcessingHandle.Reset();
                         this.playerListProcessingHandle.WaitOne(Timeout.Infinite);
@@ -3237,7 +3244,7 @@ namespace PRoConEvents
                     //Loop through all messages in order that they came in
                     while (inboundPlayerLists != null && inboundPlayerLists.Count > 0)
                     {
-                        this.DebugWrite("MESSAGE: begin reading player lists", 6);
+                        this.DebugWrite("PLIST: begin reading player lists", 6);
                         //Dequeue the first/next message
                         List<CPlayerInfo> players = inboundPlayerLists.Dequeue();
 
@@ -3294,7 +3301,7 @@ namespace PRoConEvents
                                             }
                                             else
                                             {
-                                                this.DebugWrite("Player is already in the admin assitant cache, this is abnormal.", 3);
+                                                this.DebugWrite("PLIST: Player is already in the admin assitant cache, this is abnormal.", 3);
                                             }
                                         }
                                         else
@@ -3326,7 +3333,7 @@ namespace PRoConEvents
                                 if (!playerNames.Contains(player_name))
                                 {
                                     straglerCount++;
-                                    this.DebugWrite("Removing " + player_name + " from current player list (VIA CLEANUP).", 4);
+                                    this.DebugWrite("PLIST: Removing " + player_name + " from current player list (VIA CLEANUP).", 4);
                                     this.playerDictionary.Remove(player_name);
                                 }
                             }
@@ -3364,7 +3371,7 @@ namespace PRoConEvents
                         this.playerListUpdateHandle.Set();
                     }
                 }
-                this.DebugWrite("MESSAGE: Ending Player Listing Thread", 2);
+                this.DebugWrite("PLIST: Ending Player Listing Thread", 2);
             }
             catch (Exception e)
             {
@@ -3568,11 +3575,113 @@ namespace PRoConEvents
             try
             {
                 //If the plugin is not enabled just return
-                if (!this.isEnabled)
+                if (!this.isEnabled || !this.threadsReady)
                 {
                     return;
                 }
+                //Otherwise, queue the kill for processing
+                this.queueKillForProcessing(kKillerVictimDetails);
+            }
+            catch(Exception e)
+            {
+                this.HandleException(new AdKat_Exception("Error while handling onPlayerKilled.", e));
+            }
+        }
 
+        private void queueKillForProcessing(Kill kKillerVictimDetails)
+        {
+            this.DebugWrite("Entering queueKillForProcessing", 7);
+            try
+            {
+                if (this.isEnabled)
+                {
+                    this.DebugWrite("Preparing to queue kill for processing", 6);
+                    lock (this.killProcessingQueue)
+                    {
+                        this.killProcessingQueue.Enqueue(kKillerVictimDetails);
+                        this.DebugWrite("Kill queued for processing", 6);
+                        this.killProcessingHandle.Set();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKat_Exception("Error while queueing kill for processing.", e));
+            }
+            this.DebugWrite("Exiting queueKillForProcessing", 7);
+        }
+
+        public void killProcessingThreadLoop()
+        {
+            try
+            {
+                this.DebugWrite("KILLPROC: Starting Kill Processing Thread", 2);
+                Thread.CurrentThread.Name = "killprocessing";
+                while (true)
+                {
+                    this.DebugWrite("KILLPROC: Entering Kill Processing Thread Loop", 7);
+                    if (!this.isEnabled)
+                    {
+                        this.DebugWrite("KILLPROC: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                        break;
+                    }
+
+                    //Get all unprocessed inbound kills
+                    Queue<Kill> inboundPlayerKills;
+                    if (this.killProcessingQueue.Count > 0)
+                    {
+                        this.DebugWrite("KILLPROC: Preparing to lock inbound kill queue to retrive new player kills", 7);
+                        lock (this.killProcessingQueue)
+                        {
+                            this.DebugWrite("KILLPROC: Inbound kills found. Grabbing.", 6);
+                            //Grab all kills in the queue
+                            inboundPlayerKills = new Queue<Kill>(this.killProcessingQueue.ToArray());
+                            //Clear the queue for next run
+                            this.killProcessingQueue.Clear();
+                        }
+                    }
+                    else
+                    {
+                        this.DebugWrite("KILLPROC: No inbound player kills. Waiting for Input.", 4);
+                        //Wait for input
+                        this.killProcessingHandle.Reset();
+                        this.killProcessingHandle.WaitOne(Timeout.Infinite);
+                        continue;
+                    }
+
+                    //Loop through all kils in order that they came in
+                    while (inboundPlayerKills != null && inboundPlayerKills.Count > 0)
+                    {
+                        this.DebugWrite("KILLPROC: begin reading player kills", 6);
+                        //Dequeue the first/next kill
+                        Kill playerKill = inboundPlayerKills.Dequeue();
+
+                        //Call processing on the player kill
+                        this.processPlayerKill(playerKill);
+                    }
+                }
+                this.DebugWrite("KILLPROC: Ending Kill Processing Thread", 2);
+            }
+            catch (Exception e)
+            {
+                if (typeof(ThreadAbortException).Equals(e.GetType()))
+                {
+                    this.HandleException(new AdKat_Exception("Kill processing thread aborted. Attempting to restart.", e));
+                    this.DebugWrite("Thread Exception", 4);
+                    Thread.ResetAbort();
+                    return;
+                }
+                else
+                {
+                    this.HandleException(new AdKat_Exception("Error occured in kill processing thread.", e));
+                }
+            }
+        }
+
+        private void processPlayerKill(Kill kKillerVictimDetails)
+        {
+            try
+            {
                 //TEMP BF4 weapon code things
                 this.uploadWeaponCode(kKillerVictimDetails.DamageType);
 
@@ -8547,6 +8656,7 @@ namespace PRoConEvents
                     {
                         //Start other threads
                         this.PlayerListingThread.Start();
+                        this.KillProcessingThread.Start();
                         this.MessagingThread.Start();
                         this.CommandParsingThread.Start();
                         this.ActionHandlingThread.Start();
