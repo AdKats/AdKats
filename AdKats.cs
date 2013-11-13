@@ -58,15 +58,11 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.6.9.0";
+        private string plugin_version = "3.6.9.1";
         private DateTime startTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
         Boolean slowmo = false;
-
-        //BF4 temp variables
-        Boolean weaponCodesTableTested = false;
-        Boolean weaponCodesTableConfirmed = false;
 
         //Match command showing whether AdKats is installed and running
         private MatchCommand AdKatsAvailableIndicator;
@@ -1055,15 +1051,18 @@ namespace PRoConEvents
                         {
                             lstReturn.Add(new CPluginVariable("X99. Experimental|HackerCheck Player", typeof(string), ""));
                             lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: Whitelist", typeof(string[]), this.hackerCheckerWhitelist));
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: DPS Checker: Enable", typeof(Boolean), this.useDPSChecker));
-                            if (this.useDPSChecker)
+                            if (this.gameVersion == GameVersion.BF3)
                             {
-                                lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: DPS Checker: Trigger Level", typeof(double), this.DPSTriggerLevel));
-                            }
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: HSK Checker: Enable", typeof(Boolean), this.useHSKChecker));
-                            if (this.useHSKChecker)
-                            {
-                                lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: HSK Checker: Trigger Level", typeof(double), this.HSKTriggerLevel));
+                                lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: DPS Checker: Enable", typeof(Boolean), this.useDPSChecker));
+                                if (this.useDPSChecker)
+                                {
+                                    lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: DPS Checker: Trigger Level", typeof(double), this.DPSTriggerLevel));
+                                }
+                                lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: HSK Checker: Enable", typeof(Boolean), this.useHSKChecker));
+                                if (this.useHSKChecker)
+                                {
+                                    lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: HSK Checker: Trigger Level", typeof(double), this.HSKTriggerLevel));
+                                }
                             }
                         }
                     }
@@ -3682,9 +3681,6 @@ namespace PRoConEvents
         {
             try
             {
-                //TEMP BF4 weapon code things
-                this.uploadWeaponCode(kKillerVictimDetails.DamageType);
-
                 //Used for delayed player moving
                 if (this.teamswapOnDeathMoveDic.Count > 0)
                 {
@@ -3979,68 +3975,6 @@ namespace PRoConEvents
                 this.HandleException(new AdKat_Exception("Error while processing player kill.", e));
             }
             this.DebugWrite("Exiting OnPlayerKilled", 7);
-        }
-
-        private void uploadWeaponCode(String weaponCode)
-        {
-            DebugWrite("uploadWeaponCode starting!", 7);
-
-            //Make sure database connection active
-            if (this.handlePossibleDisconnect())
-            {
-                return;
-            }
-
-            try
-            {
-                if (!this.weaponCodesTableTested)
-                {
-                    this.weaponCodesTableTested = true;
-                    this.weaponCodesTableConfirmed = this.confirmTable("tbl_weaponcodes");
-                }
-                if (!this.weaponCodesTableConfirmed)
-                {
-                    return;
-                }
-                //Check for length too great
-                if (weaponCode.Length > 100)
-                {
-                    this.ConsoleError("Weapon name '" + weaponCode + "' too long!!!");
-                    return;
-                }
-
-                using (MySqlConnection connection = this.getDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-
-                        //Set the insert command structure
-                        command.CommandText = @"
-                        INSERT INTO `tbl_weaponcodes` 
-                        (
-                            `weapon_code`
-                        ) 
-                        VALUES 
-                        (  
-                            '" + weaponCode + @"'
-                        ) 
-                        ON DUPLICATE KEY 
-                        UPDATE 
-                            `weapon_usage_count` = `weapon_usage_count` + 1";
-                        //Attempt to execute the query
-                        if (command.ExecuteNonQuery() > 0)
-                        {
-                            this.DebugWrite("Weapon pushed to database", 7);
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                this.HandleException(new AdKat_Exception("Error while uploading weapon to database.", e));
-            }
-
-            DebugWrite("uploadWeaponCode finished!", 7);
         }
 
         public override void OnPlayerSpawned(String soldierName, Inventory spawnedInventory)
@@ -9819,153 +9753,149 @@ namespace PRoConEvents
         {
             this.DebugWrite("uploadChatLog starting!", 6);
             Boolean success = false;
-            //Only do this for BF4
-            if (this.gameVersion == GameVersion.BF4)
+            if (!this.threadsReady)
             {
-                if (!this.threadsReady)
+                return success;
+            }
+            //comorose BF4 chat handle
+            if (log_message.Contains("ID_CHAT"))
+            {
+                success = true;
+                return success;
+            }
+            //Make sure database connection active
+            if (this.handlePossibleDisconnect())
+            {
+                this.HandleException(new AdKat_Exception("Database not connected on chat upload."));
+                return success;
+            }
+            if (!this.chatPlayerIDAdded)
+            {
+                Boolean alterSuccess = false;
+                if (!this.sendQuery("SELECT `logPlayerID` FROM `tbl_chatlog` LIMIT 1", false))
                 {
-                    return success;
-                }
-                if (log_message.Contains("ID_CHAT"))
-                {
-                    success = true;
-                    return success;
-                }
-                //Make sure database connection active
-                if (this.handlePossibleDisconnect())
-                {
-                    this.HandleException(new AdKat_Exception("Database not connected on chat upload."));
-                    return success;
-                }
-                if (!this.chatPlayerIDAdded)
-                {
-                    Boolean alterSuccess = false;
-                    if (!this.sendQuery("SELECT `logPlayerID` FROM `tbl_chatlog` LIMIT 1", false))
-                    {
-                        alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD COLUMN `logPlayerID` INT(10) UNSIGNED DEFAULT NULL AFTER `logSubset`", false);
-                        alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD INDEX (`logPlayerID`)", false);
-                        if (alterSuccess)
-                        {
-                            alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD CONSTRAINT `tbl_chatlog_ibfk_2` FOREIGN KEY (`logPlayerID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE", false);
-                            if (alterSuccess)
-                            {
-                                //All previous chat logs must be updated with source_ids
-                                alterSuccess = this.sendNonQuery(@"
-                                UPDATE 
-                                    `tbl_chatlog`
-                                INNER JOIN 
-                                    `tbl_playerdata`
-                                ON 
-                                    `tbl_chatlog`.`logSoldierName` = `tbl_playerdata`.`SoldierName` 
-                                SET 
-                                    `tbl_chatlog`.`logPlayerID` = `tbl_playerdata`.`PlayerID`
-                                WHERE 
-                                    `tbl_playerdata`.`SoldierName` <> 'AutoAdmin' 
-                                AND 
-                                    `tbl_playerdata`.`SoldierName` <> 'AdKats' 
-                                AND 
-                                    `tbl_playerdata`.`SoldierName` <> 'Server' 
-                                AND 
-                                    `tbl_playerdata`.`SoldierName` <> 'BanEnforcer'
-                                AND 
-                                    `tbl_chatlog`.`logPlayerID` IS NULL
-                                ", false);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        //Column already exists
-                        alterSuccess = true;
-                    }
+                    alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD COLUMN `logPlayerID` INT(10) UNSIGNED DEFAULT NULL AFTER `logSubset`", false);
+                    alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD INDEX (`logPlayerID`)", false);
                     if (alterSuccess)
                     {
-                        this.chatPlayerIDAdded = true;
-                    }
-                    else
-                    {
-                        this.ConsoleError("Unable to add logPlayerID column to chat log table.");
-                        return false;
-                    }
-                }
-                MySqlCommand commandAttempt = null;
-                try
-                {
-                    using (MySqlConnection connection = this.getDatabaseConnection())
-                    {
-                        using (MySqlCommand command = connection.CreateCommand())
+                        alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD CONSTRAINT `tbl_chatlog_ibfk_2` FOREIGN KEY (`logPlayerID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE", false);
+                        if (alterSuccess)
                         {
-                            //Set the insert command structure
-                            command.CommandText = @"INSERT INTO `tbl_chatlog` 
-                            (
-                                `logDate`, 
-                                `ServerID`, 
-                                `logSubset`, 
-                                `logPlayerID`, 
-                                `logSoldierName`, 
-                                `logMessage`
-                            ) 
-                            VALUES 
-                            (
-                                NOW(), 
-                                @server_id, 
-                                @log_subset, 
-                                @log_player_id, 
-                                @log_player_name, 
-                                @log_message
-                            )";
-
-                            //Fetch the player from player dictionary
-                            AdKat_Player player = null;
-                            if (this.playerDictionary.TryGetValue(log_source, out player))
-                            {
-                                this.DebugWrite("Player found for chat log upload.", 5);
-                            }
-
-                            //Fill the log
-                            command.Parameters.AddWithValue("@server_id", this.server_id);
-                            command.Parameters.AddWithValue("@log_subset", log_subset);
-                            if (player != null && player.player_id > 0)
-                            {
-                                command.Parameters.AddWithValue("@log_player_id", player.player_id);
-                            }
-                            else
-                            {
-                                command.Parameters.AddWithValue("@log_player_id", null);
-                            }
-                            command.Parameters.AddWithValue("@log_player_name", log_source);
-                            //Trim to 255 characters
-                            log_message = log_message.Length <= 255 ? log_message : log_message.Substring(0, 255);
-                            command.Parameters.AddWithValue("@log_message", log_message);
-
-                            //Get reference to the command in case of error
-                            commandAttempt = command;
-                            //Attempt to execute the query
-                            if (command.ExecuteNonQuery() > 0)
-                            {
-                                success = true;
-                            }
+                            //All previous chat logs must be updated with source_ids
+                            alterSuccess = this.sendNonQuery(@"
+                            UPDATE 
+                                `tbl_chatlog`
+                            INNER JOIN 
+                                `tbl_playerdata`
+                            ON 
+                                `tbl_chatlog`.`logSoldierName` = `tbl_playerdata`.`SoldierName` 
+                            SET 
+                                `tbl_chatlog`.`logPlayerID` = `tbl_playerdata`.`PlayerID`
+                            WHERE 
+                                `tbl_playerdata`.`SoldierName` <> 'AutoAdmin' 
+                            AND 
+                                `tbl_playerdata`.`SoldierName` <> 'AdKats' 
+                            AND 
+                                `tbl_playerdata`.`SoldierName` <> 'Server' 
+                            AND 
+                                `tbl_playerdata`.`SoldierName` <> 'BanEnforcer'
+                            AND 
+                                `tbl_chatlog`.`logPlayerID` IS NULL
+                            ", false);
                         }
                     }
-                    if (success)
-                    {
-                        DebugWrite("Chat upload for " + log_source + " SUCCESSFUL!", 5);
-                    }
-                    else
-                    {
-                        this.HandleException(new AdKat_Exception("Error uploading chat log. Success not reached."));
-                        return success;
-                    }
-                    DebugWrite("uploadChatLog finished!", 6);
-                    return success;
                 }
-                catch (Exception e)
+                else
                 {
-                    this.HandleException(new AdKat_Exception("Unexpected error uploading chat log.", e));
-                    return success;
+                    //Column already exists
+                    alterSuccess = true;
+                }
+                if (alterSuccess)
+                {
+                    this.chatPlayerIDAdded = true;
+                }
+                else
+                {
+                    this.ConsoleError("Unable to add logPlayerID column to chat log table.");
+                    return false;
                 }
             }
-            return success;
+            MySqlCommand commandAttempt = null;
+            try
+            {
+                using (MySqlConnection connection = this.getDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        //Set the insert command structure
+                        command.CommandText = @"INSERT INTO `tbl_chatlog` 
+                        (
+                            `logDate`, 
+                            `ServerID`, 
+                            `logSubset`, 
+                            `logPlayerID`, 
+                            `logSoldierName`, 
+                            `logMessage`
+                        ) 
+                        VALUES 
+                        (
+                            NOW(), 
+                            @server_id, 
+                            @log_subset, 
+                            @log_player_id, 
+                            @log_player_name, 
+                            @log_message
+                        )";
+
+                        //Fetch the player from player dictionary
+                        AdKat_Player player = null;
+                        if (this.playerDictionary.TryGetValue(log_source, out player))
+                        {
+                            this.DebugWrite("Player found for chat log upload.", 5);
+                        }
+
+                        //Fill the log
+                        command.Parameters.AddWithValue("@server_id", this.server_id);
+                        command.Parameters.AddWithValue("@log_subset", log_subset);
+                        if (player != null && player.player_id > 0)
+                        {
+                            command.Parameters.AddWithValue("@log_player_id", player.player_id);
+                        }
+                        else
+                        {
+                            command.Parameters.AddWithValue("@log_player_id", null);
+                        }
+                        command.Parameters.AddWithValue("@log_player_name", log_source);
+                        //Trim to 255 characters
+                        log_message = log_message.Length <= 255 ? log_message : log_message.Substring(0, 255);
+                        command.Parameters.AddWithValue("@log_message", log_message);
+
+                        //Get reference to the command in case of error
+                        commandAttempt = command;
+                        //Attempt to execute the query
+                        if (command.ExecuteNonQuery() > 0)
+                        {
+                            success = true;
+                        }
+                    }
+                }
+                if (success)
+                {
+                    DebugWrite("Chat upload for " + log_source + " SUCCESSFUL!", 5);
+                }
+                else
+                {
+                    this.HandleException(new AdKat_Exception("Error uploading chat log. Success not reached."));
+                    return success;
+                }
+                DebugWrite("uploadChatLog finished!", 6);
+                return success;
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKat_Exception("Unexpected error uploading chat log.", e));
+                return success;
+            }
         }
 
         private Boolean sendQuery(String query, Boolean verbose)
