@@ -58,7 +58,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.6.9.1";
+        private string plugin_version = "3.6.9.2";
         private DateTime startTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -8995,6 +8995,55 @@ namespace PRoConEvents
                 }
                 else
                 {
+                    Boolean alterSuccess = false;
+                    if (!this.sendQuery("SELECT `logPlayerID` FROM `tbl_chatlog` LIMIT 1", false))
+                    {
+                        this.ConsoleWarn("Updating your chat log table with player IDs. This may take some time if you have many records! Be patient!");
+                        alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD COLUMN `logPlayerID` INT(10) UNSIGNED DEFAULT NULL AFTER `logSubset`", false);
+                        alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD INDEX (`logPlayerID`)", false);
+                        if (alterSuccess)
+                        {
+                            alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD CONSTRAINT `tbl_chatlog_ibfk_2` FOREIGN KEY (`logPlayerID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE", false);
+                            if (alterSuccess)
+                            {
+                                //All previous chat logs must be updated with source_ids
+                                alterSuccess = this.sendNonQuery(@"
+                                UPDATE 
+                                    `tbl_chatlog`
+                                INNER JOIN 
+                                    `tbl_playerdata`
+                                ON 
+                                    `tbl_chatlog`.`logSoldierName` = `tbl_playerdata`.`SoldierName` 
+                                SET 
+                                    `tbl_chatlog`.`logPlayerID` = `tbl_playerdata`.`PlayerID`
+                                WHERE 
+                                    `tbl_playerdata`.`SoldierName` <> 'AutoAdmin' 
+                                AND 
+                                    `tbl_playerdata`.`SoldierName` <> 'AdKats' 
+                                AND 
+                                    `tbl_playerdata`.`SoldierName` <> 'Server' 
+                                AND 
+                                    `tbl_playerdata`.`SoldierName` <> 'BanEnforcer'
+                                AND 
+                                    `tbl_chatlog`.`logPlayerID` IS NULL
+                                ", false);
+                                if (alterSuccess)
+                                {
+                                    this.ConsoleSuccess("Chat log player IDs added.");
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        //Column already exists
+                        alterSuccess = true;
+                    }
+                    if (!alterSuccess)
+                    {
+                        this.ConsoleError("Unable to add logPlayerID column to chat log table.");
+                        confirmed = false;
+                    }
                     //The universal version has a tbl_games table, detect that
                     if (this.confirmTable("tbl_games"))
                     {
@@ -9057,6 +9106,7 @@ namespace PRoConEvents
                         {
                             if (!this.sendQuery("SELECT `source_id` FROM `adkats_records` LIMIT 1", false))
                             {
+                                this.ConsoleWarn("Updating your records table to include source ID. This may take some time if you have many records! Be patient!");
                                 chatLogAlterSuccess = this.sendNonQuery("ALTER TABLE `adkats_records` ADD COLUMN `source_id` INT(11) UNSIGNED DEFAULT NULL AFTER `source_name`", false);
                                 chatLogAlterSuccess = this.sendNonQuery("ALTER TABLE `adkats_records` ADD INDEX (`source_id`)", false);
                                 if (chatLogAlterSuccess)
@@ -9085,6 +9135,10 @@ namespace PRoConEvents
                                         AND 
 	                                        `adkats_records`.`source_id` IS NULL
                                         ", false);
+                                        if (alterSuccess)
+                                        {
+                                            this.ConsoleSuccess("Record source IDs added.");
+                                        }
                                     }
                                 }
                             }
@@ -9433,7 +9487,7 @@ namespace PRoConEvents
 
         private Boolean fetchSettings(Int64 server_id)
         {
-            DebugWrite("fetchSettings starting!", 6);
+            this.DebugWrite("fetchSettings starting!", 6);
             Boolean success = false;
             //Make sure database connection active
             if (this.handlePossibleDisconnect())
@@ -9748,7 +9802,6 @@ namespace PRoConEvents
             }
         }
 
-        private Boolean chatPlayerIDAdded = false;
         private Boolean uploadChatLog(string log_source, string log_subset, string log_message)
         {
             this.DebugWrite("uploadChatLog starting!", 6);
@@ -9768,57 +9821,6 @@ namespace PRoConEvents
             {
                 this.HandleException(new AdKat_Exception("Database not connected on chat upload."));
                 return success;
-            }
-            if (!this.chatPlayerIDAdded)
-            {
-                Boolean alterSuccess = false;
-                if (!this.sendQuery("SELECT `logPlayerID` FROM `tbl_chatlog` LIMIT 1", false))
-                {
-                    alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD COLUMN `logPlayerID` INT(10) UNSIGNED DEFAULT NULL AFTER `logSubset`", false);
-                    alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD INDEX (`logPlayerID`)", false);
-                    if (alterSuccess)
-                    {
-                        alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD CONSTRAINT `tbl_chatlog_ibfk_2` FOREIGN KEY (`logPlayerID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE", false);
-                        if (alterSuccess)
-                        {
-                            //All previous chat logs must be updated with source_ids
-                            alterSuccess = this.sendNonQuery(@"
-                            UPDATE 
-                                `tbl_chatlog`
-                            INNER JOIN 
-                                `tbl_playerdata`
-                            ON 
-                                `tbl_chatlog`.`logSoldierName` = `tbl_playerdata`.`SoldierName` 
-                            SET 
-                                `tbl_chatlog`.`logPlayerID` = `tbl_playerdata`.`PlayerID`
-                            WHERE 
-                                `tbl_playerdata`.`SoldierName` <> 'AutoAdmin' 
-                            AND 
-                                `tbl_playerdata`.`SoldierName` <> 'AdKats' 
-                            AND 
-                                `tbl_playerdata`.`SoldierName` <> 'Server' 
-                            AND 
-                                `tbl_playerdata`.`SoldierName` <> 'BanEnforcer'
-                            AND 
-                                `tbl_chatlog`.`logPlayerID` IS NULL
-                            ", false);
-                        }
-                    }
-                }
-                else
-                {
-                    //Column already exists
-                    alterSuccess = true;
-                }
-                if (alterSuccess)
-                {
-                    this.chatPlayerIDAdded = true;
-                }
-                else
-                {
-                    this.ConsoleError("Unable to add logPlayerID column to chat log table.");
-                    return false;
-                }
             }
             MySqlCommand commandAttempt = null;
             try
