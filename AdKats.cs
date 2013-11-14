@@ -58,7 +58,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.6.9.3";
+        private string plugin_version = "3.6.9.4";
         private DateTime startTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -228,9 +228,9 @@ namespace PRoConEvents
         //Experimental Tools Settings
         private Boolean useExperimentalTools = false;
         //NO EX Limiter
-        private Boolean useNoExplosivesLimit = false;
-        private string noExplosivesWeaponString = "M320|RPG|SMAW|C4|M67|Claymore|MAV|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
-        private string noExplosivesWeaponExceptionString = "_Flechette|_Slug";
+        private Boolean useWeaponLimiter = false;
+        private string weaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|MAV|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
+        private string weaponLimiterExceptionString = "_Flechette|_Slug";
         //Grenade Cook Catcher
         private Boolean useGrenadeCookCatcher = false;
         //Hacker Checker
@@ -1039,11 +1039,11 @@ namespace PRoConEvents
                         {
                             lstReturn.Add(new CPluginVariable("X99. Experimental|Round Timer: Round Duration Minutes", typeof(double), this.roundTimeMinutes));
                         }
-                        lstReturn.Add(new CPluginVariable("X99. Experimental|Use NO EXPLOSIVES Limiter", typeof(Boolean), this.useNoExplosivesLimit));
-                        if (this.useNoExplosivesLimit)
+                        lstReturn.Add(new CPluginVariable("X99. Experimental|Use NO EXPLOSIVES Limiter", typeof(Boolean), this.useWeaponLimiter));
+                        if (this.useWeaponLimiter)
                         {
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Weapon String", typeof(string), this.noExplosivesWeaponString));
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Exception String", typeof(string), this.noExplosivesWeaponExceptionString));
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Weapon String", typeof(string), this.weaponLimiterString));
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Exception String", typeof(string), this.weaponLimiterExceptionString));
                         }
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof(Boolean), this.useGrenadeCookCatcher));
                         lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: Enable", typeof(Boolean), this.useHackerChecker));
@@ -1091,7 +1091,7 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Send Non-Query").Success)
                 {
-                    this.sendNonQuery(strValue, true);
+                    this.sendNonQuery("Experimental Query", strValue, true);
                 }
                 else if (Regex.Match(strVariable, @"HackerCheck Player").Success)
                 {
@@ -1276,7 +1276,7 @@ namespace PRoConEvents
                         else
                         {
                             this.ConsoleWarn("Experimental tools disabled.");
-                            this.useNoExplosivesLimit = false;
+                            this.useWeaponLimiter = false;
                             this.useGrenadeCookCatcher = false;
                             this.useHackerChecker = false;
                             this.useDPSChecker = false;
@@ -1284,7 +1284,7 @@ namespace PRoConEvents
                         }
                         //Once setting has been changed, upload the change to database
                         this.queueSettingForUpload(new CPluginVariable(@"Use Experimental Tools", typeof(Boolean), this.useExperimentalTools));
-                        this.queueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), this.useNoExplosivesLimit));
+                        this.queueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), this.useWeaponLimiter));
                         this.queueSettingForUpload(new CPluginVariable(@"Use Hacker Checker", typeof(Boolean), this.useHackerChecker));
                         this.queueSettingForUpload(new CPluginVariable(@"Use DPS Checker", typeof(Boolean), this.useDPSChecker));
                         this.queueSettingForUpload(new CPluginVariable(@"Use HSK Checker", typeof(Boolean), this.useHSKChecker));
@@ -1328,10 +1328,10 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Use NO EXPLOSIVES Limiter").Success)
                 {
                     Boolean useLimiter = Boolean.Parse(strValue);
-                    if (useLimiter != this.useNoExplosivesLimit)
+                    if (useLimiter != this.useWeaponLimiter)
                     {
-                        this.useNoExplosivesLimit = useLimiter;
-                        if (this.useNoExplosivesLimit)
+                        this.useWeaponLimiter = useLimiter;
+                        if (this.useWeaponLimiter)
                         {
                             if (this.threadsReady)
                             {
@@ -1343,18 +1343,18 @@ namespace PRoConEvents
                             this.ConsoleWarn("Internal NO EXPLOSIVES punish limit disabled.");
                         }
                         //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), this.useNoExplosivesLimit));
+                        this.queueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), this.useWeaponLimiter));
                     }
                 }
                 else if (Regex.Match(strVariable, @"NO EXPLOSIVES Weapon String").Success)
                 {
-                    if (this.noExplosivesWeaponString != strValue)
+                    if (this.weaponLimiterString != strValue)
                     {
                         if (!String.IsNullOrEmpty(strValue))
                         {
-                            this.noExplosivesWeaponString = strValue;
+                            this.weaponLimiterString = strValue;
                             //Once setting has been changed, upload the change to database
-                            this.queueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Weapon String", typeof(string), this.noExplosivesWeaponString));
+                            this.queueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Weapon String", typeof(string), this.weaponLimiterString));
                         }
                         else
                         {
@@ -1364,13 +1364,13 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"NO EXPLOSIVES Exception String").Success)
                 {
-                    if (this.noExplosivesWeaponExceptionString != strValue)
+                    if (this.weaponLimiterExceptionString != strValue)
                     {
                         if (!String.IsNullOrEmpty(strValue))
                         {
-                            this.noExplosivesWeaponExceptionString = strValue;
+                            this.weaponLimiterExceptionString = strValue;
                             //Once setting has been changed, upload the change to database
-                            this.queueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Exception String", typeof(string), this.noExplosivesWeaponExceptionString));
+                            this.queueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Exception String", typeof(string), this.weaponLimiterExceptionString));
                         }
                         else
                         {
@@ -2982,9 +2982,9 @@ namespace PRoConEvents
 
                         if (this.useDatabase)
                         {
-                            ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
+                            this.ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
                             //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
-                            for (int index = 10; index > 0; index--)
+                            for (int index = 5; index > 0; index--)
                             {
                                 this.DebugWrite(index + "...", 1);
                                 Thread.Sleep(1000);
@@ -3901,13 +3901,13 @@ namespace PRoConEvents
                 try
                 {
                     //ADK No EXPLOSIVES special enforcement
-                    if (this.useExperimentalTools && this.useNoExplosivesLimit && !gKillHandled)
+                    if (this.useExperimentalTools && this.useWeaponLimiter && !gKillHandled)
                     {
                         //Check for restricted weapon
-                        if (Regex.Match(kKillerVictimDetails.DamageType, @"(?:" + this.noExplosivesWeaponString + ")", RegexOptions.IgnoreCase).Success)
+                        if (Regex.Match(kKillerVictimDetails.DamageType, @"(?:" + this.weaponLimiterString + ")", RegexOptions.IgnoreCase).Success)
                         {
                             //Check for exception type
-                            if (!Regex.Match(kKillerVictimDetails.DamageType, @"(?:" + this.noExplosivesWeaponExceptionString + ")", RegexOptions.IgnoreCase).Success)
+                            if (!Regex.Match(kKillerVictimDetails.DamageType, @"(?:" + this.weaponLimiterExceptionString + ")", RegexOptions.IgnoreCase).Success)
                             {
                                 //Check if suicide
                                 if (kKillerVictimDetails.Killer.SoldierName != kKillerVictimDetails.Victim.SoldierName)
@@ -8949,6 +8949,11 @@ namespace PRoConEvents
                                 //clear setting change monitor
                                 this.dbSettingsChanged = false;
                             }
+                            else
+                            {
+                                this.disable();
+                                break;
+                            }
                         }
                     }
                     catch (Exception e)
@@ -8995,19 +9000,19 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    Boolean alterSuccess = false;
+                    Boolean chatSourceAlterSuccess = false;
                     if (!this.sendQuery("SELECT `logPlayerID` FROM `tbl_chatlog` LIMIT 1", false))
                     {
                         this.ConsoleWarn("Updating your chat log table with player IDs. This may take some time if you have many records! Be patient!");
-                        alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD COLUMN `logPlayerID` INT(10) UNSIGNED DEFAULT NULL AFTER `logSubset`", false);
-                        alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD INDEX (`logPlayerID`)", false);
-                        if (alterSuccess)
+                        chatSourceAlterSuccess = this.sendNonQuery("Adding logPlayerID Column", "ALTER TABLE `tbl_chatlog` ADD COLUMN `logPlayerID` INT(10) UNSIGNED DEFAULT NULL AFTER `logSubset`", false);
+                        chatSourceAlterSuccess = this.sendNonQuery("Adding logPlayerID Index", "ALTER TABLE `tbl_chatlog` ADD INDEX (`logPlayerID`)", false);
+                        if (chatSourceAlterSuccess)
                         {
-                            alterSuccess = this.sendNonQuery("ALTER TABLE `tbl_chatlog` ADD CONSTRAINT `tbl_chatlog_ibfk_2` FOREIGN KEY (`logPlayerID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE", false);
-                            if (alterSuccess)
+                            chatSourceAlterSuccess = this.sendNonQuery("Adding logPlayerID Key", "ALTER TABLE `tbl_chatlog` ADD CONSTRAINT `tbl_chatlog_ibfk_2` FOREIGN KEY (`logPlayerID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE", false);
+                            if (chatSourceAlterSuccess)
                             {
                                 //All previous chat logs must be updated with source_ids
-                                alterSuccess = this.sendNonQuery(@"
+                                chatSourceAlterSuccess = this.sendNonQuery("Updating all previous chat logs with IDs", @"
                                 UPDATE 
                                     `tbl_chatlog`
                                 INNER JOIN 
@@ -9027,7 +9032,7 @@ namespace PRoConEvents
                                 AND 
                                     `tbl_chatlog`.`logPlayerID` IS NULL
                                 ", false);
-                                if (alterSuccess)
+                                if (chatSourceAlterSuccess)
                                 {
                                     this.ConsoleSuccess("Chat log player IDs added.");
                                 }
@@ -9037,9 +9042,9 @@ namespace PRoConEvents
                     else
                     {
                         //Column already exists
-                        alterSuccess = true;
+                        chatSourceAlterSuccess = true;
                     }
-                    if (!alterSuccess)
+                    if (!chatSourceAlterSuccess)
                     {
                         this.ConsoleError("Unable to add logPlayerID column to chat log table.");
                         confirmed = false;
@@ -9101,21 +9106,21 @@ namespace PRoConEvents
                     else
                     {
                         //Clause to add the source_id column if it doesn't exist
-                        Boolean chatLogAlterSuccess = false;
+                        Boolean sourceIDAlterSuccess = false;
                         try
                         {
                             if (!this.sendQuery("SELECT `source_id` FROM `adkats_records` LIMIT 1", false))
                             {
                                 this.ConsoleWarn("Updating your records table to include source ID. This may take some time if you have many records! Be patient!");
-                                chatLogAlterSuccess = this.sendNonQuery("ALTER TABLE `adkats_records` ADD COLUMN `source_id` INT(11) UNSIGNED DEFAULT NULL AFTER `source_name`", false);
-                                chatLogAlterSuccess = this.sendNonQuery("ALTER TABLE `adkats_records` ADD INDEX (`source_id`)", false);
-                                if (chatLogAlterSuccess)
+                                sourceIDAlterSuccess = this.sendNonQuery("Adding source ID column", "ALTER TABLE `adkats_records` ADD COLUMN `source_id` INT(11) UNSIGNED DEFAULT NULL AFTER `source_name`", false);
+                                sourceIDAlterSuccess = this.sendNonQuery("Adding source ID index", "ALTER TABLE `adkats_records` ADD INDEX (`source_id`)", false);
+                                if (sourceIDAlterSuccess)
                                 {
-                                    chatLogAlterSuccess = this.sendNonQuery("ALTER TABLE `adkats_records` ADD FOREIGN KEY (`source_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE SET NULL ON UPDATE CASCADE", false);
-                                    if (chatLogAlterSuccess)
+                                    sourceIDAlterSuccess = this.sendNonQuery("Adding source ID key", "ALTER TABLE `adkats_records` ADD FOREIGN KEY (`source_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE SET NULL ON UPDATE CASCADE", false);
+                                    if (sourceIDAlterSuccess)
                                     {
                                         //All previous records must be updated with source_ids
-                                        chatLogAlterSuccess = this.sendNonQuery(@"
+                                        sourceIDAlterSuccess = this.sendNonQuery("Updating previous records with source ids", @"
                                         UPDATE 
 	                                        `adkats_records`
                                         INNER JOIN 
@@ -9135,7 +9140,7 @@ namespace PRoConEvents
                                         AND 
 	                                        `adkats_records`.`source_id` IS NULL
                                         ", false);
-                                        if (alterSuccess)
+                                        if (sourceIDAlterSuccess)
                                         {
                                             this.ConsoleSuccess("Record source IDs added.");
                                         }
@@ -9145,9 +9150,9 @@ namespace PRoConEvents
                             else
                             {
                                 //Column already exists
-                                chatLogAlterSuccess = true;
+                                sourceIDAlterSuccess = true;
                             }
-                            if (!chatLogAlterSuccess)
+                            if (!sourceIDAlterSuccess)
                             {
                                 this.ConsoleError("Unable to add source_id column to records table.");
                             }
@@ -9156,7 +9161,7 @@ namespace PRoConEvents
                         {
                             this.HandleException(new AdKat_Exception("Error while adding source_id column", e));
                         }
-                        confirmed = chatLogAlterSuccess;
+                        confirmed = sourceIDAlterSuccess;
                     }
                     if (!this.confirmTable("adkats_accesslist"))
                     {
@@ -9255,10 +9260,8 @@ namespace PRoConEvents
                         try
                         {
                             //Attempt to execute the query
-                            if (command.ExecuteNonQuery() >= 0)
-                            {
-                                ConsoleWrite("Setup script successful, your database is now prepared for use by AdKats " + this.GetPluginVersion());
-                            }
+                            int rowsAffected = command.ExecuteNonQuery();
+                            this.ConsoleWrite("Setup script successful, your database is now prepared for use by AdKats " + this.GetPluginVersion());
                         }
                         catch (Exception e)
                         {
@@ -9430,6 +9433,8 @@ namespace PRoConEvents
 
         private void uploadSetting(CPluginVariable var)
         {
+            //TODO
+            return;
             this.DebugWrite("uploadSetting starting!", 7);
             //Make sure database connection active
             if (this.handlePossibleDisconnect())
@@ -9487,6 +9492,8 @@ namespace PRoConEvents
 
         private Boolean fetchSettings(Int64 server_id)
         {
+            //TODO
+            return false;
             this.DebugWrite("fetchSettings starting!", 6);
             Boolean success = false;
             //Make sure database connection active
@@ -9946,7 +9953,7 @@ namespace PRoConEvents
             }
         }
 
-        private Boolean sendNonQuery(String nonQuery, Boolean verbose)
+        private Boolean sendNonQuery(String desc, String nonQuery, Boolean verbose)
         {
             if (String.IsNullOrEmpty(nonQuery))
             {
@@ -9960,22 +9967,12 @@ namespace PRoConEvents
                     {
                         command.CommandText = nonQuery;
                         //Attempt to execute the non query
-                        if (command.ExecuteNonQuery() > 0)
+                        int rowsAffected = command.ExecuteNonQuery();
+                        if (verbose)
                         {
-                            if (verbose)
-                            {
-                                this.ConsoleSuccess("Non-Query success.");
-                            }
-                            return true;
+                            this.ConsoleSuccess("Non-Query success. " + rowsAffected + " rows affected. [" + desc + "]");
                         }
-                        else
-                        {
-                            if (verbose)
-                            {
-                                this.ConsoleError("Non-Query failed.");
-                            }
-                            return false;
-                        }
+                        return true;
                     }
                 }
             }
@@ -9983,7 +9980,7 @@ namespace PRoConEvents
             {
                 if (verbose)
                 {
-                    this.ConsoleError(e.ToString());
+                    this.ConsoleError("Non-Query failed. [" + desc + "]: " + e.ToString());
                 }
                 return false;
             }
@@ -10028,10 +10025,8 @@ namespace PRoConEvents
                             command.Parameters.AddWithValue("@command_action", this.AdKat_RecordTypes[record.command_action]);
 
                             //Attempt to execute the query
-                            if (command.ExecuteNonQuery() > 0)
-                            {
-                                success = true;
-                            }
+                            int rowsAffected = command.ExecuteNonQuery();
+                            success = true;
                         }
                     }
                     if (!success)
@@ -10081,10 +10076,8 @@ namespace PRoConEvents
                         //Set the insert command structure
                         command.CommandText = "ALTER TABLE `" + this.mySqlDatabaseName + @"`.`adkats_records` MODIFY COLUMN `record_message` VARCHAR(500)";
                         //Attempt to execute the query
-                        if (command.ExecuteNonQuery() > 0)
-                        {
-                            success = true;
-                        }
+                        int rowsAffected = command.ExecuteNonQuery();
+                        success = true;
                     }
                 }
             }
@@ -10433,7 +10426,7 @@ namespace PRoConEvents
                         //Set values
                         command.Parameters.AddWithValue("@player_name", player_name);
                         //Attempt to execute the query
-                        command.ExecuteNonQuery();
+                        int rowsAffected = command.ExecuteNonQuery();
                     }
                 }
             }
@@ -10518,7 +10511,7 @@ namespace PRoConEvents
 
                         this.DebugWrite("Uploading Access: " + access.player_name + "|" + access.access_level + "|" + access.player_email, 5);
                         //Attempt to execute the query
-                        command.ExecuteNonQuery();
+                        int rowsAffected = command.ExecuteNonQuery();
                     }
                 }
             }
@@ -10621,6 +10614,7 @@ namespace PRoConEvents
                             //Attempt to execute the query
                             if (command.ExecuteNonQuery() >= 0)
                             {
+                                //Rows affected should be > 0
                                 this.DebugWrite("Success Uploading Ban on player " + aBan.ban_record.target_player.player_id, 5);
                                 success = true;
                             }
@@ -10812,6 +10806,7 @@ namespace PRoConEvents
                                 //Attempt to execute the query
                                 if (command.ExecuteNonQuery() > 0)
                                 {
+                                    //Rows affected should be > 0
                                     player = new AdKat_Player();
                                     player.player_id = command.LastInsertedId;
                                     player.player_name = player_name;
