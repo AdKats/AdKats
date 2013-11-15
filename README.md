@@ -259,8 +259,9 @@ reliable report. Whether admin assistants get the teamswap perk can be disabled,
 <p>
 Players can be muted using the mute command, muting lasts until the end of the round. Players who talk in chat after 
 being muted will be killed each time they talk (up through X chat messages), on the (X+1)th message they are kicked from 
-the server. No action other than kill or kick is used by this system. There will be no way to un-mute players, there 
-was a reason they were muted, and they can talk again next round. Admins cannot mute other admins.
+the server. A player coming back during the same round is kicked again on their first chat message. No action other than 
+kill or kick is used by this system. There will be no way to un-mute players, there was a reason they were muted, and 
+they can talk again next round. Admins cannot mute other admins.
 </p>
 <h3>Player Joining</h3>
 <p>
