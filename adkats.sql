@@ -1,8 +1,5 @@
 -- AdKats Database Setup Script by ColColonCleaner
 
--- This is run automatically if AdKats senses the database is not set up properly.
--- If you don't want the plugin changing tables/views in your database, you must run this beforehand.
-
 CREATE TABLE IF NOT EXISTS `adkats_accesslist` ( 
        `player_name` VARCHAR(20) NOT NULL, 
 	`member_id` INT(11) UNSIGNED NOT NULL DEFAULT 0, 
