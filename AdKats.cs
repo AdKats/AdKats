@@ -60,7 +60,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.7.0.0";
+        private string plugin_version = "3.7.0.1";
         private DateTime startTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -9944,7 +9944,7 @@ namespace PRoConEvents
                                 {
                                     this.ConsoleError("Query returned no results.");
                                 }
-                                return false;
+                                return true;
                             }
                         }
                     }
