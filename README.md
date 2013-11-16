@@ -1,5 +1,5 @@
 <script>
-//<latest_stable_release>3.7.0.0</latest_stable_release>
+//<latest_stable_release>3.7.0.1</latest_stable_release>
 </script>
 <h1>AdKats</h1>
 <p>
@@ -47,7 +47,7 @@ If you find any bugs, please submit them
 and they will be fixed ASAP.<br/><br/>
 
 Download the latest version here: 
-<a href="http://sourceforge.net/projects/adkats/files/AdKats_v3.7.0.0.zip/download" target="_blank">Version 3.7.0.0</a>
+<a href="http://sourceforge.net/projects/adkats/files/AdKats_v3.7.0.1.zip/download" target="_blank">Version 3.7.0.1</a>
 </p>
 <p>
 AdKats was inspired by the gaming community A Different Kind (ADK). Visit 
