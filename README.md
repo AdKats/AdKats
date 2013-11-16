@@ -74,13 +74,14 @@ If you have any problems installing AdKats please let me know on the MyRCON foru
 promptly.
 </p>
 <h2>Dependencies</h2>
-<h4>XpKiller's "BF3 Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
+<h4>XpKiller's "BF3 Chat, GUID, Stats and Mapstats Logger" or "PRoCon Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
 <p>
-Version 1.1.0.2 of this plugin is required. AdKats will only run if this plugin is (1) using the same database 
-AdKats uses, and (2) running on every BF3 Server you plan to install AdKats on. Running it along-side AdKats on each 
-layer will ensure these conditions are met. 1.1.0.2 is a beta version of that logger, and is included in the AdKats 
-download.<br/><br/>
+Version 1.1.0.1+ of the BF3 version, or any universal version is required. AdKats will only run if one of these plugins 
+is (1) using the same database AdKats uses, and (2) running on every battlefield Server you plan to install AdKats on. 
+Running it along-side AdKats on each procon layer will ensure these conditions are met. 
 
+The latest universal version of this plugin can be downloaded from here: 
+<a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">PRoCon Chat, GUID, Stats and Mapstats Logger</a>
 </p>
 <h4>A MySQL Database</h4>
 <p>
@@ -875,9 +876,9 @@ Valid 'command_type's that can be acted on include the following:<br/>
   <li><b>'HackerChecker: Enable'</b> - Whether the internal BF3Stats hacker-checker is enabled.</li>
   <li><b>'HackerChecker: Whitelist'</b> - The list of player names, GUIDs, and IPs, that will not be checked by the hacker-checker.</li>
   <li><b>'HackerChecker: DPS Checker: Enable'</b> - Whether the Damage Mod portion of the hacker-checker is enabled.</li>
-  <li><b>'HackerChecker: DPS Checker: Trigger Level'</b> - The percentage over normal weapon damage that will cause a ban. 50 kills minimum to trigger. After 3 months of testing, 50 is the best value.</li>
+  <li><b>'HackerChecker: DPS Checker: Trigger Level'</b> - The percentage over normal weapon damage that will cause a ban. 50 kills minimum to trigger. After 3 months of testing, 50 is the best value, and has not issued a single false positive in that time.</li>
   <li><b>'HackerChecker: HSK Checker: Enable'</b> - Whether the Aimbot portion of the hacker-checker is enabled.</li>
-  <li><b>'HackerChecker: HSK Checker: Trigger Level'</b> - The headshot/kill ratio for automatic weapons that will trigger a ban. 100 kills minimum to trigger. After 3 months of testing, we suggest setting between 50 and 70 depending on the severity you want to enforce. You will get some false positives down near 50, and virtually none at 70.</li>
+  <li><b>'HackerChecker: HSK Checker: Trigger Level'</b> - The headshot/kill ratio for automatic weapons that will trigger a ban. 100 kills minimum to trigger. After 3 months of testing, we suggest setting between 50 and 70 depending on the severity you want to enforce. You will get some false positives down near 50 but will catch many more aimbotters, setting near 70 will not result in any false positives but also wont catch as many aimbotters.</li>
 </ul>
 <h3>D99. Debug Settings:</h3>
 <ul>
