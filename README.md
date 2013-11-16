@@ -801,7 +801,7 @@ Valid 'command_type's that can be acted on include the following:<br/>
 <ul>
   <li><b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason to execute.</li>
 </ul>
-<b>Specific command definitions given in features section above.</b> All command text must be a single string with no whitespace. E.G. 'kill'.
+<b>Specific command definitions given in features section above.</b> All command text must be a single string with no whitespace. E.G. 'kill'.<br/>
 <h3>5. Punishment Settings:</h3>
 <ul>
   <li><b>'Punishment Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the action taken at that number of points.</li>
@@ -865,7 +865,21 @@ Valid 'command_type's that can be acted on include the following:<br/>
   <li><b>'Feed Server Reserved Slots'</b> - When enabled, the servers reserved slots will include all players in the AdKats access list.</li>
   <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including correct database time offset, instant chat logging, etc. This is experimental.</li>
 </ul>
-<h3>A13. Debug Settings:</h3>
+<h3>A15. Round Settings:</h3>
+<ul>
+  <li><b>'Round Timer: Enable'</b> - When enabled, rounds will be limited to X minutes.</li>
+  <li><b>'Round Timer: Round Duration Minutes'</b> - Number of minutes that the round will last before the current winning team wins.</li>
+</ul>
+<h3>A16. BF3Stats Hacker-Checker Settings:</h3>
+<ul>
+  <li><b>'HackerChecker: Enable'</b> - Whether the internal BF3Stats hacker-checker is enabled.</li>
+  <li><b>'HackerChecker: Whitelist'</b> - The list of player names, GUIDs, and IPs, that will not be checked by the hacker-checker.</li>
+  <li><b>'HackerChecker: DPS Checker: Enable'</b> - Whether the Damage Mod portion of the hacker-checker is enabled.</li>
+  <li><b>'HackerChecker: DPS Checker: Trigger Level'</b> - The percentage over normal weapon damage that will cause a ban. 50 kills minimum to trigger. After 3 months of testing, 50 is the best value.</li>
+  <li><b>'HackerChecker: HSK Checker: Enable'</b> - Whether the Aimbot portion of the hacker-checker is enabled.</li>
+  <li><b>'HackerChecker: HSK Checker: Trigger Level'</b> - The headshot/kill ratio for automatic weapons that will trigger a ban. 100 kills minimum to trigger. After 3 months of testing, we suggest setting between 50 and 70 depending on the severity you want to enforce. You will get some false positives down near 50, and virtually none at 70.</li>
+</ul>
+<h3>D99. Debug Settings:</h3>
 <ul>
   <li><b>'Debug level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step. Don't edit unless you really want to be spammed with console logs, it will also slow down the plugin when turned up.</li>
   <li><b>'Debug Soldier Name'</b> - When this soldier issues commands in your server, the time for any command to complete is told in-game. Duration is from the time you entered the message, until all aspects of the command have been completed.</li>
