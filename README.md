@@ -1,5 +1,5 @@
 <script>
-//<latest_stable_release>3.5.0.1</latest_stable_release>
+//<latest_stable_release>3.7.0.0</latest_stable_release>
 </script>
 <h1>AdKats</h1>
 <p>
