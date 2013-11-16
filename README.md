@@ -335,6 +335,53 @@ setting sync field and all settings from that instance will be imported to this 
 instance will be overwritten by the synced settings. Whenever a setting is changed, that change is pushed to the 
 database.
 </p>
+<h3>Internal Hacker-Checker with Whitelist</h3>
+<p>
+Ever since we started running servers we never banned off of "cheat-o-meter" results, since there were too many false 
+positives, so we built our own. This code has been dormant in AdKats for several months now, only activating on =ADK= 
+servers while we tested it. We are releasing the fully tested BF3 version now, our BF4 version already beginning the 
+test phase. 
+</p>
+<p>
+The hacker-checker uses BF3Stats.com for player stats, and is able to catch both aimbots and damage mods. To avoid false 
+positives, only weapons that fire bullets (no crossbow, 320, etc), and deal less than 50% damage per shot are included 
+in the calculation. This removes all equipment, sniper rifles, shotguns, and heavy-hitting pistols like the magnum/rex 
+from calculations. For the remaining weapons there are two checks each one goes through, customizable to your desired 
+severity level.
+</p>
+<h4>Damage Mod Checker</h4>
+<p>
+The max damage per shot for every weapon in the game is held inside AdKats. The damage per shot the player gets with 
+that weapon is calculated from BF3Stats. The threshold you set for this check is the percentage above normal required 
+to trigger the ban. We have ours set at 50% above normal damage (just 50 in the setting). Every ban has been examined 
+personally, and this check has never triggered a false positive. 50 kills with the weapon in question are required to 
+trigger this check.
+</p>
+<h4>Aimbot Checker</h4>
+<p>
+For this check only automatic weapons from specific categories are used in the calculation. This includes Sub Machine 
+Guns, Assault Rifles, Carbines, and Machine Guns. Handguns, snipers, equipment, etc are not included since their HSK 
+values can vary drastically. This limit is simple, if the headshot/kill percentage for any valid weapon is greater than 
+your threshold, the ban is issued. HS/K percentage for even the top competitive players caps at 38%, so we set our 
+value much higher than that. We started with 70% HS/K, and no false positives were found with that value, but lower as 
+desired. The minimum we allowed during testing was 50%. 100 kills with the weapon in question are required to trigger 
+this check.
+</p>
+<h4>Posting Method</h4>
+<p>
+The heaviest hacked weapon (the one farthest above normal) is the one displayed in the ban reason using the following 
+formats:<br/>
+Damage Mod Bans:<br/>
+Hacking/Cheating DPS Automatic Ban [WEAPONNAME-DPS-KILLS-HEADSHOTS]<br/>
+Aimbot Bans:<br/>
+Hacking/Cheating HSK Automatic Ban [WEAPONNAME-HSK-KILLS-HEADSHOTS]
+</p>
+<p>
+Damage mod bans take priority over aimbot bans. If you want to whitelist a player from a server, enter their player 
+name, guid, or IP in the whitelist array for each server (we will add database support for whitelisting in AdKats 4.0). 
+If a player is not found on BF3Stats, AdKats will check for stats every couple minutes while they are in the server, 
+stopping if they leave.
+</p>
 <h3>Available In-Game Commands</h3>
 <p>
 <u><b>You can edit the text for each command to suit your needs in plugin settings.</b></u><br/>
