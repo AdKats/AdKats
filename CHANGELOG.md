@@ -261,4 +261,29 @@ fine for performance). Right now only Punish and Forgive are required to be logg
   <li><b>Database connection backup added.</b> Commands will now still carry out their actions if the database 
   connection is temporarily lost. It will spam console errors like there's no tomorrow but will still act on commands.</li>
 </ul>
+<h4>3.7.0.0(15-NOV-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li>Compatibility with BF4 and BF3 in the same version.</li>
+  <li>Certain commands disabled on “Official” BF4 servers.</li>
+  <li>Both plugin description fetching and player list processing are now being processed async to avoid procon 
+  panic.</li>
+  <li>The universal version of XpKiller’s stat logger is now supported. Both versions of stat logger are supported.</li>
+  <li>Source ID has been added to the records table. Records will remain connected to a player even if their name 
+  changes.</li>
+  <li>Player ID is now added to all stored chatlogs. XpKillers chat log table is automatically modified to include 
+  player ID; Thus chat logging functions are taken over by AdKats and force disabled on stat logger.</li>
+  <li>AdKats will enter backup mode if your database becomes unavailable temporarily, your connections max out, or it 
+  becomes overloaded. Stat logger will automatically be disabled if a disconnect is detected, and re-enabled once the 
+  connection issue has been resolved. This is to prevent procon from entering panic mode and ejecting either plugin 
+  from the runtime, requiring a layer restart to get them back.</li>
+  <li>Experimental tools updated to work on BF3 and BF4</li>
+  <li>Round timer added. Rounds can now be automatically ended after X minutes. Countdown to round end is given, and 
+  the current winning team will win.</li>
+  <li>Internal Hacker-Checker released publicly for BF3. This code has been in AdKats for months now, but was set to 
+  only activate on =ADK= servers. Uses BF3Stats for stat information. Do not use unless you read the documentation on 
+  github <a href="https://github.com/ColColonCleaner/AdKats/blob/master/README.md#internal-hacker-checker-with-whitelist" target="_blank">(HERE)</a>. 
+  BF4 version coming soon. </li>
+  <li>Round whitelisting of players is no-longer logged in the database</li>
+</ul>
 </blockquote>
