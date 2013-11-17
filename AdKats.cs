@@ -18,6 +18,8 @@
  * Email System from "Notify Me!" By MorpheusX(AUT)
  * Twitter Post System from Micovery's InsaneLimits
  * 
+ * Version 3.7.0.2
+ * 
  * AdKats.cs
  */
 
@@ -58,7 +60,7 @@ namespace PRoConEvents
     {
         #region Variables
         //Current version of the plugin
-        private string plugin_version = "3.6.9.4";
+        private string plugin_version = "3.7.0.2";
         private DateTime startTime = DateTime.Now;
         //When slowmo is enabled, there will be a 1 second pause between each print to console
         //This will slow the program as a whole whenever the console is printed to
@@ -115,8 +117,11 @@ namespace PRoConEvents
             PlayerSay,
             AdminYell,
             PlayerYell,
+            AdminTell,
+            PlayerTell,
             WhatIs,
-            Voip,
+            RequestVoip,
+            RequestRules,
             //Super-User Commands
             NukeServer,
             KickAll,
@@ -233,6 +238,7 @@ namespace PRoConEvents
         private string weaponLimiterExceptionString = "_Flechette|_Slug";
         //Grenade Cook Catcher
         private Boolean useGrenadeCookCatcher = false;
+        private Dictionary<string, AdKat_Player> roundCookers = null;
         //Hacker Checker
         private Boolean useHackerChecker = false;
         private string[] hackerCheckerWhitelist = 
@@ -240,10 +246,9 @@ namespace PRoConEvents
             "ColColonCleaner"
         };
         private Boolean useDPSChecker = false;
-        private double DPSTriggerLevel = 100.0;
+        private double DPSTriggerLevel = 50.0;
         private Boolean useHSKChecker = false;
-        private double HSKTriggerLevel = 100.0;
-        private Dictionary<string, AdKat_Player> roundCookers = null;
+        private double HSKTriggerLevel = 70.0;
 
         //Infraction Management Settings
         //Whether to combine server punishments
@@ -338,8 +343,12 @@ namespace PRoConEvents
         private string playerSayCommandText = "psay";
         private string adminYellCommandText = "yell";
         private string playerYellCommandText = "pyell";
+        private string adminTellCommandText = "tell";
+        private string playerTellCommandText = "ptell";
         private string whatIsCommandText = "whatis";
-        private string voipCommandText = "voip";
+        //Request info commands
+        private string requestVoipCommandText = "voip";
+        private string requestRulesCommandText = "rules";
         //Map control
         private string restartLevelCommandText = "restart";
         private string nextLevelCommandText = "nextlevel";
@@ -404,9 +413,9 @@ namespace PRoConEvents
         private Dictionary<string, int> round_mutedPlayers = new Dictionary<string, int>();
 
         //Admin Assistant Settings
-        private Boolean enableAdminAssistants = true;
+        private Boolean enableAdminAssistantPerk = true;
         private Dictionary<string, bool> adminAssistantCache = new Dictionary<string, bool>();
-        private int minimumRequiredWeeklyReports = 5;
+        private int minimumRequiredMonthlyReports = 10;
 
         //Twitter Settings
         private Boolean useTwitter = false;
@@ -479,12 +488,22 @@ namespace PRoConEvents
         private Queue<CPluginVariable> settingUploadQueue = new Queue<CPluginVariable>();
 
         //MISC Settings
+        private Boolean showAdminNameInSay = false;
         //When an action requires confirmation, this dictionary holds those actions until player confirms action
         private Dictionary<string, AdKat_Record> actionConfirmDic = new Dictionary<string, AdKat_Record>();
         //Action will be taken when the player next spawns
         private Dictionary<string, AdKat_Record> actOnSpawnDictionary = new Dictionary<string, AdKat_Record>();
         //VOIP information
         private string serverVoipAddress = "(TS3) TS.ADKGamers.com:3796";
+        //Rules information
+        private double serverRulesDelay = 1;
+        private double serverRulesInterval = 5;
+        private string[] serverRulesList = 
+        {
+            "Do not baserape enemy spawn area.",
+            "Do not teamkill other players.",
+            "Laugh at admins since they didnt change this default rule list."
+        };
 
         //Hacker Checker stat library
         private StatLibrary statLibrary = null;
@@ -561,6 +580,8 @@ namespace PRoConEvents
             this.AdKat_RecordTypes.Add(AdKat_CommandType.PlayerSay, "PlayerSay");
             this.AdKat_RecordTypes.Add(AdKat_CommandType.AdminYell, "AdminYell");
             this.AdKat_RecordTypes.Add(AdKat_CommandType.PlayerYell, "PlayerYell");
+            this.AdKat_RecordTypes.Add(AdKat_CommandType.AdminTell, "AdminTell");
+            this.AdKat_RecordTypes.Add(AdKat_CommandType.PlayerTell, "PlayerTell");
             this.AdKat_RecordTypes.Add(AdKat_CommandType.RestartLevel, "RestartLevel");
             this.AdKat_RecordTypes.Add(AdKat_CommandType.NextLevel, "NextLevel");
             this.AdKat_RecordTypes.Add(AdKat_CommandType.EndLevel, "EndLevel");
@@ -568,6 +589,7 @@ namespace PRoConEvents
             this.AdKat_RecordTypes.Add(AdKat_CommandType.KickAll, "KickAll");
             this.AdKat_RecordTypes.Add(AdKat_CommandType.EnforceBan, "EnforceBan");
             this.AdKat_RecordTypes.Add(AdKat_CommandType.Exception, "Exception");
+            this.AdKat_RecordTypes.Add(AdKat_CommandType.RequestRules, "RequestRules");
 
             //Fill DB Inverse record types for incoming database commands
             this.AdKat_RecordTypesInv.Add("Move", AdKat_CommandType.MovePlayer);
@@ -592,6 +614,8 @@ namespace PRoConEvents
             this.AdKat_RecordTypesInv.Add("PlayerSay", AdKat_CommandType.PlayerSay);
             this.AdKat_RecordTypesInv.Add("AdminYell", AdKat_CommandType.AdminYell);
             this.AdKat_RecordTypesInv.Add("PlayerYell", AdKat_CommandType.PlayerYell);
+            this.AdKat_RecordTypesInv.Add("AdminTell", AdKat_CommandType.AdminTell);
+            this.AdKat_RecordTypesInv.Add("PlayerTell", AdKat_CommandType.PlayerTell);
             this.AdKat_RecordTypesInv.Add("RestartLevel", AdKat_CommandType.RestartLevel);
             this.AdKat_RecordTypesInv.Add("NextLevel", AdKat_CommandType.NextLevel);
             this.AdKat_RecordTypesInv.Add("EndLevel", AdKat_CommandType.EndLevel);
@@ -599,6 +623,7 @@ namespace PRoConEvents
             this.AdKat_RecordTypesInv.Add("KickAll", AdKat_CommandType.KickAll);
             this.AdKat_RecordTypesInv.Add("EnforceBan", AdKat_CommandType.EnforceBan);
             this.AdKat_RecordTypesInv.Add("Exception", AdKat_CommandType.Exception);
+            this.AdKat_RecordTypesInv.Add("RequestRules", AdKat_CommandType.RequestRules);
 
             //Fill all command access ranks
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.RestartLevel, 0);
@@ -617,13 +642,16 @@ namespace PRoConEvents
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.MovePlayer, 4);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.ForceMovePlayer, 4);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.AdminSay, 4);
-            this.AdKat_CommandAccessRank.Add(AdKat_CommandType.AdminYell, 4);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.PlayerSay, 4);
+            this.AdKat_CommandAccessRank.Add(AdKat_CommandType.AdminYell, 4);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.PlayerYell, 4);
+            this.AdKat_CommandAccessRank.Add(AdKat_CommandType.AdminTell, 4);
+            this.AdKat_CommandAccessRank.Add(AdKat_CommandType.PlayerTell, 4);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.WhatIs, 4);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.Teamswap, 5);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.KillSelf, 6);
-            this.AdKat_CommandAccessRank.Add(AdKat_CommandType.Voip, 6);
+            this.AdKat_CommandAccessRank.Add(AdKat_CommandType.RequestVoip, 6);
+            this.AdKat_CommandAccessRank.Add(AdKat_CommandType.RequestRules, 6);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.ReportPlayer, 6);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.CallAdmin, 6);
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.JoinPlayer, 6);
@@ -632,8 +660,6 @@ namespace PRoConEvents
             this.AdKat_CommandAccessRank.Add(AdKat_CommandType.CancelCommand, 6);
 
             //Set the logging settings for each command
-            this.AdKat_LoggingSettings.Add(AdKat_CommandType.AdminSay, true);
-            this.AdKat_LoggingSettings.Add(AdKat_CommandType.AdminYell, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.CallAdmin, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.CancelCommand, false);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.ConfirmCommand, false);
@@ -655,17 +681,22 @@ namespace PRoConEvents
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.NextLevel, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.NukeServer, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.PermabanPlayer, true);
+            this.AdKat_LoggingSettings.Add(AdKat_CommandType.AdminSay, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.PlayerSay, true);
+            this.AdKat_LoggingSettings.Add(AdKat_CommandType.AdminYell, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.PlayerYell, true);
+            this.AdKat_LoggingSettings.Add(AdKat_CommandType.AdminTell, true);
+            this.AdKat_LoggingSettings.Add(AdKat_CommandType.PlayerTell, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.PunishPlayer, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.ReportPlayer, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.RestartLevel, true);
-            this.AdKat_LoggingSettings.Add(AdKat_CommandType.RoundWhitelistPlayer, true);
+            this.AdKat_LoggingSettings.Add(AdKat_CommandType.RoundWhitelistPlayer, false);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.Teamswap, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.KillSelf, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.TempBanPlayer, true);
             this.AdKat_LoggingSettings.Add(AdKat_CommandType.WhatIs, false);
-            this.AdKat_LoggingSettings.Add(AdKat_CommandType.Voip, false);
+            this.AdKat_LoggingSettings.Add(AdKat_CommandType.RequestVoip, false);
+            this.AdKat_LoggingSettings.Add(AdKat_CommandType.RequestRules, true);
 
             //Fetch the plugin description and changelog
             this.fetchPluginDescAndChangelog();
@@ -910,34 +941,37 @@ namespace PRoConEvents
 
                 //In-Game Command Settings
                 lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Minimum Required Reason Length", typeof(int), this.requiredReasonLength));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Confirm Command", typeof(string), confirmCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Cancel Command", typeof(string), cancelCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Kill Player", typeof(string), killPlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Kick Player", typeof(string), kickPlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Temp-Ban Player", typeof(string), tempBanPlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Permaban Player", typeof(string), permaBanPlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Punish Player", typeof(string), punishPlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Forgive Player", typeof(string), forgivePlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Mute Player", typeof(string), mutePlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Join Player", typeof(string), joinPlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Round Whitelist Player", typeof(string), roundWhitelistPlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|OnDeath Move Player", typeof(string), movePlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Force Move Player", typeof(string), forceMovePlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Teamswap Self", typeof(string), teamSwapPlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Kill Self", typeof(string), killSelfCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Report Player", typeof(string), reportPlayerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Call Admin on Player", typeof(string), callAdminCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Admin Say", typeof(string), adminSayCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Player Say", typeof(string), playerSayCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Admin Yell", typeof(string), adminYellCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Player Yell", typeof(string), playerYellCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|What Is", typeof(string), whatIsCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Voip", typeof(string), voipCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Restart Level", typeof(string), restartLevelCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Next Level", typeof(string), nextLevelCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|End Level", typeof(string), endLevelCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Nuke Server", typeof(string), nukeServerCommandText));
-                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Kick All NonAdmins", typeof(string), kickAllCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Confirm Command", typeof(string), this.confirmCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Cancel Command", typeof(string), this.cancelCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Kill Player", typeof(string), this.killPlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Kick Player", typeof(string), this.kickPlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Temp-Ban Player", typeof(string), this.tempBanPlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Permaban Player", typeof(string), this.permaBanPlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Punish Player", typeof(string), this.punishPlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Forgive Player", typeof(string), this.forgivePlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Mute Player", typeof(string), this.mutePlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Join Player", typeof(string), this.joinPlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Round Whitelist Player", typeof(string), this.roundWhitelistPlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|OnDeath Move Player", typeof(string), this.movePlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Force Move Player", typeof(string), this.forceMovePlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Teamswap Self", typeof(string), this.teamSwapPlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Kill Self", typeof(string), this.killSelfCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Report Player", typeof(string), this.reportPlayerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Call Admin on Player", typeof(string), this.callAdminCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Admin Say", typeof(string), this.adminSayCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Player Say", typeof(string), this.playerSayCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Admin Yell", typeof(string), this.adminYellCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Player Yell", typeof(string), this.playerYellCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Admin Tell", typeof(string), this.adminTellCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Player Tell", typeof(string), this.playerTellCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|What Is", typeof(string), this.whatIsCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Voip", typeof(string), this.requestVoipCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Request Rules", typeof(string), this.requestRulesCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Restart Level", typeof(string), this.restartLevelCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Next Level", typeof(string), this.nextLevelCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|End Level", typeof(string), this.endLevelCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Nuke Server", typeof(string), this.nukeServerCommandText));
+                lstReturn.Add(new CPluginVariable("4. In-Game Command Settings|Kick All NonAdmins", typeof(string), this.kickAllCommandText));
 
                 //Punishment Settings
                 lstReturn.Add(new CPluginVariable("5. Punishment Settings|Punishment Hierarchy", typeof(string[]), this.punishmentHierarchy));
@@ -949,7 +983,7 @@ namespace PRoConEvents
                     lstReturn.Add(new CPluginVariable("5. Punishment Settings|IRO Punishment Overrides Low Pop", typeof(Boolean), this.IROOverridesLowPop));
                 }
 
-                //Player Report Settings
+                //Email Settings
                 lstReturn.Add(new CPluginVariable("6. Email Settings|Send Emails", typeof(bool), this.useEmail));
                 if (this.useEmail == true && false)
                 {
@@ -971,8 +1005,8 @@ namespace PRoConEvents
                 lstReturn.Add(new CPluginVariable("7. TeamSwap Settings|Ticket Window Low", typeof(int), this.teamSwapTicketWindowLow));
 
                 //Admin Assistant Settings
-                lstReturn.Add(new CPluginVariable("8. Admin Assistant Settings|Enable Admin Assistant Perk", typeof(Boolean), this.enableAdminAssistants));
-                lstReturn.Add(new CPluginVariable("8. Admin Assistant Settings|Minimum Confirmed Reports Per Week", typeof(int), this.minimumRequiredWeeklyReports));
+                lstReturn.Add(new CPluginVariable("8. Admin Assistant Settings|Enable Admin Assistant Perk", typeof(Boolean), this.enableAdminAssistantPerk));
+                lstReturn.Add(new CPluginVariable("8. Admin Assistant Settings|Minimum Confirmed Reports Per Month", typeof(int), this.minimumRequiredMonthlyReports));
 
                 //Muting Settings
                 lstReturn.Add(new CPluginVariable("9. Player Mute Settings|On-Player-Muted Message", typeof(string), this.mutedPlayerMuteMessage));
@@ -980,7 +1014,8 @@ namespace PRoConEvents
                 lstReturn.Add(new CPluginVariable("9. Player Mute Settings|On-Player-Kicked Message", typeof(string), this.mutedPlayerKickMessage));
                 lstReturn.Add(new CPluginVariable("9. Player Mute Settings|# Chances to give player before kicking", typeof(int), this.mutedPlayerChances));
 
-                //Pre-Message Settings
+                //Message Settings
+                lstReturn.Add(new CPluginVariable("A10. Messaging Settings|Display Admin Name in Kick and Ban Announcement", typeof(Boolean), this.showAdminNameInSay));
                 lstReturn.Add(new CPluginVariable("A10. Messaging Settings|Yell display time seconds", typeof(int), this.yellDuration));
                 lstReturn.Add(new CPluginVariable("A10. Messaging Settings|Pre-Message List", typeof(string[]), this.preMessageList.ToArray()));
                 lstReturn.Add(new CPluginVariable("A10. Messaging Settings|Require Use of Pre-Messages", typeof(Boolean), this.requirePreMessageUse));
@@ -1014,17 +1049,55 @@ namespace PRoConEvents
                 {
                     lstReturn.Add(new CPluginVariable("A12. External Command Settings|Fetch Actions from Database", typeof(Boolean), this.fetchActionsFromDB));
                 }
-                
-                lstReturn.Add(new CPluginVariable("A13. VOIP|Server VOIP Address", typeof(string), this.serverVoipAddress));
+
+                lstReturn.Add(new CPluginVariable("A13. VOIP Settings|Server VOIP Address", typeof(string), this.serverVoipAddress));
 
                 lstReturn.Add(new CPluginVariable("A14. Orchestration Settings|Feed MULTIBalancer Whitelist", typeof(Boolean), this.feedMULTIBalancerWhitelist));
                 lstReturn.Add(new CPluginVariable("A14. Orchestration Settings|Feed Server Reserved Slots", typeof(Boolean), this.feedServerReservedSlots));
                 lstReturn.Add(new CPluginVariable("A14. Orchestration Settings|Feed Stat Logger Settings", typeof(Boolean), this.feedStatLoggerSettings));
 
+                lstReturn.Add(new CPluginVariable("A15. Round Settings|Round Timer: Enable", typeof(Boolean), this.useRoundTimer));
+                if (this.useRoundTimer)
+                {
+                    lstReturn.Add(new CPluginVariable("A15. Round Settings|Round Timer: Round Duration Minutes", typeof(double), this.roundTimeMinutes));
+                }
+
+                if (this.gameVersion == GameVersion.BF3 || this.isADK)
+                {
+                    lstReturn.Add(new CPluginVariable("A16. BF3Stats Hacker-Checker Settings|HackerChecker: Enable", typeof(Boolean), this.useHackerChecker));
+                    if (this.useHackerChecker)
+                    {
+                        if (this.isADK)
+                        {
+                            lstReturn.Add(new CPluginVariable("A16. BF3Stats Hacker-Checker Settings|Hacker-Check Player", typeof(string), ""));
+                        }
+                        lstReturn.Add(new CPluginVariable("A16. BF3Stats Hacker-Checker Settings|HackerChecker: Whitelist", typeof(string[]), this.hackerCheckerWhitelist));
+                        //Below options only apply to the BF3 hacker checker through BF3Stats
+                        if (this.gameVersion == GameVersion.BF3)
+                        {
+                            lstReturn.Add(new CPluginVariable("A16. BF3Stats Hacker-Checker Settings|HackerChecker: DPS Checker: Enable", typeof(Boolean), this.useDPSChecker));
+                            if (this.useDPSChecker)
+                            {
+                                lstReturn.Add(new CPluginVariable("A16. BF3Stats Hacker-Checker Settings|HackerChecker: DPS Checker: Trigger Level", typeof(double), this.DPSTriggerLevel));
+                            }
+                            lstReturn.Add(new CPluginVariable("A16. BF3Stats Hacker-Checker Settings|HackerChecker: HSK Checker: Enable", typeof(Boolean), this.useHSKChecker));
+                            if (this.useHSKChecker)
+                            {
+                                lstReturn.Add(new CPluginVariable("A16. BF3Stats Hacker-Checker Settings|HackerChecker: HSK Checker: Trigger Level", typeof(double), this.HSKTriggerLevel));
+                            }
+                        }
+                    }
+                }
+
+                //Server rules Settings
+                lstReturn.Add(new CPluginVariable("A17. Server Rules Settings|Rule Print Delay", typeof(double), this.serverRulesDelay));
+                lstReturn.Add(new CPluginVariable("A17. Server Rules Settings|Rule Print Interval", typeof(double), this.serverRulesInterval));
+                lstReturn.Add(new CPluginVariable("A17. Server Rules Settings|Server Rule List", typeof(string[]), this.serverRulesList));
+
                 //Debug settings
-                lstReturn.Add(new CPluginVariable("D15. Debugging|Debug level", typeof(int), this.debugLevel));
-                lstReturn.Add(new CPluginVariable("D15. Debugging|Debug Soldier Name", typeof(string), this.debugSoldierName));
-                lstReturn.Add(new CPluginVariable("D15. Debugging|Command Entry", typeof(string), ""));
+                lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof(int), this.debugLevel));
+                lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof(string), this.debugSoldierName));
+                lstReturn.Add(new CPluginVariable("D99. Debugging|Command Entry", typeof(string), ""));
 
                 //Experimental tools
                 if (this.isADK)
@@ -1034,11 +1107,6 @@ namespace PRoConEvents
                     {
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Send Query", typeof(string), ""));
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Send Non-Query", typeof(string), ""));
-                        lstReturn.Add(new CPluginVariable("X99. Experimental|Round Timer: Enable", typeof(Boolean), this.useRoundTimer));
-                        if (this.useRoundTimer)
-                        {
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|Round Timer: Round Duration Minutes", typeof(double), this.roundTimeMinutes));
-                        }
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use NO EXPLOSIVES Limiter", typeof(Boolean), this.useWeaponLimiter));
                         if (this.useWeaponLimiter)
                         {
@@ -1046,25 +1114,6 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Exception String", typeof(string), this.weaponLimiterExceptionString));
                         }
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof(Boolean), this.useGrenadeCookCatcher));
-                        lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: Enable", typeof(Boolean), this.useHackerChecker));
-                        if (this.useHackerChecker)
-                        {
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|HackerCheck Player", typeof(string), ""));
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: Whitelist", typeof(string[]), this.hackerCheckerWhitelist));
-                            if (this.gameVersion == GameVersion.BF3)
-                            {
-                                lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: DPS Checker: Enable", typeof(Boolean), this.useDPSChecker));
-                                if (this.useDPSChecker)
-                                {
-                                    lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: DPS Checker: Trigger Level", typeof(double), this.DPSTriggerLevel));
-                                }
-                                lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: HSK Checker: Enable", typeof(Boolean), this.useHSKChecker));
-                                if (this.useHSKChecker)
-                                {
-                                    lstReturn.Add(new CPluginVariable("X99. Experimental|HackerChecker: HSK Checker: Trigger Level", typeof(double), this.HSKTriggerLevel));
-                                }
-                            }
-                        }
                     }
                 }
             }
@@ -1227,6 +1276,42 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         this.queueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof(string), this.serverVoipAddress));
                     }
+                }
+                else if (Regex.Match(strVariable, @"Rule Print Delay").Success)
+                {
+                    double delay = Double.Parse(strValue);
+                    if (this.serverRulesDelay != delay)
+                    {
+                        if (delay <= 0)
+                        {
+                            this.ConsoleError("Delay cannot be negative.");
+                            delay = 1.0;
+                        }
+                        this.serverRulesDelay = delay;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Rule Print Delay", typeof(double), this.serverRulesDelay));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Rule Print Interval").Success)
+                {
+                    double interval = Double.Parse(strValue);
+                    if (this.serverRulesInterval != interval)
+                    {
+                        if (interval <= 0)
+                        {
+                            this.ConsoleError("Interval cannot be negative.");
+                            interval = 5.0;
+                        }
+                        this.serverRulesInterval = interval;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Rule Print Interval", typeof(double), this.serverRulesInterval));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Server Rule List").Success)
+                {
+                    this.serverRulesList = CPluginVariable.DecodeStringArray(strValue);
+                    //Once setting has been changed, upload the change to database
+                    this.queueSettingForUpload(new CPluginVariable(@"Server Rule List", typeof(string), CPluginVariable.EncodeStringArray(this.serverRulesList)));
                 }
                 else if (Regex.Match(strVariable, @"Feed MULTIBalancer Whitelist").Success)
                 {
@@ -2073,6 +2158,50 @@ namespace PRoConEvents
                     //Once setting has been changed, upload the change to database
                     this.queueSettingForUpload(new CPluginVariable(@"Player Yell", typeof(string), this.playerYellCommandText));
                 }
+                else if (Regex.Match(strVariable, @"Admin Tell").Success)
+                {
+                    if (strValue.Length > 0)
+                    {
+                        //trim variable
+                        if (strValue.ToLower().EndsWith("|log"))
+                        {
+                            strValue = strValue.Remove(strValue.IndexOf("|log"));
+                        }
+                        if (this.adminTellCommandText != strValue)
+                        {
+                            this.adminTellCommandText = strValue;
+                        }
+                    }
+                    else
+                    {
+                        this.adminTellCommandText = AdKat_CommandType.AdminTell + "CommandDisabled";
+                    }
+                    rebindAllCommands();
+                    //Once setting has been changed, upload the change to database
+                    this.queueSettingForUpload(new CPluginVariable(@"Admin Tell", typeof(string), this.adminTellCommandText));
+                }
+                else if (Regex.Match(strVariable, @"Player Tell").Success)
+                {
+                    if (strValue.Length > 0)
+                    {
+                        //trim variable
+                        if (strValue.ToLower().EndsWith("|log"))
+                        {
+                            strValue = strValue.Remove(strValue.IndexOf("|log"));
+                        }
+                        if (this.playerTellCommandText != strValue)
+                        {
+                            this.playerTellCommandText = strValue;
+                        }
+                    }
+                    else
+                    {
+                        this.playerTellCommandText = AdKat_CommandType.PlayerTell + "CommandDisabled";
+                    }
+                    rebindAllCommands();
+                    //Once setting has been changed, upload the change to database
+                    this.queueSettingForUpload(new CPluginVariable(@"Player Tell", typeof(string), this.playerTellCommandText));
+                }
                 else if (Regex.Match(strVariable, @"What Is").Success)
                 {
                     if (strValue.Length > 0)
@@ -2104,18 +2233,40 @@ namespace PRoConEvents
                         {
                             strValue = strValue.Remove(strValue.IndexOf("|log"));
                         }
-                        if (this.voipCommandText != strValue)
+                        if (this.requestVoipCommandText != strValue)
                         {
-                            this.voipCommandText = strValue;
+                            this.requestVoipCommandText = strValue;
                         }
                     }
                     else
                     {
-                        this.voipCommandText = AdKat_CommandType.Voip + "CommandDisabled";
+                        this.requestVoipCommandText = AdKat_CommandType.RequestVoip + "CommandDisabled";
                     }
                     rebindAllCommands();
                     //Once setting has been changed, upload the change to database
-                    this.queueSettingForUpload(new CPluginVariable(@"Voip", typeof(string), this.voipCommandText));
+                    this.queueSettingForUpload(new CPluginVariable(@"Voip", typeof(string), this.requestVoipCommandText));
+                }
+                else if (Regex.Match(strVariable, @"Request Rules").Success)
+                {
+                    if (strValue.Length > 0)
+                    {
+                        //trim variable
+                        if (strValue.ToLower().EndsWith("|log"))
+                        {
+                            strValue = strValue.Remove(strValue.IndexOf("|log"));
+                        }
+                        if (this.requestRulesCommandText != strValue)
+                        {
+                            this.requestRulesCommandText = strValue;
+                        }
+                    }
+                    else
+                    {
+                        this.requestRulesCommandText = AdKat_CommandType.RequestRules + "CommandDisabled";
+                    }
+                    rebindAllCommands();
+                    //Once setting has been changed, upload the change to database
+                    this.queueSettingForUpload(new CPluginVariable(@"Request Rules", typeof(string), this.requestRulesCommandText));
                 }
                 else if (Regex.Match(strVariable, @"Restart Level").Success)
                 {
@@ -2507,21 +2658,21 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Enable Admin Assistant Perk").Success)
                 {
                     Boolean enableAA = Boolean.Parse(strValue);
-                    if (this.enableAdminAssistants != enableAA)
+                    if (this.enableAdminAssistantPerk != enableAA)
                     {
-                        this.enableAdminAssistants = enableAA;
+                        this.enableAdminAssistantPerk = enableAA;
                         //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof(Boolean), this.enableAdminAssistants));
+                        this.queueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof(Boolean), this.enableAdminAssistantPerk));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Minimum Confirmed Reports Per Week").Success)
+                else if (Regex.Match(strVariable, @"Minimum Confirmed Reports Per Month").Success)
                 {
-                    Int32 weeklyReports = Int32.Parse(strValue);
-                    if (this.minimumRequiredWeeklyReports != weeklyReports)
+                    Int32 monthlyReports = Int32.Parse(strValue);
+                    if (this.minimumRequiredMonthlyReports != monthlyReports)
                     {
-                        this.minimumRequiredWeeklyReports = weeklyReports;
+                        this.minimumRequiredMonthlyReports = monthlyReports;
                         //Once setting has been changed, upload the change to database
-                        this.queueSettingForUpload(new CPluginVariable(@"Minimum Confirmed Reports Per Week", typeof(Int32), this.minimumRequiredWeeklyReports));
+                        this.queueSettingForUpload(new CPluginVariable(@"Minimum Confirmed Reports Per Month", typeof(Int32), this.minimumRequiredMonthlyReports));
                     }
                 }
                 #endregion
@@ -2550,6 +2701,16 @@ namespace PRoConEvents
                         this.requirePreMessageUse = require;
                         //Once setting has been changed, upload the change to database
                         this.queueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof(Boolean), this.requirePreMessageUse));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Display Admin Name in Kick and Ban Announcement").Success)
+                {
+                    Boolean display = Boolean.Parse(strValue);
+                    if (display != this.showAdminNameInSay)
+                    {
+                        this.showAdminNameInSay = display;
+                        //Once setting has been changed, upload the change to database
+                        this.queueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), this.showAdminNameInSay));
                     }
                 }
                 #endregion
@@ -2623,8 +2784,11 @@ namespace PRoConEvents
                 this.playerSayCommandText = this.parseAddCommand(tempDictionary, this.playerSayCommandText, AdKat_CommandType.PlayerSay);
                 this.adminYellCommandText = this.parseAddCommand(tempDictionary, this.adminYellCommandText, AdKat_CommandType.AdminYell);
                 this.playerYellCommandText = this.parseAddCommand(tempDictionary, this.playerYellCommandText, AdKat_CommandType.PlayerYell);
+                this.adminTellCommandText = this.parseAddCommand(tempDictionary, this.adminTellCommandText, AdKat_CommandType.AdminTell);
+                this.playerTellCommandText = this.parseAddCommand(tempDictionary, this.playerTellCommandText, AdKat_CommandType.PlayerTell);
                 this.whatIsCommandText = this.parseAddCommand(tempDictionary, this.whatIsCommandText, AdKat_CommandType.WhatIs);
-                this.voipCommandText = this.parseAddCommand(tempDictionary, this.voipCommandText, AdKat_CommandType.Voip);
+                this.requestVoipCommandText = this.parseAddCommand(tempDictionary, this.requestVoipCommandText, AdKat_CommandType.RequestVoip);
+                this.requestRulesCommandText = this.parseAddCommand(tempDictionary, this.requestRulesCommandText, AdKat_CommandType.RequestRules);
                 //Update Level Control Commands
                 this.restartLevelCommandText = this.parseAddCommand(tempDictionary, this.restartLevelCommandText, AdKat_CommandType.RestartLevel);
                 this.nextLevelCommandText = this.parseAddCommand(tempDictionary, this.nextLevelCommandText, AdKat_CommandType.NextLevel);
@@ -3189,6 +3353,8 @@ namespace PRoConEvents
                     this.DebugWrite("Preparing to queue player list for processing", 6);
                     lock (this.playerListProcessingQueue)
                     {
+                        //Empty the queue before sending the new player list. Only the most recent information should be processed.
+                        this.playerListProcessingQueue.Clear();
                         this.playerListProcessingQueue.Enqueue(players);
                         this.DebugWrite("Player list queued for processing", 6);
                         this.playerListProcessingHandle.Set();
@@ -3989,7 +4155,7 @@ namespace PRoConEvents
                     string command = this.teamSwapPlayerCommandText;
                     lock (this.adminAssistantCache)
                     {
-                        if (this.enableAdminAssistants && this.adminAssistantCache.TryGetValue(soldierName, out informed))
+                        if (this.enableAdminAssistantPerk && this.adminAssistantCache.TryGetValue(soldierName, out informed))
                         {
                             if (informed == false)
                             {
@@ -4785,7 +4951,7 @@ namespace PRoConEvents
                     record.record_message = "Hacking/Cheating DPS Automatic Ban [" + actedWeapon.name.Replace("-", "").Replace(" ", "") + "-" + (int)actedWeapon.dps + "-" + (int)actedWeapon.kills + "-" + (int)actedWeapon.headshots + "]";
                     //Process the record
                     this.queueRecordForProcessing(record);
-                    this.adminSay(player.player_name + " auto-banned for damage mod. [" + actedWeapon.name + "-" + (int)actedWeapon.dps + "-" + (int)actedWeapon.kills + "-" + (int)actedWeapon.headshots + "]");
+                    this.adminSayMessage(player.player_name + " auto-banned for damage mod. [" + actedWeapon.name + "-" + (int)actedWeapon.dps + "-" + (int)actedWeapon.kills + "-" + (int)actedWeapon.headshots + "]");
                 }
             }
             return acted;
@@ -4869,7 +5035,7 @@ namespace PRoConEvents
                     record.record_message = "Hacking/Cheating HSK Automatic Ban [" + actedWeapon.name.Replace("-", "").Replace(" ", "") + "-" + (int)(actedWeapon.hskr * 100) + "-" + (int)actedWeapon.kills + "-" + (int)actedWeapon.headshots + "]";
                     //Process the record
                     this.queueRecordForProcessing(record);
-                    this.adminSay(player.player_name + " auto-banned for aimbot. [" + actedWeapon.name + "-" + (int)actedWeapon.hskr + "-" + (int)actedWeapon.kills + "-" + (int)actedWeapon.headshots + "]");
+                    this.adminSayMessage(player.player_name + " auto-banned for aimbot. [" + actedWeapon.name + "-" + (int)actedWeapon.hskr + "-" + (int)actedWeapon.kills + "-" + (int)actedWeapon.headshots + "]");
                 }
             }
             return acted;
@@ -4969,6 +5135,26 @@ namespace PRoConEvents
             return returnMessage;
         }
 
+        public void adminSayMessage(String message)
+        {
+            this.DebugWrite("Entering adminSay", 7);
+            try
+            {
+                if (String.IsNullOrEmpty(message))
+                {
+                    this.ConsoleError("message null in adminSay");
+                    return;
+                }
+                this.ProconChatWrite("Say > All > " + message);
+                this.ExecuteCommand("procon.protected.send", "admin.say", message, "all");
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKat_Exception("Error while sending admin say.", e));
+            }
+            this.DebugWrite("Exiting adminSay", 7);
+        }
+
         public void playerSayMessage(string target, string message)
         {
             this.DebugWrite("Entering playerSayMessage", 7);
@@ -4979,8 +5165,8 @@ namespace PRoConEvents
                     this.ConsoleError("target or message null in playerSayMessage");
                     return;
                 }
+                this.ProconChatWrite("Say > " + target + " > " + message);
                 ExecuteCommand("procon.protected.send", "admin.say", message, "player", target);
-                ExecuteCommand("procon.protected.chat.write", string.Format("(PlayerSay {0}) ", target) + message);
             }
             catch (Exception e)
             {
@@ -4989,26 +5175,7 @@ namespace PRoConEvents
             this.DebugWrite("Exiting playerSayMessage", 7);
         }
 
-        public void adminSay(String message)
-        {
-            this.DebugWrite("Entering adminSay", 7);
-            try
-            {
-                if (String.IsNullOrEmpty(message))
-                {
-                    this.ConsoleError("message null in adminSay");
-                    return;
-                }
-                this.ExecuteCommand("procon.protected.send", "admin.say", message, "all");
-            }
-            catch (Exception e)
-            {
-                this.HandleException(new AdKat_Exception("Error while sending admin say.", e));
-            }
-            this.DebugWrite("Exiting adminSay", 7);
-        }
-
-        public void adminYell(String message)
+        public void adminYellMessage(String message)
         {
             this.DebugWrite("Entering adminYell", 7);
             try
@@ -5018,13 +5185,46 @@ namespace PRoConEvents
                     this.ConsoleError("message null in adminYell");
                     return;
                 }
-                this.ExecuteCommand("procon.protected.send", "admin.yell", message, this.yellDuration + "", "all");
+                this.ProconChatWrite("Yell > All > " + message);
+                this.ExecuteCommand("procon.protected.send", "admin.yell", message.ToUpper(), this.yellDuration + "", "all");
             }
             catch (Exception e)
             {
                 this.HandleException(new AdKat_Exception("Error while sending admin yell.", e));
             }
             this.DebugWrite("Exiting adminYell", 7);
+        }
+
+        public void playerYellMessage(string target, string message)
+        {
+            this.DebugWrite("Entering adminYell", 7);
+            try
+            {
+                if (String.IsNullOrEmpty(message))
+                {
+                    this.ConsoleError("message null in adminYell");
+                    return;
+                }
+                this.ProconChatWrite("Yell > " + target + " > " + message);
+                this.ExecuteCommand("procon.protected.send", "admin.yell", message.ToUpper(), this.yellDuration + "", "player", target);
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKat_Exception("Error while sending admin yell.", e));
+            }
+            this.DebugWrite("Exiting adminYell", 7);
+        }
+
+        public void adminTellMessage(String message)
+        {
+            this.adminSayMessage(message);
+            this.adminYellMessage(message);
+        }
+
+        public void playerTellMessage(string target, string message)
+        {
+            this.playerSayMessage(target, message);
+            this.playerYellMessage(target, message);
         }
 
         private void queueMessageForParsing(string speaker, string message)
@@ -6655,14 +6855,26 @@ namespace PRoConEvents
                         }
                         break;
                     #endregion
-                    #region Voip
-                    case AdKat_CommandType.Voip:
+                    #region RequestVoip
+                    case AdKat_CommandType.RequestVoip:
                         {
                             //Remove previous commands awaiting confirmation
                             this.cancelSourcePendingAction(record);
-                            
+
                             //Send them voip information
                             this.sendMessageToSource(record, this.serverVoipAddress);
+                        }
+                        break;
+                    #endregion
+                    #region RequestRules
+                    case AdKat_CommandType.RequestRules:
+                        {
+                            //Remove previous commands awaiting confirmation
+                            this.cancelSourcePendingAction(record);
+
+                            record.record_message = "Player Requested Rules";
+                            record.target_name = record.source_name;
+                            this.completeTargetInformation(record, false);
                         }
                         break;
                     #endregion
@@ -6681,32 +6893,6 @@ namespace PRoConEvents
                                     return;
                                 case 1:
                                     record.record_message = this.getPreMessage(parameters[0], false);
-                                    DebugWrite("message: " + record.record_message, 6);
-                                    record.target_name = "Server";
-                                    break;
-                                default:
-                                    this.sendMessageToSource(record, "Invalid parameters, unable to submit.");
-                                    return;
-                            }
-                            this.queueRecordForProcessing(record);
-                        }
-                        break;
-                    #endregion
-                    #region AdminYell
-                    case AdKat_CommandType.AdminYell:
-                        {
-                            //Remove previous commands awaiting confirmation
-                            this.cancelSourcePendingAction(record);
-
-                            //Parse parameters using max param count
-                            String[] parameters = this.parseParameters(remainingMessage, 1);
-                            switch (parameters.Length)
-                            {
-                                case 0:
-                                    this.sendMessageToSource(record, "No parameters given, unable to submit.");
-                                    return;
-                                case 1:
-                                    record.record_message = this.getPreMessage(parameters[0], false).ToUpper();
                                     DebugWrite("message: " + record.record_message, 6);
                                     record.target_name = "Server";
                                     break;
@@ -6750,6 +6936,32 @@ namespace PRoConEvents
                         }
                         break;
                     #endregion
+                    #region AdminYell
+                    case AdKat_CommandType.AdminYell:
+                        {
+                            //Remove previous commands awaiting confirmation
+                            this.cancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = this.parseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    this.sendMessageToSource(record, "No parameters given, unable to submit.");
+                                    return;
+                                case 1:
+                                    record.record_message = this.getPreMessage(parameters[0], false);
+                                    DebugWrite("message: " + record.record_message, 6);
+                                    record.target_name = "Server";
+                                    break;
+                                default:
+                                    this.sendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    return;
+                            }
+                            this.queueRecordForProcessing(record);
+                        }
+                        break;
+                    #endregion
                     #region PlayerYell
                     case AdKat_CommandType.PlayerYell:
                         {
@@ -6770,7 +6982,65 @@ namespace PRoConEvents
                                     record.target_name = parameters[0];
                                     DebugWrite("target: " + record.target_name, 6);
 
-                                    record.record_message = this.getPreMessage(parameters[1], false).ToUpper();
+                                    record.record_message = this.getPreMessage(parameters[1], false);
+                                    DebugWrite("message: " + record.record_message, 6);
+
+                                    this.completeTargetInformation(record, false);
+                                    break;
+                                default:
+                                    this.sendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    return;
+                            }
+                        }
+                        break;
+                    #endregion
+                    #region AdminTell
+                    case AdKat_CommandType.AdminTell:
+                        {
+                            //Remove previous commands awaiting confirmation
+                            this.cancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = this.parseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    this.sendMessageToSource(record, "No parameters given, unable to submit.");
+                                    return;
+                                case 1:
+                                    record.record_message = this.getPreMessage(parameters[0], false);
+                                    DebugWrite("message: " + record.record_message, 6);
+                                    record.target_name = "Server";
+                                    break;
+                                default:
+                                    this.sendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    return;
+                            }
+                            this.queueRecordForProcessing(record);
+                        }
+                        break;
+                    #endregion
+                    #region PlayerTell
+                    case AdKat_CommandType.PlayerTell:
+                        {
+                            //Remove previous commands awaiting confirmation
+                            this.cancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = this.parseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    this.sendMessageToSource(record, "No parameters given, unable to submit.");
+                                    return;
+                                case 1:
+                                    this.sendMessageToSource(record, "No message given, unable to submit.");
+                                    return;
+                                case 2:
+                                    record.target_name = parameters[0];
+                                    DebugWrite("target: " + record.target_name, 6);
+
+                                    record.record_message = this.getPreMessage(parameters[1], false);
                                     DebugWrite("message: " + record.record_message, 6);
 
                                     this.completeTargetInformation(record, false);
@@ -7378,6 +7648,15 @@ namespace PRoConEvents
                     case AdKat_CommandType.PlayerYell:
                         response = this.playerYell(record);
                         break;
+                    case AdKat_CommandType.AdminTell:
+                        response = this.adminTell(record);
+                        break;
+                    case AdKat_CommandType.PlayerTell:
+                        response = this.playerTell(record);
+                        break;
+                    case AdKat_CommandType.RequestRules:
+                        response = this.sendServerRules(record);
+                        break;
                     case AdKat_CommandType.EnforceBan:
                         //Don't do anything here, ban enforcer handles this
                         break;
@@ -7493,7 +7772,7 @@ namespace PRoConEvents
                 }
                 if (record.source_name == "AutoAdmin" && record.command_type == AdKat_CommandType.PunishPlayer)
                 {
-                    this.adminSay("Punishing " + record.target_name + " for " + record.record_message);
+                    this.adminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
                 }
                 record.record_action_executed = true;
             }
@@ -7532,7 +7811,7 @@ namespace PRoConEvents
                     this.removePlayerFromDictionary(record.target_player.player_name);
                     if (record.target_name != record.source_name)
                     {
-                        this.adminSay("Player " + record.target_name + " was KICKED by admin for " + record.record_message + " " + additionalMessage);
+                        this.adminSayMessage("Player " + record.target_name + " was KICKED by " + ((this.showAdminNameInSay)?(record.source_name):("admin")) + " for " + record.record_message + " " + additionalMessage);
                     }
                     message = this.sendMessageToSource(record, "You KICKED " + record.target_name + " for " + record.record_message + ". " + additionalMessage);
                 }
@@ -7619,7 +7898,7 @@ namespace PRoConEvents
                 }
                 if (record.target_name != record.source_name)
                 {
-                    this.adminSay("Player " + record.target_name + " was BANNED by admin for " + record.record_message + " " + additionalMessage);
+                    this.adminSayMessage("Player " + record.target_name + " was BANNED by " + ((this.showAdminNameInSay) ? (record.source_name) : ("admin")) + " for " + record.record_message + " " + additionalMessage);
                 }
                 message = this.sendMessageToSource(record, "You TEMP BANNED " + record.target_name + " for " + this.formatTimeString(TimeSpan.FromMinutes(record.command_numeric)) + "." + additionalMessage);
                 record.record_action_executed = true;
@@ -7705,7 +7984,7 @@ namespace PRoConEvents
                 }
                 if (record.target_name != record.source_name)
                 {
-                    this.adminSay("Player " + record.target_name + " was BANNED by admin for " + record.record_message + additionalMessage);
+                    this.adminSayMessage("Player " + record.target_name + " was BANNED by " + ((this.showAdminNameInSay) ? (record.source_name) : ("admin")) + " for " + record.record_message + additionalMessage);
                 }
                 message = this.sendMessageToSource(record, "You PERMA BANNED " + record.target_name + "! Get a vet admin NOW!" + additionalMessage);
                 record.record_action_executed = true;
@@ -7759,7 +8038,7 @@ namespace PRoConEvents
                     //Inform the server of the enforced ban
                     if (verbose)
                     {
-                        this.adminSay("Enforcing ban on " + aBan.ban_record.target_player.player_name + " for " + aBan.ban_record.record_message);
+                        this.adminSayMessage("Enforcing ban on " + aBan.ban_record.target_player.player_name + " for " + aBan.ban_record.record_message);
                     }
                     message = "Ban Enforced";
                 }
@@ -8201,7 +8480,7 @@ namespace PRoConEvents
                         this.playerSayMessage(record.target_name, "Killed by admin for: " + record.record_message);
                     }
                 }
-                this.ExecuteCommand("procon.protected.send", "admin.say", "All players with access class 5 or lower have been kicked.", "all");
+                this.adminSayMessage("All players with access class 5 or lower have been kicked.");
                 message = "You KICKED EVERYONE for " + record.record_message + ". ";
                 record.record_action_executed = true;
             }
@@ -8216,12 +8495,12 @@ namespace PRoConEvents
 
         public string adminSay(AdKat_Record record)
         {
-            this.DebugWrite("Entering forgiveTarget", 6);
+            this.DebugWrite("Entering adminSay", 6);
             string message = null;
             try
             {
-                this.ExecuteCommand("procon.protected.send", "admin.say", record.record_message, "all");
-                message = "Server has been told '" + record.record_message + "'";
+                this.adminSayMessage(record.record_message);
+                message = "Server has been told '" + record.record_message + " by SAY'";
                 record.record_action_executed = true;
             }
             catch (Exception e)
@@ -8229,32 +8508,13 @@ namespace PRoConEvents
                 record.record_exception = new AdKat_Exception("Error while taking action for AdminSay record.", e);
                 this.HandleException(record.record_exception);
             }
-            this.DebugWrite("Exiting forgiveTarget", 6);
-            return message;
-        }
-
-        public string adminYell(AdKat_Record record)
-        {
-            this.DebugWrite("Entering forgiveTarget", 6);
-            string message = null;
-            try
-            {
-                this.ExecuteCommand("procon.protected.send", "admin.yell", record.record_message, this.yellDuration + "", "all");
-                message = "Server has been told '" + record.record_message + "'";
-                record.record_action_executed = true;
-            }
-            catch (Exception e)
-            {
-                record.record_exception = new AdKat_Exception("Error while taking action for AdminYell record.", e);
-                this.HandleException(record.record_exception);
-            }
-            this.DebugWrite("Exiting forgiveTarget", 6);
+            this.DebugWrite("Exiting adminSay", 6);
             return message;
         }
 
         public string playerSay(AdKat_Record record)
         {
-            this.DebugWrite("Entering forgiveTarget", 6);
+            this.DebugWrite("Entering playerSay", 6);
             string message = null;
             try
             {
@@ -8264,29 +8524,152 @@ namespace PRoConEvents
             }
             catch (Exception e)
             {
-                record.record_exception = new AdKat_Exception("Error while taking action for Forgive record.", e);
+                record.record_exception = new AdKat_Exception("Error while taking action for playerSay record.", e);
                 this.HandleException(record.record_exception);
             }
-            this.DebugWrite("Exiting forgiveTarget", 6);
+            this.DebugWrite("Exiting playerSay", 6);
+            return message;
+        }
+
+        public string adminYell(AdKat_Record record)
+        {
+            this.DebugWrite("Entering adminYell", 6);
+            string message = null;
+            try
+            {
+                this.adminYellMessage(record.record_message);
+                message = "Server has been told '" + record.record_message + " by YELL'";
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKat_Exception("Error while taking action for AdminYell record.", e);
+                this.HandleException(record.record_exception);
+            }
+            this.DebugWrite("Exiting adminYell", 6);
             return message;
         }
 
         public string playerYell(AdKat_Record record)
         {
-            this.DebugWrite("Entering forgiveTarget", 6);
+            this.DebugWrite("Entering playerYell", 6);
             string message = null;
             try
             {
-                this.ExecuteCommand("procon.protected.send", "admin.yell", record.record_message, this.yellDuration + "", "player", record.target_name);
+                this.playerYellMessage(record.target_name, record.record_message);
                 message = record.target_name + " has been told '" + record.record_message + "' by YELL.";
                 record.record_action_executed = true;
             }
             catch (Exception e)
             {
-                record.record_exception = new AdKat_Exception("Error while taking action for Forgive record.", e);
+                record.record_exception = new AdKat_Exception("Error while taking action for playerYell record.", e);
                 this.HandleException(record.record_exception);
             }
-            this.DebugWrite("Exiting forgiveTarget", 6);
+            this.DebugWrite("Exiting playerYell", 6);
+            return message;
+        }
+
+        public string adminTell(AdKat_Record record)
+        {
+            this.DebugWrite("Entering adminTell", 6);
+            string message = null;
+            try
+            {
+                this.adminTellMessage(record.record_message);
+                message = "Server has been told '" + record.record_message + " by TELL'";
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKat_Exception("Error while taking action for AdminYell record.", e);
+                this.HandleException(record.record_exception);
+            }
+            this.DebugWrite("Exiting adminTell", 6);
+            return message;
+        }
+
+        public string playerTell(AdKat_Record record)
+        {
+            this.DebugWrite("Entering playerTell", 6);
+            string message = null;
+            try
+            {
+                this.playerTellMessage(record.target_name, record.record_message);
+                message = record.target_name + " has been told '" + record.record_message + "' by TELL.";
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKat_Exception("Error while taking action for playerTell record.", e);
+                this.HandleException(record.record_exception);
+            }
+            this.DebugWrite("Exiting playerTell", 6);
+            return message;
+        }
+
+        public string sendServerRules(AdKat_Record record)
+        {
+            this.DebugWrite("Entering sendServerRules", 6);
+            string message = null;
+            try
+            {
+                //Send the server rules
+                message = this.sendServerRules(record.target_name);
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKat_Exception("Error while sending server rules (record).", e);
+                this.HandleException(record.record_exception);
+            }
+            this.DebugWrite("Exiting sendServerRules", 6);
+            return message;
+        }
+
+        public string sendServerRules(String target_name)
+        {
+            this.DebugWrite("Entering sendServerRules", 6);
+            string message = "Rules sent to " + target_name;
+            try
+            {
+                //Create a new thread to handle the disconnect orchestration
+                Thread rulePrinter = new Thread(new ThreadStart(delegate()
+                {
+                    this.DebugWrite("Starting a rule printer thread.", 5);
+                    try
+                    {
+                        //Special Case for no rules
+                        if (this.serverRulesList.Length == 0)
+                        {
+                            this.playerSayMessage(target_name, "This server has no rules.");
+                        }
+                        else
+                        {
+                            //Wait the rule delay duration
+                            Thread.Sleep(TimeSpan.FromSeconds(this.serverRulesDelay));
+                            foreach (string rule in this.serverRulesList)
+                            {
+                                this.playerSayMessage(target_name, this.getPreMessage(rule, false));
+                                Thread.Sleep(TimeSpan.FromSeconds(this.serverRulesInterval));
+                            }
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        this.HandleException(new AdKat_Exception("Error while printing server rules"));
+                    }
+                    this.DebugWrite("Exiting a rule printer.", 5);
+                }));
+
+                //Start the thread
+                rulePrinter.Start();
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKat_Exception("Error while sending server rules (string).", e));
+            }
+            this.DebugWrite("Exiting sendServerRules", 6);
             return message;
         }
 
@@ -8368,7 +8751,7 @@ namespace PRoConEvents
             else if
                 (!this.requireTeamswapWhitelist ||
                 this.teamswapRoundWhitelist.ContainsKey(player_name) ||
-                (this.enableAdminAssistants && this.adminAssistantCache.ContainsKey(player_name)))
+                (this.enableAdminAssistantPerk && this.adminAssistantCache.ContainsKey(player_name)))
             {
                 access_level = this.AdKat_CommandAccessRank[AdKat_CommandType.Teamswap];
             }
@@ -8488,8 +8871,6 @@ namespace PRoConEvents
                         this.DebugWrite("Preparing to fetch settings from server " + server_id, 6);
                         //Fetch new settings from the database
                         this.fetchSettings(this.settingImportID);
-                        //Update the database with setting logic employed here
-                        //this.uploadAllSettings();
                     }
 
                     //Handle Inbound Setting Uploads
@@ -9398,7 +9779,7 @@ namespace PRoConEvents
                 this.queueSettingForUpload(new CPluginVariable(@"Admin Yell", typeof(string), this.adminYellCommandText));
                 this.queueSettingForUpload(new CPluginVariable(@"Player Yell", typeof(string), this.playerYellCommandText));
                 this.queueSettingForUpload(new CPluginVariable(@"What Is", typeof(string), this.whatIsCommandText));
-                this.queueSettingForUpload(new CPluginVariable(@"Voip", typeof(string), this.voipCommandText));
+                this.queueSettingForUpload(new CPluginVariable(@"Voip", typeof(string), this.requestVoipCommandText));
                 this.queueSettingForUpload(new CPluginVariable(@"Restart Level", typeof(string), this.restartLevelCommandText));
                 this.queueSettingForUpload(new CPluginVariable(@"Next Level", typeof(string), this.nextLevelCommandText));
                 this.queueSettingForUpload(new CPluginVariable(@"End Level", typeof(string), this.endLevelCommandText));
@@ -9418,8 +9799,8 @@ namespace PRoConEvents
                 this.queueSettingForUpload(new CPluginVariable(@"Auto-Whitelist Count", typeof(Int32), this.playersToAutoWhitelist));
                 this.queueSettingForUpload(new CPluginVariable(@"Ticket Window High", typeof(Int32), this.teamSwapTicketWindowHigh));
                 this.queueSettingForUpload(new CPluginVariable(@"Ticket Window Low", typeof(Int32), this.teamSwapTicketWindowLow));
-                this.queueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof(Boolean), this.enableAdminAssistants));
-                this.queueSettingForUpload(new CPluginVariable(@"Minimum Confirmed Reports Per Week", typeof(Int32), this.minimumRequiredWeeklyReports));
+                this.queueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof(Boolean), this.enableAdminAssistantPerk));
+                this.queueSettingForUpload(new CPluginVariable(@"Minimum Confirmed Reports Per Month", typeof(Int32), this.minimumRequiredMonthlyReports));
                 this.queueSettingForUpload(new CPluginVariable(@"Yell display time seconds", typeof(Int32), this.yellDuration));
                 this.queueSettingForUpload(new CPluginVariable(@"Pre-Message List", typeof(string), CPluginVariable.EncodeStringArray(this.preMessageList.ToArray())));
                 this.queueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof(Boolean), this.requirePreMessageUse));
@@ -9433,8 +9814,6 @@ namespace PRoConEvents
 
         private void uploadSetting(CPluginVariable var)
         {
-            //TODO
-            return;
             this.DebugWrite("uploadSetting starting!", 7);
             //Make sure database connection active
             if (this.handlePossibleDisconnect())
@@ -9492,8 +9871,6 @@ namespace PRoConEvents
 
         private Boolean fetchSettings(Int64 server_id)
         {
-            //TODO
-            return false;
             this.DebugWrite("fetchSettings starting!", 6);
             Boolean success = false;
             //Make sure database connection active
@@ -9937,7 +10314,7 @@ namespace PRoConEvents
                                 {
                                     this.ConsoleError("Query returned no results.");
                                 }
-                                return false;
+                                return true;
                             }
                         }
                     }
@@ -11719,7 +12096,7 @@ namespace PRoConEvents
 	                    WHERE `command_action` = 'ConfirmReport' 
 	                    AND `source_name` = '" + player.player_name + @"' 
 	                    AND (`adkats_records`.`record_time` BETWEEN date_sub(now(),INTERVAL 30 DAY) AND now())
-                    ) >= " + this.minimumRequiredWeeklyReports + " LIMIT 1";
+                    ) >= " + this.minimumRequiredMonthlyReports + " LIMIT 1";
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             return reader.Read();
@@ -11962,6 +12339,138 @@ namespace PRoConEvents
         }
 
         #endregion
+
+        #endregion
+
+        #region External Commands (ColColonCleaner)
+
+        public void PerformExternalPluginCommand(params String[] commandParams)
+        {
+            this.DebugWrite("PerformExternalPluginCommand starting!", 6);
+            if (commandParams.Length < 1)
+            {
+                this.ConsoleError("External action handling canceled. No parameters were provided.");
+                return;
+            }
+
+            new Thread(new ParameterizedThreadStart(ParseExternalPluginCommand)).Start(commandParams[0]);
+            this.DebugWrite("PerformExternalPluginCommand finished!", 6);
+        }
+
+        private void ParseExternalPluginCommand(Object clientInformation)
+        {
+            this.DebugWrite("ParseExternalPluginCommand starting!", 6);
+            try
+            {
+                //Set current thread name
+                Thread.CurrentThread.Name = "ParseExternalPluginCommand";
+
+                //Parse Command Information into a record
+                Hashtable parsedClientInformation = (Hashtable)JSON.JsonDecode((String)clientInformation);
+                AdKat_CommandType command_type = AdKat_CommandType.Default;
+                int command_numeric = 0;
+                String source_name = String.Empty;
+                String target_name = String.Empty;
+                String record_message = String.Empty;
+                //Import the command type
+                if (!parsedClientInformation.ContainsKey("command_type"))
+                {
+                    this.ConsoleError("Parsed command didn't contain a command_type!");
+                    return;
+                }
+                else
+                {
+                    String unparsedCommandType = (String)parsedClientInformation["command_type"];
+                    if (String.IsNullOrEmpty(unparsedCommandType))
+                    {
+                        this.ConsoleError("command_type was empty. Unable to parse external command.");
+                        return;
+                    }
+                    command_type = this.getDBCommand(unparsedCommandType);
+                    if(command_type == AdKat_CommandType.Default)
+                    {
+                        this.ConsoleError("command_type was invalid, command not found in AdKats definition.");
+                        return;
+                    }
+                }
+                //Import the command numeric
+                if (!parsedClientInformation.ContainsKey("command_numeric"))
+                {
+                    //Only required for temp ban
+                    if (command_type == AdKat_CommandType.TempBanPlayer)
+                    {
+                        this.ConsoleError("Parsed command didn't contain a command_numeric! This is required for TempBan command.");
+                        return;
+                    }
+                }
+                else
+                {
+                    command_numeric = (int)parsedClientInformation["command_numeric"];
+                }
+                //Import the source name
+                if (!parsedClientInformation.ContainsKey("source_name"))
+                {
+                    this.ConsoleError("Parsed command didn't contain a source_name!");
+                    return;
+                }
+                else
+                {
+                    if (String.IsNullOrEmpty(source_name))
+                    {
+                        this.ConsoleError("source_name was empty. Unable to parse external command.");
+                        return;
+                    }
+                    source_name = (String)parsedClientInformation["source_name"];
+                }
+                //Import the target name
+                if (!parsedClientInformation.ContainsKey("target_name"))
+                {
+                    this.ConsoleError("Parsed command didn't contain a target_name!");
+                    return;
+                }
+                else
+                {
+                    if (String.IsNullOrEmpty(target_name))
+                    {
+                        this.ConsoleError("source_name was empty. Unable to parse external command.");
+                        return;
+                    }
+                    target_name = (String)parsedClientInformation["target_name"];
+                }
+                //Import the record message
+                if (!parsedClientInformation.ContainsKey("record_message"))
+                {
+                    this.ConsoleError("Parsed command didn't contain a record_message!");
+                    return;
+                }
+                else
+                {
+                    if (String.IsNullOrEmpty(record_message))
+                    {
+                        this.ConsoleError("record_message was empty. Unable to parse external command.");
+                        return;
+                    }
+                    record_message = (String)parsedClientInformation["record_message"];
+                }
+
+                //Create the record
+                AdKat_Record record = new AdKat_Record();
+                record.command_type = command_type;
+                record.command_numeric = command_numeric;
+                record.source_name = source_name;
+                record.target_name = target_name;
+                record.record_message = record_message;
+
+                //Queue the record for processing
+                this.queueRecordForProcessing(record);
+            }
+            catch (Exception e)
+            {
+                //Log the error in console
+                this.HandleException(new AdKat_Exception("Unable to process external command.", e));
+            }
+            this.DebugWrite("ParseExternalPluginCommand finished!", 6);
+        }
 
         #endregion
 
@@ -14477,6 +14986,15 @@ namespace PRoConEvents
             }
         }
 
+        public void ProconChatWrite(string msg)
+        {
+            this.ExecuteCommand("procon.protected.chat.write", "AdKats > " + msg);
+            if (this.slowmo)
+            {
+                Thread.Sleep(1000);
+            }
+        }
+
         public void ConsoleWrite(string msg, ConsoleMessageType type)
         {
             LogWrite(FormatMessage(msg, type));
@@ -14573,6 +15091,7 @@ namespace PRoConEvents
                                 this.ConsoleError("Database connection in critial failure state. Disabling Stat Logger and putting AdKats in Backup Mode.");
                                 this.databaseConnectionCriticalState = true;
                                 this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "False");
+                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLogger", "False");
                                 //Sleep 10 seconds
                                 Thread.Sleep(10000);
                                 //Set resolved
@@ -14602,6 +15121,7 @@ namespace PRoConEvents
                                 //re-enable AdKats and Stat Logger
                                 this.databaseConnectionCriticalState = false;
                                 this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
+                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLogger", "True");
 
                                 //Clear the player dinctionary, causing all players to be fetched from the database again
                                 this.playerDictionary.Clear();
@@ -14678,31 +15198,27 @@ namespace PRoConEvents
                                 }
                                 if (secondsRemaining == roundTimeSeconds - 60 && secondsRemaining > 60)
                                 {
-                                    this.adminSay("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.");
-                                    this.adminYell("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.");
+                                    this.adminTellMessage("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.");
                                     this.DebugWrite("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.", 3);
                                 }
                                 else if (secondsRemaining == ((int)roundTimeSeconds / 2) && secondsRemaining > 60)
                                 {
-                                    this.adminSay("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.");
-                                    this.adminYell("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.");
+                                    this.adminTellMessage("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.");
                                     this.DebugWrite("Round will end automatically in ~" + ((int)secondsRemaining / 60) + " minutes.", 3);
                                 }
                                 else if (secondsRemaining == 30)
                                 {
-                                    this.adminSay("Round ends in 30 seconds. (Current winning team will win)");
-                                    this.adminYell("Round ends in 30 seconds. (Current winning team will win)");
+                                    this.adminTellMessage("Round ends in 30 seconds. (Current winning team will win)");
                                     this.DebugWrite("Round ends in 30 seconds. (Current winning team will win)", 3);
                                 }
                                 else if (secondsRemaining == 20)
                                 {
-                                    this.adminSay("Round ends in 20 seconds. (Current winning team will win)");
-                                    this.adminYell("Round ends in 20 seconds. (Current winning team will win)");
+                                    this.adminTellMessage("Round ends in 20 seconds. (Current winning team will win)");
                                     this.DebugWrite("Round ends in 20 seconds. (Current winning team will win)", 3);
                                 }
                                 else if (secondsRemaining <= 10)
                                 {
-                                    this.adminSay("Round ends in..." + secondsRemaining);
+                                    this.adminSayMessage("Round ends in..." + secondsRemaining);
                                     this.DebugWrite("Round ends in..." + secondsRemaining, 3);
                                 }
                                 //Sleep for 1 second
