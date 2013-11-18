@@ -110,10 +110,12 @@ player gets more points. A player cannot be punished more than once every 20 sec
 accidentally punishing a player multiple times for the same infraction.<br/><br/>
 
 <h4>IRO Punishments</h4>
-When a player is punished, and has already been punished in the past 5 minutes, the new punish counts 
+When a player is punished, and has already been punished in the past 10 minutes, the new punish counts 
 for 2 points instead of 1 since the player is immediately breaking server rules again. A punish worth 2 
 points is called an "IRO" punish by the plugin, standing for Immediate Repeat Offence. "[IRO]" will be appended to the 
 punish reason when this type of punish is activated. <br/><br/>
+
+<h4>Punishment Hierarchy</h4>
 
 The punishment hierarchy is configurable to suit your needs, but the default is below.<br/>
 
