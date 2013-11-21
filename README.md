@@ -79,11 +79,13 @@ promptly.
 Version 1.1.0.1+ of the BF3 version, or any universal version is required. AdKats will only run if one of these plugins 
 is (1) using the same database AdKats uses, and (2) running on every battlefield Server you plan to install AdKats on. 
 Running it along-side AdKats on each procon layer will ensure these conditions are met. 
-
-WARNING! READ THIS!
+</p>
+<p>
+WARNING! READ THIS!</br>
 The stat logger plugin is orchestrated by AdKats, certain settings are kept at mandatory values. If you see a setting 
 "issue" in stat logger, where certain values cannot be changed, that is because of AdKats. Right now AdKats takes over 
 chat logging responsibilities due to a dependency, so chat logging is force disabled in stat logger.
+</p>
 
 The latest universal version of this plugin can be downloaded from here: 
 <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">PRoCon Chat, GUID, Stats and Mapstats Logger</a>
