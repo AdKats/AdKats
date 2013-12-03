@@ -75,7 +75,18 @@ If you have any problems installing AdKats please let me know on the MyRCON foru
 promptly.
 </p>
 <h2>Dependencies</h2>
-<h4>XpKiller's "BF3 Chat, GUID, Stats and Mapstats Logger" or "PRoCon Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
+<h4>A MySQL Database</h4>
+<p>
+An online MySQL database accessible from your procon layer is required. AdKats checks the database for needed tables on 
+connect.<br/><br/>
+
+<b>Getting a Database:</b> Usually the hosting company for your layers can provide you a database, and using that is advisable 
+as the latency between procon and the DB will be the lowest possible. Or even better if you're hosting layers on a VPS 
+just create a local database by downloading the appropriate installer from MySQL's website. We use our webserver for 
+database hosting and that works great as well. Be cautious of free database options and services, those paths usually 
+have restrictions on database size and are hosted on unreliable servers, which can lead to many problems down the road.
+</p>
+<h4>XpKiller's "PRoCon Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
 <p>
 Version 1.1.0.1+ of the BF3 version, or any universal version is required. AdKats will only run if one of these plugins 
 is (1) using the same database AdKats uses, and (2) running on every battlefield Server you plan to install AdKats on. 
@@ -90,17 +101,6 @@ chat logging responsibilities due to a dependency, so chat logging is force disa
 
 The latest universal version of this plugin can be downloaded from here: 
 <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">PRoCon Chat, GUID, Stats and Mapstats Logger</a>
-</p>
-<h4>A MySQL Database</h4>
-<p>
-An online MySQL database accessible from your procon layer is required. AdKats checks the database for needed tables on 
-connect.<br/><br/>
-
-<b>Getting a Database:</b> Usually the hosting company for your layers can provide you a database, and using that is advisable 
-as the latency between procon and the DB will be the lowest possible. Or even better if you're hosting layers on a VPS 
-just create a local database by downloading the appropriate installer from MySQL's website. We use our webserver for 
-database hosting and that works great as well. Be cautious of free database options and services, those paths usually 
-have restrictions on database size and are hosted on unreliable servers, which can lead to many problems down the road.
 </p>
 <h2>Features</h2>
 <h3>Infraction Tracking System</h3>
