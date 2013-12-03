@@ -96,7 +96,7 @@ Running it along-side AdKats on each procon layer will ensure these conditions a
 WARNING! READ THIS!</br>
 The stat logger plugin is orchestrated by AdKats, certain settings are kept at mandatory values. If you see a setting 
 "issue" in stat logger, where certain values cannot be changed, that is because of AdKats. Right now AdKats takes over 
-chat logging responsibilities due to a dependency, so chat logging is force disabled in stat logger.
+chat logging responsibilities due to a dependency, so chat logging is force disabled in stat logger. This requirement will be removed in version 4.0 of AdKats as a better method has been found.
 </p>
 
 The latest universal version of this plugin can be downloaded from here: 
