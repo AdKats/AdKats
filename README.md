@@ -75,7 +75,7 @@ If you have any problems installing AdKats please let me know on the MyRCON foru
 promptly.
 </p>
 <h2>Dependencies</h2>
-<h4>A MySQL Database</h4>
+<h4>1. A MySQL Database</h4>
 <p>
 An online MySQL database accessible from your procon layer is required. AdKats checks the database for needed tables on 
 connect.<br/><br/>
@@ -86,7 +86,7 @@ just create a local database by downloading the appropriate installer from MySQL
 database hosting and that works great as well. Be cautious of free database options and services, those paths usually 
 have restrictions on database size and are hosted on unreliable servers, which can lead to many problems down the road.
 </p>
-<h4>XpKiller's "PRoCon Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
+<h4>2. XpKiller's "PRoCon Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
 <p>
 Version 1.1.0.1+ of the BF3 version, or any universal version is required. AdKats will only run if one of these plugins 
 is (1) using the same database AdKats uses, and (2) running on every battlefield Server you plan to install AdKats on. 
