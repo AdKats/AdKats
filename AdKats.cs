@@ -20,7 +20,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Beta Version 3.9.9.0
+ * Beta Version 3.9.9.1
  */
 
 using System;
@@ -53,7 +53,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "3.9.9.0";
+        private const String PluginVersion = "3.9.9.1";
         //When slowmo is enabled, there will be a 1 second pause between each print to console or in-game say
         //This will slow the program as a whole whenever the console is printed to
         private const Boolean Slowmo = false;
@@ -876,6 +876,8 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Auto-Enable/Keep-Alive").Success) {
                     Boolean autoEnable = Boolean.Parse(strValue);
                     if (autoEnable != this._UseKeepAlive) {
+                        if(autoEnable)
+                            this.Enable();
                         this._UseKeepAlive = autoEnable;
                         //Once setting has been changed, upload the change to database
                         this.QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof (Boolean), this._UseKeepAlive));
@@ -1598,7 +1600,6 @@ namespace PRoConEvents {
                     }
                 }
                 else if (Regex.Match(strVariable, @"IRO Timeout Minutes").Success) {
-                    this.ConsoleWrite("SLSKMDEJMJWJMWJ");
                     Int32 timeout = Int32.Parse(strValue);
                     if (timeout != this._IROTimeout) {
                         this._IROTimeout = timeout;
@@ -2396,7 +2397,7 @@ namespace PRoConEvents {
                                     if (this._UseBanEnforcer) {
                                         this.QueuePlayerForBanCheck(aPlayer);
                                     }
-                                    else if (this._UseExperimentalTools && this._UseHackerChecker) {
+                                    else if (this._UseHackerChecker) {
                                         //Queue the player for a hacker check
                                         this.QueuePlayerForHackerCheck(aPlayer);
                                     }
@@ -3209,7 +3210,7 @@ namespace PRoConEvents {
                             else {
                                 this.DebugWrite("BANENF: No ban found for player", 5);
                                 //Only call a ban check if the player does not already have a ban
-                                if (this._UseExperimentalTools && this._UseHackerChecker) {
+                                if (this._UseHackerChecker) {
                                     this.QueuePlayerForHackerCheck(aPlayer);
                                 }
                             }
@@ -3422,7 +3423,7 @@ namespace PRoConEvents {
                         //Grab first/next player
                         aPlayer = playerCheckingQueue.Dequeue();
                         if (aPlayer != null) {
-                            this.DebugWrite("HCKCHK: begin reading player", 5);
+                            this.DebugWrite("HCKCHK: begin reading player", 4);
 
                             if (!this.PlayerProtected(aPlayer)) {
                                 this.FetchPlayerStats(aPlayer);
@@ -3436,12 +3437,12 @@ namespace PRoConEvents {
                                     else {
                                         this.DebugWrite("Player skipped after disabling hacker checker.", 2);
                                     }
-                                    this.ConsoleWrite("Players with " + this._GameVersion + "Stats: " + String.Format("{0:0.00}", (playersWithStats / checkedPlayers) * 100) + "%");
                                 }
                                 else {
                                     //this.ConsoleError(aPlayer.player_name + " doesn't have stats.");
                                     repeatCheckingQueue.Enqueue(aPlayer);
                                 }
+                                this.ConsoleWrite("Players with " + this._GameVersion + "Stats: " + String.Format("{0:0.00}", (playersWithStats / checkedPlayers) * 100) + "%");
                             }
                         }
                     }
