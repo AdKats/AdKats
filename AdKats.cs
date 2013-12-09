@@ -20,7 +20,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Beta Version 3.9.9.1
+ * Beta Version 3.9.9.2
  */
 
 using System;
@@ -53,7 +53,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "3.9.9.1";
+        private const String PluginVersion = "3.9.9.2";
         //When slowmo is enabled, there will be a 1 second pause between each print to console or in-game say
         //This will slow the program as a whole whenever the console is printed to
         private const Boolean Slowmo = false;
@@ -2426,6 +2426,7 @@ namespace PRoConEvents {
                                 //Create the report record
                                 AdKatsRecord record = new AdKatsRecord {
                                                                            record_source = AdKatsRecord.Sources.Automated,
+                                                                           isDebug = true,
                                                                            server_id = this._ServerID,
                                                                            command_type = this._CommandKeyDictionary["player_calladmin"],
                                                                            command_numeric = 0,
@@ -7620,21 +7621,19 @@ namespace PRoConEvents {
                         confirmed = gameIDFound;
                     }
                 }
-                //TODO Remove this code if people don't have an issue with procedure permissions
-                /*
                 Boolean chatSourceAlterSuccess = false;
-                if (!this.sendQuery("SELECT `logPlayerID` FROM `tbl_chatlog` LIMIT 1", false))
+                if (!this.SendQuery("SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND COLUMN_NAME='logPlayerID' AND TABLE_NAME='tbl_chatlog'", false))
                 {
                     this.ConsoleWarn("Updating your chat log table with player IDs. This may take some time if you have many records! Be patient!");
-                    chatSourceAlterSuccess = this.sendNonQuery("Adding logPlayerID Column", "ALTER TABLE `tbl_chatlog` ADD COLUMN `logPlayerID` INT(10) UNSIGNED DEFAULT NULL AFTER `logSubset`", false);
-                    chatSourceAlterSuccess = this.sendNonQuery("Adding logPlayerID Index", "ALTER TABLE `tbl_chatlog` ADD INDEX (`logPlayerID`)", false);
+                    chatSourceAlterSuccess = this.SendNonQuery("Adding logPlayerID Column", "ALTER TABLE `tbl_chatlog` ADD COLUMN `logPlayerID` INT(10) UNSIGNED DEFAULT NULL", false);
+                    chatSourceAlterSuccess = this.SendNonQuery("Adding logPlayerID Index", "ALTER TABLE `tbl_chatlog` ADD INDEX (`logPlayerID`)", false);
                     if (chatSourceAlterSuccess)
                     {
-                        chatSourceAlterSuccess = this.sendNonQuery("Adding logPlayerID Key", "ALTER TABLE `tbl_chatlog` ADD CONSTRAINT `tbl_chatlog_ibfk_2` FOREIGN KEY (`logPlayerID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE", false);
+                        chatSourceAlterSuccess = this.SendNonQuery("Adding logPlayerID Key", "ALTER TABLE `tbl_chatlog` ADD CONSTRAINT `tbl_chatlog_ibfk_player_id` FOREIGN KEY (`logPlayerID`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE", false);
                         if (chatSourceAlterSuccess)
                         {
                             //All previous chat logs must be updated with source_ids
-                            chatSourceAlterSuccess = this.sendNonQuery("Updating all previous chat logs with IDs", @"
+                            chatSourceAlterSuccess = this.SendNonQuery("Updating all previous chat logs with IDs", @"
                             UPDATE 
                                 `tbl_chatlog`
                             INNER JOIN 
@@ -7670,7 +7669,7 @@ namespace PRoConEvents {
                 {
                     this.ConsoleError("Unable to add logPlayerID column to chat log table.");
                     confirmed = false;
-                }*/
+                }
             }
             else {
                 confirmed = false;
@@ -8172,13 +8171,13 @@ namespace PRoConEvents {
                                     record.isIRO = true;
                                     //Upload record twice
                                     this.DebugWrite("DBCOMM: UPLOADING IRO Punish", 5); //IRO - Immediate Repeat Offence
-                                    this.UploadRecord(record, false);
-                                    this.UploadRecord(record, false);
+                                    this.UploadRecord(record);
+                                    this.UploadRecord(record);
                                 }
                                 else {
                                     //Upload record once
                                     this.DebugWrite("DBCOMM: UPLOADING Punish", 5);
-                                    this.UploadRecord(record, false);
+                                    this.UploadRecord(record);
                                 }
                             }
                             break;
@@ -8186,7 +8185,7 @@ namespace PRoConEvents {
                             //Upload for forgive is required
                             //No restriction on forgives/minute
                             this.DebugWrite("DBCOMM: UPLOADING Forgive", 5);
-                            this.UploadRecord(record, false);
+                            this.UploadRecord(record);
                             break;
                         default:
                             //Case for any other command
@@ -8194,7 +8193,7 @@ namespace PRoConEvents {
                             if (record.command_type.command_logging != AdKatsCommand.CommandLogging.Ignore) {
                                 this.DebugWrite("UPLOADING record for " + record.command_type, 5);
                                 //Upload Record
-                                this.UploadRecord(record, false);
+                                this.UploadRecord(record);
                             }
                             else {
                                 this.DebugWrite("Skipping record UPLOAD for " + record.command_type, 6);
@@ -8208,7 +8207,7 @@ namespace PRoConEvents {
             }
         }
 
-        private Boolean UploadRecord(AdKatsRecord record, Boolean debug) {
+        private Boolean UploadRecord(AdKatsRecord record) {
             DebugWrite("uploadRecord starting!", 6);
 
             Boolean success = false;
@@ -8220,7 +8219,8 @@ namespace PRoConEvents {
             try {
                 using (MySqlConnection connection = this.GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        String tablename = (debug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
+                        //Decide which table the record should be added to
+                        String tablename = (record.isDebug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
                         //Set the insert command structure
                         command.CommandText = @"INSERT INTO " + tablename + @"
                         (
@@ -8336,7 +8336,7 @@ namespace PRoConEvents {
                             if (verbose) {
                                 this.ConsoleError("Query returned no results.");
                             }
-                            return true;
+                            return false;
                         }
                     }
                 }
@@ -9043,7 +9043,7 @@ namespace PRoConEvents {
                 try {
                     //Upload the inner record if needed
                     if (aBan.ban_record.record_id < 0) {
-                        if (!this.UploadRecord(aBan.ban_record, false)) {
+                        if (!this.UploadRecord(aBan.ban_record)) {
                             return;
                         }
                     }
@@ -12947,6 +12947,7 @@ namespace PRoConEvents {
 
             //Not stored separately in the database
             public Sources record_source = Sources.Default;
+            public Boolean isDebug = false;
             public Boolean isIRO = false;
 
             //Current exception state of the record
@@ -13118,6 +13119,7 @@ namespace PRoConEvents {
                 //Create the Exception record
                 AdKatsRecord record = new AdKatsRecord {
                                                            record_source = AdKatsRecord.Sources.Automated,
+                                                           isDebug = true,
                                                            server_id = this._ServerID,
                                                            command_type = this._CommandKeyDictionary["adkats_exception"],
                                                            command_numeric = 0,
@@ -13194,6 +13196,7 @@ namespace PRoConEvents {
                                 //Create the Exception record
                                 AdKatsRecord record = new AdKatsRecord {
                                                                             record_source = AdKatsRecord.Sources.Automated,
+                                                                            isDebug = true,
                                                                             server_id = this._ServerID,
                                                                             command_type = this._CommandKeyDictionary["adkats_exception"],
                                                                             command_numeric = 0,
