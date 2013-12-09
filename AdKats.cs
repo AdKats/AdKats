@@ -9228,16 +9228,6 @@ namespace PRoConEvents {
                                 sqlEnder = false;
                                 sql += " `PlayerID` = " + playerID + "";
                             }
-                            if (this._GameID > 0) {
-                                if (sqlEnder) {
-                                    sql += " WHERE (";
-                                    sqlEnder = false;
-                                }
-                                else {
-                                    sql += " OR ";
-                                }
-                                sql += " `GameID` = " + this._GameID + "";
-                            }
                             if (!String.IsNullOrEmpty(playerGUID)) {
                                 if (sqlEnder) {
                                     sql += " WHERE (";
@@ -9267,6 +9257,19 @@ namespace PRoConEvents {
                                     sql += " OR ";
                                 }
                                 sql += " `IP_Address` LIKE '" + playerIP + "'";
+                            }
+                            if (this._GameID > 0)
+                            {
+                                if (sqlEnder)
+                                {
+                                    sql += " WHERE (";
+                                    sqlEnder = false;
+                                }
+                                else
+                                {
+                                    sql += " AND ";
+                                }
+                                sql += " `GameID` = " + this._GameID + "";
                             }
                             if (!sqlEnder) {
                                 sql += ")";
