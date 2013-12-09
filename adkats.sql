@@ -5,9 +5,9 @@ SET FOREIGN_KEY_CHECKS=0;
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
 
-DELIMITER //
+DELIMITER $$
 
-DROP PROCEDURE IF EXISTS addLogPlayerID //
+DROP PROCEDURE IF EXISTS addLogPlayerID $$
 CREATE PROCEDURE addLogPlayerID()
 BEGIN
 
@@ -37,16 +37,16 @@ IF NOT EXISTS( (SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATA
 		`tbl_chatlog`.`logPlayerID` IS NULL;
 END IF;
 
-END //
+END $$
 
-CALL addLogPlayerID() //
+CALL addLogPlayerID() $$
 
-DROP TRIGGER IF EXISTS `tbl_chatlog_player_id_insert`//
+DROP TRIGGER IF EXISTS `tbl_chatlog_player_id_insert`$$
 CREATE TRIGGER `tbl_chatlog_player_id_insert` BEFORE INSERT ON `tbl_chatlog`
  FOR EACH ROW BEGIN 
         SET NEW.logPlayerID = (SELECT `PlayerID` FROM `tbl_playerdata` WHERE `SoldierName` = NEW.logSoldierName LIMIT 1);
     END
-//
+$$
 
 DELIMITER ;
 
@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS `adkats_records_main` (
   KEY `adkats_records_main_fk_source_id` (`source_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Main Records';
 DROP TRIGGER IF EXISTS `adkats_infraction_point_delete`;
-DELIMITER //
+DELIMITER $$
 CREATE TRIGGER `adkats_infraction_point_delete` AFTER DELETE ON `adkats_records_main`
  FOR EACH ROW BEGIN 
         DECLARE command_type VARCHAR(45);
@@ -225,10 +225,10 @@ CREATE TRIGGER `adkats_infraction_point_delete` AFTER DELETE ON `adkats_records_
                 `total_points` = `total_points` + 1;
         END IF;
     END
-//
+$$
 DELIMITER ;
 DROP TRIGGER IF EXISTS `adkats_infraction_point_insert`;
-DELIMITER //
+DELIMITER $$
 CREATE TRIGGER `adkats_infraction_point_insert` BEFORE INSERT ON `adkats_records_main`
  FOR EACH ROW BEGIN 
         DECLARE command_type VARCHAR(45);
@@ -270,7 +270,7 @@ CREATE TRIGGER `adkats_infraction_point_insert` BEFORE INSERT ON `adkats_records
                 `total_points` = `total_points` - 1;
         END IF;
     END
-//
+$$
 DELIMITER ;
 
 DROP TABLE IF EXISTS `adkats_rolecommands`;
