@@ -116,8 +116,8 @@ INSERT INTO `adkats_commands` VALUES(31, 'Active', 'round_next', 'Log', 'Run Nex
 INSERT INTO `adkats_commands` VALUES(32, 'Active', 'round_end', 'Log', 'End Current Round', 'endround', TRUE);
 INSERT INTO `adkats_commands` VALUES(33, 'Active', 'server_nuke', 'Log', 'Server Nuke', 'nuke', TRUE);
 INSERT INTO `adkats_commands` VALUES(34, 'Active', 'server_kickall', 'Log', 'Kick All Guests', 'kickall', TRUE);
-INSERT INTO `adkats_commands` VALUES(35, 'Invisible', 'adkats_exception', 'Log', 'Logged Exception', 'logexception', FALSE);
-INSERT INTO `adkats_commands` VALUES(36, 'Invisible', 'banenforcer_enforce', 'Log', 'Enforce Active Ban', 'enforceban', TRUE);
+INSERT INTO `adkats_commands` VALUES(35, 'Invisible', 'adkats_exception', 'Mandatory', 'Logged Exception', 'logexception', FALSE);
+INSERT INTO `adkats_commands` VALUES(36, 'Invisible', 'banenforcer_enforce', 'Mandatory', 'Enforce Active Ban', 'enforceban', TRUE);
 
 DROP TABLE IF EXISTS `adkats_infractions_global`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
