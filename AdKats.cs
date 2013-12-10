@@ -701,7 +701,7 @@ namespace PRoConEvents {
                             if (command.command_active != AdKatsCommand.CommandActive.Invisible) {
                                 String commandPrefix = commandListPrefix + "CDE" + command.command_id + separator + command.command_name + separator;
                                 lstReturn.Add(new CPluginVariable(commandPrefix + "Active", "enum.commandActiveEnum(Active|Disabled)", command.command_active.ToString()));
-                                if (command.command_active == AdKatsCommand.CommandActive.Disabled) {
+                                if (command.command_active != AdKatsCommand.CommandActive.Disabled) {
                                     if (command.command_logging != AdKatsCommand.CommandLogging.Mandatory && command.command_logging != AdKatsCommand.CommandLogging.Unable) {
                                         lstReturn.Add(new CPluginVariable(commandPrefix + "Logging", "enum.commandLoggingEnum(Log|Ignore)", command.command_logging.ToString()));
                                     }
