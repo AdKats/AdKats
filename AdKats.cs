@@ -20,7 +20,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Beta Version 3.9.9.4
+ * Beta Version 3.9.9.5
  */
 
 using System;
@@ -53,7 +53,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "3.9.9.4";
+        private const String PluginVersion = "3.9.9.5";
         //When slowmo is enabled, there will be a 1 second pause between each print to console or in-game say
         //This will slow the program as a whole whenever the console is printed to
         private const Boolean Slowmo = false;
@@ -1833,7 +1833,20 @@ namespace PRoConEvents {
                         //Create the access objectdd
                         AdKatsUser user = new AdKatsUser {
                                                              user_name = strValue
-                                                         };
+                        };
+                        Boolean valid = true;
+                        lock (this._UserCache) {
+                            foreach (AdKatsUser aUser in this._UserCache.Values) {
+                                if (user.user_name == aUser.user_name) {
+                                    valid = false;
+                                }
+                            }
+                        }
+                        if (!valid)
+                        {
+                            this.ConsoleError("Unable to add " + user.user_name + ", a user with that user name already exists.");
+                            return;
+                        }
                         //Queue it for processing
                         this.QueueUserForUpload(user);
                     }
@@ -7168,6 +7181,7 @@ namespace PRoConEvents {
                         //Loop through all records in order that they came in
                         while (inboundUserRemoval.Count > 0) {
                             AdKatsUser user = inboundUserRemoval.Dequeue();
+                            this.ConsoleWarn("Removing user " + user.user_name);
                             this.RemoveUser(user);
                         }
                         this.FetchUserList();
