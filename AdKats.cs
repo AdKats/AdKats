@@ -20,7 +20,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Beta Version 3.9.9.2
+ * Beta Version 3.9.9.3
  */
 
 using System;
@@ -53,7 +53,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "3.9.9.2";
+        private const String PluginVersion = "3.9.9.3";
         //When slowmo is enabled, there will be a 1 second pause between each print to console or in-game say
         //This will slow the program as a whole whenever the console is printed to
         private const Boolean Slowmo = false;
@@ -9261,21 +9261,12 @@ namespace PRoConEvents {
                                 }
                                 sql += " `IP_Address` LIKE '" + playerIP + "'";
                             }
-                            if (this._GameID > 0)
-                            {
-                                if (sqlEnder)
-                                {
-                                    sql += " WHERE (";
-                                    sqlEnder = false;
-                                }
-                                else
-                                {
-                                    sql += " AND ";
-                                }
-                                sql += " `GameID` = " + this._GameID + "";
-                            }
                             if (!sqlEnder) {
                                 sql += ")";
+                            }
+                            if (this._GameID > 0)
+                            {
+                                sql += " AND `GameID` = " + this._GameID + "";
                             }
                             command.CommandText = sql;
                             using (MySqlDataReader reader = command.ExecuteReader()) {
@@ -9304,28 +9295,28 @@ namespace PRoConEvents {
                             this.DebugWrite("Adding player to database.", 5);
                             using (MySqlCommand command = connection.CreateCommand()) {
                                 //Set the insert command structure
+                                Boolean hasPrevious = (this._GameID > 0) || !String.IsNullOrEmpty(playerName) || !String.IsNullOrEmpty(playerGUID) || !String.IsNullOrEmpty(playerIP);
                                 command.CommandText = @"
                                 INSERT INTO `" + this._MySqlDatabaseName + @"`.`tbl_playerdata` 
                                 (
                                     " + ((this._GameID > 0) ? ("`GameID`") : ("")) + @"
-                                    " + ((!String.IsNullOrEmpty(playerName)) ? (((this._GameID > 0) ? (",") : ("")) + "`SoldierName`") : ("")) + @"
-                                    " + ((!String.IsNullOrEmpty(playerGUID)) ? (((!String.IsNullOrEmpty(playerName)) ? (",") : ("")) + "`EAGUID`") : ("")) + @"
-                                    " + ((!String.IsNullOrEmpty(playerIP)) ? (((!String.IsNullOrEmpty(playerGUID)) ? (",") : ("")) + "`IP_Address`") : ("")) + @"
+                                    " + ((!String.IsNullOrEmpty(playerName)) ? ((hasPrevious ? (",") : ("")) + "`SoldierName`") : ("")) + @"
+                                    " + ((!String.IsNullOrEmpty(playerGUID)) ? ((hasPrevious ? (",") : ("")) + "`EAGUID`") : ("")) + @"
+                                    " + ((!String.IsNullOrEmpty(playerIP)) ? ((hasPrevious ? (",") : ("")) + "`IP_Address`") : ("")) + @"
                                 ) 
                                 VALUES 
                                 (
                                     " + ((this._GameID > 0) ? (this._GameID + "") : ("")) + @"
-                                    " + ((!String.IsNullOrEmpty(playerName)) ? (((this._GameID > 0) ? (",") : ("")) + "'" + playerName + "'") : ("")) + @"
-                                    " + ((!String.IsNullOrEmpty(playerGUID)) ? (((!String.IsNullOrEmpty(playerName)) ? (",") : ("")) + "'" + playerGUID + "'") : ("")) + @"
-                                    " + ((!String.IsNullOrEmpty(playerIP)) ? (((!String.IsNullOrEmpty(playerGUID)) ? (",") : ("")) + "'" + playerIP + "'") : ("")) + @"
+                                    " + ((!String.IsNullOrEmpty(playerName)) ? ((hasPrevious ? (",") : ("")) + "'" + playerName + "'") : ("")) + @"
+                                    " + ((!String.IsNullOrEmpty(playerGUID)) ? ((hasPrevious ? (",") : ("")) + "'" + playerGUID + "'") : ("")) + @"
+                                    " + ((!String.IsNullOrEmpty(playerIP)) ? ((hasPrevious ? (",") : ("")) + "'" + playerIP + "'") : ("")) + @"
                                 )
                                 ON DUPLICATE KEY 
                                 UPDATE 
-                                    `PlayerID` = LAST_INSERT_ID(`PlayerID`),
-                                    `SoldierName` = '" + playerName + @"',
-                                    `EAGUID` = '" + playerGUID + @"',
-                                    `IP_Address` = '" + playerIP + "'";
-
+                                    `PlayerID` = LAST_INSERT_ID(`PlayerID`)
+                                    " + ((!String.IsNullOrEmpty(playerName)) ? (@",`SoldierName` = '" + playerName + "'") : ("")) + @"
+                                    " + ((!String.IsNullOrEmpty(playerGUID)) ? (@",`EAGUID` = '" + playerGUID + "'") : ("")) + @"
+                                    " + ((!String.IsNullOrEmpty(playerIP)) ? (@",`IP_Address` = '" + playerIP + "'") : (""));
                                 //Attempt to execute the query
                                 if (command.ExecuteNonQuery() > 0) {
                                     //Rows affected should be > 0
