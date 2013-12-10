@@ -20,7 +20,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Beta Version 3.9.9.3
+ * Beta Version 3.9.9.4
  */
 
 using System;
@@ -53,7 +53,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "3.9.9.3";
+        private const String PluginVersion = "3.9.9.4";
         //When slowmo is enabled, there will be a 1 second pause between each print to console or in-game say
         //This will slow the program as a whole whenever the console is printed to
         private const Boolean Slowmo = false;
@@ -1052,9 +1052,6 @@ namespace PRoConEvents {
                         //Once setting has been changed, upload the change to database
                         this.QueueSettingForUpload(new CPluginVariable(@"Use Experimental Tools", typeof (Boolean), this._UseExperimentalTools));
                         this.QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof (Boolean), this._UseWeaponLimiter));
-                        this.QueueSettingForUpload(new CPluginVariable(@"Use Hacker Checker", typeof (Boolean), this._UseHackerChecker));
-                        this.QueueSettingForUpload(new CPluginVariable(@"Use DPS Checker", typeof (Boolean), this._UseDpsChecker));
-                        this.QueueSettingForUpload(new CPluginVariable(@"Use HSK Checker", typeof (Boolean), this._UseHskChecker));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Round Timer: Enable").Success) {
@@ -1153,15 +1150,15 @@ namespace PRoConEvents {
                             this.ConsoleWarn("Internal Hacker Checker disabled.");
                         }
                         //Once setting has been changed, upload the change to database
-                        this.QueueSettingForUpload(new CPluginVariable(@"Use Hacker Checker", typeof (Boolean), this._UseHackerChecker));
+                        this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Enable", typeof (Boolean), this._UseHackerChecker));
                     }
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: Whitelist").Success) {
                     this._HackerCheckerWhitelist = CPluginVariable.DecodeStringArray(strValue);
                     //Once setting has been changed, upload the change to database
-                    this.QueueSettingForUpload(new CPluginVariable(@"Use Hacker Checker", typeof (Boolean), this._UseHackerChecker));
+                    this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Whitelist", typeof (String), CPluginVariable.EncodeStringArray(this._HackerCheckerWhitelist)));
                 }
-                else if (Regex.Match(strVariable, @"DPS Checker: Enable").Success) {
+                else if (Regex.Match(strVariable, @"HackerChecker: DPS Checker: Enable").Success) {
                     Boolean useDamageChecker = Boolean.Parse(strValue);
                     if (useDamageChecker != this._UseDpsChecker) {
                         this._UseDpsChecker = useDamageChecker;
@@ -1174,7 +1171,7 @@ namespace PRoConEvents {
                             this.ConsoleWarn("Internal Damage Mod Checker disabled.");
                         }
                         //Once setting has been changed, upload the change to database
-                        this.QueueSettingForUpload(new CPluginVariable(@"Use DPS Checker", typeof (Boolean), this._UseDpsChecker));
+                        this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Enable", typeof (Boolean), this._UseDpsChecker));
                     }
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: DPS Checker: Trigger Level").Success) {
@@ -1188,7 +1185,7 @@ namespace PRoConEvents {
                         this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Trigger Level", typeof (Double), this._DpsTriggerLevel));
                     }
                 }
-                else if (Regex.Match(strVariable, @"HSK Checker: Enable").Success) {
+                else if (Regex.Match(strVariable, @"HackerChecker: HSK Checker: Enable").Success) {
                     Boolean useAimbotChecker = Boolean.Parse(strValue);
                     if (useAimbotChecker != this._UseHskChecker) {
                         this._UseHskChecker = useAimbotChecker;
@@ -1201,7 +1198,7 @@ namespace PRoConEvents {
                             this.ConsoleWarn("Internal Aimbot Checker disabled.");
                         }
                         //Once setting has been changed, upload the change to database
-                        this.QueueSettingForUpload(new CPluginVariable(@"Use HSK Checker", typeof (Boolean), this._UseHskChecker));
+                        this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Enable", typeof (Boolean), this._UseHskChecker));
                     }
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: HSK Checker: Trigger Level").Success) {
@@ -1226,14 +1223,12 @@ namespace PRoConEvents {
                     }
                 }
                 else if (Regex.Match(strVariable, @"Fetch Actions from Database").Success) {
-                    Boolean fetch;
-                    if (fetch = Boolean.Parse(strValue)) {
-                        if (fetch != this._FetchActionsFromDb) {
-                            this._FetchActionsFromDb = fetch;
-                            this._DbCommunicationWaitHandle.Set();
-                            //Once setting has been changed, upload the change to database
-                            this.QueueSettingForUpload(new CPluginVariable(@"Fetch Actions from Database", typeof (Boolean), this._FetchActionsFromDb));
-                        }
+                    Boolean fetch = Boolean.Parse(strValue);
+                    if (fetch != this._FetchActionsFromDb) {
+                        this._FetchActionsFromDb = fetch;
+                        this._DbCommunicationWaitHandle.Set();
+                        //Once setting has been changed, upload the change to database
+                        this.QueueSettingForUpload(new CPluginVariable(@"Fetch Actions from Database", typeof (Boolean), this._FetchActionsFromDb));
                     }
                 }
                     #endregion
@@ -1651,27 +1646,24 @@ namespace PRoConEvents {
                     //Once setting has been changed, upload the change to database
                     this.QueueSettingForUpload(new CPluginVariable("Send Emails", typeof (Boolean), this._UseEmail));
                 }
-                else if (Regex.Match(strVariable, @"Admin Request Email?").Success) {
-                    //this.blNotifyEmail = Boolean.Parse(strValue);
-                    //Once setting has been changed, upload the change to database
-                    //this.queueSettingForUpload(new CPluginVariable("Admin Request Email?", typeof(String), strValue));
-                }
                 else if (Regex.Match(strVariable, @"Use SSL?").Success) {
                     this._EmailHandler.UseSSL = Boolean.Parse(strValue);
                     //Once setting has been changed, upload the change to database
-                    //this.queueSettingForUpload(new CPluginVariable("Use SSL?", typeof(Boolean), this.emailHandler.UseSSL));
+                    this.QueueSettingForUpload(new CPluginVariable("Use SSL?", typeof(Boolean), this._EmailHandler.UseSSL));
                 }
                 else if (Regex.Match(strVariable, @"SMTP-Server address").Success) {
-                    this._EmailHandler.SMTPServer = strValue;
-                    //Once setting has been changed, upload the change to database
-                    //this.queueSettingForUpload(new CPluginVariable("SMTP-Server address", typeof(String), strValue));
+                    if (!String.IsNullOrEmpty(strValue)) {
+                        this._EmailHandler.SMTPServer = strValue;
+                        //Once setting has been changed, upload the change to database
+                        this.QueueSettingForUpload(new CPluginVariable("SMTP-Server address", typeof (String), this._EmailHandler.SMTPServer));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"SMTP-Server port").Success) {
                     Int32 iPort = Int32.Parse(strValue);
                     if (iPort > 0) {
                         this._EmailHandler.SMTPPort = iPort;
                         //Once setting has been changed, upload the change to database
-                        //this.queueSettingForUpload(new CPluginVariable("SMTP-Server port", typeof(Int32), iPort));
+                        this.QueueSettingForUpload(new CPluginVariable("SMTP-Server port", typeof(Int32), this._EmailHandler.SMTPPort));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Sender address").Success) {
@@ -1682,7 +1674,7 @@ namespace PRoConEvents {
                     else {
                         this._EmailHandler.SenderEmail = strValue;
                         //Once setting has been changed, upload the change to database
-                        //this.queueSettingForUpload(new CPluginVariable("Sender address", typeof(String), strValue));
+                        this.QueueSettingForUpload(new CPluginVariable("Sender address", typeof(String), this._EmailHandler.SenderEmail));
                     }
                 }
                 else if (Regex.Match(strVariable, @"SMTP-Server username").Success) {
@@ -1693,7 +1685,7 @@ namespace PRoConEvents {
                     else {
                         this._EmailHandler.SMTPUser = strValue;
                         //Once setting has been changed, upload the change to database
-                        //this.queueSettingForUpload(new CPluginVariable("SMTP-Server username", typeof(String), strValue));
+                        this.QueueSettingForUpload(new CPluginVariable("SMTP-Server username", typeof(String), this._EmailHandler.SMTPUser));
                     }
                 }
                 else if (Regex.Match(strVariable, @"SMTP-Server password").Success) {
@@ -1704,7 +1696,7 @@ namespace PRoConEvents {
                     else {
                         this._EmailHandler.SMTPPassword = strValue;
                         //Once setting has been changed, upload the change to database
-                        //this.queueSettingForUpload(new CPluginVariable("SMTP-Server password", typeof(String), strValue));
+                        this.QueueSettingForUpload(new CPluginVariable("SMTP-Server password", typeof(String), this._EmailHandler.SMTPPassword));
                     }
                 }
                     #endregion
@@ -4410,7 +4402,10 @@ namespace PRoConEvents {
                     }
                     if (!this.HasAccess(record.source_player, record.command_type)) {
                         DebugWrite("No rights to call command", 6);
-                        this.SendMessageToSource(record, "Your user role " + record.source_player.player_role.role_name + " does not have access to " + record.command_type.command_name + ".");
+                        //Only tell the user they dont have access if the command is active
+                        if (record.command_type.command_active != AdKatsCommand.CommandActive.Disabled) {
+                            this.SendMessageToSource(record, "Your user role " + record.source_player.player_role.role_name + " does not have access to " + record.command_type.command_name + ".");
+                        }
                         //Return without creating if player doesn't have rights to do it
                         return;
                     }
@@ -6848,32 +6843,34 @@ namespace PRoConEvents {
         public String SendServerRules(String targetName) {
             this.DebugWrite("Entering sendServerRules", 6);
             String message = "Rules sent to " + targetName;
+            if (String.IsNullOrEmpty(targetName)) {
+                this.ConsoleError("Attempted to send rules to null player");
+            }
             try {
-                //Create a new thread to handle the disconnect orchestration
-                Thread rulePrinter = new Thread(new ThreadStart(delegate {
-                    this.DebugWrite("Starting a rule printer thread.", 5);
-                    try {
-                        //Special Case for no rules
-                        if (this._ServerRulesList.Length == 0) {
-                            this.PlayerSayMessage(targetName, "This server has no rules.");
+                //If server has rules
+                if (this._ServerRulesList.Length > 0) {
+                    //Create a new thread to handle the disconnect orchestration
+                    Thread rulePrinter = new Thread(new ThreadStart(delegate {
+                        this.DebugWrite("Starting a rule printer thread.", 5);
+                        try {
+                                //Wait the rule delay duration
+                                Thread.Sleep(TimeSpan.FromSeconds(this._ServerRulesDelay));
+                                foreach (String rule in this._ServerRulesList) {
+                                    if (!String.IsNullOrEmpty(rule)) {
+                                        this.PlayerSayMessage(targetName, this.GetPreMessage(rule, false));
+                                        Thread.Sleep(TimeSpan.FromSeconds(this._ServerRulesInterval));
+                                    }
+                                }
                         }
-                        else {
-                            //Wait the rule delay duration
-                            Thread.Sleep(TimeSpan.FromSeconds(this._ServerRulesDelay));
-                            foreach (String rule in this._ServerRulesList) {
-                                this.PlayerSayMessage(targetName, this.GetPreMessage(rule, false));
-                                Thread.Sleep(TimeSpan.FromSeconds(this._ServerRulesInterval));
-                            }
+                        catch (Exception) {
+                            this.HandleException(new AdKatsException("Error while printing server rules"));
                         }
-                    }
-                    catch (Exception) {
-                        this.HandleException(new AdKatsException("Error while printing server rules"));
-                    }
-                    this.DebugWrite("Exiting a rule printer.", 5);
-                }));
+                        this.DebugWrite("Exiting a rule printer.", 5);
+                    }));
 
-                //Start the thread
-                rulePrinter.Start();
+                    //Start the thread
+                    rulePrinter.Start();
+                }
             }
             catch (Exception e) {
                 this.HandleException(new AdKatsException("Error while sending server rules (String).", e));
@@ -6930,8 +6927,9 @@ namespace PRoConEvents {
                 }
                 lock (aPlayer.player_role) {
                     lock (aPlayer.player_role.allowedCommands) {
-                        if (aPlayer.player_role.allowedCommands.Values.Any(innerCommand => command.command_id == innerCommand.command_id)) {
-                            return true;
+                        foreach (AdKatsCommand innerCommand in aPlayer.player_role.allowedCommands.Values) {
+                            if (innerCommand.command_active != AdKatsCommand.CommandActive.Disabled && command.command_id == innerCommand.command_id)
+                                return true;
                         }
                     }
                 }
@@ -7749,38 +7747,66 @@ namespace PRoConEvents {
             }
             try {
                 DebugWrite("uploadAllSettings starting!", 6);
-                this.QueueSettingForUpload(new CPluginVariable(@"Plugin Version", typeof (String), this.GetPluginVersion()));
-                this.QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (Int32), this._DebugLevel));
-                this.QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof (String), this._DebugSoldierName));
-                this.QueueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof (String), this._ServerVoipAddress));
-                this.QueueSettingForUpload(new CPluginVariable(@"External Access Key", typeof (String), this._ExternalCommandAccessKey));
-                this.QueueSettingForUpload(new CPluginVariable(@"Fetch Actions from Database", typeof (Boolean), this._FetchActionsFromDb));
-                this.QueueSettingForUpload(new CPluginVariable(@"Use Additional Ban Message", typeof (Boolean), this._UseBanAppend));
-                this.QueueSettingForUpload(new CPluginVariable(@"Additional Ban Message", typeof (String), this._BanAppend));
-                this.QueueSettingForUpload(new CPluginVariable(@"Use Ban Enforcer", typeof (Boolean), this._UseBanEnforcer));
-                this.QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by NAME", typeof (Boolean), this._DefaultEnforceName));
-                this.QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by GUID", typeof (Boolean), this._DefaultEnforceGUID));
-                this.QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by IP", typeof (Boolean), this._DefaultEnforceIP));
-                this.QueueSettingForUpload(new CPluginVariable(@"Minimum Required Reason Length", typeof (Int32), this._RequiredReasonLength));
-                this.QueueSettingForUpload(new CPluginVariable(@"Punishment Hierarchy", typeof (String), CPluginVariable.EncodeStringArray(this._PunishmentHierarchy)));
-                this.QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof (Boolean), this._CombineServerPunishments));
-                this.QueueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof (Boolean), this._OnlyKillOnLowPop));
-                this.QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof (Int32), this._LowPopPlayerCount));
-                this.QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Overrides Low Pop", typeof (Boolean), this._IROOverridesLowPop));
-                this.QueueSettingForUpload(new CPluginVariable(@"Send Emails", typeof (Boolean), this._UseEmail));
-                this.QueueSettingForUpload(new CPluginVariable(@"On-Player-Muted Message", typeof (String), this._MutedPlayerMuteMessage));
-                this.QueueSettingForUpload(new CPluginVariable(@"On-Player-Killed Message", typeof (String), this._MutedPlayerKillMessage));
-                this.QueueSettingForUpload(new CPluginVariable(@"On-Player-Kicked Message", typeof (String), this._MutedPlayerKickMessage));
-                this.QueueSettingForUpload(new CPluginVariable(@"# Chances to give player before kicking", typeof (Int32), this._MutedPlayerChances));
-                this.QueueSettingForUpload(new CPluginVariable(@"Require Whitelist for Access", typeof (Boolean), this._RequireTeamswapWhitelist));
-                this.QueueSettingForUpload(new CPluginVariable(@"Auto-Whitelist Count", typeof (Int32), this._PlayersToAutoWhitelist));
-                this.QueueSettingForUpload(new CPluginVariable(@"Ticket Window High", typeof (Int32), this._TeamSwapTicketWindowHigh));
-                this.QueueSettingForUpload(new CPluginVariable(@"Ticket Window Low", typeof (Int32), this._TeamSwapTicketWindowLow));
-                this.QueueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof (Boolean), this._EnableAdminAssistantPerk));
-                this.QueueSettingForUpload(new CPluginVariable(@"Minimum Confirmed Reports Per Month", typeof (Int32), this._MinimumRequiredMonthlyReports));
-                this.QueueSettingForUpload(new CPluginVariable(@"Yell display time seconds", typeof (Int32), this._YellDuration));
-                this.QueueSettingForUpload(new CPluginVariable(@"Pre-Message List", typeof (String), CPluginVariable.EncodeStringArray(this._PreMessageList.ToArray())));
-                this.QueueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof (Boolean), this._RequirePreMessageUse));
+                this.QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof(Boolean), this._UseKeepAlive));
+                this.QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof(int), this._DebugLevel));
+                this.QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof(String), this._DebugSoldierName));
+                this.QueueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof(String), this._ServerVoipAddress));
+                this.QueueSettingForUpload(new CPluginVariable(@"Rule Print Delay", typeof(Double), this._ServerRulesDelay));
+                this.QueueSettingForUpload(new CPluginVariable(@"Rule Print Interval", typeof(Double), this._ServerRulesInterval));
+                this.QueueSettingForUpload(new CPluginVariable(@"Server Rule List", typeof(String), CPluginVariable.EncodeStringArray(this._ServerRulesList)));
+                this.QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Whitelist", typeof(Boolean), this._FeedMultiBalancerWhitelist));
+                this.QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof(Boolean), this._FeedServerReservedSlots));
+                this.QueueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof(Boolean), this._FeedStatLoggerSettings));
+                this.QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), this._UseRoundTimer));
+                this.QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof(Double), this._RoundTimeMinutes));
+                this.QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), this._UseWeaponLimiter));
+                this.QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Weapon String", typeof(String), this._WeaponLimiterString));
+                this.QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Exception String", typeof(String), this._WeaponLimiterExceptionString));
+                this.QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), this._UseGrenadeCookCatcher));
+                this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Enable", typeof(Boolean), this._UseHackerChecker));
+                this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Whitelist", typeof(String[]), this._HackerCheckerWhitelist));
+                this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Enable", typeof(Boolean), this._UseDpsChecker));
+                this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Trigger Level", typeof(Double), this._DpsTriggerLevel));
+                this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Enable", typeof(Boolean), this._UseHskChecker));
+                this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Trigger Level", typeof(Double), this._HskTriggerLevel));
+                this.QueueSettingForUpload(new CPluginVariable(@"External Access Key", typeof(String), this._ExternalCommandAccessKey));
+                this.QueueSettingForUpload(new CPluginVariable(@"Fetch Actions from Database", typeof(Boolean), this._FetchActionsFromDb));
+                this.QueueSettingForUpload(new CPluginVariable(@"Use Additional Ban Message", typeof(Boolean), this._UseBanAppend));
+                this.QueueSettingForUpload(new CPluginVariable(@"Additional Ban Message", typeof(String), this._BanAppend));
+                this.QueueSettingForUpload(new CPluginVariable(@"Procon Ban Admin Name", typeof(String), this._CBanAdminName));
+                this.QueueSettingForUpload(new CPluginVariable(@"Use Ban Enforcer", typeof(Boolean), this._UseBanEnforcer));
+                this.QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by NAME", typeof(Boolean), this._DefaultEnforceName));
+                this.QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by GUID", typeof(Boolean), this._DefaultEnforceGUID));
+                this.QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by IP", typeof(Boolean), this._DefaultEnforceIP));
+                this.QueueSettingForUpload(new CPluginVariable(@"Minimum Required Reason Length", typeof(Int32), this._RequiredReasonLength));
+                this.QueueSettingForUpload(new CPluginVariable(@"Punishment Hierarchy", typeof(String), CPluginVariable.EncodeStringArray(this._PunishmentHierarchy)));
+                this.QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof(Boolean), this._CombineServerPunishments));
+                this.QueueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof(Boolean), this._OnlyKillOnLowPop));
+                this.QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof(Int32), this._LowPopPlayerCount));
+                this.QueueSettingForUpload(new CPluginVariable(@"Use IRO Punishment", typeof(Boolean), this._IROActive));
+                this.QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Overrides Low Pop", typeof(Boolean), this._IROOverridesLowPop));
+                this.QueueSettingForUpload(new CPluginVariable(@"IRO Timeout (Minutes)", typeof(Int32), this._IROTimeout));
+                this.QueueSettingForUpload(new CPluginVariable("Send Emails", typeof(Boolean), this._UseEmail));
+                this.QueueSettingForUpload(new CPluginVariable("Use SSL?", typeof(Boolean), this._EmailHandler.UseSSL));
+                this.QueueSettingForUpload(new CPluginVariable("SMTP-Server address", typeof(String), this._EmailHandler.SMTPServer));
+                this.QueueSettingForUpload(new CPluginVariable("SMTP-Server port", typeof(Int32), this._EmailHandler.SMTPPort));
+                this.QueueSettingForUpload(new CPluginVariable("Sender address", typeof(String), this._EmailHandler.SenderEmail));
+                this.QueueSettingForUpload(new CPluginVariable("SMTP-Server username", typeof(String), this._EmailHandler.SMTPUser));
+                this.QueueSettingForUpload(new CPluginVariable("SMTP-Server password", typeof(String), this._EmailHandler.SMTPPassword));
+                this.QueueSettingForUpload(new CPluginVariable(@"On-Player-Muted Message", typeof(String), this._MutedPlayerMuteMessage));
+                this.QueueSettingForUpload(new CPluginVariable(@"On-Player-Killed Message", typeof(String), this._MutedPlayerKillMessage));
+                this.QueueSettingForUpload(new CPluginVariable(@"On-Player-Kicked Message", typeof(String), this._MutedPlayerKickMessage));
+                this.QueueSettingForUpload(new CPluginVariable(@"# Chances to give player before kicking", typeof(Int32), this._MutedPlayerChances));
+                this.QueueSettingForUpload(new CPluginVariable(@"Require Whitelist for Access", typeof(Boolean), this._RequireTeamswapWhitelist));
+                this.QueueSettingForUpload(new CPluginVariable(@"Auto-Whitelist Count", typeof(Int32), this._PlayersToAutoWhitelist));
+                this.QueueSettingForUpload(new CPluginVariable(@"Ticket Window High", typeof(Int32), this._TeamSwapTicketWindowHigh));
+                this.QueueSettingForUpload(new CPluginVariable(@"Ticket Window Low", typeof(Int32), this._TeamSwapTicketWindowLow));
+                this.QueueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof(Boolean), this._EnableAdminAssistantPerk));
+                this.QueueSettingForUpload(new CPluginVariable(@"Minimum Confirmed Reports Per Month", typeof(Int32), this._MinimumRequiredMonthlyReports));
+                this.QueueSettingForUpload(new CPluginVariable(@"Yell display time seconds", typeof(Int32), this._YellDuration));
+                this.QueueSettingForUpload(new CPluginVariable(@"Pre-Message List", typeof(String), CPluginVariable.EncodeStringArray(this._PreMessageList.ToArray())));
+                this.QueueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof(Boolean), this._RequirePreMessageUse));
+                this.QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), this._ShowAdminNameInSay));
                 DebugWrite("uploadAllSettings finished!", 6);
             }
             catch (Exception e) {
@@ -9910,11 +9936,15 @@ namespace PRoConEvents {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"
                         SELECT 
-                            `record_time` AS `latest_time` 
+	                        `record_time` AS `latest_time` 
                         FROM 
-                            `adkats_records_main` 
+	                        `adkats_records_main`
+                        INNER JOIN
+	                        `adkats_commands`
+                        ON
+	                        `adkats_records_main`.`command_type` = `adkats_commands`.`command_id`
                         WHERE 
-                            `adkats_records_main`.`command_type` = 'Punish' 
+	                        `adkats_commands`.`command_key` = 'player_punish' 
                         AND 
                             `adkats_records_main`.`target_id` = " + record.target_player.player_id + @" 
                         AND 
@@ -9922,7 +9952,6 @@ namespace PRoConEvents {
                         ORDER BY 
                             `record_time` 
                         DESC LIMIT 1";
-
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             if (reader.Read()) {
                                 this.DebugWrite("Punish is Double counted", 6);
@@ -10593,18 +10622,24 @@ namespace PRoConEvents {
 
                     email.From = new MailAddress(this.SenderEmail);
 
+                    Boolean someAdded = false;
                     lock (Plugin._UserCache) {
                         foreach (AdKatsUser aUser in Plugin._UserCache.Values) {
                             //Check for not null and default values
                             if (Plugin.RoleIsInteractionAble(aUser.user_role) && !String.IsNullOrEmpty(aUser.user_email)) {
                                 if (Regex.IsMatch(aUser.user_email, @"^([\w-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([\w-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$")) {
                                     email.To.Add(new MailAddress(aUser.user_email));
+                                    someAdded = true;
                                 }
                                 else {
                                     Plugin.ConsoleError("Error in receiver email address: " + aUser.user_email);
                                 }
                             }
                         }
+                    }
+                    if (!someAdded) {
+                        Plugin.ConsoleError("Unable to send email. No users with emails have access to player interaction commands.");
+                        return;
                     }
 
                     email.Subject = subject;
