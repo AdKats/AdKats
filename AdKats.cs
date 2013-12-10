@@ -7037,7 +7037,7 @@ namespace PRoConEvents {
                     if (this._SettingImportID != this._ServerID || this._LastDbSettingFetch.AddSeconds(DbSettingFetchFrequency) < DateTime.UtcNow) {
                         this.DebugWrite("Preparing to fetch settings from server " + _ServerID, 6);
                         //Fetch new settings from the database
-                        this.FetchSettings(this._SettingImportID);
+                        this.FetchSettings(this._SettingImportID, this._SettingImportID != this._ServerID);
                     }
 
                     //Handle Inbound Setting Uploads
@@ -7621,6 +7621,8 @@ namespace PRoConEvents {
                         confirmed = gameIDFound;
                     }
                 }
+                //TODO remove when confirmed not needed
+                /*
                 Boolean chatSourceAlterSuccess = false;
                 if (!this.SendQuery("SELECT * FROM information_schema.COLUMNS WHERE TABLE_SCHEMA=DATABASE() AND COLUMN_NAME='logPlayerID' AND TABLE_NAME='tbl_chatlog'", false))
                 {
@@ -7669,7 +7671,7 @@ namespace PRoConEvents {
                 {
                     this.ConsoleError("Unable to add logPlayerID column to chat log table.");
                     confirmed = false;
-                }
+                }*/
             }
             else {
                 confirmed = false;
@@ -7835,7 +7837,7 @@ namespace PRoConEvents {
             DebugWrite("uploadSetting finished!", 7);
         }
 
-        private void FetchSettings(long serverID) {
+        private void FetchSettings(long serverID, Boolean verbose) {
             this.DebugWrite("fetchSettings starting!", 6);
             Boolean success = false;
             //Make sure database connection active
@@ -7868,7 +7870,7 @@ namespace PRoConEvents {
                                 this._LastDbSettingFetch = DateTime.UtcNow;
                                 this.UpdateSettingPage();
                             }
-                            else {
+                            else if(verbose){
                                 this.ConsoleError("Settings could not be loaded. Server " + serverID + " invalid.");
                             }
                             this._SettingImportID = this._ServerID;
@@ -13203,7 +13205,7 @@ namespace PRoConEvents {
                                                                             target_name = "Database",
                                                                             target_player = null,
                                                                             source_name = "AdKats",
-                                                                            record_message = "Critical Database Disconnect Handled. Server " + this._ServerID + " functioning normally again."
+                                                                            record_message = "Critical Database Disconnect Handled (" + (DateTime.UtcNow - criticalDisconnectTime).TotalSeconds + " seconds). AdKats on server " + this._ServerID + " functioning normally again."
                                                                         };
                                 //Process the record
                                 this.QueueRecordForProcessing(record);
