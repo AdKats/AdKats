@@ -20,7 +20,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Beta Version 3.9.9.5
+ * Beta Version 3.9.9.6
  */
 
 using System;
@@ -53,7 +53,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "3.9.9.5";
+        private const String PluginVersion = "3.9.9.6";
         //When slowmo is enabled, there will be a 1 second pause between each print to console or in-game say
         //This will slow the program as a whole whenever the console is printed to
         private const Boolean Slowmo = false;
@@ -214,6 +214,7 @@ namespace PRoConEvents {
         private DateTime _LastNameBanCountFetch = DateTime.UtcNow;
         private DateTime _LastGUIDBanCountFetch = DateTime.UtcNow;
         private DateTime _LastIPBanCountFetch = DateTime.UtcNow;
+        private List<AdKatsBan> _BanEnforcerSearchResults = new List<AdKatsBan>(); 
 
         //AdKats WebAdmin Settings
         //This is currently a constant
@@ -599,130 +600,176 @@ namespace PRoConEvents {
         #region Plugin settings
 
         public List<CPluginVariable> GetDisplayPluginVariables() {
-            List<CPluginVariable> lstReturn;
-            const string separator = " | ";
+            try
+            {
+                List<CPluginVariable> lstReturn;
+                const string separator = " | ";
 
-            //Only fetch the following settings when plugin disabled
-            if (!this._ThreadsReady) {
-                lstReturn = new List<CPluginVariable>();
+                //Only fetch the following settings when plugin disabled
+                if (!this._ThreadsReady)
+                {
+                    lstReturn = new List<CPluginVariable>();
 
-                if (this._UseKeepAlive) {
-                    lstReturn.Add(new CPluginVariable("0. Instance Settings|Auto-Enable/Keep-Alive", typeof (Boolean), true));
+                    if (this._UseKeepAlive)
+                    {
+                        lstReturn.Add(new CPluginVariable("0. Instance Settings|Auto-Enable/Keep-Alive", typeof(Boolean), true));
+                    }
+
+                    lstReturn.Add(new CPluginVariable("Complete these settings before enabling.", typeof(String), "Once enabled, more settings will appear."));
+                    //SQL Settings
+                    lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Hostname", typeof(String), this._MySqlHostname));
+                    lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Port", typeof(String), this._MySqlPort));
+                    lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Database", typeof(String), this._MySqlDatabaseName));
+                    lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Username", typeof(String), this._MySqlUsername));
+                    lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Password", typeof(String), this._MySqlPassword));
+
+                    //Debugging Settings
+                    lstReturn.Add(new CPluginVariable("2. Debugging|Debug level", typeof(Int32), this._DebugLevel));
                 }
+                else
+                {
+                    //If plugin is enabled, return the full storage list
+                    lstReturn = this.GetPluginVariables();
+                    //Add display variables
 
-                lstReturn.Add(new CPluginVariable("Complete these settings before enabling.", typeof (String), "Once enabled, more settings will appear."));
-                //SQL Settings
-                lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Hostname", typeof (String), this._MySqlHostname));
-                lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Port", typeof (String), this._MySqlPort));
-                lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Database", typeof (String), this._MySqlDatabaseName));
-                lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Username", typeof (String), this._MySqlUsername));
-                lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Password", typeof (String), this._MySqlPassword));
-
-                //Debugging Settings
-                lstReturn.Add(new CPluginVariable("2. Debugging|Debug level", typeof (Int32), this._DebugLevel));
-            }
-            else {
-                //If plugin is enabled, return the full storage list
-                lstReturn = this.GetPluginVariables();
-                //Add display variables
-
-                //Server Settings
-                lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof (int), this._ServerID));
-                lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof (String), this._ServerIP));
-                lstReturn.Add(new CPluginVariable("1. Server Settings|Setting Import", typeof (String), this._ServerID));
-                if (!this._UsingAwa) {
-                    const string userSettingsPrefix = "3. User Settings|";
-                    //User Settings
-                    lstReturn.Add(new CPluginVariable(userSettingsPrefix + "Add User", typeof (String), ""));
-                    if (this._UserCache.Count > 0) {
-                        //Sort access list by access level, then by name
-                        List<AdKatsUser> tempAccess = this._UserCache.Values.ToList();
-                        tempAccess.Sort((a1, a2) => (a1.user_role.role_id == a2.user_role.role_id) ? (System.String.CompareOrdinal(a1.user_name, a2.user_name)) : ((a1.user_role.role_id < a2.user_role.role_id) ? (-1) : (1)));
-                        String roleEnum = String.Empty;
-                        if (this._RoleKeyDictionary.Count > 0) {
-                            Random random = new Random();
-                            foreach (AdKats_Role role in this._RoleKeyDictionary.Values) {
-                                if (String.IsNullOrEmpty(roleEnum)) {
-                                    roleEnum += "enum.RoleEnum_" + random.Next(100000, 999999) + "(";
+                    //Server Settings
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof(int), this._ServerID));
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof(String), this._ServerIP));
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Setting Import", typeof(String), this._ServerID));
+                    if (!this._UsingAwa)
+                    {
+                        const string userSettingsPrefix = "3. User Settings|";
+                        //User Settings
+                        lstReturn.Add(new CPluginVariable(userSettingsPrefix + "Add User", typeof(String), ""));
+                        if (this._UserCache.Count > 0)
+                        {
+                            //Sort access list by access level, then by name
+                            List<AdKatsUser> tempAccess = this._UserCache.Values.ToList();
+                            tempAccess.Sort((a1, a2) => (a1.user_role.role_id == a2.user_role.role_id) ? (System.String.CompareOrdinal(a1.user_name, a2.user_name)) : ((a1.user_role.role_id < a2.user_role.role_id) ? (-1) : (1)));
+                            String roleEnum = String.Empty;
+                            if (this._RoleKeyDictionary.Count > 0)
+                            {
+                                Random random = new Random();
+                                foreach (AdKats_Role role in this._RoleKeyDictionary.Values)
+                                {
+                                    if (String.IsNullOrEmpty(roleEnum))
+                                    {
+                                        roleEnum += "enum.RoleEnum_" + random.Next(100000, 999999) + "(";
+                                    }
+                                    else
+                                    {
+                                        roleEnum += "|";
+                                    }
+                                    roleEnum += role.role_name;
                                 }
-                                else {
-                                    roleEnum += "|";
+                                roleEnum += ")";
+                            }
+                            foreach (AdKatsUser user in tempAccess)
+                            {
+                                String userPrefix = userSettingsPrefix + "USR" + user.user_id + separator + user.user_name + separator;
+                                if (this._UseEmail)
+                                {
+                                    lstReturn.Add(new CPluginVariable(userPrefix + "User Email", typeof(String), user.user_email));
                                 }
-                                roleEnum += role.role_name;
+                                //Do not display phone input until that operation is available for use
+                                //lstReturn.Add(new CPluginVariable(userPrefix + "User Phone", typeof(String), user.user_phone));
+                                lstReturn.Add(new CPluginVariable(userPrefix + "User Role", roleEnum, user.user_role.role_name));
+                                lstReturn.Add(new CPluginVariable(userPrefix + "Delete User?", typeof(String), ""));
+                                lstReturn.Add(new CPluginVariable(userPrefix + "Add Soldier?", typeof(String), ""));
+                                String soldierPrefix = userPrefix + "Soldiers" + separator;
+                                lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + separator + aPlayer.player_name + separator + "Delete Soldier?", typeof(String), "")));
                             }
-                            roleEnum += ")";
                         }
-                        foreach (AdKatsUser user in tempAccess) {
-                            String userPrefix = userSettingsPrefix + "USR" + user.user_id + separator + user.user_name + separator;
-                            if (this._UseEmail) {
-                                lstReturn.Add(new CPluginVariable(userPrefix + "User Email", typeof (String), user.user_email));
-                            }
-                            //Do not display phone input until that operation is available for use
-                            //lstReturn.Add(new CPluginVariable(userPrefix + "User Phone", typeof(String), user.user_phone));
-                            lstReturn.Add(new CPluginVariable(userPrefix + "User Role", roleEnum, user.user_role.role_name));
-                            lstReturn.Add(new CPluginVariable(userPrefix + "Delete User?", typeof (String), ""));
-                            lstReturn.Add(new CPluginVariable(userPrefix + "Add Soldier?", typeof (String), ""));
-                            String soldierPrefix = userPrefix + "Soldiers" + separator;
-                            lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + separator + aPlayer.player_name + separator + "Delete Soldier?", typeof (String), "")));
+                        else
+                        {
+                            lstReturn.Add(new CPluginVariable(userSettingsPrefix + "No Users in User List", typeof(String), "Add Users with 'Add User'."));
                         }
-                    }
-                    else {
-                        lstReturn.Add(new CPluginVariable(userSettingsPrefix + "No Users in User List", typeof (String), "Add Users with 'Add User'."));
-                    }
 
 
-                    lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Required Reason Length", typeof (int), this._RequiredReasonLength));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Required Reason Length", typeof(int), this._RequiredReasonLength));
 
-                    //Role Settings
-                    const string roleListPrefix = "4. Role Settings|";
-                    lstReturn.Add(new CPluginVariable(roleListPrefix + "Add Role", typeof (String), ""));
-                    if (this._RoleKeyDictionary.Count > 0) {
-                        lock (this._RoleKeyDictionary) {
-                            foreach (AdKats_Role aRole in this._RoleKeyDictionary.Values) {
-                                lock (this._CommandNameDictionary) {
-                                    String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + aRole.role_name + separator;
-                                    lstReturn.AddRange(from aCommand in this._CommandNameDictionary.Values where aCommand.command_active == AdKatsCommand.CommandActive.Active select new CPluginVariable(rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name, "enum.roleAllowCommandEnum(Allow|Deny)", aRole.allowedCommands.ContainsKey(aCommand.command_key) ? ("Allow") : ("Deny")));
-                                    //Do not display the delete option for default guest
-                                    if (aRole.role_key != "guest_default") {
-                                        lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof (String), ""));
+                        //Role Settings
+                        const string roleListPrefix = "4. Role Settings|";
+                        lstReturn.Add(new CPluginVariable(roleListPrefix + "Add Role", typeof(String), ""));
+                        if (this._RoleKeyDictionary.Count > 0)
+                        {
+                            lock (this._RoleKeyDictionary)
+                            {
+                                foreach (AdKats_Role aRole in this._RoleKeyDictionary.Values)
+                                {
+                                    lock (this._CommandNameDictionary)
+                                    {
+                                        String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + aRole.role_name + separator;
+                                        lstReturn.AddRange(from aCommand in this._CommandNameDictionary.Values where aCommand.command_active == AdKatsCommand.CommandActive.Active select new CPluginVariable(rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name, "enum.roleAllowCommandEnum(Allow|Deny)", aRole.allowedCommands.ContainsKey(aCommand.command_key) ? ("Allow") : ("Deny")));
+                                        //Do not display the delete option for default guest
+                                        if (aRole.role_key != "guest_default")
+                                        {
+                                            lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                    else {
-                        lstReturn.Add(new CPluginVariable(roleListPrefix + "Role List Empty", typeof (String), "No valid roles found in database."));
-                    }
+                        else
+                        {
+                            lstReturn.Add(new CPluginVariable(roleListPrefix + "Role List Empty", typeof(String), "No valid roles found in database."));
+                        }
 
-                    //Command Settings
-                    const string commandListPrefix = "6. Command List|";
-                    if (this._CommandNameDictionary.Count > 0) {
-                        foreach (AdKatsCommand command in this._CommandNameDictionary.Values) {
-                            if (command.command_active != AdKatsCommand.CommandActive.Invisible) {
-                                String commandPrefix = commandListPrefix + "CDE" + command.command_id + separator + command.command_name + separator;
-                                lstReturn.Add(new CPluginVariable(commandPrefix + "Active", "enum.commandActiveEnum(Active|Disabled)", command.command_active.ToString()));
-                                if (command.command_active != AdKatsCommand.CommandActive.Disabled) {
-                                    if (command.command_logging != AdKatsCommand.CommandLogging.Mandatory && command.command_logging != AdKatsCommand.CommandLogging.Unable) {
-                                        lstReturn.Add(new CPluginVariable(commandPrefix + "Logging", "enum.commandLoggingEnum(Log|Ignore)", command.command_logging.ToString()));
+                        //Command Settings
+                        const string commandListPrefix = "6. Command List|";
+                        if (this._CommandNameDictionary.Count > 0)
+                        {
+                            foreach (AdKatsCommand command in this._CommandNameDictionary.Values)
+                            {
+                                if (command.command_active != AdKatsCommand.CommandActive.Invisible)
+                                {
+                                    String commandPrefix = commandListPrefix + "CDE" + command.command_id + separator + command.command_name + separator;
+                                    lstReturn.Add(new CPluginVariable(commandPrefix + "Active", "enum.commandActiveEnum(Active|Disabled)", command.command_active.ToString()));
+                                    if (command.command_active != AdKatsCommand.CommandActive.Disabled)
+                                    {
+                                        if (command.command_logging != AdKatsCommand.CommandLogging.Mandatory && command.command_logging != AdKatsCommand.CommandLogging.Unable)
+                                        {
+                                            lstReturn.Add(new CPluginVariable(commandPrefix + "Logging", "enum.commandLoggingEnum(Log|Ignore)", command.command_logging.ToString()));
+                                        }
+                                        lstReturn.Add(new CPluginVariable(commandPrefix + "Text", typeof(String), command.command_text));
                                     }
-                                    lstReturn.Add(new CPluginVariable(commandPrefix + "Text", typeof (String), command.command_text));
                                 }
                             }
                         }
+                        else
+                        {
+                            lstReturn.Add(new CPluginVariable(commandListPrefix + "Command List Empty", typeof(String), "No valid commands found in database."));
+                        }
                     }
-                    else {
-                        lstReturn.Add(new CPluginVariable(commandListPrefix + "Command List Empty", typeof (String), "No valid commands found in database."));
+                    else
+                    {
+                        lstReturn.Add(new CPluginVariable("3. Player Access Settings|You are using AdKats WebAdmin", typeof(String), "Manage admin settings there."));
+                    }
+
+                    const string banEnforcerPrefix = "A13-2. Ban Enforcer Settings|";
+                    if (this._UseBanEnforcer && this._ThreadsReady)
+                    {
+                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "NAME Ban Count", typeof(int), (int)this.FetchNameBanCount()));
+                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "GUID Ban Count", typeof(int), (int)this.FetchGUIDBanCount()));
+                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "IP Ban Count", typeof(int), (int)this.FetchIPBanCount()));
+                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Ban Search", typeof(String), ""));
+                        foreach (AdKatsBan aBan in this._BanEnforcerSearchResults)
+                        {
+                            lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "BAN" + aBan.ban_id + separator + aBan.ban_record.target_name + separator + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status));
+                        }
                     }
                 }
-                else {
-                    lstReturn.Add(new CPluginVariable("3. Player Access Settings|You are using AdKats WebAdmin", typeof (String), "Manage admin settings there."));
-                }
+                return lstReturn;
             }
-            return lstReturn;
+            catch (Exception e) {
+                this.HandleException(new AdKatsException("Error while fetching display vars.", e));
+                return new List<CPluginVariable>();
+            }
         }
 
         public List<CPluginVariable> GetPluginVariables() {
             List<CPluginVariable> lstReturn = new List<CPluginVariable>();
+            const string separator = " | ";
             try {
                 //Auto-Enable Settings
                 lstReturn.Add(new CPluginVariable("0. Instance Settings|Auto-Enable/Keep-Alive", typeof (Boolean), this._UseKeepAlive));
@@ -788,18 +835,14 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A13. Banning Settings|Additional Ban Message", typeof (String), this._BanAppend));
                 }
                 lstReturn.Add(new CPluginVariable("A13. Banning Settings|Procon Ban Admin Name", typeof (String), this._CBanAdminName));
+                const string banEnforcerPrefix = "A13-2. Ban Enforcer Settings|";
                 if (!this._UsingAwa) {
-                    lstReturn.Add(new CPluginVariable("A13. Banning Settings|Use Ban Enforcer", typeof (Boolean), this._UseBanEnforcer));
+                    lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Use Ban Enforcer", typeof(Boolean), this._UseBanEnforcer));
                 }
                 if (this._UseBanEnforcer) {
-                    lstReturn.Add(new CPluginVariable("A13. Banning Settings|Enforce New Bans by NAME", typeof (Boolean), this._DefaultEnforceName));
-                    lstReturn.Add(new CPluginVariable("A13. Banning Settings|Enforce New Bans by GUID", typeof (Boolean), this._DefaultEnforceGUID));
-                    lstReturn.Add(new CPluginVariable("A13. Banning Settings|Enforce New Bans by IP", typeof (Boolean), this._DefaultEnforceIP));
-                    if (this._ThreadsReady) {
-                        lstReturn.Add(new CPluginVariable("A13. Banning Settings|NAME Ban Count", typeof (int), (int) this.FetchNameBanCount()));
-                        lstReturn.Add(new CPluginVariable("A13. Banning Settings|GUID Ban Count", typeof (int), (int) this.FetchGUIDBanCount()));
-                        lstReturn.Add(new CPluginVariable("A13. Banning Settings|IP Ban Count", typeof (int), (int) this.FetchIPBanCount()));
-                    }
+                    lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by NAME", typeof(Boolean), this._DefaultEnforceName));
+                    lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by GUID", typeof(Boolean), this._DefaultEnforceGUID));
+                    lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by IP", typeof(Boolean), this._DefaultEnforceIP));
                 }
 
                 //External Command Settings
@@ -1294,12 +1337,37 @@ namespace PRoConEvents {
                         this.QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by GUID", typeof (Boolean), this._DefaultEnforceGUID));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Enforce New Bans by IP").Success) {
+                else if (Regex.Match(strVariable, @"Enforce New Bans by IP").Success)
+                {
                     Boolean enforceIP = Boolean.Parse(strValue);
-                    if (this._DefaultEnforceIP != enforceIP) {
+                    if (this._DefaultEnforceIP != enforceIP)
+                    {
                         this._DefaultEnforceIP = enforceIP;
                         //Once setting has been changed, upload the change to database
-                        this.QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by IP", typeof (Boolean), this._DefaultEnforceIP));
+                        this.QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by IP", typeof(Boolean), this._DefaultEnforceIP));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Ban Search").Success)
+                {
+                    if (String.IsNullOrEmpty(strValue) || strValue.Length < 3) {
+                        this.ConsoleError("Search query must be 3 or more characters.");
+                        return;
+                    }
+                    lock (this._BanEnforcerSearchResults)
+                    {
+                        this._BanEnforcerSearchResults = new List<AdKatsBan>();
+                        List<AdKats_Player> matchingPlayers;
+                        if (this.FetchMatchingPlayers(strValue, out matchingPlayers, false)) {
+                            foreach (AdKats_Player aPlayer in matchingPlayers) {
+                                AdKatsBan aBan = this.FetchPlayerBan(aPlayer);
+                                if (aBan != null) {
+                                    this._BanEnforcerSearchResults.Add(aBan);
+                                }
+                            }
+                        }
+                        if (this._BanEnforcerSearchResults.Count == 0) {
+                            this.ConsoleError("No players matching '" + strValue + "' have active bans.");
+                        }
                     }
                 }
                     #endregion
@@ -1490,7 +1558,8 @@ namespace PRoConEvents {
                         this.ConsoleError("Command " + command_id + " not found in command dictionary.");
                     }
                 }
-                else if (strVariable.StartsWith("RLE")) {
+                else if (strVariable.StartsWith("RLE"))
+                {
                     //Trim off all but the command ID and section
                     //RLE1 | Default Guest | CDE3 | Kill Player
 
@@ -1499,27 +1568,34 @@ namespace PRoConEvents {
                     Int32 roleID = Int32.Parse(roleIDStr);
 
                     //If second section is a command prefix, this is the allow/deny clause
-                    if (commandSplit[2].Trim().StartsWith("CDE")) {
+                    if (commandSplit[2].Trim().StartsWith("CDE"))
+                    {
                         String commandIDStr = commandSplit[2].Trim().TrimStart("CDE".ToCharArray());
                         Int32 commandID = Int32.Parse(commandIDStr);
 
                         //Fetch needed role
                         AdKats_Role aRole = null;
-                        if (this._RoleIDDictionary.TryGetValue(roleID, out aRole)) {
+                        if (this._RoleIDDictionary.TryGetValue(roleID, out aRole))
+                        {
                             //Fetch needed command
                             AdKatsCommand aCommand = null;
-                            if (this._CommandIDDictionary.TryGetValue(commandID, out aCommand)) {
-                                switch (strValue.ToLower()) {
+                            if (this._CommandIDDictionary.TryGetValue(commandID, out aCommand))
+                            {
+                                switch (strValue.ToLower())
+                                {
                                     case "allow":
-                                        lock (aRole.allowedCommands) {
-                                            if (!aRole.allowedCommands.ContainsKey(aCommand.command_key)) {
+                                        lock (aRole.allowedCommands)
+                                        {
+                                            if (!aRole.allowedCommands.ContainsKey(aCommand.command_key))
+                                            {
                                                 aRole.allowedCommands.Add(aCommand.command_key, aCommand);
                                             }
                                         }
                                         this.QueueRoleForUpload(aRole);
                                         break;
                                     case "deny":
-                                        lock (aRole.allowedCommands) {
+                                        lock (aRole.allowedCommands)
+                                        {
                                             aRole.allowedCommands.Remove(aCommand.command_key);
                                         }
                                         this.QueueRoleForUpload(aRole);
@@ -1529,23 +1605,63 @@ namespace PRoConEvents {
                                         return;
                                 }
                             }
-                            else {
+                            else
+                            {
                                 this.ConsoleError("Command " + commandID + " not found in command dictionary.");
                             }
                         }
-                        else {
+                        else
+                        {
                             this.ConsoleError("Role " + roleID + " not found in role dictionary.");
                         }
                     }
-                    else if (commandSplit[2].Contains("Delete Role?") && strValue.ToLower() == "delete") {
+                    else if (commandSplit[2].Contains("Delete Role?") && strValue.ToLower() == "delete")
+                    {
                         //Fetch needed role
                         AdKats_Role aRole = null;
-                        if (this._RoleIDDictionary.TryGetValue(roleID, out aRole)) {
+                        if (this._RoleIDDictionary.TryGetValue(roleID, out aRole))
+                        {
                             this.QueueRoleForRemoval(aRole);
                         }
-                        else {
+                        else
+                        {
                             this.ConsoleError("Unable to fetch role for deletion.");
                         }
+                    }
+                }
+                else if (strVariable.StartsWith("BAN"))
+                {
+                    //Trim off all but the command ID and section
+                    //BAN1 | ColColonCleaner | Some Reason
+
+                    String[] commandSplit = CPluginVariable.DecodeStringArray(strVariable);
+                    String banIDStr = commandSplit[0].TrimStart("BAN".ToCharArray()).Trim();
+                    Int32 banID = Int32.Parse(banIDStr);
+
+                    AdKatsBan aBan = null;
+                    foreach (AdKatsBan innerBan in this._BanEnforcerSearchResults) {
+                        if (innerBan.ban_id == banID) {
+                            aBan = innerBan;
+                            break;
+                        }
+                    }
+                    if (aBan != null) {
+                        switch (strValue) {
+                            case "Active":
+                                aBan.ban_status = strValue;
+                                break;
+                            case "Disabled":
+                                aBan.ban_status = strValue;
+                                break;
+                            default:
+                                this.ConsoleError("Unknown setting when assigning ban status.");
+                                return;
+                        }
+                        this.UpdateBanStatus(aBan);
+                        this.ConsoleSuccess("Ban " + aBan.ban_id + " is now " + strValue);
+                    }
+                    else {
+                        this.ConsoleError("Unable to update ban. This should not happen.");
                     }
                 }
                     #endregion
@@ -3692,20 +3808,14 @@ namespace PRoConEvents {
                 }
                 //Only count certain weapon categories
                 if (allowedCategories.Contains(weaponStat.category)) {
-                    StatLibraryWeapon weapon = null;
-                    if (this._StatLibrary.weapons[this._GameVersion].TryGetValue(weaponStat.id, out weapon)) {
-                        //Only handle weapons that do < 50 max dps
-                        if (weapon.damage_max < 50) {
-                            //Only take weapons with more than 100 kills
-                            if (weaponStat.kills > 100) {
-                                //Check for aimbot hack
-                                this.DebugWrite("Checking " + weaponStat.id + " HSKR (" + weaponStat.hskr + " >? " + (this._HskTriggerLevel / 100) + ")", 6);
-                                if (weaponStat.hskr > (this._HskTriggerLevel / 100)) {
-                                    if (weaponStat.hskr > actedHskr) {
-                                        actedHskr = weaponStat.hskr;
-                                        actedWeapon = weaponStat;
-                                    }
-                                }
+                    //Only take weapons with more than 100 kills
+                    if (weaponStat.kills > 100) {
+                        //Check for aimbot hack
+                        this.DebugWrite("Checking " + weaponStat.id + " HSKR (" + weaponStat.hskr + " >? " + (this._HskTriggerLevel / 100) + ")", 6);
+                        if (weaponStat.hskr > (this._HskTriggerLevel / 100)) {
+                            if (weaponStat.hskr > actedHskr) {
+                                actedHskr = weaponStat.hskr;
+                                actedWeapon = weaponStat;
                             }
                         }
                     }
@@ -8647,12 +8757,12 @@ namespace PRoConEvents {
 
         //DONE
         private Int64 FetchNameBanCount() {
-            DebugWrite("fetchNameBanCount starting!", 6);
+            DebugWrite("fetchNameBanCount starting!", 7);
             //Make sure database connection active
             if (this.HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (this._NameBanCount >= 0 && (DateTime.UtcNow - this._LastNameBanCountFetch).TotalSeconds < 60) {
+            if (this._NameBanCount >= 0 && (DateTime.UtcNow - this._LastNameBanCountFetch).TotalSeconds < 2) {
                 return this._NameBanCount;
             }
             this._LastNameBanCountFetch = DateTime.UtcNow;
@@ -8682,18 +8792,18 @@ namespace PRoConEvents {
                 this.HandleException(new AdKatsException("Error while fetching number of name bans.", e));
             }
 
-            DebugWrite("fetchNameBanCount finished!", 6);
+            DebugWrite("fetchNameBanCount finished!", 7);
             return -1;
         }
 
         //DONE
         private Int64 FetchGUIDBanCount() {
-            DebugWrite("fetchGUIDBanCount starting!", 6);
+            DebugWrite("fetchGUIDBanCount starting!", 7);
             //Make sure database connection active
             if (this.HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (this._GUIDBanCount >= 0 && (DateTime.UtcNow - this._LastGUIDBanCountFetch).TotalSeconds < 60) {
+            if (this._GUIDBanCount >= 0 && (DateTime.UtcNow - this._LastGUIDBanCountFetch).TotalSeconds < 2) {
                 return this._GUIDBanCount;
             }
             this._LastGUIDBanCountFetch = DateTime.UtcNow;
@@ -8723,18 +8833,18 @@ namespace PRoConEvents {
                 this.HandleException(new AdKatsException("Error while fetching number of GUID bans.", e));
             }
 
-            DebugWrite("fetchGUIDBanCount finished!", 6);
+            DebugWrite("fetchGUIDBanCount finished!", 7);
             return -1;
         }
 
         //DONE
         private Int64 FetchIPBanCount() {
-            DebugWrite("fetchIPBanCount starting!", 6);
+            DebugWrite("fetchIPBanCount starting!", 7);
             //Make sure database connection active
             if (this.HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (this._IPBanCount >= 0 && (DateTime.UtcNow - this._LastIPBanCountFetch).TotalSeconds < 60) {
+            if (this._IPBanCount >= 0 && (DateTime.UtcNow - this._LastIPBanCountFetch).TotalSeconds < 2) {
                 return this._IPBanCount;
             }
             this._LastIPBanCountFetch = DateTime.UtcNow;
@@ -8764,7 +8874,7 @@ namespace PRoConEvents {
                 this.HandleException(new AdKatsException("Error while fetching number of IP bans.", e));
             }
 
-            DebugWrite("fetchIPBanCount finished!", 6);
+            DebugWrite("fetchIPBanCount finished!", 7);
             return -1;
         }
 
@@ -9136,7 +9246,7 @@ namespace PRoConEvents {
 
                             command.Parameters.AddWithValue("@player_id", aBan.ban_record.target_player.player_id);
                             command.Parameters.AddWithValue("@latest_record_id", aBan.ban_record.record_id);
-                            command.Parameters.AddWithValue("@ban_status", "Active");
+                            command.Parameters.AddWithValue("@ban_status", aBan.ban_status);
                             if (String.IsNullOrEmpty(aBan.ban_notes))
                                 aBan.ban_notes = "NoNotes";
                             command.Parameters.AddWithValue("@ban_notes", aBan.ban_notes);
@@ -9236,6 +9346,50 @@ namespace PRoConEvents {
             }
             aPlayer.player_role = aRole;
             return authorized;
+        }
+
+        private Boolean FetchMatchingPlayers(String playerName, out List<AdKats_Player> resultPlayers, Boolean verbose) {
+            DebugWrite("FetchMatchingPlayers starting!", 6);
+            resultPlayers = new List<AdKats_Player>();
+            if (String.IsNullOrEmpty(playerName)) {
+                if (verbose) {
+                    this.ConsoleError("Player name was blank when fetching players.");
+                }
+                return false;
+            }
+            using (MySqlConnection connection = this.GetDatabaseConnection())
+            {
+                using (MySqlCommand command = connection.CreateCommand())
+                {
+                    command.CommandText = @"
+                    SELECT 
+	                    `PlayerID` AS `player_id`
+                    FROM 
+	                    `tbl_playerdata`
+                    WHERE
+	                    `SoldierName` LIKE '%" + playerName + "%'";
+                    //Attempt to execute the query
+                    using (MySqlDataReader reader = command.ExecuteReader())
+                    {
+                        //Grab the matching players
+                        while (reader.Read()) {
+                            AdKats_Player aPlayer = this.FetchPlayer(true, reader.GetInt64("player_id"), null, null, null);
+                            if (aPlayer != null) {
+                                resultPlayers.Add(aPlayer);
+                            }
+                        }
+                        if(resultPlayers.Count == 0)
+                        {
+                            if (verbose) {
+                                this.ConsoleError("No players found matching '" + playerName + "'");
+                            }
+                            return false;
+                        }
+                    }
+                }
+            }
+            DebugWrite("FetchMatchingPlayers finished!", 6);
+            return true;
         }
 
         //DONE
@@ -13154,7 +13308,7 @@ namespace PRoConEvents {
                 return null;
             }
             //Always write the exception to console
-            this.ConsoleWrite(aException.ToString(), ConsoleMessageType.Exception);
+            this.ConsoleWrite("Line " + (new StackTrace(aException.InternalException, true)).GetFrame(0).GetFileLineNumber() + ": " + aException.ToString(), ConsoleMessageType.Exception);
             //Check if the exception attributes to the database
             if (aException.InternalException.GetType() == typeof (System.TimeoutException) || aException.InternalException.ToString().Contains("Unable to connect to any of the specified MySQL hosts")) {
                 this.HandleDatabaseConnectionInteruption();
