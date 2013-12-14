@@ -6878,6 +6878,10 @@ namespace PRoConEvents {
                         this.PlayerSayMessage(player.player_name, "ADMIN CALL " + adminAssistantIdentifier + "[" + reportID + "]: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
                     }
                 }
+                if (this._UseEmail)
+                {
+                    this._EmailHandler.SendReport(record);
+                }
                 message = this.SendMessageToSource(record, "ADMIN CALL [" + reportID + "] sent. " + record.target_name + " for " + record.record_message);
                 record.record_action_executed = true;
             }
