@@ -20,7 +20,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Beta Version 3.9.9.7
+ * Beta Version 3.9.9.8
  */
 
 using System;
@@ -53,7 +53,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "3.9.9.7";
+        private const String PluginVersion = "3.9.9.8";
         //When slowmo is enabled, there will be a 1 second pause between each print to console or in-game say
         //This will slow the program as a whole whenever the console is printed to
         private const Boolean Slowmo = false;
