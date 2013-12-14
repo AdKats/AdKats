@@ -799,9 +799,9 @@ namespace PRoConEvents {
                     if (this._UseBanEnforcer)
                     {
                         const string banManagementPrefix = "A13-3. Mini Ban Management|";
-                        lstReturn.Add(new CPluginVariable(banManagementPrefix + "NAME Ban Count", typeof(int), this._NameBanCount, true));
-                        lstReturn.Add(new CPluginVariable(banManagementPrefix + "GUID Ban Count", typeof(int), this._GUIDBanCount, true));
-                        lstReturn.Add(new CPluginVariable(banManagementPrefix + "IP Ban Count", typeof(int), this._IPBanCount, true));
+                        lstReturn.Add(new CPluginVariable(banManagementPrefix + "NAME Ban Count", typeof(int), this._NameBanCount));
+                        lstReturn.Add(new CPluginVariable(banManagementPrefix + "GUID Ban Count", typeof(int), this._GUIDBanCount));
+                        lstReturn.Add(new CPluginVariable(banManagementPrefix + "IP Ban Count", typeof(int), this._IPBanCount));
                         lstReturn.Add(new CPluginVariable(banManagementPrefix + "Ban Search", typeof(String), ""));
                         lstReturn.AddRange(this._BanEnforcerSearchResults.Select(aBan => new CPluginVariable(banManagementPrefix + "BAN" + aBan.ban_id + separator + aBan.ban_record.target_name + separator + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
                     }
