@@ -20,13 +20,12 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Beta Version 3.9.9.6
+ * Beta Version 3.9.9.7
  */
 
 using System;
 using System.Globalization;
 using System.IO;
-using System.Net.Mime;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
@@ -53,7 +52,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "3.9.9.6";
+        private const String PluginVersion = "3.9.9.7";
         //When slowmo is enabled, there will be a 1 second pause between each print to console or in-game say
         //This will slow the program as a whole whenever the console is printed to
         private const Boolean Slowmo = false;
@@ -87,7 +86,7 @@ namespace PRoConEvents {
         private volatile Boolean _UseKeepAlive = false;
 
         //Player Lists
-        private readonly Dictionary<String, AdKats_Player> _PlayerDictionary = new Dictionary<String, AdKats_Player>();
+        private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
         private DateTime _LastSuccessfulPlayerList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         //player counts per team
         private Int32 _UsPlayerCount = 0;
@@ -163,11 +162,11 @@ namespace PRoConEvents {
         private Boolean _UseExperimentalTools = false;
         //NO EX Limiter
         private Boolean _UseWeaponLimiter = false;
-        private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|MAV|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
+        private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
         private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
         //Grenade Cook Catcher
         private Boolean _UseGrenadeCookCatcher = false;
-        private Dictionary<String, AdKats_Player> _RoundCookers = null;
+        private Dictionary<String, AdKatsPlayer> _RoundCookers = null;
         //Hacker Checker
         private Boolean _UseHackerChecker = false;
         private String[] _HackerCheckerWhitelist = {"ColColonCleaner"};
@@ -244,17 +243,17 @@ namespace PRoConEvents {
 
         //Role Settings
         //Dictionary of roles store by role ID (ID parsing)
-        private readonly Dictionary<long, AdKats_Role> _RoleIDDictionary = new Dictionary<long, AdKats_Role>();
+        private readonly Dictionary<long, AdKatsRole> _RoleIDDictionary = new Dictionary<long, AdKatsRole>();
         //Dictionary of roles stored by role key (Raw key parsing)
-        private readonly Dictionary<String, AdKats_Role> _RoleKeyDictionary = new Dictionary<String, AdKats_Role>();
-        //Dictionary of roles stored by role name (Setting parsing)
-        private readonly Dictionary<String, AdKats_Role> _RoleNameDictionary = new Dictionary<String, AdKats_Role>();
+        private readonly Dictionary<String, AdKatsRole> _RoleKeyDictionary = new Dictionary<String, AdKatsRole>();
+        //Dictionary of roles stored by role id (Setting parsing)
+        private readonly Dictionary<String, AdKatsRole> _RoleNameDictionary = new Dictionary<String, AdKatsRole>();
         //In-Game Command Settings
         //Dictionary of commands store by command ID (database parsing)
         private readonly Dictionary<long, AdKatsCommand> _CommandIDDictionary = new Dictionary<long, AdKatsCommand>();
         //Dictionary of commands stored by command key (Source parsing)
         private readonly Dictionary<String, AdKatsCommand> _CommandKeyDictionary = new Dictionary<String, AdKatsCommand>();
-        //Dictionary of commands stored by command name (Name parsing)
+        //Dictionary of commands stored by command id (Name parsing)
         private readonly Dictionary<String, AdKatsCommand> _CommandNameDictionary = new Dictionary<String, AdKatsCommand>();
         //Dictionary of commands stored by command text (In-game parsing)
         private readonly Dictionary<String, AdKatsCommand> _CommandTextDictionary = new Dictionary<String, AdKatsCommand>();
@@ -367,7 +366,8 @@ namespace PRoConEvents {
         private EventWaitHandle _ServerInfoWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle _StatLoggerStatusWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle _HackerCheckerWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private EventWaitHandle _HttpFetchWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _WeaponStatsWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _PluginDescriptionWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle _RoundEndingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
         //Threading Queues
@@ -379,15 +379,15 @@ namespace PRoConEvents {
         private readonly Queue<AdKatsRecord> _UnprocessedActionQueue = new Queue<AdKatsRecord>();
         private readonly Queue<AdKatsUser> _UserUploadQueue = new Queue<AdKatsUser>();
         private readonly Queue<AdKatsUser> _UserRemovalQueue = new Queue<AdKatsUser>();
-        private readonly Queue<AdKats_Player> _BanEnforcerCheckingQueue = new Queue<AdKats_Player>();
-        private readonly Queue<AdKats_Player> _HackerCheckerQueue = new Queue<AdKats_Player>();
+        private readonly Queue<AdKatsPlayer> _BanEnforcerCheckingQueue = new Queue<AdKatsPlayer>();
+        private readonly Queue<AdKatsPlayer> _HackerCheckerQueue = new Queue<AdKatsPlayer>();
         private readonly Queue<AdKatsBan> _BanEnforcerProcessingQueue = new Queue<AdKatsBan>();
         private readonly Queue<CBanInfo> _CBanProcessingQueue = new Queue<CBanInfo>();
         private readonly Queue<CPluginVariable> _SettingUploadQueue = new Queue<CPluginVariable>();
         private readonly Queue<AdKatsCommand> _CommandUploadQueue = new Queue<AdKatsCommand>();
         private readonly Queue<AdKatsCommand> _CommandRemovalQueue = new Queue<AdKatsCommand>();
-        private readonly Queue<AdKats_Role> _RoleUploadQueue = new Queue<AdKats_Role>();
-        private readonly Queue<AdKats_Role> _RoleRemovalQueue = new Queue<AdKats_Role>();
+        private readonly Queue<AdKatsRole> _RoleUploadQueue = new Queue<AdKatsRole>();
+        private readonly Queue<AdKatsRole> _RoleRemovalQueue = new Queue<AdKatsRole>();
 
         //MISC Settings
         private Boolean _ShowAdminNameInSay = false;
@@ -476,7 +476,7 @@ namespace PRoConEvents {
             if (!this._FetchedPluginInformation) {
                 //Wait up to 10 seconds for the description to fetch
                 this.DebugWrite("Waiting for plugin description...", 1);
-                if (!this._HttpFetchWaitHandle.WaitOne(10000)) {
+                if (!this._PluginDescriptionWaitHandle.WaitOne(10000)) {
                     this.ConsoleError("Unable to fetch plugin description.");
                 }
             }
@@ -501,34 +501,43 @@ namespace PRoConEvents {
             return concat;
         }
 
-        private void FetchPluginDescAndChangelog() {
-            this._HttpFetchWaitHandle.Reset();
+        private void FetchPluginDescAndChangelog()
+        {
+            this._PluginDescriptionWaitHandle.Reset();
             //Create a new thread to fetch the plugin description and changelog
-            Thread httpFetcher = new Thread(new ThreadStart(delegate {
-                try {
+            Thread descFetcher = new Thread(new ThreadStart(delegate
+            {
+                try
+                {
                     //Create web client
                     WebClient client = new WebClient();
                     //Download the readme and changelog
                     this.DebugWrite("Fetching plugin readme...", 2);
-                    try {
+                    try
+                    {
                         this._PluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
                         this.DebugWrite("Plugin description fetched.", 1);
                     }
-                    catch (Exception) {
+                    catch (Exception)
+                    {
                         this.ConsoleError("Failed to fetch plugin description.");
                     }
                     this.DebugWrite("Fetching plugin changelog...", 2);
-                    try {
+                    try
+                    {
                         this._PluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
                         this.DebugWrite("Plugin changelog fetched.", 1);
                     }
-                    catch (Exception) {
+                    catch (Exception)
+                    {
                         this.ConsoleError("Failed to fetch plugin changelog.");
                     }
-                    if (this._PluginDescription != "DESCRIPTION FETCH FAILED|") {
+                    if (this._PluginDescription != "DESCRIPTION FETCH FAILED|")
+                    {
                         //Extract the latest stable version
                         String latestStableVersion = this.ExtractString(this._PluginDescription, "latest_stable_release");
-                        if (!String.IsNullOrEmpty(latestStableVersion)) {
+                        if (!String.IsNullOrEmpty(latestStableVersion))
+                        {
                             //Convert it to an integer
                             String trimmedLatestStableVersion = latestStableVersion.Replace(".", "");
                             Int32 latestStableVersionInt = Int32.Parse(trimmedLatestStableVersion);
@@ -537,7 +546,8 @@ namespace PRoConEvents {
 
                             String versionStatus = String.Empty;
                             //Add the appropriate message to plugin description
-                            if (latestStableVersionInt > currentVersionInt) {
+                            if (latestStableVersionInt > currentVersionInt)
+                            {
                                 versionStatus = @"
                                 <h2 style='color:#DF0101;'>
                                     You are running an outdated build of AdKats! Version " + latestStableVersion + @" is available for download!
@@ -547,13 +557,15 @@ namespace PRoConEvents {
                                 </a><br/>
                                 Download link below.";
                             }
-                            else if (latestStableVersionInt == currentVersionInt) {
+                            else if (latestStableVersionInt == currentVersionInt)
+                            {
                                 versionStatus = @"
                                 <h2 style='color:#01DF01;'>
                                     Congrats! You are running the latest stable build of AdKats!
                                 </h2>";
                             }
-                            else if (latestStableVersionInt < currentVersionInt) {
+                            else if (latestStableVersionInt < currentVersionInt)
+                            {
                                 versionStatus = @"
                                 <h2 style='color:#FF8000;'>
                                     CAUTION! You are running a BETA or TEST build of AdKats! Functionality might be untested.
@@ -565,14 +577,51 @@ namespace PRoConEvents {
                     }
                     this.DebugWrite("Setting desc fetch handle.", 1);
                     this._FetchedPluginInformation = true;
-                    this._HttpFetchWaitHandle.Set();
+                    this._PluginDescriptionWaitHandle.Set();
                 }
-                catch (Exception e) {
+                catch (Exception e)
+                {
                     this.HandleException(new AdKatsException("Error while fetching plugin description and changelog.", e));
                 }
             }));
             //Start the thread
-            httpFetcher.Start();
+            descFetcher.Start();
+        }
+
+        private void FetchWeaponStats()
+        {
+            this._WeaponStatsWaitHandle.Reset();
+            //Create a new thread to fetch the plugin description and changelog
+            Thread descFetcher = new Thread(new ThreadStart(delegate
+            {
+                try
+                {
+                    //Create web client
+                    WebClient client = new WebClient();
+                    //Download the readme and changelog
+                    this.DebugWrite("Fetching weapon stats...", 2);
+                    try
+                    {
+                        this._PluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/adkatsweaponstats.json");
+                        this.DebugWrite("Weapon stats fetched.", 1);
+                    }
+                    catch (Exception)
+                    {
+                        this.ConsoleError("Failed to fetch weapon stats.");
+                    }
+                    if (this._PluginDescription != "DESCRIPTION FETCH FAILED|")
+                    {
+                    }
+                    this.DebugWrite("Setting weapon stat fetch handle.", 1);
+                    this._WeaponStatsWaitHandle.Set();
+                }
+                catch (Exception e)
+                {
+                    this.HandleException(new AdKatsException("Error while fetching plugin description and changelog.", e));
+                }
+            }));
+            //Start the thread
+            descFetcher.Start();
         }
 
         private void SetupKeepAlive() {
@@ -597,7 +646,7 @@ namespace PRoConEvents {
 
         #endregion
 
-        #region Plugin settings
+        #region Plugin setting
 
         public List<CPluginVariable> GetDisplayPluginVariables() {
             try
@@ -643,14 +692,14 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable(userSettingsPrefix + "Add User", typeof(String), ""));
                         if (this._UserCache.Count > 0)
                         {
-                            //Sort access list by access level, then by name
+                            //Sort access list by access level, then by id
                             List<AdKatsUser> tempAccess = this._UserCache.Values.ToList();
                             tempAccess.Sort((a1, a2) => (a1.user_role.role_id == a2.user_role.role_id) ? (System.String.CompareOrdinal(a1.user_name, a2.user_name)) : ((a1.user_role.role_id < a2.user_role.role_id) ? (-1) : (1)));
                             String roleEnum = String.Empty;
                             if (this._RoleKeyDictionary.Count > 0)
                             {
                                 Random random = new Random();
-                                foreach (AdKats_Role role in this._RoleKeyDictionary.Values)
+                                foreach (AdKatsRole role in this._RoleKeyDictionary.Values)
                                 {
                                     if (String.IsNullOrEmpty(roleEnum))
                                     {
@@ -695,7 +744,7 @@ namespace PRoConEvents {
                         {
                             lock (this._RoleKeyDictionary)
                             {
-                                foreach (AdKats_Role aRole in this._RoleKeyDictionary.Values)
+                                foreach (AdKatsRole aRole in this._RoleKeyDictionary.Values)
                                 {
                                     lock (this._CommandNameDictionary)
                                     {
@@ -746,17 +795,14 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("3. Player Access Settings|You are using AdKats WebAdmin", typeof(String), "Manage admin settings there."));
                     }
 
-                    const string banEnforcerPrefix = "A13-2. Ban Enforcer Settings|";
-                    if (this._UseBanEnforcer && this._ThreadsReady)
+                    if (this._UseBanEnforcer)
                     {
-                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "NAME Ban Count", typeof(int), (int)this.FetchNameBanCount()));
-                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "GUID Ban Count", typeof(int), (int)this.FetchGUIDBanCount()));
-                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "IP Ban Count", typeof(int), (int)this.FetchIPBanCount()));
-                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Ban Search", typeof(String), ""));
-                        foreach (AdKatsBan aBan in this._BanEnforcerSearchResults)
-                        {
-                            lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "BAN" + aBan.ban_id + separator + aBan.ban_record.target_name + separator + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status));
-                        }
+                        const string banManagementPrefix = "A13-3. Mini Ban Management|";
+                        lstReturn.Add(new CPluginVariable(banManagementPrefix + "NAME Ban Count", typeof(int), this._NameBanCount, true));
+                        lstReturn.Add(new CPluginVariable(banManagementPrefix + "GUID Ban Count", typeof(int), this._GUIDBanCount, true));
+                        lstReturn.Add(new CPluginVariable(banManagementPrefix + "IP Ban Count", typeof(int), this._IPBanCount, true));
+                        lstReturn.Add(new CPluginVariable(banManagementPrefix + "Ban Search", typeof(String), ""));
+                        lstReturn.AddRange(this._BanEnforcerSearchResults.Select(aBan => new CPluginVariable(banManagementPrefix + "BAN" + aBan.ban_id + separator + aBan.ban_record.target_name + separator + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
                     }
                 }
                 return lstReturn;
@@ -862,21 +908,19 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Round Duration Minutes", typeof (Double), this._RoundTimeMinutes));
                 }
 
-                if (this._IsTestingAuthorized) {
-                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Enable", typeof (Boolean), this._UseHackerChecker));
-                    if (this._UseHackerChecker) {
-                        if (this._IsTestingAuthorized) {
-                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|Hacker-Check Player", typeof (String), ""));
-                        }
-                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Whitelist", typeof (String[]), this._HackerCheckerWhitelist));
-                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Enable", typeof (Boolean), this._UseDpsChecker));
-                        if (this._UseDpsChecker) {
-                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Trigger Level", typeof (Double), this._DpsTriggerLevel));
-                        }
-                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Enable", typeof (Boolean), this._UseHskChecker));
-                        if (this._UseHskChecker) {
-                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Trigger Level", typeof (Double), this._HskTriggerLevel));
-                        }
+                lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Enable", typeof (Boolean), this._UseHackerChecker));
+                if (this._UseHackerChecker) {
+                    if (this._IsTestingAuthorized) {
+                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|Hacker-Check Player", typeof (String), ""));
+                    }
+                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Whitelist", typeof (String[]), this._HackerCheckerWhitelist));
+                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Enable", typeof (Boolean), this._UseDpsChecker));
+                    if (this._UseDpsChecker) {
+                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Trigger Level", typeof (Double), this._DpsTriggerLevel));
+                    }
+                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Enable", typeof (Boolean), this._UseHskChecker));
+                    if (this._UseHskChecker) {
+                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Trigger Level", typeof (Double), this._HskTriggerLevel));
                     }
                 }
 
@@ -939,7 +983,7 @@ namespace PRoConEvents {
                         return;
                     }
                     this.ConsoleWarn("Preparing to hacker check " + strValue);
-                    AdKats_Player aPlayer = this.FetchPlayer(false, -1, strValue, null, null);
+                    AdKatsPlayer aPlayer = this.FetchPlayer(false, -1, strValue, null, null);
                     this.FetchPlayerStats(aPlayer);
                     if (aPlayer.stats != null) {
                         this.RunStatSiteHackCheck(aPlayer, true);
@@ -1301,7 +1345,7 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Procon Ban Admin Name").Success) {
                     if (strValue.Length > 16) {
                         strValue = strValue.Substring(0, 16);
-                        this.ConsoleError("Procon ban admin name cannot be more than 16 characters.");
+                        this.ConsoleError("Procon ban admin id cannot be more than 16 characters.");
                     }
                     if (this._CBanAdminName != strValue) {
                         this._CBanAdminName = strValue;
@@ -1356,9 +1400,9 @@ namespace PRoConEvents {
                     lock (this._BanEnforcerSearchResults)
                     {
                         this._BanEnforcerSearchResults = new List<AdKatsBan>();
-                        List<AdKats_Player> matchingPlayers;
+                        List<AdKatsPlayer> matchingPlayers;
                         if (this.FetchMatchingPlayers(strValue, out matchingPlayers, false)) {
-                            foreach (AdKats_Player aPlayer in matchingPlayers) {
+                            foreach (AdKatsPlayer aPlayer in matchingPlayers) {
                                 AdKatsBan aBan = this.FetchPlayerBan(aPlayer);
                                 if (aBan != null) {
                                     this._BanEnforcerSearchResults.Add(aBan);
@@ -1417,7 +1461,7 @@ namespace PRoConEvents {
                                 this.QueueUserForUpload(aUser);
                                 break;
                             case "User Role":
-                                AdKats_Role aRole = null;
+                                AdKatsRole aRole = null;
                                 if (this._RoleNameDictionary.TryGetValue(strValue, out aRole)) {
                                     aUser.user_role = aRole;
                                 }
@@ -1436,7 +1480,7 @@ namespace PRoConEvents {
                             case "Add Soldier?":
                                 //Attempt to fetch the soldier
                                 if (!String.IsNullOrEmpty(strValue) && this.SoldierNameValid(strValue)) {
-                                    AdKats_Player aPlayer = this.FetchPlayer(true, -1, strValue, null, null);
+                                    AdKatsPlayer aPlayer = this.FetchPlayer(true, -1, strValue, null, null);
                                     if (aPlayer != null) {
                                         Boolean playerDuplicate = false;
                                         //Make sure the player is not already assigned to another user
@@ -1574,7 +1618,7 @@ namespace PRoConEvents {
                         Int32 commandID = Int32.Parse(commandIDStr);
 
                         //Fetch needed role
-                        AdKats_Role aRole = null;
+                        AdKatsRole aRole = null;
                         if (this._RoleIDDictionary.TryGetValue(roleID, out aRole))
                         {
                             //Fetch needed command
@@ -1618,7 +1662,7 @@ namespace PRoConEvents {
                     else if (commandSplit[2].Contains("Delete Role?") && strValue.ToLower() == "delete")
                     {
                         //Fetch needed role
-                        AdKats_Role aRole = null;
+                        AdKatsRole aRole = null;
                         if (this._RoleIDDictionary.TryGetValue(roleID, out aRole))
                         {
                             this.QueueRoleForRemoval(aRole);
@@ -1960,14 +2004,14 @@ namespace PRoConEvents {
                         }
                         if (!valid)
                         {
-                            this.ConsoleError("Unable to add " + user.user_name + ", a user with that user name already exists.");
+                            this.ConsoleError("Unable to add " + user.user_name + ", a user with that user id already exists.");
                             return;
                         }
                         //Queue it for processing
                         this.QueueUserForUpload(user);
                     }
                     else {
-                        this.ConsoleError("User name had invalid formatting, please try again.");
+                        this.ConsoleError("User id had invalid formatting, please try again.");
                     }
                 }
                 else if (Regex.Match(strVariable, @"Add Role").Success) {
@@ -1975,7 +2019,7 @@ namespace PRoConEvents {
                         String roleName = new Regex("[^a-zA-Z0-9 _-]").Replace(strValue, "");
                         String roleKey = roleName.Replace(' ', '_');
                         if (!String.IsNullOrEmpty(roleName) && !String.IsNullOrEmpty(roleKey)) {
-                            AdKats_Role aRole = new AdKats_Role {
+                            AdKatsRole aRole = new AdKatsRole {
                                                                     role_key = roleKey,
                                                                     role_name = roleName
                                                                 };
@@ -1989,7 +2033,7 @@ namespace PRoConEvents {
                             this.QueueRoleForUpload(aRole);
                         }
                         else {
-                            this.ConsoleError("Role name had invalid characters, please try again.");
+                            this.ConsoleError("Role id had invalid characters, please try again.");
                         }
                     }
                 }
@@ -2019,13 +2063,14 @@ namespace PRoConEvents {
             this._HackerCheckerWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             this._ServerInfoWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             this._StatLoggerStatusWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-            this._HttpFetchWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+            this._PluginDescriptionWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         }
 
         public void SetAllHandles() {
             //Opens all handles to make sure all threads complete one loop
             this._TeamswapWaitHandle.Set();
             this._PlayerListProcessingWaitHandle.Set();
+            this._KillProcessingWaitHandle.Set();
             this._PlayerListUpdateWaitHandle.Set();
             this._MessageParsingWaitHandle.Set();
             this._CommandParsingWaitHandle.Set();
@@ -2056,7 +2101,7 @@ namespace PRoConEvents {
                                                                                                        IsBackground = true
                                                                                                    };
 
-                this._DatabaseCommunicationThread = new Thread(new ThreadStart(DatabaseCommThreadLoop)) {
+                this._DatabaseCommunicationThread = new Thread(new ThreadStart(DatabaseCommunicationThreadLoop)) {
                                                                                                             IsBackground = true
                                                                                                         };
 
@@ -2258,15 +2303,14 @@ namespace PRoConEvents {
                 //Create a new thread to activate the plugin
                 this._Activator = new Thread(new ThreadStart(delegate {
                     try {
-                        //Initialize the stat library
-                        this._StatLibrary = new StatLibrary(this);
-
                         this.ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
                         //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
                         for (Int32 index = 5; index > 0; index--) {
                             this.DebugWrite(index + "...", 1);
                             Thread.Sleep(1000);
                         }
+                        //Initialize the stat library
+                        this._StatLibrary = new StatLibrary(this);
 
                         //Don't directly depend on stat logger being controllable at this time, connection is unstable
                         /*if (this.useDatabase)
@@ -2332,6 +2376,77 @@ namespace PRoConEvents {
                         //Open all handles. Threads will finish on their own.
                         this.SetAllHandles();
 
+                        //Check to make sure all threads have completed and stopped
+                        Int32 attempts = 0;
+                        Boolean alive = false;
+                        do {
+                            attempts++;
+                            Thread.Sleep(500);
+                            alive = false;
+                            String aliveThreads = "Threads still exiting: ";
+                            if (this._PlayerListingThread != null && this._PlayerListingThread.IsAlive)
+                            {
+                                alive = true;
+                                aliveThreads += this._PlayerListingThread.Name + " ";
+                            }
+                            if (this._KillProcessingThread != null && this._KillProcessingThread.IsAlive)
+                            {
+                                alive = true;
+                                aliveThreads += this._KillProcessingThread.Name + " ";
+                            }
+                            if (this._MessageProcessingThread != null && this._MessageProcessingThread.IsAlive)
+                            {
+                                alive = true;
+                                aliveThreads += this._MessageProcessingThread.Name + " ";
+                            }
+                            if (this._CommandParsingThread != null && this._CommandParsingThread.IsAlive)
+                            {
+                                alive = true;
+                                aliveThreads += this._CommandParsingThread.Name + " ";
+                            }
+                            if (this._DatabaseCommunicationThread != null && this._DatabaseCommunicationThread.IsAlive)
+                            {
+                                alive = true;
+                                aliveThreads += this._DatabaseCommunicationThread.Name + " ";
+                            }
+                            if (this._ActionHandlingThread != null && this._ActionHandlingThread.IsAlive)
+                            {
+                                alive = true;
+                                aliveThreads += this._ActionHandlingThread.Name + " ";
+                            }
+                            if (this._TeamSwapThread != null && this._TeamSwapThread.IsAlive)
+                            {
+                                alive = true;
+                                aliveThreads += this._TeamSwapThread.Name + " ";
+                            }
+                            if (this._BanEnforcerThread != null && this._BanEnforcerThread.IsAlive)
+                            {
+                                alive = true;
+                                aliveThreads += this._BanEnforcerThread.Name + " ";
+                            }
+                            if (this._HackerCheckerThread != null && this._HackerCheckerThread.IsAlive)
+                            {
+                                alive = true;
+                                aliveThreads += this._HackerCheckerThread.Name + " ";
+                            }
+                            if (this._DisconnectHandlingThread != null && this._DisconnectHandlingThread.IsAlive)
+                            {
+                                alive = true;
+                                aliveThreads += this._DisconnectHandlingThread.Name + " ";
+                            }
+                            if (this._RoundTimerThread != null && this._RoundTimerThread.IsAlive)
+                            {
+                                alive = true;
+                                aliveThreads += this._RoundTimerThread.Name + " ";
+                            }
+                            if (attempts > 5) {
+                                this.ConsoleError(aliveThreads);
+                            }
+                            else {
+                                this.DebugWrite(aliveThreads, 2);
+                            }
+                        } while (alive);
+
                         //Reset all caches and storage
                         if (this._UserRemovalQueue != null)
                             this._UserRemovalQueue.Clear();
@@ -2353,7 +2468,6 @@ namespace PRoConEvents {
                             this._UnprocessedRecordQueue.Clear();
                         if (this._BanEnforcerCheckingQueue != null)
                             this._BanEnforcerCheckingQueue.Clear();
-                        this._ServerID = -1;
                         this._ToldCol = false;
                         this._RuPlayerCount = 0;
                         if (this._RuMoveQueue != null)
@@ -2455,7 +2569,7 @@ namespace PRoConEvents {
 
         public void PlayerListingThreadLoop() {
             try {
-                this.DebugWrite("PLIST: Starting Player Listing Thread", 2);
+                this.DebugWrite("PLIST: Starting Player Listing Thread", 1);
                 Thread.CurrentThread.Name = "playerlisting";
                 while (true) {
                     this.DebugWrite("PLIST: Entering Player Listing Thread Loop", 7);
@@ -2500,7 +2614,7 @@ namespace PRoConEvents {
                             //Loop over all players in the list
                             foreach (CPlayerInfo player in players) {
                                 playerNames.Add(player.SoldierName);
-                                AdKats_Player aPlayer = null;
+                                AdKatsPlayer aPlayer = null;
                                 //Check if the player is already in the player dictionary
                                 if (this._PlayerDictionary.TryGetValue(player.SoldierName, out aPlayer)) {
                                     //If they are update the internal frostbite player info
@@ -2577,7 +2691,7 @@ namespace PRoConEvents {
                         this._PlayerListUpdateWaitHandle.Set();
                     }
                 }
-                this.DebugWrite("PLIST: Ending Player Listing Thread", 2);
+                this.DebugWrite("PLIST: Ending Player Listing Thread", 1);
             }
             catch (Exception e) {
                 if (e is ThreadAbortException) {
@@ -2595,7 +2709,7 @@ namespace PRoConEvents {
             try {
                 this.DebugWrite("OPPI: OnPunkbusterPlayerInfo fired!", 7);
                 lock (this._PlayersMutex) {
-                    AdKats_Player targetPlayer = null;
+                    AdKatsPlayer targetPlayer = null;
                     if (this._PlayerDictionary.TryGetValue(cpbiPlayer.SoldierName, out targetPlayer)) {
                         this.DebugWrite("OPPI: PB player already in the player list.", 7);
                         Boolean updatePlayer = (targetPlayer.player_ip == null);
@@ -2660,8 +2774,7 @@ namespace PRoConEvents {
                         this._ServerName = serverInfo.ServerName;
                         //Only activate the following on ADK servers.
                         Boolean wasADK = this._IsTestingAuthorized;
-                        //TODO remove bsw
-                        this._IsTestingAuthorized = serverInfo.ServerName.Contains("=ADK=") || serverInfo.ServerName.Contains("[BSW]");
+                        this._IsTestingAuthorized = serverInfo.ServerName.Contains("=ADK=");
                         if (!wasADK && this._IsTestingAuthorized) {
                             this.ConsoleWrite("Server is priviledged for testing.");
                             this.UpdateSettingPage();
@@ -2693,7 +2806,7 @@ namespace PRoConEvents {
                     this.AutoWhitelistPlayers();
                     this._UsMoveQueue = new Queue<CPlayerInfo>();
                     this._RuMoveQueue = new Queue<CPlayerInfo>();
-                    this._RoundCookers = new Dictionary<String, AdKats_Player>();
+                    this._RoundCookers = new Dictionary<String, AdKatsPlayer>();
                     //Enable round timer
                     if (this._UseRoundTimer) {
                         this.StartRoundTimer();
@@ -2759,7 +2872,7 @@ namespace PRoConEvents {
 
         public void KillProcessingThreadLoop() {
             try {
-                this.DebugWrite("KILLPROC: Starting Kill Processing Thread", 2);
+                this.DebugWrite("KILLPROC: Starting Kill Processing Thread", 1);
                 Thread.CurrentThread.Name = "killprocessing";
                 while (true) {
                     this.DebugWrite("KILLPROC: Entering Kill Processing Thread Loop", 7);
@@ -2789,7 +2902,12 @@ namespace PRoConEvents {
                     }
 
                     //Loop through all kils in order that they came in
-                    while (inboundPlayerKills.Count > 0) {
+                    while (inboundPlayerKills.Count > 0)
+                    {
+                        if (!this._IsEnabled)
+                        {
+                            break;
+                        }
                         this.DebugWrite("KILLPROC: begin reading player kills", 6);
                         //Dequeue the first/next kill
                         Kill playerKill = inboundPlayerKills.Dequeue();
@@ -2798,7 +2916,7 @@ namespace PRoConEvents {
                         this.ProcessPlayerKill(playerKill);
                     }
                 }
-                this.DebugWrite("KILLPROC: Ending Kill Processing Thread", 2);
+                this.DebugWrite("KILLPROC: Ending Kill Processing Thread", 1);
             }
             catch (Exception e) {
                 if (e is ThreadAbortException) {
@@ -2826,7 +2944,7 @@ namespace PRoConEvents {
                 //Update player death information
                 if (this._PlayerDictionary.ContainsKey(kKillerVictimDetails.Victim.SoldierName)) {
                     lock (this._PlayersMutex) {
-                        AdKats_Player victim = this._PlayerDictionary[kKillerVictimDetails.Victim.SoldierName];
+                        AdKatsPlayer victim = this._PlayerDictionary[kKillerVictimDetails.Victim.SoldierName];
                         this.DebugWrite("Setting " + victim.player_name + " time of death to " + kKillerVictimDetails.TimeOfDeath, 7);
                         victim.lastDeath = kKillerVictimDetails.TimeOfDeath;
                         //Only add the last death if it's not a death by admin
@@ -2835,7 +2953,7 @@ namespace PRoConEvents {
                                 //ADK grenade cooking catcher
                                 if (this._UseExperimentalTools && this._UseGrenadeCookCatcher) {
                                     if (this._RoundCookers == null) {
-                                        this._RoundCookers = new Dictionary<String, AdKats_Player>();
+                                        this._RoundCookers = new Dictionary<String, AdKatsPlayer>();
                                     }
                                     Double fuseTime = 0;
                                     if (this._GameVersion == GameVersion.BF3) {
@@ -2847,25 +2965,25 @@ namespace PRoConEvents {
                                     //2865 MINI
                                     const double possibleRange = 750.00;
                                     //Update killer information
-                                    AdKats_Player killer = null;
+                                    AdKatsPlayer killer = null;
                                     if (this._PlayerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer)) {
                                         //Initialize / clean up the recent kills queue
                                         if (killer.recentKills == null) {
-                                            killer.recentKills = new Queue<KeyValuePair<AdKats_Player, DateTime>>();
+                                            killer.recentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
                                         }
                                         //Only keep the last 6 kills in memory
                                         while (killer.recentKills.Count > 1) {
                                             killer.recentKills.Dequeue();
                                         }
                                         //Add the player
-                                        killer.recentKills.Enqueue(new KeyValuePair<AdKats_Player, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
+                                        killer.recentKills.Enqueue(new KeyValuePair<AdKatsPlayer, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
                                         //Check for cooked grenade and non-suicide
                                         if (kKillerVictimDetails.DamageType.Contains("M67")) {
                                             if (kKillerVictimDetails.Killer.SoldierName != kKillerVictimDetails.Victim.SoldierName) {
                                                 Boolean told = false;
-                                                List<KeyValuePair<AdKats_Player, String>> possible = new List<KeyValuePair<AdKats_Player, String>>();
-                                                List<KeyValuePair<AdKats_Player, String>> sure = new List<KeyValuePair<AdKats_Player, String>>();
-                                                foreach (KeyValuePair<AdKats_Player, DateTime> cooker in killer.recentKills) {
+                                                List<KeyValuePair<AdKatsPlayer, String>> possible = new List<KeyValuePair<AdKatsPlayer, String>>();
+                                                List<KeyValuePair<AdKatsPlayer, String>> sure = new List<KeyValuePair<AdKatsPlayer, String>>();
+                                                foreach (KeyValuePair<AdKatsPlayer, DateTime> cooker in killer.recentKills) {
                                                     //Get the actual time since cooker value
                                                     Double milli = kKillerVictimDetails.TimeOfDeath.Subtract(cooker.Value).TotalMilliseconds;
 
@@ -2925,20 +3043,20 @@ namespace PRoConEvents {
                                                             this._RoundCookers.Add(cooker.Key.player_name, cooker.Key);
                                                             this.DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
                                                             //Add to SURE
-                                                            sure.Add(new KeyValuePair<AdKats_Player, String>(cooker.Key, probString));
+                                                            sure.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
                                                         }
                                                             //Otherwise add them to the round cooker list, and add to POSSIBLE list
                                                         else {
                                                             this._RoundCookers.Add(cooker.Key.player_name, cooker.Key);
                                                             this.DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
                                                             //Add to POSSIBLE
-                                                            possible.Add(new KeyValuePair<AdKats_Player, String>(cooker.Key, probString));
+                                                            possible.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
                                                         }
                                                     }
                                                 }
                                                 //This method used for dealing with multiple kills at the same instant i.e twin/triple headshots
                                                 if (sure.Count == 1 && possible.Count == 0) {
-                                                    AdKats_Player player = sure[0].Key;
+                                                    AdKatsPlayer player = sure[0].Key;
                                                     String probString = sure[0].Value;
                                                     //Create the ban record
                                                     AdKatsRecord record = new AdKatsRecord {
@@ -2957,9 +3075,9 @@ namespace PRoConEvents {
                                                     this.DebugWrite(record.target_player.player_name + " punished for " + record.record_message, 2);
                                                 }
                                                 else {
-                                                    AdKats_Player player = null;
+                                                    AdKatsPlayer player = null;
                                                     String probString = null;
-                                                    foreach (KeyValuePair<AdKats_Player, String> playerPair in sure) {
+                                                    foreach (KeyValuePair<AdKatsPlayer, String> playerPair in sure) {
                                                         player = playerPair.Key;
                                                         probString = playerPair.Value;
                                                         //Create the report record
@@ -2977,7 +3095,7 @@ namespace PRoConEvents {
                                                         this.QueueRecordForProcessing(record);
                                                         this.DebugWrite(record.target_player.player_name + " reported for " + record.record_message, 2);
                                                     }
-                                                    foreach (KeyValuePair<AdKats_Player, String> playerPair in possible) {
+                                                    foreach (KeyValuePair<AdKatsPlayer, String> playerPair in possible) {
                                                         player = playerPair.Key;
                                                         probString = playerPair.Value;
                                                         //Create the report record
@@ -3017,7 +3135,7 @@ namespace PRoConEvents {
                                 //Check if suicide
                                 if (kKillerVictimDetails.Killer.SoldierName != kKillerVictimDetails.Victim.SoldierName) {
                                     //Get player from the dictionary
-                                    AdKats_Player killer = null;
+                                    AdKatsPlayer killer = null;
                                     if (this._PlayerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer)) {
                                         //Code to avoid spam
                                         if (killer.lastAction.AddSeconds(2) < DateTime.UtcNow) {
@@ -3081,7 +3199,7 @@ namespace PRoConEvents {
                     if (this._CommandNameDictionary.Count > 0) {
                         //Handle TeamSwap notifications
                         String command = this._CommandKeyDictionary["self_teamswap"].command_text;
-                        AdKats_Player aPlayer = null;
+                        AdKatsPlayer aPlayer = null;
                         if (this._PlayerDictionary.TryGetValue(soldierName, out aPlayer)) {
                             if (aPlayer.player_aa && !aPlayer.player_aa_told) {
                                 this.ExecuteCommand("procon.protected.send", "admin.yell", "For your consistent player reporting you can now use @" + command + ". Type @" + command + " to move yourself between teams.", "10", "player", soldierName);
@@ -3150,7 +3268,7 @@ namespace PRoConEvents {
 
         #region Ban Enforcer
 
-        private void QueuePlayerForBanCheck(AdKats_Player player) {
+        private void QueuePlayerForBanCheck(AdKatsPlayer player) {
             this.DebugWrite("Entering queuePlayerForBanCheck", 7);
             try {
                 if (this._IsEnabled) {
@@ -3217,7 +3335,7 @@ namespace PRoConEvents {
             this.DebugWrite("Exiting queueCommandForUpload", 7);
         }
 
-        private void QueueRoleForUpload(AdKats_Role aRole) {
+        private void QueueRoleForUpload(AdKatsRole aRole) {
             this.DebugWrite("Entering queueRoleForUpload", 7);
             try {
                 if (this._IsEnabled) {
@@ -3234,7 +3352,7 @@ namespace PRoConEvents {
             this.DebugWrite("Exiting queueRoleForUpload", 7);
         }
 
-        private void QueueRoleForRemoval(AdKats_Role aRole) {
+        private void QueueRoleForRemoval(AdKatsRole aRole) {
             this.DebugWrite("Entering queueRoleForRemoval", 7);
             try {
                 if (this._IsEnabled) {
@@ -3271,7 +3389,7 @@ namespace PRoConEvents {
 
         private void BanEnforcerThreadLoop() {
             try {
-                this.DebugWrite("BANENF: Starting Ban Enforcer Thread", 2);
+                this.DebugWrite("BANENF: Starting Ban Enforcer Thread", 1);
                 Thread.CurrentThread.Name = "BanEnforcer";
 
                 while (true) {
@@ -3282,13 +3400,13 @@ namespace PRoConEvents {
                     }
 
                     //Get all unchecked players
-                    Queue<AdKats_Player> playerCheckingQueue = new Queue<AdKats_Player>();
+                    Queue<AdKatsPlayer> playerCheckingQueue = new Queue<AdKatsPlayer>();
                     if (this._BanEnforcerCheckingQueue.Count > 0 && this._UseBanEnforcer) {
                         this.DebugWrite("BANENF: Preparing to lock banEnforcerMutex to retrive new players", 6);
                         lock (_BanEnforcerMutex) {
                             this.DebugWrite("BANENF: Inbound players found. Grabbing.", 5);
                             //Grab all players in the queue
-                            playerCheckingQueue = new Queue<AdKats_Player>(this._BanEnforcerCheckingQueue.ToArray());
+                            playerCheckingQueue = new Queue<AdKatsPlayer>(this._BanEnforcerCheckingQueue.ToArray());
                             //Clear the queue for next run
                             this._BanEnforcerCheckingQueue.Clear();
                         }
@@ -3304,10 +3422,8 @@ namespace PRoConEvents {
                     //Get all checks in order that they came in
                     while (playerCheckingQueue.Count > 0) {
                         //Grab first/next player
-                        AdKats_Player aPlayer = playerCheckingQueue.Dequeue();
+                        AdKatsPlayer aPlayer = playerCheckingQueue.Dequeue();
                         this.DebugWrite("BANENF: begin reading player", 5);
-
-                        //this.DebugWrite("Checking " + aPlayer.player_name + " Against " + this.adkats_bans_Name.Count + " Name Bans. " + this.adkats_bans_GUID.Count + " GUID Bans. And " + this.adkats_bans_IP.Count + " IP Bans.", 5);
 
                         if (this._PlayerDictionary.ContainsKey(aPlayer.player_name)) {
                             AdKatsBan aBan = this.FetchPlayerBan(aPlayer);
@@ -3341,7 +3457,7 @@ namespace PRoConEvents {
                         }
                     }
                 }
-                this.DebugWrite("BANENF: Ending Ban Enforcer Thread", 2);
+                this.DebugWrite("BANENF: Ending Ban Enforcer Thread", 1);
             }
             catch (Exception e) {
                 if (e is ThreadAbortException) {
@@ -3419,7 +3535,7 @@ namespace PRoConEvents {
 
         #region Hacker Checker
 
-        private void QueuePlayerForHackerCheck(AdKats_Player player) {
+        private void QueuePlayerForHackerCheck(AdKatsPlayer player) {
             this.DebugWrite("Entering queuePlayerForHackerCheck", 7);
             try {
                 if (this._IsEnabled) {
@@ -3437,11 +3553,11 @@ namespace PRoConEvents {
             this.DebugWrite("Exiting queuePlayerForHackerCheck", 7);
         }
 
-        public Boolean PlayerProtected(AdKats_Player aPlayer) {
+        public Boolean PlayerProtected(AdKatsPlayer aPlayer) {
             Boolean protect = false;
             foreach (String whitelistedValue in this._HackerCheckerWhitelist) {
                 if (aPlayer.player_name == whitelistedValue) {
-                    this.DebugWrite(aPlayer.player_name + " protected from hacker checker by name.", 2);
+                    this.DebugWrite(aPlayer.player_name + " protected from hacker checker by id.", 2);
                     protect = true;
                     break;
                 }
@@ -3460,15 +3576,14 @@ namespace PRoConEvents {
         }
 
         public void HackerCheckerThreadLoop() {
-            //Hacker Checker thread for ADK servers
-            double checkedPlayers = 0;
+            Double checkedPlayers = 0;
             Double playersWithStats = 0;
             try {
-                this.DebugWrite("HCKCHK: Starting Hacker Checker Thread", 2);
+                this.DebugWrite("HCKCHK: Starting Hacker Checker Thread", 1);
                 Thread.CurrentThread.Name = "HackerChecker";
 
-                Queue<AdKats_Player> playerCheckingQueue = new Queue<AdKats_Player>();
-                Queue<AdKats_Player> repeatCheckingQueue = new Queue<AdKats_Player>();
+                Queue<AdKatsPlayer> playerCheckingQueue = new Queue<AdKatsPlayer>();
+                Queue<AdKatsPlayer> repeatCheckingQueue = new Queue<AdKatsPlayer>();
                 while (true) {
                     this.DebugWrite("HCKCHK: Entering Hacker Checker Thread Loop", 7);
                     if (!this._IsEnabled) {
@@ -3485,7 +3600,7 @@ namespace PRoConEvents {
                             lock (this._HackerCheckerMutex) {
                                 this.DebugWrite("HCKCHK: Inbound players found. Grabbing.", 5);
                                 //Grab all players in the queue
-                                playerCheckingQueue = new Queue<AdKats_Player>(this._HackerCheckerQueue.ToArray());
+                                playerCheckingQueue = new Queue<AdKatsPlayer>(this._HackerCheckerQueue.ToArray());
                                 //Clear the queue for next run
                                 this._HackerCheckerQueue.Clear();
                             }
@@ -3503,13 +3618,18 @@ namespace PRoConEvents {
                     }
 
                     //Current player being checked
-                    AdKats_Player aPlayer = null;
+                    AdKatsPlayer aPlayer = null;
                     try {
                         //Check one player from the repeat checking queue
                         if (repeatCheckingQueue.Count > 0) {
                             //Only keep players still in the server in the repeat checking list
                             Boolean stillInServer = true;
-                            do {
+                            do
+                            {
+                                if (!this._IsEnabled)
+                                {
+                                    break;
+                                }
                                 aPlayer = repeatCheckingQueue.Dequeue();
                                 if (!this._PlayerDictionary.ContainsKey(aPlayer.player_name)) {
                                     stillInServer = false;
@@ -3543,7 +3663,12 @@ namespace PRoConEvents {
                     }
 
                     //Get all checks in order that they came in
-                    while (playerCheckingQueue.Count > 0) {
+                    while (playerCheckingQueue.Count > 0)
+                    {
+                        if (!this._IsEnabled)
+                        {
+                            break;
+                        }
                         //Grab first/next player
                         aPlayer = playerCheckingQueue.Dequeue();
                         if (aPlayer != null) {
@@ -3571,7 +3696,7 @@ namespace PRoConEvents {
                         }
                     }
                 }
-                this.DebugWrite("HCKCHK: Ending Hacker Checker Thread", 2);
+                this.DebugWrite("HCKCHK: Ending Hacker Checker Thread", 1);
             }
             catch (Exception e) {
                 if (e is ThreadAbortException) {
@@ -3584,7 +3709,7 @@ namespace PRoConEvents {
             }
         }
 
-        private void RunStatSiteHackCheck(AdKats_Player aPlayer, Boolean debug) {
+        private void RunStatSiteHackCheck(AdKatsPlayer aPlayer, Boolean debug) {
             this.DebugWrite("HackerChecker running on " + aPlayer.player_name, 5);
             Boolean acted = false;
             if (this._UseDpsChecker) {
@@ -3600,7 +3725,7 @@ namespace PRoConEvents {
             }
         }
 
-        private void RunGCPHackCheck(AdKats_Player aPlayer, Boolean verbose) {
+        private void RunGCPHackCheck(AdKatsPlayer aPlayer, Boolean verbose) {
             //Fetch hack status from GCP servers
             Hashtable hcResponse = this.FetchGCPHackCheck(aPlayer.player_name);
             String status = (String) hcResponse["status"];
@@ -3613,25 +3738,25 @@ namespace PRoConEvents {
                         List<AdKatsWeaponStats> weaponList = (from DictionaryEntry pair in (Hashtable) response["weapons"]
                             let weaponStats = (Hashtable) pair.Value
                             select new AdKatsWeaponStats {
-                                                             id = (String) pair.Key,
-                                                             kills = (Double) weaponStats["kills"],
-                                                             headshots = (Double) weaponStats["headshots"],
-                                                             dps = (Double) weaponStats["DPS"],
-                                                             hskr = (Double) weaponStats["HKR"],
-                                                             hits = (Double) weaponStats["hit"],
-                                                             shots = (Double) weaponStats["shot"]
+                                                             ID = (String) pair.Key,
+                                                             Kills = (Double) weaponStats["kills"],
+                                                             Headshots = (Double) weaponStats["headshots"],
+                                                             DPS = (Double) weaponStats["DPS"],
+                                                             HSKR = (Double) weaponStats["HKR"],
+                                                             Hits = (Double) weaponStats["hit"],
+                                                             Shots = (Double) weaponStats["shot"]
                                                          }).ToList();
                         AdKatsWeaponStats actedWeapon = null;
                         Double actedDPS = 0;
                         Double actedHSKR = 0;
                         foreach (AdKatsWeaponStats weapon in weaponList) {
-                            if (weapon.dps > actedDPS) {
+                            if (weapon.DPS > actedDPS) {
                                 actedWeapon = weapon;
-                                actedDPS = weapon.dps;
+                                actedDPS = weapon.DPS;
                             }
-                            else if (weapon.hskr > actedHSKR) {
+                            else if (weapon.HSKR > actedHSKR) {
                                 actedWeapon = weapon;
-                                actedHSKR = weapon.hskr;
+                                actedHSKR = weapon.HSKR;
                             }
                         }
                         //Create record for player in actual player list
@@ -3644,11 +3769,11 @@ namespace PRoConEvents {
                                                                        target_name = aPlayer.player_name,
                                                                        target_player = aPlayer,
                                                                        source_name = "AutoAdmin",
-                                                                       record_message = "Hacking/Cheating Automatic Ban [" + actedWeapon.id.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int) actedWeapon.dps + "DPS-" + (int) (actedWeapon.hskr * 100) + "HSKR-" + (int) actedWeapon.kills + "]"
+                                                                       record_message = "Hacking/Cheating Automatic Ban [" + actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int) actedWeapon.DPS + "DPS-" + (int) (actedWeapon.HSKR * 100) + "HSKR-" + (int) actedWeapon.Kills + "]"
                                                                    };
                             //Process the record
                             this.QueueRecordForProcessing(record);
-                            this.ConsoleWarn(aPlayer.player_name + " auto-banned for hacking. [" + actedWeapon.id.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int) actedWeapon.dps + "DPS-" + (int) (actedWeapon.hskr * 100) + "HSKR-" + (int) actedWeapon.kills + "]");
+                            this.ConsoleWarn(aPlayer.player_name + " auto-banned for hacking. [" + actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int) actedWeapon.DPS + "DPS-" + (int) (actedWeapon.HSKR * 100) + "HSKR-" + (int) actedWeapon.Kills + "]");
                         }
                         else {
                             this.ConsoleError("actedWeapon was null in hackerchecker.");
@@ -3675,7 +3800,7 @@ namespace PRoConEvents {
             }
         }
 
-        private Boolean DamageHackCheck(AdKats_Player player, Boolean debugMode) {
+        private Boolean DamageHackCheck(AdKatsPlayer aPlayer, Boolean debugMode) {
             List<String> allowedCategories = null;
             switch (this._GameVersion) {
                 case GameVersion.BF3:
@@ -3700,12 +3825,12 @@ namespace PRoConEvents {
                     return false;
             }
             Boolean acted = false;
-            List<AdKatsWeaponStats> topWeapons = player.stats.weaponStats.Values.ToList();
+            List<AdKatsWeaponStats> topWeapons = aPlayer.stats.WeaponStats.Values.ToList();
             topWeapons.Sort(delegate(AdKatsWeaponStats a1, AdKatsWeaponStats a2) {
-                                if (a1.kills == a2.kills) {
+                                if (a1.Kills == a2.Kills) {
                                     return 0;
                                 }
-                                return (a1.kills < a2.kills) ? (1) : (-1);
+                                return (a1.Kills < a2.Kills) ? (1) : (-1);
                             });
 
             AdKatsWeaponStats actedWeapon = null;
@@ -3717,17 +3842,17 @@ namespace PRoConEvents {
                     break;
                 }
                 //Only count certain weapon categories
-                if (allowedCategories.Contains(weaponStat.category)) {
+                if (allowedCategories.Contains(weaponStat.Category)) {
                     StatLibraryWeapon weapon = null;
-                    if (this._StatLibrary.weapons[this._GameVersion].TryGetValue(weaponStat.id, out weapon)) {
+                    if (this._StatLibrary.Weapons.TryGetValue(weaponStat.ID, out weapon)) {
                         //Only handle weapons that do < 50 max dps
                         if (weapon.damage_max < 50) {
                             //Only take weapons with more than 50 kills
-                            if (weaponStat.kills > 50) {
+                            if (weaponStat.Kills > 50) {
                                 //Check for damage hack
-                                if (weaponStat.dps > weapon.damage_max) {
+                                if (weaponStat.DPS > weapon.damage_max) {
                                     //Get the percentage over normal
-                                    Double percDiff = (weaponStat.dps - weapon.damage_max) / weaponStat.dps;
+                                    Double percDiff = (weaponStat.DPS - weapon.damage_max) / weaponStat.DPS;
                                     if (percDiff > (this._DpsTriggerLevel / 100)) {
                                         if (percDiff > actedPerc) {
                                             actedPerc = percDiff;
@@ -3739,14 +3864,14 @@ namespace PRoConEvents {
                         }
                     }
                     else {
-                        this.ConsoleWarn("Could not find " + weaponStat.id + " in " + this._GameVersion + " stat library.");
+                        this.ConsoleWarn("Could not find " + weaponStat.ID + " in " + this._GameVersion + " library of " + this._StatLibrary.Weapons.Count + " weapons.");
                     }
                 }
             }
             if (actedWeapon != null) {
                 acted = true;
-                String formattedName = actedWeapon.id.Replace("-", "").Replace(" ", "").ToUpper();
-                this.ConsoleError(player.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int) actedWeapon.dps + "-" + (int) actedWeapon.kills + "-" + (int) actedWeapon.headshots + "]");
+                String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
+                this.ConsoleError(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int) actedWeapon.DPS + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]");
                 if (!debugMode) {
                     //Create the ban record
                     AdKatsRecord record = new AdKatsRecord {
@@ -3754,10 +3879,10 @@ namespace PRoConEvents {
                                                                server_id = this._ServerID,
                                                                command_type = this._CommandKeyDictionary["player_ban_perm"],
                                                                command_numeric = 0,
-                                                               target_name = player.player_name,
-                                                               target_player = player,
+                                                               target_name = aPlayer.player_name,
+                                                               target_player = aPlayer,
                                                                source_name = "AutoAdmin",
-                                                               record_message = "Hacking/Cheating DPS Automatic Ban [" + formattedName + "-" + (int) actedWeapon.dps + "-" + (int) actedWeapon.kills + "-" + (int) actedWeapon.headshots + "]"
+                                                               record_message = "Hacking/Cheating DPS Automatic Ban [" + formattedName + "-" + (int) actedWeapon.DPS + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]"
                                                            };
                     //Process the record
                     this.QueueRecordForProcessing(record);
@@ -3767,7 +3892,7 @@ namespace PRoConEvents {
             return acted;
         }
 
-        private Boolean AimbotHackCheck(AdKats_Player player, Boolean debugMode) {
+        private Boolean AimbotHackCheck(AdKatsPlayer player, Boolean debugMode) {
             List<String> allowedCategories;
             switch (this._GameVersion) {
                 case GameVersion.BF3:
@@ -3790,12 +3915,12 @@ namespace PRoConEvents {
                     return false;
             }
             Boolean acted = false;
-            List<AdKatsWeaponStats> topWeapons = player.stats.weaponStats.Values.ToList();
+            List<AdKatsWeaponStats> topWeapons = player.stats.WeaponStats.Values.ToList();
             topWeapons.Sort(delegate(AdKatsWeaponStats a1, AdKatsWeaponStats a2) {
-                                if (a1.kills == a2.kills) {
+                                if (a1.Kills == a2.Kills) {
                                     return 0;
                                 }
-                                return (a1.kills < a2.kills) ? (1) : (-1);
+                                return (a1.Kills < a2.Kills) ? (1) : (-1);
                             });
 
             AdKatsWeaponStats actedWeapon = null;
@@ -3807,27 +3932,24 @@ namespace PRoConEvents {
                     break;
                 }
                 //Only count certain weapon categories
-                if (allowedCategories.Contains(weaponStat.category)) {
+                if (allowedCategories.Contains(weaponStat.Category)) {
                     //Only take weapons with more than 100 kills
-                    if (weaponStat.kills > 100) {
+                    if (weaponStat.Kills > 100) {
                         //Check for aimbot hack
-                        this.DebugWrite("Checking " + weaponStat.id + " HSKR (" + weaponStat.hskr + " >? " + (this._HskTriggerLevel / 100) + ")", 6);
-                        if (weaponStat.hskr > (this._HskTriggerLevel / 100)) {
-                            if (weaponStat.hskr > actedHskr) {
-                                actedHskr = weaponStat.hskr;
+                        this.DebugWrite("Checking " + weaponStat.ID + " HSKR (" + weaponStat.HSKR + " >? " + (this._HskTriggerLevel / 100) + ")", 6);
+                        if (weaponStat.HSKR > (this._HskTriggerLevel / 100)) {
+                            if (weaponStat.HSKR > actedHskr) {
+                                actedHskr = weaponStat.HSKR;
                                 actedWeapon = weaponStat;
                             }
                         }
-                    }
-                    else {
-                        this.ConsoleWarn("Could not find " + weaponStat.id + " in " + this._GameVersion + " stat library.");
                     }
                 }
             }
             if (actedWeapon != null) {
                 acted = true;
-                String formattedName = actedWeapon.id.Replace("-", "").Replace(" ", "").ToUpper();
-                this.ConsoleError(player.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int) (actedWeapon.hskr * 100) + "-" + (int) actedWeapon.kills + "-" + (int) actedWeapon.headshots + "]");
+                String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
+                this.ConsoleError(player.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int) (actedWeapon.HSKR * 100) + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]");
                 if (!debugMode) {
                     //Create the ban record
                     AdKatsRecord record = new AdKatsRecord {
@@ -3838,7 +3960,7 @@ namespace PRoConEvents {
                                                                target_name = player.player_name,
                                                                target_player = player,
                                                                source_name = "AutoAdmin",
-                                                               record_message = "Hacking/Cheating HSK Automatic Ban [" + formattedName + "-" + (int) (actedWeapon.hskr * 100) + "-" + (int) actedWeapon.kills + "-" + (int) actedWeapon.headshots + "]"
+                                                               record_message = "Hacking/Cheating HSK Automatic Ban [" + formattedName + "-" + (int) (actedWeapon.HSKR * 100) + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]"
                                                            };
                     //Process the record
                     this.QueueRecordForProcessing(record);
@@ -4045,7 +4167,7 @@ namespace PRoConEvents {
 
         private void MessagingThreadLoop() {
             try {
-                this.DebugWrite("MESSAGE: Starting Messaging Thread", 2);
+                this.DebugWrite("MESSAGE: Starting Messaging Thread", 1);
                 Thread.CurrentThread.Name = "messaging";
                 while (true) {
                     this.DebugWrite("MESSAGE: Entering Messaging Thread Loop", 7);
@@ -4134,7 +4256,7 @@ namespace PRoConEvents {
                         this.QueueCommandForParsing(speaker, message);
                     }
                 }
-                this.DebugWrite("MESSAGE: Ending Messaging Thread", 2);
+                this.DebugWrite("MESSAGE: Ending Messaging Thread", 1);
             }
             catch (Exception e) {
                 if (e is ThreadAbortException) {
@@ -4198,8 +4320,8 @@ namespace PRoConEvents {
             //assume the max player count per team is 32 if no server info has been provided
             Int32 maxPlayerCount = 32;
             try {
-                this.DebugWrite("TSWAP: Starting TeamSwap Thread", 2);
-                Thread.CurrentThread.Name = "teamswap";
+                this.DebugWrite("TSWAP: Starting TeamSwap Thread", 1);
+                Thread.CurrentThread.Name = "TeamSwap";
                 while (true) {
                     this.DebugWrite("TSWAP: Entering TeamSwap Thread Loop", 7);
                     if (!this._IsEnabled) {
@@ -4212,7 +4334,7 @@ namespace PRoConEvents {
                     this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                     //Wait for listPlayers to finish
                     if (!this._PlayerListUpdateWaitHandle.WaitOne(2000)) {
-                        this.DebugWrite("ListPlayers ran out of time for TeamSwap. 2 sec.", 1);
+                        this.DebugWrite("ListPlayers ran out of time for TeamSwap. 2 sec.", 4);
                     }
 
                     //Refresh Max Player Count, needed for responsive server size
@@ -4279,7 +4401,7 @@ namespace PRoConEvents {
                             if (this._RuMoveQueue.Count > 0) {
                                 if (this._UsPlayerCount < maxPlayerCount) {
                                     CPlayerInfo player = this._RuMoveQueue.Dequeue();
-                                    AdKats_Player dicPlayer = null;
+                                    AdKatsPlayer dicPlayer = null;
                                     if (this._PlayerDictionary.TryGetValue(player.SoldierName, out dicPlayer)) {
                                         if (dicPlayer.frostbitePlayerInfo.TeamID == UsTeamID) {
                                             //Skip the kill/swap if they are already on the goal team by some other means
@@ -4299,7 +4421,7 @@ namespace PRoConEvents {
                             if (this._UsMoveQueue.Count > 0) {
                                 if (this._RuPlayerCount < maxPlayerCount) {
                                     CPlayerInfo player = this._UsMoveQueue.Dequeue();
-                                    AdKats_Player dicPlayer = null;
+                                    AdKatsPlayer dicPlayer = null;
                                     if (this._PlayerDictionary.TryGetValue(player.SoldierName, out dicPlayer)) {
                                         if (dicPlayer.frostbitePlayerInfo.TeamID == RuTeamID) {
                                             //Skip the kill/swap if they are already on the goal team by some other means
@@ -4325,10 +4447,10 @@ namespace PRoConEvents {
                         this.DebugWrite("TSWAP: No players to swap. Waiting for input.", 4);
                         //There are no players to swap, wait.
                         this._TeamswapWaitHandle.Reset();
-                        this._TeamswapWaitHandle.WaitOne(Timeout.Infinite);
+                        this._TeamswapWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                     }
                 }
-                this.DebugWrite("TSWAP: Ending TeamSwap Thread", 2);
+                this.DebugWrite("TSWAP: Ending TeamSwap Thread", 1);
             }
             catch (Exception e) {
                 if (e is ThreadAbortException) {
@@ -4421,7 +4543,7 @@ namespace PRoConEvents {
 
         private void CommandParsingThreadLoop() {
             try {
-                this.DebugWrite("COMMAND: Starting Command Parsing Thread", 2);
+                this.DebugWrite("COMMAND: Starting Command Parsing Thread", 1);
                 Thread.CurrentThread.Name = "Command";
                 while (true) {
                     this.DebugWrite("COMMAND: Entering Command Parsing Thread Loop", 7);
@@ -4468,7 +4590,7 @@ namespace PRoConEvents {
                         this._CommandParsingWaitHandle.WaitOne(Timeout.Infinite);
                     }
                 }
-                this.DebugWrite("COMMAND: Ending Command Thread", 2);
+                this.DebugWrite("COMMAND: Ending Command Thread", 1);
             }
             catch (Exception e) {
                 if (e is ThreadAbortException) {
@@ -5743,14 +5865,14 @@ namespace PRoConEvents {
                     }
                     else {
                         //Get all subString matches
-                        Converter<String, List<AdKats_Player>> exactNameMatches = delegate(String sub) {
-                                                                                      List<AdKats_Player> matches = new List<AdKats_Player>();
+                        Converter<String, List<AdKatsPlayer>> exactNameMatches = delegate(String sub) {
+                                                                                      List<AdKatsPlayer> matches = new List<AdKatsPlayer>();
                                                                                       if (String.IsNullOrEmpty(sub))
                                                                                           return matches;
                                                                                       matches.AddRange(this._PlayerDictionary.Values.Where(player => Regex.Match(player.player_name, sub, RegexOptions.IgnoreCase).Success));
                                                                                       return matches;
                                                                                   };
-                        List<AdKats_Player> subStringMatches = exactNameMatches(record.target_name);
+                        List<AdKatsPlayer> subStringMatches = exactNameMatches(record.target_name);
                         if (subStringMatches.Count == 1) {
                             //Only one subString match, call processing without confirmation if able
                             record.target_player = subStringMatches[0];
@@ -5767,8 +5889,8 @@ namespace PRoConEvents {
                             //Multiple players matched the query, choose correct one
                             String msg = "'" + record.target_name + "' matches multiple players: ";
                             bool first = true;
-                            AdKats_Player suggestion = null;
-                            foreach (AdKats_Player player in subStringMatches) {
+                            AdKatsPlayer suggestion = null;
+                            foreach (AdKatsPlayer player in subStringMatches) {
                                 if (first) {
                                     msg = msg + player.player_name;
                                     first = false;
@@ -5782,9 +5904,9 @@ namespace PRoConEvents {
                                 }
                             }
                             if (suggestion == null) {
-                                //If no player name starts with what admins typed, suggest subString name with lowest Levenshtein distance
+                                //If no player id starts with what admins typed, suggest subString id with lowest Levenshtein distance
                                 Int32 bestDistance = Int32.MaxValue;
-                                foreach (AdKats_Player player in subStringMatches) {
+                                foreach (AdKatsPlayer player in subStringMatches) {
                                     Int32 distance = LevenshteinDistance(record.target_name, player.player_name);
                                     if (distance < bestDistance) {
                                         bestDistance = distance;
@@ -5794,7 +5916,7 @@ namespace PRoConEvents {
                             }
                             //If the suggestion is still null, something has failed
                             if (suggestion == null) {
-                                this.DebugWrite("name suggestion system failed subString match", 5);
+                                this.DebugWrite("id suggestion system failed subString match", 5);
                                 return "ERROR";
                             }
 
@@ -5809,9 +5931,9 @@ namespace PRoConEvents {
                         }
                         else {
                             //There were no players found, run a fuzzy search using Levenshtein Distance on all players in server
-                            AdKats_Player fuzzyMatch = null;
+                            AdKatsPlayer fuzzyMatch = null;
                             Int32 bestDistance = Int32.MaxValue;
-                            foreach (AdKats_Player player in this._PlayerDictionary.Values) {
+                            foreach (AdKatsPlayer player in this._PlayerDictionary.Values) {
                                 Int32 distance = LevenshteinDistance(record.target_name, player.player_name);
                                 if (distance < bestDistance) {
                                     bestDistance = distance;
@@ -5820,7 +5942,7 @@ namespace PRoConEvents {
                             }
                             //If the suggestion is still null, something has failed
                             if (fuzzyMatch == null) {
-                                this.DebugWrite("name suggestion system failed fuzzy match", 5);
+                                this.DebugWrite("id suggestion system failed fuzzy match", 5);
                                 return "ERROR";
                             }
 
@@ -5884,7 +6006,7 @@ namespace PRoConEvents {
                     if (this._PlayersToAutoWhitelist > 0) {
                         Random random = new Random();
                         List<String> playerListCopy = new List<String>();
-                        foreach (AdKats_Player player in this._PlayerDictionary.Values) {
+                        foreach (AdKatsPlayer player in this._PlayerDictionary.Values) {
                             this.DebugWrite("Checking for TeamSwap access on " + player.player_name, 6);
                             if (!this.HasAccess(player, this._CommandKeyDictionary["self_teamswap"])) {
                                 this.DebugWrite("player doesnt have access, adding them to chance list", 6);
@@ -5903,7 +6025,7 @@ namespace PRoConEvents {
                                     playerName = playerListCopy[random.Next(0, playerListCopy.Count - 1)];
                                 } while (this._TeamswapRoundWhitelist.ContainsKey(playerName) && (iterations++ < 100));
                                 if (!this._TeamswapRoundWhitelist.ContainsKey(playerName)) {
-                                    AdKats_Player aPlayer = null;
+                                    AdKatsPlayer aPlayer = null;
                                     if (this._PlayerDictionary.TryGetValue(playerName, out aPlayer)) {
                                         //Create the Exception record
                                         AdKatsRecord record = new AdKatsRecord {
@@ -6020,7 +6142,7 @@ namespace PRoConEvents {
 
         private void ActionHandlingThreadLoop() {
             try {
-                this.DebugWrite("ACTION: Starting Action Thread", 2);
+                this.DebugWrite("ACTION: Starting Action Thread", 1);
                 Thread.CurrentThread.Name = "action";
                 while (true) {
                     this.DebugWrite("ACTION: Entering Action Thread Loop", 7);
@@ -6066,7 +6188,7 @@ namespace PRoConEvents {
                         this._ActionHandlingWaitHandle.WaitOne(Timeout.Infinite);
                     }
                 }
-                this.DebugWrite("ACTION: Ending Action Handling Thread", 2);
+                this.DebugWrite("ACTION: Ending Action Handling Thread", 1);
             }
             catch (Exception e) {
                 if (e is ThreadAbortException) {
@@ -6359,7 +6481,7 @@ namespace PRoConEvents {
                         this.ExecuteCommand("procon.protected.send", "banList.list");
                     }
                     else if (!String.IsNullOrEmpty(record.target_player.player_name)) {
-                        this.ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_player.player_name, "seconds", seconds + "", banMessage);
+                        this.ExecuteCommand("procon.protected.send", "banList.add", "id", record.target_player.player_name, "seconds", seconds + "", banMessage);
                         this.ExecuteCommand("procon.protected.send", "banList.save");
                         this.ExecuteCommand("procon.protected.send", "banList.list");
                     }
@@ -6428,7 +6550,7 @@ namespace PRoConEvents {
                         this.ExecuteCommand("procon.protected.send", "banList.list");
                     }
                     else if (!String.IsNullOrEmpty(record.target_player.player_name)) {
-                        this.ExecuteCommand("procon.protected.send", "banList.add", "name", record.target_player.player_name, "perm", banMessage);
+                        this.ExecuteCommand("procon.protected.send", "banList.add", "id", record.target_player.player_name, "perm", banMessage);
                         this.ExecuteCommand("procon.protected.send", "banList.save");
                         this.ExecuteCommand("procon.protected.send", "banList.list");
                     }
@@ -6638,7 +6760,7 @@ namespace PRoConEvents {
             String message = null;
             try {
                 //Get source player
-                AdKats_Player sourcePlayer = null;
+                AdKatsPlayer sourcePlayer = null;
                 if (this._PlayerDictionary.TryGetValue(record.source_name, out sourcePlayer)) {
                     //If the source has access to move players, then the squad will be unlocked for their entry
                     if (this.HasAccess(record.source_player, this._CommandKeyDictionary["player_move"])) {
@@ -6709,10 +6831,14 @@ namespace PRoConEvents {
                 } while (_RoundReports.ContainsKey(reportID + ""));
                 record.command_numeric = reportID;
                 this._RoundReports.Add(reportID + "", record);
-                String adminAssistantIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
+                String adminAssistantIdentifier = "";
+                if (record.source_player != null)
+                {
+                    adminAssistantIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
+                }
                 //Send to all online players with access to player interaction commands
                 lock (this._PlayersMutex) {
-                    foreach (AdKats_Player player in this._PlayerDictionary.Values.Where(player => this.RoleIsInteractionAble(player.player_role))) {
+                    foreach (AdKatsPlayer player in this._PlayerDictionary.Values.Where(player => this.RoleIsInteractionAble(player.player_role))) {
                         //If any allowed command is a player interaction command, send the report
                         this.PlayerSayMessage(player.player_name, "REPORT " + adminAssistantIdentifier + "[" + reportID + "]: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
                     }
@@ -6741,10 +6867,13 @@ namespace PRoConEvents {
                     reportID = random.Next(100, 999);
                 } while (_RoundReports.ContainsKey(reportID + ""));
                 this._RoundReports.Add(reportID + "", record);
-                String adminAssistantIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
+                String adminAssistantIdentifier = "";
+                if (record.source_player != null) {
+                    adminAssistantIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
+                }
                 //Send to all online players with access to player interaction commands
                 lock (this._PlayersMutex) {
-                    foreach (AdKats_Player player in this._PlayerDictionary.Values.Where(player => this.RoleIsInteractionAble(player.player_role))) {
+                    foreach (AdKatsPlayer player in this._PlayerDictionary.Values.Where(player => this.RoleIsInteractionAble(player.player_role))) {
                         //If any allowed command is a player interaction command, send the report
                         this.PlayerSayMessage(player.player_name, "ADMIN CALL " + adminAssistantIdentifier + "[" + reportID + "]: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
                     }
@@ -6812,7 +6941,7 @@ namespace PRoConEvents {
             this.DebugWrite("Entering nukeTarget", 6);
             String message = null;
             try {
-                foreach (AdKats_Player player in this._PlayerDictionary.Values) {
+                foreach (AdKatsPlayer player in this._PlayerDictionary.Values) {
                     if ((record.target_name == "US Team" && player.frostbitePlayerInfo.TeamID == AdKats.UsTeamID) || (record.target_name == "RU Team" && player.frostbitePlayerInfo.TeamID == AdKats.RuTeamID) || (record.target_name == "Server")) {
                         Thread.Sleep(50);
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
@@ -6834,7 +6963,7 @@ namespace PRoConEvents {
             this.DebugWrite("Entering kickAllPlayers", 6);
             String message = null;
             try {
-                foreach (AdKats_Player player in this._PlayerDictionary.Values) {
+                foreach (AdKatsPlayer player in this._PlayerDictionary.Values) {
                     if (player.player_role.role_key == "guest_default") {
                         Thread.Sleep(50);
                         ExecuteCommand("procon.protected.send", "admin.kickPlayer", player.player_name, "(" + record.source_name + ") " + record.record_message);
@@ -7036,7 +7165,7 @@ namespace PRoConEvents {
             }
         }
 
-        private Boolean HasAccess(AdKats_Player aPlayer, AdKatsCommand command) {
+        private Boolean HasAccess(AdKatsPlayer aPlayer, AdKatsCommand command) {
             try {
                 if (aPlayer == null) {
                     this.ConsoleError("player was null in hasAccess.");
@@ -7070,9 +7199,9 @@ namespace PRoConEvents {
 
         #region Database Methods
 
-        private void DatabaseCommThreadLoop() {
+        private void DatabaseCommunicationThreadLoop() {
             try {
-                this.DebugWrite("DBCOMM: Starting Database Comm Thread", 2);
+                this.DebugWrite("DBCOMM: Starting Database Comm Thread", 1);
                 Thread.CurrentThread.Name = "databasecomm";
                 Boolean firstRun = true;
                 while (true) {
@@ -7209,17 +7338,17 @@ namespace PRoConEvents {
                     //Handle Inbound Role Uploads
                     if (this._RoleUploadQueue.Count > 0) {
                         this.DebugWrite("DBCOMM: Preparing to lock inbound role queue to get new roles", 7);
-                        Queue<AdKats_Role> inboundRoleUpload;
+                        Queue<AdKatsRole> inboundRoleUpload;
                         lock (this._RoleUploadQueue) {
                             this.DebugWrite("DBCOMM: Inbound roles found. Grabbing.", 6);
                             //Grab all roles in the queue
-                            inboundRoleUpload = new Queue<AdKats_Role>(this._RoleUploadQueue.ToArray());
+                            inboundRoleUpload = new Queue<AdKatsRole>(this._RoleUploadQueue.ToArray());
                             //Clear the queue for next run
                             this._RoleUploadQueue.Clear();
                         }
                         //Loop through all roles in order that they came in
                         while (inboundRoleUpload.Count > 0) {
-                            AdKats_Role aRole = inboundRoleUpload.Dequeue();
+                            AdKatsRole aRole = inboundRoleUpload.Dequeue();
 
                             this.UploadRole(aRole);
 
@@ -7233,17 +7362,17 @@ namespace PRoConEvents {
                     //Handle Inbound Role Removal
                     if (this._RoleRemovalQueue.Count > 0) {
                         this.DebugWrite("DBCOMM: Preparing to lock removal role queue to get new roles", 7);
-                        Queue<AdKats_Role> inboundRoleRemoval;
+                        Queue<AdKatsRole> inboundRoleRemoval;
                         lock (this._RoleRemovalQueue) {
                             this.DebugWrite("DBCOMM: Inbound roles found. Grabbing.", 6);
                             //Grab all roles in the queue
-                            inboundRoleRemoval = new Queue<AdKats_Role>(this._RoleRemovalQueue.ToArray());
+                            inboundRoleRemoval = new Queue<AdKatsRole>(this._RoleRemovalQueue.ToArray());
                             //Clear the queue for next run
                             this._RoleRemovalQueue.Clear();
                         }
                         //Loop through all commands in order that they came in
                         while (inboundRoleRemoval.Count > 0) {
-                            AdKats_Role aRole = inboundRoleRemoval.Dequeue();
+                            AdKatsRole aRole = inboundRoleRemoval.Dequeue();
 
                             this.RemoveRole(aRole);
 
@@ -7344,6 +7473,9 @@ namespace PRoConEvents {
 
                     //Ban Enforcer
                     if (this._UseBanEnforcer) {
+                        this.FetchNameBanCount();
+                        this.FetchGUIDBanCount();
+                        this.FetchIPBanCount();
                         if (!this._UseBanEnforcerPreviousState || (DateTime.UtcNow > this._LastDbBanFetch.AddSeconds(DbBanFetchFrequency))) {
                             //Load all bans on startup
                             if (!this._UseBanEnforcerPreviousState) {
@@ -7562,7 +7694,7 @@ namespace PRoConEvents {
                         }
                     }
                 }
-                this.DebugWrite("DBCOMM: Ending Database Comm Thread", 2);
+                this.DebugWrite("DBCOMM: Ending Database Comm Thread", 1);
             }
             catch (Exception e) {
                 if (e is ThreadAbortException) {
@@ -8050,7 +8182,7 @@ namespace PRoConEvents {
                             //Create the connection
                             using (MySqlConnection connection = this.GetDatabaseConnection()) {
                                 //Create the command
-                                Dictionary<long, AdKats_Role> roleList = new Dictionary<long, AdKats_Role>();
+                                Dictionary<long, AdKatsRole> roleList = new Dictionary<long, AdKatsRole>();
                                 using (MySqlCommand sqlcommand = connection.CreateCommand()) {
                                     //Query to fetch all roles
                                     const string sql = @"
@@ -8065,7 +8197,7 @@ namespace PRoConEvents {
                                         //Grab the commands
                                         while (reader.Read()) {
                                             //Create as new AdKats_Command
-                                            AdKats_Role role = new AdKats_Role {
+                                            AdKatsRole role = new AdKatsRole {
                                                                                    role_id = reader.GetInt64("role_id"),
                                                                                    role_key = reader.GetString("role_key"),
                                                                                    role_name = reader.GetString("role_name")
@@ -8089,7 +8221,7 @@ namespace PRoConEvents {
                                     sqlcommand.CommandText = sql;
                                     using (MySqlDataReader reader = sqlcommand.ExecuteReader()) {
                                         //Grab the command assignments
-                                        AdKats_Role currentRole = null;
+                                        AdKatsRole currentRole = null;
                                         while (reader.Read()) {
                                             Int32 roleID = reader.GetInt32("role_id");
                                             Int32 commandID = reader.GetInt32("command_id");
@@ -8122,7 +8254,7 @@ namespace PRoConEvents {
                                     this._RoleNameDictionary.Clear();
                                     this._RoleIDDictionary.Clear();
                                     //Loop over each role found and add them into the dictionaries
-                                    foreach (AdKats_Role role in roleList.Values) {
+                                    foreach (AdKatsRole role in roleList.Values) {
                                         this._RoleKeyDictionary.Add(role.role_key, role);
                                         this._RoleNameDictionary.Add(role.role_name, role);
                                         this._RoleIDDictionary.Add(role.role_id, role);
@@ -8638,7 +8770,7 @@ namespace PRoConEvents {
                                 record.command_numeric = reader.GetInt32("command_numeric");
                                 record.target_name = reader.GetString("target_name");
                                 if (!reader.IsDBNull(6)) {
-                                    record.target_player = new AdKats_Player {
+                                    record.target_player = new AdKatsPlayer {
                                                                                  player_id = reader.GetInt64(6)
                                                                              };
                                 }
@@ -8722,8 +8854,8 @@ namespace PRoConEvents {
                                 if (Int64.TryParse(value.ToString(), out targetIDParse)) {
                                     DebugWrite("id parsed! " + targetIDParse, 6);
                                     //Check if the player needs to be imported, or if they are already in the server
-                                    AdKats_Player importedPlayer = this.FetchPlayer(true, targetIDParse, null, null, null);
-                                    AdKats_Player currentPlayer = null;
+                                    AdKatsPlayer importedPlayer = this.FetchPlayer(true, targetIDParse, null, null, null);
+                                    AdKatsPlayer currentPlayer = null;
                                     if (!String.IsNullOrEmpty(importedPlayer.player_name) && this._PlayerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer)) {
                                         this.DebugWrite("External player is currently in the server, using existing data.", 5);
                                         record.target_player = currentPlayer;
@@ -8762,7 +8894,7 @@ namespace PRoConEvents {
             if (this.HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (this._NameBanCount >= 0 && (DateTime.UtcNow - this._LastNameBanCountFetch).TotalSeconds < 2) {
+            if (this._NameBanCount >= 0 && (DateTime.UtcNow - this._LastNameBanCountFetch).TotalSeconds < 30) {
                 return this._NameBanCount;
             }
             this._LastNameBanCountFetch = DateTime.UtcNow;
@@ -8789,7 +8921,7 @@ namespace PRoConEvents {
                 }
             }
             catch (Exception e) {
-                this.HandleException(new AdKatsException("Error while fetching number of name bans.", e));
+                this.HandleException(new AdKatsException("Error while fetching number of id bans.", e));
             }
 
             DebugWrite("fetchNameBanCount finished!", 7);
@@ -8803,7 +8935,7 @@ namespace PRoConEvents {
             if (this.HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (this._GUIDBanCount >= 0 && (DateTime.UtcNow - this._LastGUIDBanCountFetch).TotalSeconds < 2) {
+            if (this._GUIDBanCount >= 0 && (DateTime.UtcNow - this._LastGUIDBanCountFetch).TotalSeconds < 30) {
                 return this._GUIDBanCount;
             }
             this._LastGUIDBanCountFetch = DateTime.UtcNow;
@@ -8844,7 +8976,7 @@ namespace PRoConEvents {
             if (this.HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (this._IPBanCount >= 0 && (DateTime.UtcNow - this._LastIPBanCountFetch).TotalSeconds < 2) {
+            if (this._IPBanCount >= 0 && (DateTime.UtcNow - this._LastIPBanCountFetch).TotalSeconds < 30) {
                 return this._IPBanCount;
             }
             this._LastIPBanCountFetch = DateTime.UtcNow;
@@ -8904,7 +9036,7 @@ namespace PRoConEvents {
         }
 
         //DONE
-        private void RemoveRole(AdKats_Role aRole) {
+        private void RemoveRole(AdKatsRole aRole) {
             DebugWrite("removeRole starting!", 6);
             //Make sure database connection active
             if (this.HandlePossibleDisconnect()) {
@@ -8912,7 +9044,7 @@ namespace PRoConEvents {
             }
             try {
                 //Assign "Default Guest" to all users currently on this role
-                AdKats_Role guestRole = null;
+                AdKatsRole guestRole = null;
                 if (this._RoleKeyDictionary.TryGetValue("guest_default", out guestRole)) {
                     foreach (AdKatsUser aUser in this._UserCache.Values) {
                         if (aUser.user_role.role_key == aRole.role_key) {
@@ -8969,7 +9101,7 @@ namespace PRoConEvents {
                         //If the user does not have a current role, we need to assign them one
                         if (aUser.user_role == null) {
                             //Make sure we have a role to give them
-                            AdKats_Role aRole = null;
+                            AdKatsRole aRole = null;
                             if (this._RoleKeyDictionary.TryGetValue("guest_default", out aRole)) {
                                 aUser.user_role = aRole;
                             }
@@ -9034,7 +9166,7 @@ namespace PRoConEvents {
                     //Upload/Update the user's soldier list
                     if (aUser.soldierDictionary.Count > 0) {
                         //Refill user with current soldiers
-                        foreach (AdKats_Player aPlayer in aUser.soldierDictionary.Values) {
+                        foreach (AdKatsPlayer aPlayer in aUser.soldierDictionary.Values) {
                             using (MySqlCommand command = connection.CreateCommand()) {
                                 //Set the insert command structure
                                 command.CommandText = @"
@@ -9077,7 +9209,7 @@ namespace PRoConEvents {
         }
 
         //DONE
-        private void UploadRole(AdKats_Role aRole) {
+        private void UploadRole(AdKatsRole aRole) {
             DebugWrite("uploadRole starting!", 6);
             //Make sure database connection active
             if (this.HandlePossibleDisconnect()) {
@@ -9246,6 +9378,16 @@ namespace PRoConEvents {
 
                             command.Parameters.AddWithValue("@player_id", aBan.ban_record.target_player.player_id);
                             command.Parameters.AddWithValue("@latest_record_id", aBan.ban_record.record_id);
+                            if (String.IsNullOrEmpty(aBan.ban_status)) {
+                                aBan.ban_exception = new AdKatsException("Ban status was null or empty when posting.");
+                                this.HandleException(aBan.ban_exception);
+                                return;
+                            }
+                            if (aBan.ban_status != "Active" && aBan.ban_status != "Disabled" && aBan.ban_status != "Expired") {
+                                aBan.ban_exception = new AdKatsException("Ban status of '" + aBan.ban_status + "' was invalid when posting.");
+                                this.HandleException(aBan.ban_exception);
+                                return;
+                            }
                             command.Parameters.AddWithValue("@ban_status", aBan.ban_status);
                             if (String.IsNullOrEmpty(aBan.ban_notes))
                                 aBan.ban_notes = "NoNotes";
@@ -9272,7 +9414,8 @@ namespace PRoConEvents {
                                 SELECT 
                                     `ban_id`,
                                     `ban_startTime`, 
-                                    `ban_endTime` 
+                                    `ban_endTime`,
+                                    `ban_status`
                                 FROM 
                                     `adkats_bans` 
                                 WHERE 
@@ -9286,7 +9429,12 @@ namespace PRoConEvents {
                                         aBan.ban_id = reader.GetInt64("ban_id");
                                         aBan.ban_startTime = reader.GetDateTime("ban_startTime");
                                         aBan.ban_endTime = reader.GetDateTime("ban_endTime");
-
+                                        String status = reader.GetString("ban_status");
+                                        if (status != aBan.ban_status) {
+                                            aBan.ban_exception = new AdKatsException("Ban status was invalid when confirming ban post. Your database is not in strict mode.");
+                                            this.HandleException(aBan.ban_exception);
+                                            return;
+                                        }
                                         //Update setting page to reflect the ban count
                                         this.UpdateSettingPage();
                                         this.DebugWrite("Ban ID: " + aBan.ban_id, 5);
@@ -9306,8 +9454,8 @@ namespace PRoConEvents {
             DebugWrite("uploadBan finished!", 6);
         }
 
-        private Boolean AssignPlayerRole(AdKats_Player aPlayer) {
-            AdKats_Role aRole = null;
+        private Boolean AssignPlayerRole(AdKatsPlayer aPlayer) {
+            AdKatsRole aRole = null;
             Boolean authorized = false;
             lock (this._UserCache) {
                 foreach (AdKatsUser aUser in this._UserCache.Values) {
@@ -9348,12 +9496,12 @@ namespace PRoConEvents {
             return authorized;
         }
 
-        private Boolean FetchMatchingPlayers(String playerName, out List<AdKats_Player> resultPlayers, Boolean verbose) {
+        private Boolean FetchMatchingPlayers(String playerName, out List<AdKatsPlayer> resultPlayers, Boolean verbose) {
             DebugWrite("FetchMatchingPlayers starting!", 6);
-            resultPlayers = new List<AdKats_Player>();
+            resultPlayers = new List<AdKatsPlayer>();
             if (String.IsNullOrEmpty(playerName)) {
                 if (verbose) {
-                    this.ConsoleError("Player name was blank when fetching players.");
+                    this.ConsoleError("Player id was blank when fetching players.");
                 }
                 return false;
             }
@@ -9373,7 +9521,7 @@ namespace PRoConEvents {
                     {
                         //Grab the matching players
                         while (reader.Read()) {
-                            AdKats_Player aPlayer = this.FetchPlayer(true, reader.GetInt64("player_id"), null, null, null);
+                            AdKatsPlayer aPlayer = this.FetchPlayer(true, reader.GetInt64("player_id"), null, null, null);
                             if (aPlayer != null) {
                                 resultPlayers.Add(aPlayer);
                             }
@@ -9393,14 +9541,14 @@ namespace PRoConEvents {
         }
 
         //DONE
-        private AdKats_Player FetchPlayer(Boolean requireExisting, Int64 playerID, String playerName, String playerGUID, String playerIP) {
+        private AdKatsPlayer FetchPlayer(Boolean readOnly, Int64 playerID, String playerName, String playerGUID, String playerIP) {
             DebugWrite("fetchPlayer starting!", 6);
             //Create return list
-            AdKats_Player aPlayer = null;
+            AdKatsPlayer aPlayer = null;
             //Make sure database connection active
             if (this.HandlePossibleDisconnect()) {
                 //If AdKats is disconnected from the database, return the player as-is
-                aPlayer = new AdKats_Player {
+                aPlayer = new AdKatsPlayer {
                                                 player_name = playerName,
                                                 player_guid = playerGUID
                                             };
@@ -9423,51 +9571,51 @@ namespace PRoConEvents {
                             FROM `" + this._MySqlDatabaseName + @"`.`tbl_playerdata` ";
                             bool sqlEnder = true;
                             if (playerID >= 0) {
-                                sql += " WHERE (";
+                                sql += " WHERE ( ";
                                 sqlEnder = false;
-                                sql += " `PlayerID` = " + playerID + "";
+                                sql += " `PlayerID` = " + playerID + " ";
                             }
                             if (!String.IsNullOrEmpty(playerGUID)) {
                                 if (sqlEnder) {
-                                    sql += " WHERE (";
+                                    sql += " WHERE ( ";
                                     sqlEnder = false;
                                 }
                                 else {
                                     sql += " OR ";
                                 }
-                                sql += " `EAGUID` LIKE '" + playerGUID + "'";
+                                sql += " `EAGUID` LIKE '" + playerGUID + "' ";
                             }
                             if (String.IsNullOrEmpty(playerGUID) && !String.IsNullOrEmpty(playerName)) {
                                 if (sqlEnder) {
-                                    sql += " WHERE (";
+                                    sql += " WHERE ( ";
                                     sqlEnder = false;
                                 }
                                 else {
                                     sql += " OR ";
                                 }
-                                sql += " `SoldierName` LIKE '" + playerName + "'";
+                                sql += " `SoldierName` LIKE '" + playerName + "' ";
                             }
                             if (String.IsNullOrEmpty(playerGUID) && !String.IsNullOrEmpty(playerIP)) {
                                 if (sqlEnder) {
-                                    sql += " WHERE (";
+                                    sql += " WHERE ( ";
                                     sqlEnder = false;
                                 }
                                 else {
                                     sql += " OR ";
                                 }
-                                sql += " `IP_Address` LIKE '" + playerIP + "'";
+                                sql += " `IP_Address` LIKE '" + playerIP + "' ";
                             }
                             if (!sqlEnder) {
-                                sql += ")";
+                                sql += " ) ";
                             }
                             if (this._GameID > 0)
                             {
-                                sql += " AND `GameID` = " + this._GameID + "";
+                                sql += " AND `GameID` = " + this._GameID + " ";
                             }
                             command.CommandText = sql;
                             using (MySqlDataReader reader = command.ExecuteReader()) {
                                 if (reader.Read()) {
-                                    aPlayer = new AdKats_Player();
+                                    aPlayer = new AdKatsPlayer();
                                     //Player ID will never be null
                                     aPlayer.player_id = reader.GetInt64("player_id");
                                     if (!reader.IsDBNull(1))
@@ -9484,15 +9632,16 @@ namespace PRoConEvents {
                                 }
                             }
                         }
-                        if (aPlayer == null) {
-                            if (requireExisting) {
-                                return null;
-                            }
-                            this.DebugWrite("Adding player to database.", 5);
-                            using (MySqlCommand command = connection.CreateCommand()) {
-                                //Set the insert command structure
-                                Boolean hasPrevious = (this._GameID > 0) || !String.IsNullOrEmpty(playerName) || !String.IsNullOrEmpty(playerGUID) || !String.IsNullOrEmpty(playerIP);
-                                command.CommandText = @"
+                        if (!readOnly)
+                        {
+                            if (aPlayer == null)
+                            {
+                                this.DebugWrite("Adding player to database.", 5);
+                                using (MySqlCommand command = connection.CreateCommand())
+                                {
+                                    //Set the insert command structure
+                                    Boolean hasPrevious = (this._GameID > 0) || !String.IsNullOrEmpty(playerName) || !String.IsNullOrEmpty(playerGUID) || !String.IsNullOrEmpty(playerIP);
+                                    command.CommandText = @"
                                 INSERT INTO `" + this._MySqlDatabaseName + @"`.`tbl_playerdata` 
                                 (
                                     " + ((this._GameID > 0) ? ("`GameID`") : ("")) + @"
@@ -9513,34 +9662,44 @@ namespace PRoConEvents {
                                     " + ((!String.IsNullOrEmpty(playerName)) ? (@",`SoldierName` = '" + playerName + "'") : ("")) + @"
                                     " + ((!String.IsNullOrEmpty(playerGUID)) ? (@",`EAGUID` = '" + playerGUID + "'") : ("")) + @"
                                     " + ((!String.IsNullOrEmpty(playerIP)) ? (@",`IP_Address` = '" + playerIP + "'") : (""));
-                                //Attempt to execute the query
-                                if (command.ExecuteNonQuery() > 0) {
-                                    //Rows affected should be > 0
-                                    aPlayer = new AdKats_Player {
-                                                                    player_id = command.LastInsertedId,
-                                                                    player_name = playerName,
-                                                                    player_guid = playerGUID,
-                                                                    player_ip = playerIP
-                                                                };
+                                    //Attempt to execute the query
+                                    if (command.ExecuteNonQuery() > 0)
+                                    {
+                                        //Rows affected should be > 0
+                                        aPlayer = new AdKatsPlayer
+                                        {
+                                            player_id = command.LastInsertedId,
+                                            player_name = playerName,
+                                            player_guid = playerGUID,
+                                            player_ip = playerIP
+                                        };
+                                    }
+                                    else
+                                    {
+                                        this.ConsoleError("Unable to add player to database.");
+                                        return null;
+                                    }
                                 }
-                                else {
-                                    this.ConsoleError("Unable to add player to database.");
-                                    return null;
+                            }
+                            if (!String.IsNullOrEmpty(playerName) && !String.IsNullOrEmpty(aPlayer.player_guid) && playerName != aPlayer.player_name)
+                            {
+                                this.DebugWrite(aPlayer.player_name + " changed their id to " + playerName + ". Updating the database.", 2);
+                                using (MySqlCommand command = connection.CreateCommand())
+                                {
+                                    //Set the insert command structure
+                                    command.CommandText = @"UPDATE `" + this._MySqlDatabaseName + @"`.`tbl_playerdata` SET `SoldierName` = '" + playerName + "' WHERE `EAGUID` = '" + aPlayer.player_guid + "'";
+                                    //Attempt to execute the query
+                                    if (command.ExecuteNonQuery() <= 0)
+                                    {
+                                        this.ConsoleError("Could not update " + aPlayer.player_name + "'s id-change to " + playerName + " in the database.");
+                                    }
+                                    //Update the player id in the player object
+                                    aPlayer.player_name = playerName;
                                 }
                             }
                         }
-                        if (!String.IsNullOrEmpty(playerName) && !String.IsNullOrEmpty(aPlayer.player_guid) && playerName != aPlayer.player_name) {
-                            this.DebugWrite(aPlayer.player_name + " changed their name to " + playerName + ". Updating the database.", 2);
-                            using (MySqlCommand command = connection.CreateCommand()) {
-                                //Set the insert command structure
-                                command.CommandText = @"UPDATE `" + this._MySqlDatabaseName + @"`.`tbl_playerdata` SET `SoldierName` = '" + playerName + "' WHERE `EAGUID` = '" + aPlayer.player_guid + "'";
-                                //Attempt to execute the query
-                                if (command.ExecuteNonQuery() <= 0) {
-                                    this.ConsoleError("Could not update " + aPlayer.player_name + "'s name-change to " + playerName + " in the database.");
-                                }
-                                //Update the player name in the player object
-                                aPlayer.player_name = playerName;
-                            }
+                        if (aPlayer == null) {
+                            return null;
                         }
                         //Load admin assistat status
                         aPlayer.player_aa = this.IsAdminAssistant(aPlayer);
@@ -9562,7 +9721,7 @@ namespace PRoConEvents {
             return aPlayer;
         }
 
-        private AdKats_Player UpdatePlayer(AdKats_Player player) {
+        private AdKatsPlayer UpdatePlayer(AdKatsPlayer player) {
             this.DebugWrite("updatePlayer starting!", 6);
             //Make sure database connection active
             if (this.HandlePossibleDisconnect()) {
@@ -9598,7 +9757,7 @@ namespace PRoConEvents {
         }
 
         //DONE
-        private AdKatsBan FetchPlayerBan(AdKats_Player player) {
+        private AdKatsBan FetchPlayerBan(AdKatsPlayer player) {
             DebugWrite("fetchPlayerBan starting!", 6);
 
             AdKatsBan aBan = null;
@@ -9784,15 +9943,15 @@ namespace PRoConEvents {
                                 if (totalBanSeconds > 0) {
                                     this.DebugWrite("Re-ProconBanning: " + aBan.ban_record.target_player.player_name + " for " + totalBanSeconds + "sec for " + aBan.ban_record.record_message, 4);
 
-                                    //Push the name ban
+                                    //Push the id ban
                                     if (reader.GetString("ban_enforceName") == "Y") {
                                         Thread.Sleep(75);
                                         //Permabans and Temp bans longer than 1 year will be defaulted to permaban
                                         if (totalBanSeconds > 0 && totalBanSeconds < 31536000) {
-                                            this.ExecuteCommand("procon.protected.send", "banList.add", "name", aBan.ban_record.target_player.player_name, "seconds", totalBanSeconds + "", aBan.ban_record.record_message);
+                                            this.ExecuteCommand("procon.protected.send", "banList.add", "id", aBan.ban_record.target_player.player_name, "seconds", totalBanSeconds + "", aBan.ban_record.record_message);
                                         }
                                         else {
-                                            this.ExecuteCommand("procon.protected.send", "banList.add", "name", aBan.ban_record.target_player.player_name, "perm", aBan.ban_record.record_message);
+                                            this.ExecuteCommand("procon.protected.send", "banList.add", "id", aBan.ban_record.target_player.player_name, "perm", aBan.ban_record.record_message);
                                         }
                                     }
 
@@ -10159,7 +10318,7 @@ namespace PRoConEvents {
         }
 
         //DONE
-        private Int32 FetchPoints(AdKats_Player player) {
+        private Int32 FetchPoints(AdKatsPlayer player) {
             DebugWrite("fetchPoints starting!", 6);
 
             Int32 returnVal = -1;
@@ -10264,7 +10423,7 @@ namespace PRoConEvents {
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             while (reader.Read()) {
                                 //Create the new player object
-                                AdKats_Player aPlayer = new AdKats_Player();
+                                AdKatsPlayer aPlayer = new AdKatsPlayer();
 
                                 //Import the information
                                 Int32 userID = reader.GetInt32("user_id"); //0
@@ -10304,7 +10463,7 @@ namespace PRoConEvents {
 
             //Update all currently online players
             lock (this._PlayersMutex) {
-                foreach (AdKats_Player aPlayer in this._PlayerDictionary.Values) {
+                foreach (AdKatsPlayer aPlayer in this._PlayerDictionary.Values) {
                     this.AssignPlayerRole(aPlayer);
                 }
             }
@@ -10326,7 +10485,7 @@ namespace PRoConEvents {
         }
 
         //DONE
-        private Boolean IsAdminAssistant(AdKats_Player player) {
+        private Boolean IsAdminAssistant(AdKatsPlayer player) {
             DebugWrite("fetchAdminAssistants starting!", 6);
 
             //Make sure database connection active
@@ -10344,8 +10503,8 @@ namespace PRoConEvents {
                         WHERE (
 	                        SELECT count(`command_action`) 
 	                        FROM `adkats_records_main` 
-	                        WHERE `command_action` = 'ConfirmReport' 
-	                        AND `source_name` = '" + player.player_name + @"' 
+	                        WHERE `command_action` = " + this.GetCommandByKey("player_report_confirm").command_id + @" 
+	                        AND `source_id` = " + player.player_id + @" 
 	                        AND (`adkats_records_main`.`record_time` BETWEEN date_sub(UTC_TIMESTAMP(),INTERVAL 30 DAY) AND UTC_TIMESTAMP())
                         ) >= " + this._MinimumRequiredMonthlyReports + " LIMIT 1";
                         using (MySqlDataReader reader = command.ExecuteReader()) {
@@ -10455,7 +10614,7 @@ namespace PRoConEvents {
                                         foreach (AdKatsCommand command in user.user_role.allowedCommands.Values) {
                                             //If the teamswap command is allowed add each of the user's soldiers to the whitelist
                                             if (command.command_key == "self_teamswap") {
-                                                foreach (AdKats_Player soldier in user.soldierDictionary.Values) {
+                                                foreach (AdKatsPlayer soldier in user.soldierDictionary.Values) {
                                                     accessMoveme.Add(soldier.player_name);
                                                 }
                                             }
@@ -10485,7 +10644,7 @@ namespace PRoConEvents {
                     //Loop over the user list and grab all current soldiers
                     List<String> allUserSoldiers = new List<String>();
                     foreach (AdKatsUser user in this._UserCache.Values) {
-                        foreach (AdKats_Player soldier in user.soldierDictionary.Values) {
+                        foreach (AdKatsPlayer soldier in user.soldierDictionary.Values) {
                             allUserSoldiers.Add(soldier.player_name);
                             //Add needed soldiers to the reserved slot list
                             if (!this._CurrentReservedSlotPlayers.Contains(soldier.player_name)) {
@@ -10544,7 +10703,7 @@ namespace PRoConEvents {
         private void ParseExternalPluginCommand(Object clientInformation) {
             this.DebugWrite("ParseExternalPluginCommand starting!", 6);
             try {
-                //Set current thread name
+                //Set current thread id
                 Thread.CurrentThread.Name = "ParseExternalPluginCommand";
 
                 //Parse Command Information into a record
@@ -10579,7 +10738,7 @@ namespace PRoConEvents {
                 else {
                     commandNumeric = (Int32) parsedClientInformation["command_numeric"];
                 }
-                //Import the source name
+                //Import the source id
                 if (!parsedClientInformation.ContainsKey("source_name")) {
                     this.ConsoleError("Parsed command didn't contain a source_name!");
                     return;
@@ -10589,7 +10748,7 @@ namespace PRoConEvents {
                     return;
                 }
                 sourceName = (String) parsedClientInformation["source_name"];
-                //Import the target name
+                //Import the target id
                 if (!parsedClientInformation.ContainsKey("target_name")) {
                     this.ConsoleError("Parsed command didn't contain a target_name!");
                     return;
@@ -10740,7 +10899,7 @@ namespace PRoConEvents {
 
                             StringBuilder sb = new StringBuilder();
                             if (String.IsNullOrEmpty(Plugin._ServerName)) {
-                                //Unable to send report email, server name unknown
+                                //Unable to send report email, server id unknown
                                 return;
                             }
                             subject = record.target_name + " reported in [" + Plugin._GameVersion.ToString() + "] " + Plugin._ServerName;
@@ -11355,11 +11514,12 @@ namespace PRoConEvents {
 
         #region BF3Stats Fetch
 
-        public AdKatsPlayerStats FetchPlayerStats(AdKats_Player aPlayer) {
+        public AdKatsPlayerStats FetchPlayerStats(AdKatsPlayer aPlayer) {
             this.DebugWrite("entering getPlayerStats", 7);
             //Create return value
             AdKatsPlayerStats stats = new AdKatsPlayerStats();
-            try {
+            try
+            {
                 //Fetch from BF3Stats
                 Hashtable responseData = null;
                 if (this._GameVersion == GameVersion.BF3) {
@@ -11367,41 +11527,41 @@ namespace PRoConEvents {
                     if (responseData != null) {
                         String dataStatus = (String) responseData["status"];
                         if (dataStatus == "error") {
-                            stats.stats_exception = new AdKatsException("BF3 Stats reported error.");
+                            stats.StatsException = new AdKatsException("BF3 Stats reported error.");
                         }
                         else if (dataStatus == "notfound") {
-                            stats.stats_exception = new AdKatsException(aPlayer.player_name + " not found");
+                            stats.StatsException = new AdKatsException(aPlayer.player_name + " not found");
                         }
                         else {
                             //Pull the global stats
                             stats.Platform = (String) responseData["plat"];
                             stats.ClanTag = (String) responseData["tag"];
-                            stats.language = (String) responseData["language"];
-                            stats.country = (String) responseData["country"];
-                            stats.country_name = (String) responseData["country_name"];
+                            stats.Language = (String) responseData["language"];
+                            stats.Country = (String) responseData["country"];
+                            stats.CountryName = (String) responseData["country_name"];
                             DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0);
-                            stats.firstSeen = dtDateTime.AddSeconds((Double) responseData["date_insert"]);
-                            stats.lastPlayerUpdate = dtDateTime.AddSeconds((Double) responseData["date_update"]);
+                            stats.FirstSeen = dtDateTime.AddSeconds((Double) responseData["date_insert"]);
+                            stats.LastPlayerUpdate = dtDateTime.AddSeconds((Double) responseData["date_update"]);
 
                             //Get internal stats
                             if (dataStatus == "data") {
                                 Hashtable statsList = (Hashtable) responseData["stats"];
-                                stats.lastStatUpdate = dtDateTime.AddSeconds((Double) statsList["date_update"]);
+                                stats.LastStatUpdate = dtDateTime.AddSeconds((Double) statsList["date_update"]);
                                 //Get rank
                                 Hashtable rankTable = (Hashtable) statsList["rank"];
-                                stats.rank = (Double) rankTable["nr"];
+                                stats.Rank = (Double) rankTable["nr"];
                                 //Get overall
                                 Hashtable global = (Hashtable) statsList["global"];
-                                stats.kills = (Double) global["kills"];
-                                stats.deaths = (Double) global["deaths"];
-                                stats.wins = (Double) global["wins"];
-                                stats.losses = (Double) global["losses"];
-                                stats.shots = (Double) global["shots"];
-                                stats.hits = (Double) global["hits"];
-                                stats.headshots = (Double) global["headshots"];
-                                stats.time = TimeSpan.FromSeconds((Double) global["time"]);
+                                stats.Kills = (Double) global["kills"];
+                                stats.Deaths = (Double) global["deaths"];
+                                stats.Wins = (Double) global["wins"];
+                                stats.Losses = (Double) global["losses"];
+                                stats.Shots = (Double) global["shots"];
+                                stats.Hits = (Double) global["hits"];
+                                stats.Headshots = (Double) global["headshots"];
+                                stats.Time = TimeSpan.FromSeconds((Double) global["time"]);
                                 //Get weapons
-                                stats.weaponStats = new Dictionary<String, AdKatsWeaponStats>();
+                                stats.WeaponStats = new Dictionary<String, AdKatsWeaponStats>();
                                 Hashtable weaponStats = (Hashtable) statsList["weapons"];
                                 foreach (String weaponKey in weaponStats.Keys) {
                                     //Create new construct
@@ -11409,25 +11569,25 @@ namespace PRoConEvents {
                                     //Grab data
                                     Hashtable currentWeapon = (Hashtable) weaponStats[weaponKey];
                                     //Parse into construct
-                                    weapon.id = (String) currentWeapon["name"];
-                                    weapon.shots = (Double) currentWeapon["shots"];
-                                    weapon.hits = (Double) currentWeapon["hits"];
-                                    weapon.kills = (Double) currentWeapon["kills"];
-                                    weapon.headshots = (Double) currentWeapon["headshots"];
-                                    weapon.category = (String) currentWeapon["category"];
-                                    weapon.kit = (String) currentWeapon["kit"];
-                                    weapon.range = (String) currentWeapon["range"];
-                                    weapon.time = TimeSpan.FromSeconds((Double) currentWeapon["time"]);
+                                    weapon.ID = (String) currentWeapon["id"];
+                                    weapon.Shots = (Double) currentWeapon["shots"];
+                                    weapon.Hits = (Double) currentWeapon["hits"];
+                                    weapon.Kills = (Double) currentWeapon["kills"];
+                                    weapon.Headshots = (Double) currentWeapon["headshots"];
+                                    weapon.Category = (String) currentWeapon["category"];
+                                    weapon.Kit = (String) currentWeapon["kit"];
+                                    weapon.Range = (String) currentWeapon["range"];
+                                    weapon.Time = TimeSpan.FromSeconds((Double) currentWeapon["time"]);
                                     //Calculate values
-                                    weapon.hskr = weapon.headshots / weapon.kills;
-                                    weapon.kpm = weapon.kills / weapon.time.TotalMinutes;
-                                    weapon.dps = weapon.kills / weapon.hits * 100;
+                                    weapon.HSKR = weapon.Headshots / weapon.Kills;
+                                    weapon.KPM = weapon.Kills / weapon.Time.TotalMinutes;
+                                    weapon.DPS = weapon.Kills / weapon.Hits * 100;
                                     //Assign the construct
-                                    stats.weaponStats.Add(weapon.id, weapon);
+                                    stats.WeaponStats.Add(weapon.ID, weapon);
                                 }
                             }
                             else {
-                                stats.stats_exception = new AdKatsException(aPlayer.player_name + " did not have stats");
+                                stats.StatsException = new AdKatsException(aPlayer.player_name + " did not have stats");
                             }
                         }
                     }
@@ -11436,13 +11596,13 @@ namespace PRoConEvents {
                     responseData = this.FetchBF4StatsPlayer(aPlayer.player_name);
                     if (responseData != null) {
                         if (responseData.ContainsKey("error")) {
-                            stats.stats_exception = new AdKatsException("BF4 stats returned error '" + ((String) responseData["error"]) + "' when querying for player '" + aPlayer.player_name + "'.");
-                            this.ConsoleError(stats.stats_exception.ToString());
+                            stats.StatsException = new AdKatsException("BF4 stats returned error '" + ((String) responseData["error"]) + "' when querying for player '" + aPlayer.player_name + "'.");
+                            this.ConsoleError(stats.StatsException.ToString());
                             return null;
                         }
                         else if (!responseData.ContainsKey("player") || !responseData.ContainsKey("stats") || !responseData.ContainsKey("weapons")) {
-                            stats.stats_exception = new AdKatsException("BF4 stats response for player '" + aPlayer.player_name + "' was invalid.");
-                            this.ConsoleError(stats.stats_exception.ToString());
+                            stats.StatsException = new AdKatsException("BF4 stats response for player '" + aPlayer.player_name + "' was invalid.");
+                            this.ConsoleError(stats.StatsException.ToString());
                             return null;
                         }
                         else {
@@ -11452,70 +11612,70 @@ namespace PRoConEvents {
                                 if (playerData != null && playerData.Count > 0) {
                                     stats.Platform = (String) playerData["plat"];
                                     stats.ClanTag = (String) playerData["tag"];
-                                    stats.country = (String) playerData["country"];
-                                    stats.country_name = (String) playerData["countryName"];
+                                    stats.Country = (String) playerData["country"];
+                                    stats.CountryName = (String) playerData["countryName"];
                                     DateTime dtDateTime = new DateTime(1970, 1, 1, 0, 0, 0, 0);
                                     Double createMilli = (Double) playerData["dateCreate"];
-                                    stats.firstSeen = dtDateTime.AddMilliseconds(createMilli);
+                                    stats.FirstSeen = dtDateTime.AddMilliseconds(createMilli);
                                     Double updateMilli = (Double) playerData["dateUpdate"];
-                                    stats.lastPlayerUpdate = dtDateTime.AddMilliseconds(updateMilli);
+                                    stats.LastPlayerUpdate = dtDateTime.AddMilliseconds(updateMilli);
                                     //Get rank
                                     Hashtable rankData = (Hashtable) playerData["rank"];
-                                    stats.rank = (Double) rankData["nr"];
+                                    stats.Rank = (Double) rankData["nr"];
                                 }
                                 else {
-                                    stats.stats_exception = new AdKatsException(aPlayer.player_name + " did not have global info.");
+                                    stats.StatsException = new AdKatsException(aPlayer.player_name + " did not have global info.");
                                 }
 
                                 //Get Stats
                                 Hashtable statsData = (Hashtable) responseData["stats"];
                                 if (statsData != null && statsData.Count > 0) {
                                     //Stat last update is the same as last player update in BF4
-                                    stats.lastStatUpdate = stats.lastPlayerUpdate;
-                                    stats.kills = (Double) statsData["kills"];
-                                    stats.deaths = (Double) statsData["deaths"];
-                                    stats.wins = (Double) statsData["numWins"];
-                                    stats.losses = (Double) statsData["numLosses"];
-                                    stats.shots = (Double) statsData["shotsFired"];
-                                    stats.hits = (Double) statsData["shotsHit"];
-                                    stats.headshots = (Double) statsData["headshots"];
-                                    stats.time = TimeSpan.FromSeconds((Double) statsData["timePlayed"]);
+                                    stats.LastStatUpdate = stats.LastPlayerUpdate;
+                                    stats.Kills = (Double) statsData["kills"];
+                                    stats.Deaths = (Double) statsData["deaths"];
+                                    stats.Wins = (Double) statsData["numWins"];
+                                    stats.Losses = (Double) statsData["numLosses"];
+                                    stats.Shots = (Double) statsData["shotsFired"];
+                                    stats.Hits = (Double) statsData["shotsHit"];
+                                    stats.Headshots = (Double) statsData["headshots"];
+                                    stats.Time = TimeSpan.FromSeconds((Double) statsData["timePlayed"]);
                                 }
                                 else {
-                                    stats.stats_exception = new AdKatsException(aPlayer.player_name + " did not have global stats.");
+                                    stats.StatsException = new AdKatsException(aPlayer.player_name + " did not have global stats.");
                                 }
 
                                 //Get Weapons
                                 ArrayList weaponData = (ArrayList) responseData["weapons"];
                                 if (weaponData != null && weaponData.Count > 0) {
-                                    stats.weaponStats = new Dictionary<String, AdKatsWeaponStats>();
+                                    stats.WeaponStats = new Dictionary<String, AdKatsWeaponStats>();
                                     foreach (Hashtable currentWeapon in weaponData) {
                                         //Create new construct
                                         AdKatsWeaponStats weapon = new AdKatsWeaponStats();
                                         //Grab stat data
                                         Hashtable currentWeaponStats = (Hashtable) currentWeapon["stat"];
-                                        weapon.id = (String) currentWeaponStats["id"];
-                                        weapon.time = TimeSpan.FromSeconds((Double) currentWeaponStats["time"]);
-                                        weapon.shots = (Double) currentWeaponStats["shots"];
-                                        weapon.hits = (Double) currentWeaponStats["hits"];
-                                        weapon.kills = (Double) currentWeaponStats["kills"];
-                                        weapon.headshots = (Double) currentWeaponStats["hs"];
+                                        weapon.ID = (String) currentWeaponStats["id"];
+                                        weapon.Time = TimeSpan.FromSeconds((Double) currentWeaponStats["time"]);
+                                        weapon.Shots = (Double) currentWeaponStats["shots"];
+                                        weapon.Hits = (Double) currentWeaponStats["hits"];
+                                        weapon.Kills = (Double) currentWeaponStats["kills"];
+                                        weapon.Headshots = (Double) currentWeaponStats["hs"];
 
                                         //Grab detail data
                                         Hashtable currentWeaponDetail = (Hashtable) currentWeapon["detail"];
-                                        weapon.category = (String) currentWeaponDetail["category"];
+                                        weapon.Category = (String) currentWeaponDetail["category"];
                                         //leave kit alone
                                         //leave range alone
                                         //Calculate values
-                                        weapon.hskr = weapon.headshots / weapon.kills;
-                                        weapon.kpm = weapon.kills / weapon.time.TotalMinutes;
-                                        weapon.dps = weapon.kills / weapon.hits * 100;
+                                        weapon.HSKR = weapon.Headshots / weapon.Kills;
+                                        weapon.KPM = weapon.Kills / weapon.Time.TotalMinutes;
+                                        weapon.DPS = weapon.Kills / weapon.Hits * 100;
                                         //Assign the construct
-                                        stats.weaponStats.Add(weapon.id, weapon);
+                                        stats.WeaponStats.Add(weapon.ID, weapon);
                                     }
                                 }
                                 else {
-                                    stats.stats_exception = new AdKatsException(aPlayer.player_name + " did not have weapon stats.");
+                                    stats.StatsException = new AdKatsException(aPlayer.player_name + " did not have weapon stats.");
                                 }
                             }
                             catch (Exception e) {
@@ -11526,11 +11686,14 @@ namespace PRoConEvents {
                 }
             }
             catch (Exception e) {
-                stats.stats_exception = new AdKatsException("Server error fetching stats.", e);
+                stats.StatsException = new AdKatsException("Server error fetching stats.", e);
             }
             //Assign the stats if no errors
-            if (stats.stats_exception == null) {
+            if (stats.StatsException == null) {
                 aPlayer.stats = stats;
+            }
+            else {
+                //this.HandleException(stats.stats_exception);
             }
             this.DebugWrite("exiting getPlayerStats", 7);
             return stats;
@@ -11538,44 +11701,64 @@ namespace PRoConEvents {
 
         private Hashtable fetchBF3StatsPlayer(String playerName) {
             Hashtable playerData = null;
-            using (WebClient client = new WebClient()) {
-                NameValueCollection data = new NameValueCollection {
-                                                                       {"player", playerName},
-                                                                       {"opt", "all"}
-                                                                   };
-                byte[] response = client.UploadValues("http://api.bf3stats.com/pc/player/", data);
-                if (response != null) {
-                    String textResponse = System.Text.Encoding.Default.GetString(response);
-                    playerData = (Hashtable) JSON.JsonDecode(textResponse);
+            try {
+                using (WebClient client = new WebClient())
+                {
+                    NameValueCollection data = new NameValueCollection {
+                                                                           {"player", playerName},
+                                                                           {"opt", "all"}
+                                                                       };
+                    byte[] response = client.UploadValues("http://api.bf3stats.com/pc/player/", data);
+                    if (response != null)
+                    {
+                        String textResponse = System.Text.Encoding.Default.GetString(response);
+                        playerData = (Hashtable)JSON.JsonDecode(textResponse);
+                    }
                 }
+            }
+            catch (Exception e) {
+                //Do nothing
             }
             return playerData;
         }
 
-        private Hashtable FetchBF4StatsPlayer(String playerName) {
-            using (WebClient client = new WebClient()) {
-                NameValueCollection data = new NameValueCollection {
-                                                                       {"plat", "pc"},
-                                                                       {"name", playerName}
-                                                                   };
-                byte[] response = client.UploadValues("http://api.bf4stats.com/api/playerInfo", data);
-                if (response != null) {
-                    String textResponse = System.Text.Encoding.Default.GetString(response);
-                    return (Hashtable) JSON.JsonDecode(textResponse);
+        private Hashtable FetchBF4StatsPlayer(String playerName)
+        {
+            Hashtable playerData = null;
+            try {
+                using (WebClient client = new WebClient()) {
+                    NameValueCollection data = new NameValueCollection {
+                                                                           {"plat", "pc"},
+                                                                           {"name", playerName},
+                                                                           {"output", "json"}
+                                                                       };
+                    byte[] response = client.UploadValues("http://api.bf4stats.com/api/playerInfo", data);
+                    if (response != null) {
+                        String textResponse = System.Text.Encoding.Default.GetString(response);
+                        playerData = (Hashtable) JSON.JsonDecode(textResponse);
+                    }
                 }
-                return null;
             }
+            catch (Exception)
+            {
+                //Do nothing
+            }
+            return playerData;
         }
 
-        private Hashtable FetchGCPHackCheck(String playerName) {
+        private Hashtable FetchGCPHackCheck(String playerName)
+        {
             Hashtable playerData = null;
-            using (WebClient client = new WebClient()) {
-                try {
+            using (WebClient client = new WebClient())
+            {
+                try
+                {
                     String url = "http://bf4cheat.psychedelic-host.info/api/bf4/checkplayer/" + playerName;
                     String textResponse = client.DownloadString(url);
-                    playerData = (Hashtable) JSON.JsonDecode(textResponse);
+                    playerData = (Hashtable)JSON.JsonDecode(textResponse);
                 }
-                catch (Exception e) {
+                catch (Exception e)
+                {
                     this.ConsoleError(e.ToString());
                 }
             }
@@ -11617,7 +11800,7 @@ namespace PRoConEvents {
             }
             catch (Exception e)
             {
-                this.HandleException(new AdKats_Exception("Error updating BF3Stats player.", e));
+                this.HandleException(new AdKatsException("Error updating BF3Stats player.", e));
             }
             return playerData;
         }
@@ -11645,7 +11828,7 @@ namespace PRoConEvents {
 
         #region Helper Methods and Classes
 
-        public Boolean RoleIsInteractionAble(AdKats_Role aRole) {
+        public Boolean RoleIsInteractionAble(AdKatsRole aRole) {
             lock (aRole) {
                 lock (aRole.allowedCommands) {
                     if (aRole.allowedCommands.Values.Any(command => command.command_playerInteraction)) {
@@ -11694,7 +11877,7 @@ namespace PRoConEvents {
                 return true;
             }
             catch (Exception) {
-                //Soldier name caused exception in the regex, definitely not valid
+                //Soldier id caused exception in the regex, definitely not valid
                 this.ConsoleError("Soldier Name '" + input + "' contained invalid characters.");
                 return false;
             }
@@ -11781,7 +11964,7 @@ namespace PRoConEvents {
             try {
                 IList<String> lstParameters = new List<String>();
                 IList<String> lstVariables = new List<String>();
-                lstParameters.Add("name");
+                lstParameters.Add("id");
                 lstVariables.Add(playerName);
                 lstParameters.Add("guid");
                 lstVariables.Add(playerGUID);
@@ -12017,8 +12200,8 @@ namespace PRoConEvents {
 
         //Calls setVariable with the given parameters
         public void SetExternalPluginSetting(String pluginName, String settingName, String settingValue) {
-            if (String.IsNullOrEmpty(pluginName) || String.IsNullOrEmpty(settingName) || String.IsNullOrEmpty(settingValue)) {
-                this.ConsoleError("Required inputs null in setExternalPluginSetting");
+            if (String.IsNullOrEmpty(pluginName) || String.IsNullOrEmpty(settingName) || settingValue == null) {
+                this.ConsoleError("Required inputs null or empty in setExternalPluginSetting");
                 return;
             }
             this.ExecuteCommand("procon.protected.plugins.setVariable", pluginName, settingName, settingValue);
@@ -12075,16 +12258,16 @@ namespace PRoConEvents {
         }
 
         public class AdKatsUser {
-            //No reference to player table made here, plain String name access
+            //No reference to player table made here, plain String id access
             public Int64 user_id = -1;
             public String user_name = null;
             public String user_email = null;
             public String user_phone = null;
-            public Dictionary<long, AdKats_Player> soldierDictionary = null;
-            public AdKats_Role user_role = null;
+            public Dictionary<long, AdKatsPlayer> soldierDictionary = null;
+            public AdKatsRole user_role = null;
 
             public AdKatsUser() {
-                this.soldierDictionary = new Dictionary<long, AdKats_Player>();
+                this.soldierDictionary = new Dictionary<long, AdKatsPlayer>();
             }
         }
 
@@ -12116,18 +12299,18 @@ namespace PRoConEvents {
             }
         }
 
-        public class AdKats_Role {
+        public class AdKatsRole {
             public Int64 role_id = -1;
             public String role_key = null;
             public String role_name = null;
             public Dictionary<String, AdKatsCommand> allowedCommands = null;
 
-            public AdKats_Role() {
+            public AdKatsRole() {
                 this.allowedCommands = new Dictionary<String, AdKatsCommand>();
             }
         }
 
-        public class AdKats_Player {
+        public class AdKatsPlayer {
             public Int64 player_id = -1;
             public Int64 game_id = -1;
             public String clan_tag = null;
@@ -12136,7 +12319,7 @@ namespace PRoConEvents {
             public String player_pbguid = null;
             public String player_ip = null;
             public String player_slot = null;
-            public AdKats_Role player_role = null;
+            public AdKatsRole player_role = null;
             public Boolean player_aa = false;
             public Boolean player_aa_told = false;
             public Boolean player_online = false;
@@ -12148,946 +12331,716 @@ namespace PRoConEvents {
             public DateTime lastDeath = DateTime.UtcNow;
             public DateTime lastAction = DateTime.UtcNow;
 
-            public Queue<KeyValuePair<AdKats_Player, DateTime>> recentKills = null;
+            public Queue<KeyValuePair<AdKatsPlayer, DateTime>> recentKills = null;
 
             public AdKatsPlayerStats stats = null;
 
-            public AdKats_Player() {
-                this.recentKills = new Queue<KeyValuePair<AdKats_Player, DateTime>>();
+            public AdKatsPlayer() {
+                this.recentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
             }
         }
 
         public class AdKatsPlayerStats {
             public String Platform = null;
             public String ClanTag = null;
-            public String language = null;
-            public String country = null;
-            public String country_name = null;
-            public DateTime firstSeen = DateTime.MaxValue;
-            public DateTime lastPlayerUpdate = DateTime.MaxValue;
-            public DateTime lastStatUpdate = DateTime.MaxValue;
+            public String Language = null;
+            public String Country = null;
+            public String CountryName = null;
+            public DateTime FirstSeen = DateTime.MaxValue;
+            public DateTime LastPlayerUpdate = DateTime.MaxValue;
+            public DateTime LastStatUpdate = DateTime.MaxValue;
 
-            public Double rank = -1;
-            public TimeSpan time = TimeSpan.FromSeconds(0);
-            public Int32 score = -1;
-            public Double kills = -1;
-            public Double assists = -1;
-            public Double deaths = -1;
-            public Double shots = -1;
-            public Double hits = -1;
-            public Double headshots = -1;
+            public Double Rank = -1;
+            public TimeSpan Time = TimeSpan.FromSeconds(0);
+            public Int32 Score = -1;
+            public Double Kills = -1;
+            public Double Assists = -1;
+            public Double Deaths = -1;
+            public Double Shots = -1;
+            public Double Hits = -1;
+            public Double Headshots = -1;
 
-            public Double wins = -1;
-            public Double losses = -1;
+            public Double Wins = -1;
+            public Double Losses = -1;
 
-            public Dictionary<String, AdKatsWeaponStats> weaponStats = null;
+            public Dictionary<String, AdKatsWeaponStats> WeaponStats = null;
 
-            public AdKatsException stats_exception = null;
-
-            public AdKatsPlayerStats() {
-            }
+            public AdKatsException StatsException = null;
         }
 
         public class AdKatsWeaponStats {
-            public String id = null;
-            public String category = null;
-            public String kit = null;
-            public String range = null;
+            public String ID = null;
+            public String Category = null;
+            public String Kit = null;
+            public String Range = null;
 
-            public TimeSpan time = TimeSpan.FromSeconds(0);
-            public Double kills = -1;
-            public Double headshots = -1;
-            public Double hits = -1;
-            public Double shots = -1;
+            public TimeSpan Time = TimeSpan.FromSeconds(0);
+            public Double Kills = -1;
+            public Double Headshots = -1;
+            public Double Hits = -1;
+            public Double Shots = -1;
 
             //Calculated values
-            public Double hskr = -1;
-            public Double dps = -1;
-            public Double kpm = -1;
-
-            public AdKatsWeaponStats() {
-            }
+            public Double HSKR = -1;
+            public Double DPS = -1;
+            public Double KPM = -1;
         }
 
         #region stat library
 
         public class StatLibrary {
-            public Dictionary<GameVersion, Dictionary<String, StatLibraryWeapon>> weapons = null;
+            public Dictionary<String, StatLibraryWeapon> Weapons;
+            private AdKats plugin;
 
             public StatLibrary(AdKats plugin) {
+                this.plugin = plugin;
+                this.PopulateWeaponStats();
+            }
+
+            private Dictionary<String, StatLibraryWeapon> OverloadBF3Weapons() {
+                //Create the game specific libraries
+                Dictionary<String, StatLibraryWeapon> bf3Weapons = new Dictionary<String, StatLibraryWeapon>();
+                //Add the weapons
+                StatLibraryWeapon weapon;
+                weapon = new StatLibraryWeapon
+                {
+                    id = "G17C",
+                    damage_max = 25,
+                    damage_min = 13.75
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "G17C SUPP.",
+                    damage_max = 25,
+                    damage_min = 13.75
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "G17C TACT.",
+                    damage_max = 25,
+                    damage_min = 13.75
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = ".44 MAGNUM",
+                    damage_max = 60,
+                    damage_min = 30
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = ".44 SCOPED",
+                    damage_max = 60,
+                    damage_min = 30
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "93R",
+                    damage_max = 20,
+                    damage_min = 12.5
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "G18",
+                    damage_max = 20,
+                    damage_min = 12.5
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "G18 SUPP.",
+                    damage_max = 20,
+                    damage_min = 12.5
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "G18 TACT.",
+                    damage_max = 20,
+                    damage_min = 12.5
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M9",
+                    damage_max = 25,
+                    damage_min = 13.75
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M9 TACT.",
+                    damage_max = 25,
+                    damage_min = 13.75
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M9 SUPP.",
+                    damage_max = 25,
+                    damage_min = 13.75
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M1911",
+                    damage_max = 34,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M1911 TACT.",
+                    damage_max = 34,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M1911 SUPP.",
+                    damage_max = 34,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M1911 S-TAC",
+                    damage_max = 34,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "MP412 REX",
+                    damage_max = 50,
+                    damage_min = 28
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "MP443",
+                    damage_max = 25,
+                    damage_min = 13.75
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "MP443 TACT.",
+                    damage_max = 25,
+                    damage_min = 13.75
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "MP443 SUPP.",
+                    damage_max = 25,
+                    damage_min = 13.75
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "AS VAL",
+                    damage_max = 20,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M5K",
+                    damage_max = 25,
+                    damage_min = 13.75
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "MP7",
+                    damage_max = 20,
+                    damage_min = 11.2
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "P90",
+                    damage_max = 20,
+                    damage_min = 11.2
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "PDW-R",
+                    damage_max = 25,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "PP-19",
+                    damage_max = 16.7,
+                    damage_min = 12.5
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "PP-2000",
+                    damage_max = 25,
+                    damage_min = 13.75
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "UMP-45",
+                    damage_max = 34,
+                    damage_min = 12.5
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "JNG-90",
+                    damage_max = 80,
+                    damage_min = 59
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "L96",
+                    damage_max = 80,
+                    damage_min = 59
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M39 EMR",
+                    damage_max = 50,
+                    damage_min = 37.5
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M40A5",
+                    damage_max = 80,
+                    damage_min = 59
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M98B",
+                    damage_max = 95,
+                    damage_min = 59
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M417",
+                    damage_max = 50,
+                    damage_min = 37.5
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "MK11",
+                    damage_max = 50,
+                    damage_min = 37.5
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "QBU-88",
+                    damage_max = 50,
+                    damage_min = 37.5
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "SKS",
+                    damage_max = 43,
+                    damage_min = 27
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "SV98",
+                    damage_max = 80,
+                    damage_min = 50
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "SVD",
+                    damage_max = 50,
+                    damage_min = 37.5
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M27 IAR",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "RPK-74M",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "L86A2",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "LSAT",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M60E4",
+                    damage_max = 34,
+                    damage_min = 22
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M240B",
+                    damage_max = 34,
+                    damage_min = 22
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M249",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "MG36",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "PKP PECHENEG",
+                    damage_max = 34,
+                    damage_min = 22
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "QBB-95",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "TYPE 88 LMG",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "A-91",
+                    damage_max = 25,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "ACW-R",
+                    damage_max = 20,
+                    damage_min = 16.7
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "AKS-74u",
+                    damage_max = 25,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "G36C",
+                    damage_max = 25,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "G53",
+                    damage_max = 25,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M4A1",
+                    damage_max = 25,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "MTAR-21",
+                    damage_max = 25,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "QBZ-95B",
+                    damage_max = 25,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "SCAR-H",
+                    damage_max = 30,
+                    damage_min = 20
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "SG553",
+                    damage_max = 25,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M4",
+                    damage_max = 25,
+                    damage_min = 14.3
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "AEK-971",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "AK-74M",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "AN-94",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "AUG A3",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "F2000",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "FAMAS",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "G3A3",
+                    damage_max = 34,
+                    damage_min = 22
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "KH2002",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "L85A2",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M16A3",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M416",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "SCAR-L",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M16A4",
+                    damage_max = 25,
+                    damage_min = 18.4
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "XBOW",
+                    damage_max = 100,
+                    damage_min = 10
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "XBOW SCOPED",
+                    damage_max = 100,
+                    damage_min = 10
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M320",
+                    damage_max = 100,
+                    damage_min = 1
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M26",
+                    damage_max = 100,
+                    damage_min = 1
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M26 MASS",
+                    damage_max = 100,
+                    damage_min = 1
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M26 SLUG",
+                    damage_max = 100,
+                    damage_min = 1
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                weapon = new StatLibraryWeapon
+                {
+                    id = "M26 FRAG",
+                    damage_max = 100,
+                    damage_min = 1
+                };
+                bf3Weapons.Add(weapon.id, weapon);
+                return bf3Weapons;
+            }
+
+            private void PopulateWeaponStats() {
                 try {
-                    //Create the weapon library
-                    this.weapons = new Dictionary<GameVersion, Dictionary<String, StatLibraryWeapon>>();
 
-                    //Create the game specific libraries
-                    Dictionary<String, StatLibraryWeapon> bf3Weapons = new Dictionary<String, StatLibraryWeapon>();
-                    Dictionary<String, StatLibraryWeapon> bf4Weapons = new Dictionary<String, StatLibraryWeapon>();
-
-                    //Add the weapons
-                    StatLibraryWeapon weapon;
-                    weapon = new StatLibraryWeapon {
-                                                       name = "G17C",
-                                                       damage_max = 25,
-                                                       damage_min = 13.75
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "G17C SUPP.",
-                                                       damage_max = 25,
-                                                       damage_min = 13.75
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "G17C TACT.",
-                                                       damage_max = 25,
-                                                       damage_min = 13.75
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = ".44 MAGNUM",
-                                                       damage_max = 60,
-                                                       damage_min = 30
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = ".44 SCOPED",
-                                                       damage_max = 60,
-                                                       damage_min = 30
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "93R",
-                                                       damage_max = 20,
-                                                       damage_min = 12.5
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "G18",
-                                                       damage_max = 20,
-                                                       damage_min = 12.5
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "G18 SUPP.",
-                                                       damage_max = 20,
-                                                       damage_min = 12.5
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "G18 TACT.",
-                                                       damage_max = 20,
-                                                       damage_min = 12.5
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M9",
-                                                       damage_max = 25,
-                                                       damage_min = 13.75
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M9 TACT.",
-                                                       damage_max = 25,
-                                                       damage_min = 13.75
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M9 SUPP.",
-                                                       damage_max = 25,
-                                                       damage_min = 13.75
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M1911",
-                                                       damage_max = 34,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M1911 TACT.",
-                                                       damage_max = 34,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M1911 SUPP.",
-                                                       damage_max = 34,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M1911 S-TAC",
-                                                       damage_max = 34,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "MP412 REX",
-                                                       damage_max = 50,
-                                                       damage_min = 28
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "MP443",
-                                                       damage_max = 25,
-                                                       damage_min = 13.75
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "MP443 TACT.",
-                                                       damage_max = 25,
-                                                       damage_min = 13.75
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "MP443 SUPP.",
-                                                       damage_max = 25,
-                                                       damage_min = 13.75
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "AS VAL",
-                                                       damage_max = 20,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M5K",
-                                                       damage_max = 25,
-                                                       damage_min = 13.75
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "MP7",
-                                                       damage_max = 20,
-                                                       damage_min = 11.2
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "P90",
-                                                       damage_max = 20,
-                                                       damage_min = 11.2
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "PDW-R",
-                                                       damage_max = 25,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "PP-19",
-                                                       damage_max = 16.7,
-                                                       damage_min = 12.5
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "PP-2000",
-                                                       damage_max = 25,
-                                                       damage_min = 13.75
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "UMP-45",
-                                                       damage_max = 34,
-                                                       damage_min = 12.5
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "JNG-90",
-                                                       damage_max = 80,
-                                                       damage_min = 59
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "L96",
-                                                       damage_max = 80,
-                                                       damage_min = 59
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M39 EMR",
-                                                       damage_max = 50,
-                                                       damage_min = 37.5
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M40A5",
-                                                       damage_max = 80,
-                                                       damage_min = 59
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M98B",
-                                                       damage_max = 95,
-                                                       damage_min = 59
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M417",
-                                                       damage_max = 50,
-                                                       damage_min = 37.5
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "MK11",
-                                                       damage_max = 50,
-                                                       damage_min = 37.5
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "QBU-88",
-                                                       damage_max = 50,
-                                                       damage_min = 37.5
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "SKS",
-                                                       damage_max = 43,
-                                                       damage_min = 27
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "SV98",
-                                                       damage_max = 80,
-                                                       damage_min = 50
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "SVD",
-                                                       damage_max = 50,
-                                                       damage_min = 37.5
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M27 IAR",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "RPK-74M",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "L86A2",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "LSAT",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M60E4",
-                                                       damage_max = 34,
-                                                       damage_min = 22
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M240B",
-                                                       damage_max = 34,
-                                                       damage_min = 22
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M249",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "MG36",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "PKP PECHENEG",
-                                                       damage_max = 34,
-                                                       damage_min = 22
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "QBB-95",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "TYPE 88 LMG",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "A-91",
-                                                       damage_max = 25,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "ACW-R",
-                                                       damage_max = 20,
-                                                       damage_min = 16.7
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "AKS-74u",
-                                                       damage_max = 25,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "G36C",
-                                                       damage_max = 25,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "G53",
-                                                       damage_max = 25,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M4A1",
-                                                       damage_max = 25,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "MTAR-21",
-                                                       damage_max = 25,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "QBZ-95B",
-                                                       damage_max = 25,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "SCAR-H",
-                                                       damage_max = 30,
-                                                       damage_min = 20
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "SG553",
-                                                       damage_max = 25,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M4",
-                                                       damage_max = 25,
-                                                       damage_min = 14.3
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "AEK-971",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "AK-74M",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "AN-94",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "AUG A3",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "F2000",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "FAMAS",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "G3A3",
-                                                       damage_max = 34,
-                                                       damage_min = 22
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "KH2002",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "L85A2",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M16A3",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M416",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "SCAR-L",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M16A4",
-                                                       damage_max = 25,
-                                                       damage_min = 18.4
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "XBOW",
-                                                       damage_max = 100,
-                                                       damage_min = 10
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "XBOW SCOPED",
-                                                       damage_max = 100,
-                                                       damage_min = 10
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M320",
-                                                       damage_max = 100,
-                                                       damage_min = 1
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M26",
-                                                       damage_max = 100,
-                                                       damage_min = 1
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M26 MASS",
-                                                       damage_max = 100,
-                                                       damage_min = 1
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M26 SLUG",
-                                                       damage_max = 100,
-                                                       damage_min = 1
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "M26 FRAG",
-                                                       damage_max = 100,
-                                                       damage_min = 1
-                                                   };
-                    bf3Weapons.Add(weapon.name, weapon);
-
-                    //Add BF4 Weapons
-                    //Carbines
-                    weapon = new StatLibraryWeapon {
-                                                       name = "ak-5c",
-                                                       damage_max = 25,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "aku-12",
-                                                       damage_max = 25,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "sg553",
-                                                       damage_max = 25,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "acw-r",
-                                                       damage_max = 25,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "g36c",
-                                                       damage_max = 25,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "type-95b-1",
-                                                       damage_max = 25,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "a-91",
-                                                       damage_max = 25,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "ace-21-cqb",
-                                                       damage_max = 25,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "ace-52-cqb",
-                                                       damage_max = 34,
-                                                       damage_min = 20
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "m4",
-                                                       damage_max = 25,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    //DMRs
-                    weapon = new StatLibraryWeapon {
-                                                       name = "ace-53-sv",
-                                                       damage_max = 43,
-                                                       damage_min = 30
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "m39-emr",
-                                                       damage_max = 43,
-                                                       damage_min = 30
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "qbu-88",
-                                                       damage_max = 40,
-                                                       damage_min = 28
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "mk11-mod-0",
-                                                       damage_max = 43,
-                                                       damage_min = 30
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "scar-h-sv",
-                                                       damage_max = 43,
-                                                       damage_min = 30
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "sks",
-                                                       damage_max = 40,
-                                                       damage_min = 28
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "rfb",
-                                                       damage_max = 43,
-                                                       damage_min = 30
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "svd-12",
-                                                       damage_max = 43,
-                                                       damage_min = 30
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    //Handguns
-                    weapon = new StatLibraryWeapon {
-                                                       name = "p226",
-                                                       damage_max = 27,
-                                                       damage_min = 12.1
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "m412-rex",
-                                                       damage_max = 56,
-                                                       damage_min = 28
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "compact-45",
-                                                       damage_max = 34,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "m1911",
-                                                       damage_max = 34,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "44-magnum",
-                                                       damage_max = 56,
-                                                       damage_min = 37.5
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "93r",
-                                                       damage_max = 18,
-                                                       damage_min = 10.8
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "mp443",
-                                                       damage_max = 27,
-                                                       damage_min = 12.1
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "g18",
-                                                       damage_max = 18,
-                                                       damage_min = 10.8
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "cz-75",
-                                                       damage_max = 27,
-                                                       damage_min = 13.5
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "qsz-92",
-                                                       damage_max = 20,
-                                                       damage_min = 11.2
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "m9",
-                                                       damage_max = 27,
-                                                       damage_min = 12.1
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "fn57",
-                                                       damage_max = 20,
-                                                       damage_min = 11.2
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    //Assault
-                    weapon = new StatLibraryWeapon {
-                                                       name = "aek-971",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "m416",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "scar-h",
-                                                       damage_max = 34,
-                                                       damage_min = 28
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "sar-21",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "ak-12",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "aug-a3",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "qbz-95-1",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "m16a4",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "cz-805",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "famas",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "ace-23",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    //PDWs
-                    weapon = new StatLibraryWeapon {
-                                                       name = "mx4",
-                                                       damage_max = 25,
-                                                       damage_min = 12.1
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "pp-2000",
-                                                       damage_max = 25,
-                                                       damage_min = 12.1
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "cbj-ms",
-                                                       damage_max = 22,
-                                                       damage_min = 12.1
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "ump-45",
-                                                       damage_max = 34,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "cz-3a1",
-                                                       damage_max = 25,
-                                                       damage_min = 12.1
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "p90",
-                                                       damage_max = 21,
-                                                       damage_min = 11.2
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "pdw-r",
-                                                       damage_max = 25,
-                                                       damage_min = 15.4
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "ump-9",
-                                                       damage_max = 25,
-                                                       damage_min = 12.1
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "js2",
-                                                       damage_max = 20,
-                                                       damage_min = 11.2
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    //LMGs
-                    weapon = new StatLibraryWeapon {
-                                                       name = "mg4",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "lsat",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "m240b",
-                                                       damage_max = 34,
-                                                       damage_min = 25
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "qbb-95-1",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "type-88-lmg",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "u-100-mk5",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "rpk-12",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "pkp-pecheneg",
-                                                       damage_max = 34,
-                                                       damage_min = 25
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-                    weapon = new StatLibraryWeapon {
-                                                       name = "m249",
-                                                       damage_max = 25,
-                                                       damage_min = 18
-                                                   };
-                    bf4Weapons.Add(weapon.name, weapon);
-
-                    //Add the dictionaries
-                    this.weapons.Add(GameVersion.BF3, bf3Weapons);
-                    this.weapons.Add(GameVersion.BF4, bf4Weapons);
+                    Hashtable statTable = this.FetchWeaponStats();
+                    if (plugin._GameVersion == GameVersion.BF3) {
+                        //No need for bandwidth, all BF3 weapons are set in stone now.
+                        this.Weapons = OverloadBF3Weapons();
+                        if (plugin._UseHackerChecker) {
+                            plugin.ConsoleWarn("Downloaded " + this.Weapons.Count + " " + plugin._GameVersion + " weapon definitions for hacker checker.");
+                        }
+                        return;
+                    }
+                    //Get Weapons
+                    ArrayList statData = (ArrayList)statTable[plugin._GameVersion + ""];
+                    if (statData != null && statData.Count > 0) {
+                        Dictionary<String, StatLibraryWeapon> tempWeapons = new Dictionary<String, StatLibraryWeapon>();
+                        foreach (Hashtable currentWeapon in statData) {
+                            //Create new construct
+                            StatLibraryWeapon weapon;
+                            weapon = new StatLibraryWeapon {
+                                                               id = (String)currentWeapon["id"],
+                                                               damage_max = (Double)currentWeapon["damage_max"],
+                                                               damage_min = (Double)currentWeapon["damage_min"]
+                                                           };
+                            tempWeapons.Add(weapon.id, weapon);
+                        }
+                        if (tempWeapons.Count > 0) {
+                            this.Weapons = tempWeapons;
+                            if (plugin._UseHackerChecker) {
+                                plugin.ConsoleWarn("Downloaded " + this.Weapons.Count + " " + plugin._GameVersion + " weapon definitions for hacker checker.");
+                            }
+                        }
+                        else {
+                            this.plugin.HandleException(new AdKatsException("Valid game found, but no weapons were founds."));
+                        }
+                    }
+                    else {
+                        this.plugin.HandleException(new AdKatsException("Unable to fetch weapon stats from github. Unable to perform hacker checking."));
+                    }
                 }
                 catch (Exception e) {
-                    plugin.ConsoleError(e.ToString());
+                    this.plugin.HandleException(new AdKatsException("Error while fetching weapon stats for " + plugin._GameVersion, e));
                 }
+            }
+
+            private Hashtable FetchWeaponStats()
+            {
+                Hashtable statTable = null;
+                using (WebClient client = new WebClient())
+                {
+                    try
+                    {
+                        const string url = "https://raw.github.com/ColColonCleaner/AdKats/dev/adkatsweaponstats.json";
+                        String textResponse = client.DownloadString(url);
+                        statTable = (Hashtable)JSON.JsonDecode(textResponse);
+                    }
+                    catch (Exception e)
+                    {
+                        this.plugin.ConsoleError(e.ToString());
+                    }
+                }
+                return statTable;
             }
         }
 
         #endregion
 
         public class StatLibraryWeapon {
-            public String name = null;
+            public String id = null;
             public Double damage_max = -1;
             public Double damage_min = -1;
 
@@ -13137,9 +13090,9 @@ namespace PRoConEvents {
             public AdKatsCommand command_action = null;
             public Int32 command_numeric = 0;
             public String source_name = null;
-            public AdKats_Player source_player = null;
+            public AdKatsPlayer source_player = null;
             public String target_name = null;
-            public AdKats_Player target_player = null;
+            public AdKatsPlayer target_player = null;
             public String record_message = null;
             public DateTime record_time = DateTime.MinValue;
 
@@ -13165,7 +13118,7 @@ namespace PRoConEvents {
 
             public Int64 ban_id = -1;
             public AdKatsRecord ban_record = null;
-            public String ban_status = "Enabled";
+            public String ban_status = "Active";
             public String ban_notes = null;
             public String ban_sync = null;
             //startTime and endTime are not set by AdKats, they are set in the database.
@@ -13307,10 +13260,20 @@ namespace PRoConEvents {
                 this.ConsoleError("Attempted to handle exception when none was given.");
                 return null;
             }
+            String prefix = String.Empty;
+            if (aException.InternalException != null) {
+                prefix = "Line " + (new StackTrace(aException.InternalException, true)).GetFrame(0).GetFileLineNumber() + ": ";
+            }
             //Always write the exception to console
-            this.ConsoleWrite("Line " + (new StackTrace(aException.InternalException, true)).GetFrame(0).GetFileLineNumber() + ": " + aException.ToString(), ConsoleMessageType.Exception);
+            this.ConsoleWrite(prefix + aException.ToString(), ConsoleMessageType.Exception);
             //Check if the exception attributes to the database
-            if (aException.InternalException.GetType() == typeof (System.TimeoutException) || aException.InternalException.ToString().Contains("Unable to connect to any of the specified MySQL hosts")) {
+            if (aException.InternalException != null && 
+                (aException.InternalException.GetType() == typeof (System.TimeoutException)
+                || aException.InternalException.ToString().Contains("Unable to connect to any of the specified MySQL hosts")
+                || aException.InternalException.ToString().Contains("Reading from the stream has failed.")
+                || aException.InternalException.ToString().Contains("Too many connections")
+                || aException.InternalException.ToString().Contains("Timeout expired")))
+            {
                 this.HandleDatabaseConnectionInteruption();
             }
             else {
