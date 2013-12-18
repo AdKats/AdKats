@@ -60,7 +60,8 @@ namespace PRoConEvents {
         private Boolean Slowmo = false;
 
         //Match command showing whether AdKats is installed and running
-        private readonly MatchCommand _AdKatsAvailableIndicator;
+        private readonly MatchCommand _PerformCommandMatchCommand;
+        private readonly MatchCommand _FetchAuthorizedSoldiersMatchCommand;
 
         //Messaging
         public enum ConsoleMessageType {
@@ -425,7 +426,7 @@ namespace PRoConEvents {
             this._IsEnabled = false;
             this._ThreadsReady = false;
             //Assign the match command
-            this._AdKatsAvailableIndicator = new MatchCommand("AdKats", "NoCallableMethod", new List<String>(), "AdKats_NoCallableMethod", new List<MatchArgumentFormat>(), new ExecutionRequirements(ExecutionScope.None), "Useable by other plugins to determine whether this one is installed and enabled.");
+            this._PerformCommandMatchCommand = new MatchCommand("AdKats", "PerformCommand", new List<String>(), "AdKats_PerformCommand", new List<MatchArgumentFormat>(), new ExecutionRequirements(ExecutionScope.None), "Useable by other plugins to call AdKats commands.");
             //Debug level is 0 by default
             this._DebugLevel = 0;
             //Randomize the external access key
@@ -1357,7 +1358,7 @@ namespace PRoConEvents {
                 {
                     if (this._HackerCheckerHSKBanMessage != strValue)
                     {
-                        this._HackerCheckerDPSBanMessage = strValue;
+                        this._HackerCheckerHSKBanMessage = strValue;
                         //Once setting has been changed, upload the change to database
                         this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Ban Message", typeof(String), this._HackerCheckerHSKBanMessage));
                     }
@@ -2518,7 +2519,7 @@ namespace PRoConEvents {
                         this._IsEnabled = false;
                         this._ThreadsReady = false;
                         //Remove the available indicator
-                        this.UnregisterCommand(_AdKatsAvailableIndicator);
+                        this.UnregisterCommand(_PerformCommandMatchCommand);
                         //Open all handles. Threads will finish on their own.
                         this.SetAllHandles();
 
@@ -7893,7 +7894,7 @@ namespace PRoConEvents {
                             this.UpdateSettingPage();
 
                             //Register a command to indicate availibility to other plugins
-                            this.RegisterCommand(_AdKatsAvailableIndicator);
+                            this.RegisterCommand(_PerformCommandMatchCommand);
 
                             this.ConsoleWrite("^b^2Running!^n^0 Version: " + this.GetPluginVersion());
                         }
