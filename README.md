@@ -1,64 +1,106 @@
-<h2 style="color:#009933;">Version 0.3.0.1 released! Your version is listed above (Procon Only).</h2>
-<a href="https://github.com/ColColonCleaner/AdKats/blob/master/CHANGELOG.md" target="_blank">New in Version 0.3.0.1!</a> 
-Download link below.
+<script>
+//<latest_stable_release>4.0.0.0</latest_stable_release>
+</script>
 <h1>AdKats</h1>
 <p>
-Admin Toolset with a plethora of features. It is designed for groups with high-traffic servers and many 
-admins, but will function just as well for small servers.<br/>
+Admin Toolset with a plethora of features, focused on making in-game admins more efficient and accurate at their jobs. 
+Includes a cross-server ban enforcer more reliable and complete than others available, and the AdKats WebAdmin for 
+out-of-game control has been released. Designed for groups with high-traffic servers and many admins, but will function 
+just as well for small servers.<br/>
 <ul>
   <li><b>Basic Action Commands.</b> Standard commands for player killing, kicking, banning, moving, etc..</li>
   <li><b>Admin and setting sync between servers.</b> All changes to admin access or plugin settings can be 
   automatically synced between procon layers.</li>
-  <li><b>Infraction Tracking System.</b> Database reflected system to track player infractions and act accordingly.</li>
+  <li><b>Infraction Tracking System.</b> Punish/Forgive players for infractions against your server. Everything is 
+  tracked, so the more infractions they commit, the worse their punishment gets. Made so all players are treated equally. 
+  Heavily customizable. </li>
   <li><b>Quick Player Report and Admin Call Handling.</b> Notification system and quick handling features for all admin 
-  calls and player reports.</li>
-  <li><b>Fuzzy Player Name Completion.</b> Fully completes accurate or misspelled player names.</li>
+  calls and player reports. Reports can be referenced by number for instant action.</li>
+  <li><b>Admin Assistants.</b> You can choose to give a small perk to players who consistently provide you with accurate 
+  player reports. Documentation linked below.</li>
+  <li><b>Fuzzy Player Name Completion.</b> Fully completes partial or misspelled player names. I've been consistently 
+  able to find almost any player with 3-4 characters from their name.</li>
   <li><b>Player Muting.</b> Players can be muted if necessary.</li>
+  <li><b>Player Joining.</b> Player's squads can be joined via command, and locked squads can be unlocked for 
+  admin entry.</li>
   <li><b>Yell/Say Pre-Recording.</b> Usable along side plugins such as "server rules on request". Use numbers to 
-  reference predefined messages, avoid typing long reasons or messages.</li>
-  <li><b>External Controller API.</b> AdKats can be controlled from outside the game, through systems like 
-  AdKats WebAdmin</li>
-  <li><b>Internal Implementation of TeamSwap.</b> Server-smart player moving system. Described below.</li>
-  <li><b>AdKats Ban Enforcer.</b> Bans can be enforced across all of your servers through the internal Ban Enforcer.</li>
+  reference predefined messages. Avoid typing long reasons or messages.</li>
+  <li><b>External Controller API.</b> AdKats can be controlled from outside the game, through systems like AdKats 
+  WebAdmin. Once done you will be able to issue any admin command, manage bans, change plugin 
+  settings, track admin activities, and much more from a webpage without being in-game.</li>
+  <li><b>Internal Implementation of TeamSwap.</b> Movement options for both your admins and playerbase if desired. 
+  Greatly improved over the default version. Documentation linked below.</li>
+  <li><b>AdKats Ban Enforcer.</b> AdKats can enforce bans across all of your servers. The internal system has been built 
+  to be more complete and reliable than others available, including metabans, and is further enhanced by using AdKats 
+  WebAdmin. It will automatically import all procon bans from all your servers and consolidate them. 
+  It will also import any existing bans from the BF3 Ban Manager plugin's tables. Full documentation linked below.</li>
   <li><b>Editable In-Game Commands.</b> All command text can be edited to suit your needs.</li>
+  <li><b>Performance.</b> All actions, messaging, database communications, and command parsing take place on their own 
+  threads, minimizing performance impacts.</li>
   <li><b>Full Logging.</b> All admin activity is trackable via the database, so holding your admins accountable for 
-  their actions is quick and painless.</li>
+  their actions is quick and painless. And if you are using AdKats WebAdmin nobody but your highest admins will need 
+  direct procon access.</li>
 </ul>
-<br/>
 
 If you find any bugs, please submit them 
 <a href="https://github.com/ColColonCleaner/AdKats/issues?state=open" target="_blank">HERE</a> 
 and they will be fixed ASAP.<br/><br/>
 
 Download the latest version here: 
-<a href="http://sourceforge.net/projects/adkats/files/AdKats_v0.3.0.1.zip/download" target="_blank">Version 0.3.0.1</a>
+<a href="http://sourceforge.net/projects/adkats/files/AdKats_v3.7.0.1.zip/download" target="_blank">Version 3.7.0.1</a>
 </p>
 <p>
 AdKats was inspired by the gaming community A Different Kind (ADK). Visit 
 <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
 </p>
-<h2>Dependencies</h2>
-<h4>XpKiller's "BF3 Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
+<h2>Installation</h2>
 <p>
-Version 1.1.0.0+ of this plugin is required. AdKats will only run if this plugin is (1) using the same database 
-AdKats uses, and (2) running on every BF3 Server you've installed AdKats on. Running it along-side AdKats on each layer
-will ensure these conditions are met.<br/><br/>
-
-<a href="https://forum.myrcon.com/showthread.php?2889-BF3-Chat-GUID-Stats-and-Mapstats-Logger-1-1-0-0-BF3/" target="_blank">BF3 Chat, GUID, Stats and Mapstats Logger</a>
+<ol>
+  <li><b>Confirm Dependencies.</b> Make sure all requirements in the Dependencies section below are met.</li>
+  <li><b>Confirm Dependencies AGAIN.</b> Make sure stat logger is installed and running! Do NOT attempt to install 	  AdKats until that plugin is running without issue.</li>
+  <li><b>Set up the database.</b> Run the contents of this sql script on your database (You can copy/paste the entire 
+  page as its shown): https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql<br/>
+  (I would run this automatically if I could, but i'm limited until procon updates their MySQL connector to allow 
+  triggers)</li>
+  <li><b>Add plugin file to procon.</b> Add the plugin file to procon as you would any other, in either the plugins/BF3 
+  or plugins/BF4 folder depending on which game your layer is running on.</li>
+  <li><b>Enter database connection info.</b> All database connection info must be entered in the settings tab before 
+  AdKats can run.</li>
+  <li><b>Enable AdKats.</b> AdKats will confirm all dependencies and show confirmation in the console. If it gives your 
+  server an ID then all is well.</li>
+  <li><b>Disable the default "In-Game Admin".</b>Disable any other plugins that use commands like kill, kick, etc. The 
+  commands would be run by both, causing unwanted functionality. Enjoy AdKats!</li>
+</ol>
+If you have any problems installing AdKats please let me know on the MyRCON forums, or here as an issue and I'll respond 
+promptly.
 </p>
-<h4>A MySQL Database</h4>
+<h2>Dependencies</h2>
+<h4>1. A MySQL Database</h4>
 <p>
 An online MySQL database accessible from your procon layer is required. AdKats checks the database for needed tables on 
-connect. If it doesn't find the proper tables/views it will run the script linked below. You can run the script 
-beforehand if you don't want the plugin changing table structure in your database.<br/><br/>
+connect.<br/><br/>
 
-<a href="https://github.com/ColColonCleaner/AdKats/blob/master/adkats.sql" target="_blank">AdKats Setup Script</a><br/><br/>
+<b>Getting a Database:</b> Usually the hosting company for your layers can provide you a database, and using that is advisable 
+as the latency between procon and the DB will be the lowest possible. Or even better if you're hosting layers on a VPS 
+just create a local database by downloading the appropriate installer from MySQL's website. We use our webserver for 
+database hosting and that works great as well. Be cautious of free database options and services, those paths usually 
+have restrictions on database size and are hosted on unreliable servers, which can lead to many problems down the road.
+</p>
+<h4>2. XpKiller's "PRoCon Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
+<p>
+Version 1.1.0.1+ of the BF3 version, or any universal version is required. AdKats will only run if one of these plugins 
+is (1) using the same database AdKats uses, and (2) running on every battlefield Server you plan to install AdKats on. 
+Running it along-side AdKats on each procon layer will ensure these conditions are met. 
+</p>
+<p>
+WARNING! READ THIS!</br>
+The stat logger plugin is orchestrated by AdKats, certain settings are kept at mandatory values. If you see a setting 
+"issue" in stat logger, where certain values cannot be changed, that is because of AdKats. Right now AdKats takes over 
+chat logging responsibilities due to a dependency, so chat logging is force disabled in stat logger. This requirement will be removed in version 4.0 of AdKats as a better method has been found.
+</p>
 
-Getting a Database: If you have your own website you can make one there, or you can use an online service. My 
-clan runs our own, but I found this online one to be ok, and it has a free usage option. 
-<a href="http://www.freesqldatabase.com/" target="_blank">http://www.freesqldatabase.com/</a> But any online accessible 
-MySQL database will work. Be careful with that free option though, the size is limited, and these things can log A LOT 
-of data if it's an active server.
+The latest universal version of this plugin can be downloaded from here: 
+<a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">PRoCon Chat, GUID, Stats and Mapstats Logger</a>
 </p>
 <h2>Features</h2>
 <h3>Infraction Tracking System</h3>
@@ -75,10 +117,13 @@ Then an action is decided using Total Points from the punishment hierarchy. Puni
 player gets more points. A player cannot be punished more than once every 20 seconds; this prevents multiple admins from 
 accidentally punishing a player multiple times for the same infraction.<br/><br/>
 
-IRO Punishments: When a player is punished, and has already been punished in the past 5 minutes, the new punish counts 
+<h4>IRO Punishments</h4>
+When a player is punished, and has already been punished in the past 10 minutes, the new punish counts 
 for 2 points instead of 1 since the player is immediately breaking server rules again. A punish worth 2 
 points is called an "IRO" punish by the plugin, standing for Immediate Repeat Offence. "[IRO]" will be appended to the 
 punish reason when this type of punish is activated. <br/><br/>
+
+<h4>Punishment Hierarchy</h4>
 
 The punishment hierarchy is configurable to suit your needs, but the default is below.<br/>
 
@@ -180,34 +225,19 @@ then clear it, once you enable enforcer you will be unable to manage any bans wi
 will repopulate procon's ban list with the imported bans, but you will lose any additional information ban enforcer was 
 able to gather about the banned players.<br/><br/>
 
-To all who will be using the ban enforcer before WebAdmin is released, you can use the below query to get more meaningful 
-information out of the ban list. Once you find the ban ID you want using this query you can modify it in adkats_banlist 
-using that ID. To remove a ban change ban_status to "Disabled" (caps important), and to modify duration change 
-ban_endTime to when you want it to end (remember database timezone might be different from yours).<br/><br/>
+<b>Reasoning behind creation for those interested:</b> We had tried many other ban management systems and they all 
+appeared to have some significant downfalls. I will not point fingers at any specific plugins other than metabans as 
+most of the problems with those could be solved by active upkeep and improvement, but unfortunately in some cases the 
+original developers have stopped supporting the plugin. For metabans specifically however they only enforce permabans 
+for 28 days, and if we want to keep unwanted players off our servers by whatever means possible that is simply 
+unacceptable.<br/><br/>
 
-SELECT<br/> 
-	`adkats_banlist`.`ban_id`, <br/>
-	`tbl_playerdata`.`SoldierName` AS `player_name`, <br/>
-	`adkats_records`.`record_message` AS `ban_reason`, <br/>
-	`adkats_banlist`.`ban_status`, <br/>
-	`adkats_banlist`.`ban_startTime`, <br/>
-	`adkats_banlist`.`ban_endTime`, <br/>
-	`adkats_banlist`.`ban_enforceName`, <br/>
-	`adkats_banlist`.`ban_enforceGUID`, <br/>
-	`adkats_banlist`.`ban_enforceIP`<br/>
-FROM <br/>
-	`adkats_banlist` <br/>
-INNER JOIN <br/>
-	`tbl_playerdata` <br/>
-ON <br/>
-	`tbl_playerdata`.`PlayerID` = `adkats_banlist`.`player_id` <br/>
-INNER JOIN <br/>
-	`adkats_records` <br/>
-ON <br/>
-	`adkats_records`.`record_id` = `adkats_banlist`.`latest_record_id` <br/>
-ORDER BY <br/>
-	`ban_startTime` <br/>
-DESC;
+On a lighter note though, developing this allows for some nice features not previously available. I can bypass procon's 
+ban list completely, this way no data is lost on how/why/who created the ban or on who its targeted. I can enforce bans 
+by any parameter combination (Name, GUID, IP), not just one at a time. Players can now be told how much time is left on 
+their ban dynamically, every time they attempt to join. And tracking of bans added through in-game commands or 
+autoadmins on any server is a cakewalk now, so clan leaders don't need to go great lengths to look things up. Several 
+other reasons as well, but overall it was a fantastic move. And thankfully we had the devs available to make it :) </shamelessSelfPromotion>.
 </p>
 <h3>Report/CallAdmin System</h3>
 <p>
@@ -241,8 +271,18 @@ reliable report. Whether admin assistants get the teamswap perk can be disabled,
 <p>
 Players can be muted using the mute command, muting lasts until the end of the round. Players who talk in chat after 
 being muted will be killed each time they talk (up through X chat messages), on the (X+1)th message they are kicked from 
-the server. No action other than kill or kick is used by this system. There will be no way to un-mute players, there 
-was a reason they were muted, and they can talk again next round. Admins cannot mute other admins.
+the server. A player coming back during the same round is kicked again on their first chat message. No action other than 
+kill or kick is used by this system. There will be no way to un-mute players, there was a reason they were muted, and 
+they can talk again next round. Admins cannot mute other admins.
+</p>
+<h3>Player Joining</h3>
+<p>
+Players can be joined using the join command. Joining either works off player name or report ID. Issuing the command will 
+place you in the targeted player's squad if there is room available. The command is available to all players, but for 
+the general public will only operate for the same team. If TeamSwap or higher access is used (levels 5-0), this will 
+work across teams. If admin or higher access is used (levels 4-0), the target squad will be unlocked for your entry. 
+NOTE: For cross-team joining, TeamSwap queues are not used, so if there is no room on the target team you will 
+need to retry the command once room is available.
 </p>
 <h3>Pre-Messaging</h3>
 <p>
@@ -278,6 +318,7 @@ and will only apply to the current server). It is used to make players want full
 join your community to get it. The setting is "Auto-Whitelist Count", under TeamSwap settings. This can be disabled by 
 setting auto-whitelist count to 0.
 </p>
+
 <h3>Requiring Reasons</h3>
 <p>
 All commands which might lead to actions against players are required to have a reason entered, and will cancel if
@@ -295,18 +336,74 @@ commands like punish which can sometimes require 8 database round-trips to compl
 Use "Debug Soldier Name" to get the speed of commands on your server, any command that soldier enters will tell them the 
 total time it took to complete.
 </p>
-<h3>Setting Sync</h3>
+<h3>Admin and Setting Sync</h3>
+<p>
+Access lists are automatically synced between layers every 5 minutes, so there is no need to go through every layer to 
+change access settings. This can be changed directly in database as well, and will be synced to all running plugins.
+</p>
 <p>
 All settings for each plugin instance are stored in the database by server ID. Enter an existing server ID in the 
 setting sync field and all settings from that instance will be imported to this instance. All settings on the current 
 instance will be overwritten by the synced settings. Whenever a setting is changed, that change is pushed to the 
 database.
 </p>
+<h3>Internal Hacker-Checker with Whitelist</h3>
+<p>
+Ever since we started running servers we never banned off of "cheat-o-meter" results, since there were too many false 
+positives, so we built our own. This code has been dormant in AdKats for several months now, only activating on =ADK= 
+servers while we tested it. We are releasing the fully tested BF3 version now, our BF4 version already beginning the 
+test phase. 
+</p>
+<p>
+The hacker-checker uses BF3Stats.com for player stats, and is able to catch both aimbots and damage mods. To avoid false 
+positives, only weapons that fire bullets (no crossbow, 320, etc), and deal less than 50% damage per shot are included 
+in the calculation. This removes all equipment, sniper rifles, shotguns, and heavy-hitting pistols like the magnum/rex 
+from calculations. For the remaining weapons there are two checks each one goes through, customizable to your desired 
+severity level.
+</p>
+<h4>Damage Mod Checker</h4>
+<p>
+The max damage per shot for every weapon in the game is held inside AdKats. The damage per shot the player gets with 
+that weapon is calculated from BF3Stats. The threshold you set for this check is the percentage above normal required 
+to trigger the ban. We have ours set at 50% above normal damage (just 50 in the setting). Every ban has been examined 
+personally, and this check has never triggered a false positive. 50 kills with the weapon in question are required to 
+trigger this check.
+</p>
+<h4>Aimbot Checker</h4>
+<p>
+For this check only automatic weapons from specific categories are used in the calculation. This includes Sub Machine 
+Guns, Assault Rifles, Carbines, and Machine Guns. Handguns, snipers, equipment, etc are not included since their HSK 
+values can vary drastically. This limit is simple, if the headshot/kill percentage for any valid weapon is greater than 
+your threshold, the ban is issued. HS/K percentage for even the top competitive players caps at 38%, so we set our 
+value much higher than that. We started with 70% HS/K, and no false positives were found with that value, but lower as 
+desired. The minimum we allowed during testing was 50%. 100 kills with the weapon in question are required to trigger 
+this check.
+</p>
+<h4>Posting Method</h4>
+<p>
+The heaviest hacked weapon (the one farthest above normal) is the one displayed in the ban reason using the following 
+formats:<br/>
+Damage Mod Bans:<br/>
+Hacking/Cheating DPS Automatic Ban [WEAPONNAME-DPS-KILLS-HEADSHOTS]<br/>
+Aimbot Bans:<br/>
+Hacking/Cheating HSK Automatic Ban [WEAPONNAME-HSK-KILLS-HEADSHOTS]
+</p>
+<p>
+Damage mod bans take priority over aimbot bans. If you want to whitelist a player from a server, enter their player 
+name, guid, or IP in the whitelist array for each server (we will add database support for whitelisting in AdKats 4.0). 
+If a player is not found on BF3Stats, AdKats will check for stats every couple minutes while they are in the server, 
+stopping if they leave.
+</p>
 <h3>Available In-Game Commands</h3>
 <p>
 <u><b>You can edit the text for each command to suit your needs in plugin settings.</b></u><br/>
 Commands can be accessed with '@', '!', '/!', '/@', or just '/'. Usage of all commands is logged in the 
 database.<br/><br/>
+
+Any action command given with no parameters (e.g. '@kill') will target the speaker. If admins want to kill, kick, or 
+even ban themselves, simply type the command without any parameters. Any action command when given a player name (other 
+than moving players) will require a reason.<br/><br/>
+
 <table>
 	<tr>
 		<td><b>Command</b></td>
@@ -317,37 +414,37 @@ database.<br/><br/>
 	<tr>
 		<td><b>Kill Player</b></td>
 		<td>kill</td>
-		<td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
+		<td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
 		<td>The in-game command used for killing players.</td>
 	</tr>
 	<tr>
 		<td><b>Kick Player</b></td>
 		<td>kick</td>
-		<td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
+		<td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
 		<td>The in-game command used for kicking players.</td>
 	</tr>
 	<tr>
 		<td><b>Temp-Ban Player</b></td>
 		<td>tban</td>
-		<td>[minutes][player][reason]<br/>OR<br/>[minutes][reportID]<br/>OR<br/>[minutes][reportID][reason]</td>
+		<td>[minutes]<br/>OR<br/>[minutes][player][reason]<br/>OR<br/>[minutes][reportID]<br/>OR<br/>[minutes][reportID][reason]</td>
 		<td>The in-game command used temp-banning players.</td>
 	</tr>
 	<tr>
 		<td><b>Perma-Ban Player</b></td>
 		<td>ban</td>
-		<td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
+		<td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
 		<td>The in-game command used for perma-banning players.</td>
 	</tr>
 	<tr>
 		<td><b>Punish Player</b></td>
 		<td>punish</td>
-		<td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
+		<td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
 		<td>The in-game command used for punishing players. Will add a Punish record to the database, increasing a player's total points by 1. When a reportID is used as input, details of the report are given and confirmation (@yes) needs to be given before the punish is sent.</td>
 	</tr>
 	<tr>
 		<td><b>Forgive Player</b></td>
 		<td>forgive</td>
-		<td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
+		<td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
 		<td>The in-game command used for forgiving players. Will add a Forgive record to the database, decreasing a player's total points by 1.</td>
 	</tr>
 	<tr>
@@ -365,8 +462,14 @@ database.<br/><br/>
 	<tr>
 		<td><b>Force-Move Player</b></td>
 		<td>fmove</td>
-		<td>[player]<br/>OR<br/>[reportID]</td>
+		<td>None<br/>OR<br/>[player]<br/>OR<br/>[reportID]</td>
 		<td>The in-game command used for force-moving players between teams. Will immediately send the given player to TeamSwap.</td>
+	</tr>
+	<tr>
+		<td><b>Join Player</b></td>
+		<td>join</td>
+		<td>[player]<br/>OR<br/>[reportID]</td>
+		<td>The in-game command used for joining player's squads. Will immediately send the speaker to the target if possible, within access limitations.</td>
 	</tr>
 	<tr>
 		<td><b>TeamSwap Self</b></td>
@@ -421,6 +524,18 @@ database.<br/><br/>
 		<td>whatis</td>
 		<td>[preMessageID]</td>
 		<td>The in-game command used for finding out what a particular preMessage ID links to.</td>
+	</tr>
+	<tr>
+		<td><b>VOIP</b></td>
+		<td>voip</td>
+		<td>None</td>
+		<td>The in-game command used for sending VOIP server info to the speaker.</td>
+	</tr>
+	<tr>
+		<td><b>Kill Self</b></td>
+		<td>killme</td>
+		<td>None</td>
+		<td>The in-game command used for killing the speaker.</td>
 	</tr>
 	<tr>
 		<td><b>Restart Level</b></td>
@@ -560,6 +675,14 @@ can be changed once they are on the access list, in addition to their email addr
 		<td>5</td>
 	</tr>
 	<tr>
+		<td><b>VOIP</b></td>
+		<td>6</td>
+	</tr>
+	<tr>
+		<td><b>Kill Self</b></td>
+		<td>6</td>
+	</tr>
+	<tr>
 		<td><b>Report Player</b></td>
 		<td>6</td>
 	</tr>
@@ -572,42 +695,14 @@ can be changed once they are on the access list, in addition to their email addr
 <h3>Commanding AdKats from Outside the Game</h3>
 <h4>AdKats WebAdmin can be used for this.</h4>
 <p>
-If you have an external system (such as a web-based tool with access to bf3 server information), then there are two 
-ways to interact with AdKats externally.<br/>
-
-<h4>1. Procon HTTP Server</h4>
-Send commands to AdKats through procon's internal HTTP server, it just takes a couple setup steps. Turn on procon's 
-HTTP server by going to Tools (Upper right) --> Options --> HTTP Tab and enable the server. The default port should be 
-fine for most cases. Then in AdKats settings set the external access key to what you want for a password. Action taken 
-is almost instant, and a helpful error message is given if incorrect params are entered. You can then query the plugin 
-in following manner.<br/><br/>
-
-<b>The BF3 server ip and port are shown in AdKats settings.</b><br/>
-http://[procon_server_ip]:[server_port]/[bf3_server_ip]:[bf3_server_port]/plugins/AdKats/?[Parameters]<br/><br/>
-
-<b>Required Parameters:</b><br/>
-command_type=[Command from list Below]<br/>
-target_name=[Full or Partial Player Name]<br/>
-record_message=[reason for action]<br/>
-access_key=[Your Access Key from AdKats Settings]<br/>
-<b>Optional Parameters:</b><br/>
-source_name=[Name of admin sending this command. This system has access level 0 (full admin) regardless of this entry.]<br/>
-record_durationMinutes=[Used for Temp-Bans, duration of time in minutes]<br/><br/>
-
-<b>Example of Command:</b><br/>
-http://293.182.39.230:27360/173.199.91.187:25210/plugins/AdKats/?command_type=TempBan&source_name=ColonsEnemy&<br/>
-target_name=ColColonCleaner&record_message=Testing&record_durationMinutes=60&access_key=MyPassword<br/><br/>
-
-<b>SECURITY NOTE: As some will notice this works through GET commands, which are insecure, if you issue commands and 
-someone outside gets the command URL you entered they will have full access to issue commands on your instance of this 
-plugin. It is only insecure if you use this method though, as internally the key is randomized. I am working on securing 
-this system, as it is ultimately better than option 2.</b></b>
-
-<h4>2. Adding Database Records</h4>
+If you have an external system (such as a web-based tool with access to bf3 server information), then there is currently 
+one way to interact with AdKats externally (A second comming soon if possible).<br/>
+<h4>Adding Database Records</h4>
 Have your external system add a row to the record table with a new record to be acted on. All information is needed 
-in the row just like the ones sent from AdKats to the database. Just make the 'adkats_read' column for that row = "N" 
-and adkats will act on that record. Every ~20 seconds the plugin checks for new input in the table, and will 
-act on them if found, this is a much slower acting system than the HTTP server option, but is much MUCH more secure.<br/>
+in the row just like the ones sent from AdKats to the database, review the ones already in your database before 
+attempting this, and ask ColColonCleaner any questions you may have. The only exception is you need to make the 
+'adkats_read' column for that row = "N", this way AdKats will act on that record. Every 5-10 seconds the plugin checks 
+for new input in the table, and will act on them if found.<br/>
 
 Valid 'command_type's that can be acted on include the following:<br/>
 <table>
@@ -712,13 +807,13 @@ Valid 'command_type's that can be acted on include the following:<br/>
 <ul>
   <li><b>'Add Access'</b> - Add a player to the access list by entering their exact IGN here.<br/></li>
   <li><b>'Remove Access'</b> - Remove a player already on the access list by typing their exact IGN here.<br/></li>
-  <li><b>*PlayerName*</b> - Players in the current database access list are appeneded here with their access level and email address.</li>
+  <li><b>*PlayerName*</b> - Players in the current database access list are appended here with their access level.</li>
 </ul> 
 <h3>4. In-Game Command Settings:</h3>
 <ul>
   <li><b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason to execute.</li>
 </ul>
-<b>Specific command definitions given in features section above.</b> All command text must be a single string with no whitespace. E.G. kill. All commands can be suffixed with '|log', which will set whether use of that command is logged in the database or not.
+<b>Specific command definitions given in features section above.</b> All command text must be a single string with no whitespace. E.G. 'kill'.<br/>
 <h3>5. Punishment Settings:</h3>
 <ul>
   <li><b>'Punishment Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the action taken at that number of points.</li>
@@ -772,7 +867,31 @@ Valid 'command_type's that can be acted on include the following:<br/>
   <li><b>'External Access Key'</b> - The access key required to use any HTTP commands, can be changed to whatever is desired, but the default is a random 64Bit hashcode generated when the plugin first runs.</li>
   <li><b>'Fetch Actions from Database'</b> - Whether to use the database as a source for new commands.</li>
 </ul>
-<h3>A13. Debug Settings:</h3>
+<h3>A13. VOIP Settings:</h3>
+<ul>
+  <li><b>'Server VOIP Address'</b> - String that will be sent to players using the VOIP command.</li>
+</ul>
+<h3>A14. Orchestration Settings:</h3>
+<ul>
+  <li><b>'Feed MULTIBalancer Whitelist'</b> - When enabled, MULTIBalancer's whitelist will include all players access level 0-5 in the AdKats access list.</li>
+  <li><b>'Feed Server Reserved Slots'</b> - When enabled, the servers reserved slots will include all players in the AdKats access list.</li>
+  <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including correct database time offset, instant chat logging, etc. This is experimental.</li>
+</ul>
+<h3>A15. Round Settings:</h3>
+<ul>
+  <li><b>'Round Timer: Enable'</b> - When enabled, rounds will be limited to X minutes.</li>
+  <li><b>'Round Timer: Round Duration Minutes'</b> - Number of minutes that the round will last before the current winning team wins.</li>
+</ul>
+<h3>A16. BF3Stats Hacker-Checker Settings:</h3>
+<ul>
+  <li><b>'HackerChecker: Enable'</b> - Whether the internal BF3Stats hacker-checker is enabled.</li>
+  <li><b>'HackerChecker: Whitelist'</b> - The list of player names, GUIDs, and IPs, that will not be checked by the hacker-checker.</li>
+  <li><b>'HackerChecker: DPS Checker: Enable'</b> - Whether the Damage Mod portion of the hacker-checker is enabled.</li>
+  <li><b>'HackerChecker: DPS Checker: Trigger Level'</b> - The percentage over normal weapon damage that will cause a ban. 50 kills minimum to trigger. After 3 months of testing, 50 is the best value, and has not issued a single false positive in that time.</li>
+  <li><b>'HackerChecker: HSK Checker: Enable'</b> - Whether the Aimbot portion of the hacker-checker is enabled.</li>
+  <li><b>'HackerChecker: HSK Checker: Trigger Level'</b> - The headshot/kill ratio for automatic weapons that will trigger a ban. 100 kills minimum to trigger. After 3 months of testing, we suggest setting between 50 and 70 depending on the severity you want to enforce. You will get some false positives down near 50 but will catch many more aimbotters, setting near 70 will not result in any false positives but also wont catch as many aimbotters.</li>
+</ul>
+<h3>D99. Debug Settings:</h3>
 <ul>
   <li><b>'Debug level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug messages (just shows important warnings/exceptions), 6 documents nearly every step. Don't edit unless you really want to be spammed with console logs, it will also slow down the plugin when turned up.</li>
   <li><b>'Debug Soldier Name'</b> - When this soldier issues commands in your server, the time for any command to complete is told in-game. Duration is from the time you entered the message, until all aspects of the command have been completed.</li>
