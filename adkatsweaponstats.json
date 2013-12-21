@@ -294,6 +294,21 @@
                         "id":"m249",
                         "damage_max":34,
                         "damage_min":25
+                },
+                {
+                        "id":"l85a2",
+                        "damage_max":25,
+                        "damage_min":18
+                },
+                {
+                        "id":"shorty-12g",
+                        "damage_max":100,
+                        "damage_min":0
+                },
+                {
+                        "id":"mp7",
+                        "damage_max":20,
+                        "damage_min":11
                 }
         ]
 }
