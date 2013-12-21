@@ -1,12 +1,11 @@
 /* 
- * AdKats is an Advanced In-Game Admin and Ban Enforcer for Procon Frostbite.
+ * AdKats - Advanced In-Game Admin and Ban Enforcer for Procon Frostbite.
  * 
- * Copyright 2013 A Different Kind, LLC
+ * Copyright 2014 A Different Kind, LLC
  * 
- * AdKats was inspired by the gaming community A Different Kind (ADK), with help from the BF3 Admins within the 
- * community. Visit http://www.ADKGamers.com/ for more information.
+ * AdKats was inspired by the gaming community A Different Kind (ADK). Visit http://www.ADKGamers.com/ for more information.
  *
- * The AdKats Frostbite Plugin is free software: you can redistribute it and/or modify it under the terms of the
+ * The AdKats Frostbite Plugin is free software: You can redistribute it and/or modify it under the terms of the
  * GNU General Public License as published by the Free Software Foundation, either version 3 of the License,
  * or (at your option) any later version. AdKats is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
@@ -20,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Beta Version 3.9.9.10
+ * Version 4.0.0.0
  */
 
 using System;
@@ -47,17 +46,16 @@ using PRoCon.Core.HttpServer;
 
 
 namespace PRoConEvents {
-    //Aliases
-
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "3.9.9.10";
-        //When slowmo is enabled, there will be a 1 second pause between each print to console or in-game say
+        private const String PluginVersion = "4.0.0.0";
+        //When fullDebug is enabled, on any exception slomo is activated
+        private const Boolean FullDebug = false;
+        //When slowmo is activated, there will be a 1 second pause between each print to console 
         //This will slow the program as a whole whenever the console is printed to
-        private const Boolean fullDebug = true;
-        private Boolean Slowmo = false;
+        private Boolean _Slowmo = false;
 
         //Match command showing whether AdKats is installed and running
         private readonly MatchCommand _IssueCommandMatchCommand;
@@ -277,8 +275,6 @@ namespace PRoConEvents {
         private Queue<CPlayerInfo> _UsMoveQueue = new Queue<CPlayerInfo>();
         //the list of players on US wishing to move to RU (This list takes secondary)
         private Queue<CPlayerInfo> _RuMoveQueue = new Queue<CPlayerInfo>();
-        //whether to allow all players, or just players in the whitelist
-        private Boolean _RequireTeamswapWhitelist = true;
         //the lowest ticket count of either team
         private volatile Int32 _LowestTicketCount = 500000;
         //the highest ticket count of either team
@@ -855,7 +851,7 @@ namespace PRoConEvents {
                 //Email Settings
                 lstReturn.Add(new CPluginVariable("8. Email Settings|Send Emails", typeof (bool), this._UseEmail));
                 if (this._UseEmail) {
-                    lstReturn.Add(new CPluginVariable("8. Email Settings|Email: Use SSL?", typeof (Boolean), this._EmailHandler.UseSSL));
+                    lstReturn.Add(new CPluginVariable("8. Email Settings|Use SSL?", typeof (Boolean), this._EmailHandler.UseSSL));
                     lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server address", typeof (String), this._EmailHandler.SMTPServer));
                     lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server port", typeof (int), this._EmailHandler.SMTPPort));
                     lstReturn.Add(new CPluginVariable("8. Email Settings|Sender address", typeof (String), this._EmailHandler.SenderEmail));
@@ -866,10 +862,7 @@ namespace PRoConEvents {
                 }
 
                 //TeamSwap Settings
-                lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Require Whitelist for Access", typeof (Boolean), this._RequireTeamswapWhitelist));
-                if (this._RequireTeamswapWhitelist) {
-                    lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Auto-Whitelist Count", typeof (String), this._PlayersToAutoWhitelist));
-                }
+                lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Auto-Whitelist Count", typeof (String), this._PlayersToAutoWhitelist));
                 lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Ticket Window High", typeof (int), this._TeamSwapTicketWindowHigh));
                 lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Ticket Window Low", typeof (int), this._TeamSwapTicketWindowLow));
 
@@ -1959,15 +1952,6 @@ namespace PRoConEvents {
                 }
                     #endregion
                     #region TeamSwap settings
-
-                else if (Regex.Match(strVariable, @"Require Whitelist for Access").Success) {
-                    Boolean require = Boolean.Parse(strValue);
-                    if (this._RequireTeamswapWhitelist != require) {
-                        this._RequireTeamswapWhitelist = require;
-                        //Once setting has been changed, upload the change to database
-                        this.QueueSettingForUpload(new CPluginVariable(@"Require Whitelist for Access", typeof (Boolean), this._RequireTeamswapWhitelist));
-                    }
-                }
                 else if (Regex.Match(strVariable, @"Auto-Whitelist Count").Success) {
                     Int32 tmp = 1;
                     int.TryParse(strValue, out tmp);
@@ -7377,23 +7361,24 @@ namespace PRoConEvents {
                 } while (_RoundReports.ContainsKey(reportID + ""));
                 record.command_numeric = reportID;
                 this._RoundReports.Add(reportID + "", record);
-                String adminAssistantIdentifier = "";
-                if (record.source_player != null)
-                {
-                    adminAssistantIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
-                }
-                //Send to all online players with access to player interaction commands
-                lock (this._PlayersMutex) {
-                    foreach (AdKatsPlayer player in this._PlayerDictionary.Values.Where(player => this.RoleIsInteractionAble(player.player_role))) {
-                        //If any allowed command is a player interaction command, send the report
-                        this.PlayerSayMessage(player.player_name, "REPORT " + adminAssistantIdentifier + "[" + reportID + "]: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
-                    }
-                }
-                if (this._UseEmail) {
-                    this._EmailHandler.SendReport(record);
-                }
                 this.SendMessageToSource(record, "REPORT [" + reportID + "] sent on " + record.target_name + " for " + record.record_message);
                 record.record_action_executed = true;
+                if (!this.RunAutoReportAction(reportID + "")) {
+                    String adminAssistantIdentifier = "";
+                    if (record.source_player != null) {
+                        adminAssistantIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
+                    }
+                    //Send to all online players with access to player interaction commands
+                    lock (this._PlayersMutex) {
+                        foreach (AdKatsPlayer player in this._PlayerDictionary.Values.Where(player => this.RoleIsInteractionAble(player.player_role))) {
+                            //If any allowed command is a player interaction command, send the report
+                            this.PlayerSayMessage(player.player_name, "REPORT " + adminAssistantIdentifier + "[" + reportID + "]: " + record.source_name + " reported " + record.target_name + " for " + record.record_message);
+                        }
+                    }
+                    if (this._UseEmail) {
+                        this._EmailHandler.SendReport(record);
+                    }
+                }
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for Report record.", e);
@@ -7412,23 +7397,24 @@ namespace PRoConEvents {
                     reportID = random.Next(100, 999);
                 } while (_RoundReports.ContainsKey(reportID + ""));
                 this._RoundReports.Add(reportID + "", record);
-                String adminAssistantIdentifier = "";
-                if (record.source_player != null) {
-                    adminAssistantIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
-                }
-                //Send to all online players with access to player interaction commands
-                lock (this._PlayersMutex) {
-                    foreach (AdKatsPlayer player in this._PlayerDictionary.Values.Where(player => this.RoleIsInteractionAble(player.player_role))) {
-                        //If any allowed command is a player interaction command, send the report
-                        this.PlayerSayMessage(player.player_name, "ADMIN CALL " + adminAssistantIdentifier + "[" + reportID + "]: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
-                    }
-                }
-                if (this._UseEmail)
-                {
-                    this._EmailHandler.SendReport(record);
-                }
                 this.SendMessageToSource(record, "ADMIN CALL [" + reportID + "] sent on " + record.target_name + " for " + record.record_message);
                 record.record_action_executed = true;
+                if (!this.RunAutoReportAction(reportID + "")) {
+                    String adminAssistantIdentifier = "";
+                    if (record.source_player != null) {
+                        adminAssistantIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
+                    }
+                    //Send to all online players with access to player interaction commands
+                    lock (this._PlayersMutex) {
+                        foreach (AdKatsPlayer player in this._PlayerDictionary.Values.Where(player => this.RoleIsInteractionAble(player.player_role))) {
+                            //If any allowed command is a player interaction command, send the report
+                            this.PlayerSayMessage(player.player_name, "ADMIN CALL " + adminAssistantIdentifier + "[" + reportID + "]: " + record.source_name + " called admin on " + record.target_name + " for " + record.record_message);
+                        }
+                    }
+                    if (this._UseEmail) {
+                        this._EmailHandler.SendReport(record);
+                    }
+                }
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for CallAdmin record.", e);
@@ -7436,6 +7422,70 @@ namespace PRoConEvents {
                 this.FinalizeRecord(record);
             }
             this.DebugWrite("Exiting callAdminOnTarget", 6);
+        }
+
+        public Boolean RunAutoReportAction(String reportID)
+        {
+            //Get the reported record
+            AdKatsRecord reportedRecord;
+            if (this._RoundReports.TryGetValue(reportID, out reportedRecord))
+            {
+                if (this._IsTestingAuthorized && 
+                    this._ServerName.ToLower().Contains("no explosives") &&
+                    reportedRecord.source_player != null && 
+                    reportedRecord.source_player.player_aa &&
+                    this.FetchOnlineAdminSoldiers().Count == 0)
+                {
+                    String messageLower = reportedRecord.record_message.ToLower();
+                    if (reportedRecord.record_message == "Rules: Baserape. In Streets past A Flag" ||
+                        reportedRecord.record_message == "Rules: Baserape. Past C Flag" ||
+                        reportedRecord.record_message == "Rules: Team Griefing" ||
+                        reportedRecord.record_message == "Rules: Destroying Team Assets" ||
+                        reportedRecord.record_message == "Rules: Frag Rounds" ||
+                        reportedRecord.record_message == "Rules: Using M320/GP30" ||
+                        reportedRecord.record_message == "Rules: Frag Rounds" ||
+                        messageLower.Contains("frag") ||
+                        messageLower.Contains("past c") ||
+                        messageLower.Contains("past lockers") ||
+                        messageLower.Contains("past a") ||
+                        messageLower.Contains("street") ||
+                        messageLower.Contains("gp30") ||
+                        messageLower.Contains("gp-30") ||
+                        messageLower.Contains("320"))
+                    {
+                        this.DebugWrite("Handling round report.", 5);
+                        //Remove it from the reports for this round
+                        this._RoundReports.Remove(reportID);
+                        //Update it in the database
+                        reportedRecord.command_action = this._CommandKeyDictionary["player_report_confirm"];
+                        this.UpdateRecord(reportedRecord, false);
+                        //Get target information
+                        AdKatsRecord aRecord = new AdKatsRecord
+                        {
+                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                            isDebug = false,
+                            server_id = this._ServerID,
+                            command_type = this._CommandKeyDictionary["player_punish"],
+                            command_numeric = 0,
+                            target_name = reportedRecord.target_name,
+                            target_player = reportedRecord.target_player,
+                            source_name = "ProconAdmin",
+                            record_message = reportedRecord.record_message
+                        };
+                        Thread.Sleep(5000);
+                        //Inform the reporter that they helped the admins
+                        this.SendMessageToSource(reportedRecord, "Your report has been acted on. Thank you.");
+                        //Queue for processing right away
+                        this.QueueRecordForProcessing(aRecord);
+                        return true;
+                    }
+                }
+            }
+            else
+            {
+                this.ConsoleError("Unable to process automatic report.");
+            }
+            return false;
         }
 
         public void RestartLevel(AdKatsRecord record) {
@@ -8969,7 +9019,6 @@ namespace PRoConEvents {
                 this.QueueSettingForUpload(new CPluginVariable(@"On-Player-Killed Message", typeof(String), this._MutedPlayerKillMessage));
                 this.QueueSettingForUpload(new CPluginVariable(@"On-Player-Kicked Message", typeof(String), this._MutedPlayerKickMessage));
                 this.QueueSettingForUpload(new CPluginVariable(@"# Chances to give player before kicking", typeof(Int32), this._MutedPlayerChances));
-                this.QueueSettingForUpload(new CPluginVariable(@"Require Whitelist for Access", typeof(Boolean), this._RequireTeamswapWhitelist));
                 this.QueueSettingForUpload(new CPluginVariable(@"Auto-Whitelist Count", typeof(Int32), this._PlayersToAutoWhitelist));
                 this.QueueSettingForUpload(new CPluginVariable(@"Ticket Window High", typeof(Int32), this._TeamSwapTicketWindowHigh));
                 this.QueueSettingForUpload(new CPluginVariable(@"Ticket Window Low", typeof(Int32), this._TeamSwapTicketWindowLow));
@@ -9334,6 +9383,30 @@ namespace PRoConEvents {
                 this.HandleException(new AdKatsException("Unexpected error uploading command.", e));
             }
         }
+
+        private List<AdKatsPlayer> FetchAdminSoldiers() {
+            List<AdKatsPlayer> adminSoldiers = new List<AdKatsPlayer>();
+            //Loop over the user list
+            lock (this._UserCache)
+            {
+                foreach (AdKatsUser user in this._UserCache.Values.Where(user => this.RoleIsInteractionAble(user.user_role))) {
+                    adminSoldiers.AddRange(user.soldierDictionary.Values);
+                }
+            }
+            return adminSoldiers;
+        }
+
+        private List<AdKatsPlayer> FetchOnlineAdminSoldiers() {
+            List<AdKatsPlayer> onlineAdminSoldiers = new List<AdKatsPlayer>();
+            foreach (AdKatsPlayer aPlayer in this.FetchAdminSoldiers()) {
+                AdKatsPlayer adminSoldier;
+                if (this._PlayerDictionary.TryGetValue(aPlayer.player_name, out adminSoldier)) {
+                    onlineAdminSoldiers.Add(adminSoldier);
+                    this.ConsoleError("AS: " + adminSoldier.player_name);
+                }
+            }
+            return onlineAdminSoldiers;
+        } 
 
         private void HandleRecordUpload(AdKatsRecord record) {
             //Make sure database connection active
@@ -14461,14 +14534,14 @@ namespace PRoConEvents {
 
         public void LogWrite(String msg) {
             this.ExecuteCommand("procon.protected.pluginconsole.write", msg);
-            if (Slowmo) {
+            if (_Slowmo) {
                 Thread.Sleep(1000);
             }
         }
 
         public void ProconChatWrite(String msg) {
             this.ExecuteCommand("procon.protected.chat.write", "AdKats > " + msg);
-            if (Slowmo) {
+            if (_Slowmo) {
                 Thread.Sleep(1000);
             }
         }
@@ -14514,8 +14587,8 @@ namespace PRoConEvents {
             if (!this._IsEnabled) {
                 return aException;
             }
-            if (AdKats.fullDebug) {
-                this.Slowmo = true;
+            if (AdKats.FullDebug) {
+                this._Slowmo = true;
             }
             if (aException == null) {
                 this.ConsoleError("Attempted to handle exception when none was given.");
