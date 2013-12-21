@@ -286,4 +286,25 @@ fine for performance). Right now only Punish and Forgive are required to be logg
   BF4 version coming soon. </li>
   <li>Round whitelisting of players is no-longer logged in the database</li>
 </ul>
+<h4>4.0.0.0(21-DEC-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li>User/role based access system added, old access level concept removed.</li>
+  <li>Added rule printing like "Server rules on request", with multiple prefixes and database log support.</li>
+  <li>Email functionality added.</li>
+  <li>IRO punishments now editable for both activation and timeout.</li>
+  <li>Admin name can now optionally be inclided in global kick/ban admin.say messages.</li>
+  <li>Admin name for procon bans now editable.</li>
+  <li>Tell and Player-Tell commands added.</li>
+  <li>Unban command added for use with ban enforcer.</li>
+  <li>Added mini ban management section for use with ban enforcer.</li>
+  <li>All AdKats functions now operation on UTC time.</li>
+  <li>Optional Auto-Enable/Keep-Alive added to make sure the plugin is always running.</li>
+  <li>Commands can now be accepted from procon's chat tab, and thus from other plugins.</li>
+  <li>Internal hacker-checker updated to work with BF4.</li>
+  <li>Ban reasons updated to look better with battlelog's new display.</li>
+  <li>Added spectator list management for BF4.</li>
+  <li>Database update script from 3.7 to 4.0 included. Will automatically run.</li>
+  <li>Bug fixes from previous releases.</li>
+</ul>
 </blockquote>
