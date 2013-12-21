@@ -204,4 +204,107 @@ fine for performance). Right now only Punish and Forgive are required to be logg
   sent to you in-game. Time is in milliseconds, from the time you entered it until all actions resulting from that 
   command have finished.</li>
 </ul>
+<h4>0.3.0.1 (3-AUG-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes.</b> Documented bugs in the issues section (milestone 0.3.0.1) are fixed.</li>
+  <li><b>Added delayed kill.</b> When a player dies and is then admin killed, kill will be performed when they spawn.</li>
+  <li><b>Ban-Sync process revamped.</b> All ban enforcer sync methods have been reworked to be more reliable and 
+  efficient.</li>
+  <li><b>Admin list sorted by level then name.</b> Simple visual fix.</li>
+</ul>
+<h4>0.3.0.2(6-SEP-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes/Enhancements</b> Documented bugs in the issues section (milestone 0.3.0.2) are fixed.</li>
+  <li><b>Teamswap Queues Removed Temporarily.</b> Until the queuing problem can be fixed, queues for teamswap have been 
+  removed. All moves, force-moves, and self-moves will be called directly.</li>
+  <li><b>Import from BF3 Ban Manager Added.</b> When AdKats Ban Enforcer is enabled, a check for BF3 Ban Manager tables 
+  is performed. All bans managed through BF3 Ban Manager will be automatically imported into AdKats.</li>
+</ul>
+<h4>0.3.0.3(8-SEP-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes/Enhancements</b> Small but extremely important bug fixed. Necessary for WebAdmin.</li>
+</ul>
+<h4>0.3.1.1(16-SEP-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes/Enhancements</b> Small bugs fixed. Some commands simplified. Necessary for WebAdmin.</li>
+  <li><b>Performance Fix</b> IP checking was causing lag in the previous verion.</li>
+</ul>
+<h4>0.3.1.6(24-SEP-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes/Enhancements</b> Teamswap queues have been brought back after being fixed. Listplayers calls 
+  shortened and only handled every 5 seconds, and ban enforcer enforcement should now cause less chat spam.</li>
+  <li><b>Added join command</b> @|!|/ join playername will join on that player, with certain access levels.</li>
+  <li><b>Punishment logging improved</b> # of player points is now stored in the record message for each punish.</li>
+  <li><b>Permaban punish overrides low population</b>Used to not happen.</li>
+  <li><b>Remove text to disable command</b>Command name will autofill with command disabled text when removed.</li>
+</ul>
+<h4>3.5.0.0(19-OCT-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li><b>Bug-fixes/Enhancements.</b> Record upload for certain commands optimized, kicks/bans on yourself no-longer 
+  tell the whole server, auto-whitelisted players are logged, MutePlayer doesn't cause momentary disconnect, etc, etc, 
+  full list on github.</li>
+  <li><b>Beta Version of Stat Logger Required.</b> Version 1.1.0.2 of stat logger is required for this version of AdKats. 
+  That version of stat logger has been included with this release.</li>
+  <li><b>MULTIBalancer Orchestration.</b> All players access level 0-5 can be automatically whitelisted.</li>
+  <li><b>Reserved Slot Orchestration.</b> All players on the access list can be automatically given reserved slots.</li>
+  <li><b>Added VOIP Command.</b> Voip command can be used by all players to get teamspeak or other voip server info.</li>
+  <li><b>User based kill command added.</b> Players can kill themselves with @killme. Disable by removing command text.</li>
+  <li><b>Push errors to database.</b> All errors and exceptions are now pushed to the database for logging.</li>
+  <li><b>Server Crash Reporter Added.</b> Server crash/Blaze DC reporter added (Only meaningful to those using webadmin).</li>
+  <li><b>Admin Assistant Logic Changed.</b> Admin Assistants are now on a 30 day report calculation, instead of 7 days.</li>
+  <li><b>Database connection backup added.</b> Commands will now still carry out their actions if the database 
+  connection is temporarily lost. It will spam console errors like there's no tomorrow but will still act on commands.</li>
+</ul>
+<h4>3.7.0.0(15-NOV-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li>Compatibility with BF4 and BF3 in the same version.</li>
+  <li>Certain commands disabled on “Official” BF4 servers.</li>
+  <li>Both plugin description fetching and player list processing are now being processed async to avoid procon 
+  panic.</li>
+  <li>The universal version of XpKiller’s stat logger is now supported. Both versions of stat logger are supported.</li>
+  <li>Source ID has been added to the records table. Records will remain connected to a player even if their name 
+  changes.</li>
+  <li>Player ID is now added to all stored chatlogs. XpKillers chat log table is automatically modified to include 
+  player ID; Thus chat logging functions are taken over by AdKats and force disabled on stat logger.</li>
+  <li>AdKats will enter backup mode if your database becomes unavailable temporarily, your connections max out, or it 
+  becomes overloaded. Stat logger will automatically be disabled if a disconnect is detected, and re-enabled once the 
+  connection issue has been resolved. This is to prevent procon from entering panic mode and ejecting either plugin 
+  from the runtime, requiring a layer restart to get them back.</li>
+  <li>Experimental tools updated to work on BF3 and BF4</li>
+  <li>Round timer added. Rounds can now be automatically ended after X minutes. Countdown to round end is given, and 
+  the current winning team will win.</li>
+  <li>Internal Hacker-Checker released publicly for BF3. This code has been in AdKats for months now, but was set to 
+  only activate on =ADK= servers. Uses BF3Stats for stat information. Do not use unless you read the documentation on 
+  github <a href="https://github.com/ColColonCleaner/AdKats/blob/master/README.md#internal-hacker-checker-with-whitelist" target="_blank">(HERE)</a>. 
+  BF4 version coming soon. </li>
+  <li>Round whitelisting of players is no-longer logged in the database</li>
+</ul>
+<h4>4.0.0.0(21-DEC-2013)</h4>
+<b>Changes</b> <br/>
+<ul>
+  <li>User/role based access system added, old access level concept removed.</li>
+  <li>Added rule printing like "Server rules on request", with multiple prefixes and database log support.</li>
+  <li>Email functionality added.</li>
+  <li>IRO punishments now editable for both activation and timeout.</li>
+  <li>Admin name can now optionally be inclided in global kick/ban admin.say messages.</li>
+  <li>Admin name for procon bans now editable.</li>
+  <li>Tell and Player-Tell commands added.</li>
+  <li>Unban command added for use with ban enforcer.</li>
+  <li>Added mini ban management section for use with ban enforcer.</li>
+  <li>All AdKats functions now operation on UTC time.</li>
+  <li>Optional Auto-Enable/Keep-Alive added to make sure the plugin is always running.</li>
+  <li>Commands can now be accepted from procon's chat tab, and thus from other plugins.</li>
+  <li>Internal hacker-checker updated to work with BF4.</li>
+  <li>Ban reasons updated to look better with battlelog's new display.</li>
+  <li>Added spectator list management for BF4.</li>
+  <li>Database update script from 3.7 to 4.0 included. Will automatically run.</li>
+  <li>Bug fixes from previous releases.</li>
+</ul>
 </blockquote>
