@@ -609,7 +609,7 @@ namespace PRoConEvents {
                     this.DebugWrite("Fetching weapon stats...", 2);
                     try
                     {
-                        this._PluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/dev/adkatsweaponstats.json");
+                        this._PluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsweaponstats.json");
                         this.DebugWrite("Weapon stats fetched.", 1);
                     }
                     catch (Exception)
@@ -3853,7 +3853,7 @@ namespace PRoConEvents {
                                         else {
                                             this.DebugWrite("Player removed from check list after disabling hacker checker.", 2);
                                         }
-                                        this.ConsoleWrite("Players with " + this._GameVersion + "Stats: " + String.Format("{0:0.00}", (playersWithStats / checkedPlayers) * 100) + "%");
+                                        this.DebugWrite("Players with " + this._GameVersion + "Stats: " + String.Format("{0:0.00}", (playersWithStats / checkedPlayers) * 100) + "%", 3);
                                     }
                                     else {
                                         aPlayer.stats = null;
@@ -3894,7 +3894,7 @@ namespace PRoConEvents {
                                         //this.ConsoleError(aPlayer.player_name + " doesn't have stats.");
                                         repeatCheckingQueue.Enqueue(aPlayer);
                                     }
-                                    this.ConsoleWrite("Players with " + this._GameVersion + "Stats: " + String.Format("{0:0.00}", (playersWithStats / checkedPlayers) * 100) + "%");
+                                    this.DebugWrite("Players with " + this._GameVersion + "Stats: " + String.Format("{0:0.00}", (playersWithStats / checkedPlayers) * 100) + "%", 3);
                                 }
                             }
                         }
