@@ -1,9 +1,9 @@
+
 <html>
 <script>
     //<latest_stable_release>4.0.0.0</latest_stable_release>
 </script>
 <h1>AdKats</h1>
-
 <p>
     Admin Toolset with a plethora of features, basically the default "In-Game Admin" with 1500+ hours of enhancements and features added.
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any setup.
@@ -108,21 +108,17 @@
         All actions, messaging, database communications, and command parsing take place on their own threads, minimizing performance impacts.
     </li>
 </ul>
-
-If you find any bugs, please submit them
-<a href="https://github.com/ColColonCleaner/AdKats/issues?state=open" target="_blank">HERE</a>
-and they will be fixed ASAP.<br/><br/>
-
-Download the latest version here:
-<a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.0.0.0.zip/download" target="_blank">Version 4.0.0.0</a>
+<p>
+    If you find any bugs, please submit them <a href="https://github.com/ColColonCleaner/AdKats/issues?state=open" target="_blank">HERE</a> and they will be fixed ASAP.
 </p>
 <p>
-    AdKats was inspired by the gaming community A Different Kind (ADK). Visit
-    <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
+    Download the latest version here: <a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.0.0.0.zip/download" target="_blank">Version 4.0.0.0</a>
 </p>
-
+<p>
+    AdKats was inspired by the gaming community A Different Kind (ADK).
+    Visit <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
+</p>
 <h2>Installation</h2>
-<p>
 <ol>
     <li>
         <b>Install XpKiller's Stat logger plugin.</b>
@@ -150,9 +146,9 @@ Download the latest version here:
         Disable any other plugins that use commands like kill, kick, etc. The commands would be run by both, causing unwanted functionality. Enjoy AdKats!
     </li>
 </ol>
+<p>
 If you have any problems installing AdKats please let me know on the MyRCON forums, or here as an issue and I'll respond promptly.
 </p>
-
 <h2>Dependencies</h2>
 <h4>1. A MySQL Database</h4>
 <p>
@@ -165,17 +161,14 @@ If you have any problems installing AdKats please let me know on the MyRCON foru
     Be cautious of free database options and services, those paths usually have restrictions on database size and are hosted on unreliable servers, which can lead to many problems down the road.
 </p>
 <h4>2. XpKiller's "Procon Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
-
 <p>
     Version 1.1.0.1+ of the BF3 version, or any universal version is required.
     AdKats will only run if one of these plugins is (1) using the same database AdKats uses, and (2) running on every battlefield Server you plan to install AdKats on.
     Running it along-side AdKats on each Procon layer will ensure these conditions are met.
 </p>
-
-The latest universal version of XpKiller's Stat Logger can be downloaded from here:
-<a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>
+<p>
+The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>
 </p>
-
 <h2>Features</h2>
 <h3>Infraction Tracking System</h3>
 <p>
@@ -194,13 +187,15 @@ The latest universal version of XpKiller's Stat Logger can be downloaded from he
 </p>
 <h4>IRO Punishments</h4>
 <p>
-When a player is punished, and has already been punished in the past 10 minutes, the new punish counts
-for 2 points instead of 1 since the player is immediately breaking server rules again. A punish worth 2
-points is called an "IRO" punish by the plugin, standing for Immediate Repeat Offence. "[IRO]" will be appended to the
-punish reason when this type of punish is activated.
+    When a player is punished, and has already been punished in the past 10 minutes, the new punish counts
+    for 2 points instead of 1 since the player is immediately breaking server rules again. A punish worth 2
+    points is called an "IRO" punish by the plugin, standing for Immediate Repeat Offence. "[IRO]" will be appended to the
+    punish reason when this type of punish is activated.
 </p>
 <h4>Punishment Hierarchy</h4>
-The punishment hierarchy is configurable to suit your needs, but the default is below.<br/>
+<p>
+    The punishment hierarchy is configurable to suit your needs, but the default is below.
+</p>
 <table>
     <tr>
         <td><b>Total Points</b></td>
@@ -269,22 +264,22 @@ The punishment hierarchy is configurable to suit your needs, but the default is 
     </tr>
 </table>
 <p>
-Players may also be 'forgiven', which will reduce their Total Points value by 1 each time, this is useful if you have a
-website where players can apologize for their actions in-game. Players can be forgiven into negative total point values
-which is why a 'less than 1' clause is needed.
+    Players may also be 'forgiven', which will reduce their Total Points value by 1 each time, this is useful if you have a
+    website where players can apologize for their actions in-game. Players can be forgiven into negative total point values
+    which is why a 'less than 1' clause is needed.
 </p>
 <p>
-You can run multiple servers with this plugin on the same database; A different ID is automatically assigned to each
-server. If you want punishments to increase on this server when infractions are committed on others set
-"Combine Server Punishments" to true. Rule breaking on another server won't cause increase in punishments on the current
-server if "Combine Server Punishments" is false. This is available since many groups run different rule sets on each
-server they own, so players breaking rules on one server may not know rules on another, so they get a clean slate.
+    You can run multiple servers with this plugin on the same database; A different ID is automatically assigned to each
+    server. If you want punishments to increase on this server when infractions are committed on others set
+    "Combine Server Punishments" to true. Rule breaking on another server won't cause increase in punishments on the current
+    server if "Combine Server Punishments" is false. This is available since many groups run different rule sets on each
+    server they own, so players breaking rules on one server may not know rules on another, so they get a clean slate.
 </p>
 <p>
-<b>Suggestions:</b> When deciding to use this system, 'punish' should be the only command used for player rule-breaking.
-Other commands like kill, or kick are not counted in the system since sometimes players ask to be killed, admins kill/kick themselves,
-or players get kicked for AFKing. Kill and kick should only be used for server management. Direct tban
-and ban are of course still available for hacking/glitching situations, but that is the ONLY time they should be used.
+    <b>Suggestions:</b> When deciding to use this system, 'punish' should be the only command used for player rule-breaking.
+    Other commands like kill, or kick are not counted in the system since sometimes players ask to be killed, admins kill/kick themselves,
+    or players get kicked for AFKing. Kill and kick should only be used for server management. Direct tban
+    and ban are of course still available for hacking/glitching situations, but that is the ONLY time they should be used.
 </p>
 <h3>Ban Enforcer</h3>
 <p>
@@ -316,7 +311,6 @@ and ban are of course still available for hacking/glitching situations, but that
     And tracking of bans added through in-game commands or autoadmins on any server is a cakewalk now, so clan leaders don't need to go great lengths to look things up.
     Several other reasons as well, but overall it was a fantastic move, and thankfully we had the devs available to make it. </shamelessSelfPromotion>.
 </p>
-
 <h3>Report/CallAdmin System w/Email Support</h3>
 <p>
     When a player puts in a proper @report or @admin all in-game admins are notified.
@@ -336,7 +330,6 @@ and ban are of course still available for hacking/glitching situations, but that
 <p>
     When email usage is enabled, all users with access to player interaction commands will get an email containing the report information.
 </p>
-
 <h3>Admin Assistants</h3>
 <p>
     When a player sends a report, then an admin uses that report by ID, it is considered a "good" report.
@@ -349,7 +342,6 @@ and ban are of course still available for hacking/glitching situations, but that
     When an admin assistant sends a report, to the admins that report is prefixed with [AA] to note it as a (most likely) reliable report.
     Whether admin assistants get the TeamSwap perk can be disabled, but the prefixes admins see will remain.
 </p>
-
 <h3>Player Muting</h3>
 <p>
     Players can be muted using the mute command.
@@ -361,7 +353,6 @@ and ban are of course still available for hacking/glitching situations, but that
     There will be no way to un-mute players, there was a reason they were muted, and they can talk again next round.
     Admins cannot mute other admins.
 </p>
-
 <h3>Player Joining</h3>
 <p>
     Players can be joined using the join command.
@@ -372,7 +363,6 @@ and ban are of course still available for hacking/glitching situations, but that
     If user has admin access, the target squad will be unlocked for their entry.
     NOTE: For cross-team joining, TeamSwap queues are not used, so if there is no room on the target team you will need to retry the command once room is available.
 </p>
-
 <h3>Pre-Messaging</h3>
 <p>
     A list of editable pre-defined messages can be added in settings, then admins can use the message ID instead of typing the whole message in.
@@ -388,7 +378,6 @@ and ban are of course still available for hacking/glitching situations, but that
     Even more useful is using report IDs with this, for example someone reports muffinman for "baseraping asshat" and gets report ID 283.
     You don't want "baseraping asshat" to be the actual reason entered, so you can just do "@punish 283 4", and he will get the proper punish message.
 </p>
-
 <h3>TeamSwap</h3>
 <p>
     <b>TeamSwap is NOT an autobalancer</b>
@@ -413,7 +402,6 @@ and ban are of course still available for hacking/glitching situations, but that
     The setting is "Auto-Whitelist Count", under TeamSwap settings.
     This can be disabled by setting auto-whitelist count to 0.
 </p>
-
 <h3>Requiring Reasons</h3>
 <p>
     All commands which might lead to actions against players are required to have a reason entered, and will cancel if no reason is given.
@@ -422,7 +410,6 @@ and ban are of course still available for hacking/glitching situations, but that
     The editable setting only applies to admin commands, and the default value is 5 characters.
     Reports and Admin calls are hardcoded to 1 character minimum reason lengths.
 </p>
-
 <h3>Setting Sync</h3>
 <p>
     Plugin settings are automatically synced to layers every 5 minutes from their particular server IDs.
@@ -431,7 +418,6 @@ and ban are of course still available for hacking/glitching situations, but that
     All settings on the current instance will be overwritten by the synced settings.
     Whenever a setting is changed, that change is persisted to the database.
 </p>
-
 <h3>Internal Hacker-Checker with Whitelist</h3>
 <p>
     Ever since we started running servers we never banned off of "cheat-o-meter" results, since there were too many false positives, so we built our own.
@@ -479,7 +465,6 @@ and ban are of course still available for hacking/glitching situations, but that
     We will add database support for whitelisting in a later version.
     If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes while they are in the server, stopping if they leave.
 </p>
-
 <h3>Available In-Game Commands</h3>
 <p>
     <u><b>You can edit the text for each command to suit your needs in plugin settings.</b></u>
@@ -508,7 +493,8 @@ and ban are of course still available for hacking/glitching situations, but that
             [player][reason]<br/>
             OR<br/>
             [reportID]<br/>
-            OR<br/>[reportID][reason]
+            OR<br/>
+            [reportID][reason]
         </td>
         <td>The in-game command used for killing players.</td>
     </tr>
@@ -521,7 +507,8 @@ and ban are of course still available for hacking/glitching situations, but that
             [player][reason]<br/>
             OR<br/>
             [reportID]<br/>
-            OR<br/>[reportID][reason]
+            OR<br/>
+            [reportID][reason]
         </td>
         <td>The in-game command used for kicking players.</td>
     </tr>
@@ -538,581 +525,554 @@ and ban are of course still available for hacking/glitching situations, but that
             [time][reportID][reason]
         </td>
         <td>
-            The in-game command used temp-banning players.
-            Default time is in minutes, but the number can have a letter after it designating the units.
+            The in-game command used for temp-banning players.
+            Default time is in minutes, but the number can have a letter after it designating the units. e.g. 2h for 2 hours. Valid suffixes are m, h, d, w, and y.
         </td>
     </tr>
     <tr>
         <td><b>Perma-Ban Player</b></td>
         <td>ban</td>
-        <td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
         <td>The in-game command used for perma-banning players.</td>
+    </tr>
+    <tr>
+        <td><b>Unban Player</b></td>
+        <td>unban</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for unbanning players. Only usable when ban enforcer is enabled.
+        </td>
     </tr>
     <tr>
         <td><b>Punish Player</b></td>
         <td>punish</td>
-        <td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
-        <td>The in-game command used for punishing players. Will add a Punish record to the database, increasing a
-            player's total points by 1. When a reportID is used as input, details of the report are given and
-            confirmation (@yes) needs to be given before the punish is sent.
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>
+            The in-game command used for punishing players.
+            Will add a Punish record to the database, increasing a player's total points by 1.
         </td>
     </tr>
     <tr>
         <td><b>Forgive Player</b></td>
         <td>forgive</td>
-        <td>None<br/>OR<br/>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
-        <td>The in-game command used for forgiving players. Will add a Forgive record to the database, decreasing a
-            player's total points by 1.
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>
+            The in-game command used for forgiving players.
+            Will add a Forgive record to the database, decreasing a player's total points by 1.
         </td>
     </tr>
     <tr>
         <td><b>Mute Player</b></td>
         <td>mute</td>
-        <td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
-        <td>The in-game command used for muting players. Players will be muted till the end of the round, 5 kills then
-            kick if they keep talking. Admins cannot be muted.
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>
+            The in-game command used for muting players.
+            Players will be muted till the end of the round, X kills then kick if they keep talking.
+            Admins cannot be muted.
         </td>
     </tr>
     <tr>
         <td><b>Move Player</b></td>
         <td>move</td>
-        <td>[player]<br/>OR<br/>[reportID]</td>
-        <td>The in-game command used for moving players between teams. Will add players to a death move list, when they
-            die they will be sent to TeamSwap.
+        <td>
+            None<br/>
+            OR<br/>
+            [player]<br/>
+            OR<br/>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for moving players between teams.
+            Will add players to the "on-death" move list, when they die they will be sent to TeamSwap.
         </td>
     </tr>
     <tr>
         <td><b>Force-Move Player</b></td>
         <td>fmove</td>
-        <td>None<br/>OR<br/>[player]<br/>OR<br/>[reportID]</td>
-        <td>The in-game command used for force-moving players between teams. Will immediately send the given player to
-            TeamSwap.
+        <td>
+            None<br/>
+            OR<br/>
+            [player]<br/>
+            OR<br/>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for force-moving players between teams.
+            Will immediately send the given player to TeamSwap.
         </td>
     </tr>
     <tr>
         <td><b>Join Player</b></td>
         <td>join</td>
-        <td>[player]<br/>OR<br/>[reportID]</td>
-        <td>The in-game command used for joining player's squads. Will immediately send the speaker to the target if
-            possible, within access limitations.
+        <td>
+            [player]<br/>
+            OR<br/>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for joining player's squads.
+            Will immediately send the speaker to the target if possible, within access limitations.
         </td>
     </tr>
     <tr>
         <td><b>TeamSwap Self</b></td>
         <td>moveme</td>
         <td>None</td>
-        <td>The in-game command used for moving yourself between teams. Will immediately send the speaker to TeamSwap.
+        <td>
+            The in-game command used for moving yourself between teams.
+            Will immediately send the speaker to TeamSwap.
         </td>
     </tr>
     <tr>
         <td><b>Round Whitelist Player</b></td>
         <td>roundwhitelist</td>
-        <td>[player][reason]<br/>OR<br/>[reportID]<br/>OR<br/>[reportID][reason]</td>
-        <td>The in-game command used for round-whitelisting players. 2 players may be whitelisted per round. Once
-            whitelisted they can use TeamSwap.
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>
+            The in-game command used for round-whitelisting players.
+            2 players may be whitelisted per round.
+            Once whitelisted they can use TeamSwap.
         </td>
     </tr>
     <tr>
         <td><b>Report Player</b></td>
         <td>report</td>
         <td>[player][reason]</td>
-        <td>The in-game command used for reporting players. Must have a reason, and will inform a player otherwise when
-            using. Will log a Report in the database(External GCP pulls from there for external admin notifications),
-            and notify all in-game admins. Informs the reporter and admins of the report ID, which the punish system can
-            use.
+        <td>
+            The in-game command used for reporting players.
+            Must have a reason, and will inform a player otherwise when used incorrectly.
+            Will log a Report in the database (External GCP pulls from there for external admin notifications), and notify all in-game admins.
+            Informs the reporter and admins of the report ID, which the punish system can use.
         </td>
     </tr>
     <tr>
         <td><b>Call Admin</b></td>
         <td>admin</td>
         <td>[player][reason]</td>
-        <td>The in-game command used for calling admin attention to a player. Same deal as report, but used for a
-            different reason. Informs the reporter and admins of the report ID, which the punish system can use.
+        <td>
+            The in-game command used for calling admin attention to a player.
+            Same deal as report, but used for a different reason.
+            Informs the reporter and admins of the report ID, which the punish system can use.
         </td>
     </tr>
     <tr>
         <td><b>Admin Say</b></td>
         <td>say</td>
-        <td>[message]<br/>OR<br/>[preMessageID]</td>
-        <td>The in-game command used to send a message through admin chat to the whole server.</td>
-    </tr>
-    <tr>
-        <td><b>Admin Yell</b></td>
-        <td>yell</td>
-        <td>[message]<br/>OR<br/>[preMessageID]</td>
-        <td>The in-game command used for to send a message through admin yell to the whole server.</td>
+        <td>
+            [message]<br/>
+            OR<br/>
+            [preMessageID]
+        </td>
+        <td>
+            The in-game command used to send a message through admin chat to the whole server.
+        </td>
     </tr>
     <tr>
         <td><b>Player Say</b></td>
         <td>psay</td>
-        <td>[player][message]<br/>OR<br/>[player][preMessageID]</td>
-        <td>The in-game command used for sending a message through admin chat to only a specific player.</td>
+        <td>
+            [player][message]<br/>
+            OR<br/>
+            [player][preMessageID]
+        </td>
+        <td>
+            The in-game command used for sending a message through admin chat to only a specific player.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Admin Yell</b></td>
+        <td>yell</td>
+        <td>
+            [message]<br/>
+            OR<br/>
+            [preMessageID]
+        </td>
+        <td>
+            The in-game command used for to send a message through admin yell to the whole server.
+        </td>
     </tr>
     <tr>
         <td><b>Player Yell</b></td>
         <td>pyell</td>
-        <td>[player][message]<br/>OR<br/>[player][preMessageID]</td>
-        <td>The in-game command used for sending a message through admin yell to only a specific player.</td>
+        <td>
+            [player][message]<br/>
+            OR<br/>
+            [player][preMessageID]
+        </td>
+        <td>
+            The in-game command used for sending a message through admin yell to only a specific player.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Admin Tell</b></td>
+        <td>yell</td>
+        <td>
+            [message]<br/>
+            OR<br/>
+            [preMessageID]
+        </td>
+        <td>
+            The in-game command used for to send a message through both admin say and admin yell to the whole server.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Player Tell</b></td>
+        <td>pyell</td>
+        <td>
+            [player][message]<br/>
+            OR<br/>
+            [player][preMessageID]
+        </td>
+        <td>
+            The in-game command used for sending a message through both admin say and admin yell to only a specific player.
+        </td>
     </tr>
     <tr>
         <td><b>What Is</b></td>
         <td>whatis</td>
         <td>[preMessageID]</td>
-        <td>The in-game command used for finding out what a particular preMessage ID links to.</td>
+        <td>
+            The in-game command used for finding out what a particular preMessage ID links to.
+        </td>
     </tr>
     <tr>
         <td><b>VOIP</b></td>
         <td>voip</td>
         <td>None</td>
-        <td>The in-game command used for sending VOIP server info to the speaker.</td>
+        <td>
+            The in-game command used for sending VOIP server info to the speaker.
+        </td>
     </tr>
     <tr>
         <td><b>Kill Self</b></td>
         <td>killme</td>
         <td>None</td>
-        <td>The in-game command used for killing the speaker.</td>
+        <td>
+            The in-game command used for killing the speaker.
+        </td>
     </tr>
     <tr>
         <td><b>Restart Level</b></td>
         <td>restart</td>
         <td>None</td>
-        <td>The in-game command used for restarting the round.</td>
+        <td>
+            The in-game command used for restarting the round.
+        </td>
     </tr>
     <tr>
         <td><b>Run Next Level</b></td>
         <td>nextlevel</td>
         <td>None</td>
-        <td>The in-game command used for running the next map in current rotation, but keep all points and KDRs from
-            this round.
+        <td>
+            The in-game command used for running the next map in current rotation, but keep all points and KDRs from this round.
         </td>
     </tr>
     <tr>
         <td><b>End Round</b></td>
         <td>endround</td>
         <td>[US/RU]</td>
-        <td>The in-game command used for ending the current round with a winning team. Either US or RU.</td>
+        <td>
+            The in-game command used for ending the current round with a winning team. Either US or RU.
+        </td>
     </tr>
     <tr>
         <td><b>Nuke Server</b></td>
         <td>nuke</td>
         <td>[US/RU/ALL]</td>
-        <td>The in-game command used for killing all players on a team. US, RU, or ALL will work.</td>
+        <td>
+            The in-game command used for killing all players on a team. US, RU, or ALL will work.
+        </td>
     </tr>
     <tr>
         <td><b>Kick All Players</b></td>
         <td>kickall</td>
         <td>[none]</td>
-        <td>The in-game command used for kicking all players except admins.</td>
+        <td>
+            The in-game command used for kicking all players except admins.
+        </td>
     </tr>
     <tr>
         <td><b>Confirm Command</b></td>
         <td>yes</td>
         <td>None</td>
-        <td>The in-game command used for confirming other commands when needed.</td>
+        <td>
+            The in-game command used for confirming other commands when needed.
+        </td>
     </tr>
     <tr>
         <td><b>Cancel Command</b></td>
         <td>no</td>
         <td>None</td>
-        <td>The in-game command used to cancel other commands when needed.</td>
+        <td>
+            The in-game command used to cancel other commands when needed.
+        </td>
     </tr>
 </table>
-</p>
-<h3>Command Access Levels</h3>
-
+<h3>User Ranks and Roles</h3>
 <p>
-    Players need to be at or above certain access levels to perform commands. Players on the access list can have their
-    powers disabled (without removing them from the access list) by lowering their access level. Players can be added to
-    or removed from the access list using the "Add Access" and "Remove Access" setting fields. The access level of a
-    player
-    can be changed once they are on the access list, in addition to their email address. All players are defaulted to
-    level
-    6 in the system, and have no special access, level 0 is a full admin.
-    <br/>
-<table>
-    <tr>
-        <td><b>Command</b></td>
-        <td><b>Access Level</b></td>
-    </tr>
-    <tr>
-        <td><b>Restart Level</b></td>
-        <td>0</td>
-    </tr>
-    <tr>
-        <td><b>Next Level</b></td>
-        <td>0</td>
-    </tr>
-    <tr>
-        <td><b>End Level</b></td>
-        <td>0</td>
-    </tr>
-    <tr>
-        <td><b>Nuke Server</b></td>
-        <td>0</td>
-    </tr>
-    <tr>
-        <td><b>Kick All</b></td>
-        <td>0</td>
-    </tr>
-    <tr>
-        <td><b>Permaban Player</b></td>
-        <td>1</td>
-    </tr>
-    <tr>
-        <td><b>Temp-Ban Player</b></td>
-        <td>2</td>
-    </tr>
-    <tr>
-        <td><b>Round Whitelist Player</b></td>
-        <td>2</td>
-    </tr>
-    <tr>
-        <td><b>Kill Player</b></td>
-        <td>3</td>
-    </tr>
-    <tr>
-        <td><b>Kick Player</b></td>
-        <td>3</td>
-    </tr>
-    <tr>
-        <td><b>Punish Player</b></td>
-        <td>3</td>
-    </tr>
-    <tr>
-        <td><b>Forgive Player</b></td>
-        <td>3</td>
-    </tr>
-    <tr>
-        <td><b>Mute Player</b></td>
-        <td>3</td>
-    </tr>
-    <tr>
-        <td><b>Move Player</b></td>
-        <td>4</td>
-    </tr>
-    <tr>
-        <td><b>Force-Move Player</b></td>
-        <td>4</td>
-    </tr>
-    <tr>
-        <td><b>Admin Say</b></td>
-        <td>4</td>
-    </tr>
-    <tr>
-        <td><b>Admin Yell</b></td>
-        <td>4</td>
-    </tr>
-    <tr>
-        <td><b>Player Say</b></td>
-        <td>4</td>
-    </tr>
-    <tr>
-        <td><b>Player Yell</b></td>
-        <td>4</td>
-    </tr>
-    <tr>
-        <td><b>TeamSwap</b></td>
-        <td>5</td>
-    </tr>
-    <tr>
-        <td><b>VOIP</b></td>
-        <td>6</td>
-    </tr>
-    <tr>
-        <td><b>Kill Self</b></td>
-        <td>6</td>
-    </tr>
-    <tr>
-        <td><b>Report Player</b></td>
-        <td>6</td>
-    </tr>
-    <tr>
-        <td><b>Call Admin on Player</b></td>
-        <td>6</td>
-    </tr>
-</table>
+    On first enable you will need to add a user, you can have as many users as you want.
+    When a user is added you need to assign them a role.
+    The default role is "Default Guest" and the allowed commands for that role are shown to you in the role section.
+    The default guest role cannot be deleted, but can be edited to your heart's content.
+    You can add more roles by typing a new role name in the "add role" field.
+    All roles that are added default to allow all commands, so you will need to edit the allowed commands for new roles.
+    When you change a user's role and they are currently in-game they will be told that their role has changed, and what it was changed to.
+</p>
+<p>
+    Once a user is added you need to assign their soldiers.
+    Users can have multiple soldiers, so if your admins have multiple accounts you can assign all of those soldiers under their user.
+    All soldiers added need to be in your database before they can be added to a user.
+    This system tracks user's soldiers, so if they change their soldier names they will still have powers without needing to contact admins about the change.
+    Type their soldier's name in the "new soldier" field to add them.
+    It will error out if it cannot find the soldier in the database.
+    To add soldiers to the database quickly, have them join any server you are running this version of AdKats on and their information will be immediately added.
+</p>
+<p>
+    The user list is sorted by role ID, then by user name.
+    Any item that says "Delete?" you need to type the word delete in the line and hit enter.
 </p>
 <h3>Commanding AdKats from Outside the Game</h3>
 <h4>AdKats WebAdmin can be used for this.</h4>
-
 <p>
-    If you have an external system (such as a web-based tool with access to bf3 server information), then there is
-    currently
-    one way to interact with AdKats externally (A second comming soon if possible).<br/>
+    If you have an external system (such as a web-based tool with access to bf3 server information), then there is currently one way to interact with AdKats externally (A second coming soon if possible).
+</p>
 <h4>Adding Database Records</h4>
-Have your external system add a row to the record table with a new record to be acted on. All information is needed
-in the row just like the ones sent from AdKats to the database, review the ones already in your database before
-attempting this, and ask ColColonCleaner any questions you may have. The only exception is you need to make the
-'adkats_read' column for that row = "N", this way AdKats will act on that record. Every 5-10 seconds the plugin checks
-for new input in the table, and will act on them if found.<br/>
-
-Valid 'command_type's that can be acted on include the following:<br/>
-<table>
-    <tr>
-        <td><b>Action To be Performed</b></td>
-        <td><b>command_type</b></td>
-    </tr>
-    <tr>
-        <td><b>Move Player</b></td>
-        <td>Move</td>
-    </tr>
-    <tr>
-        <td><b>Force-Move Player</b></td>
-        <td>ForceMove</td>
-    </tr>
-    <tr>
-        <td><b>Kill Player</b></td>
-        <td>Kill</td>
-    </tr>
-    <tr>
-        <td><b>Kick Player</b></td>
-        <td>Kick</td>
-    </tr>
-    <tr>
-        <td><b>Temp-Ban Player</b></td>
-        <td>TempBan</td>
-    </tr>
-    <tr>
-        <td><b>Permaban Player</b></td>
-        <td>PermaBan</td>
-    </tr>
-    <tr>
-        <td><b>Punish Player</b></td>
-        <td>Punish</td>
-    </tr>
-    <tr>
-        <td><b>Forgive Player</b></td>
-        <td>Forgive</td>
-    </tr>
-    <tr>
-        <td><b>Mute Player</b></td>
-        <td>Mute</td>
-    </tr>
-    <tr>
-        <td><b>Round Whitelist Player</b></td>
-        <td>RoundWhitelist</td>
-    </tr>
-    <tr>
-        <td><b>Admin Say</b></td>
-        <td>AdminSay</td>
-    </tr>
-    <tr>
-        <td><b>Player Say</b></td>
-        <td>PlayerSay</td>
-    </tr>
-    <tr>
-        <td><b>Admin Yell</b></td>
-        <td>AdminYell</td>
-    </tr>
-    <tr>
-        <td><b>Player Yell</b></td>
-        <td>PlayerYell</td>
-    </tr>
-    <tr>
-        <td><b>Restart Level</b></td>
-        <td>RestartLevel</td>
-    </tr>
-    <tr>
-        <td><b>Next Level</b></td>
-        <td>NextLevel</td>
-    </tr>
-    <tr>
-        <td><b>End Level</b></td>
-        <td>EndLevel</td>
-    </tr>
-    <tr>
-        <td><b>Nuke Server</b></td>
-        <td>Nuke</td>
-    </tr>
-    <tr>
-        <td><b>Kick All Players</b></td>
-        <td>KickAll</td>
-    </tr>
-</table>
+<p>
+    Have your external system add a row to the record table with a new record to be acted on.
+    All information is needed in the row just like the ones sent from AdKats to the database.
+    Review the ones already in your database before attempting this, and ask ColColonCleaner any questions you may have.
+    The only exception is you need to make the 'adkats_read' column for that row = "N", this way AdKats will act on that record.
+    Every 5-10 seconds the plugin checks for new input in the table, and will act on them if found.
 </p>
 <h2>Settings</h2>
-
+<h3>0. Instance Settings:</h3>
+<ul>
+    <li><b>'Auto-Enable/Keep-Alive'</b> - When this is enabled, AdKats will auto-recover from shutdowns and auto-restart if disabled.</li>
+</ul>
 <h3>1. Server Settings:</h3>
 <ul>
     <li><b>'Server ID (Display)'</b> - ID of this server. Automatically set via the database.</li>
     <li><b>'Server IP (Display)'</b> - IP address and port of this server. Automatically set via Procon.<br/></li>
-    <li><b>'Setting Import'</b> - Enter an existing server ID here and all settings from that instance will be imported
-        here. All settings on this instance will be overwritten.<br/></li>
+    <li><b>'Setting Import'</b> - Enter an existing server ID here and all settings from that instance will be imported here. All settings on this instance will be overwritten.<br/></li>
 </ul>
 <h3>2. MySQL Settings:</h3>
 <ul>
     <li><b>'MySQL Hostname'</b> - Hostname of the MySQL server AdKats should connect to.</li>
     <li><b>'MySQL Port'</b> - Port of the MySQL server AdKats should connect to, most of the time it's 3306.</li>
-    <li><b>'MySQL Database'</b> - Database name AdKats should use for storage. Creation script given in database
-        section.
-    </li>
+    <li><b>'MySQL Database'</b> - Database name AdKats should use for storage. Creation script given in database section.</li>
     <li><b>'MySQL Username'</b> - Username of the MySQL server AdKats should connect to.</li>
     <li><b>'MySQL Password'</b> - Password of the MySQL server AdKats should connect to.</li>
 </ul>
-<h3>3. Player Access Settings:</h3>
+<h3>3. User Settings:</h3>
 <ul>
-    <li><b>'Add Access'</b> - Add a player to the access list by entering their exact IGN here.<br/></li>
-    <li><b>'Remove Access'</b> - Remove a player already on the access list by typing their exact IGN here.<br/></li>
-    <li><b>*PlayerName*</b> - Players in the current database access list are appended here with their access level.
+    <li><b>'Add User'</b> - Add a user to the user list by entering their unique username here.<br/></li>
+    <li><b>*User Email*</b> - Current stored email of the listed user.<br/></li>
+    <li><b>*User Role*</b> - Current role of the listed user.<br/></li>
+    <li><b>*Delete User?*</b> - Type delete in this line to delete the listed user.<br/></li>
+    <li><b>*Add Soldier?*</b> - Type a logged soldier name in this line to connect it to the listed user. Unique soldiers cannot be connected to more than one user at a time.<br/></li>
+    <li><b>*Delete Soldier?*</b> - Type delete in this line to remove the listed soldier connection from the user.<br/></li>
     </li>
 </ul>
-<h3>4. In-Game Command Settings:</h3>
+<h3>4. Role Settings:</h3>
 <ul>
-    <li><b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason
-        to execute.
-    </li>
+    <li><b>'Add Role'</b> - Type a new role name in this line to add a new role. Role names must be unique.</li>
 </ul>
-<b>Specific command definitions given in features section above.</b> All command text must be a single string with no
-whitespace. E.G. 'kill'.<br/>
-
-<h3>5. Punishment Settings:</h3>
+<p>
+    Listed below "Add Role" are all the command assignments for each role.
+    Change Allow/Deny for each command for the different user roles to control their access.
+    Type delete in the "delete?" line to delete the user role.
+    When a user role is deleted, all users on that role are changed to the Default Guest role.
+</p>
+<h3>5. Command Settings:</h3>
 <ul>
-    <li><b>'Punishment Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the
-        action taken at that number of points.
-    </li>
-    <li><b>'Combine Server Punishments'</b> - Whether to make punishes from all servers on this database affect players
-        on this server. Default is false.
-    </li>
-    <li><b>'Only Kill Players when Server in low population'</b> - When server population is below 'Low Server Pop
-        Value', only kill players, so server does not empty. Player points will be incremented normally.
-    </li>
+    <li><b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason to execute. This only applies to admin commands.</li>
+    <li><b>'Allow Commands from Admin Say'</b> - When this is enabled, all admins with procon access have unrestricted access to all enabled commands through procon's chat tab. When issuing commands through procon's chat tab, the commands must be prefixed with a / for them to work.</li>
+</ul>
+<h3>6. Command List:</h3>
+<ul>
+    <li><b>*Active*</b> - Globally disable or enable the given command.</li>
+    <li><b>*Logging*</b> - Set whether usage of this command is logged. All commands log by default except roundwhitelist.</li>
+    <li><b>*Text*</b> - Globally change the in-game text for this command. Command text must be unique.</li>
+</ul>
+<h3>7. Punishment Settings:</h3>
+<ul>
+    <li><b>'Punishment Hierarchy'</b> - List of punishments in order from lightest to most severe. Index in list is the action taken at that number of points.</li>
+    <li><b>'Combine Server Punishments'</b> - Whether to make punishes from all servers on this database affect players on this server. Default is false.</li>
+    <li><b>'Only Kill Players when Server in low population'</b> - When server population is below 'Low Server Pop Value', only kill players, so server does not empty. Player points will be incremented normally.</li>
     <li><b>'Low Server Pop Value'</b> - Number of players at which the server is deemed 'Low Population'.</li>
-    <li><b>'IRO Punishment Overrides Low Pop'</b> - When punishing players, if a player gets an IRO punish (described
-        above), it will ignore whether server is in low population or not.
-    </li>
+    <li><b>'Use IRO Punishment'</b> - Whether the IRO punishment described in the infraction tracking docs will be used.</li>
+    <li><b>'IRO Timeout Minutes'</b> - Number of minutes after a punish that IRO status expires for the next punish.</li>
+    <li><b>'IRO Punishment Overrides Low Pop'</b> - When punishing players, if a player gets an IRO punish, it will ignore whether server is in low population or not.</li>
 </ul>
-<h3>6. Email Settings:</h3>
+<h3>8. Email Settings:</h3>
 <ul>
-    <li><b>'Email and RSS handling coming soon.'</b></li>
+    <li><b>'Send Emails.'</b> - Whether sending emails will be enabled. By default the adkatsbattlefield gmail account will be used to send emails. When this is true, all reports and admin calls will be send to the supplied email addresses on users and the extra email list.</li>
+    <li><b>'Use SSL?' - Whether SSL will be used in connection to given SMTP server.</b></li>
+    <li><b>'SMTP-Server address.' - Address of the SMTP server.</b></li>
+    <li><b>'SMTP-Server port.'</b> - Port to use for the SMTP server.</li>
+    <li><b>'Sender address.'</b> - The email address used to send all emails.</li>
+    <li><b>'SMTP-Server username.'</b> - The username used to authenticate into the SMTP server.</li>
+    <li><b>'SMTP-Server password.'</b> - The password used to authenticate into the SMTP server.</li>
+    <li><b>'Custom HTML Addition.'</b> - Custom HTML to add to the end of each email. String replacements include. %player_id%, $player_name%, %player_guid%, %player_pbguid%, and %player_ip%.</li>
+    <li><b>'Extra Recipient Email Addresses.'</b> - List of all extra email addresses beside user email addresses that you would like to blast.</li>
 </ul>
-<h3>7. TeamSwap Settings:</h3>
+<h3>9. TeamSwap Settings:</h3>
 <ul>
-    <li><b>'Require Whitelist for Access'</b> - Whether the 'moveme' command will require whitelisting. Admins are
-        always allowed to use it. Default False.
+    <li>
+        <b>'Auto-Whitelist Count'</b>
+        At the start of each round, X random players will be whitelisted for TeamSwap during that round.
+        At the end of the round they lose their whitelisting.
+        Use to get players interested in permanent whitelisting.
     </li>
-    <li><b>'Auto-Whitelist Count'</b> - At the start of each round, X random players will be whitelisted for TeamSwap
-        during that round. At the end of the round they lose their whitelisting. Use to get players interested in
-        permanent whitelisting.
-    </li>
-    <li><b>'Ticket Window High'</b> - When either team is above this ticket count, nobody (except admins) will be able
-        to use TeamSwap.
-    </li>
-    <li><b>'Ticket Window Low'</b> - When either team is below this ticket count, nobody (except admins) will be able to
-        use TeamSwap.
-    </li>
+    <li><b>'Ticket Window High'</b> - When either team is above this ticket count, nobody (except admins) will be able to use TeamSwap.</li>
+    <li><b>'Ticket Window Low'</b> - When either team is below this ticket count, nobody (except admins) will be able to use TeamSwap.</li>
 </ul>
-<h3>8. Admin Assistant Settings:</h3>
+<h3>A10. Admin Assistant Settings:</h3>
 <ul>
-    <li><b>'Enable Admin Assistant Perk'</b> - Whether admin assistants will get a perk for their help.</li>
-    <li><b>'Minimum Confirmed Reports Per Week'</b> - How many confirmed reports the player must have in the past week
-        to be an admin assistant.
-    </li>
+    <li><b>'Enable Admin Assistant Perk'</b> - Whether admin assistants will get the TeamSwap perk for their help.</li>
+    <li><b>'Minimum Confirmed Reports Per Month'</b> - How many confirmed reports the player must have in the past month to be considered an admin assistant.</li>
 </ul>
-<h3>9. Player Mute Settings:</h3>
+<h3>A11. Player Mute Settings:</h3>
 <ul>
     <li><b>'On-Player-Muted Message'</b> - The message given to players when they are muted by an admin.</li>
-    <li><b>'On-Player-Killed Message'</b> - The message given to players when they are killed for talking in chat after
-        muting.
-    </li>
-    <li><b>'On-Player-Kicked Message'</b> - The message given to players when they are kicked for talking more than X
-        times in chat after muting.
-    </li>
-    <li><b>'# Chances to give player before kicking'</b> - The number of chances players get to talk after being muted
-        before they are kicked. After testing, 5 appears to be the perfect number, but change as desired.
-    </li>
+    <li><b>'On-Player-Killed Message'</b> - The message given to players when they are killed for talking in chat after muting.</li>
+    <li><b>'On-Player-Kicked Message'</b> - The message given to players when they are kicked for talking more than X times in chat after muting.</li>
+    <li><b>'# Chances to give player before kicking'</b> - The number of chances players get to talk after being muted before they are kicked. After testing, 5 appears to be the perfect number, but change as desired. </li>
 </ul>
-<h3>A10. Messaging Settings:</h3>
+<h3>A12. Messaging Settings:</h3>
 <ul>
+    <li>
+        <b>'Display Admin Name in Kick and Ban Announcement'</b>
+        When players are kicked or banned from the server, the whole server is told.
+        This changes whether the message includes the kicking or banning admin name, instead of just "admin".
+    </li>
     <li><b>'Yell display time seconds'</b> - The integer time in seconds that yell messages will be displayed.</li>
     <li><b>'Pre-Message List'</b> - List of messages for use in pre-say and pre-yell commands.</li>
-    <li><b>'Require Use of Pre-Messages'</b> - Whether using pre-messages in commands is required instead of custom
-        messages.
-    </li>
+    <li><b>'Require Use of Pre-Messages'</b> - Whether using pre-messages in commands is required instead of custom messages.</li>
 </ul>
-<h3>A11. Banning Settings:</h3>
+<h3>A13. Banning Settings:</h3>
 <ul>
-    By default, banning is by GUID only, this is sufficient in most cases. If not using AdKats Ban Enforcer, bans are
-    always done by EA GUID. <br/>
     <li><b>'Use Additional Ban Message'</b> - Whether to have an additional message append on each ban.</li>
-    <li><b>'Additional Ban Message'</b> - Additional ban message to append on each ban. e.g. "Dispute at
-        www.yourclansite.com"
-    </li>
-    <li><b>'Use Ban Enforcer'</b> - Whether to use the internal AdKats Ban Enforcer. Details Noted Above.</li>
-    <li><b>'Enforce New Bans by NAME'</b> - Whether to use a player's name to ban them. (Insecure, players can change
-        their names)
-    </li>
-    <li><b>'Enforce New Bans by GUID'</b> - Whether to use a player's EA GUID to ban them. (Secure, players cannot
-        change their GUIDs)
-    </li>
-    <li><b>'Enforce New Bans by IP'</b> - Whether to use a player's IP Address to ban them. (Somewhat secure,
-        experienced players can change their IP, and IP bans can hit multiple players.)
-    </li>
+    <li><b>'Additional Ban Message'</b> - Additional ban message to append on each ban. e.g. "Dispute at www.yourclansite.com"</li>
+    <li><b>'Procon Ban Admin Name'</b> - Admin name that will be used for bans filed via procon.</li>
 </ul>
-<h3>A12. External Command Settings:</h3>
+<h3>A13-2. Ban Enforcer Settings:</h3>
 <ul>
-    <li><b>'External Access Key'</b> - The access key required to use any HTTP commands, can be changed to whatever is
-        desired, but the default is a random 64Bit hashcode generated when the plugin first runs.
-    </li>
+    <li><b>'Use Ban Enforcer'</b> - Whether to use the internal AdKats Ban Enforcer.</li>
+    <li><b>'Enforce New Bans by NAME'</b> - Whether to use a player's name to ban them. (Insecure, players can change their names)</li>
+    <li><b>'Enforce New Bans by GUID'</b> - Whether to use a player's EA GUID to ban them. (Secure, players cannot change their GUIDs)</li>
+    <li><b>'Enforce New Bans by IP'</b> - Whether to use a player's IP Address to ban them. (Somewhat secure, experienced players can change their IP, and IP bans can hit multiple players.)</li>
+</ul>
+<h3>A13-3. Mini Ban Management:</h3>
+<ul>
+    <li><b>'NAME Ban Count'</b> - How many NAME bans are currently being enforced by AdKats Ban Enforcer.</li>
+    <li><b>'GUID Ban Count'</b> - How many EA GUID bans are currently being enforced by AdKats Ban Enforcer.</li>
+    <li><b>'IP Ban Count'</b> - How many IP bans are currently being enforced by AdKats Ban Enforcer.</li>
+    <li><b>'Ban Search'</b> - Enter a full or partial player name here and AdKats will display all ACTIVE matching bans.</li>
+</ul>
+<h3>A14. External Command Settings:</h3>
+<ul>
+    <li><b>'External Access Key'</b> - The access key required to use any HTTP commands, can be changed to whatever is desired, but the default is a random 64Bit hashcode generated when the plugin first runs. </li>
     <li><b>'Fetch Actions from Database'</b> - Whether to use the database as a source for new commands.</li>
 </ul>
-<h3>A13. VOIP Settings:</h3>
+<h3>A15. VOIP Settings:</h3>
 <ul>
     <li><b>'Server VOIP Address'</b> - String that will be sent to players using the VOIP command.</li>
 </ul>
-<h3>A14. Orchestration Settings:</h3>
+<h3>A16. Orchestration Settings:</h3>
 <ul>
-    <li><b>'Feed MULTIBalancer Whitelist'</b> - When enabled, MULTIBalancer's whitelist will include all players access
-        level 0-5 in the AdKats access list.
-    </li>
-    <li><b>'Feed Server Reserved Slots'</b> - When enabled, the servers reserved slots will include all players in the
-        AdKats access list.
-    </li>
-    <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including
-        correct database time offset, instant chat logging, etc. This is experimental.
-    </li>
+    <li><b>'Feed MULTIBalancer Whitelist'</b> - When enabled, MULTIBalancer's whitelist will include all AdKats user's soldiers with access to player interaction commands.</li>
+    <li><b>'Feed Server Reserved Slots'</b> - When enabled, the servers reserved slots will include all AdKats user's soldiers.</li>
+    <li><b>'Feed Server Spectator List'</b> - When enabled, the servers spectator list will include all AdKats user's soldiers.</li>
+    <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including correct database time offset, instant chat logging, etc. This is experimental.</li>
 </ul>
-<h3>A15. Round Settings:</h3>
+<h3>A17. Round Settings:</h3>
 <ul>
     <li><b>'Round Timer: Enable'</b> - When enabled, rounds will be limited to X minutes.</li>
-    <li><b>'Round Timer: Round Duration Minutes'</b> - Number of minutes that the round will last before the current
-        winning team wins.
-    </li>
+    <li><b>'Round Timer: Round Duration Minutes'</b> - Number of minutes that the round will last before the current winning team wins (Will only work correctly in conquest at the moment).</li>
 </ul>
-<h3>A16. BF3Stats Hacker-Checker Settings:</h3>
+<h3>A18. Internal Hacker-Checker Settings:</h3>
 <ul>
     <li><b>'HackerChecker: Enable'</b> - Whether the internal BF3Stats hacker-checker is enabled.</li>
-    <li><b>'HackerChecker: Whitelist'</b> - The list of player names, GUIDs, and IPs, that will not be checked by the
-        hacker-checker.
+    <li><b>'HackerChecker: Whitelist'</b> - The list of player names, GUIDs, and IPs, that will not be checked by the hacker-checker.</li>
+    <li><b>'HackerChecker: DPS Checker: Enable'</b> - Whether the Damage Mod portion of the hacker-checker is enabled.</li>
+    <li>
+        <b>'HackerChecker: DPS Checker: Trigger Level'</b> -
+        The percentage over normal weapon damage that will cause a ban.
+        50 kills minimum to trigger.
+        After 3 months of testing, 50 is the best value, and has not issued a single false positive in that time.
     </li>
-    <li><b>'HackerChecker: DPS Checker: Enable'</b> - Whether the Damage Mod portion of the hacker-checker is enabled.
-    </li>
-    <li><b>'HackerChecker: DPS Checker: Trigger Level'</b> - The percentage over normal weapon damage that will cause a
-        ban. 50 kills minimum to trigger. After 3 months of testing, 50 is the best value, and has not issued a single
-        false positive in that time.
-    </li>
+    <li><b>'HackerChecker: DPS Checker: Ban Message'</b> - Message prefix to use when banning for damage mod.</li>
     <li><b>'HackerChecker: HSK Checker: Enable'</b> - Whether the Aimbot portion of the hacker-checker is enabled.</li>
-    <li><b>'HackerChecker: HSK Checker: Trigger Level'</b> - The headshot/kill ratio for automatic weapons that will
-        trigger a ban. 100 kills minimum to trigger. After 3 months of testing, we suggest setting between 50 and 70
-        depending on the severity you want to enforce. You will get some false positives down near 50 but will catch
-        many more aimbotters, setting near 70 will not result in any false positives but also wont catch as many
-        aimbotters.
+    <li><b>'HackerChecker: HSK Checker: Trigger Level'</b> -
+        The headshot/kill ratio for automatic weapons that will trigger a ban.
+        100 kills minimum to trigger.
+        After 3 months of testing, we suggest setting between 50 and 70 depending on the severity you want to enforce.
+        You will get some false positives down near 50 but will catch many more aimbotters, setting near 70 will not result in any false positives but also wont catch as many aimbotters.
     </li>
+    <li><b>'HackerChecker: HSK Checker: Ban Message'</b> - Message prefix to use when banning for aimbot.</li>
+</ul>
+<h3>A19. Server Rules Settings:</h3>
+<ul>
+    <li><b>'Rule Print Delay'</b> - Delay in seconds after the command is issued that commands start being sent to the player.</li>
+    <li><b>'Rule Print Interval'</b> - Number of seconds between each rule being sent to the player.</li>
+    <li><b>'Server Rule List'</b> - List of rules for the server. Raw messages can be used here, or alternatively pre-message IDs.</li>
 </ul>
 <h3>D99. Debug Settings:</h3>
 <ul>
-    <li><b>'Debug level'</b> - Indicates how much debug-output is printed to the plugin-console. 0 turns off debug
-        messages (just shows important warnings/exceptions), 6 documents nearly every step. Don't edit unless you really
-        want to be spammed with console logs, it will also slow down the plugin when turned up.
+    <li><b>'Debug level'</b> -
+        Indicates how much debug-output is printed to the plugin-console.
+        0 turns off debug messages (just shows important warnings/exceptions/success), 7 documents nearly every step.
+        Don't edit unless you really want to be spammed with console logs, it will also slow down the plugin when turned up.
     </li>
-    <li><b>'Debug Soldier Name'</b> - When this soldier issues commands in your server, the time for any command to
-        complete is told in-game. Duration is from the time you entered the message, until all aspects of the command
-        have been completed.
+    <li><b>'Debug Soldier Name'</b> -
+        When this soldier issues commands in your server, the time for any command to complete is told in-game.
+        Duration is from the time you entered the message, until all aspects of the command have been completed.
     </li>
-    <li><b>'Command Entry'</b> - Enter commands here just like in game, mainly for debug purposes. Don't let more than
-        one person use this at any time.
+    <li><b>'Command Entry'</b> -
+        Enter commands here just like in game, mainly for debug purposes. Don't let more than one person use this at any time.
     </li>
 </ul>
-</p>
-</pre>
 </body>
 </html>
