@@ -110,7 +110,7 @@
     If you find any bugs, please submit them <a href="https://github.com/ColColonCleaner/AdKats/issues?state=open" target="_blank">HERE</a> and they will be fixed ASAP.
 </p>
 <p>
-    Download the latest version here: <a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.0.0.0.zip/download" target="_blank">Version 4.0.0.0</a>
+    Download the latest version here: <a href="http://sourceforge.net/projects/adkats/files/AdKats-v4.0.0.0.zip/download" target="_blank">Version 4.0.0.0</a>
 </p>
 <p>
     AdKats was inspired by the gaming community A Different Kind (ADK).
