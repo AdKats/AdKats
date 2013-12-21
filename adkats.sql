@@ -50,6 +50,7 @@ $$
 
 DELIMITER ;
 
+DROP TABLE IF EXISTS `adkats_bans`;
 CREATE TABLE IF NOT EXISTS `adkats_bans` (
   `ban_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `player_id` int(11) unsigned NOT NULL,
@@ -119,6 +120,7 @@ INSERT INTO `adkats_commands` VALUES(35, 'Invisible', 'adkats_exception', 'Manda
 INSERT INTO `adkats_commands` VALUES(36, 'Invisible', 'banenforcer_enforce', 'Mandatory', 'Enforce Active Ban', 'enforceban', TRUE);
 INSERT INTO `adkats_commands` VALUES(37, 'Active', 'player_unban', 'Log', 'Unban Player', 'unban', TRUE);
 
+DROP TABLE IF EXISTS `adkats_infractions_global`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
   `player_id` int(11) unsigned NOT NULL,
   `punish_points` int(11) NOT NULL,
@@ -127,6 +129,7 @@ CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
   PRIMARY KEY (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Global Player Infraction Points';
 
+DROP TABLE IF EXISTS `adkats_infractions_server`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_server` (
   `player_id` int(11) unsigned NOT NULL,
   `server_id` smallint(5) unsigned NOT NULL,
@@ -137,6 +140,7 @@ CREATE TABLE IF NOT EXISTS `adkats_infractions_server` (
   KEY `adkats_infractions_server_fk_server_id` (`server_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Server Specific Player Infraction Points';
 
+DROP TABLE IF EXISTS `adkats_records_debug`;
 CREATE TABLE IF NOT EXISTS `adkats_records_debug` (
   `record_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `server_id` smallint(5) unsigned NOT NULL,
@@ -157,6 +161,7 @@ CREATE TABLE IF NOT EXISTS `adkats_records_debug` (
   KEY `adkats_records_debug_fk_command_action` (`command_action`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Debug Records';
 
+DROP TABLE IF EXISTS `adkats_records_main`;
 CREATE TABLE IF NOT EXISTS `adkats_records_main` (
   `record_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `server_id` smallint(5) unsigned NOT NULL,
@@ -336,6 +341,7 @@ CREATE TABLE IF NOT EXISTS `adkats_roles` (
 INSERT INTO `adkats_roles` VALUES(1, 'guest_default', 'Default Guest');
 INSERT INTO `adkats_roles` VALUES(2, 'admin_full', 'Full Admin');
 
+DROP TABLE IF EXISTS `adkats_settings`;
 CREATE TABLE IF NOT EXISTS `adkats_settings` (
   `server_id` smallint(5) unsigned NOT NULL,
   `setting_name` varchar(200) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'SettingName',
@@ -344,6 +350,7 @@ CREATE TABLE IF NOT EXISTS `adkats_settings` (
   PRIMARY KEY (`server_id`,`setting_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Server Setting List';
 
+DROP TABLE IF EXISTS `adkats_users`;
 CREATE TABLE IF NOT EXISTS `adkats_users` (
   `user_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `user_name` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
@@ -354,6 +361,7 @@ CREATE TABLE IF NOT EXISTS `adkats_users` (
   KEY `adkats_users_fk_role` (`user_role`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - User List';
 
+DROP TABLE IF EXISTS `adkats_usersoldiers`;
 CREATE TABLE IF NOT EXISTS `adkats_usersoldiers` (
   `user_id` int(11) unsigned NOT NULL,
   `player_id` int(10) unsigned NOT NULL,
