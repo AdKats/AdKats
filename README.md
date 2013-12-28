@@ -746,7 +746,7 @@
 </tr>
 <tr>
     <td><b>Admin Tell</b></td>
-    <td>yell</td>
+    <td>tell</td>
     <td>
         [message]<br/>
         OR<br/>
@@ -758,7 +758,7 @@
 </tr>
 <tr>
     <td><b>Player Tell</b></td>
-    <td>pyell</td>
+    <td>ptell</td>
     <td>
         [player][message]<br/>
         OR<br/>
