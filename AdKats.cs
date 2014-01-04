@@ -3130,7 +3130,6 @@ namespace PRoConEvents {
                                                     //If probability > 60% report the player and add them to the round cookers list
                                                     if (probability > 60.00) {
                                                         this.DebugWrite(cooker.Key.player_name + " in " + killer.player_name + "'s recent kills has a " + probability + "% cooking probability.", 2);
-                                                        this.ConsoleWarn("cooker!!!!");
                                                         gKillHandled = true;
                                                         //Code to avoid spam
                                                         if (killer.lastAction.AddSeconds(2) < DateTime.UtcNow){
@@ -3156,7 +3155,7 @@ namespace PRoConEvents {
                                                             AdKatsRecord record = new AdKatsRecord {
                                                                                                        record_source = AdKatsRecord.Sources.InternalAutomated,
                                                                                                        server_id = this._ServerID,
-                                                                                                       command_type = this._CommandKeyDictionary["player_report"],
+                                                                                                       command_type = this._CommandKeyDictionary["player_punish"],
                                                                                                        command_numeric = 0,
                                                                                                        target_name = cooker.Key.player_name,
                                                                                                        target_player = cooker.Key,
@@ -3193,7 +3192,7 @@ namespace PRoConEvents {
                                                     AdKatsRecord record = new AdKatsRecord {
                                                                                                record_source = AdKatsRecord.Sources.InternalAutomated,
                                                                                                server_id = this._ServerID,
-                                                                                               command_type = this._CommandKeyDictionary["player_report"],
+                                                                                               command_type = this._CommandKeyDictionary["player_punish"],
                                                                                                command_numeric = 0,
                                                                                                target_name = player.player_name,
                                                                                                target_player = player,
@@ -3271,13 +3270,11 @@ namespace PRoConEvents {
                                         //Code to avoid spam
                                         if (killer.lastAction.AddSeconds(2) < DateTime.UtcNow) {
                                             killer.lastAction = DateTime.UtcNow;
-
-                                            this.ConsoleWarn("PUNISHING!!!!");
                                             //Create the punish record
                                             AdKatsRecord record = new AdKatsRecord {
                                                                                        record_source = AdKatsRecord.Sources.InternalAutomated,
                                                                                        server_id = this._ServerID,
-                                                                                       command_type = this._CommandKeyDictionary["player_report"],
+                                                                                       command_type = this._CommandKeyDictionary["player_punish"],
                                                                                        command_numeric = 0,
                                                                                        target_name = killer.player_name,
                                                                                        target_player = killer,
@@ -3312,9 +3309,6 @@ namespace PRoConEvents {
                                 }
                             }
                         }
-                    }
-                    else {
-                        this.ConsoleWarn("Skipping handle!!!");
                     }
                 }
                 catch (Exception e) {
@@ -12524,8 +12518,6 @@ namespace PRoConEvents {
                                                                                                                          IsBackground = true
                                                                                                                      };
                                 this._EmailProcessingThread.Start();
-
-                                Plugin.ConsoleSuccess("dkdkdkfmwkmekmwlefkm");
                             }
                             this._EmailProcessingWaitHandle.Set();
                         }
