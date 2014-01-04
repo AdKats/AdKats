@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.0.1
+ * Version 4.0.0.2
  */
 
 using System;
@@ -50,7 +50,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "4.0.0.1";
+        private const String PluginVersion = "4.0.0.2";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -13455,15 +13455,13 @@ namespace PRoConEvents {
             String processedString = "";
             if (String.IsNullOrEmpty(originalString))
             {
-                this.ConsoleError("Message was null when replacing information.");
-                return processedString;
-            }
-            if (aPlayer == null) {
-                this.ConsoleError("Player was null when replacing information.");
                 return processedString;
             }
             //Create new instance of original string
             processedString += originalString;
+            if (aPlayer == null) {
+                return processedString;
+            }
             if (aPlayer.player_id > 0) {
                 processedString = processedString.Replace("%player_id%", aPlayer.player_id + "");
             }
