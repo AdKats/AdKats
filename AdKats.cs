@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.0.2
+ * Version 4.0.0.3
  */
 
 using System;
@@ -50,7 +50,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "4.0.0.2";
+        private const String PluginVersion = "4.0.0.3";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -167,6 +167,7 @@ namespace PRoConEvents {
         private Boolean _UseWeaponLimiter = false;
         private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
         private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
+        private String[] _AutoReportHandleStrings = { "frag", "past c", "past lockers", "past a", "street", "gp30", "gp-30", "320" };
         //Grenade Cook Catcher
         private Boolean _UseGrenadeCookCatcher = false;
         private Dictionary<String, AdKatsPlayer> _RoundCookers = null;
@@ -237,7 +238,7 @@ namespace PRoConEvents {
         private List<String> _CurrentReservedSlotPlayers = null;
         private List<String> _CurrentSpectatorListPlayers = null;
         private Hashtable _LastStatLoggerStatusUpdate = null;
-        private DateTime _LastStatLoggerStatusUpdateTime = DateTime.MinValue;
+        private DateTime _LastStatLoggerStatusUpdateTime = DateTime.UtcNow;
 
         //Messaging Settings
         //Pre-Message Settings
@@ -953,7 +954,8 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use NO EXPLOSIVES Limiter", typeof (Boolean), this._UseWeaponLimiter));
                         if (this._UseWeaponLimiter) {
                             lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Weapon String", typeof (String), this._WeaponLimiterString));
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Exception String", typeof (String), this._WeaponLimiterExceptionString));
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Exception String", typeof(String), this._WeaponLimiterExceptionString));
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|Auto-Report-Handler Strings", typeof(String[]), this._AutoReportHandleStrings));
                         }
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof (Boolean), this._UseGrenadeCookCatcher));
                     }
@@ -1253,6 +1255,12 @@ namespace PRoConEvents {
                             this.ConsoleError("Weapon exception String cannot be empty.");
                         }
                     }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Report-Handler Strings").Success)
+                {
+                    this._AutoReportHandleStrings = CPluginVariable.DecodeStringArray(strValue);
+                    //Once setting has been changed, upload the change to database
+                    this.QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(this._AutoReportHandleStrings)));
                 }
                 else if (Regex.Match(strVariable, @"Use Grenade Cook Catcher").Success) {
                     Boolean useCookCatcher = Boolean.Parse(strValue);
@@ -3397,14 +3405,14 @@ namespace PRoConEvents {
                         AdKatsPlayer aPlayer = null;
                         if (this._PlayerDictionary.TryGetValue(soldierName, out aPlayer)) {
                             if (aPlayer.player_aa && !aPlayer.player_aa_told) {
-                                this.ExecuteCommand("procon.protected.send", "admin.yell", "For your consistent player reporting you can now use @" + command + ". Type @" + command + " to move yourself between teams.", "10", "player", soldierName);
+                                this.PlayerTellMessage(soldierName, "For your consistent player reporting you can now use @" + command + ". Type @" + command + " to move yourself between teams.");
                                 aPlayer.player_aa_told = true;
                             }
                             else {
                                 Boolean informed = true;
                                 if (this._TeamswapRoundWhitelist.Count > 0 && this._TeamswapRoundWhitelist.TryGetValue(soldierName, out informed)) {
                                     if (informed == false) {
-                                        this.ExecuteCommand("procon.protected.send", "admin.yell", "By random selection you can use @" + command + " for this round. Type @" + command + " to move yourself between teams.", "10", "player", soldierName);
+                                        this.PlayerTellMessage(soldierName, "By random selection you can use @" + command + " for this round. Type @" + command + " to move yourself between teams.");
                                         this._TeamswapRoundWhitelist[soldierName] = true;
                                     }
                                 }
@@ -3414,7 +3422,7 @@ namespace PRoConEvents {
 
                     //Handle Dev Notifications
                     if (soldierName == "ColColonCleaner" && !_ToldCol) {
-                        this.ExecuteCommand("procon.protected.send", "admin.yell", "CONGRATS! This server is running version " + PluginVersion + " of AdKats!", "20", "player", "ColColonCleaner");
+                        this.PlayerTellMessage("ColColonCleaner", "CONGRATS! This server is running version " + PluginVersion + " of AdKats!");
                         this._ToldCol = true;
                     }
 
@@ -6083,19 +6091,35 @@ namespace PRoConEvents {
 
                         #endregion
 
-                        #region RequestRules
+                    #region RequestRules
 
-                    case "self_rules": {
-                        //Remove previous commands awaiting confirmation
-                        this.CancelSourcePendingAction(record);
+                    case "self_rules":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            this.CancelSourcePendingAction(record);
 
-                        record.record_message = "Player Requested Rules";
-                        record.target_name = record.source_name;
-                        this.CompleteTargetInformation(record, false);
-                    }
+                            record.record_message = "Player Requested Rules";
+                            record.target_name = record.source_name;
+                            this.CompleteTargetInformation(record, false);
+                        }
                         break;
 
-                        #endregion
+                    #endregion
+
+                    #region RequestRules
+
+                    case "self_admins":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            this.CancelSourcePendingAction(record);
+
+                            record.record_message = "Player Requested Online Admins";
+                            record.target_name = record.source_name;
+                            this.CompleteTargetInformation(record, false);
+                        }
+                        break;
+
+                    #endregion
 
                         #region AdminSay
 
@@ -6813,6 +6837,9 @@ namespace PRoConEvents {
                     case "self_rules":
                         this.SendServerRules(record);
                         break;
+                    case "self_admins":
+                        this.SendOnlineAdmins(record);
+                        break;
                     case "banenforcer_enforce":
                         //Don't do anything here, ban enforcer handles this
                         break;
@@ -6906,7 +6933,7 @@ namespace PRoConEvents {
                     ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_player.player_name);
                     this.SendMessageToSource(record, "You KILLED " + record.target_name + " for " + record.record_message + additionalMessage);
                 }
-                if (record.source_name == "AutoAdmin" && record.command_type.command_key == "player_punish") {
+                if ((record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin") && record.command_type.command_key == "player_punish") {
                     this.AdminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
                 }
                 record.record_action_executed = true;
@@ -6976,7 +7003,7 @@ namespace PRoConEvents {
                         this.HandleException(new AdKatsException("Defaulting to procon banlist usage since exceptions existed in record"));
                     }
                     //Trim the ban message if necessary
-                    String banMessage = record.record_message;
+                    String banMessage = record.source_name + " - " + record.record_message;
                     Int32 cutLength = banMessage.Length - 80;
                     if (cutLength > 0) {
                         banMessage = banMessage.Substring(0, banMessage.Length - cutLength);
@@ -7445,27 +7472,12 @@ namespace PRoConEvents {
             if (this._RoundReports.TryGetValue(reportID, out reportedRecord))
             {
                 if (this._IsTestingAuthorized && 
-                    this._ServerName.ToLower().Contains("no explosives") &&
                     reportedRecord.source_player != null && 
-                    reportedRecord.source_player.player_aa &&
+                    reportedRecord.source_player.player_aa && 
                     this.FetchOnlineAdminSoldiers().Count == 0)
                 {
                     String messageLower = reportedRecord.record_message.ToLower();
-                    if (reportedRecord.record_message == "Rules: Baserape. In Streets past A Flag" ||
-                        reportedRecord.record_message == "Rules: Baserape. Past C Flag" ||
-                        reportedRecord.record_message == "Rules: Team Griefing" ||
-                        reportedRecord.record_message == "Rules: Destroying Team Assets" ||
-                        reportedRecord.record_message == "Rules: Frag Rounds" ||
-                        reportedRecord.record_message == "Rules: Using M320/GP30" ||
-                        reportedRecord.record_message == "Rules: Frag Rounds" ||
-                        messageLower.Contains("frag") ||
-                        messageLower.Contains("past c") ||
-                        messageLower.Contains("past lockers") ||
-                        messageLower.Contains("past a") ||
-                        messageLower.Contains("street") ||
-                        messageLower.Contains("gp30") ||
-                        messageLower.Contains("gp-30") ||
-                        messageLower.Contains("320"))
+                    if (this._AutoReportHandleStrings.Any(handleString => messageLower.Contains(handleString)))
                     {
                         this.DebugWrite("Handling round report.", 5);
                         //Remove it from the reports for this round
@@ -7697,18 +7709,39 @@ namespace PRoConEvents {
         public void SendServerRules(AdKatsRecord record)
         {
             this.DebugWrite("Entering sendServerRules", 6);
-            try {
+            try
+            {
                 //Send the server rules
                 this.SendServerRules(record.target_name);
                 //Set the executed bool
                 record.record_action_executed = true;
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 record.record_exception = new AdKatsException("Error while sending server rules (record).", e);
                 this.HandleException(record.record_exception);
                 this.FinalizeRecord(record);
             }
             this.DebugWrite("Exiting sendServerRules", 6);
+        }
+
+        public void SendOnlineAdmins(AdKatsRecord record)
+        {
+            this.DebugWrite("Entering SendOnlineAdmins", 6);
+            try {
+                String onlineAdmins = this.FetchOnlineAdminSoldiers().Aggregate("Online Admins:", (current, aPlayer) => current + (" " + aPlayer.player_name));
+                //Send online admins
+                this.PlayerSayMessage(record.target_name, onlineAdmins);
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while sending online admins.", e);
+                this.HandleException(record.record_exception);
+                this.FinalizeRecord(record);
+            }
+            this.DebugWrite("Exiting SendOnlineAdmins", 6);
         }
 
         public void SendServerRules(String targetName)
@@ -9146,8 +9179,6 @@ namespace PRoConEvents {
                 conString = this._DbCommStringBuilder.ConnectionString;
             }
             return conString;
-            //Old Code
-            //return "Server=" + mySqlHostname + ";Port=" + mySqlPort + ";Database=" + this.mySqlDatabaseName + ";Uid=" + mySqlUsername + ";Pwd=" + mySqlPassword + ";";
         }
 
         #endregion
@@ -9180,6 +9211,7 @@ namespace PRoConEvents {
                 this.QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), this._UseWeaponLimiter));
                 this.QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Weapon String", typeof(String), this._WeaponLimiterString));
                 this.QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Exception String", typeof(String), this._WeaponLimiterExceptionString));
+                this.QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(this._AutoReportHandleStrings)));
                 this.QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), this._UseGrenadeCookCatcher));
                 this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Enable", typeof(Boolean), this._UseHackerChecker));
                 this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Whitelist", typeof(String[]), this._HackerCheckerWhitelist));
@@ -10757,7 +10789,8 @@ namespace PRoConEvents {
                     }
                 }
             }
-            aPlayer.player_role = aRole;
+            //Clone role and assign
+            aPlayer.player_role = (AdKatsRole)aRole.Clone();
             return authorized;
         }
 
@@ -10986,6 +11019,8 @@ namespace PRoConEvents {
                         if (aPlayer == null) {
                             return null;
                         }
+                        //Assign player role
+                        this.AssignPlayerRole(aPlayer);
                         //Load admin assistat status
                         aPlayer.player_aa = this.IsAdminAssistant(aPlayer);
                         if (aPlayer.player_aa) {
@@ -10994,8 +11029,6 @@ namespace PRoConEvents {
                         else {
                             this.DebugWrite(aPlayer.player_name + " is NOT an Admin Assistant.", 4);
                         }
-                        //Assign player role
-                        this.AssignPlayerRole(aPlayer);
                     }
                 }
                 catch (Exception e) {
@@ -11784,9 +11817,11 @@ namespace PRoConEvents {
         }
 
         //DONE
-        private Boolean IsAdminAssistant(AdKatsPlayer player) {
+        private Boolean IsAdminAssistant(AdKatsPlayer aPlayer) {
             DebugWrite("fetchAdminAssistants starting!", 6);
-
+            if (this.HasAccess(aPlayer, this.GetCommandByKey("self_admins"))) {
+                return true;
+            }
             //Make sure database connection active
             if (this.HandlePossibleDisconnect()) {
                 return false;
@@ -11803,7 +11838,7 @@ namespace PRoConEvents {
 	                        SELECT count(`command_action`) 
 	                        FROM `adkats_records_main` 
 	                        WHERE `command_action` = " + this.GetCommandByKey("player_report_confirm").command_id + @"
-	                        AND `source_id` = " + player.player_id + @" 
+	                        AND `source_id` = " + aPlayer.player_id + @" 
 	                        AND (`adkats_records_main`.`record_time` BETWEEN date_sub(UTC_TIMESTAMP(),INTERVAL 30 DAY) AND UTC_TIMESTAMP())
                         ) >= " + this._MinimumRequiredMonthlyReports + @" LIMIT 1
                         UNION
@@ -11815,10 +11850,14 @@ namespace PRoConEvents {
 	                        SELECT count(`command_action`) 
 	                        FROM `adkats_records_main` 
 	                        WHERE `command_action` = " + this.GetCommandByKey("player_report_confirm").command_id + @" 
-	                        AND `source_id` = " + player.player_id + @"
+	                        AND `source_id` = " + aPlayer.player_id + @"
                         ) >= 75";
                         using (MySqlDataReader reader = command.ExecuteReader()) {
-                            return reader.Read();
+                            if (reader.Read()) {
+                                //Player is an admin assistant, give them access to the self_admins command
+                                aPlayer.player_role.allowedCommands.Add("self_admins", this.GetCommandByKey("self_admins"));
+                                return true;
+                            }
                         }
                     }
                 }
@@ -13754,7 +13793,7 @@ namespace PRoConEvents {
                         return null;
                     }
                 }
-                if (this._LastStatLoggerStatusUpdate != null && this._LastStatLoggerStatusUpdateTime != DateTime.MinValue && this._LastStatLoggerStatusUpdate.ContainsKey("pluginVersion") && this._LastStatLoggerStatusUpdate.ContainsKey("pluginEnabled") && this._LastStatLoggerStatusUpdate.ContainsKey("DBHost") && this._LastStatLoggerStatusUpdate.ContainsKey("DBPort") && this._LastStatLoggerStatusUpdate.ContainsKey("DBName") && this._LastStatLoggerStatusUpdate.ContainsKey("DBTimeOffset") && this._LastStatLoggerStatusUpdate.ContainsKey("DBConnectionActive") && this._LastStatLoggerStatusUpdate.ContainsKey("ChatloggingEnabled") && this._LastStatLoggerStatusUpdate.ContainsKey("InstantChatLoggingEnabled") && this._LastStatLoggerStatusUpdate.ContainsKey("StatsLoggingEnabled") && this._LastStatLoggerStatusUpdate.ContainsKey("DBliveScoreboardEnabled") && this._LastStatLoggerStatusUpdate.ContainsKey("DebugMode") && this._LastStatLoggerStatusUpdate.ContainsKey("Error")) {
+                if (this._LastStatLoggerStatusUpdate != null && this._LastStatLoggerStatusUpdate.ContainsKey("pluginVersion") && this._LastStatLoggerStatusUpdate.ContainsKey("pluginEnabled") && this._LastStatLoggerStatusUpdate.ContainsKey("DBHost") && this._LastStatLoggerStatusUpdate.ContainsKey("DBPort") && this._LastStatLoggerStatusUpdate.ContainsKey("DBName") && this._LastStatLoggerStatusUpdate.ContainsKey("DBTimeOffset") && this._LastStatLoggerStatusUpdate.ContainsKey("DBConnectionActive") && this._LastStatLoggerStatusUpdate.ContainsKey("ChatloggingEnabled") && this._LastStatLoggerStatusUpdate.ContainsKey("InstantChatLoggingEnabled") && this._LastStatLoggerStatusUpdate.ContainsKey("StatsLoggingEnabled") && this._LastStatLoggerStatusUpdate.ContainsKey("DBliveScoreboardEnabled") && this._LastStatLoggerStatusUpdate.ContainsKey("DebugMode") && this._LastStatLoggerStatusUpdate.ContainsKey("Error")) {
                     //Response appears to be valid, return it
                     return this._LastStatLoggerStatusUpdate;
                 }
@@ -13955,7 +13994,8 @@ namespace PRoConEvents {
             }
         }
 
-        public class AdKatsRole {
+        public class AdKatsRole : ICloneable
+        {
             public Int64 role_id = -1;
             public String role_key = null;
             public String role_name = null;
@@ -13963,6 +14003,16 @@ namespace PRoConEvents {
 
             public AdKatsRole() {
                 this.allowedCommands = new Dictionary<String, AdKatsCommand>();
+            }
+
+            public object Clone()
+            {
+                AdKatsRole aRole = new AdKatsRole();
+                aRole.role_id = this.role_id;
+                aRole.role_key = this.role_key;
+                aRole.role_name = this.role_name;
+                aRole.allowedCommands = (from x in this.allowedCommands select x).ToDictionary(x => x.Key, x => x.Value);
+                return aRole;
             }
         }
 
@@ -14752,7 +14802,7 @@ namespace PRoConEvents {
             public String target_name = null;
             public AdKatsPlayer target_player = null;
             public String record_message = null;
-            public DateTime record_time = DateTime.MinValue;
+            public DateTime record_time = DateTime.UtcNow;
 
             //Not stored separately in the database
             public Sources record_source = Sources.Default;
