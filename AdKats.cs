@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.0.3
+ * Version 4.0.0.4
  */
 
 using System;
@@ -50,7 +50,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "4.0.0.3";
+        private const String PluginVersion = "4.0.0.4";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -167,7 +167,7 @@ namespace PRoConEvents {
         private Boolean _UseWeaponLimiter = false;
         private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
         private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
-        private String[] _AutoReportHandleStrings = { "frag", "past c", "past lockers", "past a", "street", "gp30", "gp-30", "320" };
+        private String[] _AutoReportHandleStrings = {};
         //Grenade Cook Catcher
         private Boolean _UseGrenadeCookCatcher = false;
         private Dictionary<String, AdKatsPlayer> _RoundCookers = null;
@@ -863,7 +863,7 @@ namespace PRoConEvents {
                 }
 
                 //TeamSwap Settings
-                lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Auto-Whitelist Count", typeof (String), this._PlayersToAutoWhitelist));
+                //lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Auto-Whitelist Count", typeof (String), this._PlayersToAutoWhitelist));
                 lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Ticket Window High", typeof (int), this._TeamSwapTicketWindowHigh));
                 lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Ticket Window Low", typeof (int), this._TeamSwapTicketWindowLow));
 
@@ -955,8 +955,8 @@ namespace PRoConEvents {
                         if (this._UseWeaponLimiter) {
                             lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Weapon String", typeof (String), this._WeaponLimiterString));
                             lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Exception String", typeof(String), this._WeaponLimiterExceptionString));
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|Auto-Report-Handler Strings", typeof(String[]), this._AutoReportHandleStrings));
                         }
+                        lstReturn.Add(new CPluginVariable("X99. Experimental|Auto-Report-Handler Strings", typeof(String[]), this._AutoReportHandleStrings));
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof (Boolean), this._UseGrenadeCookCatcher));
                     }
                 }
@@ -2924,7 +2924,7 @@ namespace PRoConEvents {
                     this._ActionConfirmDic = new Dictionary<String, AdKatsRecord>();
                     this._ActOnSpawnDictionary = new Dictionary<String, AdKatsRecord>();
                     this._TeamswapOnDeathMoveDic = new Dictionary<String, CPlayerInfo>();
-                    this.AutoWhitelistPlayers();
+                    //this.AutoWhitelistPlayers();
                     this._UsMoveQueue = new Queue<CPlayerInfo>();
                     this._RuMoveQueue = new Queue<CPlayerInfo>();
                     this._RoundCookers = new Dictionary<String, AdKatsPlayer>();
@@ -7372,7 +7372,8 @@ namespace PRoConEvents {
                 if (!this._TeamswapRoundWhitelist.ContainsKey(record.target_name)) {
                     if (this._TeamswapRoundWhitelist.Count < this._PlayersToAutoWhitelist + 2) {
                         this._TeamswapRoundWhitelist.Add(record.target_name, false);
-                        String command = this._CommandKeyDictionary["self_teamswap"].command_text;
+                        record.target_player.player_role.allowedCommands.Add("self_teamswap", this.GetCommandByKey("self_teamswap"));
+                        String command = this.GetCommandByKey("self_teamswap").command_text;
                         this.SendMessageToSource(record, record.target_name + " can now use @" + command + " for this round.");
                     }
                     else {
@@ -7469,15 +7470,15 @@ namespace PRoConEvents {
         {
             //Get the reported record
             AdKatsRecord reportedRecord;
-            if (this._RoundReports.TryGetValue(reportID, out reportedRecord))
+            if (this._RoundReports.TryGetValue(reportID, out reportedRecord) && this._UseExperimentalTools)
             {
-                if (this._IsTestingAuthorized && 
-                    reportedRecord.source_player != null && 
-                    reportedRecord.source_player.player_aa && 
-                    this.FetchOnlineAdminSoldiers().Count == 0)
+                if (reportedRecord.source_player != null && 
+                    reportedRecord.source_player.player_aa 
+                    && this.FetchOnlineAdminSoldiers().Count == 0
+                    )
                 {
                     String messageLower = reportedRecord.record_message.ToLower();
-                    if (this._AutoReportHandleStrings.Any(handleString => messageLower.Contains(handleString)))
+                    if (this._AutoReportHandleStrings.Count() > 1 && this._AutoReportHandleStrings.Any(handleString => messageLower.Contains(handleString)))
                     {
                         this.DebugWrite("Handling round report.", 5);
                         //Remove it from the reports for this round
@@ -10467,31 +10468,47 @@ namespace PRoConEvents {
             try {
                 //Attempt to fetch the soldier
                 if (!String.IsNullOrEmpty(soldierName) && this.SoldierNameValid(soldierName)) {
-                    AdKatsPlayer aPlayer = this.FetchPlayer(false, true, null, -1, soldierName, null, null);
-                    if (aPlayer != null) {
-                        Boolean playerDuplicate = false;
-                        //Make sure the player is not already assigned to another user
-                        lock (this._UserCache) {
-                            foreach (AdKatsUser innerUser in this._UserCache.Values) {
-                                if (innerUser.soldierDictionary.ContainsKey(aPlayer.player_id)) {
-                                    playerDuplicate = true;
-                                    break;
+                    List<AdKatsPlayer> matchingPlayers;
+                    if (this.FetchMatchingPlayers(soldierName, out matchingPlayers, false)) {
+                        if (matchingPlayers.Count > 0)
+                        {
+                            if (matchingPlayers.Count > 10) {
+                                this.ConsoleError("Too many players matched the query, unable to add.");
+                                return false;
+                            }
+                            foreach (var matchingPlayer in matchingPlayers) {
+                                Boolean playerDuplicate = false;
+                                //Make sure the player is not already assigned to another user
+                                lock (this._UserCache)
+                                {
+                                    foreach (AdKatsUser innerUser in this._UserCache.Values)
+                                    {
+                                        if (innerUser.soldierDictionary.ContainsKey(matchingPlayer.player_id))
+                                        {
+                                            playerDuplicate = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (!playerDuplicate)
+                                {
+                                    if (aUser.soldierDictionary.ContainsKey(matchingPlayer.player_id))
+                                    {
+                                        aUser.soldierDictionary.Remove(matchingPlayer.player_id);
+                                    }
+                                    aUser.soldierDictionary.Add(matchingPlayer.player_id, matchingPlayer);
+                                }
+                                else
+                                {
+                                    this.ConsoleError("Player '" + soldierName + "' already assigned to another user. Unable to assign to user.");
                                 }
                             }
-                        }
-                        if (!playerDuplicate) {
-                            if (aUser.soldierDictionary.ContainsKey(aPlayer.player_id)) {
-                                aUser.soldierDictionary.Remove(aPlayer.player_id);
-                            }
-                            aUser.soldierDictionary.Add(aPlayer.player_id, aPlayer);
                             return true;
                         }
-                        else {
-                            this.ConsoleError("Player '" + soldierName + "' already assigned to another user. Unable to assign to user.");
+                        else
+                        {
+                            this.ConsoleError("Players matching '" + soldierName + "' not found in database. Unable to assign to user.");
                         }
-                    }
-                    else {
-                        this.ConsoleError("Player '" + soldierName + "' not found in database. Unable to assign to user.");
                     }
                 }
                 else {
@@ -10791,6 +10808,16 @@ namespace PRoConEvents {
             }
             //Clone role and assign
             aPlayer.player_role = (AdKatsRole)aRole.Clone();
+            //Load admin assistat status
+            aPlayer.player_aa = this.IsAdminAssistant(aPlayer);
+            if (aPlayer.player_aa)
+            {
+                this.DebugWrite(aPlayer.player_name + " IS an Admin Assistant.", 3);
+            }
+            else
+            {
+                this.DebugWrite(aPlayer.player_name + " is NOT an Admin Assistant.", 4);
+            }
             return authorized;
         }
 
@@ -10819,7 +10846,7 @@ namespace PRoConEvents {
                     {
                         //Grab the matching players
                         while (reader.Read()) {
-                            AdKatsPlayer aPlayer = this.FetchPlayer(true, true, null, reader.GetInt64("player_id"), null, null, null);
+                            AdKatsPlayer aPlayer = this.FetchPlayer(false, true, null, reader.GetInt64("player_id"), null, null, null);
                             if (aPlayer != null) {
                                 resultPlayers.Add(aPlayer);
                             }
@@ -11021,14 +11048,6 @@ namespace PRoConEvents {
                         }
                         //Assign player role
                         this.AssignPlayerRole(aPlayer);
-                        //Load admin assistat status
-                        aPlayer.player_aa = this.IsAdminAssistant(aPlayer);
-                        if (aPlayer.player_aa) {
-                            this.DebugWrite(aPlayer.player_name + " IS an Admin Assistant.", 3);
-                        }
-                        else {
-                            this.DebugWrite(aPlayer.player_name + " is NOT an Admin Assistant.", 4);
-                        }
                     }
                 }
                 catch (Exception e) {
@@ -11819,46 +11838,62 @@ namespace PRoConEvents {
         //DONE
         private Boolean IsAdminAssistant(AdKatsPlayer aPlayer) {
             DebugWrite("fetchAdminAssistants starting!", 6);
-            if (this.HasAccess(aPlayer, this.GetCommandByKey("self_admins"))) {
-                return true;
-            }
+            Boolean isAdminAssistant = false;
             //Make sure database connection active
             if (this.HandlePossibleDisconnect()) {
                 return false;
             }
-            try {
-                using (MySqlConnection connection = this.GetDatabaseConnection()) {
-                    using (MySqlCommand command = connection.CreateCommand()) {
-                        command.CommandText = @"
-                        SELECT
-	                        'isAdminAssistant'
-                        FROM 
-	                        `adkats_records_main`
-                        WHERE (
-	                        SELECT count(`command_action`) 
-	                        FROM `adkats_records_main` 
-	                        WHERE `command_action` = " + this.GetCommandByKey("player_report_confirm").command_id + @"
-	                        AND `source_id` = " + aPlayer.player_id + @" 
-	                        AND (`adkats_records_main`.`record_time` BETWEEN date_sub(UTC_TIMESTAMP(),INTERVAL 30 DAY) AND UTC_TIMESTAMP())
-                        ) >= " + this._MinimumRequiredMonthlyReports + @" LIMIT 1
-                        UNION
-                        SELECT
-	                        'isGrandfatheredAdminAssistant'
-                        FROM 
-	                        `adkats_records_main`
-                        WHERE (
-	                        SELECT count(`command_action`) 
-	                        FROM `adkats_records_main` 
-	                        WHERE `command_action` = " + this.GetCommandByKey("player_report_confirm").command_id + @" 
-	                        AND `source_id` = " + aPlayer.player_id + @"
-                        ) >= 75";
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
-                            if (reader.Read()) {
-                                //Player is an admin assistant, give them access to the self_admins command
-                                aPlayer.player_role.allowedCommands.Add("self_admins", this.GetCommandByKey("self_admins"));
-                                return true;
+            try
+            {
+                if (this.HasAccess(aPlayer, this.GetCommandByKey("self_admins"))) {
+                    isAdminAssistant = true;
+                }
+                else
+                {
+                    using (MySqlConnection connection = this.GetDatabaseConnection())
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"
+                            SELECT
+	                            'isAdminAssistant'
+                            FROM 
+	                            `adkats_records_main`
+                            WHERE (
+	                            SELECT count(`command_action`) 
+	                            FROM `adkats_records_main` 
+	                            WHERE `command_action` = " + this.GetCommandByKey("player_report_confirm").command_id + @"
+	                            AND `source_id` = " + aPlayer.player_id + @" 
+	                            AND (`adkats_records_main`.`record_time` BETWEEN date_sub(UTC_TIMESTAMP(),INTERVAL 30 DAY) AND UTC_TIMESTAMP())
+                            ) >= " + this._MinimumRequiredMonthlyReports + @" LIMIT 1
+                            UNION
+                            SELECT
+	                            'isGrandfatheredAdminAssistant'
+                            FROM 
+	                            `adkats_records_main`
+                            WHERE (
+	                            SELECT count(`command_action`) 
+	                            FROM `adkats_records_main` 
+	                            WHERE `command_action` = " + this.GetCommandByKey("player_report_confirm").command_id + @" 
+	                            AND `source_id` = " + aPlayer.player_id + @"
+                            ) >= 75";
+                            using (MySqlDataReader reader = command.ExecuteReader())
+                            {
+                                if (reader.Read())
+                                {
+                                    //Player is an admin assistant, give them access to the self_admins command
+                                    aPlayer.player_role.allowedCommands.Add("self_admins", this.GetCommandByKey("self_admins"));
+                                    isAdminAssistant = true;
+                                }
                             }
                         }
+                    }
+                }
+                if (isAdminAssistant && this._EnableAdminAssistantPerk)
+                {
+                    if (!this.HasAccess(aPlayer, this._CommandKeyDictionary["self_teamswap"]))
+                    {
+                        aPlayer.player_role.allowedCommands.Add("self_teamswap", this.GetCommandByKey("self_teamswap"));
                     }
                 }
             }
@@ -11866,7 +11901,7 @@ namespace PRoConEvents {
                 this.HandleException(new AdKatsException("Error while checking if player is an admin assistant.", e));
             }
             DebugWrite("fetchAdminAssistants finished!", 6);
-            return false;
+            return isAdminAssistant;
         }
 
         //DONE
