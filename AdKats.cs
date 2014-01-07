@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.0.4
+ * Version 4.0.0.7
  */
 
 using System;
@@ -50,7 +50,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "4.0.0.4";
+        private const String PluginVersion = "4.0.0.7";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -76,22 +76,18 @@ namespace PRoConEvents {
         private volatile String _PluginDescription = null;
         private volatile String _PluginChangelog = null;
 
-        //Constants
-        //IDs of the two teams as the server understands it
-        private const Int32 UsTeamID = 1;
-        private const Int32 RuTeamID = 2;
-
         //General Plugin Settings/Status
         private volatile Boolean _IsEnabled = false;
         private volatile Boolean _ThreadsReady = false;
         private volatile Boolean _UseKeepAlive = false;
 
         //Player Lists
+        private Dictionary<Int32, AdKatsTeam> _TeamDictionary = new Dictionary<Int32,AdKatsTeam>(); 
         private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
         private DateTime _LastSuccessfulPlayerList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         //player counts per team
-        private Int32 _UsPlayerCount = 0;
-        private Int32 _RuPlayerCount = 0;
+        private Int32 _Team1PlayerCount = 0;
+        private Int32 _Team2PlayerCount = 0;
 
         //User Settings
         private Dictionary<long, AdKatsUser> _UserCache = new Dictionary<long, AdKatsUser>();
@@ -272,16 +268,16 @@ namespace PRoConEvents {
         private String _ExternalCommandAccessKey = "NoPasswordSet";
 
         //TeamSwap Settings
-        //The list of players on RU wishing to move to US (This list takes first priority)
-        private Queue<CPlayerInfo> _UsMoveQueue = new Queue<CPlayerInfo>();
-        //the list of players on US wishing to move to RU (This list takes secondary)
-        private Queue<CPlayerInfo> _RuMoveQueue = new Queue<CPlayerInfo>();
+        //The list of players on Team 1 wishing to move to Team 2 (This list takes first priority)
+        private Queue<CPlayerInfo> _Team1MoveQueue = new Queue<CPlayerInfo>();
+        //the list of players on Team 2 wishing to move to Team 1 (This list takes secondary)
+        private Queue<CPlayerInfo> _Team2MoveQueue = new Queue<CPlayerInfo>();
         //the lowest ticket count of either team
         private volatile Int32 _LowestTicketCount = 500000;
         //the highest ticket count of either team
         private volatile Int32 _HighestTicketCount = 0;
-        private volatile Int32 _UsTicketCount = 0;
-        private volatile Int32 _RuTicketCount = 0;
+        private volatile Int32 _Team1TicketCount = 0;
+        private volatile Int32 _Team2TicketCount = 0;
         //the highest ticket count of either team to allow self move
         private Int32 _TeamSwapTicketWindowHigh = 500000;
         //the lowest ticket count of either team to allow self move
@@ -1128,7 +1124,7 @@ namespace PRoConEvents {
                     Boolean feedMTB = Boolean.Parse(strValue);
                     if (feedMTB != this._FeedMultiBalancerWhitelist) {
                         this._FeedMultiBalancerWhitelist = feedMTB;
-                        this.FetchUserList();
+                        this.FetchAllAccess();
                         //Once setting has been changed, upload the change to database
                         this.QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Whitelist", typeof (Boolean), this._FeedMultiBalancerWhitelist));
                     }
@@ -1139,7 +1135,7 @@ namespace PRoConEvents {
                     if (feedSRS != this._FeedServerReservedSlots)
                     {
                         this._FeedServerReservedSlots = feedSRS;
-                        this.FetchUserList();
+                        this.FetchAllAccess();
                         //Once setting has been changed, upload the change to database
                         this.QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof(Boolean), this._FeedServerReservedSlots));
                     }
@@ -1154,7 +1150,7 @@ namespace PRoConEvents {
                             return;
                         }
                         this._FeedServerSpectatorList = feedSSL;
-                        this.FetchUserList();
+                        this.FetchAllAccess();
                         //Once setting has been changed, upload the change to database
                         this.QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof(Boolean), this._FeedServerSpectatorList));
                     }
@@ -2275,7 +2271,50 @@ namespace PRoConEvents {
                 //Set the server IP
                 this._ServerIP = strHostName + ":" + strPort;
                 //Register all events
-                this.RegisterEvents(this.GetType().Name, "OnVersion", "OnServerInfo", "OnListPlayers", "OnPunkbusterPlayerInfo", "OnReservedSlotsList", "OnPlayerKilled", "OnPlayerSpawned", "OnPlayerTeamChange", "OnPlayerJoin", "OnPlayerLeft", "OnGlobalChat", "OnTeamChat", "OnSquadChat", "OnLevelLoaded", "OnBanAdded", "OnBanRemoved", "OnBanListClear", "OnBanListSave", "OnBanListLoad", "OnBanList", "OnEndRound", "OnSpectatorListLoad", "OnSpectatorListSave", "OnSpectatorListPlayerAdded", "OnSpectatorListPlayerRemoved", "OnSpectatorListCleared", "OnSpectatorListList", "OnGameAdminLoad", "OnGameAdminSave", "OnGameAdminPlayerAdded", "OnGameAdminPlayerRemoved", "OnGameAdminCleared", "OnGameAdminList", "OnFairFight", "OnIsHitIndicator", "OnCommander", "OnForceReloadWholeMags", "OnServerType", "OnMaxSpectators");
+                this.RegisterEvents(this.GetType().Name, 
+                    "OnVersion", 
+                    "OnServerInfo", 
+                    "OnListPlayers", 
+                    "OnPunkbusterPlayerInfo", 
+                    "OnReservedSlotsList", 
+                    "OnPlayerKilled", 
+                    "OnPlayerSpawned", 
+                    "OnPlayerTeamChange", 
+                    "OnPlayerJoin", 
+                    "OnPlayerLeft", 
+                    "OnGlobalChat", 
+                    "OnTeamChat", 
+                    "OnSquadChat", 
+                    "OnLevelLoaded", 
+                    "OnBanAdded", 
+                    "OnBanRemoved", 
+                    "OnBanListClear", 
+                    "OnBanListSave", 
+                    "OnBanListLoad", 
+                    "OnBanList", 
+                    "OnEndRound", 
+                    "OnSpectatorListLoad", 
+                    "OnSpectatorListSave", 
+                    "OnSpectatorListPlayerAdded", 
+                    "OnSpectatorListPlayerRemoved", 
+                    "OnSpectatorListCleared", 
+                    "OnSpectatorListList", 
+                    "OnGameAdminLoad", 
+                    "OnGameAdminSave", 
+                    "OnGameAdminPlayerAdded", 
+                    "OnGameAdminPlayerRemoved", 
+                    "OnGameAdminCleared", 
+                    "OnGameAdminList", 
+                    "OnFairFight", 
+                    "OnIsHitIndicator", 
+                    "OnCommander", 
+                    "OnForceReloadWholeMags", 
+                    "OnServerType", 
+                    "OnMaxSpectators",
+                    "OnTeam1FactionOverride",
+                    "OnTeam2FactionOverride",
+                    "OnTeam3FactionOverride",
+                    "OnTeam4FactionOverride");
             }
             catch (Exception e) {
                 this.HandleException(new AdKatsException("FATAL ERROR on plugin load.", e));
@@ -2285,6 +2324,69 @@ namespace PRoConEvents {
 
         public override void OnVersion(String serverType, String version) {
             this._GamePatchVersion = version;
+        }
+
+        public override void OnTeam1FactionOverride(int faction)
+        {
+            this.AssignFactionOverride(1, faction);
+        }
+
+        public override void OnTeam2FactionOverride(int faction)
+        {
+            this.AssignFactionOverride(2, faction);
+        }
+
+        public override void OnTeam3FactionOverride(int faction)
+        {
+            this.AssignFactionOverride(3, faction);
+        }
+
+        public override void OnTeam4FactionOverride(int faction)
+        {
+            this.AssignFactionOverride(4, faction);
+        }
+
+        private void AssignFactionOverride(Int32 targetTeamID, Int32 overrideTeamId) {
+            lock (this._TeamDictionary) {
+                if (this._TeamDictionary.ContainsKey(targetTeamID)) {
+                    this._TeamDictionary.Remove(targetTeamID);
+                }
+                switch (overrideTeamId) {
+                    case 0:
+                        this._TeamDictionary.Add(targetTeamID, new AdKatsTeam() 
+                        {
+                            TeamID = targetTeamID,
+                            TeamKey = "US",
+                            TeamName = "US Army",
+                            TeamDesc = "United States Army"
+                        });
+                        this.ConsoleWarn("Assigning team ID " + targetTeamID + " to US");
+                        break;
+                    case 1:
+                        this._TeamDictionary.Add(targetTeamID, new AdKatsTeam()
+                        {
+                            TeamID = targetTeamID,
+                            TeamKey = "RU",
+                            TeamName = "Russian Army",
+                            TeamDesc = "Russian Federation Army"
+                        });
+                        this.ConsoleWarn("Assigning team ID " + targetTeamID + " to RU");
+                        break;
+                    case 2:
+                        this._TeamDictionary.Add(targetTeamID, new AdKatsTeam()
+                        {
+                            TeamID = targetTeamID,
+                            TeamKey = "CN",
+                            TeamName = "Chinese Army",
+                            TeamDesc = "Chinese People's Liberation Army"
+                        });
+                        this.ConsoleWarn("Assigning team ID " + targetTeamID + " to CN");
+                        break;
+                    default:
+                        this.ConsoleError("Team ID " + overrideTeamId + " was not understood.");
+                        break;
+                }
+            }
         }
 
         public override void OnFairFight(bool isEnabled) {
@@ -2323,13 +2425,15 @@ namespace PRoConEvents {
                     {
                         foreach (AdKatsPlayer soldier in user.soldierDictionary.Values)
                         {
-                            allUserSoldiers.Add(soldier.player_name);
-                            //Add needed soldiers to the spectator slist
-                            if (!this._CurrentSpectatorListPlayers.Contains(soldier.player_name))
-                            {
-                                this.DebugWrite(soldier.player_name + " in AdKats access, but not in spectator list. Adding.", 3);
-                                this.ExecuteCommand("procon.protected.send", "spectatorList.add", soldier.player_name);
-                                Thread.Sleep(50);
+                            //Only add soldiers for the current game
+                            if (soldier.game_id == this._GameID) {
+                                allUserSoldiers.Add(soldier.player_name);
+                                //Add needed soldiers to the spectator slist
+                                if (!this._CurrentSpectatorListPlayers.Contains(soldier.player_name)) {
+                                    this.DebugWrite(soldier.player_name + " in AdKats access, but not in spectator list. Adding.", 3);
+                                    this.ExecuteCommand("procon.protected.send", "spectatorList.add", soldier.player_name);
+                                    Thread.Sleep(50);
+                                }
                             }
                         }
                     }
@@ -2587,12 +2691,12 @@ namespace PRoConEvents {
                         if (this._BanEnforcerCheckingQueue != null)
                             this._BanEnforcerCheckingQueue.Clear();
                         this._ToldCol = false;
-                        this._RuPlayerCount = 0;
-                        if (this._RuMoveQueue != null)
-                            this._RuMoveQueue.Clear();
-                        this._UsPlayerCount = 0;
-                        if (this._UsMoveQueue != null)
-                            this._UsMoveQueue.Clear();
+                        this._Team2PlayerCount = 0;
+                        if (this._Team2MoveQueue != null)
+                            this._Team2MoveQueue.Clear();
+                        this._Team1PlayerCount = 0;
+                        if (this._Team1MoveQueue != null)
+                            this._Team1MoveQueue.Clear();
                         if (this._RoundCookers != null)
                             this._RoundCookers.Clear();
                         if (this._RoundReports != null)
@@ -2728,8 +2832,8 @@ namespace PRoConEvents {
                             lock (this._PlayersMutex) {
                                 List<String> playerNames = new List<String>();
                                 //Reset the player counts of both sides and recount everything
-                                this._UsPlayerCount = 0;
-                                this._RuPlayerCount = 0;
+                                this._Team1PlayerCount = 0;
+                                this._Team2PlayerCount = 0;
                                 //Loop over all players in the list
                                 foreach (CPlayerInfo player in players) {
                                     playerNames.Add(player.SoldierName);
@@ -2759,11 +2863,11 @@ namespace PRoConEvents {
                                         }
                                     }
 
-                                    if (player.TeamID == UsTeamID) {
-                                        this._UsPlayerCount++;
+                                    if (player.TeamID == 1) {
+                                        this._Team1PlayerCount++;
                                     }
-                                    else if (player.TeamID == RuTeamID) {
-                                        this._RuPlayerCount++;
+                                    else if (player.TeamID == 2) {
+                                        this._Team2PlayerCount++;
                                     }
                                 }
                                 //Make sure the player dictionary is clean of any straglers
@@ -2861,8 +2965,8 @@ namespace PRoConEvents {
             this.DebugWrite("Entering OnServerInfo", 7);
             try {
                 if (this._IsEnabled) {
-                    this._UsTicketCount = -1;
-                    this._RuTicketCount = -1;
+                    this._Team1TicketCount = -1;
+                    this._Team2TicketCount = -1;
                     if (serverInfo != null) {
                         //Get the team scores
                         this.SetServerInfo(serverInfo);
@@ -2871,11 +2975,11 @@ namespace PRoConEvents {
                             //During round change, teams don't exist
                             if (listCurrTeamScore.Count > 0) {
                                 foreach (TeamScore score in listCurrTeamScore) {
-                                    if (score.TeamID == AdKats.UsTeamID) {
-                                        this._UsTicketCount = score.Score;
+                                    if (score.TeamID == 1) {
+                                        this._Team1TicketCount = score.Score;
                                     }
-                                    else if (score.TeamID == AdKats.RuTeamID) {
-                                        this._RuTicketCount = score.Score;
+                                    else if (score.TeamID == 2) {
+                                        this._Team2TicketCount = score.Score;
                                     }
                                     else {
                                         this.DebugWrite("Score for team " + score.TeamID + " not parsable.", 2);
@@ -2886,9 +2990,9 @@ namespace PRoConEvents {
                                 this.DebugWrite("Server info fired while changing rounds, no teams to parse.", 5);
                             }
 
-                            if (this._UsTicketCount >= 0 && this._RuTicketCount >= 0) {
-                                this._LowestTicketCount = (this._UsTicketCount < this._RuTicketCount) ? (this._UsTicketCount) : (this._RuTicketCount);
-                                this._HighestTicketCount = (this._UsTicketCount > this._RuTicketCount) ? (this._UsTicketCount) : (this._RuTicketCount);
+                            if (this._Team1TicketCount >= 0 && this._Team2TicketCount >= 0) {
+                                this._LowestTicketCount = (this._Team1TicketCount < this._Team2TicketCount) ? (this._Team1TicketCount) : (this._Team2TicketCount);
+                                this._HighestTicketCount = (this._Team1TicketCount > this._Team2TicketCount) ? (this._Team1TicketCount) : (this._Team2TicketCount);
                             }
                         }
 
@@ -2925,8 +3029,8 @@ namespace PRoConEvents {
                     this._ActOnSpawnDictionary = new Dictionary<String, AdKatsRecord>();
                     this._TeamswapOnDeathMoveDic = new Dictionary<String, CPlayerInfo>();
                     //this.AutoWhitelistPlayers();
-                    this._UsMoveQueue = new Queue<CPlayerInfo>();
-                    this._RuMoveQueue = new Queue<CPlayerInfo>();
+                    this._Team1MoveQueue = new Queue<CPlayerInfo>();
+                    this._Team2MoveQueue = new Queue<CPlayerInfo>();
                     this._RoundCookers = new Dictionary<String, AdKatsPlayer>();
                     //Enable round timer
                     if (this._UseRoundTimer) {
@@ -3075,7 +3179,7 @@ namespace PRoConEvents {
                     lock (this._PlayersMutex) {
                         AdKatsPlayer victim = this._PlayerDictionary[kKillerVictimDetails.Victim.SoldierName];
                         this.DebugWrite("Setting " + victim.player_name + " time of death to " + kKillerVictimDetails.TimeOfDeath, 7);
-                        victim.lastDeath = kKillerVictimDetails.TimeOfDeath;
+                        victim.lastDeath = DateTime.UtcNow;
                         //Only add the last death if it's not a death by admin
                         if (!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName)) {
                             try {
@@ -3404,14 +3508,22 @@ namespace PRoConEvents {
                         String command = this._CommandKeyDictionary["self_teamswap"].command_text;
                         AdKatsPlayer aPlayer = null;
                         if (this._PlayerDictionary.TryGetValue(soldierName, out aPlayer)) {
-                            if (aPlayer.player_aa && !aPlayer.player_aa_told) {
-                                this.PlayerTellMessage(soldierName, "For your consistent player reporting you can now use @" + command + ". Type @" + command + " to move yourself between teams.");
+                            if (aPlayer.player_aa && !aPlayer.player_aa_told)
+                            {
+                                if (this._UseExperimentalTools)
+                                {
+                                    this.PlayerSayMessage(soldierName, "As an Admin Assistant certain reports of yours will be answered by autoadmin if admins are offline.");
+                                }
+                                if (this._EnableAdminAssistantPerk) 
+                                {
+                                    this.PlayerSayMessage(soldierName, "As an Admin Assistant you can use the @" + command + ". Type @" + command + " to move yourself between teams.");
+                                }
                                 aPlayer.player_aa_told = true;
                             }
                             else {
                                 Boolean informed = true;
                                 if (this._TeamswapRoundWhitelist.Count > 0 && this._TeamswapRoundWhitelist.TryGetValue(soldierName, out informed)) {
-                                    if (informed == false) {
+                                    if (!informed) {
                                         this.PlayerTellMessage(soldierName, "By random selection you can use @" + command + " for this round. Type @" + command + " to move yourself between teams.");
                                         this._TeamswapRoundWhitelist[soldierName] = true;
                                     }
@@ -3422,7 +3534,7 @@ namespace PRoConEvents {
 
                     //Handle Dev Notifications
                     if (soldierName == "ColColonCleaner" && !_ToldCol) {
-                        this.PlayerTellMessage("ColColonCleaner", "CONGRATS! This server is running version " + PluginVersion + " of AdKats!");
+                        this.PlayerTellMessage("ColColonCleaner", "CONGRATS! This server is running AdKats " + PluginVersion + "!");
                         this._ToldCol = true;
                     }
 
@@ -3704,7 +3816,7 @@ namespace PRoConEvents {
                 this._LastSuccessfulBanList = startTime;
                 if (!this._IsEnabled)
                     return;
-                this.DebugWrite("OnBanList fired", 3);
+                this.DebugWrite("OnBanList fired", 5);
                 if (this._UseBanEnforcer) {
                     if (banList.Count > 0) {
                         this.DebugWrite("Bans found", 3);
@@ -4576,126 +4688,143 @@ namespace PRoConEvents {
                             this.DebugWrite("TSWAP: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
+                        lock (this._TeamDictionary)
+                        {
+                            AdKatsTeam team1Desc;
+                            if (!this._TeamDictionary.TryGetValue(1, out team1Desc))
+                            {
+                                this.ConsoleError("Team 1 description was not found. Unable to continue.");
+                                Thread.Sleep(5000);
+                                continue;
+                            }
+                            AdKatsTeam team2Desc;
+                            if (!this._TeamDictionary.TryGetValue(2, out team2Desc))
+                            {
+                                this.ConsoleError("Team 2 description was not found. Unable to continue.");
+                                Thread.Sleep(5000);
+                                continue;
+                            }
 
-                        //Call List Players
-                        this._PlayerListUpdateWaitHandle.Reset();
-                        this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
-                        //Wait for listPlayers to finish
-                        if (!this._PlayerListUpdateWaitHandle.WaitOne(2000)) {
-                            this.DebugWrite("ListPlayers ran out of time for TeamSwap. 2 sec.", 4);
-                        }
+                            //Call List Players
+                            this._PlayerListUpdateWaitHandle.Reset();
+                            this.ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+                            //Wait for listPlayers to finish
+                            if (!this._PlayerListUpdateWaitHandle.WaitOne(2000)) {
+                                this.DebugWrite("ListPlayers ran out of time for TeamSwap. 2 sec.", 4);
+                            }
 
-                        //Refresh Max Player Count, needed for responsive server size
-                        CServerInfo info = this.GetServerInfo();
-                        if (info != null && info.MaxPlayerCount != maxPlayerCount) {
-                            maxPlayerCount = info.MaxPlayerCount / 2;
-                        }
+                            //Refresh Max Player Count, needed for responsive server size
+                            CServerInfo info = this.GetServerInfo();
+                            if (info != null && info.MaxPlayerCount != maxPlayerCount) {
+                                maxPlayerCount = info.MaxPlayerCount / 2;
+                            }
 
-                        //Get players who died that need moving
-                        if ((this._TeamswapOnDeathMoveDic.Count > 0 && this._TeamswapOnDeathCheckingQueue.Count > 0) || this._TeamswapForceMoveQueue.Count > 0) {
-                            this.DebugWrite("TSWAP: Preparing to lock TeamSwap queues", 4);
-                            lock (_TeamswapMutex) {
-                                this.DebugWrite("TSWAP: Players in ready for TeamSwap. Grabbing.", 6);
-                                //Grab all messages in the queue
-                                Queue<CPlayerInfo> movingQueue = new Queue<CPlayerInfo>(this._TeamswapForceMoveQueue.ToArray());
-                                Queue<CPlayerInfo> checkingQueue = new Queue<CPlayerInfo>(this._TeamswapOnDeathCheckingQueue.ToArray());
-                                //Clear the queue for next run
-                                this._TeamswapOnDeathCheckingQueue.Clear();
-                                this._TeamswapForceMoveQueue.Clear();
+                            //Get players who died that need moving
+                            if ((this._TeamswapOnDeathMoveDic.Count > 0 && this._TeamswapOnDeathCheckingQueue.Count > 0) || this._TeamswapForceMoveQueue.Count > 0) {
+                                this.DebugWrite("TSWAP: Preparing to lock TeamSwap queues", 4);
+                                lock (_TeamswapMutex) {
+                                    this.DebugWrite("TSWAP: Players in ready for TeamSwap. Grabbing.", 6);
+                                    //Grab all messages in the queue
+                                    Queue<CPlayerInfo> movingQueue = new Queue<CPlayerInfo>(this._TeamswapForceMoveQueue.ToArray());
+                                    Queue<CPlayerInfo> checkingQueue = new Queue<CPlayerInfo>(this._TeamswapOnDeathCheckingQueue.ToArray());
+                                    //Clear the queue for next run
+                                    this._TeamswapOnDeathCheckingQueue.Clear();
+                                    this._TeamswapForceMoveQueue.Clear();
 
-                                //Check for "on-death" move players
-                                while (this._TeamswapOnDeathMoveDic.Count > 0 && checkingQueue.Count > 0) {
-                                    //Dequeue the first/next player
-                                    String playerName = checkingQueue.Dequeue().SoldierName;
-                                    CPlayerInfo player;
-                                    //If they are 
-                                    if (this._TeamswapOnDeathMoveDic.TryGetValue(playerName, out player)) {
-                                        //Player has died, remove from the dictionary
-                                        this._TeamswapOnDeathMoveDic.Remove(playerName);
-                                        //Add to move queue
-                                        movingQueue.Enqueue(player);
+                                    //Check for "on-death" move players
+                                    while (this._TeamswapOnDeathMoveDic.Count > 0 && checkingQueue.Count > 0) {
+                                        //Dequeue the first/next player
+                                        String playerName = checkingQueue.Dequeue().SoldierName;
+                                        CPlayerInfo player;
+                                        //If they are 
+                                        if (this._TeamswapOnDeathMoveDic.TryGetValue(playerName, out player)) {
+                                            //Player has died, remove from the dictionary
+                                            this._TeamswapOnDeathMoveDic.Remove(playerName);
+                                            //Add to move queue
+                                            movingQueue.Enqueue(player);
+                                        }
                                     }
-                                }
 
-                                while (movingQueue.Count > 0) {
-                                    CPlayerInfo player = movingQueue.Dequeue();
-                                    if (player.TeamID == UsTeamID) {
-                                        if (!this.ContainsCPlayerInfo(this._UsMoveQueue, player.SoldierName)) {
-                                            this._UsMoveQueue.Enqueue(player);
-                                            this.PlayerSayMessage(player.SoldierName, "You have been added to the (US -> RU) TeamSwap queue in position " + (this.IndexOfCPlayerInfo(this._UsMoveQueue, player.SoldierName) + 1) + ".");
+                                    while (movingQueue.Count > 0) {
+                                        CPlayerInfo player = movingQueue.Dequeue();
+                                        if (player.TeamID == 1) {
+                                            if (!this.ContainsCPlayerInfo(this._Team1MoveQueue, player.SoldierName)) {
+                                                this._Team1MoveQueue.Enqueue(player);
+                                                this.PlayerSayMessage(player.SoldierName, "You have been added to the (" + team1Desc.TeamName + " -> " + team2Desc.TeamName + ") TeamSwap queue in position " + (this.IndexOfCPlayerInfo(this._Team1MoveQueue, player.SoldierName) + 1) + ".");
+                                            }
+                                            else {
+                                                this.PlayerSayMessage(player.SoldierName, team2Desc.TeamName + " Team Full (" + this._Team2PlayerCount + "/" + maxPlayerCount + "). You are in queue position " + (this.IndexOfCPlayerInfo(this._Team1MoveQueue, player.SoldierName) + 1));
+                                            }
                                         }
                                         else {
-                                            this.PlayerSayMessage(player.SoldierName, "RU Team Full (" + this._RuPlayerCount + "/" + maxPlayerCount + "). You are in queue position " + (this.IndexOfCPlayerInfo(this._UsMoveQueue, player.SoldierName) + 1));
-                                        }
-                                    }
-                                    else {
-                                        if (!this.ContainsCPlayerInfo(this._RuMoveQueue, player.SoldierName)) {
-                                            this._RuMoveQueue.Enqueue(player);
-                                            this.PlayerSayMessage(player.SoldierName, "You have been added to the (RU -> US) TeamSwap queue in position " + (this.IndexOfCPlayerInfo(this._RuMoveQueue, player.SoldierName) + 1) + ".");
-                                        }
-                                        else {
-                                            this.PlayerSayMessage(player.SoldierName, "US Team Full (" + this._UsPlayerCount + "/" + maxPlayerCount + "). You are in queue position " + (this.IndexOfCPlayerInfo(this._RuMoveQueue, player.SoldierName) + 1));
+                                            if (!this.ContainsCPlayerInfo(this._Team2MoveQueue, player.SoldierName)) {
+                                                this._Team2MoveQueue.Enqueue(player);
+                                                this.PlayerSayMessage(player.SoldierName, "You have been added to the (" + team2Desc.TeamName + " -> " + team1Desc.TeamName + ") TeamSwap queue in position " + (this.IndexOfCPlayerInfo(this._Team2MoveQueue, player.SoldierName) + 1) + ".");
+                                            }
+                                            else {
+                                                this.PlayerSayMessage(player.SoldierName, team1Desc.TeamName + " Team Full (" + this._Team1PlayerCount + "/" + maxPlayerCount + "). You are in queue position " + (this.IndexOfCPlayerInfo(this._Team2MoveQueue, player.SoldierName) + 1));
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
-                        this.DebugWrite("Team Info: US:" + this._UsPlayerCount + "/" + maxPlayerCount + " RU:" + this._RuPlayerCount + "/" + maxPlayerCount, 5);
-                        if (this._RuMoveQueue.Count > 0 || this._UsMoveQueue.Count > 0) {
-                            //Perform player moving
-                            Boolean movedPlayer;
-                            do {
-                                movedPlayer = false;
-                                if (this._RuMoveQueue.Count > 0) {
-                                    if (this._UsPlayerCount < maxPlayerCount) {
-                                        CPlayerInfo player = this._RuMoveQueue.Dequeue();
-                                        AdKatsPlayer dicPlayer = null;
-                                        if (this._PlayerDictionary.TryGetValue(player.SoldierName, out dicPlayer)) {
-                                            if (dicPlayer.frostbitePlayerInfo.TeamID == UsTeamID) {
-                                                //Skip the kill/swap if they are already on the goal team by some other means
-                                                continue;
+                            this.DebugWrite("Team Info: " + team1Desc.TeamName + ": " + this._Team1PlayerCount + "/" + maxPlayerCount + " " + team2Desc.TeamName + ": " + this._Team2PlayerCount + "/" + maxPlayerCount, 5);
+                            if (this._Team2MoveQueue.Count > 0 || this._Team1MoveQueue.Count > 0) {
+                                //Perform player moving
+                                Boolean movedPlayer;
+                                do {
+                                    movedPlayer = false;
+                                    if (this._Team2MoveQueue.Count > 0) {
+                                        if (this._Team1PlayerCount < maxPlayerCount) {
+                                            CPlayerInfo player = this._Team2MoveQueue.Dequeue();
+                                            AdKatsPlayer dicPlayer = null;
+                                            if (this._PlayerDictionary.TryGetValue(player.SoldierName, out dicPlayer)) {
+                                                if (dicPlayer.frostbitePlayerInfo.TeamID == 1) {
+                                                    //Skip the kill/swap if they are already on the goal team by some other means
+                                                    continue;
+                                                }
                                             }
-                                        }
-                                        if (String.IsNullOrEmpty(player.SoldierName) || String.IsNullOrEmpty(UsTeamID.ToString(CultureInfo.InvariantCulture))) {
-                                            this.ConsoleError("soldiername null in US teamswap");
-                                        }
-                                        else {
-                                            ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, UsTeamID.ToString(CultureInfo.InvariantCulture), "1", "true");
-                                        }
-                                        this.PlayerSayMessage(player.SoldierName, "Swapping you from team RU to team US");
-                                        movedPlayer = true;
-                                    }
-                                }
-                                if (this._UsMoveQueue.Count > 0) {
-                                    if (this._RuPlayerCount < maxPlayerCount) {
-                                        CPlayerInfo player = this._UsMoveQueue.Dequeue();
-                                        AdKatsPlayer dicPlayer = null;
-                                        if (this._PlayerDictionary.TryGetValue(player.SoldierName, out dicPlayer)) {
-                                            if (dicPlayer.frostbitePlayerInfo.TeamID == RuTeamID) {
-                                                //Skip the kill/swap if they are already on the goal team by some other means
-                                                continue;
+                                            if (String.IsNullOrEmpty(player.SoldierName)) {
+                                                this.ConsoleError("soldiername null in team 2 -> 1 teamswap");
                                             }
+                                            else {
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "1", "1", "true");
+                                            }
+                                            this.PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2Desc.TeamName + " to team " + team1Desc.TeamName);
+                                            movedPlayer = true;
                                         }
-                                        if (String.IsNullOrEmpty(player.SoldierName) || String.IsNullOrEmpty(RuTeamID.ToString(CultureInfo.InvariantCulture))) {
-                                            this.ConsoleError("soldiername null in RU teamswap");
-                                        }
-                                        else {
-                                            ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, RuTeamID.ToString(CultureInfo.InvariantCulture), "1", "true");
-                                        }
-                                        this.PlayerSayMessage(player.SoldierName, "Swapping you from team US to team RU");
-                                        movedPlayer = true;
                                     }
-                                }
-                            } while (movedPlayer);
+                                    if (this._Team1MoveQueue.Count > 0) {
+                                        if (this._Team2PlayerCount < maxPlayerCount) {
+                                            CPlayerInfo player = this._Team1MoveQueue.Dequeue();
+                                            AdKatsPlayer dicPlayer = null;
+                                            if (this._PlayerDictionary.TryGetValue(player.SoldierName, out dicPlayer)) {
+                                                if (dicPlayer.frostbitePlayerInfo.TeamID == 2) {
+                                                    //Skip the kill/swap if they are already on the goal team by some other means
+                                                    continue;
+                                                }
+                                            }
+                                            if (String.IsNullOrEmpty(player.SoldierName)) {
+                                                this.ConsoleError("soldiername null in team 1 -> 2 teamswap");
+                                            }
+                                            else {
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "2", "1", "true");
+                                            }
+                                            this.PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1Desc.TeamName + "to team " + team2Desc.TeamName);
+                                            movedPlayer = true;
+                                        }
+                                    }
+                                } while (movedPlayer);
 
-                            //Sleep for 5 seconds
-                            Thread.Sleep(5000);
-                        }
-                        else {
-                            this.DebugWrite("TSWAP: No players to swap. Waiting for input.", 4);
-                            //There are no players to swap, wait.
-                            this._TeamswapWaitHandle.Reset();
-                            this._TeamswapWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
+                                //Sleep for 5 seconds
+                                Thread.Sleep(5000);
+                            }
+                            else {
+                                this.DebugWrite("TSWAP: No players to swap. Waiting for input.", 4);
+                                //There are no players to swap, wait.
+                                this._TeamswapWaitHandle.Reset();
+                                this._TeamswapWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
+                            }
                         }
                     }
                     catch (Exception e)
@@ -5904,20 +6033,60 @@ namespace PRoConEvents {
                                 String targetTeam = parameters[0];
                                 record.record_message = "Nuke Server";
                                 DebugWrite("target: " + targetTeam, 6);
-                                if (targetTeam.ToLower().Contains("us")) {
-                                    record.target_name = "US Team";
-                                    record.record_message += " (US Team)";
+                                if (targetTeam.ToLower().Contains("us"))
+                                {
+                                    AdKatsTeam aTeam = this.getTeamByKey("US");
+                                    if (aTeam != null)
+                                    {
+                                        record.target_name = aTeam.TeamName;
+                                        record.command_numeric = aTeam.TeamID;
+                                        record.record_message += " (" + aTeam.TeamName + ")";
+                                    }
+                                    else
+                                    {
+                                        this.SendMessageToSource(record, "Team US does not exist on this map.");
+                                        this.FinalizeRecord(record);
+                                        return;
+                                    }
                                 }
-                                else if (targetTeam.ToLower().Contains("ru")) {
-                                    record.target_name = "RU Team";
-                                    record.record_message += " (RU Team)";
+                                else if (targetTeam.ToLower().Contains("ru"))
+                                {
+                                    AdKatsTeam aTeam = this.getTeamByKey("RU");
+                                    if (aTeam != null)
+                                    {
+                                        record.target_name = aTeam.TeamName;
+                                        record.command_numeric = aTeam.TeamID;
+                                        record.record_message += " (" + aTeam.TeamName + ")";
+                                    }
+                                    else
+                                    {
+                                        this.SendMessageToSource(record, "Team RU does not exist on this map.");
+                                        this.FinalizeRecord(record);
+                                        return;
+                                    }
+                                }
+                                else if (targetTeam.ToLower().Contains("cn"))
+                                {
+                                    AdKatsTeam aTeam = this.getTeamByKey("CN");
+                                    if (aTeam != null)
+                                    {
+                                        record.target_name = aTeam.TeamName;
+                                        record.command_numeric = aTeam.TeamID;
+                                        record.record_message += " (" + aTeam.TeamName + ")";
+                                    }
+                                    else
+                                    {
+                                        this.SendMessageToSource(record, "Team CN does not exist on this map.");
+                                        this.FinalizeRecord(record);
+                                        return;
+                                    }
                                 }
                                 else if (targetTeam.ToLower().Contains("all")) {
                                     record.target_name = "Everyone";
                                     record.record_message += " (Everyone)";
                                 }
                                 else {
-                                    this.SendMessageToSource(record, "Use 'US', 'RU', or 'ALL' as targets.");
+                                    this.SendMessageToSource(record, "Use 'US', 'RU', 'CN', or 'ALL' as targets.");
                                     this.FinalizeRecord(record);
                                     return;
                                 }
@@ -5976,17 +6145,52 @@ namespace PRoConEvents {
                                 DebugWrite("target team: " + targetTeam, 6);
                                 record.record_message = "End Round";
                                 if (targetTeam.ToLower().Contains("us")) {
-                                    record.target_name = "US Team";
-                                    record.command_numeric = AdKats.UsTeamID;
-                                    record.record_message += " (US Win)";
+                                    AdKatsTeam aTeam = this.getTeamByKey("US");
+                                    if (aTeam != null) {
+                                        record.target_name = aTeam.TeamName;
+                                        record.command_numeric = aTeam.TeamID;
+                                        record.record_message += " (" + aTeam.TeamKey + " Win)";
+                                    }
+                                    else {
+                                        this.SendMessageToSource(record, "Team US does not exist on this map.");
+                                        this.FinalizeRecord(record);
+                                        return;
+                                    }
                                 }
-                                else if (targetTeam.ToLower().Contains("ru")) {
-                                    record.target_name = "RU Team";
-                                    record.command_numeric = AdKats.RuTeamID;
-                                    record.record_message += " (RU Win)";
+                                else if (targetTeam.ToLower().Contains("ru"))
+                                {
+                                    AdKatsTeam aTeam = this.getTeamByKey("RU");
+                                    if (aTeam != null)
+                                    {
+                                        record.target_name = aTeam.TeamName;
+                                        record.command_numeric = aTeam.TeamID;
+                                        record.record_message += " (" + aTeam.TeamKey + " Win)";
+                                    }
+                                    else
+                                    {
+                                        this.SendMessageToSource(record, "Team RU does not exist on this map.");
+                                        this.FinalizeRecord(record);
+                                        return;
+                                    }
+                                }
+                                else if (targetTeam.ToLower().Contains("cn"))
+                                {
+                                    AdKatsTeam aTeam = this.getTeamByKey("CN");
+                                    if (aTeam != null)
+                                    {
+                                        record.target_name = aTeam.TeamName;
+                                        record.command_numeric = aTeam.TeamID;
+                                        record.record_message += " (" + aTeam.TeamKey + " Win)";
+                                    }
+                                    else
+                                    {
+                                        this.SendMessageToSource(record, "Team CN does not exist on this map.");
+                                        this.FinalizeRecord(record);
+                                        return;
+                                    }
                                 }
                                 else {
-                                    this.SendMessageToSource(record, "Use 'US' or 'RU' as team names to end round");
+                                    this.SendMessageToSource(record, "Use 'US', 'RU', or 'CN' as team codes to end round");
                                     this.FinalizeRecord(record);
                                     return;
                                 }
@@ -6106,7 +6310,7 @@ namespace PRoConEvents {
 
                     #endregion
 
-                    #region RequestRules
+                    #region RequestAdmins
 
                     case "self_admins":
                         {
@@ -6114,6 +6318,21 @@ namespace PRoConEvents {
                             this.CancelSourcePendingAction(record);
 
                             record.record_message = "Player Requested Online Admins";
+                            record.target_name = record.source_name;
+                            this.CompleteTargetInformation(record, false);
+                        }
+                        break;
+
+                    #endregion
+
+                    #region LeadSquad
+
+                    case "self_lead":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            this.CancelSourcePendingAction(record);
+
+                            record.record_message = "Player Requesting lead of Current Squad";
                             record.target_name = record.source_name;
                             this.CompleteTargetInformation(record, false);
                         }
@@ -6362,6 +6581,21 @@ namespace PRoConEvents {
                 this.FinalizeRecord(record);
                 return;
             }
+        }
+
+        private AdKatsTeam getTeamByKey(String teamKey)
+        {
+            lock (this._TeamDictionary)
+            {
+                foreach (AdKatsTeam curTeam in this._TeamDictionary.Values)
+                {
+                    if (curTeam.TeamKey.ToUpper() == teamKey.ToUpper()) {
+                        //Team found
+                        return curTeam;
+                    }
+                }
+            }
+            return null;
         }
 
         public void FinalizeRecord(AdKatsRecord record) {
@@ -7403,9 +7637,8 @@ namespace PRoConEvents {
                 } while (_RoundReports.ContainsKey(reportID + ""));
                 record.command_numeric = reportID;
                 this._RoundReports.Add(reportID + "", record);
-                this.SendMessageToSource(record, "REPORT [" + reportID + "] sent on " + record.target_name + " for " + record.record_message);
                 record.record_action_executed = true;
-                if (!this.RunAutoReportAction(reportID + "")) {
+                if (!this.RunAutoReportAction(record, reportID + "")) {
                     String adminAssistantIdentifier = "";
                     if (record.source_player != null) {
                         adminAssistantIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
@@ -7441,7 +7674,7 @@ namespace PRoConEvents {
                 this._RoundReports.Add(reportID + "", record);
                 this.SendMessageToSource(record, "ADMIN CALL [" + reportID + "] sent on " + record.target_name + " for " + record.record_message);
                 record.record_action_executed = true;
-                if (!this.RunAutoReportAction(reportID + "")) {
+                if (!this.RunAutoReportAction(record, reportID + "")) {
                     String adminAssistantIdentifier = "";
                     if (record.source_player != null) {
                         adminAssistantIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
@@ -7466,52 +7699,79 @@ namespace PRoConEvents {
             this.DebugWrite("Exiting callAdminOnTarget", 6);
         }
 
-        public Boolean RunAutoReportAction(String reportID)
+        public Boolean RunAutoReportAction(AdKatsRecord record, String reportID)
         {
-            //Get the reported record
-            AdKatsRecord reportedRecord;
-            if (this._RoundReports.TryGetValue(reportID, out reportedRecord) && this._UseExperimentalTools)
+            Boolean sourceAA = record.source_player != null && record.source_player.player_aa;
+            Int32 onlineAdminCount = this.FetchOnlineAdminSoldiers().Count;
+            String messageLower = record.record_message.ToLower();
+            Boolean canAutoHandle = this._AutoReportHandleStrings.Count() > 1 && this._AutoReportHandleStrings.Any(handleString => messageLower.Contains(handleString));
+            Boolean adminsOnline = onlineAdminCount > 0;
+            String reportMessage = "";
+            if (!this._IsTestingAuthorized || !sourceAA || !adminsOnline) {
+                reportMessage = "REPORT [" + reportID + "] sent on " + record.target_name + " for " + record.record_message;
+            }
+            else{
+                reportMessage = "REPORT [" + reportID + "] on " + record.target_name + " sent to " + onlineAdminCount + " in-game admin" + ((onlineAdminCount > 1) ? ("s"):("")) + ". " + ((canAutoHandle) ? ("Admins have 30 seconds before auto-handling.") : (""));
+            }
+            this.SendMessageToSource(record, reportMessage);
+            if (!canAutoHandle) {
+                //this.ConsoleWarn("canceling auto-handler.");
+                return false;
+            }
+            //Create a new thread to handle the disconnect orchestration
+            Thread reportAutoHandler = new Thread(new ThreadStart(delegate
             {
-                if (reportedRecord.source_player != null && 
-                    reportedRecord.source_player.player_aa 
-                    && this.FetchOnlineAdminSoldiers().Count == 0
-                    )
-                {
-                    String messageLower = reportedRecord.record_message.ToLower();
-                    if (this._AutoReportHandleStrings.Count() > 1 && this._AutoReportHandleStrings.Any(handleString => messageLower.Contains(handleString)))
+                //this.ConsoleWarn("Starting report auto-handler thread.");
+                try {
+                    //If admins are online, act after 30 seconds. If they are not, act after 5 seconds.
+                    Thread.Sleep(TimeSpan.FromSeconds((adminsOnline) ? (30.0):(5.0)));
+                    //Get the reported record
+                    AdKatsRecord reportedRecord;
+                    if (this._RoundReports.TryGetValue(reportID, out reportedRecord) && this._UseExperimentalTools)
                     {
-                        this.DebugWrite("Handling round report.", 5);
-                        //Remove it from the reports for this round
-                        this._RoundReports.Remove(reportID);
-                        //Update it in the database
-                        reportedRecord.command_action = this._CommandKeyDictionary["player_report_confirm"];
-                        this.UpdateRecord(reportedRecord, false);
-                        //Get target information
-                        AdKatsRecord aRecord = new AdKatsRecord
-                        {
-                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                            isDebug = false,
-                            server_id = this._ServerID,
-                            command_type = this._CommandKeyDictionary["player_punish"],
-                            command_numeric = 0,
-                            target_name = reportedRecord.target_name,
-                            target_player = reportedRecord.target_player,
-                            source_name = "ProconAdmin",
-                            record_message = reportedRecord.record_message
-                        };
-                        Thread.Sleep(5000);
-                        //Inform the reporter that they helped the admins
-                        this.SendMessageToSource(reportedRecord, "Your report has been acted on. Thank you.");
-                        //Queue for processing right away
-                        this.QueueRecordForProcessing(aRecord);
-                        return true;
+                        if (reportedRecord.target_player.lastAction.AddSeconds(120) < DateTime.UtcNow || !adminsOnline) {
+                            //this.ConsoleWarn("Auto-handling round report.");
+                            //Remove it from the reports for this round
+                            this._RoundReports.Remove(reportID);
+                            //Update it in the database
+                            reportedRecord.command_action = this._CommandKeyDictionary["player_report_confirm"];
+                            this.UpdateRecord(reportedRecord, false);
+                            //Get target information
+                            AdKatsRecord aRecord = new AdKatsRecord {
+                                                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                                        isDebug = false,
+                                                                        server_id = this._ServerID,
+                                                                        command_type = this._CommandKeyDictionary["player_punish"],
+                                                                        command_numeric = 0,
+                                                                        target_name = reportedRecord.target_name,
+                                                                        target_player = reportedRecord.target_player,
+                                                                        source_name = "ProconAdmin",
+                                                                        record_message = reportedRecord.record_message
+                                                                    };
+                            //Inform the reporter that they helped the admins
+                            this.SendMessageToSource(reportedRecord, "Your report has been acted on. Thank you.");
+                            //Queue for processing
+                            this.QueueRecordForProcessing(aRecord);
+                        }
+                        else {
+                            this.SendMessageToSource(reportedRecord, "Reported player has already been acted on in the last 2 minutes.");
+                        }
                     }
+                    else
+                    {
+                        //this.ConsoleWarn("Report " + reportID + " already handled by an admin, not acting automatically.");
+                    }
+                    
                 }
-            }
-            else
-            {
-                this.ConsoleError("Unable to process automatic report.");
-            }
+                catch (Exception)
+                {
+                    this.HandleException(new AdKatsException("Error while auto-handling report."));
+                }
+                this.DebugWrite("Exiting a report auto-handler.", 5);
+            }));
+
+            //Start the thread
+            reportAutoHandler.Start();
             return false;
         }
 
@@ -7566,10 +7826,9 @@ namespace PRoConEvents {
                 int count = 0;
                 this.ConsoleWarn(record.target_name);
                 foreach (AdKatsPlayer player in this._PlayerDictionary.Values) {
-                    if ((record.target_name == "US Team" && player.frostbitePlayerInfo.TeamID == AdKats.UsTeamID) || (record.target_name == "RU Team" && player.frostbitePlayerInfo.TeamID == AdKats.RuTeamID) || (record.target_name == "Everyone")) {
+                    if ((player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone")) {
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
-                        this.PlayerSayMessage(record.target_name, "Killed by admin for: " + record.record_message);
-                        this.ConsoleWarn(++count + " " + player.player_name);
+                        this.PlayerSayMessage(record.target_name, "Admin Nuke Issued On " + record.target_name);
                     }
                 }
                 this.SendMessageToSource(record, "You NUKED " + record.target_name + " for " + record.record_message + ".");
@@ -7890,26 +8149,50 @@ namespace PRoConEvents {
                         if (this._LastStatLoggerStatusUpdateTime.AddSeconds(60) < DateTime.UtcNow) {
                             this._LastStatLoggerStatusUpdateTime = DateTime.UtcNow;
                             if (this._StatLoggerVersion == "BF3") {
-                                //this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "No");
-                                //this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Log ServerSPAM?", "No");
-                                //this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "No");
-                                //this.setExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable chatlog filter(Regex)?", "No");
-                                if (this._FeedStatLoggerSettings) {
-                                    //Due to narwhals, Stat logger time offset is in the opposite direction of Adkats time offset
+                                if (this._IsTestingAuthorized)
+                                {
+                                    this._FeedStatLoggerSettings = true;
+                                }
+                                if (this._FeedStatLoggerSettings)
+                                {
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Log ServerSPAM?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Statslogging?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Weaponstats?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Livescoreboard in DB?", "No");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable KDR correction?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "MapStats ON?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Session ON?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Save Sessiondata to DB?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Log playerdata only (no playerstats)?", "No");
                                     Double slOffset = DateTime.UtcNow.Subtract(DateTime.Now).TotalHours;
                                     this.SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Servertime Offset", slOffset + "");
                                 }
                             }
-                            else if (this._StatLoggerVersion == "UNIVERSAL") {
-                                //this.setExternalPluginSetting("CChatGUIDStatsLogger", "Enable Chatlogging?", "No");
-                                //this.setExternalPluginSetting("CChatGUIDStatsLogger", "Log ServerSPAM?", "No");
-                                //this.setExternalPluginSetting("CChatGUIDStatsLogger", "Instant Logging of Chat Messages?", "No");
-                                //this.setExternalPluginSetting("CChatGUIDStatsLogger", "Enable chatlog filter(Regex)?", "No");
-                                if (this._FeedStatLoggerSettings) {
-                                    //Due to narwhals, Stat logger time offset is in the opposite direction of Adkats time offset
+                            else if (this._StatLoggerVersion == "UNIVERSAL")
+                            {
+                                if (this._IsTestingAuthorized)
+                                {
+                                    this._FeedStatLoggerSettings = true;
+                                }
+                                if (this._FeedStatLoggerSettings)
+                                {
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Chatlogging?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLogger", "Log ServerSPAM?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLogger", "Instant Logging of Chat Messages?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Statslogging?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Weaponstats?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Livescoreboard in DB?", "No");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable KDR correction?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLogger", "MapStats ON?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLogger", "Session ON?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLogger", "Save Sessiondata to DB?", "Yes");
+                                    this.SetExternalPluginSetting("CChatGUIDStatsLogger", "Log playerdata only (no playerstats)?", "No");
                                     Double slOffset = DateTime.UtcNow.Subtract(DateTime.Now).TotalHours;
                                     this.SetExternalPluginSetting("CChatGUIDStatsLogger", "Servertime Offset", slOffset + "");
                                 }
+                                //this.setExternalPluginSetting("CChatGUIDStatsLogger"
                             }
                             else {
                                 this.ConsoleError("Stat logger version is unknown, unable to feed stat logger settings.");
@@ -7982,10 +8265,7 @@ namespace PRoConEvents {
 
                                 this.UploadCommand(command);
 
-                                this.FetchCommands();
-                                this.FetchRoles();
-                                this.FetchUserList();
-                                this.UpdateSettingPage();
+                                this.FetchAllAccess();
                             }
                         }
 
@@ -8006,10 +8286,7 @@ namespace PRoConEvents {
 
                                 this.UploadRole(aRole);
 
-                                this.FetchCommands();
-                                this.FetchRoles();
-                                this.FetchUserList();
-                                this.UpdateSettingPage();
+                                this.FetchAllAccess();
                             }
                         }
 
@@ -8030,10 +8307,7 @@ namespace PRoConEvents {
 
                                 this.RemoveRole(aRole);
 
-                                this.FetchCommands();
-                                this.FetchRoles();
-                                this.FetchUserList();
-                                this.UpdateSettingPage();
+                                this.FetchAllAccess();
                             }
                         }
 
@@ -8077,27 +8351,11 @@ namespace PRoConEvents {
                                 this.ConsoleWarn("Removing user " + user.user_name);
                                 this.RemoveUser(user);
                             }
-                            this.FetchUserList();
-                            //Update the setting page with new information
-                            this.UpdateSettingPage();
+                            this.FetchAllAccess();
                         }
-                        else if (DateTime.UtcNow > this._LastUserFetch.AddSeconds(DbUserFetchFrequency)) {
-                            //Handle user updates directly from the database
-                            this.FetchUserList();
-                            //If there are now users in the user list, update the UI
-                            if (this._UserCache.Count > 0) {
-                                //Update the setting page with new information
-                                this.UpdateSettingPage();
-                            }
-                        }
-                        else if (this._UserCache.Count == 0) {
-                            //Handle access updates directly from the database
-                            this.FetchUserList();
-                            //If there are now people in the access list, update the UI
-                            if (this._UserCache.Count > 0) {
-                                //Update the setting page with new information
-                                this.UpdateSettingPage();
-                            }
+                        else if (DateTime.UtcNow > this._LastUserFetch.AddSeconds(DbUserFetchFrequency) || this._UserCache.Count == 0)
+                        {
+                            this.FetchAllAccess();
                         }
                         else {
                             this.DebugWrite("DBCOMM: No inbound user changes.", 7);
@@ -9636,14 +9894,17 @@ namespace PRoConEvents {
         }
 
         private List<AdKatsPlayer> FetchOnlineAdminSoldiers() {
-            List<AdKatsPlayer> onlineAdminSoldiers = new List<AdKatsPlayer>();
-            foreach (AdKatsPlayer aPlayer in this.FetchAdminSoldiers()) {
+            Dictionary<String, AdKatsPlayer> onlineAdminSoldiers = new Dictionary<String, AdKatsPlayer>();
+            foreach (AdKatsPlayer aPlayer in this.FetchAdminSoldiers()){
                 AdKatsPlayer adminSoldier;
                 if (this._PlayerDictionary.TryGetValue(aPlayer.player_name, out adminSoldier)) {
-                    onlineAdminSoldiers.Add(adminSoldier);
+                    if (!onlineAdminSoldiers.ContainsKey(aPlayer.player_name))
+                    {
+                        onlineAdminSoldiers.Add(adminSoldier.player_name, adminSoldier);
+                    }
                 }
             }
-            return onlineAdminSoldiers;
+            return onlineAdminSoldiers.Values.ToList();
         } 
 
         private void HandleRecordUpload(AdKatsRecord record) {
@@ -11704,7 +11965,7 @@ namespace PRoConEvents {
             return returnVal;
         }
 
-        //IN Progress
+        //Done
         private void FetchUserList() {
             DebugWrite("fetchUserList starting!", 6);
 
@@ -11754,6 +12015,7 @@ namespace PRoConEvents {
                         SELECT 
 	                        `adkats_users`.`user_id`,
 	                        `adkats_usersoldiers`.`player_id`,
+	                        `tbl_playerdata`.`GameID` AS `game_id`,
 	                        `tbl_playerdata`.`ClanTag` AS `clan_tag`,
 	                        `tbl_playerdata`.`SoldierName` AS `player_name`,
 	                        `tbl_playerdata`.`EAGUID` AS `player_guid`,
@@ -11779,14 +12041,15 @@ namespace PRoConEvents {
                                 //Import the information
                                 Int32 userID = reader.GetInt32("user_id"); //0
                                 aPlayer.player_id = reader.GetInt32("player_id"); //1
-                                if (!reader.IsDBNull(2))
-                                    aPlayer.clan_tag = reader.GetString("clan_tag"); //2
+                                aPlayer.game_id = reader.GetInt32("game_id"); //2
                                 if (!reader.IsDBNull(3))
-                                    aPlayer.player_name = reader.GetString("player_name"); //3
+                                    aPlayer.clan_tag = reader.GetString("clan_tag"); //3
                                 if (!reader.IsDBNull(4))
-                                    aPlayer.player_guid = reader.GetString("player_guid"); //4
+                                    aPlayer.player_name = reader.GetString("player_name"); //4
                                 if (!reader.IsDBNull(5))
-                                    aPlayer.player_ip = reader.GetString("player_ip"); //5
+                                    aPlayer.player_guid = reader.GetString("player_guid"); //5
+                                if (!reader.IsDBNull(6))
+                                    aPlayer.player_ip = reader.GetString("player_ip"); //6
 
                                 //Add soldier to user
                                 AdKatsUser aUser = null;
@@ -11833,6 +12096,13 @@ namespace PRoConEvents {
             }
 
             DebugWrite("fetchUserList finished!", 6);
+        }
+
+        private void FetchAllAccess() {
+            this.FetchCommands();
+            this.FetchRoles();
+            this.FetchUserList();
+            this.UpdateSettingPage();
         }
 
         //DONE
@@ -12029,12 +12299,16 @@ namespace PRoConEvents {
                     List<String> allUserSoldiers = new List<String>();
                     foreach (AdKatsUser user in this._UserCache.Values) {
                         foreach (AdKatsPlayer soldier in user.soldierDictionary.Values) {
-                            allUserSoldiers.Add(soldier.player_name);
-                            //Add needed soldiers to the reserved slot list
-                            if (!this._CurrentReservedSlotPlayers.Contains(soldier.player_name)) {
-                                this.DebugWrite(soldier.player_name + " in AdKats access, but not in reserved slots. Adding.", 3);
-                                this.ExecuteCommand("procon.protected.send", "reservedSlotsList.add", soldier.player_name);
-                                Thread.Sleep(50);
+                            //Only add soldiers for the current game
+                            if (soldier.game_id == this._GameID) {
+                                allUserSoldiers.Add(soldier.player_name);
+                                //Add needed soldiers to the reserved slot list
+                                if (!this._CurrentReservedSlotPlayers.Contains(soldier.player_name))
+                                {
+                                    this.DebugWrite(soldier.player_name + " in AdKats access, but not in reserved slots. Adding.", 3);
+                                    this.ExecuteCommand("procon.protected.send", "reservedSlotsList.add", soldier.player_name);
+                                    Thread.Sleep(5);
+                                }
                             }
                         }
                     }
@@ -12044,7 +12318,7 @@ namespace PRoConEvents {
                         if (!allUserSoldiers.Contains(playerName)) {
                             this.DebugWrite(playerName + " in reserved slots, but not AdKats Access List. Removing.", 3);
                             this.ExecuteCommand("procon.protected.send", "reservedSlotsList.remove", playerName);
-                            Thread.Sleep(50);
+                            Thread.Sleep(5);
                         }
                     }
 
@@ -13983,6 +14257,13 @@ namespace PRoConEvents {
             thread.Join();
         }
 
+        public class AdKatsTeam {
+            public Int32 TeamID = -1;
+            public String TeamKey = null;
+            public String TeamName = null;
+            public String TeamDesc = null;
+        }
+
         public class AdKatsUser {
             //No reference to player table made here, plain String id access
             public Int64 user_id = -1;
@@ -14065,6 +14346,7 @@ namespace PRoConEvents {
             public Boolean player_aa_told = false;
             public Boolean player_online = false;
 
+            public AdKatsTeam player_team = null;
             public CPlayerInfo frostbitePlayerInfo = null;
             public CPunkbusterInfo PBPlayerInfo = null;
 
@@ -15221,13 +15503,13 @@ namespace PRoConEvents {
                                 //Sleep for 1 second
                                 Thread.Sleep(1000);
                             }
-                            if (this._UsTicketCount < this._RuTicketCount) {
-                                this.ExecuteCommand("procon.protected.send", "mapList.endRound", AdKats.RuTeamID + "");
-                                this.DebugWrite("Ended Round (" + AdKats.RuTeamID + ")", 4);
+                            if (this._Team1TicketCount < this._Team2TicketCount) {
+                                this.ExecuteCommand("procon.protected.send", "mapList.endRound", "2");
+                                this.DebugWrite("Ended Round (2)", 4);
                             }
                             else {
-                                this.ExecuteCommand("procon.protected.send", "mapList.endRound", AdKats.UsTeamID + "");
-                                this.DebugWrite("Ended Round (" + AdKats.UsTeamID + ")", 4);
+                                this.ExecuteCommand("procon.protected.send", "mapList.endRound", "1");
+                                this.DebugWrite("Ended Round (1)", 4);
                             }
                         }
                         catch (Exception e) {
