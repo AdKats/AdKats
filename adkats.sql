@@ -1,5 +1,5 @@
 -- AdKats Setup Script by ColColonCleaner
--- Version 4.0.0.0
+-- Version 4.0.0.9
 
 SET FOREIGN_KEY_CHECKS=0;
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
@@ -119,6 +119,9 @@ INSERT INTO `adkats_commands` VALUES(34, 'Active', 'server_kickall', 'Log', 'Kic
 INSERT INTO `adkats_commands` VALUES(35, 'Invisible', 'adkats_exception', 'Mandatory', 'Logged Exception', 'logexception', FALSE);
 INSERT INTO `adkats_commands` VALUES(36, 'Invisible', 'banenforcer_enforce', 'Mandatory', 'Enforce Active Ban', 'enforceban', TRUE);
 INSERT INTO `adkats_commands` VALUES(37, 'Active', 'player_unban', 'Log', 'Unban Player', 'unban', TRUE);
+INSERT INTO `adkats_commands` VALUES(38, 'Active', 'self_admins', 'Log', 'Request Online Admins', 'admins', FALSE);
+INSERT INTO `adkats_commands` VALUES(39, 'Active', 'self_lead', 'Log', 'Lead Current Squad', 'lead', FALSE);
+
 
 DROP TABLE IF EXISTS `adkats_infractions_global`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
@@ -370,6 +373,17 @@ CREATE TABLE IF NOT EXISTS `adkats_usersoldiers` (
   KEY `adkats_usersoldiers_fk_player` (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of users to soldiers';
 
+DROP TABLE IF EXISTS `adkats_specialplayers`;
+CREATE TABLE IF NOT EXISTS `adkats_specialplayers`( 
+  `specialplayer_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `player_group` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `player_id` int(10) UNSIGNED DEFAULT NULL,
+  `player_game` tinyint(4) UNSIGNED DEFAULT NULL,
+  `player_server` smallint(5) UNSIGNED DEFAULT NULL,
+  `player_identifier` varchar(30) COLLATE utf8_unicode_ci DEFAULT NULL,
+  PRIMARY KEY (`specialplayer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Special Player List';
+
 SET FOREIGN_KEY_CHECKS=1;
 
 ALTER TABLE `adkats_bans`
@@ -408,3 +422,8 @@ ALTER TABLE `adkats_users`
 ALTER TABLE `adkats_usersoldiers`
   ADD CONSTRAINT `adkats_usersoldiers_fk_player` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `adkats_usersoldiers_fk_user` FOREIGN KEY (`user_id`) REFERENCES `adkats_users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `adkats_specialplayers`
+  ADD CONSTRAINT `adkats_specialplayers_game_id` FOREIGN KEY (`player_game`) REFERENCES `tbl_games`(`GameID`) ON UPDATE NO ACTION ON DELETE CASCADE, 
+  ADD CONSTRAINT `adkats_specialplayers_server_id` FOREIGN KEY (`player_server`) REFERENCES `tbl_server`(`ServerID`) ON UPDATE NO ACTION ON DELETE CASCADE, 
+  ADD CONSTRAINT `adkats_specialplayers_player_id` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata`(`PlayerID`) ON UPDATE NO ACTION ON DELETE CASCADE;
