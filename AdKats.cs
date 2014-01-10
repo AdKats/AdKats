@@ -2325,6 +2325,11 @@ namespace PRoConEvents {
             //Initialize the email handler
             this._EmailHandler = new EmailHandler(this);
             //Update faction info
+            //Load initial factions
+            this.AssignFactionOverride(1, 0);
+            this.AssignFactionOverride(2, 1);
+            this.AssignFactionOverride(3, 0);
+            this.AssignFactionOverride(4, 1);
             this.UpdateFactions();
         }
 
@@ -7951,6 +7956,7 @@ namespace PRoConEvents {
             Int32 onlineAdminCount = this.FetchOnlineAdminSoldiers().Count;
             String messageLower = record.record_message.ToLower();
             Boolean canAutoHandle = 
+                this._IsTestingAuthorized &&
                 sourceAA &&
                 this._AutoReportHandleStrings.Count() > 0 && 
                 !String.IsNullOrEmpty(this._AutoReportHandleStrings[0]) && 
