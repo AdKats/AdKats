@@ -372,12 +372,12 @@ CREATE TABLE IF NOT EXISTS `adkats_usersoldiers` (
 
 DROP TABLE IF EXISTS `adkats_specialplayers`;
 CREATE TABLE IF NOT EXISTS `adkats_specialplayers`( 
-  `specialplayer_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-  `player_group` VARCHAR(30) NOT NULL, 
-  `player_game` TINYINT(4) UNSIGNED NOT NULL, 
-  `player_server` SMALLINT(5) UNSIGNED DEFAULT NULL, 
-  `player_id` INT(10) DEFAULT NULL,
-  `player_identity` VARCHAR(30) DEFAULT NULL,
+  `specialplayer_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `player_group` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+  `player_id` int(10) UNSIGNED DEFAULT NULL,
+  `player_game` tinyint(4) UNSIGNED DEFAULT NULL,
+  `player_server` smallint(5) UNSIGNED DEFAULT NULL,
+  `player_identifier` varchar(30) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`specialplayer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Special Player List';
 
