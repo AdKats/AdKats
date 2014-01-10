@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.0.7
+ * Version 4.0.0.8
  */
 
 using System;
@@ -50,7 +50,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "4.0.0.7";
+        private const String PluginVersion = "4.0.0.8";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -133,6 +133,7 @@ namespace PRoConEvents {
 
         private GameVersion _GameVersion = GameVersion.BF3;
         private Int32 _GameID = -1;
+        private Dictionary<Int64, GameVersion> GameIDVersions = new Dictionary<Int64,GameVersion>(); 
         //Assume the BF3 version unless universal is detected
         private String _StatLoggerVersion = "BF3";
         private String _GamePatchVersion = "UNKNOWN";
@@ -168,12 +169,18 @@ namespace PRoConEvents {
         private Boolean _UseGrenadeCookCatcher = false;
         private Dictionary<String, AdKatsPlayer> _RoundCookers = null;
         //Hacker Checker
+        private StatLibrary _StatLibrary = null;
+        private String _HackerCheckerDPSBanMessage = "Hacking/Cheating DPS Automatic Ban";
+        private String _HackerCheckerHSKBanMessage = "Hacking/Cheating HSK Automatic Ban";
+        private String _HackerCheckerKPMBanMessage = "Hacking/Cheating KPM Automatic Ban";
         private Boolean _UseHackerChecker = false;
         private String[] _HackerCheckerWhitelist = {"ColColonCleaner"};
         private Boolean _UseDpsChecker = false;
         private Double _DpsTriggerLevel = 50.0;
         private Boolean _UseHskChecker = false;
         private Double _HskTriggerLevel = 70.0;
+        private Boolean _UseKpmChecker = false;
+        private Double _KpmTriggerLevel = 5.0;
 
         //Infraction Management Settings
         //Whether to combine server punishments
@@ -405,11 +412,6 @@ namespace PRoConEvents {
         private Double _ServerRulesDelay = 0.5;
         private Double _ServerRulesInterval = 5;
         private String[] _ServerRulesList = {"This server has not set rules yet.", "This server has not set rules yet.", "This server has not set rules yet."};
-
-        //Hacker Checker
-        private StatLibrary _StatLibrary = null;
-        private String _HackerCheckerDPSBanMessage = "Hacking/Cheating DPS Automatic Ban";
-        private String _HackerCheckerHSKBanMessage = "Hacking/Cheating HSK Automatic Ban";
 
         #endregion
 
@@ -730,7 +732,7 @@ namespace PRoConEvents {
                                 lstReturn.Add(new CPluginVariable(userPrefix + "Delete User?", typeof(String), ""));
                                 lstReturn.Add(new CPluginVariable(userPrefix + "Add Soldier?", typeof(String), ""));
                                 String soldierPrefix = userPrefix + "Soldiers" + separator;
-                                lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + separator + aPlayer.player_name + separator + "Delete Soldier?", typeof(String), "")));
+                                lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + separator + this.GameIDVersions[aPlayer.game_id] + separator + aPlayer.player_name + separator + "Delete Soldier?", typeof(String), "")));
                             }
                         }
                         else
@@ -924,10 +926,17 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Trigger Level", typeof(Double), this._DpsTriggerLevel));
                         lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Ban Message", typeof(String), this._HackerCheckerDPSBanMessage));
                     }
-                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Enable", typeof (Boolean), this._UseHskChecker));
-                    if (this._UseHskChecker) {
+                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Enable", typeof(Boolean), this._UseHskChecker));
+                    if (this._UseHskChecker)
+                    {
                         lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Trigger Level", typeof(Double), this._HskTriggerLevel));
                         lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Ban Message", typeof(String), this._HackerCheckerHSKBanMessage));
+                    }
+                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: KPM Checker: Enable", typeof(Boolean), this._UseKpmChecker));
+                    if (this._UseKpmChecker)
+                    {
+                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: KPM Checker: Trigger Level", typeof(Double), this._KpmTriggerLevel));
+                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: KPM Checker: Ban Message", typeof(String), this._HackerCheckerKPMBanMessage));
                     }
                 }
 
@@ -1331,31 +1340,39 @@ namespace PRoConEvents {
                         this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Ban Message", typeof(String), this._HackerCheckerDPSBanMessage));
                     }
                 }
-                else if (Regex.Match(strVariable, @"HackerChecker: HSK Checker: Enable").Success) {
+                else if (Regex.Match(strVariable, @"HackerChecker: HSK Checker: Enable").Success)
+                {
                     Boolean useAimbotChecker = Boolean.Parse(strValue);
-                    if (useAimbotChecker != this._UseHskChecker) {
+                    if (useAimbotChecker != this._UseHskChecker)
+                    {
                         this._UseHskChecker = useAimbotChecker;
-                        if (this._UseHskChecker) {
-                            if (this._ThreadsReady) {
+                        if (this._UseHskChecker)
+                        {
+                            if (this._ThreadsReady)
+                            {
                                 this.ConsoleWarn("Internal Aimbot Checker activated.");
                             }
                         }
-                        else {
+                        else
+                        {
                             this.ConsoleWarn("Internal Aimbot Checker disabled.");
                         }
                         //Once setting has been changed, upload the change to database
-                        this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Enable", typeof (Boolean), this._UseHskChecker));
+                        this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Enable", typeof(Boolean), this._UseHskChecker));
                     }
                 }
-                else if (Regex.Match(strVariable, @"HackerChecker: HSK Checker: Trigger Level").Success) {
+                else if (Regex.Match(strVariable, @"HackerChecker: HSK Checker: Trigger Level").Success)
+                {
                     Double triggerLevel = Double.Parse(strValue);
-                    if (this._HskTriggerLevel != triggerLevel) {
-                        if (triggerLevel <= 0) {
+                    if (this._HskTriggerLevel != triggerLevel)
+                    {
+                        if (triggerLevel <= 0)
+                        {
                             triggerLevel = 100.0;
                         }
                         this._HskTriggerLevel = triggerLevel;
                         //Once setting has been changed, upload the change to database
-                        this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Trigger Level", typeof (Double), this._HskTriggerLevel));
+                        this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Trigger Level", typeof(Double), this._HskTriggerLevel));
                     }
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: HSK Checker: Ban Message").Success)
@@ -1365,6 +1382,50 @@ namespace PRoConEvents {
                         this._HackerCheckerHSKBanMessage = strValue;
                         //Once setting has been changed, upload the change to database
                         this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Ban Message", typeof(String), this._HackerCheckerHSKBanMessage));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"HackerChecker: KPM Checker: Enable").Success)
+                {
+                    Boolean useKPMChecker = Boolean.Parse(strValue);
+                    if (useKPMChecker != this._UseKpmChecker)
+                    {
+                        this._UseKpmChecker = useKPMChecker;
+                        if (this._UseKpmChecker)
+                        {
+                            if (this._ThreadsReady)
+                            {
+                                this.ConsoleWarn("Internal KPM Checker activated.");
+                            }
+                        }
+                        else
+                        {
+                            this.ConsoleWarn("Internal KPM Checker disabled.");
+                        }
+                        //Once setting has been changed, upload the change to database
+                        this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Enable", typeof(Boolean), this._UseKpmChecker));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"HackerChecker: KPM Checker: Trigger Level").Success)
+                {
+                    Double triggerLevel = Double.Parse(strValue);
+                    if (this._KpmTriggerLevel != triggerLevel)
+                    {
+                        if (triggerLevel <= 0)
+                        {
+                            triggerLevel = 100.0;
+                        }
+                        this._KpmTriggerLevel = triggerLevel;
+                        //Once setting has been changed, upload the change to database
+                        this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Trigger Level", typeof(Double), this._KpmTriggerLevel));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"HackerChecker: KPM Checker: Ban Message").Success)
+                {
+                    if (this._HackerCheckerKPMBanMessage != strValue)
+                    {
+                        this._HackerCheckerKPMBanMessage = strValue;
+                        //Once setting has been changed, upload the change to database
+                        this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Ban Message", typeof(String), this._HackerCheckerKPMBanMessage));
                     }
                 }
                     #endregion
@@ -1629,7 +1690,7 @@ namespace PRoConEvents {
                             }
                             //Make sure command text only contains alphanumeric chars, underscores, and dashes
                             Regex rgx = new Regex("[^a-zA-Z0-9_-]");
-                            strValue = rgx.Replace(strValue, "");
+                            strValue = rgx.Replace(strValue, "").ToLower();
                             //Check to make sure text is not a duplicate
                             foreach (AdKatsCommand testCommand in this._CommandNameDictionary.Values) {
                                 if (testCommand.command_text == strValue) {
@@ -2263,6 +2324,8 @@ namespace PRoConEvents {
             this.DebugWrite("^1Game Version: " + _GameVersion, 1);
             //Initialize the email handler
             this._EmailHandler = new EmailHandler(this);
+            //Update faction info
+            this.UpdateFactions();
         }
 
         public void OnPluginLoaded(String strHostName, String strPort, String strPRoConVersion) {
@@ -2360,7 +2423,7 @@ namespace PRoConEvents {
                             TeamName = "US Army",
                             TeamDesc = "United States Army"
                         });
-                        this.ConsoleWarn("Assigning team ID " + targetTeamID + " to US");
+                        this.DebugWrite("Assigning team ID " + targetTeamID + " to US", 2);
                         break;
                     case 1:
                         this._TeamDictionary.Add(targetTeamID, new AdKatsTeam()
@@ -2370,7 +2433,7 @@ namespace PRoConEvents {
                             TeamName = "Russian Army",
                             TeamDesc = "Russian Federation Army"
                         });
-                        this.ConsoleWarn("Assigning team ID " + targetTeamID + " to RU");
+                        this.DebugWrite("Assigning team ID " + targetTeamID + " to RU", 2);
                         break;
                     case 2:
                         this._TeamDictionary.Add(targetTeamID, new AdKatsTeam()
@@ -2380,7 +2443,7 @@ namespace PRoConEvents {
                             TeamName = "Chinese Army",
                             TeamDesc = "Chinese People's Liberation Army"
                         });
-                        this.ConsoleWarn("Assigning team ID " + targetTeamID + " to CN");
+                        this.DebugWrite("Assigning team ID " + targetTeamID + " to CN", 2);
                         break;
                     default:
                         this.ConsoleError("Team ID " + overrideTeamId + " was not understood.");
@@ -2530,6 +2593,10 @@ namespace PRoConEvents {
                             this.DebugWrite(index + "...", 1);
                             Thread.Sleep(1000);
                         }
+
+                        //Make sure the default in-game admin is disabled
+                        this.ExecuteCommand("procon.protected.plugins.enable", "CInGameAdmin", "False");
+
                         //Initialize the stat library
                         this._StatLibrary = new StatLibrary(this);
 
@@ -2577,6 +2644,23 @@ namespace PRoConEvents {
             }
             catch (Exception e) {
                 this.HandleException(new AdKatsException("Error while initializing activator thread.", e));
+            }
+        }
+
+        public void UpdateFactions()
+        {
+            if (this._GameVersion == GameVersion.BF3) {
+                this.AssignFactionOverride(1, 0);
+                this.AssignFactionOverride(2, 1);
+                this.AssignFactionOverride(3, 0);
+                this.AssignFactionOverride(4, 1);
+            }
+            else if (this._GameVersion == GameVersion.BF4)
+            {
+                this.ExecuteCommand("procon.protected.send", "vars.team1FactionOverride");
+                this.ExecuteCommand("procon.protected.send", "vars.team2FactionOverride");
+                this.ExecuteCommand("procon.protected.send", "vars.team3FactionOverride");
+                this.ExecuteCommand("procon.protected.send", "vars.team4FactionOverride");
             }
         }
 
@@ -2846,6 +2930,10 @@ namespace PRoConEvents {
                                     else {
                                         //If they aren't in the list, fetch their profile from the database
                                         aPlayer = this.FetchPlayer(true, false, null, -1, player.SoldierName, player.GUID, null);
+                                        if (aPlayer == null) {
+                                            //Do not handle the player if not returned
+                                            continue;
+                                        }
                                         //Add the frostbite player info
                                         aPlayer.frostbitePlayerInfo = player;
                                         //Set their last death/spawn times
@@ -2981,9 +3069,6 @@ namespace PRoConEvents {
                                     else if (score.TeamID == 2) {
                                         this._Team2TicketCount = score.Score;
                                     }
-                                    else {
-                                        this.DebugWrite("Score for team " + score.TeamID + " not parsable.", 2);
-                                    }
                                 }
                             }
                             else {
@@ -3032,6 +3117,8 @@ namespace PRoConEvents {
                     this._Team1MoveQueue = new Queue<CPlayerInfo>();
                     this._Team2MoveQueue = new Queue<CPlayerInfo>();
                     this._RoundCookers = new Dictionary<String, AdKatsPlayer>();
+                    //Update the factions 
+                    this.UpdateFactions();
                     //Enable round timer
                     if (this._UseRoundTimer) {
                         this.StartRoundTimer();
@@ -3508,16 +3595,23 @@ namespace PRoConEvents {
                         String command = this._CommandKeyDictionary["self_teamswap"].command_text;
                         AdKatsPlayer aPlayer = null;
                         if (this._PlayerDictionary.TryGetValue(soldierName, out aPlayer)) {
-                            if (aPlayer.player_aa && !aPlayer.player_aa_told)
-                            {
-                                if (this._UseExperimentalTools)
-                                {
-                                    this.PlayerSayMessage(soldierName, "As an Admin Assistant certain reports of yours will be answered by autoadmin if admins are offline.");
+                            if (aPlayer.player_aa && !aPlayer.player_aa_told) {
+                                String adminAssistantMessage = "You are now considered an Admin Assistant. ";
+                                if (!this._UseExperimentalTools && !this._EnableAdminAssistantPerk) {
+                                    adminAssistantMessage += "Thank you for your consistent reporting.";
                                 }
-                                if (this._EnableAdminAssistantPerk) 
-                                {
-                                    this.PlayerSayMessage(soldierName, "As an Admin Assistant you can use the @" + command + ". Type @" + command + " to move yourself between teams.");
+                                else {
+                                    adminAssistantMessage += "Perks: ";
+                                    if (this._UseExperimentalTools)
+                                    {
+                                        adminAssistantMessage += "AutoAdmin can handle some of your reports. ";
+                                    }
+                                    if (this._EnableAdminAssistantPerk)
+                                    {
+                                        adminAssistantMessage += "You can use the @" + command + " command.";
+                                    }
                                 }
+                                this.PlayerSayMessage(soldierName, adminAssistantMessage);
                                 aPlayer.player_aa_told = true;
                             }
                             else {
@@ -3581,6 +3675,113 @@ namespace PRoConEvents {
 
         #endregion
 
+        private void QueueSettingImport(Int32 serverID)
+        {
+            this.DebugWrite("Entering queueSettingImport", 7);
+            try
+            {
+                if (this._IsEnabled)
+                {
+                    this.DebugWrite("Preparing to queue server ID for setting import", 6);
+                    this._SettingImportID = serverID;
+                    this._DbCommunicationWaitHandle.Set();
+                }
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKatsException("Error while preparing to import settings.", e));
+            }
+            this.DebugWrite("Exiting queueSettingImport", 7);
+        }
+
+        private void QueueSettingForUpload(CPluginVariable setting)
+        {
+            this.DebugWrite("Entering queueSettingForUpload", 7);
+            try
+            {
+                if (this._IsEnabled)
+                {
+                    this.DebugWrite("Preparing to queue setting " + setting.Name + " for upload", 6);
+                    lock (this._SettingUploadQueue)
+                    {
+                        this._SettingUploadQueue.Enqueue(setting);
+                        this._DbCommunicationWaitHandle.Set();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKatsException("Error while queueing setting for upload.", e));
+            }
+            this.DebugWrite("Exiting queueSettingForUpload", 7);
+        }
+
+        private void QueueCommandForUpload(AdKatsCommand command)
+        {
+            this.DebugWrite("Entering queueCommandForUpload", 7);
+            try
+            {
+                if (this._IsEnabled)
+                {
+                    this.DebugWrite("Preparing to queue command " + command.command_key + " for upload", 6);
+                    lock (this._CommandUploadQueue)
+                    {
+                        this._CommandUploadQueue.Enqueue(command);
+                        this._DbCommunicationWaitHandle.Set();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKatsException("Error while queueing command for upload.", e));
+            }
+            this.DebugWrite("Exiting queueCommandForUpload", 7);
+        }
+
+        private void QueueRoleForUpload(AdKatsRole aRole)
+        {
+            this.DebugWrite("Entering queueRoleForUpload", 7);
+            try
+            {
+                if (this._IsEnabled)
+                {
+                    this.DebugWrite("Preparing to queue role " + aRole.role_key + " for upload", 6);
+                    lock (this._RoleUploadQueue)
+                    {
+                        this._RoleUploadQueue.Enqueue(aRole);
+                        this._DbCommunicationWaitHandle.Set();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKatsException("Error while queueing role for upload.", e));
+            }
+            this.DebugWrite("Exiting queueRoleForUpload", 7);
+        }
+
+        private void QueueRoleForRemoval(AdKatsRole aRole)
+        {
+            this.DebugWrite("Entering queueRoleForRemoval", 7);
+            try
+            {
+                if (this._IsEnabled)
+                {
+                    this.DebugWrite("Preparing to queue role " + aRole.role_key + " for removal", 6);
+                    lock (this._RoleRemovalQueue)
+                    {
+                        this._RoleRemovalQueue.Enqueue(aRole);
+                        this._DbCommunicationWaitHandle.Set();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKatsException("Error while queueing role for removal.", e));
+            }
+            this.DebugWrite("Exiting queueRoleForRemoval", 7);
+        }
+
         #region Ban Enforcer
 
         private void QueuePlayerForBanCheck(AdKatsPlayer player) {
@@ -3599,89 +3800,6 @@ namespace PRoConEvents {
                 this.HandleException(new AdKatsException("Error while queueing player for ban check.", e));
             }
             this.DebugWrite("Exiting queuePlayerForBanCheck", 7);
-        }
-
-        private void QueueSettingImport(Int32 serverID) {
-            this.DebugWrite("Entering queueSettingImport", 7);
-            try {
-                if (this._IsEnabled) {
-                    this.DebugWrite("Preparing to queue server ID for setting import", 6);
-                    this._SettingImportID = serverID;
-                    this._DbCommunicationWaitHandle.Set();
-                }
-            }
-            catch (Exception e) {
-                this.HandleException(new AdKatsException("Error while preparing to import settings.", e));
-            }
-            this.DebugWrite("Exiting queueSettingImport", 7);
-        }
-
-        private void QueueSettingForUpload(CPluginVariable setting) {
-            this.DebugWrite("Entering queueSettingForUpload", 7);
-            try {
-                if (this._IsEnabled) {
-                    this.DebugWrite("Preparing to queue setting " + setting.Name + " for upload", 6);
-                    lock (this._SettingUploadQueue) {
-                        this._SettingUploadQueue.Enqueue(setting);
-                        this._DbCommunicationWaitHandle.Set();
-                    }
-                }
-            }
-            catch (Exception e) {
-                this.HandleException(new AdKatsException("Error while queueing setting for upload.", e));
-            }
-            this.DebugWrite("Exiting queueSettingForUpload", 7);
-        }
-
-        private void QueueCommandForUpload(AdKatsCommand command) {
-            this.DebugWrite("Entering queueCommandForUpload", 7);
-            try {
-                if (this._IsEnabled) {
-                    this.DebugWrite("Preparing to queue command " + command.command_key + " for upload", 6);
-                    lock (this._CommandUploadQueue) {
-                        this._CommandUploadQueue.Enqueue(command);
-                        this._DbCommunicationWaitHandle.Set();
-                    }
-                }
-            }
-            catch (Exception e) {
-                this.HandleException(new AdKatsException("Error while queueing command for upload.", e));
-            }
-            this.DebugWrite("Exiting queueCommandForUpload", 7);
-        }
-
-        private void QueueRoleForUpload(AdKatsRole aRole) {
-            this.DebugWrite("Entering queueRoleForUpload", 7);
-            try {
-                if (this._IsEnabled) {
-                    this.DebugWrite("Preparing to queue role " + aRole.role_key + " for upload", 6);
-                    lock (this._RoleUploadQueue) {
-                        this._RoleUploadQueue.Enqueue(aRole);
-                        this._DbCommunicationWaitHandle.Set();
-                    }
-                }
-            }
-            catch (Exception e) {
-                this.HandleException(new AdKatsException("Error while queueing role for upload.", e));
-            }
-            this.DebugWrite("Exiting queueRoleForUpload", 7);
-        }
-
-        private void QueueRoleForRemoval(AdKatsRole aRole) {
-            this.DebugWrite("Entering queueRoleForRemoval", 7);
-            try {
-                if (this._IsEnabled) {
-                    this.DebugWrite("Preparing to queue role " + aRole.role_key + " for removal", 6);
-                    lock (this._RoleRemovalQueue) {
-                        this._RoleRemovalQueue.Enqueue(aRole);
-                        this._DbCommunicationWaitHandle.Set();
-                    }
-                }
-            }
-            catch (Exception e) {
-                this.HandleException(new AdKatsException("Error while queueing role for removal.", e));
-            }
-            this.DebugWrite("Exiting queueRoleForRemoval", 7);
         }
 
         private void QueueBanForProcessing(AdKatsBan aBan) {
@@ -4047,9 +4165,15 @@ namespace PRoConEvents {
                 this.DebugWrite("Preparing to DPS check " + aPlayer.player_name, 5);
                 acted = this.DamageHackCheck(aPlayer, debug);
             }
-            if (this._UseHskChecker && !acted) {
+            if (this._UseHskChecker && !acted)
+            {
                 this.DebugWrite("Preparing to HSK check " + aPlayer.player_name, 5);
                 acted = this.AimbotHackCheck(aPlayer, debug);
+            }
+            if (this._UseKpmChecker && !acted)
+            {
+                this.DebugWrite("Preparing to KPM check " + aPlayer.player_name, 5);
+                acted = this.KPMHackCheck(aPlayer, true);
             }
             if (!acted && debug) {
                 this.ConsoleSuccess(aPlayer.player_name + " is clean.");
@@ -4242,12 +4366,15 @@ namespace PRoConEvents {
         private Boolean AimbotHackCheck(AdKatsPlayer aPlayer, Boolean debugMode)
         {
             Boolean acted = false;
-            try {
-                if (aPlayer == null || aPlayer.stats == null || aPlayer.stats.WeaponStats == null) {
+            try
+            {
+                if (aPlayer == null || aPlayer.stats == null || aPlayer.stats.WeaponStats == null)
+                {
                     return false;
                 }
                 List<String> allowedCategories;
-                switch (this._GameVersion) {
+                switch (this._GameVersion)
+                {
                     case GameVersion.BF3:
                         allowedCategories = new List<string>() {
                                                                    "Sub machine guns",
@@ -4268,29 +4395,37 @@ namespace PRoConEvents {
                         return false;
                 }
                 List<AdKatsWeaponStats> topWeapons = aPlayer.stats.WeaponStats.Values.ToList();
-                topWeapons.Sort(delegate(AdKatsWeaponStats a1, AdKatsWeaponStats a2) {
-                                    if (a1.Kills == a2.Kills) {
-                                        return 0;
-                                    }
-                                    return (a1.Kills < a2.Kills) ? (1) : (-1);
-                                });
+                topWeapons.Sort(delegate(AdKatsWeaponStats a1, AdKatsWeaponStats a2)
+                {
+                    if (a1.Kills == a2.Kills)
+                    {
+                        return 0;
+                    }
+                    return (a1.Kills < a2.Kills) ? (1) : (-1);
+                });
 
                 AdKatsWeaponStats actedWeapon = null;
                 Double actedHskr = -1;
                 Int32 index = 0;
-                foreach (AdKatsWeaponStats weaponStat in topWeapons) {
+                foreach (AdKatsWeaponStats weaponStat in topWeapons)
+                {
                     //Break after 15th top weapon
-                    if (index++ > 15) {
+                    if (index++ > 15)
+                    {
                         break;
                     }
                     //Only count certain weapon categories
-                    if (allowedCategories.Contains(weaponStat.Category)) {
+                    if (allowedCategories.Contains(weaponStat.Category))
+                    {
                         //Only take weapons with more than 100 kills
-                        if (weaponStat.Kills > 100) {
+                        if (weaponStat.Kills > 100)
+                        {
                             //Check for aimbot hack
                             this.DebugWrite("Checking " + weaponStat.ID + " HSKR (" + weaponStat.HSKR + " >? " + (this._HskTriggerLevel / 100) + ")", 6);
-                            if (weaponStat.HSKR > (this._HskTriggerLevel / 100)) {
-                                if (weaponStat.HSKR > actedHskr) {
+                            if (weaponStat.HSKR > (this._HskTriggerLevel / 100))
+                            {
+                                if (weaponStat.HSKR > actedHskr)
+                                {
                                     actedHskr = weaponStat.HSKR;
                                     actedWeapon = weaponStat;
                                 }
@@ -4298,30 +4433,141 @@ namespace PRoConEvents {
                         }
                     }
                 }
-                if (actedWeapon != null) {
+                if (actedWeapon != null)
+                {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    this.ConsoleWarn(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int) (actedWeapon.HSKR * 100) + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]");
-                    if (!debugMode) {
+                    this.ConsoleWarn(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                    if (!debugMode)
+                    {
                         //Create the ban record
-                        AdKatsRecord record = new AdKatsRecord {
-                                                                   record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                                   server_id = this._ServerID,
-                                                                   command_type = this._CommandKeyDictionary["player_ban_perm"],
-                                                                   command_numeric = 0,
-                                                                   target_name = aPlayer.player_name,
-                                                                   target_player = aPlayer,
-                                                                   source_name = "AutoAdmin",
-                                                                   record_message = this._HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
-                                                               };
+                        AdKatsRecord record = new AdKatsRecord
+                        {
+                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                            server_id = this._ServerID,
+                            command_type = this._CommandKeyDictionary["player_ban_perm"],
+                            command_numeric = 0,
+                            target_name = aPlayer.player_name,
+                            target_player = aPlayer,
+                            source_name = "AutoAdmin",
+                            record_message = this._HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                        };
                         //Process the record
                         this.QueueRecordForProcessing(record);
                         //this.AdminSayMessage(player.player_name + " auto-banned for aimbot. [" + actedWeapon.id + "-" + (int) actedWeapon.hskr + "-" + (int) actedWeapon.kills + "-" + (int) actedWeapon.headshots + "]");
                     }
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 this.HandleException(new AdKatsException("Error running HSK hack check.", e));
+            }
+            return acted;
+        }
+
+        private Boolean KPMHackCheck(AdKatsPlayer aPlayer, Boolean debugMode)
+        {
+            Boolean acted = false;
+            try
+            {
+                if (aPlayer == null || aPlayer.stats == null || aPlayer.stats.WeaponStats == null)
+                {
+                    return false;
+                }
+                List<String> allowedCategories;
+                switch (this._GameVersion)
+                {
+                    case GameVersion.BF3:
+                        allowedCategories = new List<string>() {
+                                                                   "Sub machine guns",
+                                                                   "Assault rifles",
+                                                                   "Carbines",
+                                                                   "Machine guns",
+                                                                   "Sniper rifles",
+                                                                   "Shotguns"
+                                                               };
+                        break;
+                    case GameVersion.BF4:
+                        allowedCategories = new List<string>() {
+                                                                   "PDW",
+                                                                   "ASSAULT RIFLE",
+                                                                   "CARBINE",
+                                                                   "LMG",
+                                                                   "SNIPER RIFLE",
+                                                                   "DMR",
+                                                                   "SHOTGUN"
+                                                               };
+                        break;
+                    default:
+                        return false;
+                }
+                List<AdKatsWeaponStats> topWeapons = aPlayer.stats.WeaponStats.Values.ToList();
+                topWeapons.Sort(delegate(AdKatsWeaponStats a1, AdKatsWeaponStats a2)
+                {
+                    if (a1.Kills == a2.Kills)
+                    {
+                        return 0;
+                    }
+                    return (a1.Kills < a2.Kills) ? (1) : (-1);
+                });
+
+                AdKatsWeaponStats actedWeapon = null;
+                Double actedKpm = -1;
+                Int32 index = 0;
+                foreach (AdKatsWeaponStats weaponStat in topWeapons)
+                {
+                    //Break after 15th top weapon
+                    if (index++ > 15)
+                    {
+                        break;
+                    }
+                    //Only count certain weapon categories
+                    if (allowedCategories.Contains(weaponStat.Category))
+                    {
+                        //Only take weapons with more than 100 kills
+                        if (weaponStat.Kills > 100)
+                        {
+                            //Check for KPM limit
+                            this.DebugWrite("Checking " + weaponStat.ID + " KPM (" + weaponStat.KPM + " >? " + (this._KpmTriggerLevel) + ")", 6);
+                            if (weaponStat.KPM > (this._KpmTriggerLevel))
+                            {
+                                if (weaponStat.KPM > actedKpm)
+                                {
+                                    actedKpm = weaponStat.KPM;
+                                    actedWeapon = weaponStat;
+                                }
+                            }
+                        }
+                    }
+                }
+                if (actedWeapon != null)
+                {
+                    acted = true;
+                    String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
+                    this.ConsoleWarn(aPlayer.player_name + ((debugMode)?(" debug"):(" auto")) + "-banned for KPM. [" + formattedName + "-" + (int)(actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                    if (!debugMode)
+                    {
+                        //Create the ban record
+                        AdKatsRecord record = new AdKatsRecord
+                        {
+                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                            server_id = this._ServerID,
+                            command_type = this._CommandKeyDictionary["player_ban_perm"],
+                            command_numeric = 0,
+                            target_name = aPlayer.player_name,
+                            target_player = aPlayer,
+                            source_name = "AutoAdmin",
+                            record_message = this._HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                        };
+                        //Process the record
+                        this.QueueRecordForProcessing(record);
+                        //this.AdminSayMessage(player.player_name + " auto-banned for aimbot. [" + actedWeapon.id + "-" + (int) actedWeapon.hskr + "-" + (int) actedWeapon.kills + "-" + (int) actedWeapon.headshots + "]");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKatsException("Error running KPM hack check.", e));
             }
             return acted;
         }
@@ -4693,14 +4939,14 @@ namespace PRoConEvents {
                             AdKatsTeam team1Desc;
                             if (!this._TeamDictionary.TryGetValue(1, out team1Desc))
                             {
-                                this.ConsoleError("Team 1 description was not found. Unable to continue.");
+                                this.DebugWrite("Team 1 description was not found. Unable to continue.", 1);
                                 Thread.Sleep(5000);
                                 continue;
                             }
                             AdKatsTeam team2Desc;
                             if (!this._TeamDictionary.TryGetValue(2, out team2Desc))
                             {
-                                this.ConsoleError("Team 2 description was not found. Unable to continue.");
+                                this.DebugWrite("Team 2 description was not found. Unable to continue.", 1);
                                 Thread.Sleep(5000);
                                 continue;
                             }
@@ -7704,7 +7950,13 @@ namespace PRoConEvents {
             Boolean sourceAA = record.source_player != null && record.source_player.player_aa;
             Int32 onlineAdminCount = this.FetchOnlineAdminSoldiers().Count;
             String messageLower = record.record_message.ToLower();
-            Boolean canAutoHandle = this._AutoReportHandleStrings.Count() > 1 && this._AutoReportHandleStrings.Any(handleString => messageLower.Contains(handleString));
+            Boolean canAutoHandle = 
+                sourceAA &&
+                this._AutoReportHandleStrings.Count() > 0 && 
+                !String.IsNullOrEmpty(this._AutoReportHandleStrings[0]) && 
+                this._AutoReportHandleStrings.Any(handleString => messageLower.Contains(handleString)) && 
+                !record.target_player.player_aa && 
+                !this.RoleIsInteractionAble(record.target_player.player_role);
             Boolean adminsOnline = onlineAdminCount > 0;
             String reportMessage = "";
             if (!this._IsTestingAuthorized || !sourceAA || !adminsOnline) {
@@ -7729,8 +7981,7 @@ namespace PRoConEvents {
                     AdKatsRecord reportedRecord;
                     if (this._RoundReports.TryGetValue(reportID, out reportedRecord) && this._UseExperimentalTools)
                     {
-                        if (reportedRecord.target_player.lastAction.AddSeconds(120) < DateTime.UtcNow || !adminsOnline) {
-                            //this.ConsoleWarn("Auto-handling round report.");
+                        if (this.CanPunish(reportedRecord, 60) || !adminsOnline) {
                             //Remove it from the reports for this round
                             this._RoundReports.Remove(reportID);
                             //Update it in the database
@@ -7754,14 +8005,9 @@ namespace PRoConEvents {
                             this.QueueRecordForProcessing(aRecord);
                         }
                         else {
-                            this.SendMessageToSource(reportedRecord, "Reported player has already been acted on in the last 2 minutes.");
+                            this.SendMessageToSource(reportedRecord, "Reported player has already been acted on in the last minute.");
                         }
                     }
-                    else
-                    {
-                        //this.ConsoleWarn("Report " + reportID + " already handled by an admin, not acting automatically.");
-                    }
-                    
                 }
                 catch (Exception)
                 {
@@ -8786,24 +9032,37 @@ namespace PRoConEvents {
                     using (MySqlConnection connection = this.GetDatabaseConnection()) {
                         using (MySqlCommand command = connection.CreateCommand()) {
                             //Attempt to execute the query
-                            command.CommandText = "SELECT `GameID` AS `game_id`, `Name` AS `game_name` FROM `tbl_games` WHERE `Name` = '" + this._GameVersion + "'";
+                            command.CommandText = @"
+                            SELECT 
+                                `GameID` AS `game_id`, 
+                                `Name` AS `game_name` 
+                            FROM 
+                                `tbl_games`";
                             using (MySqlDataReader reader = command.ExecuteReader()) {
-                                if (reader.Read()) {
-                                    gameIDFound = true;
-                                    this._GameID = reader.GetInt32("game_id");
-                                }
-                            }
-                        }
-                        if (!gameIDFound) {
-                            using (MySqlCommand command = connection.CreateCommand()) {
-                                //Attempt to execute the query
-                                command.CommandText = "INSERT INTO `tbl_games` (`Name`) VALUES ('" + this._GameVersion + "')";
-                                if (command.ExecuteNonQuery() > 0) {
-                                    gameIDFound = true;
-                                    this._GameID = (int) command.LastInsertedId;
-                                }
-                                else {
-                                    this.ConsoleError("Unable to insert game ID into database.");
+                                lock (this.GameIDVersions) {
+                                    while (reader.Read()) {
+                                        String gameName = reader.GetString("game_name");
+                                        Int32 gameID = reader.GetInt32("game_id");
+                                        if (!this.GameIDVersions.ContainsKey(gameID))
+                                        {
+                                            if (this._GameVersion.ToString() == gameName)
+                                            {
+                                                this._GameID = gameID;
+                                                gameIDFound = true;
+                                            }
+                                            switch (gameName) {
+                                                case "BF3":
+                                                    this.GameIDVersions.Add(gameID, GameVersion.BF3);
+                                                    break;
+                                                case "BF4":
+                                                    this.GameIDVersions.Add(gameID, GameVersion.BF4);
+                                                    break;
+                                                default:
+                                                    this.ConsoleError("Game name " + gameName + " not recognized.");
+                                                    break;
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -9939,7 +10198,7 @@ namespace PRoConEvents {
                         case "player_punish":
                             //Upload for punish is required
                             //TODO confirm this stops the action if cant punish
-                            if (this.CanPunish(record)) {
+                            if (this.CanPunish(record, 20)) {
                                 //Check if the punish will be Double counted
                                 Boolean iroStatus = this._IROActive && this.FetchIROStatus(record);
                                 if (iroStatus) {
@@ -9954,6 +10213,9 @@ namespace PRoConEvents {
                                     this.DebugWrite("DBCOMM: UPLOADING Punish", 5);
                                     this.UploadRecord(record);
                                 }
+                            }
+                            else {
+                                this.SendMessageToSource(record, record.target_name + " already acted on in the last 20 seconds.");
                             }
                             break;
                         case "player_forgive":
@@ -10761,7 +11023,7 @@ namespace PRoConEvents {
                                 }
                                 else
                                 {
-                                    this.ConsoleError("Player '" + soldierName + "' already assigned to another user. Unable to assign to user.");
+                                    this.ConsoleError("Player " + matchingPlayer.player_name + "(" + this.GameIDVersions[matchingPlayer.game_id] + ") already assigned to a user.");
                                 }
                             }
                             return true;
@@ -11821,8 +12083,12 @@ namespace PRoConEvents {
         }
 
         //Done
-        private Boolean CanPunish(AdKatsRecord record) {
+        private Boolean CanPunish(AdKatsRecord record, Int32 duration) {
             DebugWrite("canPunish starting!", 6);
+            if (duration < 1) {
+                this.ConsoleError("CanPunish duration must be positive.");
+                return false;
+            }
             //Make sure database connection active
             if (this.HandlePossibleDisconnect()) {
                 record.record_exception = new AdKatsException("Database not connected.");
@@ -11837,11 +12103,11 @@ namespace PRoConEvents {
                         FROM 
                             `adkats_records_main` 
                         WHERE 
-                            `adkats_records_main`.`command_type` = " + this.GetCommandByKey("player_punish").command_id + @"  
+                            `adkats_records_main`.`command_type` = " + this.GetCommandByKey("player_punish").command_id + @" 
                         AND 
                             `adkats_records_main`.`target_id` = " + record.target_player.player_id + @" 
                         AND 
-                            DATE_ADD(`record_time`, INTERVAL 20 SECOND) > UTC_TIMESTAMP() 
+                            DATE_ADD(`record_time`, INTERVAL " + duration + @" SECOND) > UTC_TIMESTAMP() 
                         ORDER BY 
                             `record_time` 
                         DESC LIMIT 1";
@@ -11849,7 +12115,6 @@ namespace PRoConEvents {
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             if (reader.Read()) {
                                 this.DebugWrite("can't upload punish", 6);
-                                this.SendMessageToSource(record, record.target_name + " already punished in the last 20 seconds.");
                                 return false;
                             }
                             return true;
@@ -12269,13 +12534,22 @@ namespace PRoConEvents {
                                             //If the teamswap command is allowed add each of the user's soldiers to the whitelist
                                             if (command.command_key == "self_teamswap") {
                                                 foreach (AdKatsPlayer soldier in user.soldierDictionary.Values) {
-                                                    accessMoveme.Add(soldier.player_name);
+                                                    if (!accessMoveme.Contains(soldier.player_name))
+                                                    {
+                                                        accessMoveme.Add(soldier.player_name);
+                                                    }
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
+                        }
+                    }
+                    foreach (String tempName in this._TeamswapRoundWhitelist.Keys) {
+                        if (!accessMoveme.Contains(tempName))
+                        {
+                            accessMoveme.Add(tempName);
                         }
                     }
                     this.SetExternalPluginSetting("MULTIbalancer", "1 - Settings|Whitelist", CPluginVariable.EncodeStringArray(accessMoveme.ToArray()));
@@ -13688,7 +13962,7 @@ namespace PRoConEvents {
                 }
             }
             catch (Exception e) {
-                //ConsoleError(e.ToString());
+                //Do nothing
             }
             return playerData;
         }
