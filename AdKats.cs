@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.0.8
+ * Version 4.0.0.9
  */
 
 using System;
@@ -50,9 +50,9 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "4.0.0.8";
+        private const String PluginVersion = "4.0.0.9";
         //When fullDebug is enabled, on any exception slomo is activated
-        private const Boolean FullDebug = false;
+        private const Boolean FullDebug = true;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
         //This will slow the program as a whole whenever the console is printed to
         private Boolean _Slowmo = false;
@@ -91,6 +91,7 @@ namespace PRoConEvents {
 
         //User Settings
         private Dictionary<long, AdKatsUser> _UserCache = new Dictionary<long, AdKatsUser>();
+        private Dictionary<String, List<AdKatsSpecialPlayer>> _SpecialPlayerGroupCache = new Dictionary<String, List<AdKatsSpecialPlayer>>(); 
         private DateTime _LastUserFetch = DateTime.UtcNow;
         //Frequency in seconds to fetch user changes at
         private const Int32 DbUserFetchFrequency = 300;
@@ -174,13 +175,12 @@ namespace PRoConEvents {
         private String _HackerCheckerHSKBanMessage = "Hacking/Cheating HSK Automatic Ban";
         private String _HackerCheckerKPMBanMessage = "Hacking/Cheating KPM Automatic Ban";
         private Boolean _UseHackerChecker = false;
-        private String[] _HackerCheckerWhitelist = {"ColColonCleaner"};
         private Boolean _UseDpsChecker = false;
         private Double _DpsTriggerLevel = 50.0;
         private Boolean _UseHskChecker = false;
-        private Double _HskTriggerLevel = 70.0;
+        private Double _HskTriggerLevel = 60.0;
         private Boolean _UseKpmChecker = false;
-        private Double _KpmTriggerLevel = 5.0;
+        private Double _KpmTriggerLevel = 4.5;
 
         //Infraction Management Settings
         //Whether to combine server punishments
@@ -920,7 +920,7 @@ namespace PRoConEvents {
                     if (this._IsTestingAuthorized) {
                         lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|Hacker-Check Player", typeof (String), ""));
                     }
-                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Whitelist", typeof (String[]), this._HackerCheckerWhitelist));
+                    //lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Whitelist", typeof (String[]), this._HackerCheckerWhitelist));
                     lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Enable", typeof (Boolean), this._UseDpsChecker));
                     if (this._UseDpsChecker) {
                         lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Trigger Level", typeof(Double), this._DpsTriggerLevel));
@@ -1133,7 +1133,7 @@ namespace PRoConEvents {
                     Boolean feedMTB = Boolean.Parse(strValue);
                     if (feedMTB != this._FeedMultiBalancerWhitelist) {
                         this._FeedMultiBalancerWhitelist = feedMTB;
-                        this.FetchAllAccess();
+                        this.FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
                         this.QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Whitelist", typeof (Boolean), this._FeedMultiBalancerWhitelist));
                     }
@@ -1144,7 +1144,7 @@ namespace PRoConEvents {
                     if (feedSRS != this._FeedServerReservedSlots)
                     {
                         this._FeedServerReservedSlots = feedSRS;
-                        this.FetchAllAccess();
+                        this.FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
                         this.QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof(Boolean), this._FeedServerReservedSlots));
                     }
@@ -1159,7 +1159,7 @@ namespace PRoConEvents {
                             return;
                         }
                         this._FeedServerSpectatorList = feedSSL;
-                        this.FetchAllAccess();
+                        this.FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
                         this.QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof(Boolean), this._FeedServerSpectatorList));
                     }
@@ -1300,9 +1300,9 @@ namespace PRoConEvents {
                     }
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: Whitelist").Success) {
-                    this._HackerCheckerWhitelist = CPluginVariable.DecodeStringArray(strValue);
+                    //this._HackerCheckerWhitelist = CPluginVariable.DecodeStringArray(strValue);
                     //Once setting has been changed, upload the change to database
-                    this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Whitelist", typeof (String), CPluginVariable.EncodeStringArray(this._HackerCheckerWhitelist)));
+                    //this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Whitelist", typeof (String), CPluginVariable.EncodeStringArray(this._HackerCheckerWhitelist)));
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: DPS Checker: Enable").Success) {
                     Boolean useDamageChecker = Boolean.Parse(strValue);
@@ -2483,43 +2483,96 @@ namespace PRoConEvents {
         {
             try
             {
-                if (this._FeedServerSpectatorList && this._UserCache.Count > 0 && this._CurrentSpectatorListPlayers != null)
+                if (!this._FeedServerSpectatorList || this._CurrentSpectatorListPlayers == null)
                 {
-                    this.DebugWrite("Checking validity of spectator list players.", 6);
-
-                    //Loop over the user list and grab all current soldiers
-                    List<String> allUserSoldiers = new List<String>();
+                    return;
+                }
+                this.DebugWrite("Updating spectator list players.", 6);
+                List<String> allowedSpectatorSlotPlayers = new List<string>();
+                //Pull players from special player cache
+                lock (this._SpecialPlayerGroupCache)
+                {
+                    List<AdKatsSpecialPlayer> spectators;
+                    if (this._SpecialPlayerGroupCache.TryGetValue("slot_spectator", out spectators))
+                    {
+                        foreach (AdKatsSpecialPlayer asPlayer in spectators)
+                        {
+                            String playerIdentifier = null;
+                            if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
+                            {
+                                playerIdentifier = asPlayer.player_object.player_name;
+                            }
+                            else
+                            {
+                                if (this.SoldierNameValid(asPlayer.player_identifier))
+                                {
+                                    playerIdentifier = asPlayer.player_identifier;
+                                }
+                                else
+                                {
+                                    this.ConsoleError("Player under slot_spectator list '" + asPlayer.player_identifier + "' was not a valid soldier name. Unable to add to spectator slot list.");
+                                }
+                            }
+                            //Skip if no valid info found
+                            if (String.IsNullOrEmpty(playerIdentifier))
+                            {
+                                continue;
+                            }
+                            if (!allowedSpectatorSlotPlayers.Contains(playerIdentifier))
+                            {
+                                allowedSpectatorSlotPlayers.Add(playerIdentifier);
+                            }
+                        }
+                    }
+                }
+                //Pull players from user list
+                if (this._UserCache.Count > 0)
+                {
                     foreach (AdKatsUser user in this._UserCache.Values)
                     {
                         foreach (AdKatsPlayer soldier in user.soldierDictionary.Values)
                         {
                             //Only add soldiers for the current game
-                            if (soldier.game_id == this._GameID) {
-                                allUserSoldiers.Add(soldier.player_name);
-                                //Add needed soldiers to the spectator slist
-                                if (!this._CurrentSpectatorListPlayers.Contains(soldier.player_name)) {
-                                    this.DebugWrite(soldier.player_name + " in AdKats access, but not in spectator list. Adding.", 3);
-                                    this.ExecuteCommand("procon.protected.send", "spectatorList.add", soldier.player_name);
-                                    Thread.Sleep(50);
+                            if (soldier.game_id == this._GameID)
+                            {
+                                //Only add if players are admins
+                                if (this.RoleIsInteractionAble(soldier.player_role))
+                                {
+                                    if (!allowedSpectatorSlotPlayers.Contains(soldier.player_name))
+                                    {
+                                        allowedSpectatorSlotPlayers.Add(soldier.player_name);
+                                    }
                                 }
                             }
                         }
                     }
-
-                    //Remove soldiers from the list where needed
-                    foreach (String playerName in this._CurrentSpectatorListPlayers)
-                    {
-                        if (!allUserSoldiers.Contains(playerName))
-                        {
-                            this.DebugWrite(playerName + " in spectator list, but not AdKats user list. Removing.", 3);
-                            this.ExecuteCommand("procon.protected.send", "spectatorList.remove", playerName);
-                            Thread.Sleep(50);
-                        }
-                    }
-
-                    //Save the list
-                    this.ExecuteCommand("procon.protected.send", "spectatorList.save");
                 }
+                //All players fetched, update the server lists
+                //Remove soldiers from the list where needed
+                foreach (String playerName in this._CurrentSpectatorListPlayers)
+                {
+                    if (!allowedSpectatorSlotPlayers.Contains(playerName))
+                    {
+                        this.DebugWrite(playerName + " in server spectator slots, but not in allowed spectator players. Removing.", 3);
+                        this.ExecuteCommand("procon.protected.send", "spectatorList.remove", playerName);
+                        Thread.Sleep(5);
+                    }
+                }
+                //Add soldiers to the list where needed
+                foreach (String playerName in allowedSpectatorSlotPlayers)
+                {
+                    if (!this._CurrentSpectatorListPlayers.Contains(playerName))
+                    {
+                        this.DebugWrite(playerName + " in allowed spectator players, but not in server spectator slots. Adding.", 3);
+                        this.ExecuteCommand("procon.protected.send", "spectatorList.add", playerName);
+                        Thread.Sleep(5);
+                    }
+                }
+                //Save the list
+                this.ExecuteCommand("procon.protected.send", "spectatorList.save");
+                //Display the list
+                this.ExecuteCommand("procon.protected.send", "spectatorList.list");
+                this.DebugWrite("DONE checking validity of spectator list players.", 6);
             }
             catch (Exception e)
             {
@@ -2678,6 +2731,7 @@ namespace PRoConEvents {
                 //Create a new thread to disabled the plugin
                 this._Finalizer = new Thread(new ThreadStart(delegate {
                     try {
+                        this.ConsoleWarn("Shutting down AdKats.");
                         //Disable settings
                         this._IsEnabled = false;
                         this._ThreadsReady = false;
@@ -2692,9 +2746,9 @@ namespace PRoConEvents {
                         Boolean alive = false;
                         do {
                             attempts++;
-                            Thread.Sleep(500);
+                            Thread.Sleep(1000);
                             alive = false;
-                            String aliveThreads = "Threads still exiting: ";
+                            String aliveThreads = String.Empty;
                             if (this._PlayerListingThread != null && this._PlayerListingThread.IsAlive)
                             {
                                 alive = true;
@@ -2750,11 +2804,16 @@ namespace PRoConEvents {
                                 alive = true;
                                 aliveThreads += this._RoundTimerThread.Name + " ";
                             }
-                            if (attempts > 5) {
-                                this.ConsoleError(aliveThreads);
-                            }
-                            else {
-                                this.DebugWrite(aliveThreads, 2);
+                            if (aliveThreads.Length > 0)
+                            {
+                                if (attempts > 5)
+                                {
+                                    this.ConsoleError("Threads still exiting: " + aliveThreads);
+                                }
+                                else
+                                {
+                                    this.DebugWrite("Threads still exiting: " + aliveThreads, 2);
+                                }
                             }
                         } while (alive);
 
@@ -3285,15 +3344,15 @@ namespace PRoConEvents {
                                     AdKatsPlayer killer = null;
                                     if (this._PlayerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer)) {
                                         //Initialize / clean up the recent kills queue
-                                        if (killer.recentKills == null) {
-                                            killer.recentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
+                                        if (killer.RecentKills == null) {
+                                            killer.RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
                                         }
                                         //Only keep the last 6 kills in memory
-                                        while (killer.recentKills.Count > 1) {
-                                            killer.recentKills.Dequeue();
+                                        while (killer.RecentKills.Count > 1) {
+                                            killer.RecentKills.Dequeue();
                                         }
                                         //Add the player
-                                        killer.recentKills.Enqueue(new KeyValuePair<AdKatsPlayer, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
+                                        killer.RecentKills.Enqueue(new KeyValuePair<AdKatsPlayer, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
                                         //Check for cooked grenade and non-suicide
                                         if (kKillerVictimDetails.DamageType.Contains("M67") || kKillerVictimDetails.DamageType.Contains("V40"))
                                         {
@@ -3317,7 +3376,7 @@ namespace PRoConEvents {
                                                 Boolean told = false;
                                                 List<KeyValuePair<AdKatsPlayer, String>> possible = new List<KeyValuePair<AdKatsPlayer, String>>();
                                                 List<KeyValuePair<AdKatsPlayer, String>> sure = new List<KeyValuePair<AdKatsPlayer, String>>();
-                                                foreach (KeyValuePair<AdKatsPlayer, DateTime> cooker in killer.recentKills) {
+                                                foreach (KeyValuePair<AdKatsPlayer, DateTime> cooker in killer.RecentKills) {
                                                     //Get the actual time since cooker value
                                                     Double milli = kKillerVictimDetails.TimeOfDeath.Subtract(cooker.Value).TotalMilliseconds;
 
@@ -4004,25 +4063,40 @@ namespace PRoConEvents {
         }
 
         public Boolean PlayerProtected(AdKatsPlayer aPlayer) {
-            Boolean protect = false;
-            foreach (String whitelistedValue in this._HackerCheckerWhitelist) {
-                if (aPlayer.player_name == whitelistedValue) {
-                    this.DebugWrite(aPlayer.player_name + " protected from hacker checker by id.", 2);
-                    protect = true;
-                    break;
-                }
-                if (aPlayer.player_guid == whitelistedValue) {
-                    this.DebugWrite(aPlayer.player_name + " protected from hacker checker by guid.", 2);
-                    protect = true;
-                    break;
-                }
-                if (aPlayer.player_ip == whitelistedValue) {
-                    this.DebugWrite(aPlayer.player_name + " protected from hacker checker by IP.", 2);
-                    protect = true;
-                    break;
+            //Pull players from special player cache
+            lock (this._SpecialPlayerGroupCache) {
+                List<AdKatsSpecialPlayer> protectedList;
+                if (this._SpecialPlayerGroupCache.TryGetValue("whitelist_hackerchecker", out protectedList))
+                {
+                    foreach (AdKatsSpecialPlayer asPlayer in protectedList)
+                    {
+                        if (asPlayer.player_object != null && asPlayer.player_object.player_id == aPlayer.player_id)
+                        {
+                            this.DebugWrite(aPlayer.player_name + " protected from hacker checker by database ID.", 2);
+                            return true;
+                        }
+                        if (!String.IsNullOrEmpty(asPlayer.player_identifier))
+                        {
+                            if (aPlayer.player_name == asPlayer.player_identifier)
+                            {
+                                this.DebugWrite(aPlayer.player_name + " protected from hacker checker by NAME.", 2);
+                                return true;
+                            }
+                            if (aPlayer.player_guid == asPlayer.player_identifier)
+                            {
+                                this.DebugWrite(aPlayer.player_name + " protected from hacker checker by GUID.", 2);
+                                return true;
+                            }
+                            if (aPlayer.player_ip == asPlayer.player_identifier)
+                            {
+                                this.DebugWrite(aPlayer.player_name + " protected from hacker checker by IP.", 2);
+                                return true;
+                            }
+                        }
+                    }
                 }
             }
-            return protect;
+            return false;
         }
 
         public void HackerCheckerThreadLoop() {
@@ -6554,8 +6628,14 @@ namespace PRoConEvents {
                             this.CancelSourcePendingAction(record);
 
                             record.record_message = "Player Requested Rules";
-                            record.target_name = record.source_name;
-                            this.CompleteTargetInformation(record, false);
+                            if (record.record_source == AdKatsRecord.Sources.InGame) {
+                                record.target_name = record.source_name;
+                                this.CompleteTargetInformation(record, false);
+                            }
+                            else {
+                                record.target_name = "ExternalSource";
+                                this.QueueRecordForProcessing(record);
+                            }
                         }
                         break;
 
@@ -6569,8 +6649,16 @@ namespace PRoConEvents {
                             this.CancelSourcePendingAction(record);
 
                             record.record_message = "Player Requested Online Admins";
-                            record.target_name = record.source_name;
-                            this.CompleteTargetInformation(record, false);
+                            if (record.record_source == AdKatsRecord.Sources.InGame)
+                            {
+                                record.target_name = record.source_name;
+                                this.CompleteTargetInformation(record, false);
+                            }
+                            else
+                            {
+                                record.target_name = "ExternalSource";
+                                this.QueueRecordForProcessing(record);
+                            }
                         }
                         break;
 
@@ -6584,8 +6672,16 @@ namespace PRoConEvents {
                             this.CancelSourcePendingAction(record);
 
                             record.record_message = "Player Requesting lead of Current Squad";
-                            record.target_name = record.source_name;
-                            this.CompleteTargetInformation(record, false);
+                            if (record.record_source == AdKatsRecord.Sources.InGame)
+                            {
+                                record.target_name = record.source_name;
+                                this.CompleteTargetInformation(record, false);
+                            }
+                            else
+                            {
+                                this.SendMessageToSource(record, "Lead command must be sent from in-game.");
+                                this.FinalizeRecord(record);
+                            }
                         }
                         break;
 
@@ -7324,6 +7420,9 @@ namespace PRoConEvents {
                         break;
                     case "self_admins":
                         this.SendOnlineAdmins(record);
+                        break;
+                    case "self_lead":
+                        this.LeadCurrentSquad(record);
                         break;
                     case "banenforcer_enforce":
                         //Don't do anything here, ban enforcer handles this
@@ -8223,14 +8322,49 @@ namespace PRoConEvents {
             this.DebugWrite("Entering sendServerRules", 6);
             try
             {
-                //Send the server rules
-                this.SendServerRules(record.target_name);
+                if (record.target_player != null)
+                {
+                    //Cancel call if rules already requested in the past 10 seconds
+                    if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "self_rules" && aRecord.record_time.AddSeconds(10) > DateTime.UtcNow)) {
+                        return;
+                    }
+                }
+                //If server has rules
+                if (this._ServerRulesList.Length > 0)
+                {
+                    //Create a new thread to handle the disconnect orchestration
+                    Thread rulePrinter = new Thread(new ThreadStart(delegate
+                    {
+                        this.DebugWrite("Starting a rule printer thread.", 5);
+                        try
+                        {
+                            //Wait the rule delay duration
+                            Thread.Sleep(TimeSpan.FromSeconds(this._ServerRulesDelay));
+                            foreach (String rule in this._ServerRulesList)
+                            {
+                                if (!String.IsNullOrEmpty(rule))
+                                {
+                                    this.SendMessageToSource(record, this.GetPreMessage(rule, false));
+                                    Thread.Sleep(TimeSpan.FromSeconds(this._ServerRulesInterval));
+                                }
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            this.HandleException(new AdKatsException("Error while printing server rules"));
+                        }
+                        this.DebugWrite("Exiting a rule printer.", 5);
+                    }));
+
+                    //Start the thread
+                    rulePrinter.Start();
+                }
                 //Set the executed bool
                 record.record_action_executed = true;
             }
             catch (Exception e)
             {
-                record.record_exception = new AdKatsException("Error while sending server rules (record).", e);
+                record.record_exception = new AdKatsException("Error while sending server rules.", e);
                 this.HandleException(record.record_exception);
                 this.FinalizeRecord(record);
             }
@@ -8243,7 +8377,7 @@ namespace PRoConEvents {
             try {
                 String onlineAdmins = this.FetchOnlineAdminSoldiers().Aggregate("Online Admins:", (current, aPlayer) => current + (" " + aPlayer.player_name));
                 //Send online admins
-                this.PlayerSayMessage(record.target_name, onlineAdmins);
+                this.SendMessageToSource(record, onlineAdmins);
                 //Set the executed bool
                 record.record_action_executed = true;
             }
@@ -8256,42 +8390,29 @@ namespace PRoConEvents {
             this.DebugWrite("Exiting SendOnlineAdmins", 6);
         }
 
-        public void SendServerRules(String targetName)
+        public void LeadCurrentSquad(AdKatsRecord record)
         {
-            this.DebugWrite("Entering sendServerRules", 6);
-            if (String.IsNullOrEmpty(targetName)) {
-                this.ConsoleError("Attempted to send rules to null player");
+            this.DebugWrite("Entering LeadCurrentSquad", 6);
+            try
+            {
+                //Issue command to lead current squad
+                this.ExecuteCommand(
+                    "procon.protected.send", 
+                    "squad.leader", 
+                    record.target_player.frostbitePlayerInfo.TeamID.ToString(), 
+                    record.target_player.frostbitePlayerInfo.SquadID.ToString(), 
+                    record.target_player.player_name);
+                this.SendMessageToSource(record, "You are now the leader of your current squad.");
+                //Set the executed bool
+                record.record_action_executed = true;
             }
-            try {
-                //If server has rules
-                if (this._ServerRulesList.Length > 0) {
-                    //Create a new thread to handle the disconnect orchestration
-                    Thread rulePrinter = new Thread(new ThreadStart(delegate {
-                        this.DebugWrite("Starting a rule printer thread.", 5);
-                        try {
-                                //Wait the rule delay duration
-                                Thread.Sleep(TimeSpan.FromSeconds(this._ServerRulesDelay));
-                                foreach (String rule in this._ServerRulesList) {
-                                    if (!String.IsNullOrEmpty(rule)) {
-                                        this.PlayerSayMessage(targetName, this.GetPreMessage(rule, false));
-                                        Thread.Sleep(TimeSpan.FromSeconds(this._ServerRulesInterval));
-                                    }
-                                }
-                        }
-                        catch (Exception) {
-                            this.HandleException(new AdKatsException("Error while printing server rules"));
-                        }
-                        this.DebugWrite("Exiting a rule printer.", 5);
-                    }));
-
-                    //Start the thread
-                    rulePrinter.Start();
-                }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while leading curring squad.", e);
+                this.HandleException(record.record_exception);
+                this.FinalizeRecord(record);
             }
-            catch (Exception e) {
-                this.HandleException(new AdKatsException("Error while sending server rules (String).", e));
-            }
-            this.DebugWrite("Exiting sendServerRules", 6);
+            this.DebugWrite("Exiting LeadCurrentSquad", 6);
         }
 
         #endregion
@@ -8516,9 +8637,8 @@ namespace PRoConEvents {
                                 AdKatsCommand command = inboundCommandUpload.Dequeue();
 
                                 this.UploadCommand(command);
-
-                                this.FetchAllAccess();
                             }
+                            this.FetchAllAccess(false);
                         }
 
                         //Handle Inbound Role Uploads
@@ -8535,11 +8655,9 @@ namespace PRoConEvents {
                             //Loop through all roles in order that they came in
                             while (inboundRoleUpload.Count > 0) {
                                 AdKatsRole aRole = inboundRoleUpload.Dequeue();
-
                                 this.UploadRole(aRole);
-
-                                this.FetchAllAccess();
                             }
+                            this.FetchAllAccess(false);
                         }
 
                         //Handle Inbound Role Removal
@@ -8556,11 +8674,9 @@ namespace PRoConEvents {
                             //Loop through all commands in order that they came in
                             while (inboundRoleRemoval.Count > 0) {
                                 AdKatsRole aRole = inboundRoleRemoval.Dequeue();
-
                                 this.RemoveRole(aRole);
-
-                                this.FetchAllAccess();
                             }
+                            this.FetchAllAccess(false);
                         }
 
                         //Check for new actions from the database at given interval
@@ -8603,11 +8719,11 @@ namespace PRoConEvents {
                                 this.ConsoleWarn("Removing user " + user.user_name);
                                 this.RemoveUser(user);
                             }
-                            this.FetchAllAccess();
+                            this.FetchAllAccess(true);
                         }
                         else if (DateTime.UtcNow > this._LastUserFetch.AddSeconds(DbUserFetchFrequency) || this._UserCache.Count == 0)
                         {
-                            this.FetchAllAccess();
+                            this.FetchAllAccess(true);
                         }
                         else {
                             this.DebugWrite("DBCOMM: No inbound user changes.", 7);
@@ -8830,6 +8946,10 @@ namespace PRoConEvents {
                                 record.record_message = this.ReplacePlayerInformation(record.record_message, record.target_player);
                                 //Upload the record
                                 this.HandleRecordUpload(record);
+                                if (record.target_player != null) {
+                                    //Assign the record to the user's recent records
+                                    record.target_player.TargetedRecords.Add(record);
+                                }
                                 //Check for action handling needs
                                 if (!record.record_action_executed) {
                                     //Action is only called after initial upload, not after update
@@ -9738,7 +9858,7 @@ namespace PRoConEvents {
                 this.QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(this._AutoReportHandleStrings)));
                 this.QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), this._UseGrenadeCookCatcher));
                 this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Enable", typeof(Boolean), this._UseHackerChecker));
-                this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Whitelist", typeof(String[]), this._HackerCheckerWhitelist));
+                //this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Whitelist", typeof(String[]), this._HackerCheckerWhitelist));
                 this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Enable", typeof(Boolean), this._UseDpsChecker));
                 this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Trigger Level", typeof(Double), this._DpsTriggerLevel));
                 this.QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Ban Message", typeof(String), this._HackerCheckerDPSBanMessage));
@@ -12251,6 +12371,7 @@ namespace PRoConEvents {
                 return;
             }
             Dictionary<long, AdKatsUser> tempUserCache = new Dictionary<long, AdKatsUser>();
+            List<AdKatsSpecialPlayer> tempSpecialPlayerCache = new List<AdKatsSpecialPlayer>();
             try {
                 using (MySqlConnection connection = this.GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -12328,10 +12449,118 @@ namespace PRoConEvents {
                                     if (aUser.soldierDictionary.ContainsKey(aPlayer.player_id)) {
                                         aUser.soldierDictionary.Remove(aPlayer.player_id);
                                     }
+                                    aPlayer.player_role = aUser.user_role;
                                     aUser.soldierDictionary.Add(aPlayer.player_id, aPlayer);
                                 }
                                 else {
                                     this.ConsoleError("Unable to add soldier " + aPlayer.player_name + " to user " + userID + " when fetching user list.");
+                                }
+                            }
+                        }
+                    }
+                    //Update the user cache
+                    lock (this._UserCache)
+                    {
+                        this._UserCache = tempUserCache;
+                    }
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        SELECT
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_game`,
+	                        `player_server`,
+	                        `player_identifier`
+                        FROM 
+	                        `adkats_specialplayers`
+                        ORDER BY 
+	                        `player_group`
+                        DESC";
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                //Create the user object
+                                AdKatsSpecialPlayer asPlayer = new AdKatsSpecialPlayer();
+                                asPlayer.player_group = reader.GetString("player_group");//0
+                                if (!reader.IsDBNull(1))
+                                    asPlayer.player_object = this.FetchPlayer(false, false, null, reader.GetInt32("player_id"), null, null, null); //1
+                                if (!reader.IsDBNull(2))
+                                    asPlayer.player_game = reader.GetInt32("player_game"); //2
+                                if (!reader.IsDBNull(3))
+                                    asPlayer.player_server = reader.GetInt32("player_server"); //3
+                                if (!reader.IsDBNull(4))
+                                    asPlayer.player_identifier = reader.GetString("player_identifier"); //4
+                                //Check if special player applies to this server
+                                Boolean allowed = true;
+                                if (asPlayer.player_object == null)
+                                {
+                                    //If they didn't define a player, they must define an identifier
+                                    if(String.IsNullOrEmpty(asPlayer.player_identifier)){
+                                        allowed = false;
+                                    }
+                                    //Did they define a game for the special player?
+                                    if (asPlayer.player_game != null)
+                                    {
+                                        //They did, only use if the given game id is this server's game id
+                                        if (asPlayer.player_game != this._GameID)
+                                        {
+                                            allowed = false;
+                                        }
+                                    }
+                                }
+                                //Did they define a server for the special player?
+                                if (asPlayer.player_server != null)
+                                {
+                                    //They did, only use if the given server id is this server's server id
+                                    if (asPlayer.player_server != this._ServerID)
+                                    {
+                                        allowed = false;
+                                    }
+                                }
+                                if (allowed)
+                                {
+                                    //Add the user to temp list
+                                    tempSpecialPlayerCache.Add(asPlayer);
+                                }
+                            }
+                        }
+                    }
+                    //Update the special player cache
+                    lock (this._SpecialPlayerGroupCache)
+                    {
+                        this._SpecialPlayerGroupCache.Clear();
+                        foreach (AdKatsSpecialPlayer asPlayer in tempSpecialPlayerCache)
+                        {
+                            List<AdKatsSpecialPlayer> currentList;
+                            if (this._SpecialPlayerGroupCache.TryGetValue(asPlayer.player_group, out currentList))
+                            {
+                                currentList.Add(asPlayer);
+                            }
+                            else
+                            {
+                                currentList = new List<AdKatsSpecialPlayer>();
+                                currentList.Add(asPlayer);
+                                this._SpecialPlayerGroupCache.Add(asPlayer.player_group, currentList);
+                            }
+                        }
+                        foreach (String key in this._SpecialPlayerGroupCache.Keys)
+                        {
+                            List<AdKatsSpecialPlayer> list;
+                            if (this._SpecialPlayerGroupCache.TryGetValue(key, out list))
+                            {
+                                this.DebugWrite("SPECIAL: List: " + key, 4);
+                                foreach (AdKatsSpecialPlayer asPlayer in list)
+                                {
+                                    if (asPlayer.player_object != null)
+                                    {
+                                        this.DebugWrite("SPECIAL: Contents: " + asPlayer.player_object.player_name, 4);
+                                    }
+                                    else
+                                    {
+                                        this.DebugWrite("SPECIAL: Contents: " + asPlayer.player_identifier, 4);
+                                    }
                                 }
                             }
                         }
@@ -12342,25 +12571,23 @@ namespace PRoConEvents {
                 this.HandleException(new AdKatsException("Error while fetching access list.", e));
             }
 
-            //Update the user cache
-            this._UserCache = tempUserCache;
-
-            //Update all currently online players
+            //Update roles for all currently online players
             lock (this._PlayersMutex) {
                 foreach (AdKatsPlayer aPlayer in this._PlayerDictionary.Values) {
                     this.AssignPlayerRole(aPlayer);
                 }
             }
 
+            //Update MULTIBalancer Whitelists
+            this.UpdateMULTIBalancerWhitelist();
+            //Update Server Reserved Slots
+            this.UpdateReservedSlots();
+            //Update Server Spectator Slots
+            this.UpdateSpectatorList();
             //Update the last update time
             this._LastUserFetch = DateTime.UtcNow;
             if (this._UserCache.Count > 0) {
                 this.DebugWrite("User List Fetched from Database. User Count: " + this._UserCache.Count, 1);
-                //Update MULTIBalancer Whitelists
-                this.UpdateMULTIBalancerWhitelist();
-                //Update Server Reserved Slots
-                this.UpdateReservedSlots();
-                this.UpdateSpectatorList();
             }
             else {
                 this.ConsoleWarn("No users in the user table. Add a new user with 'Add User'.");
@@ -12369,11 +12596,37 @@ namespace PRoConEvents {
             DebugWrite("fetchUserList finished!", 6);
         }
 
-        private void FetchAllAccess() {
-            this.FetchCommands();
-            this.FetchRoles();
-            this.FetchUserList();
-            this.UpdateSettingPage();
+        private void FetchAllAccess(Boolean async) {
+            if (async) {
+                //Create new thread to fetch the updated player access
+                Thread accessFetchingThread = new Thread(new ThreadStart(delegate
+                {
+                    try
+                    {
+                        lock (this._UserCache)
+                        {
+                            this.FetchCommands();
+                            this.FetchRoles();
+                            this.FetchUserList();
+                            this.UpdateSettingPage();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        this.HandleException(new AdKatsException("Error while fetching access.", e));
+                    }
+                }));
+                //Start the thread
+                accessFetchingThread.Start();
+            }
+            else{
+                lock (this._UserCache){
+                    this.FetchCommands();
+                    this.FetchRoles();
+                    this.FetchUserList();
+                    this.UpdateSettingPage();
+                }
+            }
         }
 
         //DONE
@@ -12384,9 +12637,18 @@ namespace PRoConEvents {
             if (this.HandlePossibleDisconnect()) {
                 return false;
             }
+            if(this.RoleIsInteractionAble(aPlayer.player_role)){
+                //Player is an admin, player cannot also be an admin assistant
+                return false;
+            }
             try
             {
                 if (this.HasAccess(aPlayer, this.GetCommandByKey("self_admins"))) {
+                    //Having access to the self_admins command warrants admin assistant status
+                    isAdminAssistant = true;
+                }
+                else if(aPlayer.player_aa){
+                    //They are already flagged as admin assistant. Just make sure they have their powers.
                     isAdminAssistant = true;
                 }
                 else
@@ -12423,18 +12685,23 @@ namespace PRoConEvents {
                                 if (reader.Read())
                                 {
                                     //Player is an admin assistant, give them access to the self_admins command
-                                    aPlayer.player_role.allowedCommands.Add("self_admins", this.GetCommandByKey("self_admins"));
                                     isAdminAssistant = true;
                                 }
                             }
                         }
                     }
                 }
-                if (isAdminAssistant && this._EnableAdminAssistantPerk)
-                {
-                    if (!this.HasAccess(aPlayer, this._CommandKeyDictionary["self_teamswap"]))
+                if(isAdminAssistant){
+                    if (this._EnableAdminAssistantPerk)
                     {
-                        aPlayer.player_role.allowedCommands.Add("self_teamswap", this.GetCommandByKey("self_teamswap"));
+                        if (!this.HasAccess(aPlayer, this._CommandKeyDictionary["self_teamswap"]))
+                        {
+                            aPlayer.player_role.allowedCommands.Add("self_teamswap", this.GetCommandByKey("self_teamswap"));
+                        }
+                    }
+                    if (!this.HasAccess(aPlayer, this._CommandKeyDictionary["self_admins"]))
+                    {
+                        aPlayer.player_role.allowedCommands.Add("self_admins", this.GetCommandByKey("self_admins"));
                     }
                 }
             }
@@ -12525,24 +12792,71 @@ namespace PRoConEvents {
 
         #region MULTIBalancer Whitelisting
 
-        private void UpdateMULTIBalancerWhitelist() {
-            try {
-                if (this._FeedMultiBalancerWhitelist) {
-                    List<String> accessMoveme = new List<String>();
-                    //Loop over the user list
-                    lock (this._UserCache) {
-                        foreach (AdKatsUser user in this._UserCache.Values) {
-                            lock (user) {
-                                lock (user.user_role) {
-                                    lock (user.user_role.allowedCommands) {
+        private void UpdateMULTIBalancerWhitelist()
+        {
+            try
+            {
+                if (this._FeedMultiBalancerWhitelist)
+                {
+                    List<String> autobalanceWhitelistedPlayers = new List<String>();
+                    //Pull players from special player cache
+                    lock (this._SpecialPlayerGroupCache)
+                    {
+                        List<AdKatsSpecialPlayer> spectators;
+                        if (this._SpecialPlayerGroupCache.TryGetValue("whitelist_multibalancer", out spectators))
+                        {
+                            foreach (AdKatsSpecialPlayer asPlayer in spectators)
+                            {
+                                String playerIdentifier = null;
+                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
+                                {
+                                    playerIdentifier = asPlayer.player_object.player_name;
+                                }
+                                else
+                                {
+                                    if (this.SoldierNameValid(asPlayer.player_identifier))
+                                    {
+                                        playerIdentifier = asPlayer.player_identifier;
+                                    }
+                                    else
+                                    {
+                                        this.ConsoleError("Player under whitelist_multibalancer '" + asPlayer.player_identifier + "' was not a valid soldier name. Unable to add to MULTIBalancer whitelist.");
+                                    }
+                                }
+                                //Skip if no valid info found
+                                if (String.IsNullOrEmpty(playerIdentifier))
+                                {
+                                    continue;
+                                }
+                                if (!autobalanceWhitelistedPlayers.Contains(playerIdentifier))
+                                {
+                                    autobalanceWhitelistedPlayers.Add(playerIdentifier);
+                                }
+                            }
+                        }
+                    }
+                    //Pull players from user list
+                    lock (this._UserCache)
+                    {
+                        foreach (AdKatsUser user in this._UserCache.Values)
+                        {
+                            lock (user)
+                            {
+                                lock (user.user_role)
+                                {
+                                    lock (user.user_role.allowedCommands)
+                                    {
                                         //Check each user's allowed commands
-                                        foreach (AdKatsCommand command in user.user_role.allowedCommands.Values) {
+                                        foreach (AdKatsCommand command in user.user_role.allowedCommands.Values)
+                                        {
                                             //If the teamswap command is allowed add each of the user's soldiers to the whitelist
-                                            if (command.command_key == "self_teamswap") {
-                                                foreach (AdKatsPlayer soldier in user.soldierDictionary.Values) {
-                                                    if (!accessMoveme.Contains(soldier.player_name))
+                                            if (command.command_key == "self_teamswap")
+                                            {
+                                                foreach (AdKatsPlayer soldier in user.soldierDictionary.Values)
+                                                {
+                                                    if (!autobalanceWhitelistedPlayers.Contains(soldier.player_name))
                                                     {
-                                                        accessMoveme.Add(soldier.player_name);
+                                                        autobalanceWhitelistedPlayers.Add(soldier.player_name);
                                                     }
                                                 }
                                             }
@@ -12552,16 +12866,19 @@ namespace PRoConEvents {
                             }
                         }
                     }
-                    foreach (String tempName in this._TeamswapRoundWhitelist.Keys) {
-                        if (!accessMoveme.Contains(tempName))
+                    //Pull players from teamswap whitelist
+                    foreach (String tempName in this._TeamswapRoundWhitelist.Keys)
+                    {
+                        if (!autobalanceWhitelistedPlayers.Contains(tempName))
                         {
-                            accessMoveme.Add(tempName);
+                            autobalanceWhitelistedPlayers.Add(tempName);
                         }
                     }
-                    this.SetExternalPluginSetting("MULTIbalancer", "1 - Settings|Whitelist", CPluginVariable.EncodeStringArray(accessMoveme.ToArray()));
+                    this.SetExternalPluginSetting("MULTIbalancer", "1 - Settings|Whitelist", CPluginVariable.EncodeStringArray(autobalanceWhitelistedPlayers.ToArray()));
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 this.HandleException(new AdKatsException("Error while updating MULTIBalancer whitelist.", e));
             }
         }
@@ -12571,40 +12888,89 @@ namespace PRoConEvents {
         #region Server Reserved Slots
 
         private void UpdateReservedSlots() {
-            try {
-                if (this._FeedServerReservedSlots && this._UserCache.Count > 0 && this._CurrentReservedSlotPlayers != null) {
-                    this.DebugWrite("Checking validity of reserve slotted players.", 6);
-
-                    //Loop over the user list and grab all current soldiers
-                    List<String> allUserSoldiers = new List<String>();
+            try
+            {
+                if (!this._FeedServerReservedSlots || this._CurrentReservedSlotPlayers == null)
+                {
+                    return;
+                }
+                this.DebugWrite("Checking validity of reserved slotted players.", 6);
+                List<String> allowedReservedSlotPlayers = new List<string>();
+                //Pull players from special player cache
+                lock (this._SpecialPlayerGroupCache) {
+                    List<AdKatsSpecialPlayer> reservedPlayers;
+                    if (this._SpecialPlayerGroupCache.TryGetValue("slot_reserved", out reservedPlayers))
+                    {
+                        foreach (AdKatsSpecialPlayer asPlayer in reservedPlayers)
+                        {
+                            String playerIdentifier = null;
+                            if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
+                            {
+                                playerIdentifier = asPlayer.player_object.player_name;
+                            }
+                            else
+                            {
+                                if (this.SoldierNameValid(asPlayer.player_identifier))
+                                {
+                                    playerIdentifier = asPlayer.player_identifier;
+                                }
+                                else
+                                {
+                                    this.ConsoleError("Player under reserved_slot list '" + asPlayer.player_identifier + "' was not a valid soldier name. Unable to add to reserved slot list.");
+                                }
+                            }
+                            //Skip if no valid info found
+                            if (String.IsNullOrEmpty(playerIdentifier))
+                            {
+                                continue;
+                            }
+                            if (!allowedReservedSlotPlayers.Contains(playerIdentifier))
+                            {
+                                allowedReservedSlotPlayers.Add(playerIdentifier);
+                            }
+                        }
+                    }
+                }
+                //Pull players from user list
+                if (this._UserCache.Count > 0) {
                     foreach (AdKatsUser user in this._UserCache.Values) {
                         foreach (AdKatsPlayer soldier in user.soldierDictionary.Values) {
                             //Only add soldiers for the current game
-                            if (soldier.game_id == this._GameID) {
-                                allUserSoldiers.Add(soldier.player_name);
-                                //Add needed soldiers to the reserved slot list
-                                if (!this._CurrentReservedSlotPlayers.Contains(soldier.player_name))
+                            if (soldier.game_id == this._GameID)
+                            {
+                                if (!allowedReservedSlotPlayers.Contains(soldier.player_name))
                                 {
-                                    this.DebugWrite(soldier.player_name + " in AdKats access, but not in reserved slots. Adding.", 3);
-                                    this.ExecuteCommand("procon.protected.send", "reservedSlotsList.add", soldier.player_name);
-                                    Thread.Sleep(5);
+                                    allowedReservedSlotPlayers.Add(soldier.player_name);
                                 }
                             }
                         }
                     }
-
-                    //Remove soldiers from the list where needed
-                    foreach (String playerName in this._CurrentReservedSlotPlayers) {
-                        if (!allUserSoldiers.Contains(playerName)) {
-                            this.DebugWrite(playerName + " in reserved slots, but not AdKats Access List. Removing.", 3);
-                            this.ExecuteCommand("procon.protected.send", "reservedSlotsList.remove", playerName);
-                            Thread.Sleep(5);
-                        }
-                    }
-
-                    //Save the list
-                    this.ExecuteCommand("procon.protected.send", "reservedSlotsList.save");
                 }
+                //All players fetched, update the server lists
+                //Remove soldiers from the list where needed
+                foreach (String playerName in this._CurrentReservedSlotPlayers)
+                {
+                    if (!allowedReservedSlotPlayers.Contains(playerName))
+                    {
+                        this.DebugWrite(playerName + " in server reserved slots, but not in allowed reserved players. Removing.", 3);
+                        this.ExecuteCommand("procon.protected.send", "reservedSlotsList.remove", playerName);
+                        Thread.Sleep(5);
+                    }
+                }
+                //Add soldiers to the list where needed
+                foreach (String playerName in allowedReservedSlotPlayers)
+                {
+                    if (!this._CurrentReservedSlotPlayers.Contains(playerName))
+                    {
+                        this.DebugWrite(playerName + " in allowed reserved players, but not in server reserved slots. Adding.", 3);
+                        this.ExecuteCommand("procon.protected.send", "reservedSlotsList.add", playerName);
+                        Thread.Sleep(5);
+                    }
+                }
+                //Save the list
+                this.ExecuteCommand("procon.protected.send", "reservedSlotsList.save");
+                //Display the list
+                this.ExecuteCommand("procon.protected.send", "reservedSlotsList.list");
             }
             catch (Exception e) {
                 this.HandleException(new AdKatsException("Error while updating server reserved slots.", e));
@@ -14109,6 +14475,10 @@ namespace PRoConEvents {
         }
 
         public Boolean RoleIsInteractionAble(AdKatsRole aRole) {
+            if (aRole == null) {
+                this.ConsoleError("role null in RoleIsInteractionAble");
+                return false;
+            }
             lock (aRole) {
                 lock (aRole.allowedCommands) {
                     if (aRole.allowedCommands.Values.Any(command => command.command_playerInteraction)) {
@@ -14634,13 +15004,23 @@ namespace PRoConEvents {
             public DateTime lastDeath = DateTime.UtcNow;
             public DateTime lastAction = DateTime.UtcNow;
 
-            public Queue<KeyValuePair<AdKatsPlayer, DateTime>> recentKills = null;
+            public Queue<KeyValuePair<AdKatsPlayer, DateTime>> RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
+            //All records issued on this player during their current session
+            public List<AdKatsRecord> TargetedRecords = new List<AdKatsRecord>();
 
             public AdKatsPlayerStats stats = null;
 
             public AdKatsPlayer() {
-                this.recentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
+                this.RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
             }
+        }
+
+        public class AdKatsSpecialPlayer {
+            public String player_group = null;
+            public AdKatsPlayer player_object = null;
+            public Int32? player_game = null;
+            public Int32? player_server = null;
+            public String player_identifier = null;
         }
 
         public class AdKatsPlayerStats {
@@ -15657,7 +16037,7 @@ namespace PRoConEvents {
                                 //Log the time of critical disconnect
                                 DateTime criticalDisconnectTime = DateTime.UtcNow;
                                 //Immediately disable Stat Logger
-                                this.ConsoleError("Database connection in critial failure state. Disabling Stat Logger and putting AdKats in Backup Mode.");
+                                this.ConsoleError("Database connection in critical failure state. Disabling Stat Logger and putting AdKats in Backup Mode.");
                                 this._DatabaseConnectionCriticalState = true;
                                 this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "False");
                                 this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLogger", "False");
