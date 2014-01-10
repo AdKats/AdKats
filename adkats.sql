@@ -370,6 +370,17 @@ CREATE TABLE IF NOT EXISTS `adkats_usersoldiers` (
   KEY `adkats_usersoldiers_fk_player` (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of users to soldiers';
 
+DROP TABLE IF EXISTS `adkats_specialplayers`;
+CREATE TABLE IF NOT EXISTS `adkats_specialplayers`( 
+  `specialplayer_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `player_group` VARCHAR(30) NOT NULL, 
+  `player_game` TINYINT(4) UNSIGNED NOT NULL, 
+  `player_server` SMALLINT(5) UNSIGNED DEFAULT NULL, 
+  `player_id` INT(10) DEFAULT NULL,
+  `player_identity` VARCHAR(30) DEFAULT NULL,
+  PRIMARY KEY (`specialplayer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Special Player List';
+
 SET FOREIGN_KEY_CHECKS=1;
 
 ALTER TABLE `adkats_bans`
@@ -408,3 +419,8 @@ ALTER TABLE `adkats_users`
 ALTER TABLE `adkats_usersoldiers`
   ADD CONSTRAINT `adkats_usersoldiers_fk_player` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `adkats_usersoldiers_fk_user` FOREIGN KEY (`user_id`) REFERENCES `adkats_users` (`user_id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+ALTER TABLE `adkats_specialplayers`
+  ADD CONSTRAINT `adkats_specialplayers_game_id` FOREIGN KEY (`player_game`) REFERENCES `tbl_games`(`GameID`) ON UPDATE NO ACTION ON DELETE CASCADE, 
+  ADD CONSTRAINT `adkats_specialplayers_server_id` FOREIGN KEY (`player_server`) REFERENCES `tbl_server`(`ServerID`) ON UPDATE NO ACTION ON DELETE CASCADE, 
+  ADD CONSTRAINT `adkats_specialplayers_player_id` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata`(`PlayerID`) ON UPDATE NO ACTION ON DELETE CASCADE;
