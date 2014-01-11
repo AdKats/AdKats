@@ -52,7 +52,7 @@ namespace PRoConEvents {
         //Current version of the plugin
         private const String PluginVersion = "4.0.0.9";
         //When fullDebug is enabled, on any exception slomo is activated
-        private const Boolean FullDebug = true;
+        private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
         //This will slow the program as a whole whenever the console is printed to
         private Boolean _Slowmo = false;
@@ -411,7 +411,7 @@ namespace PRoConEvents {
         //Rules information
         private Double _ServerRulesDelay = 0.5;
         private Double _ServerRulesInterval = 5;
-        private String[] _ServerRulesList = {"This server has not set rules yet.", "This server has not set rules yet.", "This server has not set rules yet."};
+        private String[] _ServerRulesList = {"This server has not set rules yet."};
 
         #endregion
 
@@ -8086,7 +8086,7 @@ namespace PRoConEvents {
                     AdKatsRecord reportedRecord;
                     if (this._RoundReports.TryGetValue(reportID, out reportedRecord) && this._UseExperimentalTools)
                     {
-                        if (this.CanPunish(reportedRecord, 60) || !adminsOnline) {
+                        if (this.CanPunish(reportedRecord, 90) || !adminsOnline) {
                             //Remove it from the reports for this round
                             this._RoundReports.Remove(reportID);
                             //Update it in the database
@@ -8110,7 +8110,7 @@ namespace PRoConEvents {
                             this.QueueRecordForProcessing(aRecord);
                         }
                         else {
-                            this.SendMessageToSource(reportedRecord, "Reported player has already been acted on in the last minute.");
+                            this.SendMessageToSource(reportedRecord, "Reported player has already been acted on.");
                         }
                     }
                 }
