@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.0.9
+ * Version 4.0.1.0
  */
 
 using System;
@@ -50,7 +50,7 @@ namespace PRoConEvents {
         #region Variables
 
         //Current version of the plugin
-        private const String PluginVersion = "4.0.0.9";
+        private const String PluginVersion = "4.0.1.0";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -115,9 +115,9 @@ namespace PRoConEvents {
         private const Int32 DbActionFetchFrequency = 10;
         //Error Catching
         private Boolean _DatabaseConnectionCriticalState = false;
-        private const Int32 DatabaseTimeoutThreshold = 3;
+        private const Int32 DatabaseTimeoutThreshold = 10;
         private Int32 _DatabaseTimeouts = 0;
-        private const Int32 DatabaseSuccessThreshold = 3;
+        private const Int32 DatabaseSuccessThreshold = 5;
         private Int32 _DatabaseSuccess = 0;
         private DateTime _LastDatabaseTimeout = DateTime.UtcNow;
 
@@ -635,11 +635,20 @@ namespace PRoConEvents {
             //This thread will remain running for the duration the layer is online
             Thread keepAliveThread = new Thread(new ThreadStart(delegate {
                 try {
+                    DateTime lastKeepAliveCheck = DateTime.UtcNow;
+                    DateTime lastDatabaseConnectionCheck = DateTime.UtcNow;
                     while (true) {
-                        Thread.Sleep(TimeSpan.FromSeconds(60));
-                        if (this._UseKeepAlive) {
+                        //Check for keep alive every 60 seconds
+                        if (this._UseKeepAlive && (DateTime.UtcNow - lastKeepAliveCheck).TotalSeconds > 60) {
                             this.Enable();
+                            lastKeepAliveCheck = DateTime.UtcNow;
                         }
+                        //Check for possible connection interuption every 10 seconds
+                        if (this._ThreadsReady && (DateTime.UtcNow - lastDatabaseConnectionCheck).TotalSeconds > 10) {
+                            this.HandlePossibleDisconnect();
+                        }
+                        //Sleep 1 second between loops
+                        Thread.Sleep(TimeSpan.FromSeconds(1));
                     }
                 }
                 catch (Exception e) {
@@ -999,28 +1008,47 @@ namespace PRoConEvents {
                     this.SendNonQuery("Experimental Query", strValue, true);
                 }
                 else if (Regex.Match(strVariable, @"Hacker-Check Player").Success) {
-                    if (String.IsNullOrEmpty(strValue) || !this._ThreadsReady) {
-                        return;
-                    }
-                    this.ConsoleWarn("Preparing to hacker check " + strValue);
-                    if (String.IsNullOrEmpty(strValue) || strValue.Length < 3) {
-                        this.ConsoleError("Player name must be at least 3 characters long.");
-                        return;
-                    }
-                    if (!this.SoldierNameValid(strValue)) {
-                        this.ConsoleError("Player name contained invalid characters.");
-                        return;
-                    }
-                    AdKatsPlayer aPlayer = new AdKatsPlayer() {
-                                                                  player_name = strValue
-                                                              };
-                    this.FetchPlayerStats(aPlayer);
-                    if (aPlayer.stats != null) {
-                        this.RunStatSiteHackCheck(aPlayer, true);
-                    }
-                    else {
-                        this.ConsoleError("Stats not found for " + strValue);
-                    }
+                    //Create new thread to run hack check
+                    Thread statCheckingThread = new Thread(new ThreadStart(delegate
+                    {
+                        try
+                        {
+                            if (String.IsNullOrEmpty(strValue) || !this._ThreadsReady)
+                            {
+                                return;
+                            }
+                            this.ConsoleWarn("Preparing to hacker check " + strValue);
+                            if (String.IsNullOrEmpty(strValue) || strValue.Length < 3)
+                            {
+                                this.ConsoleError("Player name must be at least 3 characters long.");
+                                return;
+                            }
+                            if (!this.SoldierNameValid(strValue))
+                            {
+                                this.ConsoleError("Player name contained invalid characters.");
+                                return;
+                            }
+                            AdKatsPlayer aPlayer = new AdKatsPlayer()
+                            {
+                                player_name = strValue
+                            };
+                            this.FetchPlayerStats(aPlayer);
+                            if (aPlayer.stats != null)
+                            {
+                                this.RunStatSiteHackCheck(aPlayer, true);
+                            }
+                            else
+                            {
+                                this.ConsoleError("Stats not found for " + strValue);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            this.HandleException(new AdKatsException("Error while manual stat checking player.", e));
+                        }
+                    }));
+                    //Start the thread
+                    statCheckingThread.Start();
                 }
                 else if (Regex.Match(strVariable, @"Setting Import").Success) {
                     Int32 tmp = -1;
@@ -1520,26 +1548,44 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Ban Search").Success)
                 {
-                    if (String.IsNullOrEmpty(strValue) || strValue.Length < 3) {
-                        this.ConsoleError("Search query must be 3 or more characters.");
-                        return;
-                    }
-                    lock (this._BanEnforcerSearchResults)
+                    //Create new thread to run ban search
+                    Thread banSearchThread = new Thread(new ThreadStart(delegate
                     {
-                        this._BanEnforcerSearchResults = new List<AdKatsBan>();
-                        List<AdKatsPlayer> matchingPlayers;
-                        if (this.FetchMatchingPlayers(strValue, out matchingPlayers, false)) {
-                            foreach (AdKatsPlayer aPlayer in matchingPlayers) {
-                                AdKatsBan aBan = this.FetchPlayerBan(aPlayer);
-                                if (aBan != null) {
-                                    this._BanEnforcerSearchResults.Add(aBan);
+                        try
+                        {
+                            if (String.IsNullOrEmpty(strValue) || strValue.Length < 3)
+                            {
+                                this.ConsoleError("Search query must be 3 or more characters.");
+                                return;
+                            }
+                            lock (this._BanEnforcerSearchResults)
+                            {
+                                this._BanEnforcerSearchResults = new List<AdKatsBan>();
+                                List<AdKatsPlayer> matchingPlayers;
+                                if (this.FetchMatchingPlayers(strValue, out matchingPlayers, false))
+                                {
+                                    foreach (AdKatsPlayer aPlayer in matchingPlayers)
+                                    {
+                                        AdKatsBan aBan = this.FetchPlayerBan(aPlayer);
+                                        if (aBan != null)
+                                        {
+                                            this._BanEnforcerSearchResults.Add(aBan);
+                                        }
+                                    }
+                                }
+                                if (this._BanEnforcerSearchResults.Count == 0)
+                                {
+                                    this.ConsoleError("No players matching '" + strValue + "' have active bans.");
                                 }
                             }
                         }
-                        if (this._BanEnforcerSearchResults.Count == 0) {
-                            this.ConsoleError("No players matching '" + strValue + "' have active bans.");
+                        catch (Exception e)
+                        {
+                            this.HandleException(new AdKatsException("Error while running ban search.", e));
                         }
-                    }
+                    }));
+                    //Start the thread
+                    banSearchThread.Start();
                 }
                     #endregion
                     #region In-Game Command Settings
@@ -4145,6 +4191,9 @@ namespace PRoConEvents {
                         //Current player being checked
                         AdKatsPlayer aPlayer = null;
                         try {
+                            if (!this._UseHackerChecker) {
+                                repeatCheckingQueue.Clear();
+                            }
                             //Check one player from the repeat checking queue
                             if (repeatCheckingQueue.Count > 0) {
                                 //Only keep players still in the server in the repeat checking list
@@ -4161,20 +4210,13 @@ namespace PRoConEvents {
                                 if (aPlayer != null) {
                                     //Fetch their stats from appropriate source
                                     this.FetchPlayerStats(aPlayer);
-                                    //check for dmg mod if stats available
                                     if (aPlayer.stats != null && aPlayer.stats.StatsException == null) {
                                         playersWithStats++;
                                         this.ConsoleSuccess(aPlayer.player_name + " now has stats. Checking.");
-
-                                        if (this._UseHackerChecker) {
-                                            if (!this.PlayerProtected(aPlayer)) {
-                                                this.RunStatSiteHackCheck(aPlayer, false);
-                                            }
+                                        if (!this.PlayerProtected(aPlayer)) {
+                                            this.RunStatSiteHackCheck(aPlayer, false);
                                         }
-                                        else {
-                                            this.DebugWrite("Player removed from check list after disabling hacker checker.", 2);
-                                        }
-                                        this.ConsoleWrite("Players with " + this._GameVersion + "Stats: " + String.Format("{0:0.00}", (playersWithStats / checkedPlayers) * 100) + "%");
+                                        this.DebugWrite("Players with " + this._GameVersion + "Stats: " + String.Format("{0:0.00}", (playersWithStats / checkedPlayers) * 100) + "%", 3);
                                     }
                                     else {
                                         aPlayer.stats = null;
@@ -4201,7 +4243,6 @@ namespace PRoConEvents {
                                 if (!this.PlayerProtected(aPlayer)) {
                                     this.FetchPlayerStats(aPlayer);
                                     checkedPlayers++;
-                                    //check for dmg mod if stats available
                                     if (aPlayer.stats != null && aPlayer.stats.StatsException == null) {
                                         playersWithStats++;
                                         if (this._UseHackerChecker) {
@@ -4607,7 +4648,7 @@ namespace PRoConEvents {
                         if (weaponStat.Kills > 100)
                         {
                             //Check for KPM limit
-                            this.DebugWrite("Checking " + weaponStat.ID + " KPM (" + weaponStat.KPM + " >? " + (this._KpmTriggerLevel) + ")", 6);
+                            this.DebugWrite("Checking " + weaponStat.ID + " KPM (" + String.Format("{0:0.00}", weaponStat.KPM) + " >? " + (this._KpmTriggerLevel) + ")", 6);
                             if (weaponStat.KPM > (this._KpmTriggerLevel))
                             {
                                 if (weaponStat.KPM > actedKpm)
@@ -4623,7 +4664,7 @@ namespace PRoConEvents {
                 {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    this.ConsoleWarn(aPlayer.player_name + ((debugMode)?(" debug"):(" auto")) + "-banned for KPM. [" + formattedName + "-" + (int)(actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                    this.ConsoleWarn(aPlayer.player_name + ((debugMode) ? (" debug") : (" auto")) + "-banned for KPM. [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
                     if (!debugMode)
                     {
                         //Create the ban record
@@ -4636,7 +4677,7 @@ namespace PRoConEvents {
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
                             source_name = "AutoAdmin",
-                            record_message = this._HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                            record_message = this._HackerCheckerHSKBanMessage + " [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
                         };
                         //Process the record
                         this.QueueRecordForProcessing(record);
@@ -12767,8 +12808,9 @@ namespace PRoConEvents {
         private Boolean DebugDatabaseConnectionActive() {
             DebugWrite("databaseConnectionActive starting!", 8);
 
-            Boolean active = false;
+            Boolean active = true;
 
+            DateTime startTime = DateTime.UtcNow;
             try {
                 using (MySqlConnection connection = this.GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -12777,12 +12819,19 @@ namespace PRoConEvents {
                             if (reader.Read()) {
                                 active = true;
                             }
+                            else {
+                                active = false;
+                            }
                         }
                     }
                 }
             }
             catch (Exception) {
-                //there was an error, database connection not established
+                active = false;
+            }
+            if ((DateTime.UtcNow - startTime).TotalSeconds > 10) {
+                //If the connection took longer than 10 seconds also say the database is disconnected
+                active = false;
             }
             DebugWrite("databaseConnectionActive finished!", 8);
             return active;
@@ -16022,94 +16071,102 @@ namespace PRoConEvents {
         public void HandleDatabaseConnectionInteruption() {
             //Only handle these errors if all threads are already functioning normally
             if (this._ThreadsReady) {
-                this.ConsoleError("Database timeout detected. This is timeout " + (++this._DatabaseTimeouts) + ". Critical disconnect at " + DatabaseTimeoutThreshold + ".");
+                if (this._DatabaseTimeouts == 0) {
+                    this._LastDatabaseTimeout = DateTime.UtcNow;
+                }
+                ++this._DatabaseTimeouts;
+                this.ConsoleError("Database timeout detected. This is timeout " + _DatabaseTimeouts + ". Critical disconnect at " + DatabaseTimeoutThreshold + ".");
                 //Check for critical state (timeouts > threshold, and last timeout less than 1 minute ago)
-                if (this._DatabaseTimeouts >= DatabaseTimeoutThreshold && ((DateTime.UtcNow - this._LastDatabaseTimeout).TotalSeconds < 60)) {
-                    try {
-                        //If the handler is already alive, return
-                        if (this._DisconnectHandlingThread != null && this._DisconnectHandlingThread.IsAlive) {
-                            this.DebugWrite("Attempted to start disconnect handling thread when it was already running.", 2);
-                            return;
+                if((DateTime.UtcNow - this._LastDatabaseTimeout).TotalSeconds < 60)
+                {
+                    if (this._DatabaseTimeouts >= DatabaseTimeoutThreshold) {
+                        try {
+                            //If the handler is already alive, return
+                            if (this._DisconnectHandlingThread != null && this._DisconnectHandlingThread.IsAlive) {
+                                this.DebugWrite("Attempted to start disconnect handling thread when it was already running.", 2);
+                                return;
+                            }
+                            //Create a new thread to handle the disconnect orchestration
+                            this._DisconnectHandlingThread = new Thread(new ThreadStart(delegate {
+                                                                                            try {
+                                                                                                //Log the time of critical disconnect
+                                                                                                DateTime criticalDisconnectTime = DateTime.UtcNow;
+                                                                                                //Immediately disable Stat Logger
+                                                                                                this.ConsoleError("Database connection in critical failure state. Disabling Stat Logger and putting AdKats in Backup Mode.");
+                                                                                                this._DatabaseConnectionCriticalState = true;
+                                                                                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "False");
+                                                                                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLogger", "False");
+                                                                                                //Set resolved
+                                                                                                Boolean restored = false;
+                                                                                                //Enter loop to check for database reconnection
+                                                                                                do {
+                                                                                                    //If someone manually disables AdKats, exit everything
+                                                                                                    if (!this._IsEnabled) {
+                                                                                                        return;
+                                                                                                    }
+                                                                                                    //Wait 15 seconds to retry
+                                                                                                    Thread.Sleep(15000);
+                                                                                                    //Check if the connection has been restored
+                                                                                                    restored = this.DebugDatabaseConnectionActive();
+                                                                                                    if (!restored) {
+                                                                                                        this._DatabaseSuccess = 0;
+                                                                                                        //Inform the user database still not connectable
+                                                                                                        this.ConsoleError("Database still not accessible. (" + (DateTime.UtcNow - criticalDisconnectTime).TotalSeconds + " seconds since critical disconnect at " + criticalDisconnectTime.ToShortTimeString() + ".");
+                                                                                                    }
+                                                                                                    else {
+                                                                                                        this._DatabaseSuccess++;
+                                                                                                        this.ConsoleWarn("Database connection successful, but waiting " + (DatabaseSuccessThreshold - this._DatabaseSuccess) + " more successful connections to restore normal operation.");
+                                                                                                    }
+                                                                                                } while (this._DatabaseSuccess < DatabaseSuccessThreshold);
+                                                                                                //Connection has been restored, inform the user
+                                                                                                this.ConsoleSuccess("Database connection restored, re-enabling Stat Logger and returning AdKats to Normal Mode.");
+                                                                                                //Reset timeout counts
+                                                                                                this._DatabaseSuccess = 0;
+                                                                                                this._DatabaseTimeouts = 0;
+                                                                                                //re-enable AdKats and Stat Logger
+                                                                                                this._DatabaseConnectionCriticalState = false;
+                                                                                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
+                                                                                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLogger", "True");
+
+                                                                                                lock (this._PlayersMutex) {
+                                                                                                    //Clear the player dinctionary, causing all players to be fetched from the database again
+                                                                                                    this._PlayerDictionary.Clear();
+                                                                                                }
+
+                                                                                                //Create the Exception record
+                                                                                                AdKatsRecord record = new AdKatsRecord {
+                                                                                                                                           record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                                                                                                           isDebug = true,
+                                                                                                                                           server_id = this._ServerID,
+                                                                                                                                           command_type = this._CommandKeyDictionary["adkats_exception"],
+                                                                                                                                           command_numeric = 0,
+                                                                                                                                           target_name = "Database",
+                                                                                                                                           target_player = null,
+                                                                                                                                           source_name = "AdKats",
+                                                                                                                                           record_message = "Critical Database Disconnect Handled (" + (DateTime.UtcNow - criticalDisconnectTime).TotalSeconds + " seconds). AdKats on server " + this._ServerID + " functioning normally again."
+                                                                                                                                       };
+                                                                                                //Process the record
+                                                                                                this.QueueRecordForProcessing(record);
+                                                                                            }
+                                                                                            catch (Exception) {
+                                                                                                this.ConsoleError("Error handling database disconnect.");
+                                                                                            }
+                                                                                            this.ConsoleSuccess("Exiting Critical Disconnect Handler.");
+                                                                                        }));
+
+                            //Start the thread
+                            this._DisconnectHandlingThread.Start();
                         }
-                        //Create a new thread to handle the disconnect orchestration
-                        this._DisconnectHandlingThread = new Thread(new ThreadStart(delegate {
-                            try {
-                                //Log the time of critical disconnect
-                                DateTime criticalDisconnectTime = DateTime.UtcNow;
-                                //Immediately disable Stat Logger
-                                this.ConsoleError("Database connection in critical failure state. Disabling Stat Logger and putting AdKats in Backup Mode.");
-                                this._DatabaseConnectionCriticalState = true;
-                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "False");
-                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLogger", "False");
-                                //Set resolved
-                                Boolean restored = false;
-                                //Enter loop to check for database reconnection
-                                do {
-                                    //If someone manually disables AdKats, exit everything
-                                    if (!this._IsEnabled) {
-                                        return;
-                                    }
-                                    //Wait 15 seconds to retry
-                                    Thread.Sleep(15000);
-                                    //Check if the connection has been restored
-                                    restored = this.DebugDatabaseConnectionActive();
-                                    if (!restored) {
-                                        this._DatabaseSuccess = 0;
-                                        //Inform the user database still not connectable
-                                        this.ConsoleError("Database still not accessible. (" + (DateTime.UtcNow - criticalDisconnectTime).TotalSeconds + " seconds since critical disconnect at " + criticalDisconnectTime.ToShortTimeString() + ".");
-                                    }
-                                    else
-                                    {
-                                        this._DatabaseSuccess++;
-                                        this.ConsoleWarn("Database connection successful, but waiting " + (DatabaseSuccessThreshold - this._DatabaseSuccess) + " more successful connections to restore normal operation.");
-                                    }
-                                } while (this._DatabaseSuccess < DatabaseSuccessThreshold);
-                                //Connection has been restored, inform the user
-                                this.ConsoleSuccess("Database connection restored, re-enabling Stat Logger and returning AdKats to Normal Mode.");
-                                //Reset timeout counts
-                                this._DatabaseSuccess = 0;
-                                this._DatabaseTimeouts = 0;
-                                //re-enable AdKats and Stat Logger
-                                this._DatabaseConnectionCriticalState = false;
-                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
-                                this.ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLogger", "True");
-
-                                lock (this._PlayersMutex) {
-                                    //Clear the player dinctionary, causing all players to be fetched from the database again
-                                    this._PlayerDictionary.Clear();
-                                }
-
-                                //Create the Exception record
-                                AdKatsRecord record = new AdKatsRecord {
-                                                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                                            isDebug = true,
-                                                                            server_id = this._ServerID,
-                                                                            command_type = this._CommandKeyDictionary["adkats_exception"],
-                                                                            command_numeric = 0,
-                                                                            target_name = "Database",
-                                                                            target_player = null,
-                                                                            source_name = "AdKats",
-                                                                            record_message = "Critical Database Disconnect Handled (" + (DateTime.UtcNow - criticalDisconnectTime).TotalSeconds + " seconds). AdKats on server " + this._ServerID + " functioning normally again."
-                                                                        };
-                                //Process the record
-                                this.QueueRecordForProcessing(record);
-                            }
-                            catch (Exception) {
-                                this.ConsoleError("Error handling database disconnect.");
-                            }
-                            this.ConsoleSuccess("Exiting Critical Disconnect Handler.");
-                        }));
-
-                        //Start the thread
-                        this._DisconnectHandlingThread.Start();
-                    }
-                    catch (Exception) {
-                        this.ConsoleError("Error while initializing disconnect handling thread.");
+                        catch (Exception) {
+                            this.ConsoleError("Error while initializing disconnect handling thread.");
+                        }
                     }
                 }
                 else {
-                    this._LastDatabaseTimeout = DateTime.UtcNow;
+                    //Reset the current timout count
+                    this._DatabaseTimeouts = 0;
                 }
+                this._LastDatabaseTimeout = DateTime.UtcNow;
             }
             else {
                 this.DebugWrite("Attempted to handle database timeout when threads not running.", 2);
