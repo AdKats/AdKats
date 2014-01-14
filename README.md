@@ -122,7 +122,7 @@
     </li>
     <li>
         <b>Set up the database.</b>
-        Run the contents of this sql script on your database (You can copy/paste the entire page as its shown): https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql
+        Run the contents of this sql script on your database. It must be run on the same database that Stat Logger is running on. (You can copy/paste the entire page as its shown): https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql
         <br/>(I would run this automatically if I could, but i'm limited until Procon updates their MySQL connector to allow delimiters)
     </li>
     <li>
