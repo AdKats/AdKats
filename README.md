@@ -429,6 +429,10 @@
     To avoid false positives, only weapons that fire bullets (no crossbow, 320, etc), and deal less than 50% damage per shot are included in the calculations.
     This removes all equipment, sniper rifles, shotguns, and heavy-hitting pistols like the magnum/rex from calculations.
     For the remaining weapons there are two checks each one goes through, customizable to your desired trigger levels.
+    
+    Info posts:
+    https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-0-0-0&p=90700&viewfull=1#post90700
+    https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-0-0-0&p=92106&viewfull=1#post92106
 </p>
 <h4>Damage Mod Checker</h4>
 <p>
