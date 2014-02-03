@@ -1080,9 +1080,19 @@ namespace PRoConEvents {
                     CompleteRecordInformation(record, strValue);
                 }
                 else if (Regex.Match(strVariable, @"Debug level").Success) {
-                    Int32 tmp = 2;
+                    Int32 tmp;
                     if (int.TryParse(strValue, out tmp)) {
-                        if (tmp != _DebugLevel) {
+                        if (tmp == 23548)
+                        {
+                            //Only activate the following on ADK servers.
+                            Boolean wasAuth = _IsTestingAuthorized;
+                            _IsTestingAuthorized = true;
+                            if (!wasAuth)
+                            {
+                                ConsoleWrite("Server is priviledged for testing during this instance.");
+                            }
+                        }
+                        else if (tmp != _DebugLevel) {
                             _DebugLevel = tmp;
                             //Once setting has been changed, upload the change to database
                             QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (int), _DebugLevel));
@@ -3219,9 +3229,9 @@ namespace PRoConEvents {
                                     if (winningPower >= 60 && ticketDifference > 150)
                                     {
                                         ConsoleWarn(winningTeam.TeamName + " is winning, and baseraping.");
-                                        if (++TPCSCounter > 2 && !TPCSActionTaken)
+                                        if (++TPCSCounter > 0 && !TPCSActionTaken)
                                         {
-                                            ConsoleWarn("ISSUING BASRAPE STREAK NUKE ON " + winningTeam.TeamName.ToUpper());
+                                            ConsoleWarn("ISSUING BASERAPE NUKE ON " + winningTeam.TeamName.ToUpper() + " (" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + ")");
                                             TPCSActionTaken = true;
                                             TPCSCounter = 0;
                                         }
@@ -16522,16 +16532,16 @@ namespace PRoConEvents {
 
                                     //Create the Exception record
                                     var record = new AdKatsRecord {
-                                                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                                                isDebug = true,
-                                                                                server_id = _ServerID,
-                                                                                command_type = _CommandKeyDictionary["adkats_exception"],
-                                                                                command_numeric = 0,
-                                                                                target_name = "Database",
-                                                                                target_player = null,
-                                                                                source_name = "AdKats",
-                                                                                record_message = "Critical Database Disconnect Handled (" + (DateTime.UtcNow - criticalDisconnectTime).TotalSeconds + " seconds). AdKats on server " + _ServerID + " functioning normally again."
-                                                                            };
+                                                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                                        isDebug = true,
+                                                                        server_id = _ServerID,
+                                                                        command_type = _CommandKeyDictionary["adkats_exception"],
+                                                                        command_numeric = 0,
+                                                                        target_name = "Database",
+                                                                        target_player = null,
+                                                                        source_name = "AdKats",
+                                                                        record_message = "Critical Database Disconnect Handled (" + (DateTime.UtcNow - criticalDisconnectTime).TotalSeconds + " seconds). AdKats on server " + _ServerID + " functioning normally again."
+                                                                    };
                                     //Process the record
                                     QueueRecordForProcessing(record);
                                 }
