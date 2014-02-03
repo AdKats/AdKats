@@ -1,5 +1,5 @@
 -- AdKats Setup Script by ColColonCleaner
--- Version 4.0.0.9
+-- Version 4.0.9.6
 
 SET FOREIGN_KEY_CHECKS=0;
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
