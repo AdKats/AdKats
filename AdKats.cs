@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.9.5
+ * Version 4.0.9.6
  */
 
 using System;
@@ -46,7 +46,7 @@ using PRoCon.Core.Players;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current version of the plugin
-        private const String PluginVersion = "4.0.9.5";
+        private const String PluginVersion = "4.0.9.6";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -2275,7 +2275,7 @@ namespace PRoConEvents {
         private void Disable() {
             //Call Disable
             ExecuteCommand("procon.protected.plugins.enable", "AdKats", "False");
-            //Set enable false
+            //Set enabled false so threads begin exiting
             _pluginEnabled = false;
             _ThreadsReady = false;
         }
@@ -3191,66 +3191,70 @@ namespace PRoConEvents {
                                 }
                             }
 
-                            AdKatsTeam winningTeam, losingTeam;
-                            if (team1.TeamTicketCount > team2.TeamTicketCount)
+                            if (_ServerInfo.Map == "MP_Prison")
                             {
-                                winningTeam = team1;
-                                losingTeam = team2;
-                            }
-                            else
-                            {
-                                winningTeam = team2;
-                                losingTeam = team1;
-                            }
-                            Double ticketDifference = Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount);
-                            Double winningPower = Math.Abs(losingTeam.TeamTicketDifferenceRate);
-                            Double losingPower = Math.Abs(winningTeam.TeamTicketDifferenceRate);
-                            Double winningTicketPower = (ticketDifference * winningPower);
-                            ConsoleWarn("TicketPower: " + String.Format("{0:0.00}", winningTicketPower));
-                            /*if (winningTicketPower > 20000 && !TPCSActionTaken)
-                            {
-                                this.ConsoleWarn("ISSUING TICKET POWER NUKE ON " + winningTeam.TeamName.ToUpper());
-                                TPCSActionTaken = true;
-                            }*/
-                            if (winningPower > losingPower)
-                            {
-                                if (winningPower >= 65 && ticketDifference > 200)
+                                AdKatsTeam winningTeam, losingTeam;
+                                if (team1.TeamTicketCount > team2.TeamTicketCount)
                                 {
-                                    ConsoleWarn(winningTeam.TeamName + " is winning, and baseraping.");
-                                    if (++TPCSCounter > 2 && !TPCSActionTaken)
+                                    winningTeam = team1;
+                                    losingTeam = team2;
+                                }
+                                else
+                                {
+                                    winningTeam = team2;
+                                    losingTeam = team1;
+                                }
+                                Double ticketDifference = Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount);
+                                Double winningPower = Math.Abs(losingTeam.TeamTicketDifferenceRate);
+                                Double losingPower = Math.Abs(winningTeam.TeamTicketDifferenceRate);
+                                Double winningTicketPower = (ticketDifference * winningPower);
+                                ConsoleWrite("TicketPower: " + String.Format("{0:0.00}", winningTicketPower));
+                                /*if (winningTicketPower > 20000 && !TPCSActionTaken)
+                                {
+                                    this.ConsoleWarn("ISSUING TICKET POWER NUKE ON " + winningTeam.TeamName.ToUpper());
+                                    TPCSActionTaken = true;
+                                }*/
+                                if (winningPower > losingPower)
+                                {
+                                    if (winningPower >= 65 && ticketDifference > 200)
                                     {
-                                        ConsoleWarn("ISSUING BASRAPE STREAK NUKE ON " + winningTeam.TeamName.ToUpper());
-                                        TPCSActionTaken = true;
+                                        ConsoleWarn(winningTeam.TeamName + " is winning, and baseraping.");
+                                        if (++TPCSCounter > 2 && !TPCSActionTaken)
+                                        {
+                                            ConsoleWarn("ISSUING BASRAPE STREAK NUKE ON " + winningTeam.TeamName.ToUpper());
+                                            TPCSActionTaken = true;
+                                            TPCSCounter = 0;
+                                        }
+                                    }
+                                    else if (winningPower >= 55)
+                                    {
+                                        ConsoleWarn(winningTeam.TeamName + " is winning, and has 4+ flags.");
+                                        TPCSCounter = 0;
+                                    }
+                                    else if (winningPower >= 45)
+                                    {
+                                        ConsoleWarn(winningTeam.TeamName + " is winning, and has 3+ flags.");
+                                        TPCSCounter = 0;
+                                    }
+                                    else
+                                    {
+                                        ConsoleSuccess("Teams are equal. With " + winningTeam.TeamName + " currently winning.");
                                         TPCSCounter = 0;
                                     }
                                 }
-                                else if (winningPower >= 55)
-                                {
-                                    ConsoleWarn(winningTeam.TeamName + " is winning, and has 4+ flags.");
-                                    TPCSCounter = 0;
-                                }
-                                else if (winningPower >= 45)
-                                {
-                                    ConsoleWarn(winningTeam.TeamName + " is winning, and has 3+ flags.");
-                                    TPCSCounter = 0;
-                                }
                                 else
                                 {
-                                    ConsoleSuccess("Teams are equal. With " + winningTeam.TeamName + " currently winning.");
-                                    TPCSCounter = 0;
-                                }
-                            }
-                            else
-                            {
-                                if (losingPower >= 45)
-                                {
-                                    ConsoleWarn(losingTeam.TeamName + " is making a comeback.");
-                                    TPCSCounter = 0;
-                                }
-                                else
-                                {
-                                    ConsoleSuccess("Teams are equal. With " + winningTeam.TeamName + " currently winning.");
-                                    TPCSCounter = 0;
+                                    if (losingPower >= 45)
+                                    {
+                                        ConsoleWarn(losingTeam.TeamName + " is making a comeback.");
+                                        AdminSayMessage(losingTeam.TeamName + " is making a comeback! Keep pushing!");
+                                        TPCSCounter = 0;
+                                    }
+                                    else
+                                    {
+                                        ConsoleSuccess("Teams are equal. With " + winningTeam.TeamName + " currently winning.");
+                                        TPCSCounter = 0;
+                                    }
                                 }
                             }
 
@@ -8170,18 +8174,17 @@ namespace PRoConEvents {
                 _RoundReports.Add(reportID + "", record);
                 record.record_action_executed = true;
                 AttemptReportAutoAction(record, reportID + "");
-                String sourceAAIdentifier = "";
-                if (record.source_player != null)
+                String sourceAAIdentifier = (record.source_player != null && record.source_player.player_aa) ? ("[AA]") : ("");
+                String targetAAIdentifier = (record.target_player != null && record.target_player.player_aa) ? ("[AA]") : ("");
+                Boolean adminsTold = false;
+                foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers())
                 {
-                    sourceAAIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
-                }
-                String targetAAIdentifier = "";
-                if (record.target_player != null)
-                {
-                    targetAAIdentifier = record.target_player.player_aa ? ("[AA]") : ("");
-                }
-                foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers()) {
+                    adminsTold = true;
                     PlayerSayMessage(player.player_name, "REPORT [" + reportID + "]: " + sourceAAIdentifier + record.source_name + " reported " + targetAAIdentifier + record.target_player.player_name + " for " + record.record_message);
+                }
+                if (!adminsTold)
+                {
+                    ProconChatWrite("REPORT [" + reportID + "]: " + sourceAAIdentifier + record.source_name + " reported " + targetAAIdentifier + record.target_player.player_name + " for " + record.record_message);
                 }
                 if (_UseEmail) {
                     _EmailHandler.SendReport(record);
@@ -8209,20 +8212,19 @@ namespace PRoConEvents {
                 _RoundReports.Add(reportID + "", record);
                 record.record_action_executed = true;
                 AttemptReportAutoAction(record, reportID + "");
-                String sourceAAIdentifier = "";
-                if (record.source_player != null)
+                String sourceAAIdentifier = (record.source_player != null && record.source_player.player_aa) ? ("[AA]") : ("");
+                String targetAAIdentifier = (record.target_player != null && record.target_player.player_aa) ? ("[AA]") : ("");
+                Boolean adminsTold = false;
+                foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers())
                 {
-                    sourceAAIdentifier = record.source_player.player_aa ? ("[AA]") : ("");
-                }
-                String targetAAIdentifier = "";
-                if (record.target_player != null)
-                {
-                    targetAAIdentifier = record.target_player.player_aa ? ("[AA]") : ("");
-                }
-                foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers()) 
-                {
+                    adminsTold = true;
                     PlayerSayMessage(player.player_name,
                         "ADMIN CALL [" + reportID + "]: " + sourceAAIdentifier + record.source_name +
+                        " called admin on " + targetAAIdentifier + record.target_player.player_name + " for " + record.record_message);
+                }
+                if (!adminsTold)
+                {
+                    ProconChatWrite("ADMIN CALL [" + reportID + "]: " + sourceAAIdentifier + record.source_name +
                         " called admin on " + targetAAIdentifier + record.target_player.player_name + " for " + record.record_message);
                 }
                 if (_UseEmail)
