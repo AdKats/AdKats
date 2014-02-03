@@ -3216,7 +3216,7 @@ namespace PRoConEvents {
                                 }*/
                                 if (winningPower > losingPower)
                                 {
-                                    if (winningPower >= 65 && ticketDifference > 200)
+                                    if (winningPower >= 60 && ticketDifference > 150)
                                     {
                                         ConsoleWarn(winningTeam.TeamName + " is winning, and baseraping.");
                                         if (++TPCSCounter > 2 && !TPCSActionTaken)
