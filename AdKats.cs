@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.9.9
+ * Version 4.0.9.10
  */
 
 using System;
@@ -48,7 +48,7 @@ using PRoCon.Core.Utils;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current version of the plugin
-        private const String PluginVersion = "4.0.9.9";
+        private const String PluginVersion = "4.0.9.10";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -82,6 +82,7 @@ namespace PRoConEvents {
         //Player Lists
         private readonly Dictionary<Int32, AdKatsTeam> _teamDictionary = new Dictionary<Int32,AdKatsTeam>(); 
         private readonly Dictionary<String, AdKatsPlayer> _playerDictionary = new Dictionary<String, AdKatsPlayer>();
+        private Boolean _firstPlayerListComplete = false;
         private DateTime _lastSuccessfulPlayerList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
 
         //User Settings
@@ -149,15 +150,15 @@ namespace PRoConEvents {
         private const Int32 DbSettingFetchFrequency = 300;
 
         //Round Settings
-        private Boolean _UseRoundTimer;
-        private Double _RoundTimeMinutes = 30;
+        private Boolean _useRoundTimer;
+        private Double _roundTimeMinutes = 30;
 
         //ADK Settings
         //This will automatically change to true on ADK servers
-        private Boolean _IsTestingAuthorized;
+        private Boolean _isTestingAuthorized;
 
         //Experimental Tools Settings
-        private Boolean _UseExperimentalTools;
+        private Boolean _useExperimentalTools;
         //NO EX Limiter
         private Boolean _UseWeaponLimiter;
         private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
@@ -902,14 +903,14 @@ namespace PRoConEvents {
                 lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
                 lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Stat Logger Settings", typeof (Boolean), _FeedStatLoggerSettings));
 
-                lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Enable", typeof (Boolean), _UseRoundTimer));
-                if (_UseRoundTimer) {
-                    lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Round Duration Minutes", typeof (Double), _RoundTimeMinutes));
+                lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Enable", typeof (Boolean), _useRoundTimer));
+                if (_useRoundTimer) {
+                    lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Round Duration Minutes", typeof (Double), _roundTimeMinutes));
                 }
 
                 lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Enable", typeof (Boolean), _UseHackerChecker));
                 if (_UseHackerChecker) {
-                    if (_IsTestingAuthorized) {
+                    if (_isTestingAuthorized) {
                         lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|Hacker-Check Player", typeof (String), ""));
                     }
                     //lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Whitelist", typeof (String[]), _HackerCheckerWhitelist));
@@ -943,9 +944,9 @@ namespace PRoConEvents {
                 lstReturn.Add(new CPluginVariable("Z99. Debugging|Command Entry", typeof (String), ""));
 
                 //Experimental tools
-                if (_IsTestingAuthorized) {
-                    lstReturn.Add(new CPluginVariable("X99. Experimental|Use Experimental Tools", typeof (Boolean), _UseExperimentalTools));
-                    if (_UseExperimentalTools) {
+                if (_isTestingAuthorized) {
+                    lstReturn.Add(new CPluginVariable("X99. Experimental|Use Experimental Tools", typeof (Boolean), _useExperimentalTools));
+                    if (_useExperimentalTools) {
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Send Query", typeof (String), ""));
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Send Non-Query", typeof (String), ""));
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use NO EXPLOSIVES Limiter", typeof (Boolean), _UseWeaponLimiter));
@@ -1094,8 +1095,8 @@ namespace PRoConEvents {
                         if (tmp == 23548)
                         {
                             //Only activate the following on ADK servers.
-                            Boolean wasAuth = _IsTestingAuthorized;
-                            _IsTestingAuthorized = true;
+                            Boolean wasAuth = _isTestingAuthorized;
+                            _isTestingAuthorized = true;
                             if (!wasAuth)
                             {
                                 ConsoleWrite("Server is priviledged for testing during this instance.");
@@ -1220,9 +1221,9 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Use Experimental Tools").Success) {
                     Boolean useEXP = Boolean.Parse(strValue);
-                    if (useEXP != _UseExperimentalTools) {
-                        _UseExperimentalTools = useEXP;
-                        if (_UseExperimentalTools) {
+                    if (useEXP != _useExperimentalTools) {
+                        _useExperimentalTools = useEXP;
+                        if (_useExperimentalTools) {
                             if (_threadsReady) {
                                 ConsoleWarn("Using experimental tools. Take caution.");
                             }
@@ -1236,15 +1237,15 @@ namespace PRoConEvents {
                             _UseHskChecker = false;
                         }
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Use Experimental Tools", typeof (Boolean), _UseExperimentalTools));
+                        QueueSettingForUpload(new CPluginVariable(@"Use Experimental Tools", typeof (Boolean), _useExperimentalTools));
                         QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof (Boolean), _UseWeaponLimiter));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Round Timer: Enable").Success) {
                     Boolean useTimer = Boolean.Parse(strValue);
-                    if (useTimer != _UseRoundTimer) {
-                        _UseRoundTimer = useTimer;
-                        if (_UseRoundTimer) {
+                    if (useTimer != _useRoundTimer) {
+                        _useRoundTimer = useTimer;
+                        if (_useRoundTimer) {
                             if (_threadsReady) {
                                 ConsoleWarn("Internal Round Timer activated, will enable on next round.");
                             }
@@ -1253,18 +1254,18 @@ namespace PRoConEvents {
                             ConsoleWarn("Internal Round Timer disabled.");
                         }
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof (Boolean), _UseRoundTimer));
+                        QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Round Timer: Round Duration Minutes").Success) {
                     Double duration = Double.Parse(strValue);
-                    if (_RoundTimeMinutes != duration) {
+                    if (_roundTimeMinutes != duration) {
                         if (duration <= 0) {
                             duration = 30.0;
                         }
-                        _RoundTimeMinutes = duration;
+                        _roundTimeMinutes = duration;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _RoundTimeMinutes));
+                        QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _roundTimeMinutes));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use NO EXPLOSIVES Limiter").Success) {
@@ -2165,26 +2166,31 @@ namespace PRoConEvents {
                     }
                 }
                 else if (Regex.Match(strVariable, @"Add User").Success) {
-                    if (SoldierNameValid(strValue)) {
-                        //Create the access objectdd
-                        var user = new AdKatsUser {
-                                                             user_name = strValue
+                    if (SoldierNameValid(strValue))
+                    {
+                        var aUser = new AdKatsUser
+                        {
+                            user_name = strValue
                         };
                         Boolean valid = true;
-                        lock (_userCache) {
-                            foreach (AdKatsUser aUser in _userCache.Values) {
-                                if (user.user_name == aUser.user_name) {
-                                    valid = false;
-                                }
-                            }
+                        lock (_userCache)
+                        {
+                            valid = _userCache.Values.All(iUser => aUser.user_name != iUser.user_name);
                         }
                         if (!valid)
                         {
-                            ConsoleError("Unable to add " + user.user_name + ", a user with that user id already exists.");
+                            ConsoleError("Unable to add " + aUser.user_name + ", a user with that user id already exists.");
                             return;
                         }
-                        //Queue it for processing
-                        QueueUserForUpload(user);
+                        var addUserThread = new Thread(new ThreadStart(delegate
+                        {
+                            DebugWrite("Starting a user change thread.", 2);
+                            //Attempt to add soldiers matching the user's name
+                            TryAddUserSoldier(aUser, aUser.user_name);
+                            QueueUserForUpload(aUser);
+                            DebugWrite("Exiting a user change thread.", 2);
+                        }));
+                        addUserThread.Start();
                     }
                     else {
                         ConsoleError("User id had invalid formatting, please try again.");
@@ -2209,7 +2215,7 @@ namespace PRoConEvents {
                             QueueRoleForUpload(aRole);
                         }
                         else {
-                            ConsoleError("Role id had invalid characters, please try again.");
+                            ConsoleError("Role had invalid characters, please try again.");
                         }
                     }
                 }
@@ -2833,6 +2839,7 @@ namespace PRoConEvents {
                             _RoundMutedPlayers.Clear();
                         if (_playerDictionary != null)
                             _playerDictionary.Clear();
+                        _firstPlayerListComplete = false;
                         if (_userCache != null)
                             _userCache.Clear();
                         if (FrostbitePlayerInfoList != null)
@@ -3088,6 +3095,7 @@ namespace PRoConEvents {
                             //Set the handle for TeamSwap 
                             _PlayerListUpdateWaitHandle.Set();
                             if (startingPlayerCount == 0 && _playerDictionary.Count > 0) {
+                                _firstPlayerListComplete = true;
                                 DebugWrite("First player list complete. Commands can now be used.", 1);
                             }
                         }
@@ -3144,7 +3152,7 @@ namespace PRoConEvents {
         {
             try
             {
-                if (!_pluginEnabled || !_threadsReady || !_IsTestingAuthorized)
+                if (!_pluginEnabled || !_threadsReady || !_isTestingAuthorized)
                 {
                     return;
                 }
@@ -3416,9 +3424,9 @@ namespace PRoConEvents {
 
                             _serverName = serverInfo.ServerName;
                             //Only activate the following on ADK servers.
-                            Boolean wasADK = _IsTestingAuthorized;
-                            _IsTestingAuthorized = serverInfo.ServerName.Contains("=ADK=");
-                            if (!wasADK && _IsTestingAuthorized)
+                            Boolean wasADK = _isTestingAuthorized;
+                            _isTestingAuthorized = serverInfo.ServerName.Contains("=ADK=");
+                            if (!wasADK && _isTestingAuthorized)
                             {
                                 ConsoleWrite("Server is priviledged for testing.");
                                 UpdateSettingPage();
@@ -3457,7 +3465,7 @@ namespace PRoConEvents {
                     //Update the factions 
                     UpdateFactions();
                     //Enable round timer
-                    if (_UseRoundTimer) {
+                    if (_useRoundTimer) {
                         StartRoundTimer();
                     }
                     StartRoundTicketLogger();
@@ -3585,6 +3593,9 @@ namespace PRoConEvents {
         private void ProcessPlayerKill(Kill kKillerVictimDetails) {
             try
             {
+                if (!_firstPlayerListComplete) {
+                    return;
+                }
                 AdKatsPlayer victim = null;
                 _playerDictionary.TryGetValue(kKillerVictimDetails.Victim.SoldierName, out victim);
                 AdKatsPlayer killer = null;
@@ -3611,7 +3622,7 @@ namespace PRoConEvents {
                         if (!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName)) {
                             try {
                                 //ADK grenade cooking catcher
-                                if (_UseExperimentalTools && _UseGrenadeCookCatcher) {
+                                if (_useExperimentalTools && _UseGrenadeCookCatcher) {
                                     if (_RoundCookers == null) {
                                         _RoundCookers = new Dictionary<String, AdKatsPlayer>();
                                     }
@@ -3881,7 +3892,7 @@ namespace PRoConEvents {
             DebugWrite("uploadWeaponCode starting!", 7);
 
             //Make sure database connection active
-            if (HandlePossibleDisconnect() || !_IsTestingAuthorized)
+            if (HandlePossibleDisconnect() || !_isTestingAuthorized)
             {
                 return;
             }
@@ -4984,7 +4995,7 @@ namespace PRoConEvents {
                     if (message.Contains("ComoRose:")) {
                         return;
                     }
-                    QueueMessageForParsing(speaker, message);
+                    QueueMessageForParsing(speaker, message.Trim());
                 }
             }
             catch (Exception e) {
@@ -5238,7 +5249,7 @@ namespace PRoConEvents {
                                 DebugWrite("MESSAGE: Message is regular chat. Ignoring.", 7);
                                 continue;
                             }
-                            QueueCommandForParsing(speaker, message);
+                            QueueCommandForParsing(speaker, message.Trim());
                         }
                     }
                     catch (Exception e)
@@ -5654,11 +5665,10 @@ namespace PRoConEvents {
                 DebugWrite("Raw Command: " + commandString, 6);
                 String remainingMessage = message.TrimStart(splitMessage[0].ToCharArray()).Trim();
 
-                //GATE 1: Add general data
                 record.server_id = _serverID;
                 record.record_time = DateTime.UtcNow;
 
-                //GATE 2: Add Command
+                //GATE 1: Add Command
                 AdKatsCommand commandType = null;
                 if (_CommandTextDictionary.TryGetValue(commandString, out commandType)) {
                     record.command_type = commandType;
@@ -5675,8 +5685,7 @@ namespace PRoConEvents {
                     return;
                 }
 
-                //GATE 3: Check Access Rights
-                //Check for server command case
+                //GATE 2: Check Access Rights
                 if (record.record_source == AdKatsRecord.Sources.ServerCommand && !_AllowAdminSayCommands)
                 {
                     SendMessageToSource(record, "Access to commands using that method has been disabled in AdKats settings.");
@@ -5685,6 +5694,11 @@ namespace PRoConEvents {
                 }
                     //Check if player has the right to perform what he's asking, only perform for InGame actions
                 if (record.record_source == AdKatsRecord.Sources.InGame) {
+                    if (!_firstPlayerListComplete) {
+                        SendMessageToSource(record, "AdKats was recently started/rebooted. Please wait a minute for player listing to complete.");
+                        FinalizeRecord(record);
+                        return;
+                    }
                     //Attempt to fetch the source player
                     if (!_playerDictionary.TryGetValue(record.source_name, out record.source_player)) {
                         ConsoleError("Source player not found in server for in-game command, unable to complete command.");
@@ -5702,7 +5716,7 @@ namespace PRoConEvents {
                     }
                 }
 
-                //GATE 4: Add specific data based on command type.
+                //GATE 3: Specific data based on command type.
                 switch (record.command_type.command_key) {
                     case "player_move": {
                         //Remove previous commands awaiting confirmation
@@ -8365,7 +8379,7 @@ namespace PRoConEvents {
                 !RoleIsInteractionAble(record.target_player.player_role);
             Boolean adminsOnline = onlineAdminCount > 0;
             String reportMessage = "";
-            if (!_IsTestingAuthorized || !sourceAA || !adminsOnline) {
+            if (!_isTestingAuthorized || !sourceAA || !adminsOnline) {
                 reportMessage = "REPORT [" + reportID + "] sent on " + record.target_player.player_name + " for " + record.record_message;
             }
             else{
@@ -8384,7 +8398,7 @@ namespace PRoConEvents {
                     Thread.Sleep(TimeSpan.FromSeconds((adminsOnline) ? (45.0):(5.0)));
                     //Get the reported record
                     AdKatsRecord reportedRecord;
-                    if (_RoundReports.TryGetValue(reportID, out reportedRecord) && _UseExperimentalTools)
+                    if (_RoundReports.TryGetValue(reportID, out reportedRecord) && _useExperimentalTools)
                     {
                         if (CanPunish(reportedRecord, 90) || !adminsOnline) {
                             //Remove it from the reports for this round
@@ -8640,9 +8654,11 @@ namespace PRoConEvents {
                         {
                             //Wait the rule delay duration
                             Thread.Sleep(TimeSpan.FromSeconds(_ServerRulesDelay));
-                            foreach (var rule in _ServerRulesList.Where(rule => !String.IsNullOrEmpty(rule)))
-                            {
-                                SendMessageToSource(record, GetPreMessage(rule, false));
+                            Int32 ruleIndex = 0;
+                            var validRules = _ServerRulesList.Where(rule => !String.IsNullOrEmpty(rule));
+                            foreach (var rule in validRules) {
+                                String currentPrefix = "(" + (++ruleIndex) + "/" + validRules.Count() + ") ";
+                                SendMessageToSource(record, currentPrefix + GetPreMessage(rule, false));
                                 Thread.Sleep(TimeSpan.FromSeconds(_ServerRulesInterval));
                             }
                         }
@@ -8815,7 +8831,7 @@ namespace PRoConEvents {
                         if (_LastStatLoggerStatusUpdateTime.AddSeconds(60) < DateTime.UtcNow) {
                             _LastStatLoggerStatusUpdateTime = DateTime.UtcNow;
                             if (_statLoggerVersion == "BF3") {
-                                if (_IsTestingAuthorized)
+                                if (_isTestingAuthorized)
                                 {
                                     _FeedStatLoggerSettings = true;
                                 }
@@ -8838,7 +8854,7 @@ namespace PRoConEvents {
                             }
                             else if (_statLoggerVersion == "UNIVERSAL")
                             {
-                                if (_IsTestingAuthorized)
+                                if (_isTestingAuthorized)
                                 {
                                     _FeedStatLoggerSettings = true;
                                 }
@@ -9218,15 +9234,18 @@ namespace PRoConEvents {
                                             record.command_numeric = 0;
                                             break;
                                         case TimeoutSubset.TimeoutSubsetType.Round:
-                                            //Do nothing, ban is a round ban and should not leave the server
-                                            continue;
+                                            //Accept round ban as 1 hour timeban
+                                            record.command_type = _CommandKeyDictionary["player_ban_temp"];
+                                            record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                                            record.command_numeric = 60;
+                                            break;
                                         default:
                                             //Ban type is unknown, unable to process
                                             continue;
                                     }
                                     record.source_name = _CBanAdminName;
                                     record.server_id = _serverID;
-                                    record.target_player = FetchPlayer(true, true, null, -1, cBan.SoldierName, cBan.Guid.ToUpper(), cBan.IpAddress);
+                                    record.target_player = FetchPlayer(true, false, null, -1, cBan.SoldierName, cBan.Guid.ToUpper(), cBan.IpAddress);
                                     if (!String.IsNullOrEmpty(record.target_player.player_name)) {
                                         record.target_name = record.target_player.player_name;
                                     }
@@ -10213,8 +10232,8 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof(Boolean), _FeedServerReservedSlots));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
-                QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), _UseRoundTimer));
-                QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof(Double), _RoundTimeMinutes));
+                QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), _useRoundTimer));
+                QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof(Double), _roundTimeMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
                 QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
                 QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
@@ -10539,9 +10558,7 @@ namespace PRoConEvents {
                             UpdateRecord(record, false);
                             return false;
                         }
-                        else {
-                            DebugWrite("DBCOMM: " + record.command_type + " record contained errors, skipping UPDATE", 4);
-                        }
+                        DebugWrite("DBCOMM: " + record.command_type + " record contained errors, skipping UPDATE", 4);
                     }
                     else {
                         DebugWrite("DBCOMM: Skipping record UPDATE for " + record.command_type, 5);
@@ -11145,21 +11162,16 @@ namespace PRoConEvents {
             return -1;
         }
 
-        //DONE
         private void RemoveUser(AdKatsUser user) {
             DebugWrite("removeUser starting!", 6);
-            //Make sure database connection active
             if (HandlePossibleDisconnect()) {
                 return;
             }
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        //Set the insert command structure
                         command.CommandText = "DELETE FROM `" + _mySqlDatabaseName + "`.`adkats_users` WHERE `user_id` = @user_id";
-                        //Set values
                         command.Parameters.AddWithValue("@user_id", user.user_id);
-                        //Attempt to execute the query
                         Int32 rowsAffected = command.ExecuteNonQuery();
                     }
                 }
@@ -11170,10 +11182,8 @@ namespace PRoConEvents {
             DebugWrite("removeUser finished!", 6);
         }
 
-        //DONE
         private void RemoveRole(AdKatsRole aRole) {
             DebugWrite("removeRole starting!", 6);
-            //Make sure database connection active
             if (HandlePossibleDisconnect()) {
                 return;
             }
@@ -11193,22 +11203,14 @@ namespace PRoConEvents {
                     return;
                 }
                 using (MySqlConnection connection = GetDatabaseConnection()) {
-                    //Delete all role commands for this role
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        //Set the insert command structure
                         command.CommandText = "DELETE FROM `" + _mySqlDatabaseName + "`.`adkats_rolecommands` WHERE `role_id` = @role_id";
-                        //Set values
                         command.Parameters.AddWithValue("@role_id", aRole.role_id);
-                        //Attempt to execute the query
                         Int32 rowsAffected = command.ExecuteNonQuery();
                     }
-                    //Finally delete the role
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        //Set the insert command structure
                         command.CommandText = "DELETE FROM `" + _mySqlDatabaseName + "`.`adkats_roles` WHERE `role_id` = @role_id";
-                        //Set values
                         command.Parameters.AddWithValue("@role_id", aRole.role_id);
-                        //Attempt to execute the query
                         Int32 rowsAffected = command.ExecuteNonQuery();
                     }
                 }
@@ -11219,23 +11221,17 @@ namespace PRoConEvents {
             DebugWrite("removeRole finished!", 6);
         }
 
-        //DONE
         private void UploadUser(AdKatsUser aUser) {
             DebugWrite("uploadUser starting!", 6);
-            //Make sure database connection active
             if (HandlePossibleDisconnect()) {
                 return;
             }
             try {
                 DebugWrite("Uploading user: " + aUser.user_name, 5);
 
-                //Open db connection
                 using (MySqlConnection connection = GetDatabaseConnection()) {
-                    //Upload/Update the main user object
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        //If the user does not have a current role, we need to assign them one
                         if (aUser.user_role == null) {
-                            //Make sure we have a role to give them
                             AdKatsRole aRole = null;
                             if (_RoleKeyDictionary.TryGetValue("guest_default", out aRole)) {
                                 aUser.user_role = aRole;
@@ -11245,7 +11241,6 @@ namespace PRoConEvents {
                                 return;
                             }
                         }
-                        //Set the insert command structure
                         command.CommandText = @"
                         INSERT INTO 
 	                        `adkats_users`
@@ -11269,7 +11264,6 @@ namespace PRoConEvents {
 	                        `user_email` = @user_email,
 	                        `user_phone` = @user_phone,
 	                        `user_role` = @user_role";
-                        //Set values
                         if (aUser.user_id > 0) {
                             command.Parameters.AddWithValue("@user_id", aUser.user_id);
                         }
@@ -11392,7 +11386,6 @@ namespace PRoConEvents {
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while attempting to add user soldier.", e));
             }
-            return;
         }
 
         //DONE
@@ -12805,7 +12798,8 @@ namespace PRoConEvents {
                                             aRole.RoleAllowedCommands.Add(aCommand.command_key, aCommand);
                                         }
                                     }
-                                    foreach (var remCommand in aRole.RoleAllowedCommands.Values.ToList().Where(remCommand => !currentRoleElement.Value.Contains(remCommand.command_id)))
+                                    KeyValuePair<Int64, HashSet<Int64>> element = currentRoleElement;
+                                    foreach (var remCommand in aRole.RoleAllowedCommands.Values.ToList().Where(remCommand => !element.Value.Contains(remCommand.command_id)))
                                     {
                                         ConsoleWarn("Removing command " + remCommand.command_key + " from role " + aRole.role_key);
                                         aRole.RoleAllowedCommands.Remove(remCommand.command_key);
@@ -12908,10 +12902,10 @@ namespace PRoConEvents {
                                         _userCache.Add(aUser.user_id, aUser);
                                     }
                                 }
-                                foreach (var remUser in _userCache.Values.Where(usr => validIDs.All(id => id != usr.user_id)))
+                                foreach (var remUser in _userCache.Values.Where(usr => validIDs.All(id => id != usr.user_id)).ToList())
                                 {
-                                    ConsoleWarn("Removing user " + remUser.user_name);
                                     _userCache.Remove(remUser.user_id);
+                                    ConsoleSuccess("User " + remUser.user_name + " removed.");
                                 } 
                             }
                         }
@@ -13203,10 +13197,6 @@ namespace PRoConEvents {
             {
                 DebugWrite(aPlayer.player_name + " IS an Admin Assistant.", 3);
             }
-            else
-            {
-                DebugWrite(aPlayer.player_name + " is NOT an Admin Assistant.", 4);
-            }
             return authorized;
         }
 
@@ -13217,12 +13207,10 @@ namespace PRoConEvents {
             {
                 return isAdminAssistant;
             }
-            //Make sure database connection active
             if (HandlePossibleDisconnect()) {
                 return false;
             }
             if(RoleIsInteractionAble(aPlayer.player_role)){
-                //Player is an admin, player cannot also be an admin assistant
                 return false;
             }
             try
@@ -16829,7 +16817,7 @@ namespace PRoConEvents {
                         try {
                             DebugWrite("starting round timer", 2);
                             Thread.Sleep(3000);
-                            var roundTimeSeconds = (Int32) (_RoundTimeMinutes * 60);
+                            var roundTimeSeconds = (Int32) (_roundTimeMinutes * 60);
                             for (Int32 secondsRemaining = roundTimeSeconds; secondsRemaining > 0; secondsRemaining--) {
                                 if (_CurrentRoundState == RoundState.Ended || !_pluginEnabled || !_threadsReady) {
                                     return;
