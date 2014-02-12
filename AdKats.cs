@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.9.10
+ * Version 4.0.9.11
  */
 
 using System;
@@ -48,7 +48,7 @@ using PRoCon.Core.Utils;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current version of the plugin
-        private const String PluginVersion = "4.0.9.10";
+        private const String PluginVersion = "4.0.9.11";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -163,8 +163,6 @@ namespace PRoConEvents {
         private Boolean _UseWeaponLimiter;
         private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
         private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
-        private Boolean _UseAAReportAutoHandler = false;
-        private String[] _AutoReportHandleStrings = {};
         //Grenade Cook Catcher
         private Boolean _UseGrenadeCookCatcher;
         private Dictionary<String, AdKatsPlayer> _RoundCookers;
@@ -320,8 +318,11 @@ namespace PRoConEvents {
         private Dictionary<String, Int32> _RoundMutedPlayers = new Dictionary<String, Int32>();
 
         //Admin Assistant Settings
+        private Boolean _EnableAdminAssistants = false;
         private Boolean _EnableAdminAssistantPerk = true;
         private Int32 _MinimumRequiredMonthlyReports = 10;
+        private Boolean _UseAAReportAutoHandler = false;
+        private String[] _AutoReportHandleStrings = { };
 
         //Twitter Settings
 /*
@@ -858,8 +859,17 @@ namespace PRoConEvents {
                 lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Ticket Window Low", typeof (int), _TeamSwapTicketWindowLow));
 
                 //Admin Assistant Settings
-                lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Enable Admin Assistant Perk", typeof (Boolean), _EnableAdminAssistantPerk));
-                lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Minimum Confirmed Reports Per Month", typeof (int), _MinimumRequiredMonthlyReports));
+                lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Enable Admin Assistants", typeof(Boolean), _EnableAdminAssistants));
+                if (_EnableAdminAssistants)
+                {
+                    lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Minimum Confirmed Reports Per Month", typeof(int), _MinimumRequiredMonthlyReports));
+                    lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Enable Admin Assistant Perk", typeof(Boolean), _EnableAdminAssistantPerk));
+                    lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
+                    if (_UseAAReportAutoHandler)
+                    {
+                        lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Auto-Report-Handler Strings", typeof(String[]), _AutoReportHandleStrings));
+                    }
+                }
 
                 //Muting Settings
                 lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|On-Player-Muted Message", typeof (String), _MutedPlayerMuteMessage));
@@ -953,11 +963,6 @@ namespace PRoConEvents {
                         if (_UseWeaponLimiter) {
                             lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Weapon String", typeof (String), _WeaponLimiterString));
                             lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
-                        }
-                        lstReturn.Add(new CPluginVariable("X99. Experimental|Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
-                        if (_UseAAReportAutoHandler)
-                        {
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|Auto-Report-Handler Strings", typeof(String[]), _AutoReportHandleStrings));
                         }
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof (Boolean), _UseGrenadeCookCatcher));
                     }
@@ -1284,24 +1289,6 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof (Boolean), _UseWeaponLimiter));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Use AA Report Auto Handler").Success)
-                {
-                    Boolean useAAHandler = Boolean.Parse(strValue);
-                    if (useAAHandler != _UseAAReportAutoHandler) {
-                        _UseAAReportAutoHandler = useAAHandler;
-                        if (_UseAAReportAutoHandler)
-                        {
-                            if (_threadsReady) {
-                                ConsoleWarn("Internal Automatic Report Handler activated.");
-                            }
-                        }
-                        else {
-                            ConsoleWarn("Internal Automatic Report Handler disabled.");
-                        }
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
-                    }
-                }
                 else if (Regex.Match(strVariable, @"NO EXPLOSIVES Weapon String").Success) {
                     if (_WeaponLimiterString != strValue) {
                         if (!String.IsNullOrEmpty(strValue)) {
@@ -1325,12 +1312,6 @@ namespace PRoConEvents {
                             ConsoleError("Weapon exception String cannot be empty.");
                         }
                     }
-                }
-                else if (Regex.Match(strVariable, @"Auto-Report-Handler Strings").Success)
-                {
-                    _AutoReportHandleStrings = CPluginVariable.DecodeStringArray(strValue);
-                    //Once setting has been changed, upload the change to database
-                    QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 }
                 else if (Regex.Match(strVariable, @"Use Grenade Cook Catcher").Success) {
                     Boolean useCookCatcher = Boolean.Parse(strValue);
@@ -2120,13 +2101,52 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Ticket Window Low", typeof (Int32), _TeamSwapTicketWindowLow));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Enable Admin Assistant Perk").Success) {
+                else if (Regex.Match(strVariable, @"Enable Admin Assistants").Success)
+                {
                     Boolean enableAA = Boolean.Parse(strValue);
-                    if (_EnableAdminAssistantPerk != enableAA) {
+                    if (_EnableAdminAssistants != enableAA)
+                    {
+                        _EnableAdminAssistants = enableAA;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Enable Admin Assistants", typeof(Boolean), _EnableAdminAssistants));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Enable Admin Assistant Perk").Success)
+                {
+                    Boolean enableAA = Boolean.Parse(strValue);
+                    if (_EnableAdminAssistantPerk != enableAA)
+                    {
                         _EnableAdminAssistantPerk = enableAA;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof (Boolean), _EnableAdminAssistantPerk));
+                        QueueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof(Boolean), _EnableAdminAssistantPerk));
                     }
+                }
+                else if (Regex.Match(strVariable, @"Use AA Report Auto Handler").Success)
+                {
+                    Boolean useAAHandler = Boolean.Parse(strValue);
+                    if (useAAHandler != _UseAAReportAutoHandler)
+                    {
+                        _UseAAReportAutoHandler = useAAHandler;
+                        if (_UseAAReportAutoHandler)
+                        {
+                            if (_threadsReady)
+                            {
+                                ConsoleWarn("Internal Automatic Report Handler activated.");
+                            }
+                        }
+                        else
+                        {
+                            ConsoleWarn("Internal Automatic Report Handler disabled.");
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Report-Handler Strings").Success)
+                {
+                    _AutoReportHandleStrings = CPluginVariable.DecodeStringArray(strValue);
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 }
                 else if (Regex.Match(strVariable, @"Minimum Confirmed Reports Per Month").Success) {
                     Int32 monthlyReports = Int32.Parse(strValue);
@@ -3069,7 +3089,7 @@ namespace PRoConEvents {
                                 }
                             }
                             //Inform the admins of disconnect
-                            if (straglerCount > (dicCount / 2)) {
+                            if (straglerCount > 1 && straglerCount > (dicCount / 2)) {
                                 //Create the report record
                                 var record = new AdKatsRecord {
                                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -3080,7 +3100,7 @@ namespace PRoConEvents {
                                                                     target_name = "Server",
                                                                     target_player = null,
                                                                     source_name = "AdKats",
-                                                                    record_message = "Server Crashed / Blaze Disconnected (" + dicCount + " Players Lost)"
+                                                                    record_message = "Server Crashed (" + dicCount + " Players Lost)"
                                                                 };
                                 //Process the record
                                 QueueRecordForProcessing(record);
@@ -8372,9 +8392,9 @@ namespace PRoConEvents {
             Boolean canAutoHandle =
                 _UseAAReportAutoHandler &&
                 sourceAA &&
-                _AutoReportHandleStrings.Count() > 0 && 
+                _AutoReportHandleStrings.Any() && 
                 !String.IsNullOrEmpty(_AutoReportHandleStrings[0]) && 
-                _AutoReportHandleStrings.Any(handleString => messageLower.Contains(handleString)) && 
+                _AutoReportHandleStrings.Any(messageLower.Contains) && 
                 !record.target_player.player_aa && 
                 !RoleIsInteractionAble(record.target_player.player_role);
             Boolean adminsOnline = onlineAdminCount > 0;
@@ -8490,13 +8510,9 @@ namespace PRoConEvents {
                 int count = 0;
                 lock (_playerDictionary)
                 {
-                    foreach (AdKatsPlayer player in _playerDictionary.Values)
-                    {
-                        if ((player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"))
-                        {
-                            ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
-                            PlayerSayMessage(record.target_name, "Admin Nuke Issued On " + record.target_name);
-                        }
+                    foreach (AdKatsPlayer player in _playerDictionary.Values.Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"))) {
+                        ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
+                        PlayerSayMessage(record.source_name, "Admin Nuke Issued On " + record.target_name);
                     }
                 }
                 SendMessageToSource(record, "You NUKED " + record.target_name + " for " + record.record_message + ".");
@@ -8516,13 +8532,9 @@ namespace PRoConEvents {
             try {
                 lock (_playerDictionary)
                 {
-                    foreach (AdKatsPlayer player in _playerDictionary.Values)
-                    {
-                        if (player.player_role.role_key == "guest_default")
-                        {
-                            Thread.Sleep(50);
-                            ExecuteCommand("procon.protected.send", "admin.kickPlayer", player.player_name, "(" + record.source_name + ") " + record.record_message);
-                        }
+                    foreach (AdKatsPlayer player in _playerDictionary.Values.Where(player => player.player_role.role_key == "guest_default")) {
+                        Thread.Sleep(50);
+                        ExecuteCommand("procon.protected.send", "admin.kickPlayer", player.player_name, "(" + record.source_name + ") " + record.record_message);
                     }
                 }
                 AdminSayMessage("All guest players have been kicked.");
@@ -13202,6 +13214,9 @@ namespace PRoConEvents {
 
         private Boolean IsAdminAssistant(AdKatsPlayer aPlayer) {
             DebugWrite("fetchAdminAssistants starting!", 6);
+            if (!_EnableAdminAssistants) {
+                return false;
+            }
             Boolean isAdminAssistant = aPlayer.player_aa;
             if (aPlayer.player_aa_fetched)
             {
