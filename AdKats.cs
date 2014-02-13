@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.9.11
+ * Version 4.0.9.12
  */
 
 using System;
@@ -48,7 +48,7 @@ using PRoCon.Core.Utils;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current version of the plugin
-        private const String PluginVersion = "4.0.9.11";
+        private const String PluginVersion = "4.0.9.12";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -4582,7 +4582,7 @@ namespace PRoConEvents {
             if (_UseKpmChecker && !acted)
             {
                 DebugWrite("Preparing to KPM check " + aPlayer.player_name, 5);
-                acted = KPMHackCheck(aPlayer, true);
+                acted = KPMHackCheck(aPlayer, debug);
             }
             if (!acted && debug) {
                 ConsoleSuccess(aPlayer.player_name + " is clean.");
@@ -4976,7 +4976,6 @@ namespace PRoConEvents {
                         };
                         //Process the record
                         QueueRecordForProcessing(record);
-                        //AdminSayMessage(player.player_name + " auto-banned for aimbot. [" + actedWeapon.id + "-" + (int) actedWeapon.hskr + "-" + (int) actedWeapon.kills + "-" + (int) actedWeapon.headshots + "]");
                     }
                 }
             }
@@ -7447,7 +7446,7 @@ namespace PRoConEvents {
                 {
                     DebugWrite("Denying round report.", 5);
                     reportedRecord.command_action = _CommandKeyDictionary["player_report_deny"];
-                    UpdateRecord(reportedRecord, false);
+                    UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report has been denied.");
 
                     record.target_name = reportedRecord.source_name;
@@ -7473,7 +7472,7 @@ namespace PRoConEvents {
                 {
                     DebugWrite("Accepting round report.", 5);
                     reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
-                    UpdateRecord(reportedRecord, false);
+                    UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report has been accepted. Thank you.");
 
                     record.target_name = reportedRecord.source_name;
@@ -7499,7 +7498,7 @@ namespace PRoConEvents {
                 {
                     DebugWrite("Handling round report.", 5);
                     reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
-                    UpdateRecord(reportedRecord, false);
+                    UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report has been acted on. Thank you.");
 
                     record.target_name = reportedRecord.target_name;
@@ -8425,11 +8424,10 @@ namespace PRoConEvents {
                             _RoundReports.Remove(reportID);
                             //Update it in the database
                             reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
-                            UpdateRecord(reportedRecord, false);
+                            UpdateRecord(reportedRecord);
                             //Get target information
                             var aRecord = new AdKatsRecord {
                                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                                        isDebug = false,
                                                                         server_id = _serverID,
                                                                         command_type = _CommandKeyDictionary["player_punish"],
                                                                         command_numeric = 0,
@@ -8727,7 +8725,7 @@ namespace PRoConEvents {
                     record.target_player.frostbitePlayerInfo.TeamID.ToString(), 
                     record.target_player.frostbitePlayerInfo.SquadID.ToString(), 
                     record.target_player.player_name);
-                SendMessageToSource(record, "You are now the leader of your current squad.");
+                SendMessageToSource(record, "You are now the leader oand f your current squad.");
                 //Set the executed bool
                 record.record_action_executed = true;
             }
@@ -10567,7 +10565,7 @@ namespace PRoConEvents {
                             //Only call update if the record contained no errors
                             DebugWrite("DBCOMM: UPDATING record for " + record.command_type, 5);
                             //Update Record
-                            UpdateRecord(record, false);
+                            UpdateRecord(record);
                             return false;
                         }
                         DebugWrite("DBCOMM: " + record.command_type + " record contained errors, skipping UPDATE", 4);
@@ -10810,7 +10808,7 @@ namespace PRoConEvents {
             }
         }
 
-        private void UpdateRecord(AdKatsRecord record, bool debug) {
+        private void UpdateRecord(AdKatsRecord record) {
             DebugWrite("updateRecord starting!", 6);
 
             //Make sure database connection active
@@ -10825,7 +10823,7 @@ namespace PRoConEvents {
                     try {
                         using (MySqlConnection connection = GetDatabaseConnection()) {
                             using (MySqlCommand command = connection.CreateCommand()) {
-                                String tablename = (debug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
+                                String tablename = (record.isDebug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
                                 //Set the insert command structure
                                 command.CommandText = "UPDATE " + tablename + @" 
                                 SET 
@@ -16679,8 +16677,6 @@ namespace PRoConEvents {
             if (aException.InternalException != null) {
                 prefix = "Line " + (new StackTrace(aException.InternalException, true)).GetFrame(0).GetFileLineNumber() + ": ";
             }
-            //Always write the exception to console
-            ConsoleWrite(prefix + aException, ConsoleMessageType.Exception);
             //Check if the exception attributes to the database
             if (aException.InternalException != null && 
                 (aException.InternalException.GetType() == typeof (System.TimeoutException)
@@ -16694,19 +16690,21 @@ namespace PRoConEvents {
             {
                 HandleDatabaseConnectionInteruption();
             }
-            else {
+            else
+            {
+                ConsoleWrite(prefix + aException, ConsoleMessageType.Exception);
                 //Create the Exception record
                 var record = new AdKatsRecord {
-                                                           record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                           isDebug = true,
-                                                           server_id = _serverID,
-                                                           command_type = _CommandKeyDictionary["adkats_exception"],
-                                                           command_numeric = 0,
-                                                           target_name = "AdKats",
-                                                           target_player = null,
-                                                           source_name = "AdKats",
-                                                           record_message = aException.ToString()
-                                                       };
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    isDebug = true,
+                                                    server_id = _serverID,
+                                                    command_type = _CommandKeyDictionary["adkats_exception"],
+                                                    command_numeric = 0,
+                                                    target_name = "AdKats",
+                                                    target_player = null,
+                                                    source_name = "AdKats",
+                                                    record_message = aException.ToString()
+                                                };
                 //Process the record
                 QueueRecordForProcessing(record);
             }
@@ -16720,7 +16718,7 @@ namespace PRoConEvents {
                     _lastDatabaseTimeout = DateTime.UtcNow;
                 }
                 ++_databaseTimeouts;
-                ConsoleError("Database timeout detected. This is timeout " + _databaseTimeouts + ". Critical disconnect at " + DatabaseTimeoutThreshold + ".");
+                ConsoleError("Database connection fault detected. This is fault " + _databaseTimeouts + ". Critical disconnect at " + DatabaseTimeoutThreshold + ".");
                 //Check for critical state (timeouts > threshold, and last timeout less than 1 minute ago)
                 if((DateTime.UtcNow - _lastDatabaseTimeout).TotalSeconds < 60)
                 {
@@ -16760,7 +16758,7 @@ namespace PRoConEvents {
                                         }
                                         else {
                                             _databaseSuccess++;
-                                            ConsoleWarn("Database connection successful, but waiting " + (DatabaseSuccessThreshold - _databaseSuccess) + " more successful connections to restore normal operation.");
+                                            ConsoleWarn("Database connection appears restored, but waiting " + (DatabaseSuccessThreshold - _databaseSuccess) + " more successful connections to restore normal operation.");
                                         }
                                     } while (_databaseSuccess < DatabaseSuccessThreshold);
                                     //Connection has been restored, inform the user
@@ -16771,7 +16769,7 @@ namespace PRoConEvents {
                                     //re-enable AdKats and Stat Logger
                                     _databaseConnectionCriticalState = false;
                                     ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
-                                    ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLogger", "True");
+                                ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLogger", "True");
 
                                     //Clear the player dinctionary, causing all players to be fetched from the database again
                                     lock (_playerDictionary)
