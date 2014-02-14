@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.9.12
+ * Version 4.0.9.13
  */
 
 using System;
@@ -48,7 +48,7 @@ using PRoCon.Core.Utils;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current version of the plugin
-        private const String PluginVersion = "4.0.9.12";
+        private const String PluginVersion = "4.0.9.13";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -1293,24 +1293,24 @@ namespace PRoConEvents {
                     if (_WeaponLimiterString != strValue) {
                         if (!String.IsNullOrEmpty(strValue)) {
                             _WeaponLimiterString = strValue;
-                            //Once setting has been changed, upload the change to database
-                            QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Weapon String", typeof (String), _WeaponLimiterString));
                         }
                         else {
                             ConsoleError("Weapon String cannot be empty.");
                         }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
                     }
                 }
                 else if (Regex.Match(strVariable, @"NO EXPLOSIVES Exception String").Success) {
                     if (_WeaponLimiterExceptionString != strValue) {
                         if (!String.IsNullOrEmpty(strValue)) {
                             _WeaponLimiterExceptionString = strValue;
-                            //Once setting has been changed, upload the change to database
-                            QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Exception String", typeof (String), _WeaponLimiterExceptionString));
                         }
                         else {
                             ConsoleError("Weapon exception String cannot be empty.");
                         }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Grenade Cook Catcher").Success) {
@@ -4234,6 +4234,10 @@ namespace PRoConEvents {
                                 playerCheckingQueue = new Queue<AdKatsPlayer>(_BanEnforcerCheckingQueue.ToArray());
                                 //Clear the queue for next run
                                 _BanEnforcerCheckingQueue.Clear();
+                                if (_databaseConnectionCriticalState)
+                                {
+                                    continue;
+                                }
                             }
                         }
                         else {
@@ -4972,7 +4976,7 @@ namespace PRoConEvents {
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
                             source_name = "AutoAdmin",
-                            record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                            record_message = _HackerCheckerKPMBanMessage + " [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
                         };
                         //Process the record
                         QueueRecordForProcessing(record);
@@ -7447,7 +7451,8 @@ namespace PRoConEvents {
                     DebugWrite("Denying round report.", 5);
                     reportedRecord.command_action = _CommandKeyDictionary["player_report_deny"];
                     UpdateRecord(reportedRecord);
-                    SendMessageToSource(reportedRecord, "Your report has been denied.");
+                    SendMessageToSource(reportedRecord, "Your report [" + record.command_numeric + "] has been denied.");
+                    SendMessageToSource(record, "Report [" + record.command_numeric + "] has been denied.");
 
                     record.target_name = reportedRecord.source_name;
                     record.target_player = reportedRecord.source_player;
@@ -7473,7 +7478,8 @@ namespace PRoConEvents {
                     DebugWrite("Accepting round report.", 5);
                     reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
                     UpdateRecord(reportedRecord);
-                    SendMessageToSource(reportedRecord, "Your report has been accepted. Thank you.");
+                    SendMessageToSource(reportedRecord, "Your report [" + record.command_numeric + "] has been accepted. Thank you.");
+                    SendMessageToSource(record, "Report [" + record.command_numeric + "] has been accepted.");
 
                     record.target_name = reportedRecord.source_name;
                     record.target_player = reportedRecord.source_player;
@@ -9255,7 +9261,7 @@ namespace PRoConEvents {
                                     }
                                     record.source_name = _CBanAdminName;
                                     record.server_id = _serverID;
-                                    record.target_player = FetchPlayer(true, false, null, -1, cBan.SoldierName, cBan.Guid.ToUpper(), cBan.IpAddress);
+                                    record.target_player = FetchPlayer(true, false, null, -1, cBan.SoldierName, (!String.IsNullOrEmpty(cBan.Guid))?(cBan.Guid.ToUpper()):(null), cBan.IpAddress);
                                     if (!String.IsNullOrEmpty(record.target_player.player_name)) {
                                         record.target_name = record.target_player.player_name;
                                     }
@@ -9269,11 +9275,11 @@ namespace PRoConEvents {
 
                                     //Create the ban
                                     var aBan = new AdKatsBan {
-                                                                       ban_record = record,
-                                                                       ban_enforceName = nameAvailable && (_DefaultEnforceName || (!guidAvailable && !ipAvailable) || !String.IsNullOrEmpty(cBan.SoldierName)),
-                                                                       ban_enforceGUID = guidAvailable && (_DefaultEnforceGUID || (!nameAvailable && !ipAvailable) || !String.IsNullOrEmpty(cBan.Guid)),
-                                                                       ban_enforceIP = ipAvailable && (_DefaultEnforceIP || (!nameAvailable && !guidAvailable) || !String.IsNullOrEmpty(cBan.IpAddress))
-                                                                   };
+                                                                    ban_record = record,
+                                                                    ban_enforceName = nameAvailable && (_DefaultEnforceName || (!guidAvailable && !ipAvailable) || !String.IsNullOrEmpty(cBan.SoldierName)),
+                                                                    ban_enforceGUID = guidAvailable && (_DefaultEnforceGUID || (!nameAvailable && !ipAvailable) || !String.IsNullOrEmpty(cBan.Guid)),
+                                                                    ban_enforceIP = ipAvailable && (_DefaultEnforceIP || (!nameAvailable && !guidAvailable) || !String.IsNullOrEmpty(cBan.IpAddress))
+                                                                };
                                     if (!aBan.ban_enforceName && !aBan.ban_enforceGUID && !aBan.ban_enforceIP) {
                                         ConsoleError("Unable to create ban, no proper player information");
                                         continue;
@@ -11702,6 +11708,7 @@ namespace PRoConEvents {
                                                 player_guid = playerGUID,
                                                 player_ip = playerIP
                                             };
+                AssignPlayerRole(aPlayer);
                 return aPlayer;
             }
             if (playerID < 0 && String.IsNullOrEmpty(playerName) && String.IsNullOrEmpty(playerGUID) && String.IsNullOrEmpty(playerIP)) {
@@ -12839,8 +12846,19 @@ namespace PRoConEvents {
             AdKatsCommand teamswapCommand;
             if (_CommandKeyDictionary.TryGetValue("self_teamswap", out teamswapCommand))
             {
-                if(!aRole.ConditionalAllowedCommands.ContainsKey(teamswapCommand.command_key))
+                if (!aRole.ConditionalAllowedCommands.ContainsKey(teamswapCommand.command_key))
                     aRole.ConditionalAllowedCommands.Add(teamswapCommand.command_key, new KeyValuePair<Func<AdKatsPlayer, Boolean>, AdKatsCommand>(AAStatusFunc, teamswapCommand));
+            }
+            else
+            {
+                ConsoleError("Unable to find teamswap command when assigning conditional commands.");
+            }
+            //Admins Command
+            AdKatsCommand adminsCommand;
+            if (_CommandKeyDictionary.TryGetValue("self_admins", out adminsCommand))
+            {
+                if (!aRole.ConditionalAllowedCommands.ContainsKey(adminsCommand.command_key))
+                    aRole.ConditionalAllowedCommands.Add(adminsCommand.command_key, new KeyValuePair<Func<AdKatsPlayer, Boolean>, AdKatsCommand>(AAStatusFunc, adminsCommand));
             }
             else
             {
@@ -13172,6 +13190,7 @@ namespace PRoConEvents {
             {
                 aRole = _RoleKeyDictionary["guest_default"];
             }
+            //Debug Block
             if (aPlayer.player_role == null)
             {
                 if (authorized)
@@ -13190,13 +13209,11 @@ namespace PRoConEvents {
                     if (authorized)
                     {
                         DebugWrite("Role for authorized player " + aPlayer.player_name + " has been CHANGED to " + aRole.role_name + ".", 4);
-                        //Tell the player about the access update?
                         PlayerSayMessage(aPlayer.player_name, "You have been assigned the authorized role " + aRole.role_name + ".");
                     }
                     else
                     {
                         DebugWrite("Player " + aPlayer.player_name + " has been assigned the guest role.", 4);
-                        //Tell the player about the access update?
                         PlayerSayMessage(aPlayer.player_name, "You have been assigned the guest role.");
                     }
                 }
@@ -13228,48 +13245,41 @@ namespace PRoConEvents {
             }
             try
             {
-                if (HasAccess(aPlayer, GetCommandByKey("self_admins"))) {
-                    //Having access to the self_admins command warrants admin assistant status
-                    isAdminAssistant = true;
-                }
-                else 
+                using (MySqlConnection connection = GetDatabaseConnection())
                 {
-                    using (MySqlConnection connection = GetDatabaseConnection())
+                    using (MySqlCommand command = connection.CreateCommand())
                     {
-                        using (MySqlCommand command = connection.CreateCommand())
+                        command.CommandText = @"
+                        SELECT
+	                        'isAdminAssistant'
+                        FROM 
+	                        `adkats_records_main`
+                        WHERE (
+	                        SELECT count(`command_action`) 
+	                        FROM `adkats_records_main` 
+	                        WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @"
+	                        AND `source_id` = " + aPlayer.player_id + @" 
+	                        AND (`adkats_records_main`.`record_time` BETWEEN date_sub(UTC_TIMESTAMP(),INTERVAL 30 DAY) AND UTC_TIMESTAMP())
+                        ) >= " + _MinimumRequiredMonthlyReports + @" LIMIT 1
+                        UNION
+                        SELECT
+	                        'isGrandfatheredAdminAssistant'
+                        FROM 
+	                        `adkats_records_main`
+                        WHERE (
+	                        SELECT count(`command_action`) 
+	                        FROM `adkats_records_main` 
+	                        WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @" 
+	                        AND `source_id` = " + aPlayer.player_id + @"
+                        ) >= 75";
+                        using (MySqlDataReader reader = command.ExecuteReader())
                         {
-                            command.CommandText = @"
-                            SELECT
-	                            'isAdminAssistant'
-                            FROM 
-	                            `adkats_records_main`
-                            WHERE (
-	                            SELECT count(`command_action`) 
-	                            FROM `adkats_records_main` 
-	                            WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @"
-	                            AND `source_id` = " + aPlayer.player_id + @" 
-	                            AND (`adkats_records_main`.`record_time` BETWEEN date_sub(UTC_TIMESTAMP(),INTERVAL 30 DAY) AND UTC_TIMESTAMP())
-                            ) >= " + _MinimumRequiredMonthlyReports + @" LIMIT 1
-                            UNION
-                            SELECT
-	                            'isGrandfatheredAdminAssistant'
-                            FROM 
-	                            `adkats_records_main`
-                            WHERE (
-	                            SELECT count(`command_action`) 
-	                            FROM `adkats_records_main` 
-	                            WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @" 
-	                            AND `source_id` = " + aPlayer.player_id + @"
-                            ) >= 75";
-                            using (MySqlDataReader reader = command.ExecuteReader())
+                            if (reader.Read())
                             {
-                                if (reader.Read())
-                                {
-                                    //Player is an admin assistant, give them access to the self_admins command
-                                    isAdminAssistant = true;
-                                }
-                                aPlayer.player_aa_fetched = true;
+                                //Player is an admin assistant, give them access to the self_admins command
+                                isAdminAssistant = true;
                             }
+                            aPlayer.player_aa_fetched = true;
                         }
                     }
                 }
@@ -16733,7 +16743,9 @@ namespace PRoConEvents {
                             _DisconnectHandlingThread = new Thread(new ThreadStart(delegate {
                                 try {
                                     //Log the time of critical disconnect
-                                    DateTime criticalDisconnectTime = DateTime.UtcNow;
+                                    DateTime disconnectTime = DateTime.Now;
+                                    Stopwatch disconnectTimer = new Stopwatch();
+                                    disconnectTimer.Start();
                                     //Immediately disable Stat Logger
                                     ConsoleError("Database connection in critical failure state. Disabling Stat Logger and putting AdKats in Backup Mode.");
                                     _databaseConnectionCriticalState = true;
@@ -16754,7 +16766,7 @@ namespace PRoConEvents {
                                         if (!restored) {
                                             _databaseSuccess = 0;
                                             //Inform the user database still not connectable
-                                            ConsoleError("Database still not accessible. (" + (DateTime.UtcNow - criticalDisconnectTime).TotalSeconds + " seconds since critical disconnect at " + criticalDisconnectTime.ToShortTimeString() + ".");
+                                            ConsoleError("Database still not accessible. (" + String.Format("{0:0.00}", disconnectTimer.Elapsed.TotalMinutes) + " minutes since critical disconnect at " + disconnectTime.ToShortTimeString() + ".");
                                         }
                                         else {
                                             _databaseSuccess++;
@@ -16762,6 +16774,7 @@ namespace PRoConEvents {
                                         }
                                     } while (_databaseSuccess < DatabaseSuccessThreshold);
                                     //Connection has been restored, inform the user
+                                    disconnectTimer.Stop();
                                     ConsoleSuccess("Database connection restored, re-enabling Stat Logger and returning AdKats to Normal Mode.");
                                     //Reset timeout counts
                                     _databaseSuccess = 0;
@@ -16787,7 +16800,7 @@ namespace PRoConEvents {
                                                                         target_name = "Database",
                                                                         target_player = null,
                                                                         source_name = "AdKats",
-                                                                        record_message = "Critical Database Disconnect Handled (" + (DateTime.UtcNow - criticalDisconnectTime).TotalSeconds + " seconds). AdKats on server " + _serverID + " functioning normally again."
+                                                                        record_message = "Critical Database Disconnect Handled (" + String.Format("{0:0.00}", disconnectTimer.Elapsed.TotalMinutes) + " minutes). AdKats on server " + _serverID + " functioning normally again."
                                                                     };
                                     //Process the record
                                     QueueRecordForProcessing(record);
