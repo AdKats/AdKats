@@ -308,11 +308,16 @@ fine for performance). Right now only Punish and Forgive are required to be logg
     <li>Bug fixes from previous releases.</li>
 </ul>
 <h4>4.1.0.0 (14-FEB-2014)</h4>
+<b>Changes</b><br/>
+<ul>
+    <li><b>TeamSwap</b> Auto-Whitelisting per round has been removed as an option.</li>
+</ul>
 <b>Enhancements</b><br/>
 <ul>
     <li><b>Added @accept and @deny, for acting on round reports.</b> No actions against players will be taken when using these commands, they are for helping or hindering AA status for a player. A system coming currently under testing on our servers for automatic report actions will make use of this.</li>
-    <li><b>Added @admins command.</b> Accessible to to admins and admin assistants by default. Returns the list of online admins in the server.</li>
-    <li><b>Added @lead command.</b> Lead command will give the speaker leader of their current squad.</li>
+    <li><b>Added @admins command</b> Accessible to to admins and admin assistants by default. Returns the list of online admins in the server.</li>
+    <li><b>Added @lead command</b> Lead command will give the speaker leader of their current squad.</li>
+    <li><b>Team Enhancements</b> Team names are now detected every match, so factions US, RU, and CN for nuke and kickall now hit the correct team.</li>
     <li><b>Command Enhancements</b> Target player names entered with 1 character will no longer be automatically acted on. Will require a confirm.</li>
     <li><b>Email Enhancements</b> All emails sent through AdKats are now sent as blind carbon copy. Emails are now added to a queue when multiple need to be sent in succession.</li>
     <li><b>List Enhancements</b> Added adkats_specialplayers database table. This table can be used for assigning special whitelists, access, and blacklists. Valid groups are currently slot_reserved, slot_spectator, whitelist_multibalancer, blacklist_dispersion, and whitelist_hackerchecker. Players can be added by ID, or by identifier (name, guid, or IP), and can be assigned, a game and server to apply the list to. If you use player IDs then you wont need to update player names if they change their names, the player names will automatically update when they join the server.</li>
