@@ -174,6 +174,29 @@
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>
 </p>
 <h2>Features</h2>
+<h3>User Ranks and Roles</h3>
+<p>
+    On first enable you will need to add a user, you can have as many users as you want.
+    When a user is added you need to assign them a role.
+    The default role is "Default Guest" and the allowed commands for that role are shown to you in the role section.
+    The default guest role cannot be deleted, but can be edited to your heart's content.
+    You can add more roles by typing a new role name in the "add role" field.
+    All roles that are added default to allow all commands, so you will need to edit the allowed commands for new roles.
+    When you change a user's role and they are currently in-game they will be told that their role has changed, and what it was changed to.
+</p>
+<p>
+    Once a user is added you need to assign their soldiers.
+    Users can have multiple soldiers, so if your admins have multiple accounts you can assign all of those soldiers under their user.
+    All soldiers added need to be in your database before they can be added to a user.
+    This system tracks user's soldiers, so if they change their soldier names they will still have powers without needing to contact admins about the change.
+    Type their soldier's name in the "new soldier" field to add them.
+    It will error out if it cannot find the soldier in the database.
+    To add soldiers to the database quickly, have them join any server you are running this version of AdKats on and their information will be immediately added.
+</p>
+<p>
+    The user list is sorted by role ID, then by user name.
+    Any item that says "Delete?" you need to type the word delete in the line and hit enter.
+</p>
 <h3>Infraction Tracking System</h3>
 <p>
     Infraction Tracking commands take the load off admins remembering which players have broken server rules, and how
@@ -515,6 +538,80 @@
     If you want to whitelist a player from a server, enter their player name, guid, or IP in the whitelist array for each server.
     We will add database support for whitelisting in a later version.
     If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes while they are in the server, stopping if they leave.
+</p>
+<h3>Commanding AdKats from External Source</h3>
+<h4>AdKats WebAdmin can be used for this.</h4>
+<p>
+    If you have an external system (such as a web-based tool with access to bf3 server information), then there is currently one way to interact with AdKats externally (A second coming soon if possible).
+</p>
+<h4>Adding Database Records</h4>
+<p>
+    Have your external system add a row to the record table with a new record to be acted on.
+    All information is needed in the row just like the ones sent from AdKats to the database.
+    Review the ones already in your database before attempting this, and ask ColColonCleaner any questions you may have.
+    The only exception is you need to make the 'adkats_read' column for that row = "N", this way AdKats will act on that record.
+    Every 5-10 seconds the plugin checks for new input in the table, and will act on them if found.
+</p>
+<h4>Using external plugin API</h4>
+<p>
+    Two available MatchCommands have been added, one for issuing commands through AdKats, and the second for fetching admin lists.
+    These can be called by other plugins to integrate their functionality with AdKats and its database.
+<h5>FetchAuthorizedSoldiers</h5>
+Plugin: AdKats<br/>
+Method: FetchAuthorizedSoldiers<br/>
+Parameters:
+<ul>
+    <li><b>caller_identity</b> String with ID unique to the plugin sending the request. No whitespace or special characters. e.g. "InsaneLimits"</li>
+    <li><b>response_requested</b> true</li>
+    <li><b>response_class</b> Class/plugin where the callback will be sent.</li>
+    <li><b>response_method</b> Method within the target plugin that will accept the response</li>
+    <li><b>user_subset</b> "admin", "elevated", or "all". Admin meaning they have access to player interaction commands, elevated meaning they do not. Returns all soldiers in that subset.</li>
+    <li><b>user_role </b> Returns all soldiers belonging to users in a specific role.</li>
+</ul>
+(user_subset and user_role cannot be used at the same time, pick one or the other.)<br/><br/>
+Response:
+<ul>
+    <li><b>caller_identity</b> AdKats</li>
+    <li><b>response_requested</b> false</li>
+    <li><b>response_type</b> FetchAuthorizedSoldiers</li>
+    <li><b>response_value</b> List of soldiers that matched the given parameters. CPluginVariable.EncodeStringArray used to compact into one field. CPluginVariable.DecodeStringArray can be used to parse the field back into an array.</li>
+</ul>
+<h5>IssueCommand</h5>
+Plugin: AdKats<br/>
+Method: IssueCommand<br/>
+Parameters:
+<ul>
+    <li><b>caller_identity</b> String with ID unique to the plugin sending the request. No whitespace or special characters. e.g. "InsaneLimits"</li>
+    <li><b>response_requested</b> true/false. Whether the caller would like a response with the outcome of the command.</li>
+    <li><b>response_class</b> Only if response_requested is true. Class/plugin where the callback will be sent.</li>
+    <li><b>response_method</b> Only if response_requested is true. Method within the target plugin that will accept the response.</li>
+    <li><b>command_type</b> Command key that references the desired command. Examples: player_kill, player_ban_perm, admin_say.</li>
+    <li><b>command_numeric</b> Used for commands like player_ban_temp that require a numerical input. Currently player_ban_temp is the only command that requires a command numeric, and will throw errors if a numerica is not provided. In all other cases this field is optional.</li>
+    <li><b>source_name</b> Name of the source you would like database logged. For example an admin name, plugin name, or a custom name like AutoAdmin.</li>
+    <li><b>target_name</b> The exact name of the target you would like to issue the command against, usually a player name. For commands like admin_nuke which don't accept a player name, special syntax is used, documentation of such is provided in the readme.</li>
+    <li><b>target_guid</b> Only required when binding to onJoin, onLeave, or other events where the player may not be loaded into AdKats' live player list yet. If the player cannot be found in the live player list by target_name then this guid is used to fetch their information from the database and perform the command.</li>
+    <li><b>record_message</b> The message or reason that should be used with the command. e.g. Baserape. Message can be up to 500 characters.</li>
+</ul>
+Response:
+<ul>
+    <li><b>caller_identity</b> AdKats</li>
+    <li><b>response_requested</b> false</li>
+    <li><b>response_type</b> IssueCommand</li>
+    <li><b>response_value</b> List of all messages sent for the command, comparable to what an admin would see in-game. CPluginVariable.EncodeStringArray used to compact into one field. CPluginVariable.DecodeStringArray can be used to parse the field back into an array. If the command succeeds withouth issue there should (generally) only be one message.</li>
+</ul>
+If all the required parameters are provided, the command will execute and log to the database. Response sent if it was requested.<br/>
+<br/>
+Example:<br/>
+var requestHashtable = new Hashtable{<br/>
+{"caller_identity", "SomePlugin"},<br/>
+{"response_requested", false},<br/>
+{"command_type", "player_ban_perm"},<br/>
+{"source_name", "AutoTest"},<br/>
+{"target_name", "ColColonCleaner"},<br/>
+{"target_guid", "EA_698E70AF4E420A99824EA9A438FE3CB1"},<br/>
+{"record_message", "Testing"}<br/>
+};<br/>
+ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.JsonEncode(requestHashtable));
 </p>
 <h3>Available In-Game Commands</h3>
 <p>
@@ -940,103 +1037,6 @@
     </td>
 </tr>
 </table>
-<h3>User Ranks and Roles</h3>
-<p>
-    On first enable you will need to add a user, you can have as many users as you want.
-    When a user is added you need to assign them a role.
-    The default role is "Default Guest" and the allowed commands for that role are shown to you in the role section.
-    The default guest role cannot be deleted, but can be edited to your heart's content.
-    You can add more roles by typing a new role name in the "add role" field.
-    All roles that are added default to allow all commands, so you will need to edit the allowed commands for new roles.
-    When you change a user's role and they are currently in-game they will be told that their role has changed, and what it was changed to.
-</p>
-<p>
-    Once a user is added you need to assign their soldiers.
-    Users can have multiple soldiers, so if your admins have multiple accounts you can assign all of those soldiers under their user.
-    All soldiers added need to be in your database before they can be added to a user.
-    This system tracks user's soldiers, so if they change their soldier names they will still have powers without needing to contact admins about the change.
-    Type their soldier's name in the "new soldier" field to add them.
-    It will error out if it cannot find the soldier in the database.
-    To add soldiers to the database quickly, have them join any server you are running this version of AdKats on and their information will be immediately added.
-</p>
-<p>
-    The user list is sorted by role ID, then by user name.
-    Any item that says "Delete?" you need to type the word delete in the line and hit enter.
-</p>
-<h3>Commanding AdKats from Outside the Game</h3>
-<h4>AdKats WebAdmin can be used for this.</h4>
-<p>
-    If you have an external system (such as a web-based tool with access to bf3 server information), then there is currently one way to interact with AdKats externally (A second coming soon if possible).
-</p>
-<h4>Adding Database Records</h4>
-<p>
-    Have your external system add a row to the record table with a new record to be acted on.
-    All information is needed in the row just like the ones sent from AdKats to the database.
-    Review the ones already in your database before attempting this, and ask ColColonCleaner any questions you may have.
-    The only exception is you need to make the 'adkats_read' column for that row = "N", this way AdKats will act on that record.
-    Every 5-10 seconds the plugin checks for new input in the table, and will act on them if found.
-</p>
-<h4>Using external plugin API</h4>
-<p>
-    Two available MatchCommands have been added, one for issuing commands through AdKats, and the second for fetching admin lists.
-    These can be called by other plugins to integrate their functionality with AdKats and its database.
-    <h5>FetchAuthorizedSoldiers</h5>
-        Plugin: AdKats<br/>
-        Method: FetchAuthorizedSoldiers<br/>
-        Parameters:
-        <ul>
-            <li><b>caller_identity</b> String with ID unique to the plugin sending the request. No whitespace or special characters. e.g. "InsaneLimits"</li>
-            <li><b>response_requested</b> true</li>
-            <li><b>response_class</b> Class/plugin where the callback will be sent.</li>
-            <li><b>response_method</b> Method within the target plugin that will accept the response</li>
-            <li><b>user_subset</b> "admin", "elevated", or "all". Admin meaning they have access to player interaction commands, elevated meaning they do not. Returns all soldiers in that subset.</li>
-            <li><b>user_role </b> Returns all soldiers belonging to users in a specific role.</li>
-        </ul>
-        (user_subset and user_role cannot be used at the same time, pick one or the other.)<br/><br/>
-        Response:
-        <ul>
-            <li><b>caller_identity</b> AdKats</li>
-            <li><b>response_requested</b> false</li>
-            <li><b>response_type</b> FetchAuthorizedSoldiers</li>
-            <li><b>response_value</b> List of soldiers that matched the given parameters. CPluginVariable.EncodeStringArray used to compact into one field. CPluginVariable.DecodeStringArray can be used to parse the field back into an array.</li>
-        </ul>
-    <h5>IssueCommand</h5>
-        Plugin: AdKats<br/>
-        Method: IssueCommand<br/>
-        Parameters:
-        <ul>
-            <li><b>caller_identity</b> String with ID unique to the plugin sending the request. No whitespace or special characters. e.g. "InsaneLimits"</li>
-            <li><b>response_requested</b> true/false. Whether the caller would like a response with the outcome of the command.</li>
-            <li><b>response_class</b> Only if response_requested is true. Class/plugin where the callback will be sent.</li>
-            <li><b>response_method</b> Only if response_requested is true. Method within the target plugin that will accept the response.</li>
-            <li><b>command_type</b> Command key that references the desired command. Examples: player_kill, player_ban_perm, admin_say.</li>
-            <li><b>command_numeric</b> Used for commands like player_ban_temp that require a numerical input. Currently player_ban_temp is the only command that requires a command numeric, and will throw errors if a numerica is not provided. In all other cases this field is optional.</li>
-            <li><b>source_name</b> Name of the source you would like database logged. For example an admin name, plugin name, or a custom name like AutoAdmin.</li>
-            <li><b>target_name</b> The exact name of the target you would like to issue the command against, usually a player name. For commands like admin_nuke which don't accept a player name, special syntax is used, documentation of such is provided in the readme.</li>
-            <li><b>target_guid</b> Only required when binding to onJoin, onLeave, or other events where the player may not be loaded into AdKats' live player list yet. If the player cannot be found in the live player list by target_name then this guid is used to fetch their information from the database and perform the command.</li>
-            <li><b>record_message</b> The message or reason that should be used with the command. e.g. Baserape. Message can be up to 500 characters.</li>
-        </ul>
-        Response:
-        <ul>
-            <li><b>caller_identity</b> AdKats</li>
-            <li><b>response_requested</b> false</li>
-            <li><b>response_type</b> IssueCommand</li>
-            <li><b>response_value</b> List of all messages sent for the command, comparable to what an admin would see in-game. CPluginVariable.EncodeStringArray used to compact into one field. CPluginVariable.DecodeStringArray can be used to parse the field back into an array. If the command succeeds withouth issue there should (generally) only be one message.</li>
-        </ul>
-        If all the required parameters are provided, the command will execute and log to the database. Response sent if it was requested.<br/>
-        <br/>
-        Example:<br/>
-        var requestHashtable = new Hashtable{<br/>
-            {"caller_identity", "SomePlugin"},<br/>
-            {"response_requested", false},<br/>
-            {"command_type", "player_ban_perm"},<br/>
-            {"source_name", "AutoTest"},<br/>
-            {"target_name", "ColColonCleaner"},<br/>
-            {"target_guid", "EA_698E70AF4E420A99824EA9A438FE3CB1"},<br/>
-            {"record_message", "Testing"}<br/>
-        };<br/>
-        ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.JsonEncode(requestHashtable));
-</p>
 <h2>Settings</h2>
 <h3>0. Instance Settings:</h3>
 <ul>
