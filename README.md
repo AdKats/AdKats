@@ -1170,7 +1170,6 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
 <h3>A18. Internal Hacker-Checker Settings:</h3>
 <ul>
     <li><b>'HackerChecker: Enable'</b> - Whether the internal BF3Stats hacker-checker is enabled.</li>
-    <li><b>'HackerChecker: Whitelist'</b> - The list of player names, GUIDs, and IPs, that will not be checked by the hacker-checker.</li>
     <li><b>'HackerChecker: DPS Checker: Enable'</b> - Whether the Damage Mod portion of the hacker-checker is enabled.</li>
     <li>
         <b>'HackerChecker: DPS Checker: Trigger Level'</b> -
