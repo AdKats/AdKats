@@ -113,7 +113,9 @@
     AdKats was inspired by the gaming community A Different Kind (ADK).
     Visit <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
 </p>
-<h2>Installation</h2>
+<h2>Upgrade Installation</h2>
+    For update instructions from your current version to the latest version please review the MyRCON forum thread.
+<h2>Fresh Installation</h2>
 <ol>
     <li>
         <b>Install XpKiller's Stat logger plugin.</b>
