@@ -1,5 +1,5 @@
 <script>
-    //<latest_stable_release>4.0.0.0</latest_stable_release>
+    //<latest_stable_release>4.1.0.0</latest_stable_release>
 </script>
 <h1>AdKats</h1>
 <p>
@@ -113,21 +113,27 @@
     AdKats was inspired by the gaming community A Different Kind (ADK).
     Visit <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
 </p>
-<h2>Installation</h2>
+<h2>Upgrade Installation</h2>
+    For update instructions from your current version to the latest version please review the MyRCON forum thread.
+<h2>Fresh Installation</h2>
 <ol>
     <li>
         <b>Install XpKiller's Stat logger plugin.</b>
-        Download and install the latest universal version of XpKiller's <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>. 
+        Download and install the latest universal version of XpKiller's
+        <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>.
         Make sure stat logger is installed and running! Do NOT attempt to install AdKats until that plugin is running without issue.
     </li>
     <li>
         <b>Set up the database.</b>
-        Run the contents of this sql script on your database. It must be run on the same database that Stat Logger is running on. (You can copy/paste the entire page as its shown): https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql
-        <br/>(I would run this automatically if I could, but i'm limited until Procon updates their MySQL connector to allow delimiters)
+        Run the contents of this sql script on your database. It must be run on the same database that Stat Logger is running on.
+        (You can copy/paste the entire page as its shown): https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql
+        <br/>
+        (I would run this automatically if I could, but i'm limited until Procon updates their MySQL connector to allow delimiters)
     </li>
     <li>
         <b>Download AdKats Source.</b>
-        Download the latest version of AdKats from here: <a href="http://sourceforge.net/projects/adkats/files/AdKats-v4.0.0.0.zip/download" target="_blank">Version 4.0.0.0</a>
+        Download the latest version of AdKats from here:
+        <a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.1.0.0.zip/download" target="_blank">Version 4.1.0.0</a>
     </li>
     <li>
         <b>Add plugin file to Procon.</b>
@@ -170,6 +176,29 @@
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>
 </p>
 <h2>Features</h2>
+<h3>User Ranks and Roles</h3>
+<p>
+    On first enable you will need to add a user, you can have as many users as you want.
+    When a user is added you need to assign them a role.
+    The default role is "Default Guest" and the allowed commands for that role are shown to you in the role section.
+    The default guest role cannot be deleted, but can be edited to your heart's content.
+    You can add more roles by typing a new role name in the "add role" field.
+    All roles that are added default to allow all commands, so you will need to edit the allowed commands for new roles.
+    When you change a user's role and they are currently in-game they will be told that their role has changed, and what it was changed to.
+</p>
+<p>
+    Once a user is added you need to assign their soldiers.
+    Users can have multiple soldiers, so if your admins have multiple accounts you can assign all of those soldiers under their user.
+    All soldiers added need to be in your database before they can be added to a user.
+    This system tracks user's soldiers, so if they change their soldier names they will still have powers without needing to contact admins about the change.
+    Type their soldier's name in the "new soldier" field to add them.
+    It will error out if it cannot find the soldier in the database.
+    To add soldiers to the database quickly, have them join any server you are running this version of AdKats on and their information will be immediately added.
+</p>
+<p>
+    The user list is sorted by role ID, then by user name.
+    Any item that says "Delete?" you need to type the word delete in the line and hit enter.
+</p>
 <h3>Infraction Tracking System</h3>
 <p>
     Infraction Tracking commands take the load off admins remembering which players have broken server rules, and how
@@ -283,12 +312,12 @@
 </p>
 <h3>Ban Enforcer</h3>
 <p>
-    AdKats can now enforce bans accross all of your servers within seconds of the ban being issued.
+    AdKats can enforce bans across all of your servers.
     The Ban Enforcer will import and consolidate all bans from every Procon instance you run.
     Bans can be made by name, GUID, IP, any combination, or all at once.
     The default ban is by EA GUID only, this default can be edited but is not recommended.
     Banned players are told how long their ban will last, and when a banned player attempts to re-join they are told the remaining time on their ban.
-    Using ban enforcer also gives access to the @unban in-game command.
+    Using ban enforcer also gives access to the unban in-game command.
 </p>
 <p>
     The Enforcer works properly with all existing auto-admins, and any bans added manually through Procon will be automatically imported by the system.
@@ -332,15 +361,42 @@
 </p>
 <h3>Admin Assistants</h3>
 <p>
-    When a player sends a report, then an admin uses that report by ID, it is considered a "good" report.
-    When a player has X good reports in the past week a small bonus can be given; Access to TeamSwap.
-    When a player gets access it simply tells them
-    "For your consistent player reporting you now have access to TeamSwap. Type @moveme to swap between teams as often as you want."
-    They do not know they are considered an admin assistant, only that they have access to that.
-    Whether a player is an admin assistant is calculated when they join the server, and that status will remain for the duration they are in the server.
-    They need to keep that report count up to keep access.<br/><br/>
-    When an admin assistant sends a report, to the admins that report is prefixed with [AA] to note it as a (most likely) reliable report.
-    Whether admin assistants get the TeamSwap perk can be disabled, but the prefixes admins see will remain.
+    This system has been completely revamped in 4.1.0.0, and several hidden features have now been released to the public.
+    We utilized the full system on our no explosives server with great success, mainly catching things autoadmin cannot.
+    Basically this system automatically tracks who the trusted players in your servers are, and who are reliable sources of reports.
+</p>
+<h4>Basic Functionality</h4>
+<p>
+    The system makes use of the report IDs assigned to each round report.
+    When a player sends a report, and an admin uses the report by ID, the report is logged as confirmed.
+    Once you enable Admin Assistants, AA status is given once the player has X confirmed reports in the past month or 75+ total confirmed reports.
+    A player with AA status is informed of their status on first spawn in the server after joining.
+    If you enable the admin assistant perk, players with AA status are given access to the teamswap and admins commands for the duration they maintain AA status.
+    These command perks are basically incentives to report rule-breakers.
+    Whether a player has AA status is calculated when they join the server, and that status will remain for the duration they are in the server.
+    When an admin assistant sends a report, to the admins their name is prefixed with [AA] to note it as a (most likely) reliable report.
+    Likewise if an admin assistant is the target of a report, their name is prefixed with a clan-tag-like code.
+    (e.g. Report [512]: [AA]ColColonCleaner reported [AA]SomeOtherAA for using explosives).
+</p>
+<h4>Advanced Usage (Auto-Handling)</h4>
+<p>
+    The advanced functionality of this system is now released to the public as testing is complete.
+    This subsection uses your AAs as a collective human autoadmin.<br/><br/>
+
+    Players with AA status can conditionally have their reports acted on by the internal autoadmin.
+    A list of trigger words or phrases of any length can be defined in AdKats settings.
+    If an AA report reason contains any of those trigger words or phrases then autoadmin will act on their report with a punish on the target player, using the reason they entered.
+    This was originally intended for cases when admins are offline and unable to answer reports, but has now been added for all cases.
+    If admins are offline, and the report matches criteria, autoadmin will punish the target player after 5 seconds.
+    If admins are online, a 45 second window is given for the admin to act on the report before automatic handling fires.
+    Admins can use any action command just like normal (e.g. @kill ID, @punish ID, etc...), but can also use the new @accept or @deny commands.
+    @accept will confirm the report but take no action against the target player.
+    @deny is used for bad or invalid reports, and will hurt the reporter's AA status.<br/><br/>
+
+    Exceptions and Security Measures:
+    Admins and admin assistants are protected from automatic actions by this system.
+    Automatic handling will not be taken if the target of a report is an admin or another AA, a real admin must act on the report.
+    Automatic action will also not be taken if the target player has already been acted on in some way in the past 60 seconds.
 </p>
 <h3>Player Muting</h3>
 <p>
@@ -393,15 +449,6 @@
     This is meant to be available to players outside the admin list, usually by paid usage to your community or to clan members only.
     Admins can also use '@moveme', and in their case it bypasses the ticket window restriction.
 </p>
-<p>
-    <b>Auto-Whitelisting:</b>
-    X players per round can be auto whitelisted for TeamSwap.
-    This means at the start of each round X random players have the TeamSwap command added to their list of allowed commands for that round.
-    This elevation is not persisted in the database, and will only apply to the current server and round.
-    It is used to make players want full access, so they might buy access, or join your community to get it.
-    The setting is "Auto-Whitelist Count", under TeamSwap settings.
-    This can be disabled by setting auto-whitelist count to 0.
-</p>
 <h3>Requiring Reasons</h3>
 <p>
     All commands which might lead to actions against players are required to have a reason entered, and will cancel if no reason is given.
@@ -418,6 +465,18 @@
     All settings on the current instance will be overwritten by the synced settings.
     Whenever a setting is changed, that change is persisted to the database.
 </p>
+<h3>Special Player Lists</h3>
+<p>
+    Special player list table "adkats_specialplayers" has been added for the 4.1.0.0 release.
+    In this table, players can be added to any desired group accepted by AdKats.
+    Valid groups are currently slot_reserved, slot_spectator, whitelist_multibalancer, blacklist_dispersion, and whitelist_hackerchecker.
+    Players can be added by ID, or by identifier (name, guid, or IP), and can be assigned a game and server to apply them to.
+    If you use player IDs then you wont need to update player names if they change their names,
+    the player names will automatically update when they join the server;
+    This is especially good to use when whitelisting for the hacker-checker.
+    Leave fields blank to indicate wildcard, for example leaving the server column blank for player will mean it applies to all servers of their game.
+    If you specify the server, the group you have them assigned to will only apply for that one server.
+</p>
 <h3>Internal Hacker-Checker with Whitelist</h3>
 <p>
     Ever since we started running servers we never banned off of "cheat-o-meter" results, since there were too many false positives, so we built our own.
@@ -429,7 +488,7 @@
     To avoid false positives, only weapons that fire bullets (no crossbow, 320, etc), and deal less than 50% damage per shot are included in the calculations.
     This removes all equipment, sniper rifles, shotguns, and heavy-hitting pistols like the magnum/rex from calculations.
     For the remaining weapons there are two checks each one goes through, customizable to your desired trigger levels.
-    
+
     Info posts:
     https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-0-0-0&p=90700&viewfull=1#post90700
     https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-0-0-0&p=92106&viewfull=1#post92106
@@ -455,19 +514,106 @@
     The minimum we allowed during testing was 50%.
     100 kills with the weapon in question are required to trigger this check.
 </p>
+<h4>KPM Checker</h4>
+<p>
+    Be careful with this one, this is where a lot of legit competitive players reside.
+    This check should only be used to request video gameplay of players to prove their play, then whitelist the player.
+    For this check all weapons aside from melee weapons and equipment are included.
+    This includes Sub Machine Guns, Assault Rifles, Carbines, Machine Guns, Handguns, and Sniper Rifles.
+    This check uses weapon time and total kills, rather simple, just kills/total minutes.
+    If that value is greater than your trigger level the ban is issued.
+    After some research and testing the value used on our servers is the default, 4.5.
+    100 kills with the weapon in question are required to trigger this check.
+</p>
 <h4>Posting Method</h4>
 <p>
     The heaviest hacked weapon (the one farthest above normal) is the one displayed in the ban reason using the following formats:<br/>
     Damage Mod Bans:<br/>
     Hacking/Cheating DPS Automatic Ban [WEAPONNAME-DPS-KILLS-HEADSHOTS]<br/>
     Aimbot Bans:<br/>
-    Hacking/Cheating HSK Automatic Ban [WEAPONNAME-HSK-KILLS-HEADSHOTS]
+    Hacking/Cheating HSK Automatic Ban [WEAPONNAME-HSK-KILLS-HEADSHOTS]<br/>
+    KPM Bans:<br/>
+    Hacking/Cheating KPM Automatic Ban [WEAPONNAME-KPM-KILLS-HEADSHOTS]
 </p>
 <p>
     Damage mod bans take priority over aimbot bans.
     If you want to whitelist a player from a server, enter their player name, guid, or IP in the whitelist array for each server.
     We will add database support for whitelisting in a later version.
     If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes while they are in the server, stopping if they leave.
+</p>
+<h3>Commanding AdKats from External Source</h3>
+<h4>AdKats WebAdmin can be used for this.</h4>
+<p>
+    If you have an external system (such as a web-based tool with access to bf3 server information), then there is currently one way to interact with AdKats externally (A second coming soon if possible).
+</p>
+<h4>Adding Database Records</h4>
+<p>
+    Have your external system add a row to the record table with a new record to be acted on.
+    All information is needed in the row just like the ones sent from AdKats to the database.
+    Review the ones already in your database before attempting this, and ask ColColonCleaner any questions you may have.
+    The only exception is you need to make the 'adkats_read' column for that row = "N", this way AdKats will act on that record.
+    Every 5-10 seconds the plugin checks for new input in the table, and will act on them if found.
+</p>
+<h4>Using external plugin API</h4>
+<p>
+    Two available MatchCommands have been added, one for issuing commands through AdKats, and the second for fetching admin lists.
+    These can be called by other plugins to integrate their functionality with AdKats and its database.
+<h5>FetchAuthorizedSoldiers</h5>
+Plugin: AdKats<br/>
+Method: FetchAuthorizedSoldiers<br/>
+Parameters:
+<ul>
+    <li><b>caller_identity</b> String with ID unique to the plugin sending the request. No whitespace or special characters. e.g. "InsaneLimits"</li>
+    <li><b>response_requested</b> true</li>
+    <li><b>response_class</b> Class/plugin where the callback will be sent.</li>
+    <li><b>response_method</b> Method within the target plugin that will accept the response</li>
+    <li><b>user_subset</b> "admin", "elevated", or "all". Admin meaning they have access to player interaction commands, elevated meaning they do not. Returns all soldiers in that subset.</li>
+    <li><b>user_role </b> Returns all soldiers belonging to users in a specific role.</li>
+</ul>
+(user_subset and user_role cannot be used at the same time, pick one or the other.)<br/><br/>
+Response:
+<ul>
+    <li><b>caller_identity</b> AdKats</li>
+    <li><b>response_requested</b> false</li>
+    <li><b>response_type</b> FetchAuthorizedSoldiers</li>
+    <li><b>response_value</b> List of soldiers that matched the given parameters. CPluginVariable.EncodeStringArray used to compact into one field. CPluginVariable.DecodeStringArray can be used to parse the field back into an array.</li>
+</ul>
+<h5>IssueCommand</h5>
+Plugin: AdKats<br/>
+Method: IssueCommand<br/>
+Parameters:
+<ul>
+    <li><b>caller_identity</b> String with ID unique to the plugin sending the request. No whitespace or special characters. e.g. "InsaneLimits"</li>
+    <li><b>response_requested</b> true/false. Whether the caller would like a response with the outcome of the command.</li>
+    <li><b>response_class</b> Only if response_requested is true. Class/plugin where the callback will be sent.</li>
+    <li><b>response_method</b> Only if response_requested is true. Method within the target plugin that will accept the response.</li>
+    <li><b>command_type</b> Command key that references the desired command. Examples: player_kill, player_ban_perm, admin_say.</li>
+    <li><b>command_numeric</b> Used for commands like player_ban_temp that require a numerical input. Currently player_ban_temp is the only command that requires a command numeric, and will throw errors if a numerica is not provided. In all other cases this field is optional.</li>
+    <li><b>source_name</b> Name of the source you would like database logged. For example an admin name, plugin name, or a custom name like AutoAdmin.</li>
+    <li><b>target_name</b> The exact name of the target you would like to issue the command against, usually a player name. For commands like admin_nuke which don't accept a player name, special syntax is used, documentation of such is provided in the readme.</li>
+    <li><b>target_guid</b> Only required when binding to onJoin, onLeave, or other events where the player may not be loaded into AdKats' live player list yet. If the player cannot be found in the live player list by target_name then this guid is used to fetch their information from the database and perform the command.</li>
+    <li><b>record_message</b> The message or reason that should be used with the command. e.g. Baserape. Message can be up to 500 characters.</li>
+</ul>
+Response:
+<ul>
+    <li><b>caller_identity</b> AdKats</li>
+    <li><b>response_requested</b> false</li>
+    <li><b>response_type</b> IssueCommand</li>
+    <li><b>response_value</b> List of all messages sent for the command, comparable to what an admin would see in-game. CPluginVariable.EncodeStringArray used to compact into one field. CPluginVariable.DecodeStringArray can be used to parse the field back into an array. If the command succeeds withouth issue there should (generally) only be one message.</li>
+</ul>
+If all the required parameters are provided, the command will execute and log to the database. Response sent if it was requested.<br/>
+<br/>
+Example:<br/>
+var requestHashtable = new Hashtable{<br/>
+{"caller_identity", "SomePlugin"},<br/>
+{"response_requested", false},<br/>
+{"command_type", "player_ban_perm"},<br/>
+{"source_name", "AutoTest"},<br/>
+{"target_name", "ColColonCleaner"},<br/>
+{"target_guid", "EA_698E70AF4E420A99824EA9A438FE3CB1"},<br/>
+{"record_message", "Testing"}<br/>
+};<br/>
+ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.JsonEncode(requestHashtable));
 </p>
 <h3>Available In-Game Commands</h3>
 <p>
@@ -701,6 +847,26 @@
     </td>
 </tr>
 <tr>
+    <td><b>Admin Accept</b></td>
+    <td>accept</td>
+    <td>
+        [reportID]
+    </td>
+    <td>
+        The in-game command used for accepting reports as confirmed.
+    </td>
+</tr>
+<tr>
+    <td><b>Admin Deny</b></td>
+    <td>deny</td>
+    <td>
+        [reportID]
+    </td>
+    <td>
+        The in-game command used for denying reports.
+    </td>
+</tr>
+<tr>
     <td><b>Admin Say</b></td>
     <td>say</td>
     <td>
@@ -781,6 +947,26 @@
     </td>
 </tr>
 <tr>
+    <td><b>Lead</b></td>
+    <td>lead</td>
+    <td>
+        none
+    </td>
+    <td>
+        The in-game command used to the speaker to leader of their current squad. Only available in BF4.
+    </td>
+</tr>
+<tr>
+    <td><b>Admins</b></td>
+    <td>admins</td>
+    <td>
+        none
+    </td>
+    <td>
+        The in-game command used to get the list of current online admins.
+    </td>
+</tr>
+<tr>
     <td><b>VOIP</b></td>
     <td>voip</td>
     <td>None</td>
@@ -853,42 +1039,6 @@
     </td>
 </tr>
 </table>
-<h3>User Ranks and Roles</h3>
-<p>
-    On first enable you will need to add a user, you can have as many users as you want.
-    When a user is added you need to assign them a role.
-    The default role is "Default Guest" and the allowed commands for that role are shown to you in the role section.
-    The default guest role cannot be deleted, but can be edited to your heart's content.
-    You can add more roles by typing a new role name in the "add role" field.
-    All roles that are added default to allow all commands, so you will need to edit the allowed commands for new roles.
-    When you change a user's role and they are currently in-game they will be told that their role has changed, and what it was changed to.
-</p>
-<p>
-    Once a user is added you need to assign their soldiers.
-    Users can have multiple soldiers, so if your admins have multiple accounts you can assign all of those soldiers under their user.
-    All soldiers added need to be in your database before they can be added to a user.
-    This system tracks user's soldiers, so if they change their soldier names they will still have powers without needing to contact admins about the change.
-    Type their soldier's name in the "new soldier" field to add them.
-    It will error out if it cannot find the soldier in the database.
-    To add soldiers to the database quickly, have them join any server you are running this version of AdKats on and their information will be immediately added.
-</p>
-<p>
-    The user list is sorted by role ID, then by user name.
-    Any item that says "Delete?" you need to type the word delete in the line and hit enter.
-</p>
-<h3>Commanding AdKats from Outside the Game</h3>
-<h4>AdKats WebAdmin can be used for this.</h4>
-<p>
-    If you have an external system (such as a web-based tool with access to bf3 server information), then there is currently one way to interact with AdKats externally (A second coming soon if possible).
-</p>
-<h4>Adding Database Records</h4>
-<p>
-    Have your external system add a row to the record table with a new record to be acted on.
-    All information is needed in the row just like the ones sent from AdKats to the database.
-    Review the ones already in your database before attempting this, and ask ColColonCleaner any questions you may have.
-    The only exception is you need to make the 'adkats_read' column for that row = "N", this way AdKats will act on that record.
-    Every 5-10 seconds the plugin checks for new input in the table, and will act on them if found.
-</p>
 <h2>Settings</h2>
 <h3>0. Instance Settings:</h3>
 <ul>
@@ -963,19 +1113,16 @@
 </ul>
 <h3>9. TeamSwap Settings:</h3>
 <ul>
-    <li>
-        <b>'Auto-Whitelist Count'</b>
-        At the start of each round, X random players will be whitelisted for TeamSwap during that round.
-        At the end of the round they lose their whitelisting.
-        Use to get players interested in permanent whitelisting.
-    </li>
     <li><b>'Ticket Window High'</b> - When either team is above this ticket count, nobody (except admins) will be able to use TeamSwap.</li>
     <li><b>'Ticket Window Low'</b> - When either team is below this ticket count, nobody (except admins) will be able to use TeamSwap.</li>
 </ul>
 <h3>A10. Admin Assistant Settings:</h3>
 <ul>
-    <li><b>'Enable Admin Assistant Perk'</b> - Whether admin assistants will get the TeamSwap perk for their help.</li>
+    <li><b>'Enable Admin Assistants'</b> - Whether admin assistant statuses can be assigned to players.</li>
     <li><b>'Minimum Confirmed Reports Per Month'</b> - How many confirmed reports the player must have in the past month to be considered an admin assistant.</li>
+    <li><b>'Enable Admin Assistant Perk'</b> - Whether admin assistants will get the TeamSwap perk for their help.</li>
+    <li><b>'Use AA Report Auto Handler'</b> - Whether the internal auto-handling system for admin assistant reports is enabled.</li>
+    <li><b>'Auto-Report-Handler Strings'</b> - List of trigger words/phrases that the auto-handler will act on. One per line.</li>
 </ul>
 <h3>A11. Player Mute Settings:</h3>
 <ul>
@@ -1055,7 +1202,11 @@
         After 3 months of testing, we suggest setting between 50 and 70 depending on the severity you want to enforce.
         You will get some false positives down near 50 but will catch many more aimbotters, setting near 70 will not result in any false positives but also wont catch as many aimbotters.
     </li>
-    <li><b>'HackerChecker: HSK Checker: Ban Message'</b> - Message prefix to use when banning for aimbot.</li>
+    <li><b>'HackerChecker: HSK Checker: Ban Message'</b> - Message prefix to use when banning for high KPM.</li>
+    <li><b>'HackerChecker: KPM Checker: Enable'</b> - Whether the KPM portion of the hacker-checker is enabled.</li>
+    <li><b>'HackerChecker: KPM Checker: Trigger Level'</b> - Kills-per-minute with any included weapon that will trigger the ban.
+    </li>
+    <li><b>'HackerChecker: KPM Checker: Ban Message'</b> - Message prefix to use when banning for high KPM.</li>
 </ul>
 <h3>A19. Server Rules Settings:</h3>
 <ul>
