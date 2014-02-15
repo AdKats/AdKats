@@ -114,7 +114,10 @@
     Visit <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
 </p>
 <h2>Upgrade Installation</h2>
-    For update instructions from your current version to the latest version please review the MyRCON forum thread. Once update ready, download updated AdKats source from here: <a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.1.0.0.zip/download" target="_blank">Version 4.1.0.0</a>
+<p>
+For update instructions from your current version please review the MyRCON forum thread. Once update ready, download updated AdKats source from here: 
+<a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.1.0.0.zip/download" target="_blank">Version 4.1.0.0</a>
+</p>
 <h2>Fresh Installation</h2>
 <ol>
     <li>
