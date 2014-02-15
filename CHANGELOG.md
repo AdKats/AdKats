@@ -322,7 +322,8 @@ fine for performance). Right now only Punish and Forgive are required to be logg
     <li><b>Admin Assistant Enhancements</b> Completely reconstructed system with previous private features released to the public. Also added grandfathering for Admin Assistants; >75 confirmed reports overall will also grant admin assistant status.</li>
     <li><b>MatchCommand Enhancements</b> AdKats is now callable from other plugins like InsaneLimits for issuing commands and fetching current synced admin list.</li>
     <li><b>Ban Enforcer Enhancements</b> All bans are now enforced on a server group basis. If a ban is issued on one server group, it will only be enforced on other servers in that server group. Added ban reason and banning admin name to mini-ban-management.</li>
-    <li><b>Procon Bans</b> When using procon bans, the banning admin name is now added to the front of the reason.</li>
+    <li><b>Hacker-Checker Enhancements</b> Added KPM check to hacker checker.</li>
+    <li><b>Procon Ban Enhancements</b> When using procon bans, the banning admin name is now added to the front of the reason.</li>
 </ul>
 <b>Bugfixes</b><br/>
 <ul>
