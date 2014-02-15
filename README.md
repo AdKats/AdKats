@@ -811,24 +811,6 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
     </td>
 </tr>
 <tr>
-    <td><b>Round Whitelist Player</b></td>
-    <td>roundwhitelist</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [player][reason]<br/>
-        OR<br/>
-        [reportID]<br/>
-        OR<br/>
-        [reportID][reason]
-    </td>
-    <td>
-        The in-game command used for round-whitelisting players.
-        2 players may be whitelisted per round.
-        Once whitelisted they can use TeamSwap.
-    </td>
-</tr>
-<tr>
     <td><b>Report Player</b></td>
     <td>report</td>
     <td>[player][reason]</td>
@@ -1176,7 +1158,6 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
 </ul>
 <h3>A16. Orchestration Settings:</h3>
 <ul>
-    <li><b>'Feed MULTIBalancer Whitelist'</b> - When enabled, MULTIBalancer's whitelist will include all AdKats user's soldiers with access to player interaction commands.</li>
     <li><b>'Feed Server Reserved Slots'</b> - When enabled, the servers reserved slots will include all AdKats user's soldiers.</li>
     <li><b>'Feed Server Spectator List'</b> - When enabled, the servers spectator list will include all AdKats user's soldiers.</li>
     <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including correct database time offset, instant chat logging, etc. This is experimental.</li>
