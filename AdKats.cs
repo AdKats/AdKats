@@ -19,7 +19,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.0.9.13
+ * Version 4.1.0.0
+ * 14-FEB-2014
  */
 
 using System;
@@ -48,7 +49,7 @@ using PRoCon.Core.Utils;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current version of the plugin
-        private const String PluginVersion = "4.0.9.13";
+        private const String PluginVersion = "4.1.0.0";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -269,7 +270,7 @@ namespace PRoConEvents {
         //Whether commands parse via admin.say will be allowed
         private Boolean _AllowAdminSayCommands = true;
         //Conditional Command Control
-        public Func<AdKatsPlayer, Boolean> AAStatusFunc = aPlayer => aPlayer.player_aa;
+        public Func<AdKats, AdKatsPlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => (plugin._EnableAdminAssistantPerk && aPlayer.player_aa));
 
         //External Access Settings
         private String _ExternalCommandAccessKey = "NoPasswordSet";
@@ -318,11 +319,11 @@ namespace PRoConEvents {
         private Dictionary<String, Int32> _RoundMutedPlayers = new Dictionary<String, Int32>();
 
         //Admin Assistant Settings
-        private Boolean _EnableAdminAssistants = false;
-        private Boolean _EnableAdminAssistantPerk = true;
-        private Int32 _MinimumRequiredMonthlyReports = 10;
-        private Boolean _UseAAReportAutoHandler = false;
-        private String[] _AutoReportHandleStrings = { };
+        public Boolean _EnableAdminAssistants = false;
+        public Boolean _EnableAdminAssistantPerk = true;
+        public Int32 _MinimumRequiredMonthlyReports = 10;
+        public Boolean _UseAAReportAutoHandler = false;
+        public String[] _AutoReportHandleStrings = { };
 
         //Twitter Settings
 /*
@@ -8795,7 +8796,7 @@ namespace PRoConEvents {
                         {
                             return true;
                         }
-                        if (aPlayer.player_role.ConditionalAllowedCommands.Values.Any(innerCommand => innerCommand.Key(aPlayer)))
+                        if (aPlayer.player_role.ConditionalAllowedCommands.Values.Any(innerCommand => innerCommand.Key(this, aPlayer)))
                         {
                             return true;
                         }
@@ -8822,7 +8823,6 @@ namespace PRoConEvents {
                             DebugWrite("DBCOMM: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
-
                         //Check if database connection settings have changed
                         if (_dbSettingsChanged) {
                             DebugWrite("DBCOMM: DB Settings have changed, calling test.", 6);
@@ -8834,7 +8834,6 @@ namespace PRoConEvents {
                                 continue;
                             }
                         }
-
                         //On first run, pull all roles and commands and update database if needed
                         if (firstRun)
                         {
@@ -8842,7 +8841,6 @@ namespace PRoConEvents {
                             FetchRoles();
                             UpdateDatabase37014000();
                         }
-
                         //Every 60 seconds feed stat logger settings
                         if (_LastStatLoggerStatusUpdateTime.AddSeconds(60) < DateTime.UtcNow) {
                             _LastStatLoggerStatusUpdateTime = DateTime.UtcNow;
@@ -12847,7 +12845,7 @@ namespace PRoConEvents {
             if (_CommandKeyDictionary.TryGetValue("self_teamswap", out teamswapCommand))
             {
                 if (!aRole.ConditionalAllowedCommands.ContainsKey(teamswapCommand.command_key))
-                    aRole.ConditionalAllowedCommands.Add(teamswapCommand.command_key, new KeyValuePair<Func<AdKatsPlayer, Boolean>, AdKatsCommand>(AAStatusFunc, teamswapCommand));
+                    aRole.ConditionalAllowedCommands.Add(teamswapCommand.command_key, new KeyValuePair<Func<AdKats, AdKatsPlayer, Boolean>, AdKatsCommand>(AAPerkFunc, teamswapCommand));
             }
             else
             {
@@ -12858,7 +12856,7 @@ namespace PRoConEvents {
             if (_CommandKeyDictionary.TryGetValue("self_admins", out adminsCommand))
             {
                 if (!aRole.ConditionalAllowedCommands.ContainsKey(adminsCommand.command_key))
-                    aRole.ConditionalAllowedCommands.Add(adminsCommand.command_key, new KeyValuePair<Func<AdKatsPlayer, Boolean>, AdKatsCommand>(AAStatusFunc, adminsCommand));
+                    aRole.ConditionalAllowedCommands.Add(adminsCommand.command_key, new KeyValuePair<Func<AdKats, AdKatsPlayer, Boolean>, AdKatsCommand>(AAPerkFunc, adminsCommand));
             }
             else
             {
@@ -15690,12 +15688,12 @@ namespace PRoConEvents {
             public String role_key = null;
             public String role_name = null;
             public Dictionary<String, AdKatsCommand> RoleAllowedCommands = null;
-            public Dictionary<String, KeyValuePair<Func<AdKatsPlayer, Boolean>, AdKatsCommand>> ConditionalAllowedCommands = null;
+            public Dictionary<String, KeyValuePair<Func<AdKats, AdKatsPlayer, Boolean>, AdKatsCommand>> ConditionalAllowedCommands = null;
 
             public AdKatsRole()
             {
                 RoleAllowedCommands = new Dictionary<String, AdKatsCommand>();
-                ConditionalAllowedCommands = new Dictionary<String, KeyValuePair<Func<AdKatsPlayer, Boolean>, AdKatsCommand>>();
+                ConditionalAllowedCommands = new Dictionary<String, KeyValuePair<Func<AdKats, AdKatsPlayer, Boolean>, AdKatsCommand>>();
             }
         }
 
