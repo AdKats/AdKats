@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.1.0.0
+ * Version 4.1.0.1
  * 14-FEB-2014
  */
 
@@ -49,7 +49,7 @@ using PRoCon.Core.Utils;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current version of the plugin
-        private const String PluginVersion = "4.1.0.0";
+        private const String PluginVersion = "4.1.0.1";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -79,6 +79,7 @@ namespace PRoConEvents {
         private volatile Boolean _pluginEnabled;
         private volatile Boolean _threadsReady;
         private volatile Boolean _useKeepAlive;
+        private DateTime _lastUpdateSettingRequest = DateTime.UtcNow;
 
         //Player Lists
         private readonly Dictionary<Int32, AdKatsTeam> _teamDictionary = new Dictionary<Int32,AdKatsTeam>(); 
@@ -8919,7 +8920,7 @@ namespace PRoConEvents {
                         }
 
                         //Check if settings need sync
-                        if (_settingImportID != _serverID || _lastDbSettingFetch.AddSeconds(DbSettingFetchFrequency) < DateTime.UtcNow) {
+                        if (firstRun || _settingImportID != _serverID || _lastDbSettingFetch.AddSeconds(DbSettingFetchFrequency) < DateTime.UtcNow) {
                             DebugWrite("Preparing to fetch settings from server " + _serverID, 6);
                             //Fetch new settings from the database
                             FetchSettings(_settingImportID, _settingImportID != _serverID);
@@ -15487,6 +15488,8 @@ namespace PRoConEvents {
 
         //Calling this method will make the settings window refresh with new data
         public void UpdateSettingPage() {
+            DebugWrite("Updating Setting Page: +" + (DateTime.UtcNow-_lastUpdateSettingRequest).TotalSeconds + " seconds.", 0);
+            _lastUpdateSettingRequest = DateTime.UtcNow;
             SetExternalPluginSetting("AdKats", "UpdateSettings", "Update");
         }
 
