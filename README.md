@@ -182,6 +182,23 @@ Once update ready, download updated AdKats source from here:
 <p>
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>
 </p>
+<p>
+    The following settings are sent to stat logger when using the "Feed Stat Logger Settings" orchestration option:
+    <ul>
+        <li>"Servertime Offset" (TIME OFFSET CONVERSION TO UTC TIME)</li>
+        <li>"Enable Chatlogging?" "Yes"</li>
+        <li>"Log ServerSPAM?" "Yes"</li>
+        <li>"Instant Logging of Chat Messages?" "Yes"</li>
+        <li>"Enable Statslogging?" "Yes"</li>
+        <li>"Enable Weaponstats?" "Yes"</li>
+        <li>"Enable Livescoreboard in DB?" "Yes"</li>
+        <li>"Enable KDR correction?" "Yes"</li>
+        <li>"MapStats ON?" "Yes"</li>
+        <li>"Session ON?" "Yes"</li>
+        <li>"Save Sessiondata to DB?" "Yes"</li>
+        <li>"Log playerdata only (no playerstats)?" "No"</li>
+    </ul>
+</p>
 <h2>Features</h2>
 <h3>User Ranks and Roles</h3>
 <p>
@@ -1164,7 +1181,7 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
 <ul>
     <li><b>'Feed Server Reserved Slots'</b> - When enabled, the servers reserved slots will include all AdKats user's soldiers.</li>
     <li><b>'Feed Server Spectator List'</b> - When enabled, the servers spectator list will include all AdKats user's soldiers.</li>
-    <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including correct database time offset, instant chat logging, etc. This is experimental.</li>
+    <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including correct database time offset, instant chat logging, etc.</li>
 </ul>
 <h3>A17. Round Settings:</h3>
 <ul>
