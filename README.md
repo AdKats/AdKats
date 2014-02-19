@@ -1162,6 +1162,8 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
 </ul>
 <h3>A16. Orchestration Settings:</h3>
 <ul>
+    <li><b>'Feed MULTIBalancer Whitelist'</b> - When enabled, the adkats_specialplayers table (group: whitelist_multibalancer) is used to feed MULTIBalancer's player whitelist.</li>
+    <li><b>'Feed MULTIBalancer Even Dispersion List'</b> - When enabled, the adkats_specialplayers table (group: blacklist_dispersion) is used to feed MULTIBalancer's even dispersion list.</li>
     <li><b>'Feed Server Reserved Slots'</b> - When enabled, the servers reserved slots will include all AdKats user's soldiers.</li>
     <li><b>'Feed Server Spectator List'</b> - When enabled, the servers spectator list will include all AdKats user's soldiers.</li>
     <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including correct database time offset, instant chat logging, etc.
