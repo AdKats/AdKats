@@ -19,8 +19,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.1.0.1
- * 14-FEB-2014
+ * Version 4.1.0.4
+ * 18-FEB-2014
  */
 
 using System;
@@ -49,7 +49,7 @@ using PRoCon.Core.Utils;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current version of the plugin
-        private const String PluginVersion = "4.1.0.1";
+        private const String PluginVersion = "4.1.0.4";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -5031,16 +5031,14 @@ namespace PRoConEvents {
 
         public void SendMessageToSource(AdKatsRecord record, String message) {
             DebugWrite("Entering sendMessageToSource", 7);
-            String returnMessage = null;
             try {
+                if (String.IsNullOrEmpty(message)) {
+                    ConsoleError("message null or empty in sendMessageToSource");
+                    return;
+                }
                 switch (record.record_source) {
                     case AdKatsRecord.Sources.InGame:
-                        if (!String.IsNullOrEmpty(message)) {
-                            PlayerSayMessage(record.source_name, message);
-                        }
-                        else {
-                            ConsoleError("message null or empty in sendMessageToSource");
-                        }
+                        PlayerSayMessage(record.source_name, message);
                         break;
                     case AdKatsRecord.Sources.ServerCommand:
                         ProconChatWrite(message);
@@ -5111,7 +5109,7 @@ namespace PRoConEvents {
                     ConsoleError("message null in adminYell");
                     return;
                 }
-                ProconChatWrite("Yell > All > " + message);
+                ProconChatWrite("Yell[" + _YellDuration + "] > All > " + message);
                 ExecuteCommand("procon.protected.send", "admin.yell", message.ToUpper(), _YellDuration + "", "all");
             }
             catch (Exception e) {
@@ -5127,7 +5125,7 @@ namespace PRoConEvents {
                     ConsoleError("message null in adminYell");
                     return;
                 }
-                ProconChatWrite("Yell > " + target + " > " + message);
+                ProconChatWrite("Yell[" + _YellDuration + "] > " + target + " > " + message);
                 ExecuteCommand("procon.protected.send", "admin.yell", message.ToUpper(), _YellDuration + "", "player", target);
             }
             catch (Exception e) {
@@ -5481,11 +5479,14 @@ namespace PRoConEvents {
                                         }
                                         else {
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "1", "1", "true");
+                                            team1.TeamPlayerCount++;
+                                            team2.TeamPlayerCount--;
                                         }
                                         PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamName + " to team " + team1.TeamName);
                                         movedPlayer = true;
                                     }
                                 }
+                                Thread.Sleep(100);
                                 if (_Team1MoveQueue.Count > 0) {
                                     if (team2.TeamPlayerCount < maxTeamPlayerCount) {
                                         CPlayerInfo player = _Team1MoveQueue.Dequeue();
@@ -5501,11 +5502,14 @@ namespace PRoConEvents {
                                         }
                                         else {
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "2", "1", "true");
+                                            team2.TeamPlayerCount++;
+                                            team1.TeamPlayerCount--;
                                         }
                                         PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamName + "to team " + team2.TeamName);
                                         movedPlayer = true;
                                     }
                                 }
+                                Thread.Sleep(100);
                             } while (movedPlayer);
                         }
                         else {
@@ -6679,7 +6683,8 @@ namespace PRoConEvents {
                     case "server_kickall":
                         CancelSourcePendingAction(record);
 
-                        if (_serverType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL")
+                        {
                             SendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -6687,6 +6692,27 @@ namespace PRoConEvents {
 
                         record.target_name = "Non-Admins";
                         record.record_message = "Kick All Players";
+                        ConfirmActionWithSource(record);
+                        break;
+                    case "server_swapnuke":
+                        CancelSourcePendingAction(record);
+
+                        if (_serverType == "OFFICIAL")
+                        {
+                            SendMessageToSource(record, record.command_type + " cannot be performed on official servers.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+
+                        if ((_playerDictionary.Count + 1) >= _serverInfo.MaxPlayerCount)
+                        {
+                            SendMessageToSource(record, record.command_type + " cannot be performed without an open slot in the server to move players.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+
+                        record.target_name = "Everyone";
+                        record.record_message = "TeamSwap All Players";
                         ConfirmActionWithSource(record);
                         break;
                     case "round_end": {
@@ -7718,6 +7744,9 @@ namespace PRoConEvents {
                     case "server_kickall":
                         KickAllPlayers(record);
                         break;
+                    case "server_swapnuke":
+                        SwapNuke(record);
+                        break;
                     case "admin_say":
                         AdminSay(record);
                         break;
@@ -7988,7 +8017,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Defaulting to procon banlist usage since exceptions existed in record"));
                     }
                     //Trim the ban message if necessary
-                    String banMessage = record.record_message;
+                    String banMessage = record.source_name + " - " + record.record_message;
                     Int32 cutLength = banMessage.Length - 80;
                     if (cutLength > 0)
                     {
@@ -8325,6 +8354,10 @@ namespace PRoConEvents {
                 AttemptReportAutoAction(record, reportID + "");
                 String sourceAAIdentifier = (record.source_player != null && record.source_player.player_aa) ? ("[AA]") : ("");
                 String targetAAIdentifier = (record.target_player != null && record.target_player.player_aa) ? ("[AA]") : ("");
+                String slotID = (record.target_player != null) ? (record.target_player.player_slot) : (null);
+                if (!String.IsNullOrEmpty(slotID)) {
+                    ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", "pb_sv_getss " + slotID);
+                }
                 Boolean adminsTold = false;
                 foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers())
                 {
@@ -8363,6 +8396,11 @@ namespace PRoConEvents {
                 AttemptReportAutoAction(record, reportID + "");
                 String sourceAAIdentifier = (record.source_player != null && record.source_player.player_aa) ? ("[AA]") : ("");
                 String targetAAIdentifier = (record.target_player != null && record.target_player.player_aa) ? ("[AA]") : ("");
+                String slotID = (record.target_player != null) ? (record.target_player.player_slot) : (null);
+                if (!String.IsNullOrEmpty(slotID))
+                {
+                    ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", "pb_sv_getss " + slotID);
+                }
                 Boolean adminsTold = false;
                 foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers())
                 {
@@ -8530,6 +8568,30 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting nukeTarget", 6);
+        }
+
+        public void SwapNuke(AdKatsRecord record)
+        {
+            DebugWrite("Entering SwapNuke", 6);
+            try
+            {
+                lock (_playerDictionary)
+                {
+                    foreach (AdKatsPlayer player in _playerDictionary.Values)
+                    {
+                        QueuePlayerForForceMove(player.frostbitePlayerInfo);
+                    }
+                }
+                SendMessageToSource(record, "You SwapNuked the server.");
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for SwapNuke record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SwapNuke", 6);
         }
 
         public void KickAllPlayers(AdKatsRecord record)
@@ -8726,15 +8788,13 @@ namespace PRoConEvents {
             DebugWrite("Entering LeadCurrentSquad", 6);
             try
             {
-                //Issue command to lead current squad
                 ExecuteCommand(
                     "procon.protected.send", 
                     "squad.leader", 
                     record.target_player.frostbitePlayerInfo.TeamID.ToString(), 
                     record.target_player.frostbitePlayerInfo.SquadID.ToString(), 
                     record.target_player.player_name);
-                SendMessageToSource(record, "You are now the leader oand f your current squad.");
-                //Set the executed bool
+                SendMessageToSource(record, "You are now the leader of your current squad.");
                 record.record_action_executed = true;
             }
             catch (Exception e)
@@ -8857,7 +8917,7 @@ namespace PRoConEvents {
                                     SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "Yes");
                                     SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Statslogging?", "Yes");
                                     SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Weaponstats?", "Yes");
-                                    SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Livescoreboard in DB?", "No");
+                                    SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Livescoreboard in DB?", "Yes");
                                     SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable KDR correction?", "Yes");
                                     SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "MapStats ON?", "Yes");
                                     SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Session ON?", "Yes");
@@ -8880,7 +8940,7 @@ namespace PRoConEvents {
                                     SetExternalPluginSetting("CChatGUIDStatsLogger", "Instant Logging of Chat Messages?", "Yes");
                                     SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Statslogging?", "Yes");
                                     SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Weaponstats?", "Yes");
-                                    SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Livescoreboard in DB?", "No");
+                                    SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Livescoreboard in DB?", "Yes");
                                     SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable KDR correction?", "Yes");
                                     SetExternalPluginSetting("CChatGUIDStatsLogger", "MapStats ON?", "Yes");
                                     SetExternalPluginSetting("CChatGUIDStatsLogger", "Session ON?", "Yes");
@@ -15488,7 +15548,7 @@ namespace PRoConEvents {
 
         //Calling this method will make the settings window refresh with new data
         public void UpdateSettingPage() {
-            DebugWrite("Updating Setting Page: +" + (DateTime.UtcNow-_lastUpdateSettingRequest).TotalSeconds + " seconds.", 0);
+            DebugWrite("Updating Setting Page: +" + (DateTime.UtcNow-_lastUpdateSettingRequest).TotalSeconds + " seconds.", 4);
             _lastUpdateSettingRequest = DateTime.UtcNow;
             SetExternalPluginSetting("AdKats", "UpdateSettings", "Update");
         }
@@ -15560,9 +15620,9 @@ namespace PRoConEvents {
             public String TeamDesc { get; private set; }
 
             //Live Vars
-            public Int32 TeamPlayerCount { get; private set; }
-            public Int32 TeamTicketCount { get; private set; }
-            public Double TeamTotalScore { get; private set; }
+            public Int32 TeamPlayerCount { get; set; }
+            public Int32 TeamTicketCount { get; set; }
+            public Double TeamTotalScore { get; set; }
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamTotalScores;
             public Double TeamScoreDifferenceRate { get; private set; }
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamTicketCounts;
