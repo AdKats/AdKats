@@ -370,7 +370,7 @@ CREATE TABLE IF NOT EXISTS `adkats_specialplayers`(
   `player_id` int(10) UNSIGNED DEFAULT NULL,
   `player_game` tinyint(4) UNSIGNED DEFAULT NULL,
   `player_server` smallint(5) UNSIGNED DEFAULT NULL,
-  `player_identifier` varchar(30) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `player_identifier` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
   PRIMARY KEY (`specialplayer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Special Player List';
 
