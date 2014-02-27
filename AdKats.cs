@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.1.0.6
+ * Version 4.1.0.7
  * 26-FEB-2014
  */
 
@@ -51,7 +51,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current version of the plugin
-        private const String PluginVersion = "4.1.0.6";
+        private const String PluginVersion = "4.1.0.7";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -4574,7 +4574,7 @@ namespace PRoConEvents
                 lock (_playerDictionary) {
                     AdKatsPlayer aPlayer;
                     if (_playerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
-                        if (!aPlayer.TargetedRecords.Any(aRecord => 
+                        if (aPlayer.TargetedRecords.Count > 0 && !aPlayer.TargetedRecords.Any(aRecord => 
                                 aRecord.command_action.command_key == "player_kick" || 
                                 aRecord.command_action.command_key == "player_ban_temp" || 
                                 aRecord.command_action.command_key == "player_ban_perm")) {
