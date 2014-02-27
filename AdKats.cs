@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.1.0.5
+ * Version 4.1.0.6
  * 26-FEB-2014
  */
 
@@ -51,7 +51,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current version of the plugin
-        private const String PluginVersion = "4.1.0.5";
+        private const String PluginVersion = "4.1.0.6";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -82,6 +82,8 @@ namespace PRoConEvents
         private volatile Boolean _pluginEnabled;
         private volatile Boolean _threadsReady;
         private volatile Boolean _useKeepAlive;
+        private Boolean _settingsLocked = false;
+        private String _settingsPassword = null;
         private DateTime _lastUpdateSettingRequest = DateTime.UtcNow;
 
         //Player Lists
@@ -676,40 +678,240 @@ namespace PRoConEvents
         {
             try
             {
-                List<CPluginVariable> lstReturn;
+                List<CPluginVariable> lstReturn = new List<CPluginVariable>();
                 const string separator = " | ";
+
+                lstReturn.Add(new CPluginVariable("1. Server Settings|Settings Locked", typeof(Boolean), _settingsLocked, true));
+                if (_settingsLocked) {
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Unlock Settings", typeof (String), ""));
+                }
+                else {
+                    if (!String.IsNullOrEmpty(_settingsPassword)) {
+                        lstReturn.Add(new CPluginVariable("1. Server Settings|Lock Settings", typeof (String), ""));
+                    }
+                    else {
+                        lstReturn.Add(new CPluginVariable("1. Server Settings|Lock Settings - Create Password", typeof (String), ""));
+                    }
+                }
 
                 //Only fetch the following settings when plugin disabled
                 if (!_threadsReady)
                 {
-                    lstReturn = new List<CPluginVariable>();
-
-                    if (_useKeepAlive)
+                    if (!_settingsLocked)
                     {
-                        lstReturn.Add(new CPluginVariable("0. Instance Settings|Auto-Enable/Keep-Alive", typeof(Boolean), true));
+                        if (_useKeepAlive)
+                        {
+                            lstReturn.Add(new CPluginVariable("0. Instance Settings|Auto-Enable/Keep-Alive", typeof(Boolean), true));
+                        }
+
+                        lstReturn.Add(new CPluginVariable("Complete these settings before enabling.", typeof(String), "Once enabled, more settings will appear."));
+                        //SQL Settings
+                        lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Hostname", typeof(String), _mySqlHostname));
+                        lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Port", typeof(String), _mySqlPort));
+                        lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Database", typeof(String), _mySqlDatabaseName));
+                        lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Username", typeof(String), _mySqlUsername));
+                        lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Password", typeof(String), _mySqlPassword));
                     }
-
-                    lstReturn.Add(new CPluginVariable("Complete these settings before enabling.", typeof(String), "Once enabled, more settings will appear."));
-                    //SQL Settings
-                    lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Hostname", typeof(String), _mySqlHostname));
-                    lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Port", typeof(String), _mySqlPort));
-                    lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Database", typeof(String), _mySqlDatabaseName));
-                    lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Username", typeof(String), _mySqlUsername));
-                    lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Password", typeof(String), _mySqlPassword));
-
                     //Debugging Settings
                     lstReturn.Add(new CPluginVariable("2. Debugging|Debug level", typeof(Int32), _DebugLevel));
                 }
-                else
+                else 
                 {
-                    //If plugin is enabled, return the full storage list
-                    lstReturn = GetPluginVariables();
-                    //Add display variables
+                    if (_settingsLocked)
+                    {
+                        lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof(int), _serverID));
+                        lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof(String), _serverIP));
+                        if (_UseBanEnforcer)
+                        {
+                            const string banManagementPrefix = "A13-3. Mini Ban Management|";
+                            lstReturn.Add(new CPluginVariable(banManagementPrefix + "NAME Ban Count", typeof(int), _NameBanCount));
+                            lstReturn.Add(new CPluginVariable(banManagementPrefix + "GUID Ban Count", typeof(int), _GUIDBanCount));
+                            lstReturn.Add(new CPluginVariable(banManagementPrefix + "IP Ban Count", typeof(int), _IPBanCount));
+                            lstReturn.Add(new CPluginVariable(banManagementPrefix + "Ban Search", typeof(String), ""));
+                            lstReturn.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(banManagementPrefix + "BAN" + aBan.ban_id + separator + aBan.ban_record.target_player.player_name + separator + aBan.ban_record.source_name + separator + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
+                        }
+                        lstReturn.Add(new CPluginVariable("Z99. Debugging|Debug level", typeof(int), _DebugLevel));
+                        lstReturn.Add(new CPluginVariable("Z99. Debugging|Debug Soldier Name", typeof(String), _DebugSoldierName));
+                        lstReturn.Add(new CPluginVariable("Z99. Debugging|Command Entry", typeof(String), ""));
+                        return lstReturn;
+                    }
+                    //Auto-Enable Settings
+                    lstReturn.Add(new CPluginVariable("0. Instance Settings|Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
+
+                    //SQL Settings
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Hostname", typeof(String), _mySqlHostname));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Port", typeof(String), _mySqlPort));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Database", typeof(String), _mySqlDatabaseName));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof(String), _mySqlUsername));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof(String), _mySqlPassword));
+
+                    //Punishment Settings
+                    lstReturn.Add(new CPluginVariable("7. Punishment Settings|Punishment Hierarchy", typeof(String[]), _PunishmentHierarchy));
+                    lstReturn.Add(new CPluginVariable("7. Punishment Settings|Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
+                    lstReturn.Add(new CPluginVariable("7. Punishment Settings|Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
+                    if (_OnlyKillOnLowPop)
+                    {
+                        lstReturn.Add(new CPluginVariable("7. Punishment Settings|Low Population Value", typeof(int), _LowPopPlayerCount));
+                    }
+                    lstReturn.Add(new CPluginVariable("7. Punishment Settings|Use IRO Punishment", typeof(Boolean), _IROActive));
+                    if (_IROActive)
+                    {
+                        lstReturn.Add(new CPluginVariable("7. Punishment Settings|IRO Timeout Minutes", typeof(Int32), _IROTimeout));
+                        lstReturn.Add(new CPluginVariable("7. Punishment Settings|IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
+                    }
+
+                    //Email Settings
+                    lstReturn.Add(new CPluginVariable("8. Email Settings|Send Emails", typeof(bool), _UseEmail));
+                    if (_UseEmail)
+                    {
+                        lstReturn.Add(new CPluginVariable("8. Email Settings|Use SSL?", typeof(Boolean), _EmailHandler.UseSSL));
+                        lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server address", typeof(String), _EmailHandler.SMTPServer));
+                        lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server port", typeof(int), _EmailHandler.SMTPPort));
+                        lstReturn.Add(new CPluginVariable("8. Email Settings|Sender address", typeof(String), _EmailHandler.SenderEmail));
+                        lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server username", typeof(String), _EmailHandler.SMTPUser));
+                        lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server password", typeof(String), _EmailHandler.SMTPPassword));
+                        lstReturn.Add(new CPluginVariable("8. Email Settings|Custom HTML Addition", typeof(String), _EmailHandler.CustomHTMLAddition));
+                        lstReturn.Add(new CPluginVariable("8. Email Settings|Extra Recipient Email Addresses", typeof(String[]), _EmailHandler.RecipientEmails.ToArray()));
+                    }
+
+                    //TeamSwap Settings
+                    //lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Auto-Whitelist Count", typeof (String), _PlayersToAutoWhitelist));
+                    lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Ticket Window High", typeof(int), _TeamSwapTicketWindowHigh));
+                    lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Ticket Window Low", typeof(int), _TeamSwapTicketWindowLow));
+
+                    //Admin Assistant Settings
+                    lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Enable Admin Assistants", typeof(Boolean), _EnableAdminAssistants));
+                    if (_EnableAdminAssistants)
+                    {
+                        lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Minimum Confirmed Reports Per Month", typeof(int), _MinimumRequiredMonthlyReports));
+                        lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Enable Admin Assistant Perk", typeof(Boolean), _EnableAdminAssistantPerk));
+                        lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
+                        if (_UseAAReportAutoHandler)
+                        {
+                            lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Auto-Report-Handler Strings", typeof(String[]), _AutoReportHandleStrings));
+                        }
+                    }
+
+                    //Muting Settings
+                    lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|On-Player-Muted Message", typeof(String), _MutedPlayerMuteMessage));
+                    lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|On-Player-Killed Message", typeof(String), _MutedPlayerKillMessage));
+                    lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|On-Player-Kicked Message", typeof(String), _MutedPlayerKickMessage));
+                    lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|# Chances to give player before kicking", typeof(int), _MutedPlayerChances));
+
+                    //Message Settings
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInSay));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Yell display time seconds", typeof(int), _YellDuration));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Pre-Message List", typeof(String[]), _PreMessageList.ToArray()));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
+
+                    //Ban Settings
+                    lstReturn.Add(new CPluginVariable("A13. Banning Settings|Use Additional Ban Message", typeof(Boolean), _UseBanAppend));
+                    if (_UseBanAppend)
+                    {
+                        lstReturn.Add(new CPluginVariable("A13. Banning Settings|Additional Ban Message", typeof(String), _BanAppend));
+                    }
+                    lstReturn.Add(new CPluginVariable("A13. Banning Settings|Procon Ban Admin Name", typeof(String), _CBanAdminName));
+                    const string banEnforcerPrefix = "A13-2. Ban Enforcer Settings|";
+                    if (!_UsingAwa)
+                    {
+                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
+                    }
+                    if (_UseBanEnforcer)
+                    {
+                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
+                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
+                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
+                    }
+
+                    //External Command Settings
+                    lstReturn.Add(new CPluginVariable("A14. External Command Settings|HTTP External Access Key", typeof(String), _ExternalCommandAccessKey));
+                    if (!_UseBanEnforcer && !_UsingAwa)
+                    {
+                        lstReturn.Add(new CPluginVariable("A14. External Command Settings|Fetch Actions from Database", typeof(Boolean), _fetchActionsFromDb));
+                    }
+
+                    lstReturn.Add(new CPluginVariable("A15. VOIP Settings|Server VOIP Address", typeof(String), _ServerVoipAddress));
+
+                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Whitelist", typeof(Boolean), _FeedMultiBalancerWhitelist));
+                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList));
+                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Reserved Slots", typeof(Boolean), _FeedServerReservedSlots));
+                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
+                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
+
+                    lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Enable", typeof(Boolean), _useRoundTimer));
+                    if (_useRoundTimer)
+                    {
+                        lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Round Duration Minutes", typeof(Double), _roundTimeMinutes));
+                    }
+
+                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Enable", typeof(Boolean), _UseHackerChecker));
+                    if (_UseHackerChecker)
+                    {
+                        if (_isTestingAuthorized)
+                        {
+                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|Hacker-Check Player", typeof(String), ""));
+                        }
+                        //lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Whitelist", typeof (String[]), _HackerCheckerWhitelist));
+                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Enable", typeof(Boolean), _UseDpsChecker));
+                        if (_UseDpsChecker)
+                        {
+                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Trigger Level", typeof(Double), _DpsTriggerLevel));
+                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
+                        }
+                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
+                        if (_UseHskChecker)
+                        {
+                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
+                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Ban Message", typeof(String), _HackerCheckerHSKBanMessage));
+                        }
+                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: KPM Checker: Enable", typeof(Boolean), _UseKpmChecker));
+                        if (_UseKpmChecker)
+                        {
+                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: KPM Checker: Trigger Level", typeof(Double), _KpmTriggerLevel));
+                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: KPM Checker: Ban Message", typeof(String), _HackerCheckerKPMBanMessage));
+                        }
+                    }
+
+                    //Server rules Settings
+                    lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Rule Print Delay", typeof(Double), _ServerRulesDelay));
+                    lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Rule Print Interval", typeof(Double), _ServerRulesInterval));
+                    lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Server Rule List", typeof(String[]), _ServerRulesList));
+
+                    //Debug settings
+                    lstReturn.Add(new CPluginVariable("Z99. Debugging|Debug level", typeof(int), _DebugLevel));
+                    lstReturn.Add(new CPluginVariable("Z99. Debugging|Debug Soldier Name", typeof(String), _DebugSoldierName));
+                    lstReturn.Add(new CPluginVariable("Z99. Debugging|Command Entry", typeof(String), ""));
+
+                    //Experimental tools
+                    if (_isTestingAuthorized)
+                    {
+                        lstReturn.Add(new CPluginVariable("X99. Experimental|Use Experimental Tools", typeof(Boolean), _useExperimentalTools));
+                        if (_useExperimentalTools)
+                        {
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|Send Query", typeof(String), ""));
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|Send Non-Query", typeof(String), ""));
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
+                            if (_UseWeaponLimiter)
+                            {
+                                lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
+                                lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
+                            }
+                            lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
+                        }
+                    }
 
                     //Server Settings
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Setting Import", typeof(String), _serverID));
                     lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof(int), _serverID));
                     lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof(String), _serverIP));
-                    lstReturn.Add(new CPluginVariable("1. Server Settings|Setting Import", typeof(String), _serverID));
+                    if (!String.IsNullOrEmpty(_settingsPassword))
+                    {
+                        lstReturn.Add(new CPluginVariable("1. Server Settings|Lock Settings", typeof(String), ""));
+                    }
+                    else
+                    {
+                        lstReturn.Add(new CPluginVariable("1. Server Settings|Lock Settings - Create Password", typeof(String), ""));
+                    }
                     if (!_UsingAwa)
                     {
                         const string userSettingsPrefix = "3. User Settings|";
@@ -846,178 +1048,15 @@ namespace PRoConEvents
         public List<CPluginVariable> GetPluginVariables()
         {
             var lstReturn = new List<CPluginVariable>();
-            const string separator = " | ";
-            try
-            {
-                //Auto-Enable Settings
-                lstReturn.Add(new CPluginVariable("0. Instance Settings|Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
+            lstReturn.Add(new CPluginVariable("1. Server Settings|Settings Locked", typeof(Boolean), _settingsLocked, true));
+            lstReturn.Add(new CPluginVariable("2. Server Settings|Settings Password", typeof(String), _settingsPassword));
 
-                //SQL Settings
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Hostname", typeof(String), _mySqlHostname));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Port", typeof(String), _mySqlPort));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Database", typeof(String), _mySqlDatabaseName));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof(String), _mySqlUsername));
-                lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof(String), _mySqlPassword));
-
-                //Punishment Settings
-                lstReturn.Add(new CPluginVariable("7. Punishment Settings|Punishment Hierarchy", typeof(String[]), _PunishmentHierarchy));
-                lstReturn.Add(new CPluginVariable("7. Punishment Settings|Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
-                lstReturn.Add(new CPluginVariable("7. Punishment Settings|Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
-                if (_OnlyKillOnLowPop)
-                {
-                    lstReturn.Add(new CPluginVariable("7. Punishment Settings|Low Population Value", typeof(int), _LowPopPlayerCount));
-                }
-                lstReturn.Add(new CPluginVariable("7. Punishment Settings|Use IRO Punishment", typeof(Boolean), _IROActive));
-                if (_IROActive)
-                {
-                    lstReturn.Add(new CPluginVariable("7. Punishment Settings|IRO Timeout Minutes", typeof(Int32), _IROTimeout));
-                    lstReturn.Add(new CPluginVariable("7. Punishment Settings|IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
-                }
-
-                //Email Settings
-                lstReturn.Add(new CPluginVariable("8. Email Settings|Send Emails", typeof(bool), _UseEmail));
-                if (_UseEmail)
-                {
-                    lstReturn.Add(new CPluginVariable("8. Email Settings|Use SSL?", typeof(Boolean), _EmailHandler.UseSSL));
-                    lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server address", typeof(String), _EmailHandler.SMTPServer));
-                    lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server port", typeof(int), _EmailHandler.SMTPPort));
-                    lstReturn.Add(new CPluginVariable("8. Email Settings|Sender address", typeof(String), _EmailHandler.SenderEmail));
-                    lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server username", typeof(String), _EmailHandler.SMTPUser));
-                    lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server password", typeof(String), _EmailHandler.SMTPPassword));
-                    lstReturn.Add(new CPluginVariable("8. Email Settings|Custom HTML Addition", typeof(String), _EmailHandler.CustomHTMLAddition));
-                    lstReturn.Add(new CPluginVariable("8. Email Settings|Extra Recipient Email Addresses", typeof(String[]), _EmailHandler.RecipientEmails.ToArray()));
-                }
-
-                //TeamSwap Settings
-                //lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Auto-Whitelist Count", typeof (String), _PlayersToAutoWhitelist));
-                lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Ticket Window High", typeof(int), _TeamSwapTicketWindowHigh));
-                lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Ticket Window Low", typeof(int), _TeamSwapTicketWindowLow));
-
-                //Admin Assistant Settings
-                lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Enable Admin Assistants", typeof(Boolean), _EnableAdminAssistants));
-                if (_EnableAdminAssistants)
-                {
-                    lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Minimum Confirmed Reports Per Month", typeof(int), _MinimumRequiredMonthlyReports));
-                    lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Enable Admin Assistant Perk", typeof(Boolean), _EnableAdminAssistantPerk));
-                    lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
-                    if (_UseAAReportAutoHandler)
-                    {
-                        lstReturn.Add(new CPluginVariable("A10. Admin Assistant Settings|Auto-Report-Handler Strings", typeof(String[]), _AutoReportHandleStrings));
-                    }
-                }
-
-                //Muting Settings
-                lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|On-Player-Muted Message", typeof(String), _MutedPlayerMuteMessage));
-                lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|On-Player-Killed Message", typeof(String), _MutedPlayerKillMessage));
-                lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|On-Player-Kicked Message", typeof(String), _MutedPlayerKickMessage));
-                lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|# Chances to give player before kicking", typeof(int), _MutedPlayerChances));
-
-                //Message Settings
-                lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInSay));
-                lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Yell display time seconds", typeof(int), _YellDuration));
-                lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Pre-Message List", typeof(String[]), _PreMessageList.ToArray()));
-                lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
-
-                //Ban Settings
-                lstReturn.Add(new CPluginVariable("A13. Banning Settings|Use Additional Ban Message", typeof(Boolean), _UseBanAppend));
-                if (_UseBanAppend)
-                {
-                    lstReturn.Add(new CPluginVariable("A13. Banning Settings|Additional Ban Message", typeof(String), _BanAppend));
-                }
-                lstReturn.Add(new CPluginVariable("A13. Banning Settings|Procon Ban Admin Name", typeof(String), _CBanAdminName));
-                const string banEnforcerPrefix = "A13-2. Ban Enforcer Settings|";
-                if (!_UsingAwa)
-                {
-                    lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
-                }
-                if (_UseBanEnforcer)
-                {
-                    lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
-                    lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
-                    lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
-                }
-
-                //External Command Settings
-                lstReturn.Add(new CPluginVariable("A14. External Command Settings|HTTP External Access Key", typeof(String), _ExternalCommandAccessKey));
-                if (!_UseBanEnforcer && !_UsingAwa)
-                {
-                    lstReturn.Add(new CPluginVariable("A14. External Command Settings|Fetch Actions from Database", typeof(Boolean), _fetchActionsFromDb));
-                }
-
-                lstReturn.Add(new CPluginVariable("A15. VOIP Settings|Server VOIP Address", typeof(String), _ServerVoipAddress));
-
-                lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Whitelist", typeof(Boolean), _FeedMultiBalancerWhitelist));
-                lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList));
-                lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Reserved Slots", typeof(Boolean), _FeedServerReservedSlots));
-                lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
-                lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
-
-                lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Enable", typeof(Boolean), _useRoundTimer));
-                if (_useRoundTimer)
-                {
-                    lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Round Duration Minutes", typeof(Double), _roundTimeMinutes));
-                }
-
-                lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Enable", typeof(Boolean), _UseHackerChecker));
-                if (_UseHackerChecker)
-                {
-                    if (_isTestingAuthorized)
-                    {
-                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|Hacker-Check Player", typeof(String), ""));
-                    }
-                    //lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Whitelist", typeof (String[]), _HackerCheckerWhitelist));
-                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Enable", typeof(Boolean), _UseDpsChecker));
-                    if (_UseDpsChecker)
-                    {
-                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Trigger Level", typeof(Double), _DpsTriggerLevel));
-                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
-                    }
-                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
-                    if (_UseHskChecker)
-                    {
-                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
-                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Ban Message", typeof(String), _HackerCheckerHSKBanMessage));
-                    }
-                    lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: KPM Checker: Enable", typeof(Boolean), _UseKpmChecker));
-                    if (_UseKpmChecker)
-                    {
-                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: KPM Checker: Trigger Level", typeof(Double), _KpmTriggerLevel));
-                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: KPM Checker: Ban Message", typeof(String), _HackerCheckerKPMBanMessage));
-                    }
-                }
-
-                //Server rules Settings
-                lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Rule Print Delay", typeof(Double), _ServerRulesDelay));
-                lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Rule Print Interval", typeof(Double), _ServerRulesInterval));
-                lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Server Rule List", typeof(String[]), _ServerRulesList));
-
-                //Debug settings
-                lstReturn.Add(new CPluginVariable("Z99. Debugging|Debug level", typeof(int), _DebugLevel));
-                lstReturn.Add(new CPluginVariable("Z99. Debugging|Debug Soldier Name", typeof(String), _DebugSoldierName));
-                lstReturn.Add(new CPluginVariable("Z99. Debugging|Command Entry", typeof(String), ""));
-
-                //Experimental tools
-                if (_isTestingAuthorized)
-                {
-                    lstReturn.Add(new CPluginVariable("X99. Experimental|Use Experimental Tools", typeof(Boolean), _useExperimentalTools));
-                    if (_useExperimentalTools)
-                    {
-                        lstReturn.Add(new CPluginVariable("X99. Experimental|Send Query", typeof(String), ""));
-                        lstReturn.Add(new CPluginVariable("X99. Experimental|Send Non-Query", typeof(String), ""));
-                        lstReturn.Add(new CPluginVariable("X99. Experimental|Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
-                        if (_UseWeaponLimiter)
-                        {
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
-                            lstReturn.Add(new CPluginVariable("X99. Experimental|NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
-                        }
-                        lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                HandleException(new AdKatsException("Error While Fetching Settings", e));
-            }
+            //SQL Settings
+            lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Hostname", typeof(String), _mySqlHostname));
+            lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Port", typeof(String), _mySqlPort));
+            lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Database", typeof(String), _mySqlDatabaseName));
+            lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof(String), _mySqlUsername));
+            lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof(String), _mySqlPassword));
             return lstReturn;
         }
 
@@ -1029,8 +1068,6 @@ namespace PRoConEvents
             }
             try
             {
-                //ConsoleWrite("'" + strVariable + "' -> '" + strValue + "'");
-
                 if (strVariable == "UpdateSettings")
                 {
                     //Do nothing. Settings page will be updated after return.
@@ -1046,6 +1083,64 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
                     }
+                }
+                else if (Regex.Match(strVariable, @"Unlock Settings").Success)
+                {
+                    if (String.IsNullOrEmpty(strValue) || strValue.Length < 5)
+                    {
+                        ConsoleError("Password had invalid format, unable to submit.");
+                        return;
+                    }
+                    if (strValue != _settingsPassword)
+                    {
+                        ConsoleError("Password incorrect.");
+                        return;
+                    }
+                    _settingsLocked = false;
+                    ConsoleSuccess("Settings unlocked.");
+                    QueueSettingForUpload(new CPluginVariable(@"Settings Locked", typeof(Boolean), _settingsLocked));
+                }
+                else if (Regex.Match(strVariable, @"Lock Settings - Create Password").Success)
+                {
+                    if (String.IsNullOrEmpty(strValue) || strValue.Length < 5)
+                    {
+                        ConsoleError("Password had invalid format/length, unable to submit.");
+                        return;
+                    }
+                    _settingsPassword = strValue;
+                    _settingsLocked = true;
+                    ConsoleSuccess("Password created. Settings Locked.");
+                    QueueSettingForUpload(new CPluginVariable(@"Settings Password", typeof(String), _settingsPassword));
+                    QueueSettingForUpload(new CPluginVariable(@"Settings Locked", typeof(Boolean), _settingsLocked));
+                }
+                else if (Regex.Match(strVariable, @"Lock Settings").Success)
+                {
+                    if (String.IsNullOrEmpty(strValue) || strValue.Length < 5)
+                    {
+                        ConsoleError("Password had invalid format, unable to submit.");
+                        return;
+                    }
+                    if (strValue != _settingsPassword)
+                    {
+                        ConsoleError("Password incorrect.");
+                        return;
+                    }
+                    _settingsLocked = true;
+                    ConsoleSuccess("Settings locked.");
+                    QueueSettingForUpload(new CPluginVariable(@"Settings Locked", typeof(Boolean), _settingsLocked));
+                }
+                else if (Regex.Match(strVariable, @"Settings Password").Success)
+                {
+                    if (String.IsNullOrEmpty(strValue) || strValue.Length < 5)
+                    {
+                        ConsoleError("Password had invalid format, unable to submit.");
+                        return;
+                    }
+                    _settingsPassword = strValue;
+                }
+                else if (Regex.Match(strVariable, @"Settings Locked").Success)
+                {
+                    _settingsLocked = Boolean.Parse(strValue);
                 }
                 else if (Regex.Match(strVariable, @"Send Query").Success)
                 {
