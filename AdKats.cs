@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.1.0.10
+ * Version 4.1.0.11
  * 3-MAR-2014
  */
 
@@ -51,7 +51,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current version of the plugin
-        private const String PluginVersion = "4.1.0.10";
+        private const String PluginVersion = "4.1.0.11";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -12891,7 +12891,7 @@ namespace PRoConEvents
                         WHERE
 	                        source_id = @player_id
                         AND
-	                        target_id <> source_id
+	                        target_name <> source_name
                         GROUP BY command_type, command_action";
 
                         command.Parameters.AddWithValue("player_id", aPlayer.player_id);
@@ -12925,7 +12925,7 @@ namespace PRoConEvents
                         WHERE
 	                        target_id = @player_id
                         AND
-	                        target_id <> source_id
+	                        target_name <> source_name
                         GROUP BY command_type, command_action";
 
                         command.Parameters.AddWithValue("player_id", aPlayer.player_id);
@@ -14114,6 +14114,7 @@ namespace PRoConEvents
                 //If AdKats is disconnected from the database, return the player as-is
                 aPlayer = new AdKatsPlayer
                 {
+                    game_id = _gameID,
                     player_name = playerName,
                     player_guid = playerGUID,
                     player_ip = playerIP
@@ -14283,6 +14284,14 @@ namespace PRoConEvents
                                             player_guid = playerGUID,
                                             player_ip = playerIP
                                         };
+                                        if (useableGameID != null) 
+                                        {
+                                            aPlayer.game_id = (long) useableGameID;
+                                        }
+                                        else 
+                                        {
+                                            aPlayer.game_id = _gameID;
+                                        }
                                     }
                                     else
                                     {
@@ -15778,7 +15787,6 @@ namespace PRoConEvents
                                                 player_guid = playerGUID,
                                                 player_ip = playerIP
                                             };
-                                            UpdatePlayerReputation(aPlayer);
                                             aUser.soldierDictionary.Add(playerID, aPlayer);
                                         }
                                         aPlayer.player_role = aUser.user_role;
