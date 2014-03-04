@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.1.0.11
+ * Version 4.1.0.12
  * 3-MAR-2014
  */
 
@@ -51,9 +51,9 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current version of the plugin
-        private const String PluginVersion = "4.1.0.11";
+        private const String PluginVersion = "4.1.0.12";
         //When fullDebug is enabled, on any exception slomo is activated
-        private const Boolean FullDebug = false;
+        private const Boolean FullDebug = true;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
         //This will slow the program as a whole whenever the console is printed to
         private Boolean _slowmo;
@@ -2581,8 +2581,10 @@ namespace PRoConEvents
                         }
                     }
                 }
-
-
+                if (FullDebug)
+                {
+                    ConsoleWrite("updating settings page");
+                }
             }
             catch (Exception e)
             {
@@ -4042,6 +4044,9 @@ namespace PRoConEvents
                             _KillProcessingWaitHandle.WaitOne(Timeout.Infinite);
                             continue;
                         }
+
+                        //TODO remove
+                        //continue;
 
                         //Loop through all kils in order that they came in
                         while (inboundPlayerKills.Count > 0)
@@ -6398,6 +6403,9 @@ namespace PRoConEvents
                                 //Clear the queue for next run
                                 _UnparsedCommandQueue.Clear();
                             }
+
+                            //TODO remove
+                            //continue;
 
                             //Loop through all commands in order that they came in
                             while (unparsedCommands.Count > 0)
@@ -12875,6 +12883,9 @@ namespace PRoConEvents
         {
             try
             {
+                if (!this._isTestingAuthorized) {
+                    return;
+                }
                 double sourceReputation = 0.0;
                 double targetReputation = (-25) * FetchPoints(aPlayer, true);
                 using (MySqlConnection connection = GetDatabaseConnection())
