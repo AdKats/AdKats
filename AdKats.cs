@@ -14056,7 +14056,7 @@ namespace PRoConEvents
                                     record_message = aPlayer.player_name_previous
                                 };
                                 QueueRecordForProcessing(record);
-                                DebugWrite(aPlayer.player_name + " changed their name to " + playerName + ". Updating the database.", 2);
+                                DebugWrite(aPlayer.player_name_previous + " changed their name to " + playerName + ". Updating the database.", 2);
                                 UpdatePlayer(aPlayer);
                             }
                         }
