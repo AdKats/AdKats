@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.1.0.12
+ * Version 4.1.0.14
  * 3-MAR-2014
  */
 
@@ -51,9 +51,9 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current version of the plugin
-        private const String PluginVersion = "4.1.0.12";
+        private const String PluginVersion = "4.1.0.14";
         //When fullDebug is enabled, on any exception slomo is activated
-        private const Boolean FullDebug = true;
+        private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
         //This will slow the program as a whole whenever the console is printed to
         private Boolean _slowmo;
@@ -5220,105 +5220,6 @@ namespace PRoConEvents
             if (!acted && debug)
             {
                 ConsoleSuccess(aPlayer.player_name + " is clean.");
-            }
-        }
-
-        private void RunGCPHackCheck(AdKatsPlayer aPlayer, Boolean verbose)
-        {
-            try
-            {
-                //Fetch hack status from GCP servers
-                Hashtable hcResponse = FetchGCPHackCheck(aPlayer.player_name);
-                var status = (String)hcResponse["status"];
-                if (status == "success")
-                {
-                    var response = (Hashtable)hcResponse["response"];
-                    var result = (String)response["result"];
-                    if (result == "dirty")
-                    {
-                        ConsoleWarn(aPlayer.player_name + " is hacking.");
-                        try
-                        {
-                            List<AdKatsWeaponStats> weaponList = (from DictionaryEntry pair in (Hashtable)response["weapons"]
-                                                                  let weaponStats = (Hashtable)pair.Value
-                                                                  select new AdKatsWeaponStats
-                                                                  {
-                                                                      ID = (String)pair.Key,
-                                                                      Kills = (Double)weaponStats["kills"],
-                                                                      Headshots = (Double)weaponStats["headshots"],
-                                                                      DPS = (Double)weaponStats["DPS"],
-                                                                      HSKR = (Double)weaponStats["HKR"],
-                                                                      Hits = (Double)weaponStats["hit"],
-                                                                      Shots = (Double)weaponStats["shot"]
-                                                                  }).ToList();
-                            AdKatsWeaponStats actedWeapon = null;
-                            Double actedDPS = 0;
-                            Double actedHSKR = 0;
-                            foreach (AdKatsWeaponStats weapon in weaponList)
-                            {
-                                if (weapon.DPS > actedDPS)
-                                {
-                                    actedWeapon = weapon;
-                                    actedDPS = weapon.DPS;
-                                }
-                                else if (weapon.HSKR > actedHSKR)
-                                {
-                                    actedWeapon = weapon;
-                                    actedHSKR = weapon.HSKR;
-                                }
-                            }
-                            //Create record for player in actual player list
-                            if (actedWeapon != null)
-                            {
-                                var record = new AdKatsRecord
-                                {
-                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                    server_id = _serverID,
-                                    command_type = _CommandKeyDictionary["player_ban_perm"],
-                                    command_numeric = 0,
-                                    target_name = aPlayer.player_name,
-                                    target_player = aPlayer,
-                                    source_name = "AutoAdmin",
-                                    record_message = "Hacking/Cheating Automatic Ban [" + actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int)actedWeapon.DPS + "DPS-" + (int)(actedWeapon.HSKR * 100) + "HSKR-" + (int)actedWeapon.Kills + "]"
-                                };
-                                //Process the record
-                                QueueRecordForProcessing(record);
-                                ConsoleWarn(aPlayer.player_name + " auto-banned for hacking. [" + actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper() + "-" + (int)actedWeapon.DPS + "DPS-" + (int)(actedWeapon.HSKR * 100) + "HSKR-" + (int)actedWeapon.Kills + "]");
-                            }
-                            else
-                            {
-                                ConsoleError("actedWeapon was null in hackerchecker.");
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            HandleException(new AdKatsException("Unable to parse player hack information", e));
-                        }
-                    }
-                    else if (result == "clean")
-                    {
-                        if (verbose)
-                        {
-                            ConsoleSuccess(aPlayer.player_name + " is clean.");
-                        }
-                        else
-                        {
-                            DebugWrite(aPlayer.player_name + " is clean.", 2);
-                        }
-                    }
-                    else
-                    {
-                        ConsoleError("Unknown hacker result '" + result + "'.");
-                    }
-                }
-                else
-                {
-                    ConsoleError(aPlayer.player_name + " not found or could not be hacker-checked.");
-                }
-            }
-            catch (Exception e)
-            {
-                HandleException(new AdKatsException("Error while processing GCP hack check.", e));
             }
         }
 
@@ -10603,6 +10504,7 @@ namespace PRoConEvents
                 Thread.CurrentThread.Name = "databasecomm";
                 Boolean firstRun = true;
                 DateTime loopStart;
+                Stopwatch counter = new Stopwatch();
                 while (true)
                 {
                     loopStart = DateTime.UtcNow;
@@ -10635,8 +10537,11 @@ namespace PRoConEvents
                             FetchRoles();
                             UpdateDatabase37014000();
                         }
-
+                        counter.Reset();
+                        counter.Start();
                         FeedStatLoggerSettings();
+                        counter.Stop();
+                        if(FullDebug) ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
 
                         //Update server ID
                         if (_serverID < 0)
@@ -10671,14 +10576,32 @@ namespace PRoConEvents
                             FetchSettings(_settingImportID, _settingImportID != _serverID);
                         }
 
+                        counter.Reset();
+                        counter.Start();
                         HandleSettingUploads();
+                        counter.Stop();
+                        if (FullDebug) ConsoleWrite("DBCOMM: HandleSettingUploads took " + counter.ElapsedMilliseconds + "ms");
 
+                        counter.Reset();
+                        counter.Start();
                         HandleCommandUploads();
+                        counter.Stop();
+                        if (FullDebug) ConsoleWrite("DBCOMM: HandleCommandUploads took " + counter.ElapsedMilliseconds + "ms");
 
+                        counter.Reset();
+                        counter.Start();
                         HandleRoleUploads();
+                        counter.Stop();
+                        if (FullDebug) ConsoleWrite("DBCOMM: HandleRoleUploads took " + counter.ElapsedMilliseconds + "ms");
 
+                        counter.Reset();
+                        counter.Start();
                         HandleRoleRemovals();
+                        counter.Stop();
+                        if (FullDebug) ConsoleWrite("DBCOMM: HandleRoleRemovals took " + counter.ElapsedMilliseconds + "ms");
 
+                        counter.Reset();
+                        counter.Start();
                         //Check for new actions from the database at given interval
                         if (_fetchActionsFromDb && (DateTime.UtcNow > _lastDbActionFetch.AddSeconds(DbActionFetchFrequency)))
                         {
@@ -10688,14 +10611,8 @@ namespace PRoConEvents
                         {
                             DebugWrite("DBCOMM: Skipping DB action fetch", 7);
                         }
-
-                        //Call banlist at set interval (20 seconds)
-                        if (_UseBanEnforcerPreviousState && (DateTime.UtcNow > _LastBanListCall.AddSeconds(20)))
-                        {
-                            _LastBanListCall = DateTime.UtcNow;
-                            DebugWrite("banlist.list called at interval.", 6);
-                            ExecuteCommand("procon.protected.send", "banList.list");
-                        }
+                        counter.Stop();
+                        if (FullDebug) ConsoleWrite("DBCOMM: RunActionsFromDB took " + counter.ElapsedMilliseconds + "ms");
 
                         HandleUserChanges();
 
@@ -10723,25 +10640,27 @@ namespace PRoConEvents
                             ConsoleWrite("^b^2Running!^n^0 Version: " + GetPluginVersion());
                         }
 
-                        //Ban Enforcer
+                        counter.Reset();
+                        counter.Start();
                         if (_UseBanEnforcer)
                         {
                             HandleActiveBanEnforcer();
                         }
                         else
                         {
-                            //If the ban enforcer was previously enabled, and the user disabled it, repopulate procon's ban list
                             if (_UseBanEnforcerPreviousState)
                             {
                                 RepopulateProconBanList();
                                 _UseBanEnforcerPreviousState = false;
                             }
-                            //If not, completely ignore all ban enforcer code
                         }
+                        counter.Stop();
+                        if (FullDebug) ConsoleWrite("DBCOMM: HandleActiveBanEnforcer took " + counter.ElapsedMilliseconds + "ms");
 
-                        //Handle Inbound Records
                         if (_UnprocessedRecordQueue.Count > 0)
                         {
+                            counter.Reset();
+                            counter.Start();
                             DebugWrite("DBCOMM: Unprocessed: " + _UnprocessedRecordQueue.Count + " Current: 0", 4);
                             DebugWrite("DBCOMM: Preparing to lock inbound record queue to retrive new records", 7);
                             Queue<AdKatsRecord> inboundRecords;
@@ -10787,9 +10706,13 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                 }
                             }
+                            counter.Stop();
+                            if (FullDebug) ConsoleWrite("DBCOMM: UnprocessedRecords took " + counter.ElapsedMilliseconds + "ms");
                         }
                         else
                         {
+                            counter.Reset();
+                            counter.Start();
                             DebugWrite("DBCOMM: No unprocessed records. Waiting for input", 7);
                             _DbCommunicationWaitHandle.Reset();
 
@@ -10805,6 +10728,8 @@ namespace PRoConEvents
                                 //Maximum wait time is DB access fetch time
                                 _DbCommunicationWaitHandle.WaitOne(DbUserFetchFrequency * 1000);
                             }
+                            counter.Stop();
+                            if (FullDebug) ConsoleWrite("DBCOMM: Waiting after complete took " + counter.ElapsedMilliseconds + "ms");
                         }
                     }
                     catch (Exception e)
@@ -10827,8 +10752,8 @@ namespace PRoConEvents
 
         private void FeedStatLoggerSettings()
         {
-            //Every 60 seconds feed stat logger settings
-            if (_LastStatLoggerStatusUpdateTime.AddSeconds(60) < DateTime.UtcNow)
+            //Every 30 minutes feed stat logger settings
+            if (_LastStatLoggerStatusUpdateTime.AddMinutes(60) < DateTime.UtcNow)
             {
                 _LastStatLoggerStatusUpdateTime = DateTime.UtcNow;
                 if (_statLoggerVersion == "BF3")
@@ -11072,6 +10997,14 @@ namespace PRoConEvents
 
         private void HandleActiveBanEnforcer()
         {
+            //Call banlist at set interval (20 seconds)
+            if (_UseBanEnforcerPreviousState && (DateTime.UtcNow > _LastBanListCall.AddSeconds(20)))
+            {
+                _LastBanListCall = DateTime.UtcNow;
+                DebugWrite("banlist.list called at interval.", 6);
+                ExecuteCommand("procon.protected.send", "banList.list");
+            }
+
             FetchNameBanCount();
             FetchGUIDBanCount();
             FetchIPBanCount();
@@ -11908,211 +11841,6 @@ namespace PRoConEvents
             }
         }
 
-        public class MergeAdKatsRecord : AdKatsRecord
-        {
-            public Int32? game_id = null;
-            public String target_guid = null;
-            public String source_guid = null;
-        }
-        private void MergeBF3BF4()
-        {
-            //Create a new thread to handle keep-alive
-            //This thread will remain running for the duration the layer is online
-            var mergeThread = new Thread(new ThreadStart(delegate
-            {
-                try
-                {
-                    ConsoleWarn("Merging BF3 and BF4.");
-
-                    var serverIPDictionary = new Dictionary<string, long>();
-                    using (MySqlConnection connection = GetDatabaseConnection())
-                    {
-                        using (MySqlCommand command = connection.CreateCommand())
-                        {
-                            command.CommandText = @"
-                        SELECT
-	                        `ServerID` AS `server_id`,
-	                        `IP_Address` AS `server_ip`
-                        FROM
-	                        `tbl_server`";
-                            using (MySqlDataReader reader = command.ExecuteReader())
-                            {
-                                while (reader.Read())
-                                {
-                                    String server_ip = reader.GetString("server_ip");
-                                    Int64 server_id = reader.GetInt64("server_id");
-                                    if (!serverIPDictionary.ContainsKey(server_ip))
-                                    {
-                                        serverIPDictionary.Add(server_ip, server_id);
-                                        ConsoleWrite("Added server: " + server_ip);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    //Generate old->new command key dictionary
-                    var commandConversionDictionary = new Dictionary<string, AdKatsCommand>();
-                    commandConversionDictionary.Add("AdminSay", _CommandKeyDictionary["admin_say"]);
-                    commandConversionDictionary.Add("AdminTell", _CommandKeyDictionary["admin_tell"]);
-                    commandConversionDictionary.Add("AdminYell", _CommandKeyDictionary["admin_yell"]);
-                    commandConversionDictionary.Add("CallAdmin", _CommandKeyDictionary["player_calladmin"]);
-                    commandConversionDictionary.Add("ConfirmReport", _CommandKeyDictionary["player_report_confirm"]);
-                    commandConversionDictionary.Add("EndLevel", _CommandKeyDictionary["round_end"]);
-                    commandConversionDictionary.Add("EnforceBan", _CommandKeyDictionary["banenforcer_enforce"]);
-                    commandConversionDictionary.Add("Exception", _CommandKeyDictionary["adkats_exception"]);
-                    commandConversionDictionary.Add("ForceMove", _CommandKeyDictionary["player_fmove"]);
-                    commandConversionDictionary.Add("Forgive", _CommandKeyDictionary["player_forgive"]);
-                    commandConversionDictionary.Add("Join", _CommandKeyDictionary["player_join"]);
-                    commandConversionDictionary.Add("Kick", _CommandKeyDictionary["player_kick"]);
-                    commandConversionDictionary.Add("Kill", _CommandKeyDictionary["player_kill"]);
-                    commandConversionDictionary.Add("KickAll", _CommandKeyDictionary["server_kickall"]);
-                    commandConversionDictionary.Add("LowPopKill", _CommandKeyDictionary["player_kill_lowpop"]);
-                    commandConversionDictionary.Add("Move", _CommandKeyDictionary["player_move"]);
-                    commandConversionDictionary.Add("Mute", _CommandKeyDictionary["player_mute"]);
-                    commandConversionDictionary.Add("NextLevel", _CommandKeyDictionary["round_next"]);
-                    commandConversionDictionary.Add("Nuke", _CommandKeyDictionary["server_nuke"]);
-                    commandConversionDictionary.Add("PermaBan", _CommandKeyDictionary["player_ban_perm"]);
-                    commandConversionDictionary.Add("PlayerSay", _CommandKeyDictionary["player_say"]);
-                    commandConversionDictionary.Add("PlayerYell", _CommandKeyDictionary["player_yell"]);
-                    commandConversionDictionary.Add("PlayerTell", _CommandKeyDictionary["player_tell"]);
-                    commandConversionDictionary.Add("Punish", _CommandKeyDictionary["player_punish"]);
-                    commandConversionDictionary.Add("RepeatKill", _CommandKeyDictionary["player_kill_repeat"]);
-                    commandConversionDictionary.Add("Report", _CommandKeyDictionary["player_report"]);
-                    commandConversionDictionary.Add("RestartLevel", _CommandKeyDictionary["round_restart"]);
-                    commandConversionDictionary.Add("RequestRules", _CommandKeyDictionary["self_rules"]);
-                    commandConversionDictionary.Add("RoundWhitelist", _CommandKeyDictionary["player_roundwhitelist"]);
-                    commandConversionDictionary.Add("KillSelf", _CommandKeyDictionary["self_kill"]);
-                    commandConversionDictionary.Add("Teamswap", _CommandKeyDictionary["self_teamswap"]);
-                    commandConversionDictionary.Add("TempBan", _CommandKeyDictionary["player_ban_temp"]);
-
-                    var recordsToMerge = new List<MergeAdKatsRecord>();
-                    using (MySqlConnection connection = GetDatabaseConnection("gcpanel_bf4"))
-                    {
-                        using (MySqlCommand command = connection.CreateCommand())
-                        {
-                            command.CommandText = @"
-                            SELECT 
-	                            server_id,
-	                            tbl_server.IP_Address AS server_ip,
-	                            command_type,
-	                            command_action,
-	                            command_numeric,
-	                            target_name,
-	                            pdata1.EAGUID AS target_guid,
-	                            source_name,
-	                            pdata2.EAGUID AS source_guid,
-	                            record_message,
-	                            record_time
-                            FROM 
-	                            adkats_records 
-                            INNER JOIN 
-	                            tbl_playerdata pdata1
-                            ON
-	                            adkats_records.target_id = pdata1.PlayerID
-                            INNER JOIN 
-	                            tbl_playerdata pdata2
-                            ON
-	                            adkats_records.source_id = pdata2.PlayerID
-                            INNER JOIN
-	                            tbl_server
-                            ON
-	                            adkats_records.server_id = tbl_server.ServerID
-                            WHERE 
-	                            source_id IS NOT NULL
-                            AND
-                                pdata1.EAGUID IS NOT NULL
-                            AND
-                                pdata2.EAGUID IS NOT NULL
-                            AND 
-                                record_id < 140000
-                            AND 
-                                record_id >= 120000
-                            ORDER BY 
-	                            record_id 
-                            ASC";
-                            using (MySqlDataReader reader = command.ExecuteReader())
-                            {
-                                while (reader.Read())
-                                {
-                                    var aRecord = new MergeAdKatsRecord();
-                                    aRecord.game_id = 1;
-                                    aRecord.record_source = AdKatsRecord.Sources.InternalAutomated;
-                                    if (!serverIPDictionary.TryGetValue(reader.GetString("server_ip"), out aRecord.server_id))
-                                    {
-                                        ConsoleError("Could not find " + reader.GetString("server_ip") + " in new server list.");
-                                    }
-                                    AdKatsCommand aCommandType = null;
-                                    if (commandConversionDictionary.TryGetValue(reader.GetString("command_type"), out aCommandType))
-                                    {
-                                        aRecord.command_type = aCommandType;
-                                    }
-                                    else
-                                    {
-                                        //Skip record
-                                        ConsoleError("Unable to parse '" + reader.GetString("command_type") + "' as a valid command type. Skipping record.");
-                                        continue;
-                                    }
-                                    AdKatsCommand aCommandAction = null;
-                                    if (commandConversionDictionary.TryGetValue(reader.GetString("command_action"), out aCommandAction))
-                                    {
-                                        aRecord.command_action = aCommandAction;
-                                    }
-                                    else
-                                    {
-                                        //Skip record
-                                        ConsoleError("Unable to parse '" + reader.GetString("command_action") + "' as a valid command action. Skipping record.");
-                                        continue;
-                                    }
-                                    aRecord.command_numeric = reader.GetInt32("command_numeric");
-                                    aRecord.target_name = reader.GetString("target_name");
-                                    aRecord.target_guid = reader.GetString("target_guid");
-                                    aRecord.source_name = reader.GetString("source_name");
-                                    aRecord.source_guid = reader.GetString("source_guid");
-                                    aRecord.record_message = reader.GetString("record_message");
-                                    aRecord.record_time = reader.GetDateTime("record_time");
-                                    recordsToMerge.Add(aRecord);
-                                    if (recordsToMerge.Count % 1000 == 0)
-                                    {
-                                        ConsoleWrite(recordsToMerge.Count + " records downloaded. (BF3 Section)");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    ConsoleSuccess("Records downloaded, fetching players.");
-                    var tempPlayerDictionary = new Dictionary<string, AdKatsPlayer>();
-                    int index = 0;
-                    foreach (MergeAdKatsRecord mergeAdKatsRecord in recordsToMerge)
-                    {
-                        if (!tempPlayerDictionary.TryGetValue(mergeAdKatsRecord.target_guid + mergeAdKatsRecord.game_id, out mergeAdKatsRecord.target_player))
-                        {
-                            ConsoleWrite("Fetching " + mergeAdKatsRecord.target_guid + mergeAdKatsRecord.game_id + " for first time.");
-                            mergeAdKatsRecord.target_player = FetchPlayer(true, true, mergeAdKatsRecord.game_id, -1, null, mergeAdKatsRecord.target_guid, null);
-                            tempPlayerDictionary.Add(mergeAdKatsRecord.target_guid + mergeAdKatsRecord.game_id, mergeAdKatsRecord.target_player);
-                        }
-                        if (!tempPlayerDictionary.TryGetValue(mergeAdKatsRecord.source_guid + mergeAdKatsRecord.game_id, out mergeAdKatsRecord.source_player))
-                        {
-                            ConsoleWrite("Fetching " + mergeAdKatsRecord.source_guid + mergeAdKatsRecord.game_id + " for first time.");
-                            mergeAdKatsRecord.source_player = FetchPlayer(true, true, mergeAdKatsRecord.game_id, -1, null, mergeAdKatsRecord.source_guid, null);
-                            tempPlayerDictionary.Add(mergeAdKatsRecord.source_guid + mergeAdKatsRecord.game_id, mergeAdKatsRecord.source_player);
-                        }
-                        QueueRecordForProcessing(mergeAdKatsRecord);
-                        if (++index % 10 == 0)
-                        {
-                            ConsoleWrite(index + " record players fetched of " + recordsToMerge.Count);
-                        }
-                    }
-                    ConsoleSuccess("Record players added.");
-                }
-                catch (Exception e)
-                {
-                    HandleException(new AdKatsException("Error while updating database information from 3.7 spec to 4.0 spec.", e));
-                }
-            }));
-            //Start the thread
-            mergeThread.Start();
-        }
-
         private Boolean ConfirmTable(String tablename)
         {
             try
@@ -12271,7 +11999,7 @@ namespace PRoConEvents
         {
             DebugWrite("uploadSetting starting!", 7);
             //Make sure database connection active
-            if (HandlePossibleDisconnect() || AdKats.FullDebug || !_settingsFetched)
+            if (HandlePossibleDisconnect() || !_settingsFetched)
             {
                 return;
             }
@@ -17146,563 +16874,6 @@ namespace PRoConEvents
             }
         }
 
-        /////////////////////////CODE CREDIT////////////////////////
-        //All below twitter related functions are credited to Micovery's Insane Limits and PapaCharlie9
-        ////////////////////////////////////////////////////////////
-        public class TwitterHandler
-        {
-            public AdKats Plugin = null;
-
-            private String oauth_token = String.Empty;
-            private String oauth_token_secret = String.Empty;
-
-            //Public keys to connect to AdKats twitter account (Posting only)
-            public String twitter_PIN = "2916484";
-            public String twitter_consumer_key = "3rkSNbotknUEMstELBNnQg";
-            public String twitter_consumer_secret = "vRijlzIyJO8uXcoRM6ikis298sJJcxFkP3sf4hrL7A";
-            public String twitter_access_token = "1468907792-UcOkpQhqFXdJM1rsYFq4XHYz9RPIjIW0PYDRfsB";
-            public String twitter_access_token_secret = "VzqhUNthdTadAthiX7CqXU62VP7eRXAaw3Jfc1j0";
-            public String twitter_user_id = "1468907792";
-            public String twitter_screen_name = "AdKats Tool";
-
-            public TwitterHandler(AdKats plugin)
-            {
-                Plugin = plugin;
-                SetupTwitter();
-            }
-
-            public bool sendTweet(String status)
-            {
-                return sendCustomTweet(status, twitter_access_token, twitter_access_token_secret, twitter_consumer_key, twitter_consumer_secret, true);
-            }
-
-            public bool sendCustomTweet(String status, String access_token, String access_token_secret, String consumer_key, String consumer_secret, bool quiet)
-            {
-                try
-                {
-                    if (String.IsNullOrEmpty(status))
-                        throw new TwitterException("Cannot update Twitter status, invalid ^bstatus^n value");
-
-
-                    if (String.IsNullOrEmpty(access_token) || String.IsNullOrEmpty(access_token_secret) || String.IsNullOrEmpty(consumer_key) || String.IsNullOrEmpty(consumer_secret))
-                        throw new TwitterException("Cannot update Twitter status, looks like you have not run Twitter setup");
-
-                    /* Create the Status Update Request */
-                    OAuthRequest orequest = TwitterStatusUpdateRequest(status, access_token, access_token_secret, consumer_key, consumer_secret);
-
-                    var oresponse = (HttpWebResponse)orequest.request.GetResponse();
-
-                    String protcol = "HTTP/" + oresponse.ProtocolVersion + " " + (Int32)oresponse.StatusCode;
-
-                    if (!oresponse.StatusCode.Equals(HttpStatusCode.OK))
-                        throw new TwitterException("Twitter UpdateStatus Request failed, " + protcol);
-
-                    if (oresponse.ContentLength == 0)
-                        throw new TwitterException("Twitter UpdateStatus Request failed, ContentLength=0");
-
-                    var sin = new StreamReader(oresponse.GetResponseStream());
-                    String response = sin.ReadToEnd();
-                    sin.Close();
-
-                    var data = (Hashtable)JSON.JsonDecode(response);
-
-                    if (data == null || !data.ContainsKey("id_str"))
-                        throw new TwitterException("Twitter UpdateStatus Request failed, response missing ^bid^n field");
-
-                    String id = data["id_str"].ToString();
-
-                    Plugin.DebugWrite("Tweet Successful, id=^b" + id + "^n, Status: " + status, 4);
-
-                    return true;
-                }
-                catch (TwitterException e)
-                {
-                    if (!quiet)
-                        Plugin.ConsoleError(e.Message);
-                }
-                catch (WebException e)
-                {
-                    if (!quiet)
-                        HandleTwitterWebException(e, "UpdateStatus");
-                }
-                catch (Exception e)
-                {
-                    Plugin.ConsoleError(e.ToString());
-                }
-
-                return false;
-            }
-
-            public void VerifyTwitterPin(String PIN)
-            {
-                try
-                {
-                    if (String.IsNullOrEmpty(PIN))
-                    {
-                        Plugin.ConsoleError("Cannot verify Twitter PIN, value(^b" + PIN + "^n) is invalid");
-                        return;
-                    }
-
-                    Plugin.DebugWrite("VERIFIER_PIN: " + PIN, 5);
-
-                    if (String.IsNullOrEmpty(oauth_token) || String.IsNullOrEmpty(oauth_token_secret))
-                        throw new TwitterException("Cannot verify Twitter PIN, There is no ^boauth_token^n or ^boauth_token_secret^n in memory");
-
-                    OAuthRequest orequest = TwitterAccessTokenRequest(PIN, oauth_token, oauth_token_secret);
-
-                    var oresponse = (HttpWebResponse)orequest.request.GetResponse();
-
-                    String protcol = "HTTP/" + oresponse.ProtocolVersion + " " + (Int32)oresponse.StatusCode;
-
-                    if (!oresponse.StatusCode.Equals(HttpStatusCode.OK))
-                        throw new TwitterException("Twitter AccessToken Request failed, " + protcol);
-
-                    if (oresponse.ContentLength == 0)
-                        throw new TwitterException("Twitter AccessToken Request failed, ContentLength=0");
-
-                    var sin = new StreamReader(oresponse.GetResponseStream());
-                    String response = sin.ReadToEnd();
-
-                    Plugin.DebugWrite("ACCESS_TOKEN_RESPONSE: " + response, 5);
-
-                    Dictionary<String, String> pairs = ParseQueryString(response);
-
-                    /* Sanity check the results */
-                    if (pairs.Count == 0)
-                        throw new TwitterException("Twitter AccessToken Request failed, missing fields");
-
-                    /* Get the ReuestToken */
-                    if (!pairs.ContainsKey("oauth_token"))
-                        throw new TwitterException("Twitter AccessToken Request failed, missing ^boauth_token^n field");
-                    oauth_token = pairs["oauth_token"];
-
-                    /* Get the RequestTokenSecret */
-                    if (!pairs.ContainsKey("oauth_token_secret"))
-                        throw new TwitterException("Twitter AccessToken Request failed, missing ^boauth_token_secret^n field");
-                    oauth_token_secret = pairs["oauth_token_secret"];
-
-                    /* Get the User-Id  (Optional) */
-                    String user_id = String.Empty;
-                    if (pairs.ContainsKey("user_id"))
-                        user_id = pairs["user_id"];
-
-                    /* Get the Screen-Name (Optional) */
-                    String screen_name = String.Empty;
-                    if (pairs.ContainsKey("screen_name"))
-                        screen_name = pairs["screen_name"];
-
-                    Plugin.ConsoleWrite("Access token, and secret obtained. Twitter setup is now complete.");
-                    if (!String.IsNullOrEmpty(user_id))
-                        Plugin.ConsoleWrite("Twitter User-Id: ^b" + user_id + "^n");
-                    if (!String.IsNullOrEmpty(screen_name))
-                        Plugin.ConsoleWrite("Twitter Screen-Name: ^b" + screen_name + "^n");
-
-                    Plugin.DebugWrite("access_token=" + oauth_token, 4);
-                    Plugin.DebugWrite("access_token_secret=" + oauth_token_secret, 4);
-
-                    twitter_access_token = oauth_token;
-                    twitter_access_token_secret = oauth_token_secret;
-                    twitter_user_id = user_id;
-                    twitter_screen_name = screen_name;
-                }
-                catch (TwitterException e)
-                {
-                    Plugin.ConsoleError(e.Message);
-                }
-                catch (WebException e)
-                {
-                    HandleTwitterWebException(e, "AccessToken");
-                }
-                catch (Exception e)
-                {
-                    Plugin.ConsoleError(e.ToString());
-                }
-            }
-
-            public void SetupTwitter()
-            {
-                try
-                {
-                    oauth_token = String.Empty;
-                    oauth_token_secret = String.Empty;
-
-                    OAuthRequest orequest = TwitterRequestTokenRequest();
-
-                    var oresponse = (HttpWebResponse)orequest.request.GetResponse();
-                    String protcol = "HTTP/" + oresponse.ProtocolVersion + " " + (Int32)oresponse.StatusCode;
-
-                    if (!oresponse.StatusCode.Equals(HttpStatusCode.OK))
-                        throw new TwitterException("Twitter RequestToken Request failed, " + protcol);
-
-                    if (oresponse.ContentLength == 0)
-                        throw new TwitterException("Twitter RequestToken Request failed, ContentLength=0");
-
-                    var sin = new StreamReader(oresponse.GetResponseStream());
-                    String response = sin.ReadToEnd();
-
-                    Dictionary<String, String> pairs = ParseQueryString(response);
-
-                    if (pairs.Count == 0 || !pairs.ContainsKey("oauth_callback_confirmed"))
-                        throw new TwitterException("Twitter RequestToken Request failed, missing ^boauth_callback_confirmed^n field");
-
-                    String oauth_callback_confirmed = pairs["oauth_callback_confirmed"];
-
-                    if (!oauth_callback_confirmed.ToLower().Equals("true"))
-                        throw new TwitterException("Twitter RequestToken Request failed, ^boauth_callback_confirmed^n=^b" + oauth_callback_confirmed + "^n");
-
-                    /* Get the ReuestToken */
-                    if (!pairs.ContainsKey("oauth_token"))
-                        throw new TwitterException("Twitter RequestToken Request failed, missing ^boauth_token^n field");
-                    oauth_token = pairs["oauth_token"];
-
-                    /* Get the RequestTokenSecret */
-                    if (!pairs.ContainsKey("oauth_token_secret"))
-                        throw new TwitterException("Twitter RequestToken Request failed, missing ^boauth_token_secret^n field");
-                    oauth_token_secret = pairs["oauth_token_secret"];
-
-                    Plugin.DebugWrite("REQUEST_TOKEN_RESPONSE: " + response, 5);
-                    Plugin.DebugWrite("oauth_callback_confirmed=" + oauth_callback_confirmed, 4);
-                    Plugin.DebugWrite("oauth_token=" + oauth_token, 4);
-                    Plugin.DebugWrite("oauth_token_secret=" + oauth_token_secret, 4);
-
-                    //Confirm PIN right away
-                    VerifyTwitterPin(twitter_PIN);
-                }
-                catch (TwitterException e)
-                {
-                    Plugin.ConsoleError(e.Message);
-                }
-                catch (WebException e)
-                {
-                    HandleTwitterWebException(e, "RequestToken");
-                }
-                catch (Exception e)
-                {
-                    Plugin.ConsoleError(e.ToString());
-                }
-            }
-
-            public void HandleTwitterWebException(WebException e, String prefix)
-            {
-                var response = (HttpWebResponse)e.Response;
-                String protcol = (response == null) ? "" : "HTTP/" + response.ProtocolVersion;
-
-                String error = String.Empty;
-                //try reading JSON response
-                if (response != null && response.ContentType != null && response.ContentType.ToLower().Contains("json"))
-                {
-                    try
-                    {
-                        var sin = new StreamReader(response.GetResponseStream());
-                        String data = sin.ReadToEnd();
-                        sin.Close();
-
-                        var jdata = (Hashtable)JSON.JsonDecode(data);
-                        if (jdata == null || !jdata.ContainsKey("error") || jdata["error"] == null || !jdata["error"].GetType().Equals(typeof(String)))
-                            throw new Exception();
-
-                        error = "Twitter Error: " + (String)jdata["error"] + ", ";
-                    }
-                    catch (Exception ex)
-                    {
-                    }
-                }
-
-                /* Handle Time-Out Gracefully */
-                if (e.Status.Equals(WebExceptionStatus.Timeout))
-                {
-                    Plugin.ConsoleError("Twitter " + prefix + " Request(" + protcol + ") timed-out");
-                }
-                if (e.Status.Equals(WebExceptionStatus.ProtocolError))
-                {
-                    Plugin.ConsoleError("Twitter " + prefix + " Request(" + protcol + ") failed, " + error + " " + e.GetType() + ": " + e.Message);
-                }
-                throw e;
-            }
-
-            public Dictionary<String, String> ParseQueryString(String text)
-            {
-                MatchCollection matches = Regex.Matches(text, @"([^=]+)=([^&]+)&?", RegexOptions.IgnoreCase);
-
-                var pairs = new Dictionary<String, String>();
-
-                foreach (Match match in matches)
-                    if (match.Success && !pairs.ContainsKey(match.Groups[1].Value))
-                        pairs.Add(match.Groups[1].Value, match.Groups[2].Value);
-
-                return pairs;
-            }
-
-            public static Int32 MAX_STATUS_LENGTH = 140;
-
-            public OAuthRequest TwitterStatusUpdateRequest(String status, String access_token, String access_token_secret, String consumer_key, String consumer_secret)
-            {
-                System.Net.ServicePointManager.Expect100Continue = false;
-
-                if (String.IsNullOrEmpty(status))
-                    return null;
-
-                String suffix = "...";
-                if (status.Length > MAX_STATUS_LENGTH)
-                    status = status.Substring(0, MAX_STATUS_LENGTH - suffix.Length) + suffix;
-
-                var orequest = new OAuthRequest(Plugin, "http://api.twitter.com/1/statuses/update.json");
-                orequest.Method = HTTPMethod.POST;
-                orequest.request.ContentType = "application/x-www-form-urlencoded";
-
-                /* Set the Post Data */
-
-                byte[] data = Encoding.UTF8.GetBytes("status=" + OAuthRequest.UrlEncode(Encoding.UTF8.GetBytes(status)));
-
-                // Parameters required by the Twitter OAuth Protocol
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_consumer_key", consumer_key));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_nonce", Guid.NewGuid().ToString("N")));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_signature_method", "HMAC-SHA1"));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_token", access_token));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_timestamp", ((long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds).ToString()));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_version", "1.0"));
-                orequest.parameters.Add(new KeyValuePair<String, String>("status", OAuthRequest.UrlEncode(Encoding.UTF8.GetBytes(status))));
-
-                // Compute and add the signature
-                String signature = orequest.Signature(consumer_secret, access_token_secret);
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_signature", OAuthRequest.UrlEncode(signature)));
-
-                // Add the OAuth authentication header
-                String OAuthHeader = orequest.Header();
-                orequest.request.AuthenticationLevel = System.Net.Security.AuthenticationLevel.MutualAuthRequired;
-                orequest.request.Headers["Authorization"] = OAuthHeader;
-
-                // Add the POST body
-                orequest.request.ContentLength = data.Length;
-                Stream sout = orequest.request.GetRequestStream();
-                sout.Write(data, 0, data.Length);
-                sout.Close();
-
-                return orequest;
-            }
-
-            public OAuthRequest TwitterAccessTokenRequest(String verifier, String token, String secret)
-            {
-                var orequest = new OAuthRequest(Plugin, "http://api.twitter.com/oauth/access_token");
-                orequest.Method = HTTPMethod.POST;
-                orequest.request.ContentLength = 0;
-
-                // Parameters required by the Twitter OAuth Protocol
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_consumer_key", twitter_consumer_key));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_nonce", Guid.NewGuid().ToString("N")));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_timestamp", ((long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds).ToString()));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_signature_method", "HMAC-SHA1"));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_version", "1.0"));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_token", token));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_verifier", verifier));
-
-                // Compute and add the signature
-                String signature = orequest.Signature(twitter_consumer_secret, secret);
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_signature", OAuthRequest.UrlEncode(signature)));
-
-                // Add the OAuth authentication header
-                String OAuthHeader = orequest.Header();
-                orequest.request.AuthenticationLevel = System.Net.Security.AuthenticationLevel.MutualAuthRequired;
-                orequest.request.Headers["Authorization"] = OAuthHeader;
-                return orequest;
-            }
-
-            public OAuthRequest TwitterRequestTokenRequest()
-            {
-                var orequest = new OAuthRequest(Plugin, "http://api.twitter.com/oauth/request_token");
-                orequest.Method = HTTPMethod.POST;
-                orequest.request.ContentLength = 0;
-
-                // Parameters required by the Twitter OAuth Protocol
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_callback", OAuthRequest.UrlEncode("oob")));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_consumer_key", twitter_consumer_key));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_nonce", Guid.NewGuid().ToString("N")));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_timestamp", ((long)DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1)).TotalSeconds).ToString()));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_signature_method", "HMAC-SHA1"));
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_version", "1.0"));
-
-                // Compute and add the signature
-                String signature = orequest.Signature(twitter_consumer_secret, null);
-                orequest.parameters.Add(new KeyValuePair<String, String>("oauth_signature", OAuthRequest.UrlEncode(signature)));
-
-                // Add the OAuth authentication header
-                String OAuthHeader = orequest.Header();
-                orequest.request.AuthenticationLevel = System.Net.Security.AuthenticationLevel.MutualAuthRequired;
-                orequest.request.Headers["Authorization"] = OAuthHeader;
-
-                return orequest;
-            }
-
-            public enum HTTPMethod
-            {
-                POST = 0x01,
-                GET = 0x02,
-                PUT = 0x04
-            };
-
-            public class TwitterException : Exception
-            {
-                public Int32 Code = 0;
-
-                public TwitterException(String message)
-                    : base(message)
-                {
-                }
-
-                public TwitterException(String message, Int32 code)
-                    : base(message)
-                {
-                    Code = code;
-                }
-            }
-
-            public class OAuthRequest
-            {
-                private readonly AdKats Plugin;
-                public HttpWebRequest request = null;
-                private HMACSHA1 SHA1;
-                public List<KeyValuePair<String, String>> parameters = new List<KeyValuePair<String, String>>();
-
-                public HTTPMethod Method
-                {
-                    set { request.Method = value.ToString(); }
-                    get { return (HTTPMethod)Enum.Parse(typeof(HTTPMethod), request.Method); }
-                }
-
-                public OAuthRequest(AdKats plugin, String URL)
-                {
-                    Plugin = plugin;
-                    request = (HttpWebRequest)WebRequest.Create(URL);
-                    request.UserAgent = "Mozilla/5.0 (Windows; U; Windows NT 6.1; en-US; rv:1.9.1.3) Gecko/20090824 Firefox/3.5.3 (.NET CLR 4.0.20506)";
-                }
-
-                public void Sort()
-                {
-                    // sort the query parameters
-                    parameters.Sort(delegate(KeyValuePair<String, String> left, KeyValuePair<String, String> right)
-                    {
-                        if (left.Key.Equals(right.Key))
-                            return left.Value.CompareTo(right.Value);
-                        return left.Key.CompareTo(right.Key);
-                    });
-                }
-
-                public String Header()
-                {
-                    String header = "OAuth ";
-                    var pairs = new List<String>();
-
-                    Sort();
-
-                    for (Int32 i = 0; i < parameters.Count; i++)
-                    {
-                        KeyValuePair<String, String> pair = parameters[i];
-                        if (pair.Key.Equals("status"))
-                            continue;
-
-                        pairs.Add(pair.Key + "=\"" + pair.Value + "\"");
-                    }
-
-                    header += String.Join(", ", pairs.ToArray());
-
-                    Plugin.DebugWrite("OAUTH_HEADER: " + header, 7);
-
-                    return header;
-                }
-
-                public String Signature(String ConsumerSecret, String AccessTokenSecret)
-                {
-                    String base_url = request.Address.Scheme + "://" + request.Address.Host + request.Address.AbsolutePath;
-                    String encoded_base_url = UrlEncode(base_url);
-
-                    String http_method = request.Method;
-
-                    Sort();
-
-                    var encoded_parameters = new List<String>();
-                    var raw_parameters = new List<String>();
-
-                    // encode and concatenate the query parameters
-                    for (Int32 i = 0; i < parameters.Count; i++)
-                    {
-                        KeyValuePair<String, String> pair = parameters[i];
-
-                        // ignore signature if present
-                        if (pair.Key.Equals("oauth_signature"))
-                            continue;
-
-                        raw_parameters.Add(pair.Key + "=" + pair.Value);
-                        encoded_parameters.Add(UrlEncode(pair.Key) + "%3D" + UrlEncode(pair.Value));
-                    }
-
-                    String encoded_query = String.Join("%26", encoded_parameters.ToArray());
-                    String raw_query = String.Join("&", raw_parameters.ToArray());
-
-                    Plugin.DebugWrite("HTTP_METHOD: " + http_method, 8);
-                    Plugin.DebugWrite("BASE_URI: " + base_url, 8);
-                    Plugin.DebugWrite("ENCODED_BASE_URI: " + encoded_base_url, 8);
-                    //plugin.DebugWrite("RAW_QUERY: " + raw_query, 8);
-                    //plugin.DebugWrite("ENCODED_QUERY: " + encoded_query, 8);
-
-                    String base_signature = http_method + "&" + encoded_base_url + "&" + encoded_query;
-
-                    Plugin.DebugWrite("BASE_SIGNATURE: " + base_signature, 7);
-
-
-                    String HMACSHA1_signature = HMACSHA1_HASH(base_signature, ConsumerSecret, AccessTokenSecret);
-
-                    Plugin.DebugWrite("HMACSHA1_SIGNATURE: " + HMACSHA1_signature, 7);
-
-                    return HMACSHA1_signature;
-                }
-
-                public String HMACSHA1_HASH(String text, String ConsumerSecret, String AccessTokenSecret)
-                {
-                    if (SHA1 == null)
-                    {
-                        /* Initialize the SHA1 */
-                        String HMACSHA1_KEY = String.IsNullOrEmpty(ConsumerSecret) ? "" : UrlEncode(ConsumerSecret) + "&" + (String.IsNullOrEmpty(AccessTokenSecret) ? "" : UrlEncode(AccessTokenSecret));
-                        Plugin.DebugWrite("HMACSHA1_KEY: " + HMACSHA1_KEY, 7);
-                        SHA1 = new HMACSHA1(Encoding.ASCII.GetBytes(HMACSHA1_KEY));
-                    }
-
-                    return Convert.ToBase64String(SHA1.ComputeHash(System.Text.Encoding.ASCII.GetBytes(text)));
-                }
-
-                public static String UnreservedChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_.~";
-
-                public static String UrlEncode(String Input)
-                {
-                    var Result = new StringBuilder();
-
-                    for (Int32 x = 0; x < Input.Length; ++x)
-                    {
-                        if (UnreservedChars.IndexOf(Input[x]) != -1)
-                            Result.Append(Input[x]);
-                        else
-                            Result.Append("%").Append(String.Format("{0:X2}", (Int32)Input[x]));
-                    }
-
-                    return Result.ToString();
-                }
-
-                public static String UrlEncode(byte[] Input)
-                {
-                    var Result = new StringBuilder();
-
-                    for (Int32 x = 0; x < Input.Length; ++x)
-                    {
-                        if (UnreservedChars.IndexOf((char)Input[x]) != -1)
-                            Result.Append((char)Input[x]);
-                        else
-                            Result.Append("%").Append(String.Format("{0:X2}", (Int32)Input[x]));
-                    }
-
-                    return Result.ToString();
-                }
-            }
-        }
-
         public AdKatsPlayerStats FetchPlayerStats(AdKatsPlayer aPlayer)
         {
             DebugWrite("entering getPlayerStats", 7);
@@ -17956,25 +17127,6 @@ namespace PRoConEvents
             catch (Exception)
             {
                 //Do nothing
-            }
-            return playerData;
-        }
-
-        private Hashtable FetchGCPHackCheck(String playerName)
-        {
-            Hashtable playerData = null;
-            using (var client = new WebClient())
-            {
-                try
-                {
-                    String url = "http://bf4cheat.psychedelic-host.info/api/bf4/checkplayer/" + playerName;
-                    String textResponse = client.DownloadString(url);
-                    playerData = (Hashtable)JSON.JsonDecode(textResponse);
-                }
-                catch (Exception e)
-                {
-                    ConsoleError(e.ToString());
-                }
             }
             return playerData;
         }
@@ -19816,7 +18968,7 @@ namespace PRoConEvents
             }
             if (AdKats.FullDebug)
             {
-                _slowmo = true;
+                //_slowmo = true;
             }
             String prefix = String.Empty;
             if (aException.InternalException != null)
