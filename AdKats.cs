@@ -19,7 +19,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.1.0.14
+ * Version 4.1.0.15
  * 3-MAR-2014
  */
 
@@ -51,7 +51,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current version of the plugin
-        private const String PluginVersion = "4.1.0.14";
+        private const String PluginVersion = "4.1.0.15";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -12701,6 +12701,9 @@ namespace PRoConEvents
                         )";
 
                         command.Parameters.AddWithValue("player_id", aPlayer.player_id);
+                        if (aPlayer.game_id <= 0) {
+                            aPlayer.game_id = _gameID;
+                        }
                         command.Parameters.AddWithValue("game_id", aPlayer.game_id);
                         command.Parameters.AddWithValue("target_rep", targetReputation);
                         command.Parameters.AddWithValue("source_rep", sourceReputation);
@@ -13954,10 +13957,7 @@ namespace PRoConEvents
                                     aPlayer = new AdKatsPlayer();
                                     //Player ID will never be null
                                     aPlayer.player_id = reader.GetInt64("player_id");
-                                    if (_gameID > 0)
-                                    {
-                                        aPlayer.game_id = reader.GetInt32("game_id");
-                                    }
+                                    aPlayer.game_id = reader.GetInt32("game_id");
                                     if (!reader.IsDBNull(1))
                                         aPlayer.player_name = reader.GetString("player_name");
                                     if (!reader.IsDBNull(2))
