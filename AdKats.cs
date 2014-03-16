@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.1.0.26
+ * Version 4.1.0.27
  * 16-MAR-2014
  */
 
@@ -50,7 +50,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current version of the plugin
-        private const String PluginVersion = "4.1.0.26";
+        private const String PluginVersion = "4.1.0.27";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -1088,7 +1088,6 @@ namespace PRoConEvents
                 {
                     if (String.IsNullOrEmpty(strValue) || strValue.Length < 5)
                     {
-                        ConsoleError("Password had invalid format, unable to submit.");
                         return;
                     }
                     if (strValue != _settingsPassword)
@@ -1117,7 +1116,6 @@ namespace PRoConEvents
                 {
                     if (String.IsNullOrEmpty(strValue) || strValue.Length < 5)
                     {
-                        ConsoleError("Password had invalid format, unable to submit.");
                         return;
                     }
                     if (strValue != _settingsPassword)
@@ -1133,7 +1131,6 @@ namespace PRoConEvents
                 {
                     if (String.IsNullOrEmpty(strValue) || strValue.Length < 5)
                     {
-                        ConsoleError("Password had invalid format, unable to submit.");
                         return;
                     }
                     _settingsPassword = strValue;
@@ -4715,18 +4712,8 @@ namespace PRoConEvents
                         if (aPlayer.TargetedRecords.Count > 0 && !aPlayer.TargetedRecords.Any(aRecord =>
                                 aRecord.command_action.command_key == "player_kick" ||
                                 aRecord.command_action.command_key == "player_ban_temp" ||
-                                aRecord.command_action.command_key == "player_ban_perm"))
-                        {
-                            Boolean told = false;
-                            foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers())
-                            {
-                                told = true;
-                                PlayerSayMessage(player.player_name, "Targeted player " + aPlayer.player_name + " has left the server.");
-                            }
-                            if (!told)
-                            {
-                                ProconChatWrite("Targeted player " + aPlayer.player_name + " has left the server.");
-                            }
+                                aRecord.command_action.command_key == "player_ban_perm")) {
+                            OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server.");
                         }
                     }
                     RemovePlayerFromDictionary(playerInfo.SoldierName, false);
@@ -5807,7 +5794,7 @@ namespace PRoConEvents
             }
             if (!adminsTold)
             {
-                ProconChatWrite(message);
+                ProconChatWrite(ColorMessageRed(BoldMessage(message)));
             }
             return adminsTold;
         }
@@ -10574,6 +10561,7 @@ namespace PRoConEvents
                             HandleException(new AdKatsException("Error while printing server rules"));
                         }
                         DebugWrite("Exiting a rule printer.", 5);
+                        LogThreadExit();
                     }));
 
                     //Start the thread
@@ -19102,6 +19090,61 @@ namespace PRoConEvents
             }
 
             return prefix + msg;
+        }
+
+        public String BoldMessage(String msg)
+        {
+            return "^b" + msg + "^n";
+        }
+
+        public String ItalicMessage(String msg)
+        {
+            return "^i" + msg + "^n";
+        }
+
+        public String ColorMessageMaroon(String msg)
+        {
+            return "^1" + msg + "^0";
+        }
+
+        public String ColorMessageGreen(String msg)
+        {
+            return "^2" + msg + "^0";
+        }
+
+        public String ColorMessageOrange(String msg)
+        {
+            return "^3" + msg + "^0";
+        }
+
+        public String ColorMessageBlue(String msg)
+        {
+            return "^4" + msg + "^0";
+        }
+
+        public String ColorMessageBlueLight(String msg)
+        {
+            return "^5" + msg + "^0";
+        }
+
+        public String ColorMessageViolet(String msg)
+        {
+            return "^6" + msg + "^0";
+        }
+
+        public String ColorMessagePink(String msg)
+        {
+            return "^7" + msg + "^0";
+        }
+
+        public String ColorMessageRed(String msg)
+        {
+            return "^8" + msg + "^0";
+        }
+
+        public String ColorMessageGrey(String msg)
+        {
+            return "^9" + msg + "^0";
         }
 
         protected void LogThreadExit() {
