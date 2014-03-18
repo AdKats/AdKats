@@ -378,7 +378,7 @@ fine for performance). Right now only Punish and Forgive are required to be logg
     <li><b>Player listing.</b> Player listing was not called automatically on startup, this caused up to 30 additional seconds where commands were inaccessible. This has been fixed. </li>
     <li><b>Threading.</b> Major issues with threading have been resolved. One thread was not exiting, so more were being spawned to compensate, causing eventual layer lockup. This has been fixed, and the process is now being monitored.</li>
 </ul>
-<b>Upgrad SQL from 4.0.0.0 - Current</b><br/>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
