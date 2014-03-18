@@ -32,7 +32,7 @@
     <li>
         <b>Quick Player Report and Admin Call Handling, with email support.</b>
         Notification system and quick handling features for all admin calls and player reports.
-        Reports can be referenced by number for instant action.
+        Reports can be referenced by number for instant action. Automatic PBSS are triggered on reported players.
     </li>
     <li>
         <b>Orchestration and Server List Management.</b>
@@ -96,10 +96,16 @@
         <b>Editable In-Game Commands.</b>
         All command text, logging options, and enable options can be edited to suit your needs.
     </li>
-    <li><b>Full Logging.</b>
+    <li>
+        <b>Full Logging.</b>
         All admin activity is trackable via the database per your custom settings for every command;
         So holding your admins accountable for their actions is quick and painless.
         And, if you are using AdKats WebAdmin nobody but your highest admins will need direct Procon access.
+    </li>
+    <li>
+        <b>Setting Lock.</b>
+        All settings in AdKats can be locked with a password.
+        This means even admins with access to plugin settings can be blocked from changes using the password.
     </li>
     <li>
         <b>Performance.</b>
@@ -115,12 +121,12 @@
 </p>
 <h2>Upgrade Installation</h2>
 <p>
-For update instructions from your current version please review the MyRCON forum thread.<br/><br/>
+    For update instructions from your current version please review the MyRCON forum thread.<br/><br/>
 
-<a href="https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-1-0-0&p=96108&viewfull=1#post96108" target="_blank">Update 4.1.0.0</a><br/><br/>
+    <a href="https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-1-0-0&p=96108&viewfull=1#post96108" target="_blank">Update 4.1.0.0</a><br/><br/>
 
-Once update ready, download updated AdKats source from here: 
-<a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.1.0.0.zip/download" target="_blank">Version 4.1.0.0</a>
+    Once update ready, download updated AdKats source from here:
+    <a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.1.0.0.zip/download" target="_blank">Version 4.1.0.0</a>
 </p>
 <h2>Fresh Installation</h2>
 <ol>
@@ -205,6 +211,11 @@ Once update ready, download updated AdKats source from here:
 <p>
     The user list is sorted by role ID, then by user name.
     Any item that says "Delete?" you need to type the word delete in the line and hit enter.
+</p>
+<h3>Full Logging</h3>
+<p>
+    All commands, their usage, who used them, who they were targeted on, why, when they were used, and where from, are all logged in the database.
+    Player's name changes and IP changes are also logged and the records connected to their player ID. Soon IP bans will work off of previous IP as well as current IP.
 </p>
 <h3>Infraction Tracking System</h3>
 <p>
@@ -365,6 +376,10 @@ Once update ready, download updated AdKats source from here:
 <h4>Report Emails</h4>
 <p>
     When email usage is enabled, all users with access to player interaction commands will get an email containing the report information.
+</p>
+<h4>Report PBSS</h4>
+<p>
+    Automatic Punkbuster screenshots are triggered on reported players.
 </p>
 <h3>Admin Assistants</h3>
 <p>
@@ -763,6 +778,46 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
     </td>
 </tr>
 <tr>
+    <td><b>Reserved Slot Player</b></td>
+    <td>spectator</td>
+    <td>
+        [player][reason]
+    </td>
+    <td>
+        The in-game command used for adding a player to reserved slots for the current server. The setting "Feed Server Reserved Slots" must be enabled to use this command.
+    </td>
+</tr>
+<tr>
+    <td><b>Spectator Slot Player</b></td>
+    <td>spectator</td>
+    <td>
+        [player][reason]
+    </td>
+    <td>
+        The in-game command used for adding a player to spectator list for the current server. The setting "Feed Server Spectator List" must be enabled to use this command.
+    </td>
+</tr>
+<tr>
+    <td><b>MULTIBalancer Whitelist Player</b></td>
+    <td>whitelist</td>
+    <td>
+        [player][reason]
+    </td>
+    <td>
+        The in-game command used for adding a player to MULTIBalancer whitelist for the current server. The setting "Feed MULTIBalancer Whitelist" must be enabled to use this command.
+    </td>
+</tr>
+<tr>
+    <td><b>Even Disperse Player</b></td>
+    <td>disperse</td>
+    <td>
+        [player][reason]
+    </td>
+    <td>
+        The in-game command used for adding a player to MULTIBalancer even dispersion for the current server. The setting "Feed MULTIBalancer Even Dispersion List" must be enabled to use this command.
+    </td>
+</tr>
+<tr>
     <td><b>Move Player</b></td>
     <td>move</td>
     <td>
@@ -939,10 +994,22 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
     <td><b>Lead</b></td>
     <td>lead</td>
     <td>
+        none<br/>
+        OR<br/>
+        [player]
+    </td>
+    <td>
+        The in-game command used to the speaker to leader of their current squad. When targeted at a player, that player will be given leader of their current squad. Only available in BF4.
+    </td>
+</tr>
+<tr>
+    <td><b>Assist</b></td>
+    <td>assist</td>
+    <td>
         none
     </td>
     <td>
-        The in-game command used to the speaker to leader of their current squad. Only available in BF4.
+        The in-game command used to join the weak/losing team. (Designed for conquest)
     </td>
 </tr>
 <tr>
@@ -953,6 +1020,16 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
     </td>
     <td>
         The in-game command used to get the list of current online admins.
+    </td>
+</tr>
+<tr>
+    <td><b>Uptime</b></td>
+    <td>uptime</td>
+    <td>
+        none
+    </td>
+    <td>
+        The in-game command used to get the uptime of the server, procon/layer, AdKats, and several other things.
     </td>
 </tr>
 <tr>
@@ -1000,7 +1077,15 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
     <td>nuke</td>
     <td>[US/RU/ALL]</td>
     <td>
-        The in-game command used for killing all players on a team. US, RU, or ALL will work.
+        The in-game command used for killing all players in a subset. US, RU, or ALL will work.
+    </td>
+</tr>
+<tr>
+    <td><b>SwapNuke Server</b></td>
+    <td>swapnuke</td>
+    <td>none</td>
+    <td>
+        The in-game command used for team-switching all players in the server. THIS IS EXPERIMENTAL, AND SHOULD BE USED WITH CAUTION.
     </td>
 </tr>
 <tr>
@@ -1163,26 +1248,29 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
 <h3>A16. Orchestration Settings:</h3>
 <ul>
     <li><b>'Feed MULTIBalancer Whitelist'</b> - When enabled, the adkats_specialplayers table (group: whitelist_multibalancer) is used to feed MULTIBalancer's player whitelist.</li>
+    <li><b>'Automatic MULTIBalancer Whitelist for Admins'</b> - When enabled, all admins in your User List will be given whitelist from balance in MULTIBalancer.</li>
     <li><b>'Feed MULTIBalancer Even Dispersion List'</b> - When enabled, the adkats_specialplayers table (group: blacklist_dispersion) is used to feed MULTIBalancer's even dispersion list.</li>
     <li><b>'Feed Server Reserved Slots'</b> - When enabled, the servers reserved slots will include all AdKats user's soldiers.</li>
+    <li><b>'Automatic Reserved Slot for User Cache'</b> - When enabled, all users in your User List will be given a reserved slot.</li>
     <li><b>'Feed Server Spectator List'</b> - When enabled, the servers spectator list will include all AdKats user's soldiers.</li>
+    <li><b>'Automatic Spectator Slot for User Cache'</b> - When enabled, all users in your User List will be given a spectator slot.</li>
     <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including correct database time offset, instant chat logging, etc.
         <p>
             The following settings are sent to stat logger when using the "Feed Stat Logger Settings" orchestration option:
-            <ul>
-                <li>"Servertime Offset" (TIME OFFSET CONVERSION TO UTC TIME)</li>
-                <li>"Enable Chatlogging?" "Yes"</li>
-                <li>"Log ServerSPAM?" "Yes"</li>
-                <li>"Instant Logging of Chat Messages?" "Yes"</li>
-                <li>"Enable Statslogging?" "Yes"</li>
-                <li>"Enable Weaponstats?" "Yes"</li>
-                <li>"Enable Livescoreboard in DB?" "Yes"</li>
-                <li>"Enable KDR correction?" "Yes"</li>
-                <li>"MapStats ON?" "Yes"</li>
-                <li>"Session ON?" "Yes"</li>
-                <li>"Save Sessiondata to DB?" "Yes"</li>
-                <li>"Log playerdata only (no playerstats)?" "No"</li>
-            </ul>
+        <ul>
+            <li>"Servertime Offset" (TIME OFFSET CONVERSION TO UTC TIME)</li>
+            <li>"Enable Chatlogging?" "Yes"</li>
+            <li>"Log ServerSPAM?" "Yes"</li>
+            <li>"Instant Logging of Chat Messages?" "Yes"</li>
+            <li>"Enable Statslogging?" "Yes"</li>
+            <li>"Enable Weaponstats?" "Yes"</li>
+            <li>"Enable Livescoreboard in DB?" "Yes"</li>
+            <li>"Enable KDR correction?" "Yes"</li>
+            <li>"MapStats ON?" "Yes"</li>
+            <li>"Session ON?" "Yes"</li>
+            <li>"Save Sessiondata to DB?" "Yes"</li>
+            <li>"Log playerdata only (no playerstats)?" "No"</li>
+        </ul>
         </p>
     </li>
 </ul>
