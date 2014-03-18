@@ -339,4 +339,47 @@ fine for performance). Right now only Punish and Forgive are required to be logg
     <li><b>Hacker Checker</b> Bug where hacker-checker mesh with BF3Stats was failing has been fixed.</li>
     <li><b>Chat</b> All chat messages are now trimmed before handling, both before and after command prefix parsing.</li>
 </ul>
+<h4>4.2.0.0 (18-MAR-2014)</h4>
+<b>Changes</b><br/>
+<ul>
+    <li><b>Settings.</b> AdKats settings are now stored database side almost exclusively. They have always been stored there, but now have been removed from procon's plugin setting list. The only things remaining plugin side are DB connection settings, setting lock information, and debug level.</li>
+    <li><b>Command Access during Startup.</b> Commands cannot be accessed until the first player listing is complete, all commands issued before this is complete are rejected. Looking at our current systems this usually takes about 1 minute after initial startup. Admins are informed in-game when the startup sequence has completed, and how long it took to complete.
+</li>
+</ul>
+<b>Enhancements</b><br/>
+<ul>
+    <li><b>Added setting lock.</b> Settings in AdKats can now be locked with a password. This is so you can give lower level admins access to mini-ban-management (and some other basic functions), without endangering your other settings.</li>
+    <li><b>Orchestration Enhancement.</b> Automatic MULTIBalancer whitelisting for admins is now an optional selection.</li>
+    <li><b>Orchestration Enhancement.</b> Automatic reserved slot for the AdKats user list is now an optional selection.</li>
+    <li><b>Orchestration Enhancement.</b> Automatic spectator slot for the AdKats user list is now an optional selection.</li>
+    <li><b>Command Enhancement.</b> Lead command can now be targeted at a player.</li>
+    <li><b>Added uptime command.</b> Debug and information purposes; Gives info on server, procon, and AdKats uptime, along with a couple other things.</li>
+    <li><b>Added assist command.</b> Will move the requesting player to the weak/losing team and thank them for doing so.</li>
+    <li><b>Added spectator slot command.</b> Will add the player to spectator slots for the current server.</li>
+    <li><b>Added reserved slot command.</b> Will add the player to reserved slots for the current server.</li>
+    <li><b>Added disperse command.</b> Will add the player to MULTIBalancer even dispersion for the current server.</li>
+    <li><b>Added whitelist command.</b> Will add the player to MULTIBalancer whitelist for the current server.</li>
+    <li><b>Added logging of player name/IP changes.</b> Now all changes of IP and name are logged for record/tracking purposes.</li>
+    <li><b>Automatic PBSS.</b> An automatic PBSS (Punkbuster Screenshot) is triggered on any player who has the @report or @admin command issued against them.</li>
+    <li><b>Automatic command DB addition.</b> Any new commands I add in new versions of AdKats will not require a special database query from you to add access to them, they will be added automatically.</li>
+    <li><b>Leave Messages for Acted Players</b> Any player who leaves the server after having a command issued on them will trigger a chat message to admins in-game.</li>
+    <li><b>Procon Chat Enhancement</b> Messages intended for online admins are now bold in procon chat window when no admins are in-game.</li>
+    <li><b>Added swapnuke command.</b> This command will move everyone on the server to the opposite team. This is still experimental, and I would suggest taking caution in using it.</li>
+</ul>
+<b>Bugfixes</b><br/>
+<ul>
+    <li><b>Fixed the killme command.</b> Fixed the killme command which was broken by 4.1.0.0.</li>
+    <li><b>Name Ban Fix.</b> Name bans were still enforced if a player changed their name.</li>
+    <li><b>Report IDs.</b> Report IDs when handling round reports were displayed as 0.</li>
+    <li><b>Time Delays.</b> Fixed time delay for rules command before allowing another call.</li>
+    <li><b>Conditional command access.</b> Conditional command access contained loopholes. The only commands affected were @moveme, and @admins.</li>
+    <li><b>Setting feed to stat logger.</b> Setting feed to stat logger has been changed considerably. Settings are now only fed on the hour, and reductions have been made to only required settings.</li>
+    <li><b>Setting Fetch.</b> Settings were not fetched initially on AdKats startup, causing any commands changed in the first 5 minutes of operation to be overwritten by database stored settings. This has been fixed.</li>
+    <li><b>Player listing.</b> Player listing was not called automatically on startup, this caused up to 30 additional seconds where commands were inaccessible. This has been fixed. </li>
+    <li><b>Threading.</b> Major issues with threading have been resolved. One thread was not exiting, so more were being spawned to compensate, causing eventual layer lockup. This has been fixed, and the process is now being monitored.</li>
+</ul>
+<b>Upgrad SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
 </blockquote>
