@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.1.0.30
+ * Version 4.1.0.31
  * 18-MAR-2014
  */
 
@@ -50,7 +50,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current version of the plugin
-        private const String PluginVersion = "4.1.0.30";
+        private const String PluginVersion = "4.1.0.31";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -84,7 +84,7 @@ namespace PRoConEvents
         private volatile Boolean _useKeepAlive;
         private Boolean _settingsLocked = false;
         private String _settingsPassword = null;
-        private readonly DateTime _proconStartTime = DateTime.UtcNow;
+        private readonly DateTime _ProconStartTime = DateTime.UtcNow;
         private DateTime _AdKatsStartTime = DateTime.UtcNow;
         private DateTime _lastUpdateSettingRequest = DateTime.UtcNow;
 
@@ -682,7 +682,6 @@ namespace PRoConEvents
                                 var record = new AdKatsRecord
                                 {
                                     record_source = AdKatsRecord.Sources.InternalAutomated,
-                                    isDebug = true,
                                     server_id = _serverID,
                                     command_type = _CommandKeyDictionary["player_calladmin"],
                                     command_numeric = 0,
@@ -2985,12 +2984,14 @@ namespace PRoConEvents
                     {
                         Thread.CurrentThread.Name = "enabler";
 
-                        ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
-                        //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
-                        for (Int32 index = 5; index > 0; index--)
+                        if ((DateTime.UtcNow - _ProconStartTime).TotalSeconds < 10)
                         {
-                            DebugWrite(index + "...", 1);
-                            Thread.Sleep(1000);
+                            ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
+                            //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
+                            for (Int32 index = 5; index > 0; index--) {
+                                DebugWrite(index + "...", 1);
+                                Thread.Sleep(1000);
+                            }
                         }
 
                         //Make sure the default in-game admin is disabled
@@ -3296,7 +3297,7 @@ namespace PRoConEvents
                             //Wait for input
                             if (!_firstPlayerListComplete)
                             {
-                                OnlineAdminSayMessage("AdKats is starting. Commands will be online shortly.");
+                                OnlineAdminSayMessage("Startup process has begun. Commands will be online shortly.");
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
                             _PlayerListProcessingWaitHandle.Reset();
@@ -3485,7 +3486,6 @@ namespace PRoConEvents
                         var record = new AdKatsRecord
                         {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
-                            isDebug = true,
                             server_id = _serverID,
                             command_type = _CommandKeyDictionary["player_changeip"],
                             command_numeric = 0,
@@ -3494,8 +3494,7 @@ namespace PRoConEvents
                             source_name = "AdKats",
                             record_message = (String.IsNullOrEmpty(aPlayer.player_ip) ? ("No previous IP on record") : (aPlayer.player_ip))
                         };
-                        //TODO add back
-                        //QueueRecordForProcessing(record);
+                        QueueRecordForProcessing(record);
                     }
                     aPlayer.player_ip = player_ip;
                     if (updatePlayer)
@@ -4633,7 +4632,9 @@ namespace PRoConEvents
                         if (aPlayer.TargetedRecords.Count > 0 && !aPlayer.TargetedRecords.Any(aRecord =>
                                 aRecord.command_action.command_key == "player_kick" ||
                                 aRecord.command_action.command_key == "player_ban_temp" ||
-                                aRecord.command_action.command_key == "player_ban_perm")) {
+                                aRecord.command_action.command_key == "player_ban_perm" ||
+                                aRecord.command_action.command_key == "banenforcer_enforce"))
+                        {
                             OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server.");
                         }
                     }
@@ -7897,37 +7898,56 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
-                            record.record_message = "Player Requested Rules";
-                            if (record.record_source == AdKatsRecord.Sources.InGame)
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
                             {
-                                record.target_name = record.source_name;
-                                if (_playerDictionary.TryGetValue(record.target_name, out record.target_player))
-                                {
-                                    record.target_name = record.target_player.player_name;
-                                    //Cancel call if rules already requested in the past 10 seconds
-                                    if (
-                                        record.target_player.TargetedRecords.Any(
-                                            aRecord =>
-                                                aRecord.command_action.command_key == "self_rules" &&
-                                                aRecord.record_time.AddSeconds(Math.Abs(_ServerRulesList.Count() * _ServerRulesInterval)) > DateTime.UtcNow))
+                                case 0:
+                                    record.target_name = record.source_name;
+                                    record.record_message = "Player Requested Rules";
+                                    if (record.record_source == AdKatsRecord.Sources.InGame)
                                     {
-                                        SendMessageToSource(record, "Please wait for previous rules request to finish.");
-                                        FinalizeRecord(record);
-                                        return;
+                                        if (_playerDictionary.TryGetValue(record.target_name, out record.target_player))
+                                        {
+                                            record.target_name = record.target_player.player_name;
+                                            //Cancel call if rules already requested in the past 10 seconds
+                                            if (
+                                                record.target_player.TargetedRecords.Any(
+                                                    aRecord =>
+                                                        aRecord.command_action.command_key == "self_rules" &&
+                                                        aRecord.record_time.AddSeconds(Math.Abs(_ServerRulesList.Count() * _ServerRulesInterval)) > DateTime.UtcNow))
+                                            {
+                                                SendMessageToSource(record, "Please wait for previous rules request to finish.");
+                                                FinalizeRecord(record);
+                                                return;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            ConsoleError("394871 this error should never happen.");
+                                            FinalizeRecord(record);
+                                            return;
+                                        }
                                     }
-                                }
-                                else
-                                {
-                                    ConsoleError("394871 this error should never happen.");
+                                    else
+                                    {
+                                        record.target_name = "ExternalSource";
+                                    }
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Telling Player Rules";
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
                                     FinalizeRecord(record);
                                     return;
-                                }
                             }
-                            else
-                            {
-                                record.target_name = "ExternalSource";
-                            }
-                            QueueRecordForProcessing(record);
                         }
                         break;
                     case "self_uptime":
@@ -7992,6 +8012,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     record.target_name = record.source_name;
+                                    record.record_message = "Player Taking Squad Lead";
                                     CompleteTargetInformation(record, false);
                                     break;
                                 case 1:
@@ -8007,7 +8028,6 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                             }
-                            record.record_message = "Player Requesting lead of Current Squad";
                         }
                         break;
                     case "admin_accept":
@@ -10009,7 +10029,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    SendMessageToSource(record, "You can't mute an admin, dimwit.");
+                    SendMessageToSource(record, "You can't mute an admin.");
                 }
                 record.record_action_executed = true;
             }
@@ -10526,7 +10546,14 @@ namespace PRoConEvents
                             foreach (var rule in validRules)
                             {
                                 String currentPrefix = "(" + (++ruleIndex) + "/" + validRules.Count() + ") ";
-                                SendMessageToSource(record, currentPrefix + GetPreMessage(rule, false));
+                                if (record.target_player != null)
+                                {
+                                    PlayerSayMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false));
+                                }
+                                else
+                                {
+                                    SendMessageToSource(record, currentPrefix + GetPreMessage(rule, false));
+                                }
                                 Thread.Sleep(TimeSpan.FromSeconds(_ServerRulesInterval));
                             }
                         }
@@ -10567,7 +10594,7 @@ namespace PRoConEvents
                         Thread.Sleep(500);
                         SendMessageToSource(record, "Server: " + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.ServerUptime)));
                         Thread.Sleep(2000);
-                        SendMessageToSource(record, "Procon: " + FormatTimeString(DateTime.UtcNow - _proconStartTime));
+                        SendMessageToSource(record, "Procon: " + FormatTimeString(DateTime.UtcNow - _ProconStartTime));
                         Thread.Sleep(2000);
                         SendMessageToSource(record, "AdKats: " + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime));
                         Thread.Sleep(2000);
@@ -14262,7 +14289,6 @@ namespace PRoConEvents
                                 var record = new AdKatsRecord
                                 {
                                     record_source = AdKatsRecord.Sources.InternalAutomated,
-                                    isDebug = true,
                                     server_id = _serverID,
                                     command_type = _CommandKeyDictionary["player_changename"],
                                     command_numeric = 0,
@@ -14443,7 +14469,6 @@ namespace PRoConEvents
                                     var record = new AdKatsRecord
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        isDebug = true,
                                         server_id = _serverID,
                                         command_type = _CommandKeyDictionary["player_unban"],
                                         command_numeric = 0,
@@ -15386,8 +15411,9 @@ namespace PRoConEvents
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(51))
                                 {
-                                    SendNonQuery("Adding command 51", "REPLACE INTO `adkats_commands` VALUES(51, 'Active', 'self_assist', 'Log', 'Assist Losing Team', 'assist', TRUE)", true);
+                                    SendNonQuery("Adding command 51", "REPLACE INTO `adkats_commands` VALUES(51, 'Active', 'self_assist', 'Log', 'Assist Losing Team', 'assist', FALSE)", true);
                                 }
+                                SendNonQuery("Updating command 51 player interaction", "UPDATE `adkats_commands` SET `command_playerInteraction`=0 WHERE `command_id`=51", false);
                                 if (!_CommandIDDictionary.ContainsKey(52))
                                 {
                                     SendNonQuery("Adding command 52", "REPLACE INTO `adkats_commands` VALUES(52, 'Active', 'self_uptime', 'Log', 'Request Uptimes', 'uptime', FALSE)", true);
@@ -17680,8 +17706,7 @@ namespace PRoConEvents
             }
             if(_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (aRole)
             {
-                if(_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (aRole.RoleAllowedCommands)
-                {
+                if(_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (aRole.RoleAllowedCommands) {
                     if (aRole.RoleAllowedCommands.Values.Any(command => command.command_playerInteraction))
                     {
                         return true;
@@ -17783,12 +17808,8 @@ namespace PRoConEvents
                         //Only show more infomation if less than 1 hour
                         if (hours < 1)
                         {
-                            //Only show seconds if minutes exist, or seconds > 0
-                            if (seconds > 0 || minutes > 0)
-                            {
-                                //Show hour count
-                                formattedTime += seconds + "s";
-                            }
+                            //Show hour count
+                            formattedTime += seconds + "s";
                         }
                     }
                 }
