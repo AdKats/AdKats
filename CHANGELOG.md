@@ -353,6 +353,7 @@ fine for performance). Right now only Punish and Forgive are required to be logg
     <li><b>Orchestration Enhancement.</b> Automatic reserved slot for the AdKats user list is now an optional selection.</li>
     <li><b>Orchestration Enhancement.</b> Automatic spectator slot for the AdKats user list is now an optional selection.</li>
     <li><b>Command Enhancement.</b> Lead command can now be targeted at a player.</li>
+    <li><b>Command Enhancement.</b> Rules command can now be targeted at a player.</li>
     <li><b>Added uptime command.</b> Debug and information purposes; Gives info on server, procon, and AdKats uptime, along with a couple other things.</li>
     <li><b>Added assist command.</b> Will move the requesting player to the weak/losing team and thank them for doing so.</li>
     <li><b>Added spectator slot command.</b> Will add the player to spectator slots for the current server.</li>
