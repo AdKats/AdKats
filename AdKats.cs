@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.2.0.2
- * 19-MAR-2014
+ * Version 4.2.0.3
+ * 20-MAR-2014
  */
 
 using System;
@@ -50,7 +50,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current version of the plugin
-        private const String PluginVersion = "4.2.0.2";
+        private const String PluginVersion = "4.2.0.3";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -379,9 +379,10 @@ namespace PRoConEvents
         private EventWaitHandle _PluginDescriptionWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle _RoundEndingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
-        //Threading Triggers
+        //Threading Queues
         private readonly Queue<List<CPlayerInfo>> _PlayerListProcessingQueue = new Queue<List<CPlayerInfo>>();
         private readonly Queue<CPlayerInfo> _PlayerRemovalProcessingQueue = new Queue<CPlayerInfo>();
+        private Boolean _PlayerRoleRefetch = false;
         private readonly Queue<Kill> _KillProcessingQueue = new Queue<Kill>();
         private readonly Queue<KeyValuePair<String, String>> _UnparsedMessageQueue = new Queue<KeyValuePair<String, String>>();
         private readonly Queue<KeyValuePair<String, String>> _UnparsedCommandQueue = new Queue<KeyValuePair<String, String>>();
@@ -3336,7 +3337,7 @@ namespace PRoConEvents
                             inboundPlayerRemoval = new Queue<CPlayerInfo>();
                         }
                         
-                        if(!inboundPlayerList.Any() && !inboundPlayerRemoval.Any())
+                        if(!inboundPlayerList.Any() && !inboundPlayerRemoval.Any() && !_PlayerRoleRefetch)
                         {
                             DebugWrite("PLIST: No inbound player lists or removals found. Waiting for Input.", 5);
                             //Wait for input
@@ -3349,14 +3350,6 @@ namespace PRoConEvents
                             _PlayerProcessingWaitHandle.WaitOne(Timeout.Infinite);
                             continue;
                         }
-
-                        DebugWrite("Listing Players", 5);
-                        //Reset the player counts of both sides and recount everything
-                        //Loop over all players in the list
-                        Int32 team1PC = 0;
-                        Int32 team2PC = 0;
-                        Int32 team3PC = 0;
-                        Int32 team4PC = 0;
 
                         if (_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (_playerDictionary)
                         {
@@ -3380,7 +3373,16 @@ namespace PRoConEvents
                                 removedPlayers.Add(playerInfo.SoldierName);
                             }
                             var validPlayers = new List<String>();
-                            if (inboundPlayerList.Count > 0) {
+                            if (inboundPlayerList.Count > 0)
+                            {
+                                DebugWrite("Listing Players", 5);
+                                //Reset the player counts of both sides and recount everything
+                                //Loop over all players in the list
+                                Int32 team1PC = 0;
+                                Int32 team2PC = 0;
+                                Int32 team3PC = 0;
+                                Int32 team4PC = 0;
+
                                 foreach (CPlayerInfo playerInfo in inboundPlayerList.Where(player => !removedPlayers.Contains(player.SoldierName))) {
                                     if (!_pluginEnabled) {
                                         break;
@@ -3470,6 +3472,15 @@ namespace PRoConEvents
                                     //Set round ended
                                     _CurrentRoundState = RoundState.Ended;
                                 }
+                            }
+                            if (_PlayerRoleRefetch) {
+                                ConsoleWarn("Updating online player roles");
+                                //Update roles for all online players
+                                foreach (var aPlayer in _playerDictionary.Values)
+                                {
+                                    AssignPlayerRole(aPlayer);
+                                }
+                                _PlayerRoleRefetch = false;
                             }
                         }
 
@@ -15906,14 +15917,8 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching access list.", e));
             }
 
-            //Update roles for all online players
-            if(_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (_playerDictionary)
-            {
-                foreach (var aPlayer in _playerDictionary.Values)
-                {
-                    AssignPlayerRole(aPlayer);
-                }
-            }
+            _PlayerRoleRefetch = true;
+            _PlayerProcessingWaitHandle.Set();
 
             UpdateMULTIBalancerWhitelist();
             UpdateMULTIBalancerDisperseList();
