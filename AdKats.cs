@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.2.0.1
+ * Version 4.2.0.2
  * 19-MAR-2014
  */
 
@@ -50,7 +50,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current version of the plugin
-        private const String PluginVersion = "4.2.0.1";
+        private const String PluginVersion = "4.2.0.2";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -10201,7 +10201,7 @@ namespace PRoConEvents
                 {
                     ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", "pb_sv_getss " + slotID);
                 }
-                OnlineAdminSayMessage("ADMIN CALL [" + reportID + "]: " + sourceAAIdentifier + record.source_name + " called admin on " + targetAAIdentifier + record.target_player.player_name + " for " + record.record_message);
+                OnlineAdminSayMessage("ADMIN CALL [" + reportID + "]: " + sourceAAIdentifier + record.source_name + " called admin on " + targetAAIdentifier + record.target_name + " for " + record.record_message);
                 if (_UseEmail)
                 {
                     _EmailHandler.SendReport(record);
@@ -10234,11 +10234,11 @@ namespace PRoConEvents
             String reportMessage = "";
             if (!_isTestingAuthorized || !sourceAA || !adminsOnline)
             {
-                reportMessage = "REPORT [" + reportID + "] sent on " + record.target_player.player_name + " for " + record.record_message;
+                reportMessage = "REPORT [" + reportID + "] sent on " + record.target_name + " for " + record.record_message;
             }
             else
             {
-                reportMessage = "REPORT [" + reportID + "] on " + record.target_player.player_name + " sent to " + onlineAdminCount + " in-game admin" + ((onlineAdminCount > 1) ? ("s") : ("")) + ". " + ((canAutoHandle) ? ("Admins have 45 seconds before auto-handling.") : (""));
+                reportMessage = "REPORT [" + reportID + "] on " + record.target_name + " sent to " + onlineAdminCount + " in-game admin" + ((onlineAdminCount > 1) ? ("s") : ("")) + ". " + ((canAutoHandle) ? ("Admins have 45 seconds before auto-handling.") : (""));
             }
             SendMessageToSource(record, reportMessage);
             if (!canAutoHandle)
