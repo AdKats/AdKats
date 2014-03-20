@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.1.0.31
- * 18-MAR-2014
+ * Version 4.2.0.1
+ * 19-MAR-2014
  */
 
 using System;
@@ -50,7 +50,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current version of the plugin
-        private const String PluginVersion = "4.1.0.31";
+        private const String PluginVersion = "4.2.0.1";
         //When fullDebug is enabled, on any exception slomo is activated
         private const Boolean FullDebug = false;
         //When slowmo is activated, there will be a 1 second pause between each print to console 
@@ -99,7 +99,6 @@ namespace PRoConEvents
         private readonly Dictionary<String, List<AdKatsSpecialPlayer>> _specialPlayerGroupCache = new Dictionary<String, List<AdKatsSpecialPlayer>>();
         private DateTime _lastUserFetch = DateTime.UtcNow;
         //Frequency in seconds to fetch user changes at
-        //TODO set back to 300
         private const Int32 DbUserFetchFrequency = 300;
 
         //Database Settings
@@ -364,7 +363,7 @@ namespace PRoConEvents
 
         //Handles
         private EventWaitHandle _TeamswapWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private EventWaitHandle _PlayerListProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _PlayerProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle _AccessFetchWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle _KillProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle _PlayerListUpdateWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -382,6 +381,7 @@ namespace PRoConEvents
 
         //Threading Triggers
         private readonly Queue<List<CPlayerInfo>> _PlayerListProcessingQueue = new Queue<List<CPlayerInfo>>();
+        private readonly Queue<CPlayerInfo> _PlayerRemovalProcessingQueue = new Queue<CPlayerInfo>();
         private readonly Queue<Kill> _KillProcessingQueue = new Queue<Kill>();
         private readonly Queue<KeyValuePair<String, String>> _UnparsedMessageQueue = new Queue<KeyValuePair<String, String>>();
         private readonly Queue<KeyValuePair<String, String>> _UnparsedCommandQueue = new Queue<KeyValuePair<String, String>>();
@@ -2669,7 +2669,7 @@ namespace PRoConEvents
         {
             //Initializes all wait handles 
             _TeamswapWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-            _PlayerListProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+            _PlayerProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             _AccessFetchWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             _KillProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             _PlayerListUpdateWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -2688,7 +2688,7 @@ namespace PRoConEvents
         {
             //Opens all handles to make sure all threads complete one loop
             _TeamswapWaitHandle.Set();
-            _PlayerListProcessingWaitHandle.Set();
+            _PlayerProcessingWaitHandle.Set();
             _AccessFetchWaitHandle.Set();
             _KillProcessingWaitHandle.Set();
             _PlayerListUpdateWaitHandle.Set();
@@ -3235,17 +3235,17 @@ namespace PRoConEvents
 
         private void QueuePlayerListForProcessing(List<CPlayerInfo> players)
         {
-            DebugWrite("Entering queuePlayerListForProcessing", 7);
+            DebugWrite("Entering QueuePlayerListForProcessing", 7);
             try
             {
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue player list for processing", 6);
-                    if(_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (_PlayerListProcessingQueue)
+                    if (_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (_PlayerListProcessingQueue)
                     {
                         _PlayerListProcessingQueue.Enqueue(players);
                         DebugWrite("Player list queued for processing", 6);
-                        _PlayerListProcessingWaitHandle.Set();
+                        _PlayerProcessingWaitHandle.Set();
                     }
                 }
             }
@@ -3253,7 +3253,30 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while queueing player list for processing.", e));
             }
-            DebugWrite("Exiting queuePlayerListForProcessing", 7);
+            DebugWrite("Exiting QueuePlayerListForProcessing", 7);
+        }
+
+        private void QueuePlayerForRemoval(CPlayerInfo player)
+        {
+            DebugWrite("Entering QueuePlayerForRemoval", 7);
+            try
+            {
+                if (_pluginEnabled && _firstPlayerListComplete)
+                {
+                    DebugWrite("Preparing to queue player list for processing", 6);
+                    if (_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (_PlayerRemovalProcessingQueue)
+                    {
+                        _PlayerRemovalProcessingQueue.Enqueue(player);
+                        DebugWrite("Player removal queued for processing", 6);
+                        _PlayerProcessingWaitHandle.Set();
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while queueing player for removal.", e));
+            }
+            DebugWrite("Exiting QueuePlayerForRemoval", 7);
         }
 
         public void PlayerListingThreadLoop()
@@ -3277,165 +3300,184 @@ namespace PRoConEvents
 
                         //Get all unparsed inbound lists
                         List<CPlayerInfo> inboundPlayerList = null;
-                        if (_PlayerListProcessingQueue.Count > 0)
-                        {
+                        if (_PlayerListProcessingQueue.Count > 0) {
                             DebugWrite("PLIST: Preparing to lock player list queues to retrive new player lists", 7);
-                            if(_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (_PlayerListProcessingQueue)
-                            {
+                            if (_isTestingAuthorized)
+                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
+                            lock (_PlayerListProcessingQueue) {
                                 DebugWrite("PLIST: Inbound player lists found. Grabbing.", 6);
-                                while (_PlayerListProcessingQueue.Any())
-                                {
+                                while (_PlayerListProcessingQueue.Any()) {
                                     inboundPlayerList = _PlayerListProcessingQueue.Dequeue();
                                 }
                                 //Clear the queue for next run
                                 _PlayerListProcessingQueue.Clear();
                             }
                         }
-                        else
+                        else {
+                            inboundPlayerList = new List<CPlayerInfo>();
+                        }
+
+                        //Get all unparsed inbound player removals
+                        Queue<CPlayerInfo> inboundPlayerRemoval = null;
+                        if (_PlayerRemovalProcessingQueue.Count > 0) {
+                            DebugWrite("PLIST: Preparing to lock player removal queue to retrive new player removals", 7);
+                            if (_isTestingAuthorized)
+                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
+                            lock (_PlayerRemovalProcessingQueue) {
+                                DebugWrite("PLIST: Inbound player removals found. Grabbing.", 6);
+                                if (_PlayerRemovalProcessingQueue.Any()) {
+                                    inboundPlayerRemoval = new Queue<CPlayerInfo>(_PlayerRemovalProcessingQueue.ToArray());
+                                }
+                                //Clear the queue for next run
+                                _PlayerRemovalProcessingQueue.Clear();
+                            }
+                        }
+                        else {
+                            inboundPlayerRemoval = new Queue<CPlayerInfo>();
+                        }
+                        
+                        if(!inboundPlayerList.Any() && !inboundPlayerRemoval.Any())
                         {
-                            DebugWrite("PLIST: No inbound player lists. Waiting for Input.", 5);
+                            DebugWrite("PLIST: No inbound player lists or removals found. Waiting for Input.", 5);
                             //Wait for input
                             if (!_firstPlayerListComplete)
                             {
                                 OnlineAdminSayMessage("Startup process has begun. Commands will be online shortly.");
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
-                            _PlayerListProcessingWaitHandle.Reset();
-                            _PlayerListProcessingWaitHandle.WaitOne(Timeout.Infinite);
+                            _PlayerProcessingWaitHandle.Reset();
+                            _PlayerProcessingWaitHandle.WaitOne(Timeout.Infinite);
                             continue;
                         }
 
-                        Int32 startingPlayerCount = _playerDictionary.Count;
-
                         DebugWrite("Listing Players", 5);
-                        var playerNames = new List<String>();
                         //Reset the player counts of both sides and recount everything
                         //Loop over all players in the list
                         Int32 team1PC = 0;
                         Int32 team2PC = 0;
                         Int32 team3PC = 0;
                         Int32 team4PC = 0;
-                        foreach (CPlayerInfo player in inboundPlayerList)
-                        {
-                            if (!_pluginEnabled)
-                            {
-                                break;
-                            }
-                            playerNames.Add(player.SoldierName);
 
-                            if(_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (_playerDictionary)
-                            {
-                                //Check if the player is already in the player dictionary
-                                AdKatsPlayer aPlayer = null;
-                                if (_playerDictionary.TryGetValue(player.SoldierName, out aPlayer))
+                        if (_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (_playerDictionary)
+                        {
+                            //Firstly, go through removal queue, remove all names, and log them.
+                            List<String> removedPlayers = new List<string>();
+                            while (inboundPlayerRemoval.Any()) {
+                                CPlayerInfo playerInfo = inboundPlayerRemoval.Dequeue();
+                                AdKatsPlayer aPlayer;
+                                if (_playerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer))
                                 {
-                                    //If they are, only update the internal frostbite player info
-                                    _playerDictionary[player.SoldierName].frostbitePlayerInfo = player;
-                                }
-                                else
-                                {
-                                    //If they aren't in the list, fetch their profile from the database
-                                    aPlayer = FetchPlayer(true, false, null, -1, player.SoldierName, player.GUID, null);
-                                    if (aPlayer == null)
+                                    if (aPlayer.TargetedRecords.Count > 0 && !aPlayer.TargetedRecords.Any(aRecord =>
+                                            aRecord.command_action.command_key == "player_kick" ||
+                                            aRecord.command_action.command_key == "player_ban_temp" ||
+                                            aRecord.command_action.command_key == "player_ban_perm" ||
+                                            aRecord.command_action.command_key == "banenforcer_enforce"))
                                     {
-                                        //Do not handle the player if not returned
-                                        continue;
+                                        OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server.");
                                     }
-                                    //Add the frostbite player info
-                                    aPlayer.frostbitePlayerInfo = player;
-                                    //Set their last death/spawn times
-                                    aPlayer.lastDeath = DateTime.UtcNow;
-                                    aPlayer.lastSpawn = DateTime.UtcNow;
-                                    //Add them to the dictionary
-                                        _playerDictionary.Add(player.SoldierName, aPlayer);
+                                }
+                                RemovePlayerFromDictionary(playerInfo.SoldierName, false);
+                                removedPlayers.Add(playerInfo.SoldierName);
+                            }
+                            var validPlayers = new List<String>();
+                            if (inboundPlayerList.Count > 0) {
+                                foreach (CPlayerInfo playerInfo in inboundPlayerList.Where(player => !removedPlayers.Contains(player.SoldierName))) {
+                                    if (!_pluginEnabled) {
+                                        break;
+                                    }
+                                    validPlayers.Add(playerInfo.SoldierName);
+                                    //Check if the player is already in the player dictionary
+                                    AdKatsPlayer aPlayer = null;
+                                    if (_playerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
+                                        //If they are, only update the internal frostbite player info
+                                        _playerDictionary[playerInfo.SoldierName].frostbitePlayerInfo = playerInfo;
+                                    }
+                                    else {
+                                        //If they aren't in the list, fetch their profile from the database
+                                        aPlayer = FetchPlayer(true, false, null, -1, playerInfo.SoldierName, playerInfo.GUID, null);
+                                        if (aPlayer == null) {
+                                            //Do not handle the player if not returned
+                                            continue;
+                                        }
+                                        //Add the frostbite player info
+                                        aPlayer.frostbitePlayerInfo = playerInfo;
+                                        //Set their last death/spawn times
+                                        aPlayer.lastDeath = DateTime.UtcNow;
+                                        aPlayer.lastSpawn = DateTime.UtcNow;
+                                        //Add them to the dictionary
+                                        _playerDictionary.Add(playerInfo.SoldierName, aPlayer);
                                         UpdatePlayerReputation(aPlayer);
-                                    //If using ban enforcer, check the player's ban status
-                                    if (_UseBanEnforcer)
-                                    {
-                                        QueuePlayerForBanCheck(aPlayer);
+                                        //If using ban enforcer, check the player's ban status
+                                        if (_UseBanEnforcer) {
+                                            QueuePlayerForBanCheck(aPlayer);
+                                        }
+                                        else if (_UseHackerChecker) {
+                                            //Queue the player for a hacker check
+                                            QueuePlayerForHackerCheck(aPlayer);
+                                        }
                                     }
-                                    else if (_UseHackerChecker)
-                                    {
-                                        //Queue the player for a hacker check
-                                        QueuePlayerForHackerCheck(aPlayer);
+                                    switch (playerInfo.TeamID) {
+                                        case 0:
+                                            //Do nothing, team 0 is the joining team
+                                            break;
+                                        case 1:
+                                            team1PC++;
+                                            break;
+                                        case 2:
+                                            team2PC++;
+                                            break;
+                                        case 3:
+                                            team3PC++;
+                                            break;
+                                        case 4:
+                                            team4PC++;
+                                            break;
+                                        default:
+                                            ConsoleError("Team ID " + playerInfo.TeamID + " for player " + playerInfo.SoldierName + " was invalid.");
+                                            break;
                                     }
-
                                 }
-                                switch (player.TeamID)
-                                {
-                                    case 0:
-                                        //Do nothing, team 0 is the joining team
-                                        break;
-                                    case 1:
-                                        team1PC++;
-                                        break;
-                                    case 2:
-                                        team2PC++;
-                                        break;
-                                    case 3:
-                                        team3PC++;
-                                        break;
-                                    case 4:
-                                        team4PC++;
-                                        break;
-                                    default:
-                                        ConsoleError("Team ID " + player.TeamID + " for player " + player.SoldierName + " was invalid.");
-                                        break;
-                                }
-                            }
-                        }
-                        _teamDictionary[1].UpdatePlayerCount(team1PC);
-                        _teamDictionary[2].UpdatePlayerCount(team2PC);
-                        _teamDictionary[3].UpdatePlayerCount(team3PC);
-                        _teamDictionary[4].UpdatePlayerCount(team4PC);
-                        //Make sure the player dictionary is clean of any straglers
-                        List<String> dicPlayerNames = _playerDictionary.Keys.ToList();
-                        Int32 straglerCount = 0;
-                        Int32 dicCount = _playerDictionary.Count;
-                        if(_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (_playerDictionary)
-                        {
-                            foreach (String playerName in dicPlayerNames)
-                            {
-                                if (!_pluginEnabled)
-                                {
-                                    break;
-                                }
-                                if (!playerNames.Contains(playerName))
+                                _teamDictionary[1].UpdatePlayerCount(team1PC);
+                                _teamDictionary[2].UpdatePlayerCount(team2PC);
+                                _teamDictionary[3].UpdatePlayerCount(team3PC);
+                                _teamDictionary[4].UpdatePlayerCount(team4PC);
+                                //Make sure the player dictionary is clean of any straglers
+                                Int32 straglerCount = 0;
+                                Int32 dicCount = _playerDictionary.Count;
+                                foreach (string playerName in _playerDictionary.Keys.Where(playerName => !validPlayers.Contains(playerName)).ToList())
                                 {
                                     straglerCount++;
                                     DebugWrite("PLIST: Removing " + playerName + " from current player list (VIA CLEANUP).", 4);
                                     _playerDictionary.Remove(playerName);
                                 }
+                                if (straglerCount > 1 && straglerCount > (dicCount / 2))
+                                {
+                                    var record = new AdKatsRecord
+                                    {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        isDebug = true,
+                                        server_id = _serverID,
+                                        command_type = _CommandKeyDictionary["player_calladmin"],
+                                        command_numeric = 0,
+                                        target_name = "Server",
+                                        target_player = null,
+                                        source_name = "AdKats",
+                                        record_message = "Server Crashed (" + dicCount + " Players Lost)"
+                                    };
+                                    //Process the record
+                                    QueueRecordForProcessing(record);
+                                    ConsoleError(record.record_message);
+                                    //Set round ended
+                                    _CurrentRoundState = RoundState.Ended;
+                                }
                             }
-                        }
-                        //Inform the admins of disconnect
-                        if (straglerCount > 1 && straglerCount > (dicCount / 2))
-                        {
-                            //Create the report record
-                            var record = new AdKatsRecord
-                            {
-                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                isDebug = true,
-                                server_id = _serverID,
-                                command_type = _CommandKeyDictionary["player_calladmin"],
-                                command_numeric = 0,
-                                target_name = "Server",
-                                target_player = null,
-                                source_name = "AdKats",
-                                record_message = "Server Crashed (" + dicCount + " Players Lost)"
-                            };
-                            //Process the record
-                            QueueRecordForProcessing(record);
-                            ConsoleError(record.record_message);
-
-                            //Set round ended
-                            _CurrentRoundState = RoundState.Ended;
                         }
 
                         //Update last successful player list time
                         _lastSuccessfulPlayerList = DateTime.UtcNow;
-                        //Set the handle for TeamSwap 
+                        //Set required handles 
                         _PlayerListUpdateWaitHandle.Set();
+                        _TeamswapWaitHandle.Set();
                         if (!_firstPlayerListComplete)
                         {
                             _firstPlayerListComplete = true;
@@ -4082,9 +4124,6 @@ namespace PRoConEvents
                             continue;
                         }
 
-                        //TODO remove
-                        //continue;
-
                         //Loop through all kils in order that they came in
                         while (inboundPlayerKills.Count > 0)
                         {
@@ -4624,27 +4663,11 @@ namespace PRoConEvents
             DebugWrite("Entering OnPlayerLeft", 7);
             try
             {
-                if(_isTestingAuthorized) PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), ""); lock (_playerDictionary)
-                {
-                    AdKatsPlayer aPlayer;
-                    if (_playerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer))
-                    {
-                        if (aPlayer.TargetedRecords.Count > 0 && !aPlayer.TargetedRecords.Any(aRecord =>
-                                aRecord.command_action.command_key == "player_kick" ||
-                                aRecord.command_action.command_key == "player_ban_temp" ||
-                                aRecord.command_action.command_key == "player_ban_perm" ||
-                                aRecord.command_action.command_key == "banenforcer_enforce"))
-                        {
-                            OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server.");
-                        }
-                    }
-                    RemovePlayerFromDictionary(playerInfo.SoldierName, false);
-                    _TeamswapWaitHandle.Set();
-                }
+                QueuePlayerForRemoval(playerInfo);
             }
             catch (Exception e)
             {
-                HandleException(new AdKatsException("Error while handling player exit.", e));
+                HandleException(new AdKatsException("Error while handling player left.", e));
             }
             DebugWrite("Exiting OnPlayerLeft", 7);
         }
@@ -6359,9 +6382,6 @@ namespace PRoConEvents
                                 //Clear the queue for next run
                                 _UnparsedCommandQueue.Clear();
                             }
-
-                            //TODO remove
-                            //continue;
 
                             //Loop through all commands in order that they came in
                             while (unparsedCommands.Count > 0)
@@ -8790,7 +8810,7 @@ namespace PRoConEvents
                     reportedRecord.command_action = _CommandKeyDictionary["player_report_deny"];
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been denied.");
-                    SendMessageToSource(record, "Report [" + reportedRecord.command_numeric + "] has been denied.");
+                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been denied by " + record.source_name + ".");
 
                     record.target_name = reportedRecord.source_name;
                     record.target_player = reportedRecord.source_player;
@@ -8817,7 +8837,7 @@ namespace PRoConEvents
                     reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been accepted. Thank you.");
-                    SendMessageToSource(record, "Report [" + reportedRecord.command_numeric + "] has been accepted.");
+                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been accepted by " + record.source_name + ".");
 
                     record.target_name = reportedRecord.source_name;
                     record.target_player = reportedRecord.source_player;
@@ -8846,6 +8866,7 @@ namespace PRoConEvents
                     reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been acted on. Thank you.");
+                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been acted on by " + record.source_name + ".");
 
                     record.target_name = reportedRecord.target_name;
                     record.target_player = reportedRecord.target_player;
