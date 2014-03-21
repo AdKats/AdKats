@@ -800,7 +800,7 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
 </tr>
 <tr>
     <td><b>Reserved Slot Player</b></td>
-    <td>spectator</td>
+    <td>reserved</td>
     <td>
         [player][reason]
     </td>
