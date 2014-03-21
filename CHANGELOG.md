@@ -339,7 +339,7 @@ fine for performance). Right now only Punish and Forgive are required to be logg
     <li><b>Hacker Checker</b> Bug where hacker-checker mesh with BF3Stats was failing has been fixed.</li>
     <li><b>Chat</b> All chat messages are now trimmed before handling, both before and after command prefix parsing.</li>
 </ul>
-<h4>4.2.0.0 (18-MAR-2014)</h4>
+<h4>4.2.0.5 (20-MAR-2014)</h4>
 <b>Changes</b><br/>
 <ul>
     <li><b>Settings.</b> AdKats settings are now stored database side almost exclusively. They have always been stored there, but now have been removed from procon's plugin setting list. The only things remaining plugin side are DB connection settings, setting lock information, and debug level.</li>
