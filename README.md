@@ -716,6 +716,27 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
     <td>The in-game command used for perma-banning players.</td>
 </tr>
 <tr>
+    <td><b>Future Perma-Ban Player</b></td>
+    <td>fban</td>
+    <td>
+        [time]<br/>
+        OR<br/>
+        [time][player][reason]<br/>
+        OR<br/>
+        [time][reportID]<br/>
+        OR<br/>
+        [time][reportID][reason]
+    </td>
+    <td>
+        The in-game command used for future-banning players.
+        Default time is in minutes, but the number can have a letter after it designating the units. e.g. 2h for 2 hours. Valid suffixes are m, h, d, w, and y.
+        Future ban is the exact opposite of a temp-ban. 
+        Enter the time the player has until they are permabanned.
+        This is used for requesting action/videos/etc from players, giving them a time frame to do so.
+        Ban is enforced on-join only, not during gameplay.
+    </td>
+</tr>
+<tr>
     <td><b>Unban Player</b></td>
     <td>unban</td>
     <td>
