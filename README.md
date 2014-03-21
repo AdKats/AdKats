@@ -76,7 +76,7 @@
     </li>
     <li>
         <b>External Controller API.</b>
-        AdKats can be controlled from outside the game through systems like AdKats WebAdmin, and soon through other plugins like Insane Limits.
+        AdKats can be controlled from outside the game through systems like AdKats WebAdmin, and through other plugins like insane limits.
     </li>
     <li>
         <b>Internal Implementation of TeamSwap.</b>
