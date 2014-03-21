@@ -1024,6 +1024,18 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
     </td>
 </tr>
 <tr>
+    <td><b>Rules</b></td>
+    <td>rules</td>
+    <td>
+        none<br/>
+        OR<br/>
+        [player]
+    </td>
+    <td>
+        The in-game command used to request the server rules. When targeted at a player, that player will be told the server rules.
+    </td>
+</tr>
+<tr>
     <td><b>Assist</b></td>
     <td>assist</td>
     <td>
