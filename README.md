@@ -119,15 +119,6 @@
     AdKats was inspired by the gaming community A Different Kind (ADK).
     Visit <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
 </p>
-<h2>Upgrade Installation</h2>
-<p>
-    For update instructions from your current version please review the MyRCON forum thread.<br/><br/>
-
-    <a href="https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-1-0-0&p=96108&viewfull=1#post96108" target="_blank">Update 4.1.0.0</a><br/><br/>
-
-    Once update ready, download updated AdKats source from here:
-    <a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.1.0.0.zip/download" target="_blank">Version 4.1.0.0</a>
-</p>
 <h2>Fresh Installation</h2>
 <ol>
     <li>
