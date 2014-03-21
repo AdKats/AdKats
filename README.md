@@ -72,7 +72,7 @@
     </li>
     <li>
         <b>Server rule printing.</b>
-        Just like "Server rules on request" except multiple prefixes can be used for rule commands at the same time, and requests for rules are logged.
+        Just like "Server rules on request" except multiple prefixes can be used for rule commands at the same time, requests for rules are logged, rules can be targeted at players, and rules can be distributed between servers automaticallly.
     </li>
     <li>
         <b>External Controller API.</b>
