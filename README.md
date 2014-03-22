@@ -139,7 +139,7 @@
 <p>
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>
 </p>
-<h2>Fresh Installation</h2>
+<h2>Installation Instructions</h2>
 <ol>
     <li>
         <b>Install XpKiller's Stat logger plugin.</b>
