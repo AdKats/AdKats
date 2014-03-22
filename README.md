@@ -1,5 +1,5 @@
 <script>
-    //<latest_stable_release>4.1.0.0</latest_stable_release>
+    //<latest_stable_release>4.2.0.5</latest_stable_release>
 </script>
 <h1>AdKats</h1>
 <p>
@@ -11,7 +11,7 @@
 <ul>
     <li>
         <b>Basic Action Commands.</b>
-        Standard commands for player killing, kicking, punishing, banning, unbanning, moving, etc...Over 30 available in-game commands.
+        Standard commands for player killing, kicking, punishing, banning, unbanning, moving, etc...Over 40 available in-game commands.
         Commands can be accessed from almost anywhere: In-game, Procon's chat window, database, HTTP server, other plugins, etc, etc...
     </li>
     <li>
@@ -119,46 +119,6 @@
     AdKats was inspired by the gaming community A Different Kind (ADK).
     Visit <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
 </p>
-<h2>Fresh Installation</h2>
-<ol>
-    <li>
-        <b>Install XpKiller's Stat logger plugin.</b>
-        Download and install the latest universal version of XpKiller's
-        <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>.
-        Make sure stat logger is installed and running! Do NOT attempt to install AdKats until that plugin is running without issue.
-    </li>
-    <li>
-        <b>Set up the database.</b>
-        Run the contents of this sql script on your database. It must be run on the same database that Stat Logger is running on.
-        (You can copy/paste the entire page as its shown): https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql
-        <br/>
-        (I would run this automatically if I could, but i'm limited until Procon updates their MySQL connector to allow delimiters)
-    </li>
-    <li>
-        <b>Download AdKats Source.</b>
-        Download the latest version of AdKats from here:
-        <a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.1.0.0.zip/download" target="_blank">Version 4.1.0.0</a>
-    </li>
-    <li>
-        <b>Add plugin file to Procon.</b>
-        Add the plugin file to Procon as you would any other, in either the plugins/BF3 or plugins/BF4 folder depending on which game your layer is running on.
-    </li>
-    <li>
-        <b>Enter database credentials.</b>
-        All database connection information must be entered in the settings tab before AdKats can run.
-    </li>
-    <li>
-        <b>Enable AdKats.</b>
-        AdKats will confirm all dependencies and show confirmation in the console. If it gives your server an ID then all is well.
-    </li>
-    <li>
-        <b>Disable the default "In-Game Admin".</b>
-        Disable any other plugins that use commands like kill, kick, etc. The commands would be run by both, causing unwanted functionality. Enjoy AdKats!
-    </li>
-</ol>
-<p>
-    If you have any problems installing AdKats please let me know on the MyRCON forums, or here as an issue and I'll respond promptly.
-</p>
 <h2>Dependencies</h2>
 <h4>1. A MySQL Database</h4>
 <p>
@@ -179,10 +139,63 @@
 <p>
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>
 </p>
+<h2>Fresh Installation</h2>
+<ol>
+    <li>
+        <b>Install XpKiller's Stat logger plugin.</b>
+        Download and install the latest universal version of XpKiller's
+        <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats Logger</a>.
+        Make sure stat logger is installed and running! Do NOT attempt to install AdKats until that plugin is running without issue.
+    </li>
+    <li>
+        <b>Set up the database.</b>
+        Run the contents of this sql script on your database. It must be run on the same database that Stat Logger is running on.
+        (You can copy/paste the entire page as its shown): <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql</a>
+        <br/>
+        (I would run this automatically if I could, but I'm limited until Procon updates their MySQL connector to allow delimiters)
+    </li>
+    <li>
+        <b>Download AdKats Source.</b>
+        Download the latest version of AdKats from here:
+        <a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.2.0.5.zip/download" target="_blank">Version 4.2.0.5</a>
+    </li>
+    <li>
+        <b>Add plugin file to Procon.</b>
+        Add the plugin file (AdKats.cs) to Procon as you would any other, in either the plugins/BF3 or plugins/BF4 folder depending on which game your layer is running on.
+    </li>
+    <li>
+        <b>Enter database credentials.</b>
+        All database connection information must be entered in the settings tab before AdKats can run.
+    </li>
+    <li>
+        <b>Enable AdKats.</b>
+        AdKats will confirm all dependencies and show confirmation in the console. If it gives your server an ID then all is well. Enjoy AdKats!
+    </li>
+</ol>
+<p>
+    If you have any problems installing AdKats please let me know on the MyRCON forums, or on Github as an issue and I'll respond promptly.
+</p>
+<h2>Installation FAQ</h2>
+<ul>
+    <li>
+        <b>Trouble running the setup SQL script.</b>
+        If this happens it is most likely your database provider has restricted your access to create either triggers, stored procedures, or both.
+        These elements are required for AdKats to properly function, and thus it cannot be run without them.
+        Please talk with your database provider and gain access to creation of stored procedures and triggers.
+    </li>
+    <li>
+        <b>"Stat logger tables missing" on first run after setting up the plugin.</b>
+        Confirm you have run the stat logger plugin on the same layer and it is functioning without error. If it is, try rebooting your layer.
+    </li>
+    <li>
+        <b>Suggest more for this list if you run across them.</b>
+    </li>
+</ul>
 <h2>Features</h2>
 <h3>User Ranks and Roles</h3>
 <p>
-    On first enable you will need to add a user, you can have as many users as you want.
+    On first enable you will need to add a user before you can access certain in-game commands.
+    You can have as many users as you want.
     When a user is added you need to assign them a role.
     The default role is "Default Guest" and the allowed commands for that role are shown to you in the role section.
     The default guest role cannot be deleted, but can be edited to your heart's content.
@@ -192,12 +205,13 @@
 </p>
 <p>
     Once a user is added you need to assign their soldiers.
+    If you add a user with the same name as their soldier(s), their soldier(s) will be added automatically.
     Users can have multiple soldiers, so if your admins have multiple accounts you can assign all of those soldiers under their user.
     All soldiers added need to be in your database before they can be added to a user.
-    This system tracks user's soldiers, so if they change their soldier names they will still have powers without needing to contact admins about the change.
+    This system tracks user's soldiers, so if they change their soldier names they will still have powers without needing to contact admins about the name change.
     Type their soldier's name in the "new soldier" field to add them.
     It will error out if it cannot find the soldier in the database.
-    To add soldiers to the database quickly, have them join any server you are running this version of AdKats on and their information will be immediately added.
+    To add soldiers to the database quickly after installing stat logger for the first time, have them join any server you are running this version of AdKats on and their information will be immediately added.
 </p>
 <p>
     The user list is sorted by role ID, then by user name.
@@ -326,7 +340,7 @@
     Bans can be made by name, GUID, IP, any combination, or all at once.
     The default ban is by EA GUID only, this default can be edited but is not recommended.
     Banned players are told how long their ban will last, and when a banned player attempts to re-join they are told the remaining time on their ban.
-    Using ban enforcer also gives access to the unban in-game command.
+    Using ban enforcer also gives access to the unban and future-ban commands.
 </p>
 <p>
     The Enforcer works properly with all existing auto-admins, and any bans added manually through Procon will be automatically imported by the system.
@@ -363,6 +377,7 @@
     (e.g. waffleman73 baserapes, another player reports them and gets report ID 582, admins just use @punish 582 instead of @punish waffleman73 baserape).
     Confirmation of command with @yes is required before a report ID is acted on.
     Players are thanked for reporting when an admin uses their report ID.
+    Other online admins are informed when an admin acts on a report by ID, either with action, deny, or accept.
 </p>
 <h4>Report Emails</h4>
 <p>
@@ -376,7 +391,8 @@
 <p>
     This system has been completely revamped in 4.1.0.0, and several hidden features have now been released to the public.
     We utilized the full system on our no explosives server with great success, mainly catching things autoadmin cannot.
-    Basically this system automatically tracks who the trusted players in your servers are, and who are reliable sources of reports.
+    Basically this system automatically tracks who the trusted players in your servers are,
+    and who are reliable sources of reports.
 </p>
 <h4>Basic Functionality</h4>
 <p>
@@ -384,7 +400,7 @@
     When a player sends a report, and an admin uses the report by ID, the report is logged as confirmed.
     Once you enable Admin Assistants, AA status is given once the player has X confirmed reports in the past month or 75+ total confirmed reports.
     A player with AA status is informed of their status on first spawn in the server after joining.
-    If you enable the admin assistant perk, players with AA status are given access to the teamswap and admins commands for the duration they maintain AA status.
+    If you enable the admin assistant perk, players with AA status are given access to the teamswap and online-admins commands for the duration they maintain AA status.
     These command perks are basically incentives to report rule-breakers.
     Whether a player has AA status is calculated when they join the server, and that status will remain for the duration they are in the server.
     When an admin assistant sends a report, to the admins their name is prefixed with [AA] to note it as a (most likely) reliable report.
@@ -407,7 +423,6 @@
     @deny is used for bad or invalid reports, and will hurt the reporter's AA status.<br/><br/>
 
     Exceptions and Security Measures:
-    Admins and admin assistants are protected from automatic actions by this system.
     Automatic handling will not be taken if the target of a report is an admin or another AA, a real admin must act on the report.
     Automatic action will also not be taken if the target player has already been acted on in some way in the past 60 seconds.
 </p>
@@ -542,16 +557,15 @@
 <p>
     The heaviest hacked weapon (the one farthest above normal) is the one displayed in the ban reason using the following formats:<br/>
     Damage Mod Bans:<br/>
-    Hacking/Cheating DPS Automatic Ban [WEAPONNAME-DPS-KILLS-HEADSHOTS]<br/>
+    DPS Automatic Ban [WEAPONNAME-DPS-KILLS-HEADSHOTS]<br/>
     Aimbot Bans:<br/>
-    Hacking/Cheating HSK Automatic Ban [WEAPONNAME-HSK-KILLS-HEADSHOTS]<br/>
+    HSK Automatic Ban [WEAPONNAME-HSK-KILLS-HEADSHOTS]<br/>
     KPM Bans:<br/>
-    Hacking/Cheating KPM Automatic Ban [WEAPONNAME-KPM-KILLS-HEADSHOTS]
+    KPM Automatic Ban [WEAPONNAME-KPM-KILLS-HEADSHOTS]
 </p>
 <p>
-    Damage mod bans take priority over aimbot bans.
-    If you want to whitelist a player from a server, enter their player name, guid, or IP in the whitelist array for each server.
-    We will add database support for whitelisting in a later version.
+    DPS bans take priority over HSK bans, and HSK over KPM.
+    If you want to whitelist a player from a server, enter their player ID, name, guid, or IP in the adkats_specialplayers table using the group "whitelist_hackerchecker".
     If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes while they are in the server, stopping if they leave.
 </p>
 <h3>Commanding AdKats from External Source</h3>
@@ -721,10 +735,12 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
     <td>
         The in-game command used for future-banning players.
         Default time is in minutes, but the number can have a letter after it designating the units. e.g. 2h for 2 hours. Valid suffixes are m, h, d, w, and y.
-        Future ban is the exact opposite of a temp-ban. 
+        <br/><br/>
+        Future ban is the exact opposite of a temp-ban.
         Enter the time the player has until they are permabanned.
         This is used for requesting action/videos/etc from players, giving them a time frame to do so.
         Ban is enforced on-join only, not during gameplay.
+        This command can only be used when ban enforcer is enabled.
     </td>
 </tr>
 <tr>
@@ -734,7 +750,7 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
         [player]
     </td>
     <td>
-        The in-game command used for unbanning players. Only usable when ban enforcer is enabled.
+        The in-game command used for unbanning players. This command can only be used when ban enforcer is enabled.
     </td>
 </tr>
 <tr>
@@ -751,7 +767,9 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
     </td>
     <td>
         The in-game command used for punishing players.
-        Will add a Punish record to the database, increasing a player's total points by 1.
+        Will add a Punish record to the database,
+        increasing a player's total points according to your settings,
+        and issue the configured action for that point value.
     </td>
 </tr>
 <tr>
@@ -1144,6 +1162,9 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
 </ul>
 <h3>1. Server Settings:</h3>
 <ul>
+    <li><b>'Lock Settings - Create Password'</b> - Lock settings with a new created password > 5 characters.</li>
+    <li><b>'Lock Settings'</b> - Lock settings with the existing settings password.</li>
+    <li><b>'Unlock Settings'</b> - Unlock settings with the existing settings password.</li>
     <li><b>'Server ID (Display)'</b> - ID of this server. Automatically set via the database.</li>
     <li><b>'Server IP (Display)'</b> - IP address and port of this server. Automatically set via Procon.<br/></li>
     <li><b>'Setting Import'</b> - Enter an existing server ID here and all settings from that instance will be imported here. All settings on this instance will be overwritten.<br/></li>
@@ -1175,6 +1196,7 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
     Change Allow/Deny for each command for the different user roles to control their access.
     Type delete in the "delete?" line to delete the user role.
     When a user role is deleted, all users on that role are changed to the Default Guest role.
+    You cannot delete the Default Guest role.
 </p>
 <h3>5. Command Settings:</h3>
 <ul>
@@ -1288,7 +1310,6 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
             <li>"Instant Logging of Chat Messages?" "Yes"</li>
             <li>"Enable Statslogging?" "Yes"</li>
             <li>"Enable Weaponstats?" "Yes"</li>
-            <li>"Enable Livescoreboard in DB?" "Yes"</li>
             <li>"Enable KDR correction?" "Yes"</li>
             <li>"MapStats ON?" "Yes"</li>
             <li>"Session ON?" "Yes"</li>
