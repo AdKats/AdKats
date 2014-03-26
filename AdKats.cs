@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.2.0.7
- * 24-MAR-2014
+ * Version 4.2.0.8
+ * 26-MAR-2014
  */
 
 using System;
@@ -66,7 +66,7 @@ namespace PRoConEvents {
             Ended
         }
 
-        private const String PluginVersion = "4.2.0.7";
+        private const String PluginVersion = "4.2.0.8";
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
         private const Int32 DbUserFetchFrequency = 300;
@@ -482,7 +482,6 @@ namespace PRoConEvents {
                     }
 
                     //TeamSwap Settings
-                    //lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Auto-Whitelist Count", typeof (String), _PlayersToAutoWhitelist));
                     lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Ticket Window High", typeof (int), _TeamSwapTicketWindowHigh));
                     lstReturn.Add(new CPluginVariable("9. TeamSwap Settings|Ticket Window Low", typeof (int), _TeamSwapTicketWindowLow));
 
@@ -2717,7 +2716,7 @@ namespace PRoConEvents {
                             DebugWrite("PLIST: No inbound player lists or removals found. Waiting for Input.", 5);
                             //Wait for input
                             if (!_firstPlayerListComplete) {
-                                OnlineAdminSayMessage("Startup process has begun. Commands will be online shortly.");
+                                OnlineAdminSayMessage("Startup sequence has begun. Commands will be online shortly.");
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
                             _PlayerProcessingWaitHandle.Reset();
@@ -3430,7 +3429,9 @@ namespace PRoConEvents {
         }
 
         private void ProcessPlayerKill(Kill kKillerVictimDetails) {
-            try {
+            try
+            {
+                UploadWeaponCode(kKillerVictimDetails.DamageType);
                 if (!_firstPlayerListComplete) {
                     return;
                 }
@@ -3438,6 +3439,9 @@ namespace PRoConEvents {
                 _playerDictionary.TryGetValue(kKillerVictimDetails.Victim.SoldierName, out victim);
                 AdKatsPlayer killer = null;
                 _playerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer);
+                if (victim == null || killer == null) {
+                    return;
+                }
                 //Used for delayed player moving
                 if (_TeamswapOnDeathMoveDic.Count > 0) {
                     if (_isTestingAuthorized)
@@ -3447,9 +3451,6 @@ namespace PRoConEvents {
                         _TeamswapWaitHandle.Set();
                     }
                 }
-
-                //TEMP BF4 weapon code thingsf
-                UploadWeaponCode(kKillerVictimDetails.DamageType);
 
                 Boolean gKillHandled = false;
                 //Update player death information
@@ -5378,7 +5379,7 @@ namespace PRoConEvents {
                     return;
                 }
                 if (!_firstPlayerListComplete) {
-                    SendMessageToSource(record, "Admin command startup sequence in progress, please wait.");
+                    SendMessageToSource(record, "Command startup sequence in progress, please wait.");
                     FinalizeRecord(record);
                     return;
                 }
@@ -14615,52 +14616,7 @@ namespace PRoConEvents {
 
         private void PushThreadDebug(Int64 ticks, String thread, Int32 threadid, Int32 line, String element) {
             try {
-                //TODO remove
                 DebugWrite(ticks + " " + thread + " " + threadid + " " + line + " " + element, 4);
-                return;
-                var debugThread = new Thread(new ThreadStart(delegate {
-                    try {
-                        if (!_isTestingAuthorized || !_threadsReady || HandlePossibleDisconnect()) {
-                            return;
-                        }
-                        using (MySqlConnection connection = GetDatabaseConnection()) {
-                            using (MySqlCommand command = connection.CreateCommand()) {
-                                command.CommandText = @"
-                                INSERT INTO 
-                                    `adkats_threaddebugging` 
-                                (
-                                    `server_id`, 
-                                    `debug_ms`, 
-                                    `debug_thread`, 
-                                    `debug_line`, 
-                                    `debug_element`
-                                ) 
-                                VALUES 
-                                (
-                                    @server_id, 
-                                    @debug_ms, 
-                                    @debug_thread, 
-                                    @debug_line, 
-                                    @debug_element
-                                )";
-                                command.Parameters.AddWithValue("@server_id", _serverID);
-                                command.Parameters.AddWithValue("@debug_ms", ticks);
-                                command.Parameters.AddWithValue("@debug_thread", thread);
-                                command.Parameters.AddWithValue("@debug_line", line);
-                                command.Parameters.AddWithValue("@debug_element", element);
-                                //Attempt to execute the query
-                                if (command.ExecuteNonQuery() > 0) {
-                                    //DebugWrite("round stat pushed to database", 5);
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception e) {
-                        HandleException(new AdKatsException("Error while running keep-alive.", e));
-                    }
-                }));
-                //Start the thread
-                debugThread.Start();
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("error pushing thread debug", e));
@@ -14767,7 +14723,7 @@ namespace PRoConEvents {
             try {
                 String formattedTime = (timeSpan.TotalMilliseconds >= 0) ? ("") : ("-");
 
-                Double secondSubset = timeSpan.TotalSeconds;
+                Double secondSubset = Math.Abs(timeSpan.TotalSeconds);
                 Double minuteSubset = (secondSubset / 60);
                 Double hourSubset = (minuteSubset / 60);
                 Double daySubset = (hourSubset / 24);
