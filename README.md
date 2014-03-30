@@ -156,8 +156,8 @@
     </li>
     <li>
         <b>Download AdKats Source.</b>
-        Download the latest version of AdKats from here:
-        <a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.2.0.5.zip/download" target="_blank">Version 4.2.0.5</a>
+        Download the latest stable version of AdKats from here:
+        <a href="http://sourceforge.net/projects/adkats/files/AdKats_v4.2.1.0.zip/download" target="_blank">Version 4.2.1.0</a>
     </li>
     <li>
         <b>Add plugin file to Procon.</b>
