@@ -265,10 +265,10 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <b>Changes</b> <br/>
 <ul>
     <li>Compatibility with BF4 and BF3 in the same version.</li>
-    <li>Certain commands disabled on “Official” BF4 servers.</li>
+    <li>Certain commands disabled on â€œOfficialâ€ BF4 servers.</li>
     <li>Both plugin description fetching and player list processing are now being processed async to avoid procon
         panic.</li>
-    <li>The universal version of XpKiller’s stat logger is now supported. Both versions of stat logger are supported.</li>
+    <li>The universal version of XpKillerâ€™s stat logger is now supported. Both versions of stat logger are supported.</li>
     <li>Source ID has been added to the records table. Records will remain connected to a player even if their name
         changes.</li>
     <li>Player ID is now added to all stored chatlogs. XpKillers chat log table is automatically modified to include
@@ -344,7 +344,7 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <ul>
     <li><b>Settings.</b> AdKats settings are now stored database side almost exclusively. They have always been stored there, but now have been removed from procon's plugin setting list. The only things remaining plugin side are DB connection settings, setting lock information, and debug level.</li>
     <li><b>Command Access during Startup.</b> Commands cannot be accessed until the first player listing is complete, all commands issued before this is complete are rejected. Looking at our current systems this usually takes about 1 minute after initial startup. Admins are informed in-game when the startup sequence has completed, and how long it took to complete.
-</li>
+    </li>
 </ul>
 <b>Enhancements</b><br/>
 <ul>
@@ -378,6 +378,22 @@ fine for performance). Right now only Punish and Forgive are required to be logg
     <li><b>Setting Fetch.</b> Settings were not fetched initially on AdKats startup, causing any commands changed in the first 5 minutes of operation to be overwritten by database stored settings. This has been fixed.</li>
     <li><b>Player listing.</b> Player listing was not called automatically on startup, this caused up to 30 additional seconds where commands were inaccessible. This has been fixed. </li>
     <li><b>Threading.</b> Major issues with threading have been resolved. One thread was not exiting, so more were being spawned to compensate, causing eventual layer lockup. This has been fixed, and the process is now being monitored.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
+<h4>4.2.1.0 (30-MAR-2014)</h4>
+<b>Enhancements</b><br/>
+<ul>
+    <li><b>Added Report Options.</b> Disabled by default, players can now be told they were reported, and a list of exclusion words can be added. EX: Inform on all reports except ones containing "hack", "aimbot", etc.</li>
+    <li><b>Added contest command.</b> Disabled by default, players can now contest reports with the contest command. The contest command will block initial action by admins on the report ID, telling them the player contested the report and they need to investigate further.</li>
+    <li><b>Enhanced assist command.</b> Some instances of abuse were found with the assist command. It has been changed to avoid this abuse. Ticket loss rate monitoring and a 30 second timeout has been added.</li>
+</ul>
+<b>Bugfixes</b><br/>
+<ul>
+    <li><b>Fixed the admin command report IDs.</b> Report IDs were fixed for the report command, not for the admin command.</li>
+    <li><b>Fixed targeted player spam.</b> Fixed the spam from "targeted player X has left the server".</li>
 </ul>
 <b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
 <ul>
