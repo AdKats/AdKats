@@ -148,6 +148,11 @@
         Make sure stat logger is installed and running! Do NOT attempt to install AdKats until that plugin is running without issue.
     </li>
     <li>
+        <b style='color:#DF0101;'>GO BACK TO STEP 1 AND INSTALL STAT LOGGER.</b>
+        Not after, not when you try to enable AdKats and it fails, go back and install stat logger and make sure it is running!
+        Current and future functions will be completely broken for you if you do not do this.
+    </li>
+    <li>
         <b>Set up the database.</b>
         Run the contents of this sql script on your database. It must be run on the same database that Stat Logger is running on.
         (You can copy/paste the entire page as its shown): <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql</a>
