@@ -44,7 +44,10 @@ CALL addLogPlayerID() $$
 DROP TRIGGER IF EXISTS `tbl_chatlog_player_id_insert`$$
 CREATE TRIGGER `tbl_chatlog_player_id_insert` BEFORE INSERT ON `tbl_chatlog`
  FOR EACH ROW BEGIN 
-        SET NEW.logPlayerID = (SELECT `PlayerID` FROM `tbl_playerdata` WHERE `SoldierName` = NEW.logSoldierName LIMIT 1);
+        SET NEW.logPlayerID = (SELECT `tbl_playerdata`.`PlayerID` FROM `tbl_server`
+                            INNER JOIN `tbl_games` ON `tbl_server`.`GameID` = `tbl_games`.`GameID`
+                            INNER JOIN `tbl_playerdata` ON `tbl_games`.`GameID` = `tbl_playerdata`.`GameID`
+                            WHERE `tbl_playerdata`.`SoldierName` = NEW.logSoldierName AND `tbl_server`.`ServerID` = NEW.ServerID LIMIT 1);
     END
 $$
 
