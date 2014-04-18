@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.2.1.1
- * 2-APR-2014
+ * Version 4.2.1.2
+ * 18-APR-2014
  */
 
 using System;
@@ -16120,6 +16120,20 @@ namespace PRoConEvents {
                                     break;
                                 }
                                 Plugin.DebugWrite("EMAIL: begin reading mail", 6);
+                                var message = inboundEmailMessages.Dequeue();
+                                if (Plugin._DebugLevel >= 5)
+                                {
+                                    Plugin.ConsoleWrite("EMAIL: server: " + SMTPServer);
+                                    Plugin.ConsoleWrite("EMAIL: port: " + SMTPPort);
+                                    Plugin.ConsoleWrite("EMAIL: user/pass: " + ((!String.IsNullOrEmpty(SMTPUser) && !String.IsNullOrEmpty(SMTPPassword)) ? "OK" : "INVALID"));
+                                    Plugin.ConsoleWrite("EMAIL: details sender: " + message.Sender);
+                                    Plugin.ConsoleWrite("EMAIL: details from: " + message.From);
+                                    Plugin.ConsoleWrite("EMAIL: details to: " + message.To);
+                                    Plugin.ConsoleWrite("EMAIL: details cc: " + message.CC);
+                                    Plugin.ConsoleWrite("EMAIL: details bcc: " + message.Bcc);
+                                    Plugin.ConsoleWrite("EMAIL: details subject: " + message.Subject);
+                                    Plugin.ConsoleWrite("EMAIL: details body: " + message.Body);
+                                }
                                 //Dequeue the first/next mail
                                 var smtp = new SmtpClient(SMTPServer, SMTPPort) {
                                     EnableSsl = UseSSL,
@@ -16128,7 +16142,9 @@ namespace PRoConEvents {
                                     UseDefaultCredentials = false,
                                     Credentials = new NetworkCredential(SMTPUser, SMTPPassword)
                                 };
-                                smtp.Send(inboundEmailMessages.Dequeue());
+                                smtp.SendCompleted += new SendCompletedEventHandler(smtp_SendCompleted);
+                                smtp.Send(message);
+
                                 if (inboundEmailMessages.Any()) {
                                     //Wait 5 seconds between loops
                                     Thread.Sleep(5000);
@@ -16150,6 +16166,14 @@ namespace PRoConEvents {
                 }
                 catch (Exception e) {
                     Plugin.HandleException(new AdKatsException("Error occured in mail processing thread.", e));
+                }
+            }
+
+            private void smtp_SendCompleted(object sender, System.ComponentModel.AsyncCompletedEventArgs e)
+            {
+                if (e.Cancelled == true || e.Error != null)
+                {
+                    Plugin.HandleException(new AdKatsException("Error occured in mail processing. Sending Canceled.", e.Error));
                 }
             }
         }
