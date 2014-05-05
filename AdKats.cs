@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.2.1.2
- * 18-APR-2014
+ * Version 4.2.1.3
+ * 5-MAY-2014
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace PRoConEvents {
             Ended
         }
 
-        private const String PluginVersion = "4.2.1.1";
+        private const String PluginVersion = "4.2.1.3";
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
         private const Int32 DbUserFetchFrequency = 300;
@@ -640,7 +640,8 @@ namespace PRoConEvents {
                                 lstReturn.Add(new CPluginVariable(userPrefix + "Delete User?", typeof (String), ""));
                                 lstReturn.Add(new CPluginVariable(userPrefix + "Add Soldier?", typeof (String), ""));
                                 String soldierPrefix = userPrefix + "Soldiers" + separator;
-                                lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + separator + _gameIDDictionary[aPlayer.game_id] + separator + aPlayer.player_name + separator + "Delete Soldier?", typeof (String), "")));
+
+                                lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + separator + (_gameIDDictionary.ContainsKey(aPlayer.game_id)?(_gameIDDictionary[aPlayer.game_id].ToString()):("INVALID GAME ID [" + aPlayer.game_id + "]")) + separator + aPlayer.player_name + separator + "Delete Soldier?", typeof (String), "")));
                             }
                         }
                         else {
