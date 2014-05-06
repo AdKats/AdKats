@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.2.1.3
- * 5-MAY-2014
+ * Version 4.2.1.4
+ * 6-MAY-2014
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace PRoConEvents {
             Ended
         }
 
-        private const String PluginVersion = "4.2.1.3";
+        private const String PluginVersion = "4.2.1.4";
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
         private const Int32 DbUserFetchFrequency = 300;
@@ -12420,6 +12420,7 @@ namespace PRoConEvents {
                                 //Create the ban element
                                 var aBan = new AdKatsBan {
                                     ban_id = reader.GetInt64("ban_id"),
+                                    player_id = reader.GetInt64("player_id"),
                                     ban_status = reader.GetString("ban_status"),
                                     ban_notes = reader.GetString("ban_notes"),
                                     ban_sync = reader.GetString("ban_sync"),
@@ -12430,10 +12431,15 @@ namespace PRoConEvents {
                                     ban_enforceGUID = (reader.GetString("ban_enforceGUID") == "Y"),
                                     ban_enforceIP = (reader.GetString("ban_enforceIP") == "Y")
                                 };
-                                importedBans.Add(aBan);
-
-                                if (++bansDownloaded % 15 == 0) {
-                                    ConsoleWrite(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((DateTime.UtcNow - startTime).TotalSeconds), 2) + " downloads/sec.");
+                                if (aBan.ban_record.target_player == null) {
+                                    aBan.ban_record.target_player = FetchPlayer(false, true, null, aBan.player_id, null, null, null);
+                                }
+                                if (aBan.ban_record.target_player != null) {
+                                    importedBans.Add(aBan);
+                                    if (++bansDownloaded % 15 == 0)
+                                    {
+                                        ConsoleWrite(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((DateTime.UtcNow - startTime).TotalSeconds), 2) + " downloads/sec.");
+                                    }
                                 }
                             }
                         }
@@ -15570,6 +15576,7 @@ namespace PRoConEvents {
             public AdKatsException ban_exception = null;
 
             public Int64 ban_id = -1;
+            public Int64 player_id = -1;
             public String ban_notes = null;
             public AdKatsRecord ban_record = null;
             public DateTime ban_startTime;
