@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.2.1.4
+ * Version 4.2.1.5
  * 6-MAY-2014
  */
 
@@ -62,7 +62,7 @@ namespace PRoConEvents {
             Ended
         }
 
-        private const String PluginVersion = "4.2.1.4";
+        private const String PluginVersion = "4.2.1.5";
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
         private const Int32 DbUserFetchFrequency = 300;
@@ -12431,6 +12431,16 @@ namespace PRoConEvents {
                                     ban_enforceGUID = (reader.GetString("ban_enforceGUID") == "Y"),
                                     ban_enforceIP = (reader.GetString("ban_enforceIP") == "Y")
                                 };
+                                if (aBan.ban_record == null) {
+                                    aBan.ban_record = new AdKatsRecord {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        isDebug = false,
+                                        target_player = FetchPlayer(false, true, null, aBan.player_id, null, null, null),
+                                        source_name = "AdKats",
+                                        record_message = "Ban Reason Expunged"
+                                    };
+                                    aBan.ban_record.target_name = aBan.ban_record.target_player.player_name;
+                                }
                                 if (aBan.ban_record.target_player == null) {
                                     aBan.ban_record.target_player = FetchPlayer(false, true, null, aBan.player_id, null, null, null);
                                 }
@@ -15569,11 +15579,11 @@ namespace PRoConEvents {
 
         public class AdKatsBan {
             //Current exception state of the ban
+            public AdKatsException ban_exception = null;
             public DateTime ban_endTime;
             public Boolean ban_enforceGUID = true;
             public Boolean ban_enforceIP = false;
             public Boolean ban_enforceName = false;
-            public AdKatsException ban_exception = null;
 
             public Int64 ban_id = -1;
             public Int64 player_id = -1;
