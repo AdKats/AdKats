@@ -12327,7 +12327,7 @@ namespace PRoConEvents {
                                     aBan.ban_status = "Expired";
                                     UpdateBanStatus(aBan);
                                 }
-                                else if (String.IsNullOrEmpty(player.player_name_previous) && aBan.ban_enforceName && !aBan.ban_enforceGUID && !aBan.ban_enforceIP) {
+                                else if (!String.IsNullOrEmpty(player.player_name_previous) && aBan.ban_enforceName && !aBan.ban_enforceGUID && !aBan.ban_enforceIP) {
                                     var record = new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverID,
