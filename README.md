@@ -40,8 +40,9 @@
     </li>
     <li>
         <b>Admin Assistants.</b>
-        You can choose to give a small perk to players who consistently provide you with accurate player reports.
-        Documentation linked below.
+        When fully used this can turn your regular playerbase into a human autoadmin. Trusted players based on admin 
+        interaction can fill the gaps normal autoadmins cannot, utilizing the report system, and keeping your server 
+        under control even when admins are offline.
     </li>
     <li>
         <b>BF3/BF4 "Hacker-Checker" with Whitelist.</b>
@@ -67,6 +68,11 @@
         Player's squads can be joined via command, and locked squads can be unlocked for admin entry.
     </li>
     <li>
+        <b>Player Assist.</b>
+        Player's want to play with their friends, but you don't want to imbalance the teams? The assist command lets 
+        all players join the weak team together to help them out and squad up without hurting the server.
+    </li>
+    <li>
         <b>Yell/Say Pre-Recording.</b>
         Use numbers to reference predefined messages. Avoid typing long reasons or messages. e.g. @kill player 3
     </li>
@@ -76,7 +82,8 @@
     </li>
     <li>
         <b>External Controller API.</b>
-        AdKats can be controlled from outside the game through systems like AdKats WebAdmin, and through other plugins like insane limits.
+        AdKats can be controlled from outside the game through systems like AdKats WebAdmin, and through other plugins like insane limits. For example, you can issue AdKats punish commands from insane limits or proconrulz and have them 
+        be logged like any other admin command.
     </li>
     <li>
         <b>Internal Implementation of TeamSwap.</b>
@@ -98,6 +105,7 @@
     </li>
     <li>
         <b>Full Logging.</b>
+        One of the main reasons AdKats was made in the first place. 
         All admin activity is trackable via the database per your custom settings for every command;
         So holding your admins accountable for their actions is quick and painless.
         And, if you are using AdKats WebAdmin nobody but your highest admins will need direct Procon access.
@@ -116,7 +124,7 @@
     If you find any bugs, please submit them <a href="https://github.com/ColColonCleaner/AdKats/issues?state=open" target="_blank">HERE</a> and they will be fixed ASAP.
 </p>
 <p>
-    AdKats was inspired by the gaming community A Different Kind (ADK).
+    AdKats was inspired by the gaming community A Different Kind (ADK), and created by ColColonCleaner. 
     Visit <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
 </p>
 <h2>Dependencies</h2>
