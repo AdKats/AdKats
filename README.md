@@ -1,7 +1,7 @@
 <script>
     //<latest_stable_release>4.2.1.0</latest_stable_release>
 </script>
-<h1>AdKats</h1>
+<h1>AdKats - Advanced Admin Tools</h1>
 <p>
     Admin Toolset with a plethora of features, basically the default "In-Game Admin" with 2000+ hours of enhancements and features added.
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any setup.
