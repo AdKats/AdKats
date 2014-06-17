@@ -295,9 +295,9 @@ namespace PRoConEvents {
         private DateTime _lastUpdateSettingRequest = DateTime.UtcNow;
         private DateTime _lastUserFetch = DateTime.UtcNow;
         private Int32 _maxSpectators = -1;
-        private String _metabansAPIKey = "3b5b6255486b73485547ca5b87c7a275b82ca39b";
+        private String _metabansAPIKey = "";
         private Boolean _metabansConnectionConfirmed = false;
-        private String _metabansUsername = "ADKGamers";
+        private String _metabansUsername = "";
         private String _mySqlDatabaseName = "";
         private String _mySqlHostname = "";
         private String _mySqlPassword = "";
