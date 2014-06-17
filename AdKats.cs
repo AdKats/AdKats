@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.3.0.9
- * 15-JUN-2014
+ * Version 4.4.0.0
+ * 17-JUN-2014
  */
 
 using System;
@@ -68,7 +68,7 @@ namespace PRoConEvents {
             Ended
         }
 
-        private const String PluginVersion = "4.3.0.9";
+        private const String PluginVersion = "4.4.0.0";
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
         private const Int32 DbUserFetchFrequency = 300;
@@ -5433,7 +5433,33 @@ namespace PRoConEvents {
                         }
                     }
                 }
-                DebugWrite("Preparing to queue record for processing", 6);
+                //Conditional command replacement
+                if (_isTestingAuthorized && 
+                    _PopulationStatusLow && 
+                    record.target_player != null && 
+                    record.command_type.command_key == "player_punish") {
+                    var punishCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_punish");
+                    var killCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_kill");
+                    if (killCount < 2 ||
+                       (killCount < 4 && punishCount == 1)) {
+                        if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
+                        {
+                            AdminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
+                        }
+                        else
+                        {
+                            AdminSayMessage(record.target_name + " was PUNISHED by " + record.source_name + " for " + record.record_message);
+                        }
+                        record.command_type = _CommandKeyDictionary["player_kill"];
+                        record.command_action = _CommandKeyDictionary["player_kill"];
+                    }
+                    else if (killCount >= 4 && punishCount >= 2)
+                    {
+                        record.command_type = _CommandKeyDictionary["player_kick"];
+                        record.command_action = _CommandKeyDictionary["player_kick"];
+                    }
+                }
+                DebugWrite("Preparing to queue " + record.command_type.command_key + " record for processing", 6);
                 if (_isTestingAuthorized)
                     PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_UnprocessedRecordQueue) {
@@ -8427,11 +8453,12 @@ namespace PRoConEvents {
                 if (record.source_name != record.target_name) {
                     switch (_gameVersion) {
                         case GameVersion.BF3:
-                            if (_isTestingAuthorized && record.command_type.command_key == "player_punish") {
-                                AdminSayMessage(record.target_name + " was PUNISHED by " + record.source_name + " for " + record.record_message);
-                            }
-                            else if ((record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin" || _isTestingAuthorized) && record.command_type.command_key == "player_punish") {
-                                AdminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
+                            if (record.command_type.command_key == "player_punish") {
+                                if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin") {
+                                    AdminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
+                                } else {
+                                    AdminSayMessage(record.target_name + " was PUNISHED by " + record.source_name + " for " + record.record_message);
+                                }
                             }
                             var seconds = (int) DateTime.UtcNow.Subtract(record.target_player.lastDeath).TotalSeconds;
                             DebugWrite("Killing player. Player last died " + seconds + " seconds ago.", 3);
@@ -9237,7 +9264,9 @@ namespace PRoConEvents {
                 OnlineAdminSayMessage("REPORT [" + reportID + "] Target: " + targetAAIdentifier + record.target_name + targetPlayerInfo);
                 OnlineAdminSayMessage("REPORT [" + reportID + "] Reason: " + record.record_message);
                 if (_InformReportedPlayers) {
-                    if (!(_PlayerInformExclusionStrings.Any() && !String.IsNullOrEmpty(_PlayerInformExclusionStrings[0])) || !_PlayerInformExclusionStrings.Any(record.record_message.Contains)) {
+                    String mesLow = record.record_message.ToLower();
+                    if (!_PlayerInformExclusionStrings.Any(exc => mesLow.Contains(exc.ToLower())))
+                    {
                         PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message);
                     }
                 }
