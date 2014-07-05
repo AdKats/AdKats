@@ -1,0 +1,347 @@
+[
+  {
+    "command_typeaction": "1|1",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "2|2",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "3|3",
+    "target_weight": 0,
+    "source_weight": 0.25
+  },
+  {
+    "command_typeaction": "3|4",
+    "target_weight": 0,
+    "source_weight": 0.25
+  },
+  {
+    "command_typeaction": "3|5",
+    "target_weight": 0,
+    "source_weight": 0.25
+  },
+  {
+    "command_typeaction": "4|4",
+    "target_weight": 0,
+    "source_weight": 0.25
+  },
+  {
+    "command_typeaction": "5|5",
+    "target_weight": 0,
+    "source_weight": 0.25
+  },
+  {
+    "command_typeaction": "6|6",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "7|7",
+    "target_weight": -15,
+    "source_weight": 2
+  },
+  {
+    "command_typeaction": "8|8",
+    "target_weight": -50,
+    "source_weight": 5
+  },
+  {
+    "command_typeaction": "9|9",
+    "target_weight": -25,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "9|3",
+    "target_weight": -5,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "9|4",
+    "target_weight": -5,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "9|5",
+    "target_weight": -5,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "9|6",
+    "target_weight": -10,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "9|7",
+    "target_weight": -30,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "9|8",
+    "target_weight": -100,
+    "source_weight": 0.5
+  },
+  {
+    "command_typeaction": "10|10",
+    "target_weight": 10,
+    "source_weight": 1
+  },
+  {
+    "command_typeaction": "11|11",
+    "target_weight": -7,
+    "source_weight": 0.25
+  },
+  {
+    "command_typeaction": "12|12",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "13|13",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "14|14",
+    "target_weight": 0,
+    "source_weight": 0.05
+  },
+  {
+    "command_typeaction": "15|15",
+    "target_weight": 0,
+    "source_weight": 0.05
+  },
+  {
+    "command_typeaction": "16|16",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "17|17",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "18|18",
+    "target_weight": 0,
+    "source_weight": 0.25
+  },
+  {
+    "command_typeaction": "18|19",
+    "target_weight": -5.00,
+    "source_weight": 1.00
+  },
+  {
+    "command_typeaction": "18|42",
+    "target_weight": 0.00,
+    "source_weight": -10.00
+  },
+  {
+    "command_typeaction": "19|19",
+    "target_weight": -5,
+    "source_weight": 1.00
+  },
+  {
+    "command_typeaction": "20|20",
+    "target_weight": 0,
+    "source_weight": 0.25
+  },
+  {
+    "command_typeaction": "20|19",
+    "target_weight": -5.00,
+    "source_weight": 1.00
+  },
+  {
+    "command_typeaction": "20|42",
+    "target_weight": 0.00,
+    "source_weight": -10.00
+  },
+  {
+    "command_typeaction": "21|21",
+    "target_weight": 0,
+    "source_weight": 0.05
+  },
+  {
+    "command_typeaction": "22|22",
+    "target_weight": 0,
+    "source_weight": 0.05
+  },
+  {
+    "command_typeaction": "23|23",
+    "target_weight": 0,
+    "source_weight": 0.05
+  },
+  {
+    "command_typeaction": "24|24",
+    "target_weight": 0,
+    "source_weight": 0.05
+  },
+  {
+    "command_typeaction": "25|25",
+    "target_weight": 0,
+    "source_weight": 0.05
+  },
+  {
+    "command_typeaction": "26|26",
+    "target_weight": 0,
+    "source_weight": 0.05
+  },
+  {
+    "command_typeaction": "27|27",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "28|28",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "29|29",
+    "target_weight": 0,
+    "source_weight": 0.1
+  },
+  {
+    "command_typeaction": "30|30",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "31|31",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "32|32",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "33|33",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "34|34",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "35|35",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "36|36",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "37|37",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "38|38",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "39|39",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "40|40",
+    "target_weight": 0,
+    "source_weight": 0.25
+  },
+  {
+    "command_typeaction": "41|41",
+    "target_weight": 0,
+    "source_weight": 0.25
+  },
+  {
+    "command_typeaction": "42|42",
+    "target_weight": 0,
+    "source_weight": -10
+  },
+  {
+    "command_typeaction": "43|43",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "44|44",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "45|45",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "46|46",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "47|47",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "48|48",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "49|49",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "50|50",
+    "target_weight": -50,
+    "source_weight": 5
+  },
+  {
+    "command_typeaction": "51|51",
+    "target_weight": 0,
+    "source_weight": 5
+  },
+  {
+    "command_typeaction": "52|52",
+    "target_weight": -50,
+    "source_weight": 5
+  },
+  {
+    "command_typeaction": "53|53",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "54|54",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "55|55",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "56|56",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "57|57",
+    "target_weight": 0,
+    "source_weight": 0
+  }
+]
