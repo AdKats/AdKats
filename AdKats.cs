@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.5.0.9
- * 6-JUL-2014
+ * Version 4.5.1.2
+ * 7-JUL-2014
  */
 
 using System;
@@ -35,6 +35,7 @@ using System.Linq;
 using System.Net.Mail;
 using System.Threading;
 using System.Diagnostics;
+using System.Windows.Forms.VisualStyles;
 using MySql.Data.MySqlClient;
 using PRoCon.Core;
 using PRoCon.Core.Plugin;
@@ -44,7 +45,10 @@ using System.IO;
 
 
 namespace PRoConEvents {
-    public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
+    public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
+    {
+        private const String PluginVersion = "4.5.1.2";
+
         public enum ConsoleMessageType {
             Warning,
             Error,
@@ -64,11 +68,9 @@ namespace PRoConEvents {
             Ended
         }
 
-        private const String PluginVersion = "4.5.0.9";
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
         private const Int32 DbUserFetchFrequency = 300;
-
         private const Boolean UseConnectionPooling = true;
         private const Int32 MinConnectionPoolSize = 0;
         private const Int32 MaxConnectionPoolSize = 20;
@@ -78,6 +80,7 @@ namespace PRoConEvents {
         private const Int32 DatabaseSuccessThreshold = 5;
         private const Int32 DbSettingFetchFrequency = 300;
         private const Int32 DbBanFetchFrequency = 60;
+
         private readonly Dictionary<String, AdKatsRecord> _ActOnIsAliveDictionary = new Dictionary<String, AdKatsRecord>();
         private readonly Dictionary<String, AdKatsRecord> _ActOnSpawnDictionary = new Dictionary<String, AdKatsRecord>();
         private readonly Dictionary<String, AdKatsRecord> _ActionConfirmDic = new Dictionary<String, AdKatsRecord>();
@@ -939,13 +942,16 @@ namespace PRoConEvents {
                         return;
                     }
                     //Check if the message is a command
-                    if (strValue.StartsWith("@") || strValue.StartsWith("!")) {
+                    if (strValue.StartsWith("@") || strValue.StartsWith("!") || strValue.StartsWith("."))
+                    {
                         strValue = strValue.Substring(1);
                     }
-                    else if (strValue.StartsWith("/@") || strValue.StartsWith("/!")) {
+                    else if (strValue.StartsWith("/@") || strValue.StartsWith("/!") || strValue.StartsWith("/."))
+                    {
                         strValue = strValue.Substring(2);
                     }
-                    else if (strValue.StartsWith("/")) {
+                    else if (strValue.StartsWith("/")) 
+                    {
                         strValue = strValue.Substring(1);
                     }
                     else {
@@ -2762,6 +2768,7 @@ namespace PRoConEvents {
             DebugWrite("Entering StartThreads", 7);
             try {
                 //Start the main thread
+                OnlineAdminSayMessage("AdKats starting. Player list processing shortly.");
                 //DB Comm is the heart of AdKats, everything revolves around that thread
                 StartAndLogThread(_DatabaseCommunicationThread);
                 //Other threads are started within the db comm thread
@@ -3025,7 +3032,7 @@ namespace PRoConEvents {
                             DebugWrite("PLIST: No inbound player lists or removals found. Waiting for Input.", 5);
                             //Wait for input
                             if (!_firstPlayerListComplete) {
-                                OnlineAdminSayMessage("Startup sequence has begun. Commands will be online shortly.");
+                                OnlineAdminSayMessage("Player list processing started. Commands will be online shortly.");
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
                             _PlayerProcessingWaitHandle.Reset();
@@ -5671,12 +5678,30 @@ namespace PRoConEvents {
         private void QueueRecordForProcessing(AdKatsRecord record) {
             DebugWrite("Entering queueRecordForProcessing", 7);
             try {
-                if (record != null && record.target_player != null && record.command_action != null && _commandTimeoutDictionary.ContainsKey(record.command_action.command_key) && !record.record_action_executed) {
-                    //Cancel call if record is on timeout
-                    if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow)) {
-                        SendMessageToSource(record, record.command_type.command_name + " on timeout for " + record.target_player.player_name);
-                        FinalizeRecord(record);
-                        return;
+                if (record.command_action != null && _commandTimeoutDictionary.ContainsKey(record.command_action.command_key) && !record.record_action_executed)
+                {
+                    if (record.target_player != null && !record.TargetPlayersLocal.Any())
+                    {
+                        //Cancel call if record is on timeout for single player
+                        if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow))
+                        {
+                            SendMessageToSource(record, record.command_type.command_name + " on timeout for " + record.target_player.player_name);
+                            FinalizeRecord(record);
+                            return;
+                        }
+                    }
+                    else if (record.TargetPlayersLocal.Any())
+                    {
+                        //Cancel call if record is on timeout for any targeted players
+                        foreach (var aPlayer in record.TargetPlayersLocal)
+                        {
+                            if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow))
+                            {
+                                SendMessageToSource(record, record.command_type.command_name + " on timeout for " + aPlayer.player_name);
+                                FinalizeRecord(record);
+                                return;
+                            }
+                        }
                     }
                 }
                 if (record.target_player != null && (record.command_type.command_key == "player_report" || record.command_type.command_key == "player_calladmin")) {
@@ -5699,7 +5724,7 @@ namespace PRoConEvents {
                         }
                     }
                 }
-                //Conditional command replacement
+                //Conditional command replacement (single target only)
                 if (_isTestingAuthorized && 
                     _PopulationStatusLow && 
                     record.target_player != null && 
@@ -6789,36 +6814,78 @@ namespace PRoConEvents {
                         }
                     }
                         break;
-                    case "player_join": {
-                        //Remove previous commands awaiting confirmation
-                        CancelSourcePendingAction(record);
+                    case "player_join":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
 
-                        if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
-                            FinalizeRecord(record);
-                            return;
-                        }
-
-                        //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 1);
-                        switch (parameters.Length) {
-                            case 0:
-                                SendMessageToSource(record, "foreveralone.jpg");
+                            if (_serverType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
-                            case 1:
-                                record.target_name = parameters[0];
-                                record.record_message = "Joining Player";
-                                if (!HandleRoundReport(record)) {
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "foreveralone.jpg");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Joining Player";
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_pull":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (_serverType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "foreveralone.jpg");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use this command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Pulling Player";
                                     CompleteTargetInformation(record, false);
-                                }
-                                break;
-                            default:
-                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
                         }
-                    }
                         break;
                     case "player_roundwhitelist": {
                         //Remove previous commands awaiting confirmation
@@ -6997,6 +7064,135 @@ namespace PRoConEvents {
                             }
                         }
                         break;
+                    case "player_chat":
+                        {
+                            /*
+                             * This command will get chat history for a player. Comes in 4 variations. 
+                             * Variable number of seconds between printed lines, based on the number of characters in the message. 
+                             * Oldest to newest. Default last 5 lines, max 30. Spam protection enabled.
+                             *  
+                             * /pchat - returns your chat history, default length.
+                             * /pchat (#) - returns your chat history, custom length.
+                             * /pchat (playername) - returns player chat history, default length.
+                             * /pchat (#) (playername) - returns player chat history, custom length.
+                             * /pchat self (playername) - returns last conversation between you and player, default length.
+                             * /pchat (#) self (playername) - returns last conversation between you and player, custom length.
+                             * /pchat (playernameA) (playernameB) - returns last conversation between playerA and playerB, default length.
+                             * /pchat (#) (playernameA) (playernameB) - returns last conversation between playerA and playerB, custom length.
+                             */
+
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            Int32 numeric;
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    //One case, assign to self
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Fetching own chat history";
+                                    record.target_name = record.source_name;
+                                    record.command_numeric = 5;
+                                    //TODO: SendMessageToSource(record, "Fetching last " + record.command_numeric + " records of own chat history.");
+                                    CompleteTargetInformation(record, false);
+                                    break;
+                                case 1:
+                                    //Two cases
+                                    if (Int32.TryParse(parameters[0], out numeric) && numeric <= 30) {
+                                        //Case numeric, assign to duration
+                                        record.record_message = "Fetching own chat history";
+                                        record.target_name = record.source_name;
+                                        record.command_numeric = numeric;
+                                        CompleteTargetInformation(record, false);
+                                    }
+                                    else
+                                    {
+                                        //Case player, assign to target name
+                                        record.record_message = "Fetching player chat history";
+                                        record.target_name = parameters[0];
+                                        record.command_numeric = 5;
+                                        CompleteTargetInformation(record, false);
+                                    }
+                                    return;
+                                case 2:
+                                    //Three cases
+                                    if (Int32.TryParse(parameters[0], out numeric) && numeric <= 30)
+                                    {
+                                        //Case numeric, assign to duration
+                                        record.record_message = "Fetching player chat history";
+                                        record.target_name = parameters[1];
+                                        record.command_numeric = numeric;
+                                        CompleteTargetInformation(record, false);
+                                    }
+                                    else
+                                    {
+                                        SendMessageToSource(record, "");
+                                        //Two target case, assign both players
+                                        if (parameters[0].ToLower() == "self")
+                                        {
+                                            //Players are self and target
+                                            record.record_message = "Fetching own conversation history.";
+                                            record.TargetNamesLocal.Add(record.source_name);
+                                            record.TargetNamesLocal.Add(parameters[0]);
+                                            record.command_numeric = 5;
+                                            CompleteTargetInformation(record, false);
+                                        }
+                                        else
+                                        {
+                                            //Players are target 1 and target 2
+                                            record.record_message = "Fetching player conversation history.";
+                                            record.TargetNamesLocal.Add(parameters[0]);
+                                            record.TargetNamesLocal.Add(parameters[1]);
+                                            record.command_numeric = 5;
+                                            CompleteTargetInformation(record, false);
+                                        }
+                                    }
+                                    break;
+                                case 3:
+                                    //Two cases
+                                    if (Int32.TryParse(parameters[0], out numeric) && numeric <= 30)
+                                    {
+                                        //Two target case, assign both players
+                                        if (parameters[1].ToLower() == "self")
+                                        {
+                                            //Players are self and target
+                                            record.record_message = "Fetching own conversation history.";
+                                            record.TargetNamesLocal.Add(record.source_name);
+                                            record.TargetNamesLocal.Add(parameters[2]);
+                                            record.command_numeric = numeric;
+                                            CompleteTargetInformation(record, false);
+                                        }
+                                        else
+                                        {
+                                            //Players are target 1 and target 2
+                                            record.record_message = "Fetching player conversation history.";
+                                            record.TargetNamesLocal.Add(parameters[1]);
+                                            record.TargetNamesLocal.Add(parameters[2]);
+                                            record.command_numeric = numeric;
+                                            CompleteTargetInformation(record, false);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                        FinalizeRecord(record);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "player_find":
                         {
                             //Remove previous commands awaiting confirmation
@@ -7020,6 +7216,38 @@ namespace PRoConEvents {
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Finding Player";
+                                    CompleteTargetInformation(record, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_mark":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Marking Self";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Marking Player";
                                     CompleteTargetInformation(record, false);
                                     break;
                                 default:
@@ -7543,32 +7771,65 @@ namespace PRoConEvents {
                         record.record_action_executed = true;
                     }
                         break;
-                    case "admin_deny": {
-                        //Remove previous commands awaiting confirmation
-                        CancelSourcePendingAction(record);
+                    case "admin_deny":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
 
-                        //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 1);
-                        switch (parameters.Length) {
-                            case 0:
-                                SendMessageToSource(record, "Report ID must be given. Unable to submit.");
-                                FinalizeRecord(record);
-                                break;
-                            case 1:
-                                record.target_name = parameters[0];
-                                //Handle based on report ID as only option
-                                if (!DenyRoundReport(record)) {
-                                    SendMessageToSource(record, "Invalid report ID given, unable to submit.");
-                                }
-                                FinalizeRecord(record);
-                                return;
-                            default:
-                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "Report ID must be given. Unable to submit.");
+                                    FinalizeRecord(record);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID as only option
+                                    if (!DenyRoundReport(record))
+                                    {
+                                        SendMessageToSource(record, "Invalid report ID given, unable to submit.");
+                                    }
+                                    FinalizeRecord(record);
+                                    return;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                            record.record_action_executed = true;
                         }
-                        record.record_action_executed = true;
-                    }
+                        break;
+                    case "admin_ignore":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "Report ID must be given. Unable to submit.");
+                                    FinalizeRecord(record);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID as only option
+                                    if (!IgnoreRoundReport(record))
+                                    {
+                                        SendMessageToSource(record, "Invalid report ID given, unable to submit.");
+                                    }
+                                    FinalizeRecord(record);
+                                    return;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                            record.record_action_executed = true;
+                        }
                         break;
                     case "admin_say": {
                         //Remove previous commands awaiting confirmation
@@ -7985,48 +8246,96 @@ namespace PRoConEvents {
         }
 
         public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm) {
-            try {
-                //Check for an exact match
-                if (_PlayerDictionary.TryGetValue(record.target_name, out record.target_player) || _PlayerLeftDictionary.TryGetValue(record.target_name, out record.target_player))
-                {
-                    record.target_name = record.target_player.player_name;
-                    if (!requireConfirm) {
-                        //Process record right away
-                        QueueRecordForProcessing(record);
+            try
+            {
+                Boolean confirmNeeded = false;
+                //Multiple target case
+                if (record.TargetNamesLocal.Any()) {
+                    foreach (var targetName in record.TargetNamesLocal)
+                    {
+                        //Attempt to get the player object
+                        AdKatsPlayer aPlayer;
+                        String resultMessage;
+                        Boolean curConfirm;
+                        if (FetchPlayerFromName(targetName, out aPlayer, out curConfirm, out resultMessage)) {
+                            record.TargetPlayersLocal.Add(aPlayer);
+                            if (curConfirm)
+                            {
+                                SendMessageToSource(record, resultMessage);
+                                confirmNeeded = true;
+                            }
+                        }
+                        else {
+                            SendMessageToSource(record, resultMessage);
+                        }
+                    }
+                    //Ensure main target player is null
+                    record.target_player = null;
+                }
+                //Single target case
+                else {
+                    //Attempt to get the player object
+                    AdKatsPlayer aPlayer;
+                    String resultMessage;
+                    Boolean curConfirm;
+                    if (FetchPlayerFromName(record.target_name, out aPlayer, out curConfirm, out resultMessage)) {
+                        record.target_name = aPlayer.player_name;
+                        record.target_player = aPlayer;
+                        if (curConfirm)
+                        {
+                            SendMessageToSource(record, resultMessage);
+                            confirmNeeded = true;
+                        }
                     }
                     else {
-                        ConfirmActionWithSource(record);
+                        SendMessageToSource(record, resultMessage);
                     }
                 }
+                if (confirmNeeded) {
+                    ConfirmActionWithSource(record);
+                }
                 else {
+                    QueueRecordForProcessing(record);
+                }
+            }
+            catch (Exception e) {
+                record.record_exception = HandleException(new AdKatsException("Error while completing target information.", e));
+                FinalizeRecord(record);
+            }
+        }
+
+        public Boolean FetchPlayerFromName(String playerNameInput, out AdKatsPlayer aPlayer, out Boolean confirmNeeded, out String resultMessage)
+        {
+            //Set default return values
+            resultMessage = "Error finding player for " + playerNameInput;
+            confirmNeeded = false;
+            aPlayer = null;
+            try {
+                //Check for an exact match
+                if (_PlayerDictionary.TryGetValue(playerNameInput, out aPlayer) || _PlayerLeftDictionary.TryGetValue(playerNameInput, out aPlayer)) {
+                    return true;
+                }
+                else
+                {
                     //Check online players for substring match
                     List<String> currentPlayerNames = _PlayerDictionary.Keys.ToList();
                     //Get all subString matches
                     var subStringMatches = new List<string>();
-                    subStringMatches.AddRange(currentPlayerNames.Where(playerName => Regex.Match(playerName, record.target_name, RegexOptions.IgnoreCase).Success));
+                    subStringMatches.AddRange(currentPlayerNames.Where(playerName => Regex.Match(playerName, playerNameInput, RegexOptions.IgnoreCase).Success));
                     if (subStringMatches.Count == 1)
                     {
                         //Only one subString match, call processing without confirmation if able
-                        if (!_PlayerDictionary.TryGetValue(subStringMatches[0], out record.target_player))
-                        {
-                            ConsoleError("Error fetching player for substring match.");
-                            return;
+                        if (_PlayerDictionary.TryGetValue(subStringMatches[0], out aPlayer)) {
+                            resultMessage = "Player match found for " + playerNameInput;
+                            return true;
                         }
-                        record.target_name = subStringMatches[0];
-                        if (!requireConfirm)
-                        {
-                            //Process record right away
-                            QueueRecordForProcessing(record);
-                        }
-                        else
-                        {
-                            ConfirmActionWithSource(record);
-                        }
+                        ConsoleError("Error fetching player for substring match.");
+                        return false;
                     }
                     else if (subStringMatches.Count > 1)
                     {
                         //Multiple players matched the query, choose correct one
-                        String msg = "'" + record.target_name + "' matches multiple players: ";
+                        String msg = "'" + playerNameInput + "' matches multiple players: ";
                         bool first = true;
                         String suggestion = null;
                         foreach (String playerName in subStringMatches)
@@ -8041,7 +8350,7 @@ namespace PRoConEvents {
                                 msg = msg + ", " + playerName;
                             }
                             //Suggest player names that start with the text admins entered over others
-                            if (playerName.ToLower().StartsWith(record.target_name.ToLower()))
+                            if (playerName.ToLower().StartsWith(playerNameInput.ToLower()))
                             {
                                 suggestion = playerName;
                             }
@@ -8052,7 +8361,7 @@ namespace PRoConEvents {
                             Int32 bestDistance = Int32.MaxValue;
                             foreach (String playerName in subStringMatches)
                             {
-                                Int32 distance = LevenshteinDistance(record.target_name, playerName);
+                                Int32 distance = LevenshteinDistance(playerNameInput, playerName);
                                 if (distance < bestDistance)
                                 {
                                     bestDistance = distance;
@@ -8063,97 +8372,97 @@ namespace PRoConEvents {
                         //If the suggestion is still null, something has failed
                         if (suggestion == null)
                         {
-                            DebugWrite("id suggestion system failed subString match", 5);
-                            SendMessageToSource(record, "name suggestion system failed substring match");
-                            FinalizeRecord(record);
-                            return;
+                            ConsoleError("id suggestion system failed subString match");
+                            return false;
                         }
 
-                        //Inform admin of multiple players found
-                        SendMessageToSource(record, msg);
 
                         //Use suggestion for target
-                        if (_PlayerDictionary.TryGetValue(suggestion, out record.target_player))
+                        if (_PlayerDictionary.TryGetValue(suggestion, out aPlayer))
                         {
-                            record.target_name = suggestion;
-                            //Send record to attempt list for confirmation
-                            ConfirmActionWithSource(record);
+                            resultMessage = msg;
+                            confirmNeeded = true;
+                            return true;
                         }
                         else
                         {
                             ConsoleError("Substring match fetch failed.");
-                            FinalizeRecord(record);
+                            return false;
                         }
                     }
-                    else {
+                    else
+                    {
                         //There were no players found in the online dictionary. Run a search on the offline dictionary
                         List<String> leftPlayerNames = _PlayerLeftDictionary.Keys.ToList();
                         //Get all subString matches
                         var subStringLeftMatches = new List<string>();
-                        subStringLeftMatches.AddRange(leftPlayerNames.Where(playerName => Regex.Match(playerName, record.target_name, RegexOptions.IgnoreCase).Success));
+                        subStringLeftMatches.AddRange(leftPlayerNames.Where(playerName => Regex.Match(playerName, playerNameInput, RegexOptions.IgnoreCase).Success));
                         if (subStringLeftMatches.Count == 1)
                         {
                             //Only one subString match, call processing without confirmation if able
-                            if (!_PlayerLeftDictionary.TryGetValue(subStringLeftMatches[0], out record.target_player))
+                            if (_PlayerLeftDictionary.TryGetValue(subStringMatches[0], out aPlayer))
                             {
-                                ConsoleError("Error fetching player for substring match.");
-                                FinalizeRecord(record);
-                                return;
+                                resultMessage = "Player match found for " + playerNameInput;
+                                return true;
                             }
-                            record.target_name = subStringLeftMatches[0];
-                            ConfirmActionWithSource(record);
+                            ConsoleError("Error fetching player for substring match.");
+                            return false;
                         }
-                        else if (subStringLeftMatches.Count > 1) {
+                        else if (subStringLeftMatches.Count > 1)
+                        {
                             //Multiple players matched the query, choose correct one
-                            String msg = "'" + record.target_name + "' matches multiple offline players: ";
+                            String msg = "'" + playerNameInput + "' matches multiple offline players: ";
                             bool first = true;
                             String suggestion = null;
-                            foreach (String playerName in subStringLeftMatches) {
-                                if (first) {
+                            foreach (String playerName in subStringLeftMatches)
+                            {
+                                if (first)
+                                {
                                     msg = msg + playerName;
                                     first = false;
                                 }
-                                else {
+                                else
+                                {
                                     msg = msg + ", " + playerName;
                                 }
                                 //Suggest player names that start with the text admins entered over others
-                                if (playerName.ToLower().StartsWith(record.target_name.ToLower())) {
+                                if (playerName.ToLower().StartsWith(playerNameInput.ToLower()))
+                                {
                                     suggestion = playerName;
                                 }
                             }
-                            if (suggestion == null) {
+                            if (suggestion == null)
+                            {
                                 //If no player id starts with what admins typed, suggest subString id with lowest Levenshtein distance
                                 Int32 bestDistance = Int32.MaxValue;
-                                foreach (String playerName in subStringLeftMatches) {
-                                    Int32 distance = LevenshteinDistance(record.target_name, playerName);
-                                    if (distance < bestDistance) {
+                                foreach (String playerName in subStringLeftMatches)
+                                {
+                                    Int32 distance = LevenshteinDistance(playerNameInput, playerName);
+                                    if (distance < bestDistance)
+                                    {
                                         bestDistance = distance;
                                         suggestion = playerName;
                                     }
                                 }
                             }
                             //If the suggestion is still null, something has failed
-                            if (suggestion == null) {
-                                DebugWrite("id suggestion system failed subString match", 5);
-                                SendMessageToSource(record, "name suggestion system failed substring match for offline player.");
-                                FinalizeRecord(record);
-                                return;
+                            if (suggestion == null)
+                            {
+                                ConsoleError("id suggestion system failed subString match");
+                                return false;
                             }
-
-                            //Inform admin of multiple players found
-                            SendMessageToSource(record, msg);
 
                             //Use suggestion for target
-                            if (_PlayerLeftDictionary.TryGetValue(suggestion, out record.target_player)) {
-                                record.target_name = suggestion;
-                                //Send record to attempt list for confirmation
-                                ConfirmActionWithSource(record);
-                                return;
+                            if (_PlayerLeftDictionary.TryGetValue(suggestion, out aPlayer))
+                            {
+                                resultMessage = msg;
+                                confirmNeeded = true;
+                                return true;
                             }
-                            else {
+                            else
+                            {
                                 ConsoleError("Substring match fetch failed.");
-                                FinalizeRecord(record);
-                                return;
+                                return false;
                             }
                         }
                         else
@@ -8165,7 +8474,7 @@ namespace PRoConEvents {
                                 Int32 bestFuzzyDistance = Int32.MaxValue;
                                 foreach (String playerName in currentPlayerNames)
                                 {
-                                    Int32 distance = LevenshteinDistance(record.target_name, playerName);
+                                    Int32 distance = LevenshteinDistance(playerNameInput, playerName);
                                     if (distance < bestFuzzyDistance)
                                     {
                                         bestFuzzyDistance = distance;
@@ -8175,21 +8484,19 @@ namespace PRoConEvents {
                                 //If the suggestion is still null, something has failed
                                 if (fuzzyMatch == null)
                                 {
-                                    DebugWrite("id suggestion system failed fuzzy match", 5);
-                                    SendMessageToSource(record, "Player suggestion could not find a matching player.");
-                                    FinalizeRecord(record);
-                                    return;
+                                    ConsoleError("id suggestion system failed fuzzy match");
+                                    return false;
                                 }
-                                if (_PlayerDictionary.TryGetValue(fuzzyMatch, out record.target_player))
+                                if (_PlayerDictionary.TryGetValue(fuzzyMatch, out aPlayer))
                                 {
-                                    record.target_name = fuzzyMatch;
-                                    //Send record to attempt list for confirmation
-                                    ConfirmActionWithSource(record);
+                                    resultMessage = "Fuzzy player match found for " + playerNameInput;
+                                    confirmNeeded = true;
+                                    return true;
                                 }
                                 else
                                 {
-                                    SendMessageToSource(record, "Player suggestion found matching player, but it could not be fetched.");
-                                    FinalizeRecord(record);
+                                    ConsoleError("Player suggestion found matching player, but it could not be fetched.");
+                                    return false;
                                 }
                             }
                             else if (leftPlayerNames.Count > 0)
@@ -8200,7 +8507,7 @@ namespace PRoConEvents {
                                 Int32 bestFuzzyDistance = Int32.MaxValue;
                                 foreach (String playerName in leftPlayerNames)
                                 {
-                                    Int32 distance = LevenshteinDistance(record.target_name, playerName);
+                                    Int32 distance = LevenshteinDistance(playerNameInput, playerName);
                                     if (distance < bestFuzzyDistance)
                                     {
                                         bestFuzzyDistance = distance;
@@ -8210,35 +8517,35 @@ namespace PRoConEvents {
                                 //If the suggestion is still null, something has failed
                                 if (fuzzyMatch == null)
                                 {
-                                    DebugWrite("id suggestion system failed fuzzy match", 5);
-                                    SendMessageToSource(record, "Player suggestion could not find a matching player.");
-                                    FinalizeRecord(record);
-                                    return;
+                                    ConsoleError("id suggestion system failed fuzzy match");
+                                    return false;
                                 }
-                                if (_PlayerLeftDictionary.TryGetValue(fuzzyMatch, out record.target_player))
+                                if (_PlayerLeftDictionary.TryGetValue(fuzzyMatch, out aPlayer))
                                 {
-                                    record.target_name = fuzzyMatch;
-                                    //Send record to attempt list for confirmation
-                                    ConfirmActionWithSource(record);
+                                    resultMessage = "Fuzzy player match found for " + playerNameInput;
+                                    confirmNeeded = true;
+                                    return true;
                                 }
                                 else
                                 {
-                                    SendMessageToSource(record, "Player suggestion found matching player, but it could not be fetched.");
-                                    FinalizeRecord(record);
+                                    ConsoleError("Player suggestion found matching player, but it could not be fetched.");
+                                    return false;
                                 }
                             }
-                            else {
-                                SendMessageToSource(record, "Unable to find a matching player.");
-                                FinalizeRecord(record);
+                            else
+                            {
+                                ConsoleError("Unable to find a matching player.");
+                                return false;
                             }
                         }
                     }
                 }
             }
-            catch (Exception e) {
-                record.record_exception = HandleException(new AdKatsException("Error while completing target information.", e));
-                FinalizeRecord(record);
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching player from name.", e));
             }
+            return false;
         }
 
         public void ConfirmActionWithSource(AdKatsRecord record) {
@@ -8250,12 +8557,20 @@ namespace PRoConEvents {
                     //Cancel any source pending action
                     CancelSourcePendingAction(record);
                     //Send record to attempt list
-                    String offlineIndicator = "";
                     _ActionConfirmDic.Add(record.source_name, record);
-                    if (record.target_player != null && !record.target_player.player_online) {
-                        offlineIndicator = "[OFFLINE]";
+
+                    String targets = "";
+                    if (record.TargetPlayersLocal.Any()) {
+                        foreach (var aPlayer in record.TargetPlayersLocal) {
+                            targets += ((aPlayer.player_online) ? ("") : ("[OFFLINE]")) + aPlayer.player_name + ", ";
+                        }
+                        targets = targets.Trim().TrimEnd(',');
                     }
-                    SendMessageToSource(record, record.command_type.command_name + "->" + offlineIndicator + record.target_name + " for " + record.record_message + "?");
+                    else
+                    {
+                        targets += ((record.target_player != null && !record.target_player.player_online) ? ("[OFFLINE]") : ("")) + record.target_name;
+                    }
+                    SendMessageToSource(record, record.command_type.command_name + "->" + targets + " for " + record.record_message + "?");
                 }
             }
             catch (Exception e) {
@@ -8356,11 +8671,14 @@ namespace PRoConEvents {
             return reportedRecord;
         }
 
-        public Boolean DenyRoundReport(AdKatsRecord record) {
-            try {
+        public Boolean DenyRoundReport(AdKatsRecord record)
+        {
+            try
+            {
                 DebugWrite("Attempting to handle based on round report.", 6);
                 AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, true);
-                if (reportedRecord != null) {
+                if (reportedRecord != null)
+                {
                     DebugWrite("Denying round report.", 5);
                     reportedRecord.command_action = _CommandKeyDictionary["player_report_deny"];
                     UpdateRecord(reportedRecord);
@@ -8373,8 +8691,37 @@ namespace PRoConEvents {
                     return true;
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 HandleException(new AdKatsException("Error while denying round report.", e));
+            }
+            return false;
+        }
+
+        public Boolean IgnoreRoundReport(AdKatsRecord record)
+        {
+            try
+            {
+                DebugWrite("Attempting to handle based on round report.", 6);
+                AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, true);
+                if (reportedRecord != null)
+                {
+                    DebugWrite("Ignoring round report.", 5);
+                    reportedRecord.command_action = _CommandKeyDictionary["player_report_ignore"];
+                    UpdateRecord(reportedRecord);
+                    //Do not inform the player their report was ignored
+                    //SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been ignored.");
+                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been ignored by " + record.source_name + ".");
+
+                    record.target_name = reportedRecord.source_name;
+                    record.target_player = reportedRecord.source_player;
+                    QueueRecordForProcessing(record);
+                    return true;
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while ignoring round report.", e));
             }
             return false;
         }
@@ -8628,6 +8975,9 @@ namespace PRoConEvents {
                     case "player_join":
                         JoinTarget(record);
                         break;
+                    case "player_pull":
+                        PullTarget(record);
+                        break;
                     case "player_report":
                         ReportTarget(record);
                         break;
@@ -8637,8 +8987,14 @@ namespace PRoConEvents {
                     case "player_info":
                         SendTargetInfo(record);
                         break;
+                    case "player_chat":
+                        SendTargetChat(record);
+                        break;
                     case "player_find":
                         FindTarget(record);
+                        break;
+                    case "player_mark":
+                        MarkTarget(record);
                         break;
                     case "server_afk":
                         ManageAFKPlayers(record);
@@ -9581,14 +9937,18 @@ namespace PRoConEvents {
             DebugWrite("Exiting muteTarget", 6);
         }
 
-        public void JoinTarget(AdKatsRecord record) {
+        public void JoinTarget(AdKatsRecord record)
+        {
             DebugWrite("Entering joinTarget", 6);
-            try {
+            try
+            {
                 //Get source player
                 AdKatsPlayer sourcePlayer = null;
-                if (_PlayerDictionary.TryGetValue(record.source_name, out sourcePlayer)) {
+                if (_PlayerDictionary.TryGetValue(record.source_name, out sourcePlayer))
+                {
                     //If the source has access to move players, then the squad will be unlocked for their entry
-                    if (HasAccess(record.source_player, _CommandKeyDictionary["player_move"])) {
+                    if (HasAccess(record.source_player, _CommandKeyDictionary["player_move"]))
+                    {
                         //Unlock target squad
                         SendMessageToSource(record, "Unlocking target squad if needed, please wait.");
                         ExecuteCommand("procon.protected.send", "squad.private", record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "false");
@@ -9596,26 +9956,53 @@ namespace PRoConEvents {
                         Thread.Sleep(500);
                     }
                     //Check for player access to change teams
-                    if (record.target_player.frostbitePlayerInfo.TeamID != sourcePlayer.frostbitePlayerInfo.TeamID && !HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"])) {
+                    if (record.target_player.frostbitePlayerInfo.TeamID != sourcePlayer.frostbitePlayerInfo.TeamID && !HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"]))
+                    {
                         SendMessageToSource(record, "Target player is not on your team, you need @" + _CommandKeyDictionary["self_teamswap"].command_text + "/TeamSwap access to join them.");
                     }
-                    else {
+                    else
+                    {
                         //Move to specific squad
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "true");
                         SendMessageToSource(record, "Attempting to join " + record.target_player.player_name);
                     }
                 }
-                else {
+                else
+                {
                     SendMessageToSource(record, "Unable to find you in the player list, please try again.");
                 }
                 record.record_action_executed = true;
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 record.record_exception = new AdKatsException("Error while taking action for Join record.", e);
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting joinTarget", 6);
+        }
+
+        public void PullTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering PullTarget", 6);
+            try
+            {
+                //Unlock squad
+                SendMessageToSource(record, "Unlocking source squad for player entry.");
+                ExecuteCommand("procon.protected.send", "squad.private", record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "false");
+                Thread.Sleep(500);
+                //Move to specific squad
+                ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "true");
+                SendMessageToSource(record, "Attempting to pull " + record.target_player.player_name);
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for Join record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting PullTarget", 6);
         }
 
         public void ReportTarget(AdKatsRecord record) {
@@ -9639,7 +10026,9 @@ namespace PRoConEvents {
                 String sourcePlayerInfo = "";
                 if (record.source_player != null && record.source_player.frostbitePlayerInfo != null) {
                     if (record.source_player.player_online) {
-                        sourcePlayerInfo = " (" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + ":" + record.source_player.frostbitePlayerInfo.Score + ")";
+                        sourcePlayerInfo = " (" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
+                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
+                                    record.source_player.frostbitePlayerInfo.Score + ")";
                     }
                     else
                     {
@@ -9667,7 +10056,7 @@ namespace PRoConEvents {
                     String mesLow = record.record_message.ToLower();
                     if (!_PlayerInformExclusionStrings.Any(exc => mesLow.Contains(exc.ToLower())))
                     {
-                        PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message, 5);
+                        PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message, 6);
                     }
                 }
                 if (_UseEmail) {
@@ -9734,7 +10123,7 @@ namespace PRoConEvents {
                     String mesLow = record.record_message.ToLower();
                     if (!_PlayerInformExclusionStrings.Any(exc => mesLow.Contains(exc.ToLower())))
                     {
-                        PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message, 5);
+                        PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message, 6);
                     }
                 }
                 if (_UseEmail) {
@@ -10199,7 +10588,7 @@ namespace PRoConEvents {
 
         public void SendTargetInfo(AdKatsRecord record)
         {
-            DebugWrite("Entering FetchTargetInfo", 6);
+            DebugWrite("Entering SendTargetInfo", 6);
             try
             {
                 var infoPrinter = new Thread(new ThreadStart(delegate
@@ -10322,7 +10711,80 @@ namespace PRoConEvents {
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            DebugWrite("Exiting FetchTargetInfo", 6);
+            DebugWrite("Exiting SendTargetInfo", 6);
+        }
+
+        public void SendTargetChat(AdKatsRecord record)
+        {
+            DebugWrite("Entering SendTargetChat", 6);
+            try
+            {
+                var chatPrinter = new Thread(new ThreadStart(delegate
+                {
+                    DebugWrite("Starting a player chat printer thread.", 5);
+                    try
+                    {
+                        Thread.CurrentThread.Name = "playerchatprinter";
+                        if (record.target_player != null)
+                        {
+                            var chatList = FetchChat(record.target_player.player_id, record.command_numeric, 30);
+                            if (chatList.Any())
+                            {
+                                var index = 1;
+                                foreach (var chatLine in chatList)
+                                {
+                                    SendMessageToSource(record, "(" + index++ + ") " + chatLine.Value);
+                                    Thread.Sleep(2000);
+                                }
+                            }
+                            else {
+                                SendMessageToSource(record, "Target player(s) have no chat to fetch.");
+                            }
+                        }
+                        else if (record.TargetPlayersLocal.Count == 2)
+                        {
+                            var firstPlayerID = record.TargetPlayersLocal[0].player_id;
+                            var secondPlayerID = record.TargetPlayersLocal[1].player_id;
+                            var chatList = FetchConversation(firstPlayerID, secondPlayerID, record.command_numeric, 30);
+                            if (chatList.Any())
+                            {
+                                var index = 1;
+                                foreach (var chatLine in chatList)
+                                {
+                                    SendMessageToSource(record, "(" + index++ + "/" + chatLine.Value.Key + ") " + chatLine.Value.Value);
+                                    Thread.Sleep(2000);
+                                }
+                            }
+                            else
+                            {
+                                SendMessageToSource(record, "Target player(s) have no chat to fetch.");
+                            }
+                        }
+                        else {
+                            ConsoleError("Invalid target conditions when printing chat.");
+                            SendMessageToSource(record, "Unable to fetch chat for target players.");
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        HandleException(new AdKatsException("Error while printing player chat"));
+                    }
+                    DebugWrite("Exiting a player chat printer.", 5);
+                    LogThreadExit();
+                }));
+
+                //Start the thread
+                StartAndLogThread(chatPrinter);
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while sending player chat.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SendTargetChat", 6);
         }
 
         public void FindTarget(AdKatsRecord record)
@@ -10358,6 +10820,29 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting FindTarget", 6);
+        }
+
+        public void MarkTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering FindTarget", 6);
+            try
+            {
+                if (record.target_player == null)
+                {
+                    ConsoleError("Player null when marking player.");
+                    return;
+                }
+                SendMessageToSource(record, record.target_name + " marked for leave notification.");
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while marking player.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting MarkTarget", 6);
         }
 
         public void ManageAFKPlayers(AdKatsRecord record)
@@ -12247,6 +12732,7 @@ namespace PRoConEvents {
                     DebugWrite("DBCOMM: Record needs full upload, checking.", 5);
                     //No record ID. Perform full upload
                     switch (record.command_type.command_key) {
+                        //TODO: Add ability for multiple targets
                         case "player_punish":
                             //Upload for punish is required
                             if (CanPunish(record, 20)) {
@@ -12270,6 +12756,7 @@ namespace PRoConEvents {
                                 return false;
                             }
                             break;
+                        //TODO: Add ability for multiple targets
                         case "player_forgive":
                             //Upload for forgive is required
                             //No restriction on forgives/minute
@@ -12298,6 +12785,47 @@ namespace PRoConEvents {
         }
 
         private Boolean UploadRecord(AdKatsRecord record) {
+            Boolean success = true;
+            //If record has multiple targets, create a new record for each target
+            if (record.TargetPlayersLocal.Any())
+            {
+                record.TargetInnerRecords.Clear();
+                foreach (var aPlayer in record.TargetPlayersLocal)
+                {
+                    var aRecord = new AdKatsRecord
+                    {
+                        isAliveChecked = record.isAliveChecked,
+                        isConfirmed = record.isConfirmed,
+                        isContested = record.isContested,
+                        isDebug = record.isDebug,
+                        isIRO = record.isIRO,
+                        record_source = record.record_source,
+                        server_id = record.server_id,
+                        command_type = record.command_type,
+                        command_action = record.command_action,
+                        command_numeric = record.command_numeric,
+                        target_name = aPlayer.player_name,
+                        target_player = aPlayer,
+                        source_name = record.source_name,
+                        source_player = record.source_player,
+                        record_message = record.record_message,
+                        record_action_executed = record.record_action_executed,
+                        record_time = record.record_time
+                    };
+                    record.TargetInnerRecords.Add(aRecord);
+                    if (!UploadInnerRecord(aRecord)) {
+                        success = false;
+                    }
+                }
+            }
+            else
+            {
+                success = UploadInnerRecord(record);
+            }
+            return success;
+        }
+
+        private Boolean UploadInnerRecord(AdKatsRecord record) {
             DebugWrite("uploadRecord starting!", 6);
 
             Boolean success = false;
@@ -12584,7 +13112,29 @@ namespace PRoConEvents {
             }
         }
 
+        //DONE
         private void UpdateRecord(AdKatsRecord record) {
+            //If record has multiple inner records, update those instead
+            if (record.TargetInnerRecords.Any())
+            {
+                foreach (var innerRecord in record.TargetInnerRecords)
+                {
+                    //Update the inner record with action, numeric, and message, before pushing
+                    innerRecord.command_action = record.command_action;
+                    innerRecord.command_numeric = record.command_numeric;
+                    innerRecord.record_message = record.record_message;
+                    //Call inner upload
+                    UpdateInnerRecord(innerRecord);
+                }
+            }
+            else
+            {
+                UpdateInnerRecord(record);
+            }
+        }
+
+        //DONE
+        private void UpdateInnerRecord(AdKatsRecord record) {
             DebugWrite("updateRecord starting!", 6);
 
             //Make sure database connection active
@@ -14441,6 +14991,7 @@ namespace PRoConEvents {
                 ConsoleError("CanPunish duration must be positive.");
                 return false;
             }
+            //TODO: Add check for multiple targets
             if (record.target_player != null && 
                 record.target_player.TargetedRecords.Any(
                     aRecord => 
@@ -15025,6 +15576,31 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 59", "REPLACE INTO `adkats_commands` VALUES(59, 'Active', 'server_afk', 'Log', 'Manage AFK Players', 'afk', TRUE)", true);
                                     added = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(60))
+                                {
+                                    SendNonQuery("Adding command 60", "REPLACE INTO `adkats_commands` VALUES(60, 'Active', 'player_pull', 'Log', 'Pull Player', 'pull', TRUE)", true);
+                                    added = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(61))
+                                {
+                                    SendNonQuery("Adding command 61", "REPLACE INTO `adkats_commands` VALUES(61, 'Active', 'admin_ignore', 'Log', 'Ignore Round Report', 'ignore', TRUE)", true);
+                                    added = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(62))
+                                {
+                                    SendNonQuery("Adding command 62", "REPLACE INTO `adkats_commands` VALUES(62, 'Invisible', 'player_report_ignore', 'Log', 'Report Player (Ignored)', 'ignorereport', TRUE)", true);
+                                    added = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(63))
+                                {
+                                    SendNonQuery("Adding command 63", "REPLACE INTO `adkats_commands` VALUES(63, 'Active', 'player_mark', 'Unable', 'Mark Player', 'mark', TRUE)", true);
+                                    added = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(64))
+                                {
+                                    SendNonQuery("Adding command 64", "REPLACE INTO `adkats_commands` VALUES(64, 'Active', 'player_chat', 'Log', 'Fetch Player Chat', 'pchat', TRUE)", true);
+                                    added = true;
+                                }
                                 if (added) {
                                     FetchCommands();
                                     return;
@@ -15087,7 +15663,7 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["self_admins"] = "Tells you the list of online admins.";
             _CommandDescriptionDictionary["self_lead"] = "Gives the target leader of their current squad. No parameters to target yourself.";
             _CommandDescriptionDictionary["admin_accept"] = "Accepts the given report ID. Takes no action against the target player.";
-            _CommandDescriptionDictionary["admin_deny"] = "Denys the given report ID. Reduces the reporters reputation.";
+            _CommandDescriptionDictionary["admin_deny"] = "Denys the given report ID. Reduces the reporter's reputation.";
             _CommandDescriptionDictionary["player_report_deny"] = "Invisible command. Assigned when an admin denies a report.";
             _CommandDescriptionDictionary["server_swapnuke"] = "Queues all players to switch teams immediately.";
             _CommandDescriptionDictionary["player_blacklistdisperse"] = "Adds the target player to even dispersion for the server.";
@@ -15103,7 +15679,13 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["player_kill_force"] = "Immediately kills the target player, avoids all other player_kill logic.";
             _CommandDescriptionDictionary["player_info"] = "Returns all known information about the player.";
             _CommandDescriptionDictionary["player_dequeue"] = "Cancels any queued action on a player.";
-            _CommandDescriptionDictionary["self_help"] = "Tells you all commands you can use.";
+            _CommandDescriptionDictionary["self_help"] = "Tells you all commands your user role can access.";
+            _CommandDescriptionDictionary["player_find"] = "Target a player to fetch their team, position, and current score.";
+            _CommandDescriptionDictionary["server_afk"] = "Calls the AFK Manager logic to remove AFK players from the server.";
+            _CommandDescriptionDictionary["player_pull"] = "Pulls a player to your squad, killing them in the process.";
+            _CommandDescriptionDictionary["admin_ignore"] = "Ignores the given report ID. Takes no action against the target or source player.";
+            _CommandDescriptionDictionary["player_mark"] = "Marks a player for notification if they leave the server.";
+            _CommandDescriptionDictionary["player_chat"] = "Fetches player or conversation chat history.";
         }
 
         private void UpdateCommandTimeouts() {
@@ -17824,9 +18406,18 @@ namespace PRoConEvents {
             public String target_name = null;
             public AdKatsPlayer target_player = null;
 
+            //Multiple targets if needed
+            //Not pushed to database
+            public List<String> TargetNamesLocal; 
+            public List<AdKatsPlayer> TargetPlayersLocal;
+            public List<AdKatsRecord> TargetInnerRecords;
+
             //Default Constructor
             public AdKatsRecord() {
-                debugMessages = new List<string>();
+                debugMessages = new List<String>();
+                TargetNamesLocal = new List<String>();
+                TargetPlayersLocal = new List<AdKatsPlayer>();
+                TargetInnerRecords = new List<AdKatsRecord>();
             }
         }
 
