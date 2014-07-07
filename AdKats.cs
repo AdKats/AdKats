@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.5.1.3
+ * Version 4.5.1.4
  * 7-JUL-2014
  */
 
@@ -35,7 +35,6 @@ using System.Linq;
 using System.Net.Mail;
 using System.Threading;
 using System.Diagnostics;
-using System.Windows.Forms.VisualStyles;
 using MySql.Data.MySqlClient;
 using PRoCon.Core;
 using PRoCon.Core.Plugin;
@@ -47,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "4.5.1.3";
+        private const String PluginVersion = "4.5.1.4";
 
         public enum ConsoleMessageType {
             Warning,
@@ -8400,7 +8399,7 @@ namespace PRoConEvents {
                         if (subStringLeftMatches.Count == 1)
                         {
                             //Only one subString match, call processing without confirmation if able
-                            if (_PlayerLeftDictionary.TryGetValue(subStringMatches[0], out aPlayer))
+                            if (_PlayerLeftDictionary.TryGetValue(subStringLeftMatches[0], out aPlayer))
                             {
                                 resultMessage = "Player match found for " + playerNameInput;
                                 return true;
