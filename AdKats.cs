@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.5.1.2
+ * Version 4.5.1.3
  * 7-JUL-2014
  */
 
@@ -47,7 +47,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "4.5.1.2";
+        private const String PluginVersion = "4.5.1.3";
 
         public enum ConsoleMessageType {
             Warning,
@@ -5329,10 +5329,10 @@ namespace PRoConEvents {
                             }
 
                             //Check if the message is a command
-                            if (message.StartsWith("@") || message.StartsWith("!")) {
+                            if (message.StartsWith("@") || message.StartsWith("!") || message.StartsWith(".")) {
                                 message = message.Substring(1);
                             }
-                            else if (message.StartsWith("/@") || message.StartsWith("/!")) {
+                            else if (message.StartsWith("/@") || message.StartsWith("/!") || message.StartsWith("/.")) {
                                 message = message.Substring(2);
                             }
                             else if (message.StartsWith("/")) {
