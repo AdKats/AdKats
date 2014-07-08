@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.5.1.5
- * 7-JUL-2014
+ * Version 4.5.1.7
+ * 8-JUL-2014
  */
 
 using System;
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "4.5.1.5";
+        private const String PluginVersion = "4.5.1.7";
 
         public enum ConsoleMessageType {
             Warning,
@@ -2657,7 +2657,7 @@ namespace PRoConEvents {
                                         target_name = aPlayer.player_name,
                                         target_player = aPlayer,
                                         source_name = "AFKManager",
-                                        record_message = "AFK time exceeded [" + afkTime + "]. Please join again once you return."
+                                        record_message = "AFK time exceeded [" + afkTime + " / " + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
                                     };
                                     QueueRecordForProcessing(record);
                                 }
@@ -3036,6 +3036,10 @@ namespace PRoConEvents {
                             }
                             _PlayerProcessingWaitHandle.Reset();
                             _PlayerProcessingWaitHandle.WaitOne(Timeout.Infinite);
+                            if (_firstPlayerListComplete) {
+                                //Case where all players are gone after first player list
+                                _lastSuccessfulPlayerList = DateTime.UtcNow;
+                            }
                             continue;
                         }
 
@@ -10875,7 +10879,7 @@ namespace PRoConEvents {
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
                             source_name = "AFKManager",
-                            record_message = "AFK time exceeded [" + afkTime + "]. Please join again once you return."
+                            record_message = "AFK time exceeded [" + afkTime + " / " + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
                         };
                         QueueRecordForProcessing(kickRecord);
                     }
@@ -18614,6 +18618,9 @@ namespace PRoConEvents {
                         Plugin.ConsoleWarn("Online admins detected, report email aborted.");
                         return;
                     }
+                    if (record.target_player == null) {
+                        Plugin.SendMessageToSource(record, "Unable to send report email. No target player found.");
+                    }
                     //Create a new thread to handle keep-alive
                     //This thread will remain running for the duration the layer is online
                     var emailSendingThread = new Thread(new ThreadStart(delegate {
@@ -18655,7 +18662,8 @@ namespace PRoConEvents {
                             String processedCustomHTML = Plugin.ReplacePlayerInformation(CustomHTMLAddition, record.target_player);
                             sb.Append(processedCustomHTML);
                             sb.Append("</p>");
-                            if (record.target_player != null) {
+                            //TODO: Add chat back for ADK usage.
+                            if (record.target_player != null && !Plugin._isTestingAuthorized) {
                                 sb.Append("<table>");
                                 sb.Append(@"<thead><td>Time</td><td>Player</td><td>Message</td></thead>");
                                 sb.Append("<tbody>");
