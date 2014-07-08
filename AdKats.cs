@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.5.1.4
+ * Version 4.5.1.5
  * 7-JUL-2014
  */
 
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "4.5.1.4";
+        private const String PluginVersion = "4.5.1.5";
 
         public enum ConsoleMessageType {
             Warning,
@@ -2636,7 +2636,7 @@ namespace PRoConEvents {
                                 var afkPlayers = _PlayerDictionary.Values.Where(
                                     aPlayer =>
                                         (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKAutoKickDurationMinutes &&
-                                        aPlayer.player_role.role_key != "Spectator" &&
+                                        _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
                                         !RoleIsInteractionAble(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKAutoKickMinimumPlayers).ToList();
                                 if (_AFKIgnoreUserList) {
                                     var userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
@@ -10850,9 +10850,9 @@ namespace PRoConEvents {
             try
             {
                 var afkPlayers = _PlayerDictionary.Values.Where(
-                    aPlayer => 
-                        (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKAutoKickDurationMinutes && 
-                        aPlayer.player_role.role_key != "Spectator" &&
+                    aPlayer =>
+                        (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKAutoKickDurationMinutes &&
+                        _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
                         !RoleIsInteractionAble(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKAutoKickMinimumPlayers).ToList();
                 if (_AFKIgnoreUserList) {
                     var userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
