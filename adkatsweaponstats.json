@@ -349,6 +349,11 @@
                         "id":"sr-2",
                         "damage_max":26,
                         "damage_min":12.1
+                },
+                {
+                        "id":"sw40",
+                        "damage_max":56,
+                        "damage_min":28
                 }
         ]
 }
