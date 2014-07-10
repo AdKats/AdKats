@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.5.1.9
+ * Version 4.5.4.0
  * 10-JUL-2014
  */
 
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "4.5.1.9";
+        private const String PluginVersion = "4.5.4.0";
 
         public enum ConsoleMessageType {
             Warning,
