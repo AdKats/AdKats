@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.5.4.0
+ * Version 4.5.4.1
  * 10-JUL-2014
  */
 
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "4.5.4.0";
+        private const String PluginVersion = "4.5.4.1";
 
         public enum ConsoleMessageType {
             Warning,
@@ -14158,7 +14158,6 @@ namespace PRoConEvents {
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while uploading role.", e));
             }
-
             DebugWrite("uploadRole finished!", 6);
         }
 
@@ -14779,7 +14778,7 @@ namespace PRoConEvents {
                             `tbl_playerdata`.`PlayerID` = `adkats_bans`.`player_id` 
                         WHERE 
                             `adkats_bans`.`ban_status` = 'Active' ";
-                        if (_gameID > 0)
+                        if (_gameID > 0 && player.game_id < 0)
                         {
                             query += " AND `tbl_playerdata`.`GameID` = " + _gameID;
                         }
