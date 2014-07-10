@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.5.4.1
+ * Version 4.5.4.2
  * 10-JUL-2014
  */
 
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "4.5.4.1";
+        private const String PluginVersion = "4.5.4.2";
 
         public enum ConsoleMessageType {
             Warning,
@@ -12776,7 +12776,6 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@player_name", aPlayer.player_name);
                         command.Parameters.AddWithValue("@player_guid", aPlayer.player_guid);
                         command.Parameters.AddWithValue("@player_ip", aPlayer.player_ip);
-                        PrintPreparedCommand(command);
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             while (reader.Read()) {
                                 var asPlayer = new AdKatsSpecialPlayer();
@@ -14457,7 +14456,6 @@ namespace PRoConEvents {
                             sql += @"
                             LIMIT 1";
                             command.CommandText = sql;
-                            PrintPreparedCommand(command);
                             using (MySqlDataReader reader = command.ExecuteReader())
                             {
                                 if (reader.Read())
