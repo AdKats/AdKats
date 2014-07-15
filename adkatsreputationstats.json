@@ -343,5 +343,45 @@
     "command_typeaction": "57|57",
     "target_weight": 0,
     "source_weight": 0
+  },
+  {
+    "command_typeaction": "58|58",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "59|59",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "60|60",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "61|61",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "62|62",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "63|63",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "64|64",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "65|65",
+    "target_weight": 0,
+    "source_weight": 0
   }
 ]
