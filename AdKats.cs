@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.5.4.2
- * 10-JUL-2014
+ * Version 4.6.0.1
+ * 15-JUL-2014
  */
 
 using System;
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "4.5.4.2";
+        private const String PluginVersion = "4.6.0.1";
 
         public enum ConsoleMessageType {
             Warning,
@@ -61,261 +61,44 @@ namespace PRoConEvents {
             BF4
         };
 
+        //Metabans Ref
+        internal enum SupportedGames
+        {
+            BF_3,
+            BF_4
+        }
+
         public enum RoundState {
             Loaded,
             Playing,
             Ended
         }
-
+        
+        //State
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
-        private const Int32 DbUserFetchFrequency = 300;
-        private const Boolean UseConnectionPooling = true;
-        private const Int32 MinConnectionPoolSize = 0;
-        private const Int32 MaxConnectionPoolSize = 20;
-        private const Boolean UseCompressedConnection = false;
-        private const Int32 DbActionFetchFrequency = 10;
-        private const Int32 DatabaseTimeoutThreshold = 10;
-        private const Int32 DatabaseSuccessThreshold = 5;
-        private const Int32 DbSettingFetchFrequency = 300;
-        private const Int32 DbBanFetchFrequency = 60;
-
-        private readonly Dictionary<String, AdKatsRecord> _ActOnIsAliveDictionary = new Dictionary<String, AdKatsRecord>();
-        private readonly Dictionary<String, AdKatsRecord> _ActOnSpawnDictionary = new Dictionary<String, AdKatsRecord>();
-        private readonly Dictionary<String, AdKatsRecord> _ActionConfirmDic = new Dictionary<String, AdKatsRecord>();
-        private readonly Queue<AdKatsPlayer> _BanEnforcerCheckingQueue = new Queue<AdKatsPlayer>();
-        private readonly Queue<AdKatsBan> _BanEnforcerProcessingQueue = new Queue<AdKatsBan>();
-        private readonly Queue<CBanInfo> _CBanProcessingQueue = new Queue<CBanInfo>();
-        private readonly Dictionary<String, String> _CommandDescriptionDictionary = new Dictionary<string, string>(); 
-        private readonly Dictionary<long, AdKatsCommand> _CommandIDDictionary = new Dictionary<long, AdKatsCommand>();
-        private readonly Dictionary<String, AdKatsCommand> _CommandKeyDictionary = new Dictionary<String, AdKatsCommand>();
-        private readonly Dictionary<String, AdKatsCommand> _CommandNameDictionary = new Dictionary<String, AdKatsCommand>();
-        private readonly Queue<AdKatsCommand> _CommandRemovalQueue = new Queue<AdKatsCommand>();
-        private readonly Dictionary<String, AdKatsCommand> _CommandTextDictionary = new Dictionary<String, AdKatsCommand>();
-        private readonly Queue<AdKatsCommand> _CommandUploadQueue = new Queue<AdKatsCommand>();
-        private readonly Queue<AdKatsPlayer> _HackerCheckerQueue = new Queue<AdKatsPlayer>();
-        private readonly Queue<Kill> _KillProcessingQueue = new Queue<Kill>();
-        private readonly Queue<List<CPlayerInfo>> _PlayerListProcessingQueue = new Queue<List<CPlayerInfo>>();
-        private readonly Queue<CPlayerInfo> _PlayerRemovalProcessingQueue = new Queue<CPlayerInfo>();
-        private readonly DateTime _ProconStartTime = DateTime.UtcNow;
-
-        private readonly List<String> _PunishmentSeverityIndex;
-        private readonly Dictionary<long, AdKatsRole> _RoleIDDictionary = new Dictionary<long, AdKatsRole>();
-        private readonly Dictionary<String, AdKatsRole> _RoleKeyDictionary = new Dictionary<String, AdKatsRole>();
-        private readonly Dictionary<String, AdKatsRole> _RoleNameDictionary = new Dictionary<String, AdKatsRole>();
-        private readonly Queue<AdKatsRole> _RoleRemovalQueue = new Queue<AdKatsRole>();
-        private readonly Queue<AdKatsRole> _RoleUploadQueue = new Queue<AdKatsRole>();
-        private readonly Dictionary<String, Int32> _RoundMutedPlayers = new Dictionary<String, Int32>();
-        private readonly Dictionary<String, AdKatsRecord> _RoundReports = new Dictionary<String, AdKatsRecord>();
-        private readonly Queue<CPluginVariable> _SettingUploadQueue = new Queue<CPluginVariable>();
-        private Queue<CPlayerInfo> _Team1MoveQueue = new Queue<CPlayerInfo>();
-        private Queue<CPlayerInfo> _Team2MoveQueue = new Queue<CPlayerInfo>();
-        private Queue<CPlayerInfo> _TeamswapForceMoveQueue = new Queue<CPlayerInfo>();
-        private Queue<CPlayerInfo> _TeamswapOnDeathCheckingQueue = new Queue<CPlayerInfo>();
-        private readonly Dictionary<String, CPlayerInfo> _TeamswapOnDeathMoveDic = new Dictionary<String, CPlayerInfo>();
-        private readonly Dictionary<String, bool> _TeamswapRoundWhitelist = new Dictionary<String, bool>();
-        private readonly Queue<KeyValuePair<String, String>> _UnparsedCommandQueue = new Queue<KeyValuePair<String, String>>();
-        private readonly Queue<KeyValuePair<String, String>> _UnparsedMessageQueue = new Queue<KeyValuePair<String, String>>();
-        private readonly Queue<AdKatsRecord> _UnprocessedActionQueue = new Queue<AdKatsRecord>();
-        private readonly Queue<AdKatsRecord> _UnprocessedRecordQueue = new Queue<AdKatsRecord>();
-        private readonly Queue<AdKatsUser> _UserRemovalQueue = new Queue<AdKatsUser>();
-        private readonly Queue<AdKatsUser> _UserUploadQueue = new Queue<AdKatsUser>();
-        private readonly EventWaitHandle _WeaponStatsWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
-        private readonly Dictionary<String, Func<AdKats, Double>> _commandTimeoutDictionary = new Dictionary<string, Func<AdKats, double>>();
-        private readonly Dictionary<String, DateTime> _commandUsageTimes = new Dictionary<string, DateTime>();
-        private readonly MySqlConnectionStringBuilder _dbCommStringBuilder = new MySqlConnectionStringBuilder();
-        private readonly MatchCommand _fetchAuthorizedSoldiersMatchCommand;
-        private readonly Dictionary<Int64, GameVersion> _gameIDDictionary = new Dictionary<Int64, GameVersion>();
-        private readonly MatchCommand _issueCommandMatchCommand;
-        private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
-        private readonly Dictionary<String, AdKatsPlayer> _PlayerLeftDictionary = new Dictionary<String, AdKatsPlayer>();
-        private Boolean _AFKSystemEnable = false;
-        private Boolean _AFKAutoKickEnable = false;
-        private Double _AFKAutoKickDurationMinutes = 5;
-        private Int32 _AFKAutoKickMinimumPlayers = 20;
-        private Boolean _AFKIgnoreUserList = true;
-        private String[] _AFKIgnoreRoles = {};
-        private Boolean _AFKIgnoreChat = false;
-        private readonly Dictionary<String, List<AdKatsSpecialPlayer>> _specialPlayerGroupCache = new Dictionary<String, List<AdKatsSpecialPlayer>>();
-        private readonly Dictionary<Int32, AdKatsTeam> _teamDictionary = new Dictionary<Int32, AdKatsTeam>();
-        private readonly Dictionary<long, AdKatsUser> _userCache = new Dictionary<long, AdKatsUser>();
-        public Func<AdKats, AdKatsPlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => (plugin._EnableAdminAssistantPerk && aPlayer.player_aa));
-
-        private EventWaitHandle _AccessFetchWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _AccessFetchingThread;
-        private Thread _ActionHandlingThread;
-        private EventWaitHandle _ActionHandlingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _Activator;
-        private DateTime _AdKatsStartTime = DateTime.UtcNow;
-        private Boolean _AllowAdminSayCommands = true;
-        public String[] _AutoReportHandleStrings = {};
-        private String _BanAppend = "Appeal at your_site.com";
-        private List<AdKatsBan> _BanEnforcerSearchResults = new List<AdKatsBan>();
-        private Thread _BanEnforcerThread;
-        private EventWaitHandle _BanEnforcerWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Boolean _BansQueuing;
-        private String _CBanAdminName = "BanEnforcer";
-        private Boolean _CombineServerPunishments;
-        private Thread _CommandParsingThread;
-        private EventWaitHandle _CommandParsingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private DateTime _CommandStartTime = DateTime.UtcNow;
-        private List<String> _CurrentReservedSlotPlayers;
-        private RoundState _CurrentRoundState = RoundState.Loaded;
-        private List<String> _CurrentSpectatorListPlayers;
-        private Thread _DatabaseCommunicationThread;
-        private EventWaitHandle _DbCommunicationWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-
-        private volatile Int32 _DebugLevel;
-        private String _DebugSoldierName = "ColColonCleaner";
-        private Boolean _DefaultEnforceGUID = true;
-        private Boolean _DefaultEnforceIP;
-        private Boolean _DefaultEnforceName;
-        private Thread _DisconnectHandlingThread;
-        private Double _DpsTriggerLevel = 50.0;
-        private EmailHandler _EmailHandler;
-        public Boolean _EnableAdminAssistantPerk = true;
-        public Boolean _EnableAdminAssistants = false;
-        private TimeSpan _MaxTempBanDuration = TimeSpan.FromDays(3650);
-        private String _ExternalCommandAccessKey = "NoPasswordSet";
-        private Boolean _FeedMultiBalancerDisperseList;
-
-        private Boolean _FeedMultiBalancerWhitelist;
-        private Boolean _FeedMultiBalancerWhitelist_UserCache = true;
-        private Boolean _FeedServerReservedSlots;
-        private Boolean _FeedServerReservedSlots_UserCache = true;
-        private Boolean _FeedServerSpectatorList;
-        private Boolean _FeedServerSpectatorList_UserCache = true;
-        private Boolean _FeedStatLoggerSettings;
-        private Thread _Finalizer;
-        private Int64 _GUIDBanCount = -1;
-        private String _HackerCheckerDPSBanMessage = "DPS Automatic Ban";
-        private String _HackerCheckerHSKBanMessage = "HSK Automatic Ban";
-        private String _HackerCheckerKPMBanMessage = "KPM Automatic Ban";
-        private Thread _HackerCheckerThread;
-        private EventWaitHandle _HackerCheckerWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private volatile Int32 _HighestTicketCount;
-        private Double _HskTriggerLevel = 60.0;
-        private Int64 _IPBanCount = -1;
-        private Boolean _IROActive = true;
-        private Boolean _IROOverridesLowPop;
-        private Int32 _IROTimeout = 10;
-        private Boolean _InformReportedPlayers;
-        private Thread _KillProcessingThread;
-        private EventWaitHandle _KillProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Double _KpmTriggerLevel = 5.0;
-        private DateTime _LastBanListCall = DateTime.UtcNow;
-        private DateTime _LastDbBanFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private DateTime _LastGUIDBanCountFetch = DateTime.UtcNow;
-        private DateTime _LastIPBanCountFetch = DateTime.UtcNow;
-        private DateTime _LastNameBanCountFetch = DateTime.UtcNow;
-        private Hashtable _LastStatLoggerStatusUpdate;
-        private DateTime _LastStatLoggerStatusUpdateTime = DateTime.UtcNow;
-        private DateTime _LastSuccessfulBanList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private Int32 _LowPopulationPlayerCount = 20;
-
-        private volatile Int32 _LowestTicketCount = 500000;
-        private EventWaitHandle _MessageParsingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _MessageProcessingThread;
-        public Int32 _MinimumRequiredMonthlyReports = 10;
-        private Int32 _MutedPlayerChances = 5;
-        private String _MutedPlayerKickMessage = "Talking excessively while muted.";
-        private String _MutedPlayerKillMessage = "Do not talk while muted. You can speak again next round.";
-        private String _MutedPlayerMuteMessage = "You have been muted by an admin, talking will cause punishment. You can speak again next round.";
-        private Int64 _NameBanCount = -1;
-        private Boolean _OnlyKillOnLowPop = true;
-        private DateTime _PermaBanEndTime = DateTime.UtcNow.AddYears(20);
-        private String[] _PlayerInformExclusionStrings = {};
-        private EventWaitHandle _PlayerListUpdateWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _PlayerListingThread;
-        private EventWaitHandle _PlayerProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Boolean _PlayerRoleRefetch;
-        private Int32 _PlayersToAutoWhitelist = 2;
-        private EventWaitHandle _PluginDescriptionWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private TimeSpan _PopulationDurationHigh = TimeSpan.Zero;
-        private TimeSpan _PopulationDurationLow = TimeSpan.Zero;
-        private Boolean _PopulationStatusLow = true;
-        private DateTime _PopulationTransitionTime = DateTime.UtcNow;
-        private DateTime _PopulationUpdateTime = DateTime.UtcNow;
-        private List<String> _PreMessageList;
-        private List<String> _ExternalPlayerCommands = new List<string>();
-        private List<String> _ExternalAdminCommands = new List<string>();
-        private String[] _PunishmentHierarchy = {"warn", "kill", "kick", "tban60", "tban120", "tbanday", "tbanweek", "tban2weeks", "tbanmonth", "ban"};
-        private Boolean _RequirePreMessageUse;
-        private Int32 _RequiredReasonLength = 4;
-        private Int32 _MinimumReportHandleSeconds = 0;
-        private Dictionary<String, AdKatsPlayer> _RoundCookers = new Dictionary<String, AdKatsPlayer>();
-        private EventWaitHandle _RoundEndingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _RoundTimerThread;
-        private EventWaitHandle _ServerInfoWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-
-        private Double _ServerRulesDelay = 0.5;
-        private Double _ServerRulesInterval = 5;
-        private String[] _ServerRulesList = {"This server has not set rules yet."};
-        private Boolean _ServerRulesNumbers = true;
-        private String _ServerVoipAddress = "(TS3) TS.ADKGamers.com:3796";
-        private Boolean _ShowAdminNameInSay;
-        private StatLibrary _StatLibrary;
-        private EventWaitHandle _StatLoggerStatusWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _TeamSwapThread;
-        private Int32 _TeamSwapTicketWindowHigh = 500000;
-        private Int32 _TeamSwapTicketWindowLow;
-        private EventWaitHandle _TeamswapWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Boolean _ToldCol;
-        public Boolean _UseAAReportAutoHandler = false;
-        private Boolean _UseBanAppend;
-        private Boolean _UseBanEnforcer;
-        private Boolean _UseBanEnforcerPreviousState;
-        private Boolean _UseDpsChecker;
-        private Boolean _UseEmail;
-        private Boolean _UseGrenadeCookCatcher;
-        private Boolean _UseHackerChecker;
-        private Boolean _UseHskChecker;
-        private Boolean _UseKpmChecker;
-        private Boolean _UseWeaponLimiter;
-        private Boolean _UsingAwa;
-        private Boolean _WeaponCodesTableConfirmed;
-        private Boolean _WeaponCodesTableTested;
-        private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
-        private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
-        private Int32 _YellDuration = 5;
-        private Dictionary<String, Double> _commandSourceReputationDictionary;
-        private Dictionary<String, Double> _commandTargetReputationDictionary;
-        private Boolean _commanderEnabled;
-        private Boolean _databaseConnectionCriticalState;
-        private Int32 _databaseSuccess;
-        private Int32 _databaseTimeouts;
-        private volatile Boolean _dbSettingsChanged = true;
-        private Boolean _fairFightEnabled;
-        private Boolean _fetchActionsFromDb;
-        private volatile Boolean _fetchedPluginInformation;
-        private Boolean _firstPlayerListComplete;
-        private Boolean _forceReloadWholeMags;
-        private Int32 _gameID = -1;
-        private String _gamePatchVersion = "UNKNOWN";
-        private GameVersion _gameVersion = GameVersion.BF3;
-        private Boolean _hitIndicatorEnabled;
-        private Boolean _isTestingAuthorized;
-        private DateTime _lastDatabaseTimeout = DateTime.UtcNow;
-        private DateTime _lastDbActionFetch = DateTime.UtcNow;
-        private DateTime _lastDbSettingFetch = DateTime.UtcNow;
-        private DateTime _lastSuccessfulPlayerList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private DateTime _lastUpdateSettingRequest = DateTime.UtcNow;
-        private DateTime _lastUserFetch = DateTime.UtcNow;
-        private Int32 _maxSpectators = -1;
-        private String _metabansAPIKey = "";
-        private Boolean _metabansConnectionConfirmed = false;
-        private String _metabansUsername = "";
-        private String _mySqlDatabaseName = "";
-        private String _mySqlHostname = "";
-        private String _mySqlPassword = "";
-        private String _mySqlPort = "";
-        private String _mySqlUsername = "";
+        private Boolean _slowmo;
         private volatile String _pluginChangelog;
         private volatile String _pluginDescription;
         private volatile Boolean _pluginEnabled;
+        private volatile Boolean _threadsReady;
         private volatile String _pluginVersionStatus;
-        private Double _roundTimeMinutes = 30;
+        private volatile Boolean _useKeepAlive;
+        private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
+        private RoundState _currentRoundState = RoundState.Loaded;
+        private Int32 _highestTicketCount;
+        private Int32 _lowestTicketCount = 500000;
+        private volatile Boolean _fetchedPluginInformation;
+        private Boolean _firstPlayerListComplete;
+        private Int32 _gameID = -1;
+        private Boolean _commanderEnabled;
+        private Boolean _fairFightEnabled;
+        private Boolean _forceReloadWholeMags;
+        private Boolean _hitIndicatorEnabled;
+        private String _gamePatchVersion = "UNKNOWN";
+        private Int32 _maxSpectators = -1;
+        private GameVersion _gameVersion = GameVersion.BF3;
+        private Boolean _isTestingAuthorized;
         private Int64 _serverGroup = -1;
         private Int64 _serverID = -1;
         private String _serverIP;
@@ -326,16 +109,298 @@ namespace PRoConEvents {
         private Boolean _settingsFetched;
         private Boolean _settingsLocked;
         private String _settingsPassword;
-        private Boolean _slowmo;
-        private TimeSpan _startupSequenceETA;
-        private Double _startupSequencePercentage;
-        private String _statLoggerVersion = "BF3";
-        private volatile Boolean _threadsReady;
-        private Boolean _useExperimentalTools;
-        private volatile Boolean _useKeepAlive;
 
+        //Debug
+        private volatile Int32 _debugLevel;
+        private String _debugSoldierName = "ColColonCleaner";
+        private Boolean _toldCol;
+
+        //Timing
+        private readonly DateTime _proconStartTime = DateTime.UtcNow;
+        private DateTime _AdKatsStartTime = DateTime.UtcNow;
+        private DateTime _commandStartTime = DateTime.UtcNow;
+        private DateTime _lastBanListCall = DateTime.UtcNow;
+        private DateTime _lastDbBanFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastGUIDBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastIPBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastNameBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastStatLoggerStatusUpdateTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastSuccessfulBanList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _populationTransitionTime = DateTime.UtcNow;
+        private DateTime _populationUpdateTime = DateTime.UtcNow;
+        private DateTime _lastDatabaseTimeout = DateTime.UtcNow;
+        private DateTime _lastDbActionFetch = DateTime.UtcNow;
+        private DateTime _lastDbSettingFetch = DateTime.UtcNow;
+        private DateTime _lastSuccessfulPlayerList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastUpdateSettingRequest = DateTime.UtcNow;
+        private DateTime _lastUserFetch = DateTime.UtcNow;
+
+        //Server
+        private Boolean _populationStatusLow = true;
+        private Int32 _lowPopulationPlayerCount = 20;
+        private TimeSpan _populationDurationHigh = TimeSpan.Zero;
+        private TimeSpan _populationDurationLow = TimeSpan.Zero;
+
+        //MySQL connection
+        private String _mySqlDatabaseName = "";
+        private String _mySqlHostname = "";
+        private String _mySqlPassword = "";
+        private String _mySqlPort = "";
+        private String _mySqlUsername = "";
+        private readonly MySqlConnectionStringBuilder _dbCommStringBuilder = new MySqlConnectionStringBuilder();
+        private Boolean _fetchActionsFromDb;
+        private const Boolean UseConnectionPooling = true;
+        private const Int32 MinConnectionPoolSize = 0;
+        private const Int32 MaxConnectionPoolSize = 20;
+        private const Boolean UseCompressedConnection = false;
+        private const Int32 DatabaseTimeoutThreshold = 10;
+        private const Int32 DatabaseSuccessThreshold = 5;
+        private Boolean _databaseConnectionCriticalState;
+        private Int32 _databaseSuccess;
+        private Int32 _databaseTimeouts;
+        private volatile Boolean _dbSettingsChanged = true;
+        private Hashtable _lastStatLoggerStatusUpdate;
+        private String _statLoggerVersion = "BF3";
+
+        //Action fetching
+        private const Int32 DbActionFetchFrequency = 10;
+        private const Int32 DbSettingFetchFrequency = 300;
+        private const Int32 DbBanFetchFrequency = 60;
+
+        //Event trigger dictionaries
+        private readonly Dictionary<String, AdKatsRecord> _ActOnIsAliveDictionary = new Dictionary<String, AdKatsRecord>();
+        private readonly Dictionary<String, AdKatsRecord> _ActOnSpawnDictionary = new Dictionary<String, AdKatsRecord>();
+        private readonly Dictionary<String, AdKatsRecord> _ActionConfirmDic = new Dictionary<String, AdKatsRecord>();
+        private readonly Dictionary<String, Int32> _RoundMutedPlayers = new Dictionary<String, Int32>();
+        private readonly Dictionary<String, AdKatsRecord> _RoundReports = new Dictionary<String, AdKatsRecord>();
+
+        //Threads
+        private Thread _Activator;
+        private Thread _Finalizer;
+        private Thread _DatabaseCommunicationThread;
+        private Thread _MessageProcessingThread;
+        private Thread _CommandParsingThread;
+        private Thread _PlayerListingThread;
+        private Thread _TeamSwapThread;
+        private Thread _BanEnforcerThread;
+        private Thread _RoundTimerThread;
+        private Thread _KillProcessingThread;
+        private Thread _HackerCheckerThread;
+        private Thread _DisconnectHandlingThread;
+        private Thread _AccessFetchingThread;
+        private Thread _ActionHandlingThread;
+
+        //Threading queues
+        private readonly Queue<AdKatsPlayer> _BanEnforcerCheckingQueue = new Queue<AdKatsPlayer>();
+        private readonly Queue<AdKatsBan> _BanEnforcerProcessingQueue = new Queue<AdKatsBan>();
+        private readonly Queue<CBanInfo> _CBanProcessingQueue = new Queue<CBanInfo>();
+        private readonly Queue<AdKatsCommand> _CommandRemovalQueue = new Queue<AdKatsCommand>();
+        private readonly Queue<AdKatsCommand> _CommandUploadQueue = new Queue<AdKatsCommand>();
+        private readonly Queue<AdKatsPlayer> _HackerCheckerQueue = new Queue<AdKatsPlayer>();
+        private readonly Queue<Kill> _KillProcessingQueue = new Queue<Kill>();
+        private readonly Queue<List<CPlayerInfo>> _PlayerListProcessingQueue = new Queue<List<CPlayerInfo>>();
+        private readonly Queue<CPlayerInfo> _PlayerRemovalProcessingQueue = new Queue<CPlayerInfo>();
+        private readonly Queue<AdKatsRole> _RoleRemovalQueue = new Queue<AdKatsRole>();
+        private readonly Queue<AdKatsRole> _RoleUploadQueue = new Queue<AdKatsRole>();
+        private readonly Queue<CPluginVariable> _SettingUploadQueue = new Queue<CPluginVariable>();
+        private readonly Queue<KeyValuePair<String, String>> _UnparsedCommandQueue = new Queue<KeyValuePair<String, String>>();
+        private readonly Queue<KeyValuePair<String, String>> _UnparsedMessageQueue = new Queue<KeyValuePair<String, String>>();
+        private readonly Queue<AdKatsRecord> _UnprocessedActionQueue = new Queue<AdKatsRecord>();
+        private readonly Queue<AdKatsRecord> _UnprocessedRecordQueue = new Queue<AdKatsRecord>();
+        private readonly Queue<AdKatsUser> _UserRemovalQueue = new Queue<AdKatsUser>();
+        private readonly Queue<AdKatsUser> _UserUploadQueue = new Queue<AdKatsUser>();
+
+        //Threading wait handles
+        private EventWaitHandle _WeaponStatsWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _AccessFetchWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _TeamswapWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _StatLoggerStatusWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _ServerInfoWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _RoundEndingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _PlayerListUpdateWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _MessageParsingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _KillProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _HackerCheckerWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _DbCommunicationWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _CommandParsingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _BanEnforcerWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _ActionHandlingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _PlayerProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _PluginDescriptionWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+
+        //Procon MatchCommand
+        private readonly MatchCommand _fetchAuthorizedSoldiersMatchCommand;
+        private readonly MatchCommand _issueCommandMatchCommand;
+
+        //Commands global
+        private readonly Dictionary<long, AdKatsCommand> _CommandIDDictionary = new Dictionary<long, AdKatsCommand>();
+        private readonly Dictionary<String, AdKatsCommand> _CommandKeyDictionary = new Dictionary<String, AdKatsCommand>();
+        private readonly Dictionary<String, AdKatsCommand> _CommandNameDictionary = new Dictionary<String, AdKatsCommand>();
+        private readonly Dictionary<String, AdKatsCommand> _CommandTextDictionary = new Dictionary<String, AdKatsCommand>();
+        private readonly Dictionary<String, String> _CommandDescriptionDictionary = new Dictionary<string, string>();
+        private readonly Dictionary<String, Func<AdKats, Double>> _commandTimeoutDictionary = new Dictionary<string, Func<AdKats, double>>();
+        private readonly Dictionary<String, DateTime> _commandUsageTimes = new Dictionary<string, DateTime>();
+        private Boolean _AllowAdminSayCommands = true;
+        private List<String> _ExternalPlayerCommands = new List<string>();
+        private List<String> _ExternalAdminCommands = new List<string>();
+        private Int32 _RequiredReasonLength = 4;
+        //Commands specific
+        private String _ServerVoipAddress = "(TS3) TS.ADKGamers.com:3796";
+        //Dynamic access
+        public Func<AdKats, AdKatsPlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => (plugin._EnableAdminAssistantPerk && aPlayer.player_aa));
+
+        //Roles
+        private readonly Dictionary<long, AdKatsRole> _RoleIDDictionary = new Dictionary<long, AdKatsRole>();
+        private readonly Dictionary<String, AdKatsRole> _RoleKeyDictionary = new Dictionary<String, AdKatsRole>();
+        private readonly Dictionary<String, AdKatsRole> _RoleNameDictionary = new Dictionary<String, AdKatsRole>();
+        private Boolean _PlayerRoleRefetch;
+
+        //Users
+        private const Int32 DbUserFetchFrequency = 300;
+        private readonly Dictionary<long, AdKatsUser> _userCache = new Dictionary<long, AdKatsUser>();
+        private readonly Dictionary<String, List<AdKatsSpecialPlayer>> _specialPlayerGroupCache = new Dictionary<String, List<AdKatsSpecialPlayer>>();
+
+        //Games and teams
+        private readonly Dictionary<Int64, GameVersion> _gameIDDictionary = new Dictionary<Int64, GameVersion>();
+        private readonly Dictionary<Int32, AdKatsTeam> _teamDictionary = new Dictionary<Int32, AdKatsTeam>();
+
+        //Players
+        private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
+        private readonly Dictionary<String, AdKatsPlayer> _PlayerLeftDictionary = new Dictionary<String, AdKatsPlayer>();
+
+        //Punishment settings
+        private readonly List<String> _PunishmentSeverityIndex;
+        private Boolean _CombineServerPunishments;
+        private Boolean _IROActive = true;
+        private Boolean _IROOverridesLowPop;
+        private Int32 _IROTimeout = 10;
+        private Boolean _OnlyKillOnLowPop = true;
+        private String[] _PunishmentHierarchy = { "warn", "kill", "kick", "tban60", "tban120", "tbanday", "tbanweek", "tban2weeks", "tbanmonth", "ban" };
+
+        //Teamswap
+        private Int32 _TeamSwapTicketWindowHigh = 500000;
+        private Int32 _TeamSwapTicketWindowLow;
+        private Queue<CPlayerInfo> _Team1MoveQueue = new Queue<CPlayerInfo>();
+        private Queue<CPlayerInfo> _Team2MoveQueue = new Queue<CPlayerInfo>();
+        private Queue<CPlayerInfo> _TeamswapForceMoveQueue = new Queue<CPlayerInfo>();
+        private Queue<CPlayerInfo> _TeamswapOnDeathCheckingQueue = new Queue<CPlayerInfo>();
+        private readonly Dictionary<String, CPlayerInfo> _TeamswapOnDeathMoveDic = new Dictionary<String, CPlayerInfo>();
+
+        //AFK manager
+        private Boolean _AFKSystemEnable;
+        private Boolean _AFKAutoKickEnable;
+        private Double _AFKAutoKickDurationMinutes = 5;
+        private Int32 _AFKAutoKickMinimumPlayers = 20;
+        private Boolean _AFKIgnoreUserList = true;
+        private String[] _AFKIgnoreRoles = { };
+        private Boolean _AFKIgnoreChat;
+
+        //Ban enforcer
+        private Boolean _UseBanAppend;
+        private String _BanAppend = "Appeal at your_site.com";
+        private Boolean _UseBanEnforcer;
+        private Boolean _UseBanEnforcerPreviousState;
+        private List<AdKatsBan> _BanEnforcerSearchResults = new List<AdKatsBan>();
+        private Boolean _BansQueuing;
+        private String _CBanAdminName = "BanEnforcer";
+        private Boolean _DefaultEnforceGUID = true;
+        private Boolean _DefaultEnforceIP;
+        private Boolean _DefaultEnforceName;
+        private Int64 _GUIDBanCount = -1;
+        private Int64 _IPBanCount = -1;
+        private Int64 _NameBanCount = -1;
+        private readonly DateTime _PermaBanEndTime = DateTime.UtcNow.AddYears(20);
+        private TimeSpan _MaxTempBanDuration = TimeSpan.FromDays(3650);
+        //Metabans
         private Boolean _useMetabans;
+        private String _metabansAPIKey = "";
+        private Boolean _metabansConnectionConfirmed = false;
+        private String _metabansUsername = "";
+
+        //Reports
+        public String[] _AutoReportHandleStrings = { };
+        private Boolean _InformReportedPlayers;
+        private String[] _PlayerInformExclusionStrings = { };
+        private Int32 _MinimumReportHandleSeconds;
+
+        //Email
+        private Boolean _UseEmail;
+
+        //Muting
+        private Int32 _MutedPlayerChances = 5;
+        private String _MutedPlayerKickMessage = "Talking excessively while muted.";
+        private String _MutedPlayerKillMessage = "Do not talk while muted. You can speak again next round.";
+        private String _MutedPlayerMuteMessage = "You have been muted by an admin, talking will cause punishment. You can speak again next round.";
+
+        //EmailHandler
+        private EmailHandler _EmailHandler;
+
+        //Orchestration
+        private List<String> _CurrentReservedSlotPlayers;
+        private List<String> _CurrentSpectatorListPlayers;
+        private Boolean _FeedMultiBalancerWhitelist;
+        private Boolean _FeedMultiBalancerWhitelist_UserCache = true;
+        private Boolean _FeedMultiBalancerDisperseList;
+        private Boolean _FeedServerReservedSlots;
+        private Boolean _FeedServerReservedSlots_UserCache = true;
+        private Boolean _FeedServerSpectatorList;
+        private Boolean _FeedServerSpectatorList_UserCache;
+        private Boolean _FeedStatLoggerSettings;
+
+        //Hacker-checker
+        private Boolean _UseHackerChecker;
+        private Boolean _UseDpsChecker;
+        private Boolean _UseHskChecker;
+        private Boolean _UseKpmChecker;
+        private Double _DpsTriggerLevel = 50.0;
+        private Double _HskTriggerLevel = 60.0;
+        private Double _KpmTriggerLevel = 5.0;
+        private String _HackerCheckerDPSBanMessage = "DPS Automatic Ban";
+        private String _HackerCheckerHSKBanMessage = "HSK Automatic Ban";
+        private String _HackerCheckerKPMBanMessage = "KPM Automatic Ban";
+
+        //External commands
+        private String _ExternalCommandAccessKey = "NoPasswordSet";
+
+        //Admin assistants
+        public Boolean _EnableAdminAssistantPerk = true;
+        public Boolean _EnableAdminAssistants = false;
+        public Int32 _MinimumRequiredMonthlyReports = 10;
+        public Boolean _UseAAReportAutoHandler = false;
+
+        //Messaging
+        private List<String> _PreMessageList;
+        private Boolean _RequirePreMessageUse;
+        private Boolean _ShowAdminNameInSay;
+        private Int32 _YellDuration = 5;
+
+        //Rules
+        private Double _ServerRulesDelay = 0.5;
+        private Double _ServerRulesInterval = 5;
+        private String[] _ServerRulesList = { "This server has not set rules yet." };
+        private Boolean _ServerRulesNumbers = true;
+
+        //Round monitor
         private Boolean _useRoundTimer;
+        private Double _roundTimeMinutes = 30;
+
+        //Reputation
+        private Dictionary<String, Double> _commandSourceReputationDictionary;
+        private Dictionary<String, Double> _commandTargetReputationDictionary;
+
+        //Weapon stats
+        private StatLibrary _StatLibrary;
+
+        //Experimental
+        private Boolean _useExperimentalTools;
+        private Boolean _UsingAwa;
+        private Boolean _WeaponCodesTableTested;
+        private Boolean _WeaponCodesTableConfirmed;
+        private Boolean _UseGrenadeCookCatcher;
+        private Dictionary<String, AdKatsPlayer> _RoundCookers = new Dictionary<String, AdKatsPlayer>();
+        private Boolean _UseWeaponLimiter;
+        private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
+        private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
 
         public AdKats() {
             //Set defaults for webclient
@@ -348,7 +413,7 @@ namespace PRoConEvents {
             _issueCommandMatchCommand = new MatchCommand("AdKats", "IssueCommand", new List<String>(), "AdKats_IssueCommand", new List<MatchArgumentFormat>(), new ExecutionRequirements(ExecutionScope.None), "Useable by other plugins to call AdKats commands.");
             _fetchAuthorizedSoldiersMatchCommand = new MatchCommand("AdKats", "FetchAuthorizedSoldiers", new List<String>(), "AdKats_FetchAuthorizedSoldiers", new List<MatchArgumentFormat>(), new ExecutionRequirements(ExecutionScope.None), "Useable by other plugins to fetch authorized soldiers.");
             //Debug level is 0 by default
-            _DebugLevel = 0;
+            _debugLevel = 0;
             //Randomize the external access key
             _ExternalCommandAccessKey = AdKats.GetRandom32BitHashCode();
 
@@ -459,7 +524,7 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Password", typeof (String), _mySqlPassword));
                     }
                     //Debugging Settings
-                    lstReturn.Add(new CPluginVariable("2. Debugging|Debug level", typeof (Int32), _DebugLevel));
+                    lstReturn.Add(new CPluginVariable("2. Debugging|Debug level", typeof (Int32), _debugLevel));
                 }
                 else {
                     if (_settingsLocked) {
@@ -473,8 +538,8 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable(banManagementPrefix + "Ban Search", typeof (String), ""));
                             lstReturn.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(banManagementPrefix + "BAN" + aBan.ban_id + separator + aBan.ban_record.target_player.player_name + separator + aBan.ban_record.source_name + separator + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
                         }
-                        lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _DebugLevel));
-                        lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof (String), _DebugSoldierName));
+                        lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
+                        lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof (String), _debugSoldierName));
                         lstReturn.Add(new CPluginVariable("D99. Debugging|Command Entry", typeof (String), ""));
                         return lstReturn;
                     }
@@ -638,8 +703,8 @@ namespace PRoConEvents {
                     }
 
                     //Debug settings
-                    lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _DebugLevel));
-                    lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof (String), _DebugSoldierName));
+                    lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
+                    lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof (String), _debugSoldierName));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Command Entry", typeof (String), ""));
 
                     //Experimental tools
@@ -661,7 +726,7 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("1. Server Settings|Setting Import", typeof (String), _serverID));
                     lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof (int), _serverID));
                     lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof (String), _serverIP));
-                    lstReturn.Add(new CPluginVariable("1. Server Settings|Low Population Value", typeof (int), _LowPopulationPlayerCount));
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Low Population Value", typeof (int), _lowPopulationPlayerCount));
                     if (!_UsingAwa) {
                         const string userSettingsPrefix = "3. User Settings|";
                         //User Settings
@@ -723,13 +788,13 @@ namespace PRoConEvents {
                                     if (_isTestingAuthorized)
                                         PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                     lock (_CommandNameDictionary) {
-                                        String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsInteractionAble(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
-                                        foreach (var aCommand in _CommandNameDictionary.Values) {
+                                        String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
+                                        foreach (AdKatsCommand aCommand in _CommandNameDictionary.Values) {
                                             if (aCommand.command_active == AdKatsCommand.CommandActive.Active) {
                                                 String allowEnum = "enum.roleAllowCommandEnum(Allow|Deny)";
                                                 Boolean allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key);
                                                 String display = rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name + ((allowed && aCommand.command_playerInteraction)?(" [ADMIN]"):(""));
-                                                CPluginVariable cVar = new CPluginVariable(display , allowEnum, allowed ? ("Allow") : ("Deny"));
+                                                var cVar = new CPluginVariable(display , allowEnum, allowed ? ("Allow") : ("Deny"));
                                                 lstReturn.Add(cVar);
                                             }
                                         }
@@ -801,7 +866,7 @@ namespace PRoConEvents {
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof (String), _mySqlUsername));
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof (String), _mySqlPassword));
 
-            lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof (Int32), _DebugLevel));
+            lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof (Int32), _debugLevel));
             return lstReturn;
         }
 
@@ -973,19 +1038,19 @@ namespace PRoConEvents {
                                 ConsoleWrite("Server is priviledged for testing during this instance.");
                             }
                         }
-                        else if (tmp != _DebugLevel) {
-                            _DebugLevel = tmp;
+                        else if (tmp != _debugLevel) {
+                            _debugLevel = tmp;
                             //Once setting has been changed, upload the change to database
-                            QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (int), _DebugLevel));
+                            QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (int), _debugLevel));
                         }
                     }
                 }
                 else if (Regex.Match(strVariable, @"Debug Soldier Name").Success) {
                     if (SoldierNameValid(strValue)) {
-                        if (strValue != _DebugSoldierName) {
-                            _DebugSoldierName = strValue;
+                        if (strValue != _debugSoldierName) {
+                            _debugSoldierName = strValue;
                             //Once setting has been changed, upload the change to database
-                            QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof (String), _DebugSoldierName));
+                            QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof (String), _debugSoldierName));
                         }
                     }
                 }
@@ -1783,7 +1848,7 @@ namespace PRoConEvents {
                     }
                 }
                 else if (strVariable.StartsWith("RLE")) {
-                    //Trim off all but the command ID and section
+                    //Trim off all but the role ID and section
                     //RLE1 | Default Guest | CDE3 | Kill Player
 
                     String[] commandSplit = CPluginVariable.DecodeStringArray(strVariable);
@@ -1901,10 +1966,10 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Low Population Value").Success) {
                     Int32 lowPop = Int32.Parse(strValue);
-                    if (lowPop != _LowPopulationPlayerCount) {
-                        _LowPopulationPlayerCount = lowPop;
+                    if (lowPop != _lowPopulationPlayerCount) {
+                        _lowPopulationPlayerCount = lowPop;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof (Int32), _LowPopulationPlayerCount));
+                        QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof (Int32), _lowPopulationPlayerCount));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use IRO Punishment").Success) {
@@ -2087,17 +2152,6 @@ namespace PRoConEvents {
                         _MutedPlayerChances = tmp;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"# Chances to give player before kicking", typeof (Int32), _MutedPlayerChances));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Auto-Whitelist Count").Success) {
-                    Int32 tmp = 1;
-                    int.TryParse(strValue, out tmp);
-                    if (tmp != _PlayersToAutoWhitelist) {
-                        if (tmp < 0)
-                            tmp = 0;
-                        _PlayersToAutoWhitelist = tmp;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Auto-Whitelist Count", typeof (Int32), _PlayersToAutoWhitelist));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Ticket Window High").Success) {
@@ -2300,7 +2354,7 @@ namespace PRoConEvents {
                     try {
                         Thread.CurrentThread.Name = "enabler";
 
-                        if ((DateTime.UtcNow - _ProconStartTime).TotalSeconds < 10) {
+                        if ((DateTime.UtcNow - _proconStartTime).TotalSeconds < 10) {
                             ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
                             //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
                             for (Int32 index = 5; index > 0; index--) {
@@ -2430,7 +2484,7 @@ namespace PRoConEvents {
                             _UnprocessedRecordQueue.Clear();
                         if (_BanEnforcerCheckingQueue != null)
                             _BanEnforcerCheckingQueue.Clear();
-                        _ToldCol = false;
+                        _toldCol = false;
                         if (_Team2MoveQueue != null)
                             _Team2MoveQueue.Clear();
                         if (_Team1MoveQueue != null)
@@ -2460,8 +2514,6 @@ namespace PRoConEvents {
                             _ActOnIsAliveDictionary.Clear();
                         if (_ActionConfirmDic != null)
                             _ActionConfirmDic.Clear();
-                        if (_TeamswapRoundWhitelist != null)
-                            _TeamswapRoundWhitelist.Clear();
                         _slowmo = false;
                         //Now that plugin is disabled, update the settings page to reflect
                         UpdateSettingPage();
@@ -2633,20 +2685,20 @@ namespace PRoConEvents {
                             //Perform AFK processing
                             if (_AFKSystemEnable && _AFKAutoKickEnable && (_PlayerDictionary.Count > _AFKAutoKickMinimumPlayers))
                             {
-                                var afkPlayers = _PlayerDictionary.Values.Where(
+                                List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
                                     aPlayer =>
                                         (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKAutoKickDurationMinutes &&
                                         _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
-                                        !RoleIsInteractionAble(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKAutoKickMinimumPlayers).ToList();
+                                        !RoleIsAdmin(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKAutoKickMinimumPlayers).ToList();
                                 if (_AFKIgnoreUserList) {
-                                    var userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
+                                    IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
                                     afkPlayers = afkPlayers.Where(aPlayer => !userSoldierGuids.Contains(aPlayer.player_guid)).ToList();
                                 }
                                 else {
                                     afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key)).ToList();
                                 }
-                                foreach (var aPlayer in afkPlayers) {
-                                    var afkTime = FormatTimeString(DateTime.UtcNow - aPlayer.lastAction, 2);
+                                foreach (AdKatsPlayer aPlayer in afkPlayers) {
+                                    string afkTime = FormatTimeString(DateTime.UtcNow - aPlayer.lastAction, 2);
                                     DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
                                     var record = new AdKatsRecord
                                     {
@@ -3057,11 +3109,11 @@ namespace PRoConEvents {
 
                                         //This terribly needs streamlining but I cant be asked right now...
                                         List<AdKatsRecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
-                                        Dictionary<String, AdKatsPlayer> reporters = new Dictionary<string, AdKatsPlayer>();
-                                        foreach (var report in reports.Where(report => report.source_player != null)) {
+                                        var reporters = new Dictionary<string, AdKatsPlayer>();
+                                        foreach (AdKatsRecord report in reports.Where(report => report.source_player != null)) {
                                             reporters[report.source_player.player_name] = report.source_player;
                                         }
-                                        foreach (var player in reporters.Values) {
+                                        foreach (AdKatsPlayer player in reporters.Values) {
                                             PlayerSayMessage(player.player_name, "Player " + aPlayer.player_name + " you reported has left the server.", 1);
                                         }
                                     }
@@ -3202,8 +3254,6 @@ namespace PRoConEvents {
                                             ConsoleError("Team ID " + playerInfo.TeamID + " for player " + playerInfo.SoldierName + " was invalid.");
                                             break;
                                     }
-                                    _startupSequencePercentage = (++index) / inboundPlayerList.Count;
-                                    _startupSequenceETA = TimeSpan.FromSeconds((DateTime.UtcNow - _AdKatsStartTime).TotalSeconds * (1 / _startupSequencePercentage));
                                 }
                                 _teamDictionary[1].UpdatePlayerCount(team1PC);
                                 _teamDictionary[2].UpdatePlayerCount(team2PC);
@@ -3233,31 +3283,31 @@ namespace PRoConEvents {
                                     QueueRecordForProcessing(record);
                                     ConsoleError(record.record_message);
                                     //Set round ended
-                                    _CurrentRoundState = RoundState.Ended;
+                                    _currentRoundState = RoundState.Ended;
                                 }
-                                if (_PlayerDictionary.Count >= _LowPopulationPlayerCount) {
-                                    if (_PopulationStatusLow) {
+                                if (_PlayerDictionary.Count >= _lowPopulationPlayerCount) {
+                                    if (_populationStatusLow) {
                                         //Switching state from low to high
-                                        _PopulationStatusLow = false;
-                                        _PopulationTransitionTime = DateTime.UtcNow;
-                                        _PopulationDurationLow += (DateTime.UtcNow - _PopulationUpdateTime);
+                                        _populationStatusLow = false;
+                                        _populationTransitionTime = DateTime.UtcNow;
+                                        _populationDurationLow += (DateTime.UtcNow - _populationUpdateTime);
                                     }
                                     else {
-                                        _PopulationDurationHigh += (DateTime.UtcNow - _PopulationUpdateTime);
+                                        _populationDurationHigh += (DateTime.UtcNow - _populationUpdateTime);
                                     }
                                 }
                                 else {
-                                    if (!_PopulationStatusLow) {
+                                    if (!_populationStatusLow) {
                                         //Switching state from high to low
-                                        _PopulationStatusLow = true;
-                                        _PopulationTransitionTime = DateTime.UtcNow;
-                                        _PopulationDurationHigh += (DateTime.UtcNow - _PopulationUpdateTime);
+                                        _populationStatusLow = true;
+                                        _populationTransitionTime = DateTime.UtcNow;
+                                        _populationDurationHigh += (DateTime.UtcNow - _populationUpdateTime);
                                     }
                                     else {
-                                        _PopulationDurationLow += (DateTime.UtcNow - _PopulationUpdateTime);
+                                        _populationDurationLow += (DateTime.UtcNow - _populationUpdateTime);
                                     }
                                 }
-                                _PopulationUpdateTime = DateTime.UtcNow;
+                                _populationUpdateTime = DateTime.UtcNow;
                             }
                             if (_PlayerRoleRefetch) {
                                 //Update roles for all online players
@@ -3404,202 +3454,6 @@ namespace PRoConEvents {
             }
         }
 
-        private void StartRoundTicketLogger() {
-            try {
-                if (!_pluginEnabled || !_threadsReady || !_isTestingAuthorized) {
-                    return;
-                }
-                var roundLoggerThread = new Thread(new ThreadStart(delegate {
-                    try {
-                        Thread.CurrentThread.Name = "roundticketlogger";
-                        Int32 TPCSCounter = 0;
-                        Boolean TPCSActionTaken = false;
-                        Int32 roundTimeSeconds = 0;
-                        Int32 currentRoundID = 0;
-                        using (MySqlConnection connection = GetDatabaseConnection()) {
-                            using (MySqlCommand command = connection.CreateCommand()) {
-                                command.CommandText = @"
-                                SELECT
-	                                MAX(`round_id`) AS `max_round_id`
-                                FROM
-	                                `tbl_extendedroundstats`
-                                WHERE 
-                                    `server_id` = @server_id";
-                                command.Parameters.AddWithValue("server_id", _serverID);
-                                using (MySqlDataReader reader = command.ExecuteReader()) {
-                                    if (reader.Read()) {
-                                        Int32 oldRoundID = reader.GetInt32("max_round_id");
-                                        ConsoleSuccess("Old round ID: " + oldRoundID);
-                                        currentRoundID = oldRoundID + 1;
-                                        ConsoleSuccess("New round ID: " + currentRoundID);
-                                    }
-                                    else {
-                                        currentRoundID = 1;
-                                    }
-                                }
-                            }
-                        }
-
-                        var watch = new Stopwatch();
-                        AdKatsTeam team1 = _teamDictionary[1];
-                        AdKatsTeam team2 = _teamDictionary[2];
-                        while (true) {
-                            watch.Reset();
-                            watch.Start();
-                            //Check for exit and entry cases
-                            if (_CurrentRoundState == RoundState.Ended || !_pluginEnabled) {
-                                break;
-                            }
-                            if (_CurrentRoundState == RoundState.Loaded) {
-                                Thread.Sleep(TimeSpan.FromSeconds(2));
-                                continue;
-                            }
-                            using (MySqlConnection connection = GetDatabaseConnection()) {
-                                using (MySqlCommand command = connection.CreateCommand()) {
-                                    //Set the insert command structure
-                                    command.CommandText = @"
-                                    INSERT INTO 
-                                        `tbl_extendedroundstats` 
-                                    (
-                                        `server_id`, 
-                                        `round_id`, 
-                                        `round_elapsedTimeSec`, 
-                                        `team1_count`, 
-                                        `team2_count`, 
-                                        `team1_score`, 
-                                        `team2_score`, 
-                                        `team1_spm`, 
-                                        `team2_spm`, 
-                                        `team1_tickets`, 
-                                        `team2_tickets`,
-                                        `team1_tpm`, 
-                                        `team2_tpm`
-                                    ) 
-                                    VALUES 
-                                    (
-                                        @server_id, 
-                                        @round_id, 
-                                        @round_elapsedTimeSec, 
-                                        @team1_count, 
-                                        @team2_count, 
-                                        @team1_score, 
-                                        @team2_score, 
-                                        @team1_spm, 
-                                        @team2_spm, 
-                                        @team1_tickets, 
-                                        @team2_tickets,
-                                        @team1_tpm, 
-                                        @team2_tpm
-                                    )";
-                                    command.Parameters.AddWithValue("@server_id", _serverID);
-                                    command.Parameters.AddWithValue("@round_id", currentRoundID);
-                                    command.Parameters.AddWithValue("@round_elapsedTimeSec", roundTimeSeconds);
-                                    command.Parameters.AddWithValue("@team1_count", team1.TeamPlayerCount);
-                                    command.Parameters.AddWithValue("@team2_count", team2.TeamPlayerCount);
-                                    command.Parameters.AddWithValue("@team1_score", team1.TeamTotalScore);
-                                    command.Parameters.AddWithValue("@team2_score", team2.TeamTotalScore);
-                                    command.Parameters.AddWithValue("@team1_spm", team1.TeamScoreDifferenceRate);
-                                    command.Parameters.AddWithValue("@team2_spm", team2.TeamScoreDifferenceRate);
-                                    command.Parameters.AddWithValue("@team1_tickets", team1.TeamTicketCount);
-                                    command.Parameters.AddWithValue("@team2_tickets", team2.TeamTicketCount);
-                                    command.Parameters.AddWithValue("@team1_tpm", team1.TeamTicketDifferenceRate);
-                                    command.Parameters.AddWithValue("@team2_tpm", team2.TeamTicketDifferenceRate);
-                                    //Attempt to execute the query
-                                    if (command.ExecuteNonQuery() > 0) {
-                                        DebugWrite("round stat pushed to database", 5);
-                                    }
-                                }
-                            }
-
-                            if (_serverInfo.Map == "MP_Prison" && false) {
-                                AdKatsTeam winningTeam, losingTeam;
-                                if (team1.TeamTicketCount > team2.TeamTicketCount) {
-                                    winningTeam = team1;
-                                    losingTeam = team2;
-                                }
-                                else {
-                                    winningTeam = team2;
-                                    losingTeam = team1;
-                                }
-                                Double ticketDifference = Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount);
-                                Double winningPower = Math.Abs(losingTeam.TeamTicketDifferenceRate);
-                                Double losingPower = Math.Abs(winningTeam.TeamTicketDifferenceRate);
-                                Double winningTicketPower = (ticketDifference * winningPower);
-                                ConsoleWrite("TicketPower: " + String.Format("{0:0.00}", winningTicketPower));
-                                /*if (winningTicketPower > 20000 && !TPCSActionTaken)
-                                {
-                                    this.ConsoleWarn("ISSUING TICKET POWER NUKE ON " + winningTeam.TeamName.ToUpper());
-                                    TPCSActionTaken = true;
-                                }*/
-                                if (winningPower > losingPower) {
-                                    if (winningPower >= 60 && ticketDifference > 200) {
-                                        ConsoleWarn(winningTeam.TeamName + " is winning, and baseraping.");
-                                        if (roundTimeSeconds > 400 && winningTeam.TeamPlayerCount > 20 && losingTeam.TeamPlayerCount > 20 && winningTeam.TeamTicketCount > 150 && losingTeam.TeamTicketCount > 150) {
-                                            ConsoleWarn("ISSUING BASERAPE NUKE ON " + winningTeam.TeamName.ToUpper() + " (" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + ")");
-                                            TPCSActionTaken = true;
-                                            AdminTellMessage(winningTeam.TeamName + " is being nuked for baserape! Advance! Advance!");
-                                            //Create the nuke record
-                                            var record = new AdKatsRecord {
-                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverID,
-                                                command_type = _CommandKeyDictionary["server_nuke"],
-                                                command_numeric = winningTeam.TeamID,
-                                                target_name = winningTeam.TeamName,
-                                                source_name = "AutoAdmin",
-                                                record_message = "Baserape"
-                                            };
-                                            //Process the record
-                                            QueueRecordForProcessing(record);
-                                            TPCSCounter = 0;
-                                        }
-                                    }
-                                    else if (winningPower >= 55) {
-                                        ConsoleWarn(winningTeam.TeamName + " is winning, and has 4+ flags.");
-                                        TPCSCounter = 0;
-                                    }
-                                    else if (winningPower >= 45) {
-                                        ConsoleWarn(winningTeam.TeamName + " is winning, and has 3+ flags.");
-                                        TPCSCounter = 0;
-                                    }
-                                    else {
-                                        ConsoleSuccess("Teams are equal. With " + winningTeam.TeamName + " currently winning.");
-                                        TPCSCounter = 0;
-                                    }
-                                }
-                                else {
-                                    if (losingPower >= 45) {
-                                        ConsoleWarn(losingTeam.TeamName + " is making a comeback.");
-                                        AdminSayMessage(losingTeam.TeamName + " is making a comeback! Keep pushing!");
-                                        TPCSCounter = 0;
-                                    }
-                                    else {
-                                        ConsoleSuccess("Teams are equal. With " + winningTeam.TeamName + " currently winning.");
-                                        TPCSCounter = 0;
-                                    }
-                                }
-                            }
-
-                            watch.Stop();
-                            if (watch.Elapsed.TotalSeconds < 30) {
-                                Thread.Sleep(TimeSpan.FromSeconds(30) - watch.Elapsed);
-                            }
-                            roundTimeSeconds += 30;
-                        }
-                    }
-                    catch (Exception e) {
-                        //HandleException(new AdKatsException("Error in round stat logger thread", e));
-                    }
-                    LogThreadExit();
-                }));
-
-                //Start the thread
-                StartAndLogThread(roundLoggerThread);
-            }
-            catch (Exception e) {
-                //HandleException(new AdKatsException("Error while starting round ticket logger", e));
-            }
-        }
-
         public override void OnServerInfo(CServerInfo serverInfo) {
             DebugWrite("Entering OnServerInfo", 7);
             try {
@@ -3633,8 +3487,8 @@ namespace PRoConEvents {
                             AdKatsTeam team1 = _teamDictionary[1];
                             AdKatsTeam team2 = _teamDictionary[2];
                             if (team1.TeamTicketCount >= 0 && team2.TeamTicketCount >= 0) {
-                                _LowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
-                                _HighestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
+                                _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
+                                _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
 
                             _serverName = serverInfo.ServerName;
@@ -3663,16 +3517,14 @@ namespace PRoConEvents {
             DebugWrite("Entering OnLevelLoaded", 7);
             try {
                 if (_pluginEnabled) {
-                    _CurrentRoundState = RoundState.Loaded;
+                    _currentRoundState = RoundState.Loaded;
                     //Completely clear all round-specific data
                     _RoundReports.Clear();
                     _RoundMutedPlayers.Clear();
-                    _TeamswapRoundWhitelist.Clear();
                     _ActionConfirmDic.Clear();
                     _ActOnSpawnDictionary.Clear();
                     _ActOnIsAliveDictionary.Clear();
                     _TeamswapOnDeathMoveDic.Clear();
-                    //AutoWhitelistPlayers();
                     _Team1MoveQueue.Clear();
                     _Team2MoveQueue.Clear();
                     _RoundCookers.Clear();
@@ -3682,7 +3534,6 @@ namespace PRoConEvents {
                     if (_useRoundTimer) {
                         StartRoundTimer();
                     }
-                    StartRoundTicketLogger();
                 }
             }
             catch (Exception e) {
@@ -3693,11 +3544,11 @@ namespace PRoConEvents {
 
         //Round ended stuff
         public override void OnRoundOverTeamScores(List<TeamScore> teamScores) {
-            _CurrentRoundState = RoundState.Ended;
+            _currentRoundState = RoundState.Ended;
         }
 
         public override void OnRunNextLevel() {
-            _CurrentRoundState = RoundState.Ended;
+            _currentRoundState = RoundState.Ended;
         }
 
         //Move delayed players when they are killed
@@ -4197,8 +4048,8 @@ namespace PRoConEvents {
             DebugWrite("Entering OnPlayerSpawned", 7);
             try {
                 if (_pluginEnabled) {
-                    if (_CurrentRoundState == RoundState.Loaded) {
-                        _CurrentRoundState = RoundState.Playing;
+                    if (_currentRoundState == RoundState.Loaded) {
+                        _currentRoundState = RoundState.Playing;
                     }
                     if (_CommandNameDictionary.Count > 0) {
                         //Handle TeamSwap notifications
@@ -4224,22 +4075,13 @@ namespace PRoConEvents {
                                 PlayerSayMessage(soldierName, adminAssistantMessage, 1);
                                 aPlayer.player_aa_told = true;
                             }
-                            else {
-                                Boolean informed;
-                                if (_TeamswapRoundWhitelist.Count > 0 && _TeamswapRoundWhitelist.TryGetValue(soldierName, out informed)) {
-                                    if (!informed) {
-                                        PlayerTellMessage(soldierName, "By random selection you can use @" + command + " for this round. Type @" + command + " to move yourself between teams.", 1);
-                                        _TeamswapRoundWhitelist[soldierName] = true;
-                                    }
-                                }
-                            }
                         }
                     }
 
                     //Handle Dev Notifications
-                    if (soldierName == "ColColonCleaner" && !_ToldCol) {
+                    if (soldierName == "ColColonCleaner" && !_toldCol) {
                         PlayerTellMessage("ColColonCleaner", "CONGRATS! This server is running AdKats " + PluginVersion + "!", 1);
-                        _ToldCol = true;
+                        _toldCol = true;
                     }
 
                     if (_ActOnSpawnDictionary.Count > 0) {
@@ -4523,7 +4365,7 @@ namespace PRoConEvents {
             }
             try {
                 //Return if small duration (0.5 seconds) since last ban list, or if there is already a ban list going on
-                if ((DateTime.UtcNow - _LastSuccessfulBanList) < TimeSpan.FromSeconds(0.5)) {
+                if ((DateTime.UtcNow - _lastSuccessfulBanList) < TimeSpan.FromSeconds(0.5)) {
                     DebugWrite("Banlist being called quickly.", 4);
                     return;
                 }
@@ -4532,7 +4374,7 @@ namespace PRoConEvents {
                     return;
                 }
                 DateTime startTime = DateTime.UtcNow;
-                _LastSuccessfulBanList = startTime;
+                _lastSuccessfulBanList = startTime;
                 if (!_pluginEnabled)
                     return;
                 DebugWrite("OnBanList fired", 5);
@@ -5086,8 +4928,8 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     //Performance testing area
-                    if (speaker == _DebugSoldierName) {
-                        _CommandStartTime = DateTime.UtcNow;
+                    if (speaker == _debugSoldierName) {
+                        _commandStartTime = DateTime.UtcNow;
                     }
                     //If message contains comorose just return and ignore
                     if (message.Contains("ComoRose:")) {
@@ -5696,7 +5538,7 @@ namespace PRoConEvents {
                     else if (record.TargetPlayersLocal.Any())
                     {
                         //Cancel call if record is on timeout for any targeted players
-                        foreach (var aPlayer in record.TargetPlayersLocal)
+                        foreach (AdKatsPlayer aPlayer in record.TargetPlayersLocal)
                         {
                             if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow))
                             {
@@ -5729,11 +5571,11 @@ namespace PRoConEvents {
                 }
                 //Conditional command replacement (single target only)
                 if (_isTestingAuthorized && 
-                    _PopulationStatusLow && 
+                    _populationStatusLow && 
                     record.target_player != null && 
                     record.command_type.command_key == "player_punish") {
-                    var punishCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_punish");
-                    var killCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_kill");
+                    int punishCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_punish");
+                    int killCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_kill");
                     if (killCount < 2 ||
                        (killCount < 4 && punishCount == 1)) {
                         if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
@@ -6052,10 +5894,11 @@ namespace PRoConEvents {
                             winningTeam = team2;
                             losingTeam = team1;
                         }
-                        String debug = (record.source_name == "ColColonCleaner") ? ("[" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + (int) winningTeam.TeamTicketDifferenceRate + ":" + (int) losingTeam.TeamTicketDifferenceRate + "]") : ("");
+                        String debug = (RoleIsAdmin(record.source_player.player_role)) ? ("[" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + (int) winningTeam.TeamTicketDifferenceRate + ":" + (int) losingTeam.TeamTicketDifferenceRate + "]") : ("");
 
                         record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "]";
-                        if ((record.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID) && Math.Abs(winningTeam.TeamTicketDifferenceRate) < Math.Abs(losingTeam.TeamTicketDifferenceRate)) {
+                        if ((record.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID) 
+                            && Math.Abs(winningTeam.TeamTicketDifferenceRate) < Math.Abs(losingTeam.TeamTicketDifferenceRate)) {
                             //30 second timeout
                             Double timeout = (30 - (DateTime.UtcNow - _commandUsageTimes["self_assist"]).TotalSeconds);
                             if (timeout > 0) {
@@ -6067,7 +5910,18 @@ namespace PRoConEvents {
                             SendMessageToSource(record, "Queuing you to assist the weak team. Thank you. " + debug);
                         }
                         else {
-                            SendMessageToSource(record, "You may only assist a weak team. " + debug);
+                            String enemyTicketSpeed;
+                            if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID) {
+                                enemyTicketSpeed = ((Math.Abs(team2.TeamTicketDifferenceRate) > Math.Abs(team1.TeamTicketDifferenceRate)) ? ("faster") : ("slower"));
+                            }
+                            else //player is on team 2
+                            {
+                                enemyTicketSpeed = ((Math.Abs(team1.TeamTicketDifferenceRate) > Math.Abs(team2.TeamTicketDifferenceRate)) ? ("faster") : ("slower"));
+                            }
+                            SendMessageToSource(record, 
+                                "You may only assist a weak team. Enemy team is " + 
+                                ((record.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID) ? ("losing") : ("winning")) + 
+                                ", and losing tickets " + enemyTicketSpeed + " than your team. " + debug);
                             FinalizeRecord(record);
                             return;
                         }
@@ -8303,8 +8157,8 @@ namespace PRoConEvents {
                 ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, JSON.JsonEncode(responseHashtable));
             }
             //Performance testing area
-            if (record.source_name == _DebugSoldierName) {
-                SendMessageToSource(record, "Duration: " + ((int) DateTime.UtcNow.Subtract(_CommandStartTime).TotalMilliseconds) + "ms");
+            if (record.source_name == _debugSoldierName) {
+                SendMessageToSource(record, "Duration: " + ((int) DateTime.UtcNow.Subtract(_commandStartTime).TotalMilliseconds) + "ms");
             }
             if (record.record_source == AdKatsRecord.Sources.InGame || record.record_source == AdKatsRecord.Sources.InternalAutomated) {
                 DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + (DateTime.UtcNow - record.record_time).TotalMilliseconds + "ms to complete.", 3);
@@ -8317,7 +8171,7 @@ namespace PRoConEvents {
                 Boolean confirmNeeded = false;
                 //Multiple target case
                 if (record.TargetNamesLocal.Any()) {
-                    foreach (var targetName in record.TargetNamesLocal)
+                    foreach (string targetName in record.TargetNamesLocal)
                     {
                         //Attempt to get the player object
                         AdKatsPlayer aPlayer;
@@ -8383,238 +8237,218 @@ namespace PRoConEvents {
                 if (_PlayerDictionary.TryGetValue(playerNameInput, out aPlayer) || _PlayerLeftDictionary.TryGetValue(playerNameInput, out aPlayer)) {
                     return true;
                 }
-                else
+                //Check online players for substring match
+                List<String> currentPlayerNames = _PlayerDictionary.Keys.ToList();
+                //Get all subString matches
+                var subStringMatches = new List<string>();
+                subStringMatches.AddRange(currentPlayerNames.Where(playerName => Regex.Match(playerName, playerNameInput, RegexOptions.IgnoreCase).Success));
+                if (subStringMatches.Count == 1)
                 {
-                    //Check online players for substring match
-                    List<String> currentPlayerNames = _PlayerDictionary.Keys.ToList();
-                    //Get all subString matches
-                    var subStringMatches = new List<string>();
-                    subStringMatches.AddRange(currentPlayerNames.Where(playerName => Regex.Match(playerName, playerNameInput, RegexOptions.IgnoreCase).Success));
-                    if (subStringMatches.Count == 1)
-                    {
-                        //Only one subString match, call processing without confirmation if able
-                        if (_PlayerDictionary.TryGetValue(subStringMatches[0], out aPlayer)) {
-                            resultMessage = "Player match found for " + playerNameInput;
-                            return true;
-                        }
-                        ConsoleError("Error fetching player for substring match.");
-                        return false;
+                    //Only one subString match, call processing without confirmation if able
+                    if (_PlayerDictionary.TryGetValue(subStringMatches[0], out aPlayer)) {
+                        resultMessage = "Player match found for " + playerNameInput;
+                        return true;
                     }
-                    else if (subStringMatches.Count > 1)
+                    ConsoleError("Error fetching player for substring match.");
+                    return false;
+                }
+                if (subStringMatches.Count > 1)
+                {
+                    //Multiple players matched the query, choose correct one
+                    String msg = "'" + playerNameInput + "' matches multiple players: ";
+                    bool first = true;
+                    String suggestion = null;
+                    foreach (String playerName in subStringMatches)
                     {
-                        //Multiple players matched the query, choose correct one
-                        String msg = "'" + playerNameInput + "' matches multiple players: ";
-                        bool first = true;
-                        String suggestion = null;
+                        if (first)
+                        {
+                            msg = msg + playerName;
+                            first = false;
+                        }
+                        else
+                        {
+                            msg = msg + ", " + playerName;
+                        }
+                        //Suggest player names that start with the text admins entered over others
+                        if (playerName.ToLower().StartsWith(playerNameInput.ToLower()))
+                        {
+                            suggestion = playerName;
+                        }
+                    }
+                    if (suggestion == null)
+                    {
+                        //If no player id starts with what admins typed, suggest subString id with lowest Levenshtein distance
+                        Int32 bestDistance = Int32.MaxValue;
                         foreach (String playerName in subStringMatches)
                         {
-                            if (first)
+                            Int32 distance = LevenshteinDistance(playerNameInput, playerName);
+                            if (distance < bestDistance)
                             {
-                                msg = msg + playerName;
-                                first = false;
-                            }
-                            else
-                            {
-                                msg = msg + ", " + playerName;
-                            }
-                            //Suggest player names that start with the text admins entered over others
-                            if (playerName.ToLower().StartsWith(playerNameInput.ToLower()))
-                            {
+                                bestDistance = distance;
                                 suggestion = playerName;
                             }
                         }
-                        if (suggestion == null)
+                    }
+                    //If the suggestion is still null, something has failed
+                    if (suggestion == null)
+                    {
+                        ConsoleError("id suggestion system failed subString match");
+                        return false;
+                    }
+
+
+                    //Use suggestion for target
+                    if (_PlayerDictionary.TryGetValue(suggestion, out aPlayer))
+                    {
+                        resultMessage = msg;
+                        confirmNeeded = true;
+                        return true;
+                    }
+                    ConsoleError("Substring match fetch failed.");
+                    return false;
+                }
+                //There were no players found in the online dictionary. Run a search on the offline dictionary
+                List<String> leftPlayerNames = _PlayerLeftDictionary.Keys.ToList();
+                //Get all subString matches
+                var subStringLeftMatches = new List<string>();
+                subStringLeftMatches.AddRange(leftPlayerNames.Where(playerName => Regex.Match(playerName, playerNameInput, RegexOptions.IgnoreCase).Success));
+                if (subStringLeftMatches.Count == 1)
+                {
+                    //Only one subString match, call processing without confirmation if able
+                    if (_PlayerLeftDictionary.TryGetValue(subStringLeftMatches[0], out aPlayer))
+                    {
+                        resultMessage = "Player match found for " + playerNameInput;
+                        return true;
+                    }
+                    ConsoleError("Error fetching player for substring match.");
+                    return false;
+                }
+                if (subStringLeftMatches.Count > 1)
+                {
+                    //Multiple players matched the query, choose correct one
+                    String msg = "'" + playerNameInput + "' matches multiple offline players: ";
+                    bool first = true;
+                    String suggestion = null;
+                    foreach (String playerName in subStringLeftMatches)
+                    {
+                        if (first)
                         {
-                            //If no player id starts with what admins typed, suggest subString id with lowest Levenshtein distance
-                            Int32 bestDistance = Int32.MaxValue;
-                            foreach (String playerName in subStringMatches)
+                            msg = msg + playerName;
+                            first = false;
+                        }
+                        else
+                        {
+                            msg = msg + ", " + playerName;
+                        }
+                        //Suggest player names that start with the text admins entered over others
+                        if (playerName.ToLower().StartsWith(playerNameInput.ToLower()))
+                        {
+                            suggestion = playerName;
+                        }
+                    }
+                    if (suggestion == null)
+                    {
+                        //If no player id starts with what admins typed, suggest subString id with lowest Levenshtein distance
+                        Int32 bestDistance = Int32.MaxValue;
+                        foreach (String playerName in subStringLeftMatches)
+                        {
+                            Int32 distance = LevenshteinDistance(playerNameInput, playerName);
+                            if (distance < bestDistance)
                             {
-                                Int32 distance = LevenshteinDistance(playerNameInput, playerName);
-                                if (distance < bestDistance)
-                                {
-                                    bestDistance = distance;
-                                    suggestion = playerName;
-                                }
+                                bestDistance = distance;
+                                suggestion = playerName;
+                            }
+                        }
+                    }
+                    //If the suggestion is still null, something has failed
+                    if (suggestion == null)
+                    {
+                        ConsoleError("id suggestion system failed subString match");
+                        return false;
+                    }
+
+                    //Use suggestion for target
+                    if (_PlayerLeftDictionary.TryGetValue(suggestion, out aPlayer))
+                    {
+                        resultMessage = msg;
+                        confirmNeeded = true;
+                        return true;
+                    }
+                    ConsoleError("Substring match fetch failed.");
+                    return false;
+                }
+                if (!externalFetchOverFuzzy)
+                {
+                    if (currentPlayerNames.Count > 0)
+                    {
+                        //Player not found in either dictionary, run a fuzzy search using Levenshtein Distance on all players in server
+                        String fuzzyMatch = null;
+                        Int32 bestFuzzyDistance = Int32.MaxValue;
+                        foreach (String playerName in currentPlayerNames)
+                        {
+                            Int32 distance = LevenshteinDistance(playerNameInput, playerName);
+                            if (distance < bestFuzzyDistance)
+                            {
+                                bestFuzzyDistance = distance;
+                                fuzzyMatch = playerName;
                             }
                         }
                         //If the suggestion is still null, something has failed
-                        if (suggestion == null)
+                        if (fuzzyMatch == null)
                         {
-                            ConsoleError("id suggestion system failed subString match");
+                            ConsoleError("id suggestion system failed fuzzy match");
                             return false;
                         }
-
-
-                        //Use suggestion for target
-                        if (_PlayerDictionary.TryGetValue(suggestion, out aPlayer))
+                        if (_PlayerDictionary.TryGetValue(fuzzyMatch, out aPlayer))
                         {
-                            resultMessage = msg;
+                            resultMessage = "Fuzzy player match found for " + playerNameInput;
                             confirmNeeded = true;
                             return true;
                         }
-                        else
-                        {
-                            ConsoleError("Substring match fetch failed.");
-                            return false;
-                        }
+                        ConsoleError("Player suggestion found matching player, but it could not be fetched.");
+                        return false;
                     }
-                    else
+                    if (leftPlayerNames.Count > 0)
                     {
-                        //There were no players found in the online dictionary. Run a search on the offline dictionary
-                        List<String> leftPlayerNames = _PlayerLeftDictionary.Keys.ToList();
-                        //Get all subString matches
-                        var subStringLeftMatches = new List<string>();
-                        subStringLeftMatches.AddRange(leftPlayerNames.Where(playerName => Regex.Match(playerName, playerNameInput, RegexOptions.IgnoreCase).Success));
-                        if (subStringLeftMatches.Count == 1)
+                        //No players in the online dictionary, but there are players in the offline dictionary,
+                        //run a fuzzy search using Levenshtein Distance on all players who have left
+                        String fuzzyMatch = null;
+                        Int32 bestFuzzyDistance = Int32.MaxValue;
+                        foreach (String playerName in leftPlayerNames)
                         {
-                            //Only one subString match, call processing without confirmation if able
-                            if (_PlayerLeftDictionary.TryGetValue(subStringLeftMatches[0], out aPlayer))
+                            Int32 distance = LevenshteinDistance(playerNameInput, playerName);
+                            if (distance < bestFuzzyDistance)
                             {
-                                resultMessage = "Player match found for " + playerNameInput;
-                                return true;
+                                bestFuzzyDistance = distance;
+                                fuzzyMatch = playerName;
                             }
-                            ConsoleError("Error fetching player for substring match.");
+                        }
+                        //If the suggestion is still null, something has failed
+                        if (fuzzyMatch == null)
+                        {
+                            ConsoleError("id suggestion system failed fuzzy match");
                             return false;
                         }
-                        else if (subStringLeftMatches.Count > 1)
+                        if (_PlayerLeftDictionary.TryGetValue(fuzzyMatch, out aPlayer))
                         {
-                            //Multiple players matched the query, choose correct one
-                            String msg = "'" + playerNameInput + "' matches multiple offline players: ";
-                            bool first = true;
-                            String suggestion = null;
-                            foreach (String playerName in subStringLeftMatches)
-                            {
-                                if (first)
-                                {
-                                    msg = msg + playerName;
-                                    first = false;
-                                }
-                                else
-                                {
-                                    msg = msg + ", " + playerName;
-                                }
-                                //Suggest player names that start with the text admins entered over others
-                                if (playerName.ToLower().StartsWith(playerNameInput.ToLower()))
-                                {
-                                    suggestion = playerName;
-                                }
-                            }
-                            if (suggestion == null)
-                            {
-                                //If no player id starts with what admins typed, suggest subString id with lowest Levenshtein distance
-                                Int32 bestDistance = Int32.MaxValue;
-                                foreach (String playerName in subStringLeftMatches)
-                                {
-                                    Int32 distance = LevenshteinDistance(playerNameInput, playerName);
-                                    if (distance < bestDistance)
-                                    {
-                                        bestDistance = distance;
-                                        suggestion = playerName;
-                                    }
-                                }
-                            }
-                            //If the suggestion is still null, something has failed
-                            if (suggestion == null)
-                            {
-                                ConsoleError("id suggestion system failed subString match");
-                                return false;
-                            }
-
-                            //Use suggestion for target
-                            if (_PlayerLeftDictionary.TryGetValue(suggestion, out aPlayer))
-                            {
-                                resultMessage = msg;
-                                confirmNeeded = true;
-                                return true;
-                            }
-                            else
-                            {
-                                ConsoleError("Substring match fetch failed.");
-                                return false;
-                            }
+                            resultMessage = "Fuzzy player match found for " + playerNameInput;
+                            confirmNeeded = true;
+                            return true;
                         }
-                        else
-                        {
-                            if (!externalFetchOverFuzzy)
-                            {
-                                if (currentPlayerNames.Count > 0)
-                                {
-                                    //Player not found in either dictionary, run a fuzzy search using Levenshtein Distance on all players in server
-                                    String fuzzyMatch = null;
-                                    Int32 bestFuzzyDistance = Int32.MaxValue;
-                                    foreach (String playerName in currentPlayerNames)
-                                    {
-                                        Int32 distance = LevenshteinDistance(playerNameInput, playerName);
-                                        if (distance < bestFuzzyDistance)
-                                        {
-                                            bestFuzzyDistance = distance;
-                                            fuzzyMatch = playerName;
-                                        }
-                                    }
-                                    //If the suggestion is still null, something has failed
-                                    if (fuzzyMatch == null)
-                                    {
-                                        ConsoleError("id suggestion system failed fuzzy match");
-                                        return false;
-                                    }
-                                    if (_PlayerDictionary.TryGetValue(fuzzyMatch, out aPlayer))
-                                    {
-                                        resultMessage = "Fuzzy player match found for " + playerNameInput;
-                                        confirmNeeded = true;
-                                        return true;
-                                    }
-                                    ConsoleError("Player suggestion found matching player, but it could not be fetched.");
-                                    return false;
-                                }
-                                if (leftPlayerNames.Count > 0)
-                                {
-                                    //No players in the online dictionary, but there are players in the offline dictionary,
-                                    //run a fuzzy search using Levenshtein Distance on all players who have left
-                                    String fuzzyMatch = null;
-                                    Int32 bestFuzzyDistance = Int32.MaxValue;
-                                    foreach (String playerName in leftPlayerNames)
-                                    {
-                                        Int32 distance = LevenshteinDistance(playerNameInput, playerName);
-                                        if (distance < bestFuzzyDistance)
-                                        {
-                                            bestFuzzyDistance = distance;
-                                            fuzzyMatch = playerName;
-                                        }
-                                    }
-                                    //If the suggestion is still null, something has failed
-                                    if (fuzzyMatch == null)
-                                    {
-                                        ConsoleError("id suggestion system failed fuzzy match");
-                                        return false;
-                                    }
-                                    if (_PlayerLeftDictionary.TryGetValue(fuzzyMatch, out aPlayer))
-                                    {
-                                        resultMessage = "Fuzzy player match found for " + playerNameInput;
-                                        confirmNeeded = true;
-                                        return true;
-                                    }
-                                    else
-                                    {
-                                        ConsoleError("Player suggestion found matching player, but it could not be fetched.");
-                                        return false;
-                                    }
-                                }
-                                ConsoleError("Unable to find a matching player.");
-                                return false;
-                            }
-                            else {
-                                aPlayer = FetchPlayer(false, true, true, null, -1, playerNameInput, null, null);
-                                if (aPlayer == null) {
-                                    return false;
-                                }
-                                resultMessage = "Offline player found.";
-                                aPlayer.player_online = false;
-                                confirmNeeded = true;
-                                return true;
-                            }
-                        }
+                        ConsoleError("Player suggestion found matching player, but it could not be fetched.");
+                        return false;
                     }
+                    ConsoleError("Unable to find a matching player.");
+                    return false;
                 }
+                aPlayer = FetchPlayer(false, true, true, null, -1, playerNameInput, null, null);
+                if (aPlayer == null) {
+                    return false;
+                }
+                resultMessage = "Offline player found.";
+                aPlayer.player_online = false;
+                confirmNeeded = true;
+                return true;
             }
             catch (Exception e)
             {
@@ -8636,7 +8470,7 @@ namespace PRoConEvents {
 
                     String targets = "";
                     if (record.TargetPlayersLocal.Any()) {
-                        foreach (var aPlayer in record.TargetPlayersLocal) {
+                        foreach (AdKatsPlayer aPlayer in record.TargetPlayersLocal) {
                             targets += ((aPlayer.player_online) ? ("") : ("[OFFLINE]")) + aPlayer.player_name + ", ";
                         }
                         targets = targets.Trim().TrimEnd(',');
@@ -8671,61 +8505,6 @@ namespace PRoConEvents {
             }
             DebugWrite("Exiting cancelSourcePendingAction", 7);
         }
-
-        /*public void AutoWhitelistPlayers() {
-            try {
-                ConsoleWrite(DateTime.Now.Ticks + " " + (String.IsNullOrEmpty(Thread.CurrentThread.Name)?("mainthread"):(Thread.CurrentThread.Name)) + " preparing to lock at " + new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber()); lock (_PlayerDictionary) {
-                    if (_PlayersToAutoWhitelist > 0) {
-                        var random = new Random();
-                        var playerListCopy = new List<String>();
-                        foreach (AdKatsPlayer player in _PlayerDictionary.Values) {
-                            DebugWrite("Checking for TeamSwap access on " + player.player_name, 6);
-                            if (!HasAccess(player, _CommandKeyDictionary["self_teamswap"])) {
-                                DebugWrite("player doesnt have access, adding them to chance list", 6);
-                                if (!playerListCopy.Contains(player.player_name)) {
-                                    playerListCopy.Add(player.player_name);
-                                }
-                            }
-                        }
-                        if (playerListCopy.Count > 0) {
-                            Int32 maxIndex = (playerListCopy.Count < _PlayersToAutoWhitelist) ? (playerListCopy.Count) : (_PlayersToAutoWhitelist);
-                            DebugWrite("MaxIndex: " + maxIndex, 6);
-                            for (Int32 index = 0; index < maxIndex; index++) {
-                                String playerName = null;
-                                Int32 iterations = 0;
-                                do {
-                                    playerName = playerListCopy[random.Next(0, playerListCopy.Count - 1)];
-                                } while (_TeamswapRoundWhitelist.ContainsKey(playerName) && (iterations++ < 100));
-                                if (!_TeamswapRoundWhitelist.ContainsKey(playerName)) {
-                                    AdKatsPlayer aPlayer = null;
-                                    if (_PlayerDictionary.TryGetValue(playerName, out aPlayer)) {
-                                        //Create the Exception record
-                                        var record = new AdKatsRecord {
-                                                                                   record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                                                   server_id = _ServerID,
-                                                                                   command_type = _CommandKeyDictionary["player_roundwhitelist"],
-                                                                                   command_numeric = 0,
-                                                                                   target_name = aPlayer.player_name,
-                                                                                   target_player = aPlayer,
-                                                                                   source_name = "AdKats",
-                                                                                   record_message = "Round-Whitelisting Player"
-                                                                               };
-                                        //Process the record
-                                        QueueRecordForProcessing(record);
-                                    }
-                                    else {
-                                        ConsoleError("Player was not in player dictionary when calling auto-whitelist.");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e) {
-                HandleException(new AdKatsException("Error while auto-whitelisting players.", e));
-            }
-        }*/
 
         public AdKatsRecord FetchRoundReport(String reportID, Boolean remove) {
             AdKatsRecord reportedRecord = null;
@@ -9195,7 +8974,7 @@ namespace PRoConEvents {
             String message = null;
             try {
                 if (record.command_type == _CommandKeyDictionary["self_teamswap"]) {
-                    if ((record.source_player != null && HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"])) || ((_TeamSwapTicketWindowHigh >= _HighestTicketCount) && (_TeamSwapTicketWindowLow <= _LowestTicketCount))) {
+                    if ((record.source_player != null && HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"])) || ((_TeamSwapTicketWindowHigh >= _highestTicketCount) && (_TeamSwapTicketWindowLow <= _lowestTicketCount))) {
                         message = "Calling Teamswap on self";
                         DebugWrite(message, 6);
                         QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
@@ -9694,10 +9473,10 @@ namespace PRoConEvents {
                     }
                     const string additionalMessage = "";
 
-                    Boolean isLowPop = _OnlyKillOnLowPop && (_PlayerDictionary.Count < _LowPopulationPlayerCount);
+                    Boolean isLowPop = _OnlyKillOnLowPop && (_PlayerDictionary.Count < _lowPopulationPlayerCount);
                     Boolean iroOverride = record.isIRO && _IROOverridesLowPop;
 
-                    DebugWrite("Server low population: " + isLowPop + " (" + _PlayerDictionary.Count + " <? " + _LowPopulationPlayerCount + ") | Override: " + iroOverride, 5);
+                    DebugWrite("Server low population: " + isLowPop + " (" + _PlayerDictionary.Count + " <? " + _lowPopulationPlayerCount + ") | Override: " + iroOverride, 5);
 
                     //Call correct action
                     if (action == "warn") {
@@ -10303,7 +10082,7 @@ namespace PRoConEvents {
             Boolean sourceAA = record.source_player != null && record.source_player.player_aa;
             Int32 onlineAdminCount = FetchOnlineAdminSoldiers().Count;
             String messageLower = record.record_message.ToLower();
-            Boolean canAutoHandle = _UseAAReportAutoHandler && sourceAA && _AutoReportHandleStrings.Any() && !String.IsNullOrEmpty(_AutoReportHandleStrings[0]) && _AutoReportHandleStrings.Any(messageLower.Contains) && !record.target_player.player_aa && !RoleIsInteractionAble(record.target_player.player_role);
+            Boolean canAutoHandle = _UseAAReportAutoHandler && sourceAA && _AutoReportHandleStrings.Any() && !String.IsNullOrEmpty(_AutoReportHandleStrings[0]) && _AutoReportHandleStrings.Any(messageLower.Contains) && !record.target_player.player_aa && !RoleIsAdmin(record.target_player.player_role);
             Boolean adminsOnline = onlineAdminCount > 0;
             String reportMessage = "";
             if (!_isTestingAuthorized || !sourceAA || !adminsOnline) {
@@ -10579,6 +10358,18 @@ namespace PRoConEvents {
                 //If server has rules
                 if (_ServerRulesList.Length > 0)
                 {
+                    if (record.source_name != record.target_name && 
+                        record.target_player != null && 
+                        RoleIsAdmin(record.target_player.player_role)) {
+                        SendMessageToSource(record, ((record.source_name.ToLower().Contains("pepsi"))?("Bad Pepsi. "):("")) + record.target_player.player_name + " is an admin, they already know the server rules.");
+                        //Set the executed bool
+                        record.record_action_executed = true;
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    //If requesting rules on yourself as an admin, rules should be sent to the whole server.
+                    Boolean allPlayers = (record.source_player == null || RoleIsAdmin(record.source_player.player_role)) && 
+                                         (record.target_player == null || record.target_name == record.source_name);
                     var rulePrinter = new Thread(new ThreadStart(delegate
                     {
                         DebugWrite("Starting a rule printer thread.", 5);
@@ -10592,13 +10383,19 @@ namespace PRoConEvents {
                             foreach (string rule in validRules)
                             {
                                 String currentPrefix = (_ServerRulesNumbers) ? ("(" + (++ruleIndex) + "/" + validRules.Count() + ") ") : ("");
-                                if (record.target_player != null)
-                                {
-                                    PlayerSayMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false), 1);
+                                if (allPlayers) {
+                                    AdminSayMessage(currentPrefix + GetPreMessage(rule, false));
                                 }
                                 else
                                 {
-                                    SendMessageToSource(record, currentPrefix + GetPreMessage(rule, false));
+                                    if (record.target_player != null)
+                                    {
+                                        PlayerSayMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false), 1);
+                                    }
+                                    else
+                                    {
+                                        SendMessageToSource(record, currentPrefix + GetPreMessage(rule, false));
+                                    }
                                 }
                                 Thread.Sleep(TimeSpan.FromSeconds(_ServerRulesInterval));
                             }
@@ -10614,8 +10411,7 @@ namespace PRoConEvents {
                     //Start the thread
                     StartAndLogThread(rulePrinter);
 
-                    if (record.source_name != record.target_name)
-                    {
+                    if (record.source_name != record.target_name && !allPlayers) {
                         SendMessageToSource(record, "Telling server rules to " + record.target_name);
                     }
                 }
@@ -10642,7 +10438,7 @@ namespace PRoConEvents {
                     {
                         Thread.CurrentThread.Name = "commandprinter";
 
-                        List<String> fullCommandList = new List<String>();
+                        var fullCommandList = new List<String>();
                         foreach (AdKatsCommand aCommand in _CommandIDDictionary.Values)
                         {
                             if ((record.target_player == null && aCommand.command_active == AdKatsCommand.CommandActive.Active) || HasAccess(record.target_player, aCommand))
@@ -10650,7 +10446,7 @@ namespace PRoConEvents {
                                 fullCommandList.Add("!" + aCommand.command_text);
                             }
                         }
-                        if (record.target_player == null || RoleIsInteractionAble(record.target_player.player_role))
+                        if (record.target_player == null || RoleIsAdmin(record.target_player.player_role))
                         {
                             fullCommandList.AddRange(_ExternalAdminCommands);
                         }
@@ -10711,18 +10507,18 @@ namespace PRoConEvents {
                         Thread.Sleep(500);
                         SendMessageToSource(record, "Server: " + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.ServerUptime), 10));
                         Thread.Sleep(3000);
-                        SendMessageToSource(record, "Procon: " + FormatTimeString(DateTime.UtcNow - _ProconStartTime, 10));
+                        SendMessageToSource(record, "Procon: " + FormatTimeString(DateTime.UtcNow - _proconStartTime, 10));
                         Thread.Sleep(3000);
                         SendMessageToSource(record, "AdKats: " + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 10));
                         Thread.Sleep(3000);
                         SendMessageToSource(record, "Last Player List: " + FormatTimeString(DateTime.UtcNow - _lastSuccessfulPlayerList, 10) + " ago");
                         Thread.Sleep(3000);
-                        SendMessageToSource(record, "Server has been in " + ((_PopulationStatusLow) ? ("low") : ("high")) + " population for " + FormatTimeString(DateTime.UtcNow - _PopulationTransitionTime, 3));
-                        Double totalPopulationDuration = (_PopulationDurationLow.TotalSeconds + _PopulationDurationHigh.TotalSeconds);
+                        SendMessageToSource(record, "Server has been in " + ((_populationStatusLow) ? ("low") : ("high")) + " population for " + FormatTimeString(DateTime.UtcNow - _populationTransitionTime, 3));
+                        Double totalPopulationDuration = (_populationDurationLow.TotalSeconds + _populationDurationHigh.TotalSeconds);
                         if (totalPopulationDuration > 0) {
                             Thread.Sleep(5000);
-                            Double lowPopPercentage = _PopulationDurationLow.TotalSeconds / totalPopulationDuration * 100;
-                            Double highPopPercentage = _PopulationDurationHigh.TotalSeconds / totalPopulationDuration * 100;
+                            Double lowPopPercentage = _populationDurationLow.TotalSeconds / totalPopulationDuration * 100;
+                            Double highPopPercentage = _populationDurationHigh.TotalSeconds / totalPopulationDuration * 100;
                             SendMessageToSource(record, "Population since AdKats start: " + (int) lowPopPercentage + "% low. " + (int) highPopPercentage + "% high.");
                         }
                     }
@@ -10799,7 +10595,7 @@ namespace PRoConEvents {
                                     playerLoc += loc.regionName + ", ";
                                 }
                                 playerLoc += loc.country;
-                                var locRecords = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_changeip"].command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message != "No previous IP on record");
+                                IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_changeip"].command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message != "No previous IP on record");
                                 if (locRecords.Count() > 0)
                                 {
                                     playerLoc += " with " + locRecords.Count() + " IP changes.";
@@ -10808,8 +10604,8 @@ namespace PRoConEvents {
                         }
                         SendMessageToSource(record, "Location: " + playerLoc);
                         Thread.Sleep(2000);
-                        var reportsFrom = _RoundReports.Values.Where(aRecord => aRecord.source_name == record.target_name);
-                        var reportsAgainst = _RoundReports.Values.Where(aRecord => aRecord.target_name == record.target_name);
+                        IEnumerable<AdKatsRecord> reportsFrom = _RoundReports.Values.Where(aRecord => aRecord.source_name == record.target_name);
+                        IEnumerable<AdKatsRecord> reportsAgainst = _RoundReports.Values.Where(aRecord => aRecord.target_name == record.target_name);
                         String playerReps = "None from or against.";
                         if (reportsAgainst.Any() || reportsFrom.Any())
                         {
@@ -10833,7 +10629,7 @@ namespace PRoConEvents {
                         Int64 infPoints = FetchPoints(record.target_player, false);
                         if (infPoints > 0)
                         {
-                            var lastPunish = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_punish"].command_id, 1000, 1, true, false)[0];
+                            AdKatsRecord lastPunish = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_punish"].command_id, 1000, 1, true, false)[0];
                             playerInf = infPoints + " points. Last punishment " + FormatTimeString(DateTime.UtcNow - lastPunish.record_time, 2) + " ago: " + lastPunish.record_message;
                         }
                         SendMessageToSource(record, "Infractions: " + playerInf);
@@ -10841,11 +10637,11 @@ namespace PRoConEvents {
                         SendMessageToSource(record, "Reputation: " + Math.Round(record.target_player.player_reputation, 2));
                         Thread.Sleep(2000);
                         String playerNames = "No previous names.";
-                        var nameRecords = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_changename"].command_id, 1000, 50, true, false);
+                        List<AdKatsRecord> nameRecords = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_changename"].command_id, 1000, 50, true, false);
                         if (nameRecords.Count > 0)
                         {
                             playerNames = record.target_name;
-                            foreach (var nameRecord in nameRecords)
+                            foreach (AdKatsRecord nameRecord in nameRecords)
                             {
                                 playerNames += ", " + nameRecord.record_message;
                             }
@@ -10887,10 +10683,10 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "playerchatprinter";
                         if (record.target_player != null)
                         {
-                            var chatList = FetchChat(record.target_player.player_id, record.command_numeric, 30);
+                            List<KeyValuePair<DateTime, string>> chatList = FetchChat(record.target_player.player_id, record.command_numeric, 30);
                             if (chatList.Any())
                             {
-                                var index = 1;
+                                int index = 1;
                                 foreach (var chatLine in chatList)
                                 {
                                     SendMessageToSource(record, "(" + index++ + ") " + chatLine.Value);
@@ -10903,12 +10699,12 @@ namespace PRoConEvents {
                         }
                         else if (record.TargetPlayersLocal.Count == 2)
                         {
-                            var firstPlayerID = record.TargetPlayersLocal[0].player_id;
-                            var secondPlayerID = record.TargetPlayersLocal[1].player_id;
-                            var chatList = FetchConversation(firstPlayerID, secondPlayerID, record.command_numeric, 30);
+                            long firstPlayerID = record.TargetPlayersLocal[0].player_id;
+                            long secondPlayerID = record.TargetPlayersLocal[1].player_id;
+                            List<KeyValuePair<DateTime, KeyValuePair<string, string>>> chatList = FetchConversation(firstPlayerID, secondPlayerID, record.command_numeric, 30);
                             if (chatList.Any())
                             {
-                                var index = 1;
+                                int index = 1;
                                 foreach (var chatLine in chatList)
                                 {
                                     SendMessageToSource(record, "(" + index++ + "/" + chatLine.Value.Key + ") " + chatLine.Value.Value);
@@ -11010,13 +10806,13 @@ namespace PRoConEvents {
             DebugWrite("Entering ManageAFKPlayers", 6);
             try
             {
-                var afkPlayers = _PlayerDictionary.Values.Where(
+                List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
                     aPlayer =>
                         (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKAutoKickDurationMinutes &&
                         _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
-                        !RoleIsInteractionAble(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKAutoKickMinimumPlayers).ToList();
+                        !RoleIsAdmin(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKAutoKickMinimumPlayers).ToList();
                 if (_AFKIgnoreUserList) {
-                    var userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
+                    IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
                     afkPlayers = afkPlayers.Where(aPlayer => !userSoldierGuids.Contains(aPlayer.player_guid)).ToList();
                 }
                 else {
@@ -11024,8 +10820,8 @@ namespace PRoConEvents {
                 }
                 if (afkPlayers.Any())
                 {
-                    foreach (var aPlayer in afkPlayers) {
-                        var afkTime = FormatTimeString(DateTime.UtcNow - aPlayer.lastAction, 2);
+                    foreach (AdKatsPlayer aPlayer in afkPlayers) {
+                        string afkTime = FormatTimeString(DateTime.UtcNow - aPlayer.lastAction, 2);
                         DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
                         var kickRecord = new AdKatsRecord
                         {
@@ -11406,8 +11202,8 @@ namespace PRoConEvents {
 
         private void FeedStatLoggerSettings() {
             //Every 30 minutes feed stat logger settings
-            if (_LastStatLoggerStatusUpdateTime.AddMinutes(60) < DateTime.UtcNow) {
-                _LastStatLoggerStatusUpdateTime = DateTime.UtcNow;
+            if (_lastStatLoggerStatusUpdateTime.AddMinutes(60) < DateTime.UtcNow) {
+                _lastStatLoggerStatusUpdateTime = DateTime.UtcNow;
                 if (_statLoggerVersion == "BF3") {
                     SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Livescoreboard in DB?", "Yes");
                     if (_isTestingAuthorized) {
@@ -11625,8 +11421,8 @@ namespace PRoConEvents {
 
         private void HandleActiveBanEnforcer() {
             //Call banlist at set interval (20 seconds)
-            if (_UseBanEnforcerPreviousState && (DateTime.UtcNow > _LastBanListCall.AddSeconds(20))) {
-                _LastBanListCall = DateTime.UtcNow;
+            if (_UseBanEnforcerPreviousState && (DateTime.UtcNow > _lastBanListCall.AddSeconds(20))) {
+                _lastBanListCall = DateTime.UtcNow;
                 DebugWrite("banlist.list called at interval.", 6);
                 ExecuteCommand("procon.protected.send", "banList.list");
             }
@@ -11634,7 +11430,7 @@ namespace PRoConEvents {
             FetchNameBanCount();
             FetchGUIDBanCount();
             FetchIPBanCount();
-            if (!_UseBanEnforcerPreviousState || (DateTime.UtcNow > _LastDbBanFetch.AddSeconds(DbBanFetchFrequency))) {
+            if (!_UseBanEnforcerPreviousState || (DateTime.UtcNow > _lastDbBanFetch.AddSeconds(DbBanFetchFrequency))) {
                 //Load all bans on startup
                 if (!_UseBanEnforcerPreviousState) {
                     //Get all bans from procon
@@ -12459,8 +12255,8 @@ namespace PRoConEvents {
             try {
                 DebugWrite("uploadAllSettings starting!", 6);
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof (Boolean), _useKeepAlive));
-                QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (int), _DebugLevel));
-                QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof (String), _DebugSoldierName));
+                QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (int), _debugLevel));
+                QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof (String), _debugSoldierName));
                 QueueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof (String), _ServerVoipAddress));
                 QueueSettingForUpload(new CPluginVariable(@"Rule Print Delay", typeof (Double), _ServerRulesDelay));
                 QueueSettingForUpload(new CPluginVariable(@"Rule Print Interval", typeof (Double), _ServerRulesInterval));
@@ -12501,7 +12297,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Punishment Hierarchy", typeof (String), CPluginVariable.EncodeStringArray(_PunishmentHierarchy)));
                 QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof (Boolean), _CombineServerPunishments));
                 QueueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof (Boolean), _OnlyKillOnLowPop));
-                QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof (Int32), _LowPopulationPlayerCount));
+                QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof (Int32), _lowPopulationPlayerCount));
                 QueueSettingForUpload(new CPluginVariable(@"Use IRO Punishment", typeof (Boolean), _IROActive));
                 QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Overrides Low Pop", typeof (Boolean), _IROOverridesLowPop));
                 QueueSettingForUpload(new CPluginVariable(@"IRO Timeout (Minutes)", typeof(Int32), _IROTimeout));
@@ -12522,7 +12318,6 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Killed Message", typeof (String), _MutedPlayerKillMessage));
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Kicked Message", typeof (String), _MutedPlayerKickMessage));
                 QueueSettingForUpload(new CPluginVariable(@"# Chances to give player before kicking", typeof (Int32), _MutedPlayerChances));
-                QueueSettingForUpload(new CPluginVariable(@"Auto-Whitelist Count", typeof (Int32), _PlayersToAutoWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Ticket Window High", typeof (Int32), _TeamSwapTicketWindowHigh));
                 QueueSettingForUpload(new CPluginVariable(@"Ticket Window Low", typeof (Int32), _TeamSwapTicketWindowLow));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof (Boolean), _EnableAdminAssistantPerk));
@@ -12721,7 +12516,7 @@ namespace PRoConEvents {
             if (_isTestingAuthorized)
                 PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_userCache) {
-                foreach (AdKatsUser user in _userCache.Values.Where(user => RoleIsInteractionAble(user.user_role))) {
+                foreach (AdKatsUser user in _userCache.Values.Where(user => RoleIsAdmin(user.user_role))) {
                     adminSoldiers.AddRange(user.soldierDictionary.Values);
                 }
             }
@@ -12834,7 +12629,7 @@ namespace PRoConEvents {
             if (_isTestingAuthorized)
                 PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_userCache) {
-                foreach (AdKatsUser aUser in _userCache.Values.Where(user => !RoleIsInteractionAble(user.user_role) && user.user_role.role_key != "guest_default"))
+                foreach (AdKatsUser aUser in _userCache.Values.Where(user => !RoleIsAdmin(user.user_role) && user.user_role.role_key != "guest_default"))
                 {
                     elevatedSoldiers.AddRange(aUser.soldierDictionary.Values);
                 }
@@ -12955,7 +12750,7 @@ namespace PRoConEvents {
             if (record.TargetPlayersLocal.Any())
             {
                 record.TargetInnerRecords.Clear();
-                foreach (var aPlayer in record.TargetPlayersLocal)
+                foreach (AdKatsPlayer aPlayer in record.TargetPlayersLocal)
                 {
                     var aRecord = new AdKatsRecord
                     {
@@ -13282,7 +13077,7 @@ namespace PRoConEvents {
             //If record has multiple inner records, update those instead
             if (record.TargetInnerRecords.Any())
             {
-                foreach (var innerRecord in record.TargetInnerRecords)
+                foreach (AdKatsRecord innerRecord in record.TargetInnerRecords)
                 {
                     //Update the inner record with action, numeric, and message, before pushing
                     innerRecord.command_action = record.command_action;
@@ -13481,7 +13276,7 @@ namespace PRoConEvents {
         private List<AdKatsRecord> FetchRecentRecords(Int64? player_id, Int64? command_id, Int64 limit_days, Int64 limit_records, Boolean target_only, Boolean debug)
         {
             DebugWrite("FetchRecentRecords starting!", 6);
-            List<AdKatsRecord> records = new List<AdKatsRecord>();
+            var records = new List<AdKatsRecord>();
             //Make sure database connection active
             if (HandlePossibleDisconnect())
             {
@@ -13708,10 +13503,10 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (_NameBanCount >= 0 && (DateTime.UtcNow - _LastNameBanCountFetch).TotalSeconds < 30) {
+            if (_NameBanCount >= 0 && (DateTime.UtcNow - _lastNameBanCountFetch).TotalSeconds < 30) {
                 return _NameBanCount;
             }
-            _LastNameBanCountFetch = DateTime.UtcNow;
+            _lastNameBanCountFetch = DateTime.UtcNow;
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -13749,10 +13544,10 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (_GUIDBanCount >= 0 && (DateTime.UtcNow - _LastGUIDBanCountFetch).TotalSeconds < 30) {
+            if (_GUIDBanCount >= 0 && (DateTime.UtcNow - _lastGUIDBanCountFetch).TotalSeconds < 30) {
                 return _GUIDBanCount;
             }
-            _LastGUIDBanCountFetch = DateTime.UtcNow;
+            _lastGUIDBanCountFetch = DateTime.UtcNow;
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -13790,10 +13585,10 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (_IPBanCount >= 0 && (DateTime.UtcNow - _LastIPBanCountFetch).TotalSeconds < 30) {
+            if (_IPBanCount >= 0 && (DateTime.UtcNow - _lastIPBanCountFetch).TotalSeconds < 30) {
                 return _IPBanCount;
             }
-            _LastIPBanCountFetch = DateTime.UtcNow;
+            _lastIPBanCountFetch = DateTime.UtcNow;
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -14780,6 +14575,13 @@ namespace PRoConEvents {
                         {
                             query += " AND `tbl_playerdata`.`GameID` = " + _gameID;
                         }
+                        else if (player.game_id > 0) {
+                            query += " AND `tbl_playerdata`.`GameID` = " + player.game_id;
+                        }
+                        else {
+                            ConsoleError("Unusable game IDs when fetching player bans for " + player.player_name + ".");
+                            return aBanList;
+                        }
                         query += " AND (";
                         Boolean started = false;
                         if (!String.IsNullOrEmpty(player.player_name))
@@ -15094,7 +14896,7 @@ namespace PRoConEvents {
                         }
 
                         //Update the last db ban fetch time
-                        _LastDbBanFetch = DateTime.UtcNow;
+                        _lastDbBanFetch = DateTime.UtcNow;
                     }
                 }
             }
@@ -16425,7 +16227,7 @@ namespace PRoConEvents {
                             }
                         }
                         //Debug logging purposes only
-                        if (_DebugLevel > 4) {
+                        if (_debugLevel > 4) {
                             foreach (string key in _specialPlayerGroupCache.Keys) {
                                 List<AdKatsSpecialPlayer> asPlayerList;
                                 if (_specialPlayerGroupCache.TryGetValue(key, out asPlayerList)) {
@@ -16520,7 +16322,7 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return false;
             }
-            if (RoleIsInteractionAble(aPlayer.player_role)) {
+            if (RoleIsAdmin(aPlayer.player_role)) {
                 return false;
             }
             try {
@@ -16754,12 +16556,6 @@ namespace PRoConEvents {
                             }
                         }
                     }
-                    //Pull players from teamswap whitelist
-                    foreach (String tempName in _TeamswapRoundWhitelist.Keys) {
-                        if (!autobalanceWhitelistedPlayers.Contains(tempName)) {
-                            autobalanceWhitelistedPlayers.Add(tempName);
-                        }
-                    }
                     SetExternalPluginSetting("MULTIbalancer", "2 - Exclusions|On Whitelist", "True");
                     SetExternalPluginSetting("MULTIbalancer", "1 - Settings|Whitelist", CPluginVariable.EncodeStringArray(autobalanceWhitelistedPlayers.ToArray()));
                 }
@@ -16948,7 +16744,7 @@ namespace PRoConEvents {
                         //Only add soldiers for the current game
                         if (soldier.game_id == _gameID) {
                             //Only add if players are admins
-                            if (RoleIsInteractionAble(soldier.player_role)) {
+                            if (RoleIsAdmin(soldier.player_role)) {
                                 if (!allowedSpectatorSlotPlayers.Contains(soldier.player_name)) {
                                     allowedSpectatorSlotPlayers.Add(soldier.player_name);
                                 }
@@ -17668,9 +17464,9 @@ namespace PRoConEvents {
             return processedString;
         }
 
-        public Boolean RoleIsInteractionAble(AdKatsRole aRole) {
+        public Boolean RoleIsAdmin(AdKatsRole aRole) {
             if (aRole == null) {
-                ConsoleError("role null in RoleIsInteractionAble");
+                ConsoleError("role null in RoleIsAdmin");
                 return false;
             }
             if (_isTestingAuthorized)
@@ -17979,9 +17775,9 @@ namespace PRoConEvents {
                         return null;
                     }
                 }
-                if (_LastStatLoggerStatusUpdate != null && _LastStatLoggerStatusUpdate.ContainsKey("pluginVersion") && _LastStatLoggerStatusUpdate.ContainsKey("pluginEnabled") && _LastStatLoggerStatusUpdate.ContainsKey("DBHost") && _LastStatLoggerStatusUpdate.ContainsKey("DBPort") && _LastStatLoggerStatusUpdate.ContainsKey("DBName") && _LastStatLoggerStatusUpdate.ContainsKey("DBTimeOffset") && _LastStatLoggerStatusUpdate.ContainsKey("DBConnectionActive") && _LastStatLoggerStatusUpdate.ContainsKey("ChatloggingEnabled") && _LastStatLoggerStatusUpdate.ContainsKey("InstantChatLoggingEnabled") && _LastStatLoggerStatusUpdate.ContainsKey("StatsLoggingEnabled") && _LastStatLoggerStatusUpdate.ContainsKey("DBliveScoreboardEnabled") && _LastStatLoggerStatusUpdate.ContainsKey("DebugMode") && _LastStatLoggerStatusUpdate.ContainsKey("Error")) {
+                if (_lastStatLoggerStatusUpdate != null && _lastStatLoggerStatusUpdate.ContainsKey("pluginVersion") && _lastStatLoggerStatusUpdate.ContainsKey("pluginEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("DBHost") && _lastStatLoggerStatusUpdate.ContainsKey("DBPort") && _lastStatLoggerStatusUpdate.ContainsKey("DBName") && _lastStatLoggerStatusUpdate.ContainsKey("DBTimeOffset") && _lastStatLoggerStatusUpdate.ContainsKey("DBConnectionActive") && _lastStatLoggerStatusUpdate.ContainsKey("ChatloggingEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("InstantChatLoggingEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("StatsLoggingEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("DBliveScoreboardEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("DebugMode") && _lastStatLoggerStatusUpdate.ContainsKey("Error")) {
                     //Response appears to be valid, return it
-                    return _LastStatLoggerStatusUpdate;
+                    return _lastStatLoggerStatusUpdate;
                 }
                 //Response is invalid, throw error and return null
                 ConsoleError("Status response from CChatGUIDStatsLoggerBF3 was not valid.");
@@ -18000,8 +17796,8 @@ namespace PRoConEvents {
                     ConsoleError("Status fetch response handle canceled, no parameters provided.");
                     return;
                 }
-                _LastStatLoggerStatusUpdate = (Hashtable) JSON.JsonDecode(commands[0]);
-                _LastStatLoggerStatusUpdateTime = DateTime.UtcNow;
+                _lastStatLoggerStatusUpdate = (Hashtable) JSON.JsonDecode(commands[0]);
+                _lastStatLoggerStatusUpdateTime = DateTime.UtcNow;
                 _StatLoggerStatusWaitHandle.Set();
             }
             catch (Exception e) {
@@ -18277,7 +18073,7 @@ namespace PRoConEvents {
         }
 
         public void DebugWrite(String msg, Int32 level) {
-            if (_DebugLevel >= level) {
+            if (_debugLevel >= level) {
                 ConsoleWrite(msg, ConsoleMessageType.Normal);
             }
         }
@@ -18451,7 +18247,7 @@ namespace PRoConEvents {
                             Thread.Sleep(3000);
                             var roundTimeSeconds = (Int32) (_roundTimeMinutes * 60);
                             for (Int32 secondsRemaining = roundTimeSeconds; secondsRemaining > 0; secondsRemaining--) {
-                                if (_CurrentRoundState == RoundState.Ended || !_pluginEnabled || !_threadsReady) {
+                                if (_currentRoundState == RoundState.Ended || !_pluginEnabled || !_threadsReady) {
                                     return;
                                 }
                                 if (secondsRemaining == roundTimeSeconds - 60 && secondsRemaining > 60) {
@@ -19054,7 +18850,7 @@ namespace PRoConEvents {
                     lock (Plugin._userCache) {
                         foreach (AdKatsUser aUser in Plugin._userCache.Values) {
                             //Check for not null and default values
-                            if (Plugin.RoleIsInteractionAble(aUser.user_role) && !String.IsNullOrEmpty(aUser.user_email)) {
+                            if (Plugin.RoleIsAdmin(aUser.user_role) && !String.IsNullOrEmpty(aUser.user_email)) {
                                 if (Regex.IsMatch(aUser.user_email, @"^([\w-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([\w-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$")) {
                                     email.Bcc.Add(new MailAddress(aUser.user_email));
                                     someAdded = true;
@@ -19164,7 +18960,7 @@ namespace PRoConEvents {
                                 }
                                 Plugin.DebugWrite("EMAIL: begin reading mail", 6);
                                 MailMessage message = inboundEmailMessages.Dequeue();
-                                if (Plugin._DebugLevel >= 5) {
+                                if (Plugin._debugLevel >= 5) {
                                     Plugin.ConsoleWrite("EMAIL: server: " + SMTPServer);
                                     Plugin.ConsoleWrite("EMAIL: port: " + SMTPPort);
                                     Plugin.ConsoleWrite("EMAIL: user/pass: " + ((!String.IsNullOrEmpty(SMTPUser) && !String.IsNullOrEmpty(SMTPPassword)) ? "OK" : "INVALID"));
@@ -20232,7 +20028,7 @@ namespace PRoConEvents {
                 try {
                     Hashtable statTable = FetchWeaponStats();
                     if (Plugin._gameVersion == GameVersion.BF3) {
-                        //No need for bandwidth, all BF3 weapons are set in stone now.
+                        //No need for download, all BF3 weapons are set in stone now.
                         Weapons = OverloadBF3Weapons();
                         if (Plugin._UseHackerChecker) {
                             Plugin.ConsoleWarn("Downloaded " + Weapons.Count + " " + Plugin._gameVersion + " weapon definitions for hacker checker.");
@@ -20292,15 +20088,6 @@ namespace PRoConEvents {
             public Double damage_max = -1;
             public Double damage_min = -1;
             public String id = null;
-        }
-
-        internal enum SupportedGames {
-            BF_BC2,
-            MOH_2010,
-            BF_3,
-            MOH_2012,
-            BF_4
-            // More, but do you need them?
         }
     }
 }
