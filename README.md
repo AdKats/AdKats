@@ -1420,7 +1420,7 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
 <tr>
     <td><b>Kick All Guests</b></td>
     <td>kickall</td>
-    <td>[none]</td>
+    <td>None</td>
     <td>
         The in-game command used for kicking all players except admins.
     </td>
@@ -1446,15 +1446,15 @@ ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", JSON.J
         OR<br/>
         [chatLines]<br/>
         OR<br/>
-        [player]
+        [player]<br/>
         OR<br/>
-        [chatLines][player]
+        [chatLines][player]<br/>
         OR<br/>
-        self [player]
+        self [player]<br/>
         OR<br/>
-        [chatLines] self [player]
+        [chatLines] self [player]<br/>
         OR<br/>
-        [player1][player2]
+        [player1][player2]<br/>
         OR<br/>
         [chatLines][player1][player2]
     </td>
