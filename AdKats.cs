@@ -6309,8 +6309,8 @@ namespace PRoConEvents {
                                 return;
                             }
                             if (record.command_numeric > _MaxTempBanDuration.TotalMinutes) {
-                                SendMessageToSource(record, "You cannot temp ban for longer than " + FormatTimeString(_MaxTempBanDuration, 2) + ".");
-                                return;
+                                SendMessageToSource(record, "You cannot temp ban for longer than " + FormatTimeString(_MaxTempBanDuration, 2) + ". Defaulting to max temp ban time.");
+                                record.command_numeric = (int)_MaxTempBanDuration.TotalMinutes;
                             }
                         }
 
