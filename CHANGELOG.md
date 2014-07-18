@@ -265,10 +265,10 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <b>Changes</b> <br/>
 <ul>
     <li>Compatibility with BF4 and BF3 in the same version.</li>
-    <li>Certain commands disabled on “Official” BF4 servers.</li>
+    <li>Certain commands disabled on â€œOfficialâ€ BF4 servers.</li>
     <li>Both plugin description fetching and player list processing are now being processed async to avoid procon
         panic.</li>
-    <li>The universal version of XpKiller’s stat logger is now supported. Both versions of stat logger are supported.</li>
+    <li>The universal version of XpKillerâ€™s stat logger is now supported. Both versions of stat logger are supported.</li>
     <li>Source ID has been added to the records table. Records will remain connected to a player even if their name
         changes.</li>
     <li>Player ID is now added to all stored chatlogs. XpKillers chat log table is automatically modified to include
@@ -338,5 +338,143 @@ fine for performance). Right now only Punish and Forgive are required to be logg
     <li><b>Records</b> Logic hole where debug/exception record messages could overwrite main record messages of the same ID has been closed.</li>
     <li><b>Hacker Checker</b> Bug where hacker-checker mesh with BF3Stats was failing has been fixed.</li>
     <li><b>Chat</b> All chat messages are now trimmed before handling, both before and after command prefix parsing.</li>
+</ul>
+<h4>4.2.0.5 (21-MAR-2014)</h4>
+<b>Changes</b><br/>
+<ul>
+    <li><b>Settings.</b> AdKats settings are now stored database side almost exclusively. They have always been stored there, but now have been removed from procon's plugin setting list. The only things remaining plugin side are DB connection settings, setting lock information, and debug level.</li>
+    <li><b>Command Access during Startup.</b> Commands cannot be accessed until the first player listing is complete, all commands issued before this is complete are rejected. Looking at our current systems this usually takes about 1 minute after initial startup. Admins are informed in-game when the startup sequence has completed, and how long it took to complete.
+    </li>
+</ul>
+<b>Enhancements</b><br/>
+<ul>
+    <li><b>Added setting lock.</b> Settings in AdKats can now be locked with a password. This is so you can give lower level admins access to mini-ban-management (and some other basic functions), without endangering your other settings.</li>
+    <li><b>Orchestration Enhancement.</b> Automatic MULTIBalancer whitelisting for admins is now an optional selection.</li>
+    <li><b>Orchestration Enhancement.</b> Automatic reserved slot for the AdKats user list is now an optional selection.</li>
+    <li><b>Orchestration Enhancement.</b> Automatic spectator slot for the AdKats user list is now an optional selection.</li>
+    <li><b>Command Enhancement.</b> Lead command can now be targeted at a player.</li>
+    <li><b>Command Enhancement.</b> Rules command can now be targeted at a player.</li>
+    <li><b>Added uptime command.</b> Debug and information purposes; Gives info on server, procon, and AdKats uptime, along with a couple other things.</li>
+    <li><b>Added assist command.</b> Will move the requesting player to the weak/losing team and thank them for doing so.</li>
+    <li><b>Added spectator slot command.</b> Will add the player to spectator slots for the current server.</li>
+    <li><b>Added reserved slot command.</b> Will add the player to reserved slots for the current server.</li>
+    <li><b>Added disperse command.</b> Will add the player to MULTIBalancer even dispersion for the current server.</li>
+    <li><b>Added whitelist command.</b> Will add the player to MULTIBalancer whitelist for the current server.</li>
+    <li><b>Added logging of player name/IP changes.</b> Now all changes of IP and name are logged for record/tracking purposes.</li>
+    <li><b>Automatic PBSS.</b> An automatic PBSS (Punkbuster Screenshot) is triggered on any player who has the @report or @admin command issued against them.</li>
+    <li><b>Automatic command DB addition.</b> Any new commands I add in new versions of AdKats will not require a special database query from you to add access to them, they will be added automatically.</li>
+    <li><b>Leave Messages for Acted Players</b> Any player who leaves the server after having a command issued on them will trigger a chat message to admins in-game.</li>
+    <li><b>Procon Chat Enhancement</b> Messages intended for online admins are now bold in procon chat window when no admins are in-game.</li>
+    <li><b>Added swapnuke command.</b> This command will move everyone on the server to the opposite team. This is still experimental, and I would suggest taking caution in using it.</li>
+</ul>
+<b>Bugfixes</b><br/>
+<ul>
+    <li><b>Fixed the killme command.</b> Fixed the killme command which was broken by 4.1.0.0.</li>
+    <li><b>Name Ban Fix.</b> Name bans were still enforced if a player changed their name.</li>
+    <li><b>Report IDs.</b> Report IDs when handling round reports were displayed as 0.</li>
+    <li><b>Time Delays.</b> Fixed time delay for rules command before allowing another call.</li>
+    <li><b>Conditional command access.</b> Conditional command access contained loopholes. The only commands affected were @moveme, and @admins.</li>
+    <li><b>Setting feed to stat logger.</b> Setting feed to stat logger has been changed considerably. Settings are now only fed on the hour, and reductions have been made to only required settings.</li>
+    <li><b>Setting Fetch.</b> Settings were not fetched initially on AdKats startup, causing any commands changed in the first 5 minutes of operation to be overwritten by database stored settings. This has been fixed.</li>
+    <li><b>Player listing.</b> Player listing was not called automatically on startup, this caused up to 30 additional seconds where commands were inaccessible. This has been fixed. </li>
+    <li><b>Threading.</b> Major issues with threading have been resolved. One thread was not exiting, so more were being spawned to compensate, causing eventual layer lockup. This has been fixed, and the process is now being monitored.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
+<h4>4.2.1.0 (30-MAR-2014)</h4>
+<b>Enhancements</b><br/>
+<ul>
+    <li><b>Added Report Options.</b> Disabled by default, players can now be told they were reported, and a list of exclusion words can be added. EX: Inform on all reports except ones containing "hack", "aimbot", etc.</li>
+    <li><b>Added contest command.</b> Disabled by default, players can now contest reports with the contest command. The contest command will block initial action by admins on the report ID, telling them the player contested the report and they need to investigate further.</li>
+    <li><b>Enhanced assist command.</b> Some instances of abuse were found with the assist command. It has been changed to avoid this abuse. Ticket loss rate monitoring and a 30 second timeout has been added.</li>
+</ul>
+<b>Bugfixes</b><br/>
+<ul>
+    <li><b>Fixed the admin command report IDs.</b> Report IDs were fixed for the report command, not for the admin command.</li>
+    <li><b>Fixed targeted player spam.</b> Fixed the spam from "targeted player X has left the server".</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
+<h4>5.0.0.0 (17-JUL-2014)</h4>
+<b>Changes</b><br/>
+<ul>
+    <li>Stat logger settings are now immediately fed on AdKats start, and at 1 hour intervals afterward, if the setting enabled.</li>
+    <li>Low population setting now stored in section 1, server settings.</li>
+    <li>Live scoreboard in DB is now force enabled.</li>
+    <li>Player reputation algorithm modified to have a ceiling.</li>
+    <li>Default name of balance whitelist command has been changed to blwhitelist instead of just whitelist.</li>
+    <li>Move command now automatically changes to force move if the player is currently dead.</li>
+</ul>
+<b>Enhancements</b><br/>
+<ul>
+    <li>Added metabans support when using ban enforcer. Both bans and unbans supported.</li>
+    <li>Commands, rules and assist for the time being, now have timeouts on them, specific to targeted players. </li>
+    <li>Added option to remove rule numbers from printing.</li>
+    <li>Low/high population is now tracked over the current running duration.</li>
+    <li>Population statistics are now available using the uptime command.</li>
+    <li>Player report messages completely revamped, now showing extended information about target and source.</li>
+    <li>Additional precautions added to ensure admin powers are assigned properly when database connection goes offline.</li>
+    <li>Added chat history/conversation to report emails.</li>
+    <li>Added fkill command, it bypasses all other kill functionality and issues admin kill on the target immediately.</li>
+    <li>Added remaining time to server-wide ban enforce messages.</li>
+    <li>Reports on players recently acted on by admins are now blocked. 20 second timeout default.</li>
+    <li>Players who have left the server can still be acted on using in-game commands now.</li>
+    <li>Added help command, it lists all commands a player can access.</li>
+    <li>Special player table now has expiration dates for all elements.</li>
+    <li>Whatis command now supports command names, entering a command name will tell the source what that command does.</li>
+    <li>Reporters are now informed when a player they reported leaves the server.</li>
+    <li>Added an expiration date to users.</li>
+    <li>All admins are informed when a kicked player rejoins the server.</li>
+    <li>Added dequeue command. It cancels any queued actions for the player; moves, kills, etc.</li>
+    <li>Added notes line for all users.</li>
+    <li>Commands in the role allowed list now display if they cause a role to be considered "admin".</li>
+    <li>Player reputation system, once private to ADK, is now public.</li>
+    <li>Temp ban command now has a max duration, default 10 years.</li>
+    <li>Added find command, return a player's current team, position, and score.</li>
+    <li>Players targeted with reports (with report notification on), now ensure the player knows they were reported.</li>
+    <li>Reports now have an optional timeout in seconds for admin action. They cannot be acted on by ID before this timeout expires.</li>
+    <li>Online admins are now informed when a player requests server rules.</li>
+    <li>Added automatic AFK kicker after X idle time, optional, with whitelists.</li>
+    <li>Added afk command, activates AFK kicking functionality if automatic action is not enabled.</li>
+    <li>Added secondary confirmation for punishment timeout, avoiding database calls if necessary.</li>
+    <li>Added pull command, pulls a player to your squad, killing them in the process.</li>
+    <li>Added ignore command, ignores round reports.</li>
+    <li>Added mark command, marks a player for notification to admins if they leave the server.</li>
+    <li>Commands can now be used with a period (.) prefix, in addition to all other prefixes.</li>
+    <li>Added pchat command, returns recent chat and conversations from targeted players.</li>
+    <li>Startup sequence notifications to admins have been moved and made more informative.</li>
+    <li>Some commands can now have multiple targets, the first of such being the pchat command.</li>
+    <li>Added pinfo command, gives extensive information about the targeted player.</li>
+    <li>Unban command can now have a custom reason.</li>
+    <li>Added hcwhitelist command, it adds a player to the hacker-checker whitelist, and unbans them if they are banned.</li>
+    <li>Added more information to denied assist command attempts, and still more information given to admins.</li>
+    <li>Added warn to punishment options.</li>
+    <li>Self targeting the rules command as an admin now sends rules to the whole server.</li>
+    <li>Commands are not included in mute enforcement anymore. Optional.</li>
+    <li>Automatic new line has been added to the beginning of all yells in BF4, placing the [ADMIN] tag on a separate line.</li>
+    <li>Added optional first spawn tell to players. Optional, disabled by default.</li>
+    <li>Added logs to procon's event log for all records processed through AdKats.</li>
+    <li>Now using BF4Stats API weapon damage for weapons not in AdKats weapon stat list.</li>
+    <li>Added lock/unlock commands, blocking actions for 10 minutes on players who are locked, except by the locking admin.</li>
+    <li>3rd party plugin settings can now be managed via the database.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+    <li>Automatic unbans for changed names caused record spam.</li>
+    <li>Chat log table trigger had a bug in the player ID assignment which would assign incorrect IDs for players with multiple games in the database.</li>
+    <li>Rules command did not give feedback when targeted at a player.</li>
+    <li>IP change logging caused spam and sometimes duplicated records.</li>
+    <li>Unban command had several performance issues.</li>
+    <li>Some settings were not included in the interval setting pull/push.</li>
+    <li>Ticket rate and ticket count calculations were incorrect, and sometimes completely absent.</li>
+    <li>Teamswap had multiple move errors when multiple people were queued for teamswap.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
 </ul>
 </blockquote>
