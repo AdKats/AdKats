@@ -19,7 +19,7 @@
  * 
  * AdKats.cs
  * Version 5.0.0.0
- * 17-JUL-2014
+ * 18-JUL-2014
  */
 
 using System;
@@ -3640,8 +3640,8 @@ namespace PRoConEvents {
                                 if (!isAlive) {
                                     aRecord.command_type = GetCommandByKey("player_fmove");
                                     aRecord.command_action = GetCommandByKey("player_fmove");
-                                    QueueRecordForActionHandling(aRecord);
                                 }
+                                QueueRecordForActionHandling(aRecord);
                                 break;
                             default:
                                 ConsoleError("Command " + aRecord.command_action.command_key + " not useable in OnPlayerIsAlive");
@@ -15793,290 +15793,290 @@ namespace PRoConEvents {
                                     ConsoleWarn("Removing command " + remCommand.command_key);
                                     _CommandIDDictionary.Remove(remCommand.command_id);
                                 }
-                                Boolean added = false;
+                                Boolean changed = false;
                                 if (!_CommandIDDictionary.ContainsKey(1)) {
                                     SendNonQuery("Adding command 1", "REPLACE INTO `adkats_commands` VALUES(1, 'Active', 'command_confirm', 'Unable', 'Confirm Command', 'yes', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(2)) {
                                     SendNonQuery("Adding command 2", "REPLACE INTO `adkats_commands` VALUES(2, 'Active', 'command_cancel', 'Unable', 'Cancel Command', 'no', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(3)) {
                                     SendNonQuery("Adding command 3", "REPLACE INTO `adkats_commands` VALUES(3, 'Active', 'player_kill', 'Log', 'Kill Player', 'kill', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(4)) {
                                     SendNonQuery("Adding command 4", "REPLACE INTO `adkats_commands` VALUES(4, 'Invisible', 'player_kill_lowpop', 'Log', 'Kill Player (Low Population)', 'lowpopkill', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(5)) {
                                     SendNonQuery("Adding command 5", "REPLACE INTO `adkats_commands` VALUES(5, 'Invisible', 'player_kill_repeat', 'Log', 'Kill Player (Repeat Kill)', 'repeatkill', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(6)) {
                                     SendNonQuery("Adding command 6", "REPLACE INTO `adkats_commands` VALUES(6, 'Active', 'player_kick', 'Log', 'Kick Player', 'kick', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(7)) {
                                     SendNonQuery("Adding command 7", "REPLACE INTO `adkats_commands` VALUES(7, 'Active', 'player_ban_temp', 'Log', 'Temp-Ban Player', 'tban', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(8)) {
                                     SendNonQuery("Adding command 8", "REPLACE INTO `adkats_commands` VALUES(8, 'Active', 'player_ban_perm', 'Log', 'Permaban Player', 'ban', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(9)) {
                                     SendNonQuery("Adding command 9", "REPLACE INTO `adkats_commands` VALUES(9, 'Active', 'player_punish', 'Mandatory', 'Punish Player', 'punish', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(10)) {
                                     SendNonQuery("Adding command 10", "REPLACE INTO `adkats_commands` VALUES(10, 'Active', 'player_forgive', 'Mandatory', 'Forgive Player', 'forgive', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(11)) {
                                     SendNonQuery("Adding command 11", "REPLACE INTO `adkats_commands` VALUES(11, 'Active', 'player_mute', 'Log', 'Mute Player', 'mute', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(12)) {
                                     SendNonQuery("Adding command 12", "REPLACE INTO `adkats_commands` VALUES(12, 'Active', 'player_join', 'Log', 'Join Player', 'join', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
-                                if (!_CommandIDDictionary.ContainsKey(13)) {
-                                    SendNonQuery("Adding command 13", "REPLACE INTO `adkats_commands` VALUES(13, 'Active', 'player_roundwhitelist', 'Ignore', 'Round Whitelist Player', 'roundwhitelist', TRUE)", true);
-                                    added = true;
+                                if (_CommandIDDictionary.ContainsKey(13)) {
+                                    SendNonQuery("Removing command 13", "DELETE FROM `adkats_commands` WHERE `command_id` = 13", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(14)) {
                                     SendNonQuery("Adding command 14", "REPLACE INTO `adkats_commands` VALUES(14, 'Active', 'player_move', 'Log', 'On-Death Move Player', 'move', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(15)) {
                                     SendNonQuery("Adding command 15", "REPLACE INTO `adkats_commands` VALUES(15, 'Active', 'player_fmove', 'Log', 'Force Move Player', 'fmove', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(16)) {
                                     SendNonQuery("Adding command 16", "REPLACE INTO `adkats_commands` VALUES(16, 'Active', 'self_teamswap', 'Log', 'Teamswap Self', 'moveme', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(17)) {
                                     SendNonQuery("Adding command 17", "REPLACE INTO `adkats_commands` VALUES(17, 'Active', 'self_kill', 'Log', 'Kill Self', 'killme', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(18)) {
                                     SendNonQuery("Adding command 18", "REPLACE INTO `adkats_commands` VALUES(18, 'Active', 'player_report', 'Log', 'Report Player', 'report', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(19)) {
                                     SendNonQuery("Adding command 19", "REPLACE INTO `adkats_commands` VALUES(19, 'Invisible', 'player_report_confirm', 'Log', 'Report Player (Confirmed)', 'confirmreport', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(20)) {
                                     SendNonQuery("Adding command 20", "REPLACE INTO `adkats_commands` VALUES(20, 'Active', 'player_calladmin', 'Log', 'Call Admin on Player', 'admin', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(21)) {
                                     SendNonQuery("Adding command 21", "REPLACE INTO `adkats_commands` VALUES(21, 'Active', 'admin_say', 'Log', 'Admin Say', 'say', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(22)) {
                                     SendNonQuery("Adding command 22", "REPLACE INTO `adkats_commands` VALUES(22, 'Active', 'player_say', 'Log', 'Player Say', 'psay', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(23)) {
                                     SendNonQuery("Adding command 23", "REPLACE INTO `adkats_commands` VALUES(23, 'Active', 'admin_yell', 'Log', 'Admin Yell', 'yell', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(24)) {
                                     SendNonQuery("Adding command 24", "REPLACE INTO `adkats_commands` VALUES(24, 'Active', 'player_yell', 'Log', 'Player Yell', 'pyell', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(25)) {
                                     SendNonQuery("Adding command 25", "REPLACE INTO `adkats_commands` VALUES(25, 'Active', 'admin_tell', 'Log', 'Admin Tell', 'tell', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(26)) {
                                     SendNonQuery("Adding command 26", "REPLACE INTO `adkats_commands` VALUES(26, 'Active', 'player_tell', 'Log', 'Player Tell', 'ptell', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(27)) {
                                     SendNonQuery("Adding command 27", "REPLACE INTO `adkats_commands` VALUES(27, 'Active', 'self_whatis', 'Unable', 'What Is', 'whatis', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(28)) {
                                     SendNonQuery("Adding command 28", "REPLACE INTO `adkats_commands` VALUES(28, 'Active', 'self_voip', 'Unable', 'VOIP', 'voip', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(29)) {
                                     SendNonQuery("Adding command 29", "REPLACE INTO `adkats_commands` VALUES(29, 'Active', 'self_rules', 'Log', 'Request Rules', 'rules', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(30)) {
                                     SendNonQuery("Adding command 30", "REPLACE INTO `adkats_commands` VALUES(30, 'Active', 'round_restart', 'Log', 'Restart Current Round', 'restart', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(31)) {
                                     SendNonQuery("Adding command 31", "REPLACE INTO `adkats_commands` VALUES(31, 'Active', 'round_next', 'Log', 'Run Next Round', 'nextlevel', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(32)) {
                                     SendNonQuery("Adding command 32", "REPLACE INTO `adkats_commands` VALUES(32, 'Active', 'round_end', 'Log', 'End Current Round', 'endround', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(33)) {
                                     SendNonQuery("Adding command 33", "REPLACE INTO `adkats_commands` VALUES(33, 'Active', 'server_nuke', 'Log', 'Server Nuke', 'nuke', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(34)) {
                                     SendNonQuery("Adding command 34", "REPLACE INTO `adkats_commands` VALUES(34, 'Active', 'server_kickall', 'Log', 'Kick All Guests', 'kickall', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(35)) {
                                     SendNonQuery("Adding command 35", "REPLACE INTO `adkats_commands` VALUES(35, 'Invisible', 'adkats_exception', 'Mandatory', 'Logged Exception', 'logexception', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(36)) {
                                     SendNonQuery("Adding command 36", "REPLACE INTO `adkats_commands` VALUES(36, 'Invisible', 'banenforcer_enforce', 'Mandatory', 'Enforce Active Ban', 'enforceban', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(37)) {
                                     SendNonQuery("Adding command 37", "REPLACE INTO `adkats_commands` VALUES(37, 'Active', 'player_unban', 'Log', 'Unban Player', 'unban', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(38)) {
                                     SendNonQuery("Adding command 38", "REPLACE INTO `adkats_commands` VALUES(38, 'Active', 'self_admins', 'Log', 'Request Online Admins', 'admins', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(39)) {
                                     SendNonQuery("Adding command 39", "REPLACE INTO `adkats_commands` VALUES(39, 'Active', 'self_lead', 'Log', 'Lead Current Squad', 'lead', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(40)) {
                                     SendNonQuery("Adding command 40", "REPLACE INTO `adkats_commands` VALUES(40, 'Active', 'admin_accept', 'Log', 'Accept Round Report', 'accept', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(41)) {
                                     SendNonQuery("Adding command 41", "REPLACE INTO `adkats_commands` VALUES(41, 'Active', 'admin_deny', 'Log', 'Deny Round Report', 'deny', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(42)) {
                                     SendNonQuery("Adding command 42", "REPLACE INTO `adkats_commands` VALUES(42, 'Invisible', 'player_report_deny', 'Log', 'Report Player (Denied)', 'denyreport', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(43)) {
                                     SendNonQuery("Adding command 43", "REPLACE INTO `adkats_commands` VALUES(43, 'Active', 'server_swapnuke', 'Log', 'SwapNuke Server', 'swapnuke', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(44)) {
                                     SendNonQuery("Adding command 44", "REPLACE INTO `adkats_commands` VALUES(44, 'Active', 'player_blacklistdisperse', 'Log', 'Blacklist Disperse Player', 'disperse', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(45)) {
                                     SendNonQuery("Adding command 45", "REPLACE INTO `adkats_commands` VALUES(45, 'Active', 'player_whitelistbalance', 'Log', 'Autobalance Whitelist Player', 'mbwhitelist', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(46)) {
                                     SendNonQuery("Adding command 46", "REPLACE INTO `adkats_commands` VALUES(46, 'Active', 'player_slotreserved', 'Log', 'Reserved Slot Player', 'reserved', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(47)) {
                                     SendNonQuery("Adding command 47", "REPLACE INTO `adkats_commands` VALUES(47, 'Active', 'player_slotspectator', 'Log', 'Spectator Slot Player', 'spectator', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(48)) {
                                     SendNonQuery("Adding command 48", "REPLACE INTO `adkats_commands` VALUES(48, 'Invisible', 'player_changename', 'Log', 'Player Changed Name', 'changename', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(49)) {
                                     SendNonQuery("Adding command 49", "REPLACE INTO `adkats_commands` VALUES(49, 'Invisible', 'player_changeip', 'Log', 'Player Changed IP', 'changeip', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(50)) {
                                     SendNonQuery("Adding command 50", "REPLACE INTO `adkats_commands` VALUES(50, 'Active', 'player_ban_perm_future', 'Log', 'Future Permaban Player', 'fban', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(51)) {
                                     SendNonQuery("Adding command 51", "REPLACE INTO `adkats_commands` VALUES(51, 'Active', 'self_assist', 'Log', 'Assist Losing Team', 'assist', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 SendNonQuery("Updating command 51 player interaction", "UPDATE `adkats_commands` SET `command_playerInteraction`=0 WHERE `command_id`=51", false);
                                 if (!_CommandIDDictionary.ContainsKey(52)) {
                                     SendNonQuery("Adding command 52", "REPLACE INTO `adkats_commands` VALUES(52, 'Active', 'self_uptime', 'Log', 'Request Uptimes', 'uptime', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(53)) {
                                     SendNonQuery("Adding command 53", "REPLACE INTO `adkats_commands` VALUES(53, 'Active', 'self_contest', 'Log', 'Contest Report', 'contest', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(54)) {
                                     SendNonQuery("Adding command 54", "REPLACE INTO `adkats_commands` VALUES(54, 'Active', 'player_kill_force', 'Log', 'Kill Player (Force)', 'fkill', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(55))
                                 {
                                     SendNonQuery("Adding command 55", "REPLACE INTO `adkats_commands` VALUES(55, 'Active', 'player_info', 'Log', 'Fetch Player Info', 'pinfo', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(56))
                                 {
                                     SendNonQuery("Adding command 56", "REPLACE INTO `adkats_commands` VALUES(56, 'Active', 'player_dequeue', 'Log', 'Dequeue Player Action', 'deq', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(57))
                                 {
                                     SendNonQuery("Adding command 57", "REPLACE INTO `adkats_commands` VALUES(57, 'Active', 'self_help', 'Log', 'Request Server Commands', 'help', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(58))
                                 {
                                     SendNonQuery("Adding command 58", "REPLACE INTO `adkats_commands` VALUES(58, 'Active', 'player_find', 'Log', 'Find Player', 'find', FALSE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(59))
                                 {
                                     SendNonQuery("Adding command 59", "REPLACE INTO `adkats_commands` VALUES(59, 'Active', 'server_afk', 'Log', 'Manage AFK Players', 'afk', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(60))
                                 {
                                     SendNonQuery("Adding command 60", "REPLACE INTO `adkats_commands` VALUES(60, 'Active', 'player_pull', 'Log', 'Pull Player', 'pull', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(61))
                                 {
                                     SendNonQuery("Adding command 61", "REPLACE INTO `adkats_commands` VALUES(61, 'Active', 'admin_ignore', 'Log', 'Ignore Round Report', 'ignore', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(62))
                                 {
                                     SendNonQuery("Adding command 62", "REPLACE INTO `adkats_commands` VALUES(62, 'Invisible', 'player_report_ignore', 'Log', 'Report Player (Ignored)', 'ignorereport', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(63))
                                 {
                                     SendNonQuery("Adding command 63", "REPLACE INTO `adkats_commands` VALUES(63, 'Active', 'player_mark', 'Unable', 'Mark Player', 'mark', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(64))
                                 {
                                     SendNonQuery("Adding command 64", "REPLACE INTO `adkats_commands` VALUES(64, 'Active', 'player_chat', 'Log', 'Fetch Player Chat', 'pchat', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(65))
                                 {
                                     SendNonQuery("Adding command 65", "REPLACE INTO `adkats_commands` VALUES(65, 'Active', 'player_whitelisthackerchecker', 'Log', 'Hacker-Checker Whitelist Player', 'hcwhitelist', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(66))
                                 {
                                     SendNonQuery("Adding command 66", "REPLACE INTO `adkats_commands` VALUES(66, 'Active', 'player_lock', 'Log', 'Lock Player Commands', 'lock', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(67))
                                 {
                                     SendNonQuery("Adding command 67", "REPLACE INTO `adkats_commands` VALUES(67, 'Active', 'player_unlock', 'Log', 'Unlock Player Commands', 'unlock', TRUE)", true);
-                                    added = true;
+                                    changed = true;
                                 }
-                                if (added) {
+                                if (changed) {
                                     FetchCommands();
                                     return;
                                 }
