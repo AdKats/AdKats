@@ -461,10 +461,12 @@ fine for performance). Right now only Punish and Forgive are required to be logg
     <li>Now using BF4Stats API weapon damage for weapons not in AdKats weapon stat list.</li>
     <li>Added lock/unlock commands, blocking actions for 10 minutes on players who are locked, except by the locking admin.</li>
     <li>3rd party plugin settings can now be managed via the database.</li>
+    <li>Greatly improved the performance of "Ban Search" in mini-ban-management section.</li>
 </ul>
 <b>Bugs Fixed</b><br/>
 <ul>
     <li>Automatic unbans for changed names caused record spam.</li>
+    <li>Assist command was unreliable due to ticket/rate logging errors.</li>
     <li>Chat log table trigger had a bug in the player ID assignment which would assign incorrect IDs for players with multiple games in the database.</li>
     <li>Rules command did not give feedback when targeted at a player.</li>
     <li>IP change logging caused spam and sometimes duplicated records.</li>
