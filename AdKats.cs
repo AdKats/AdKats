@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.9.9.0
+ * Version 5.0.0.0
  * 17-JUL-2014
  */
 
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "4.9.9.0";
+        private const String PluginVersion = "5.0.0.0";
 
         public enum ConsoleMessageType {
             Warning,
@@ -8350,7 +8350,7 @@ namespace PRoConEvents {
             else {
                 message = "Failed to issue " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
             }
-            this.ExecuteCommand("procon.protected.events.write", "Plugins", "PluginAction", "AdKats - " + message, record.source_name);
+            this.ExecuteCommand("procon.protected.events.write", "Plugins", "AdKats", message, record.source_name);
         }
 
         public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm, Boolean externalFetchOverFuzzy) {
@@ -16530,7 +16530,7 @@ namespace PRoConEvents {
                                 var asPlayer = new AdKatsSpecialPlayer();
                                 asPlayer.player_group = reader.GetString("player_group"); //0
                                 if (!reader.IsDBNull(1))
-                                    asPlayer.player_object = FetchPlayer(false, false, false, null, reader.GetInt32("player_id"), null, null, null); //1
+                                    asPlayer.player_object = FetchPlayer(false, true, false, null, reader.GetInt32("player_id"), null, null, null); //1
                                 if (!reader.IsDBNull(2))
                                     asPlayer.player_game = reader.GetInt32("player_game"); //2
                                 if (!reader.IsDBNull(3))
