@@ -1612,15 +1612,7 @@ namespace PRoConEvents {
                             if (_isTestingAuthorized)
                                 PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_BanEnforcerSearchResults) {
-                                _BanEnforcerSearchResults = new List<AdKatsBan>();
-                                List<AdKatsPlayer> matchingPlayers;
-                                if (FetchMatchingPlayers(strValue, out matchingPlayers, false)) {
-                                    foreach (AdKatsPlayer aPlayer in matchingPlayers) {
-                                        foreach (AdKatsBan aBan in FetchPlayerBans(aPlayer)) {
-                                            _BanEnforcerSearchResults.Add(aBan);
-                                        }
-                                    }
-                                }
+                                _BanEnforcerSearchResults = FetchMatchingBans(strValue, 5);
                                 if (_BanEnforcerSearchResults.Count == 0) {
                                     ConsoleError("No players matching '" + strValue + "' have active bans.");
                                 }
@@ -6573,7 +6565,6 @@ namespace PRoConEvents {
                         String[] parameters = ParseParameters(remainingMessage, 2);
                         String partialName;
                         List<AdKatsBan> matchingBans;
-                        List<AdKatsPlayer> matchingPlayers;
                         switch (parameters.Length) {
                             case 0:
                                 //Unban the last player you've banned
