@@ -8339,7 +8339,7 @@ namespace PRoConEvents {
                 DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + (DateTime.UtcNow - record.record_time).TotalMilliseconds + "ms to complete.", 3);
             } 
             //Add event log
-            if (String.IsNullOrEmpty(record.target_name) || String.IsNullOrEmpty(record.source_name) || record.command_type == null || record.command_action == null) {
+            if (String.IsNullOrEmpty(record.target_name) || String.IsNullOrEmpty(record.source_name) || record.command_action == null) {
                 ConsoleError("Error in record information, unable to log procon event.");
                 return;
             }
@@ -9163,6 +9163,7 @@ namespace PRoConEvents {
                         }
                     }
                     ExecuteCommand("procon.protected.send", "player.isAlive", record.target_name);
+                    return;
                 }
 
                 QueuePlayerForMove(record.target_player.frostbitePlayerInfo);
