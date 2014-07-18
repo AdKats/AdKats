@@ -1,5 +1,5 @@
 -- AdKats Setup Script by ColColonCleaner
--- Version 4.2.1.0
+-- Version 5.0.0.0
 
 SET FOREIGN_KEY_CHECKS=0;
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
@@ -95,7 +95,7 @@ REPLACE INTO `adkats_commands` VALUES(9, 'Active', 'player_punish', 'Mandatory',
 REPLACE INTO `adkats_commands` VALUES(10, 'Active', 'player_forgive', 'Mandatory', 'Forgive Player', 'forgive', TRUE);
 REPLACE INTO `adkats_commands` VALUES(11, 'Active', 'player_mute', 'Log', 'Mute Player', 'mute', TRUE);
 REPLACE INTO `adkats_commands` VALUES(12, 'Active', 'player_join', 'Log', 'Join Player', 'join', FALSE);
-REPLACE INTO `adkats_commands` VALUES(13, 'Active', 'player_roundwhitelist', 'Ignore', 'Round Whitelist Player', 'roundwhitelist', TRUE);
+-- Command 13 permanently removed
 REPLACE INTO `adkats_commands` VALUES(14, 'Active', 'player_move', 'Log', 'On-Death Move Player', 'move', TRUE);
 REPLACE INTO `adkats_commands` VALUES(15, 'Active', 'player_fmove', 'Log', 'Force Move Player', 'fmove', TRUE);
 REPLACE INTO `adkats_commands` VALUES(16, 'Active', 'self_teamswap', 'Log', 'Teamswap Self', 'moveme', FALSE);
@@ -140,6 +140,16 @@ REPLACE INTO `adkats_commands` VALUES(54, 'Active', 'player_kill_force', 'Log', 
 REPLACE INTO `adkats_commands` VALUES(55, 'Active', 'player_info', 'Log', 'Fetch Player Info', 'pinfo', TRUE);
 REPLACE INTO `adkats_commands` VALUES(56, 'Active', 'player_dequeue', 'Log', 'Dequeue Player Action', 'deq', TRUE);
 REPLACE INTO `adkats_commands` VALUES(57, 'Active', 'self_help', 'Log', 'Request Server Commands', 'help', TRUE);
+REPLACE INTO `adkats_commands` VALUES(58, 'Active', 'player_find', 'Log', 'Find Player', 'find', FALSE);
+REPLACE INTO `adkats_commands` VALUES(59, 'Active', 'server_afk', 'Log', 'Manage AFK Players', 'afk', TRUE);
+REPLACE INTO `adkats_commands` VALUES(60, 'Active', 'player_pull', 'Log', 'Pull Player', 'pull', TRUE);
+REPLACE INTO `adkats_commands` VALUES(61, 'Active', 'admin_ignore', 'Log', 'Ignore Round Report', 'ignore', TRUE);
+REPLACE INTO `adkats_commands` VALUES(62, 'Invisible', 'player_report_ignore', 'Log', 'Report Player (Ignored)', 'ignorereport', TRUE);
+REPLACE INTO `adkats_commands` VALUES(63, 'Active', 'player_mark', 'Unable', 'Mark Player', 'mark', TRUE);
+REPLACE INTO `adkats_commands` VALUES(64, 'Active', 'player_chat', 'Log', 'Fetch Player Chat', 'pchat', TRUE);
+REPLACE INTO `adkats_commands` VALUES(65, 'Active', 'player_whitelisthackerchecker', 'Log', 'Hacker-Checker Whitelist Player', 'hcwhitelist', TRUE);
+REPLACE INTO `adkats_commands` VALUES(66, 'Active', 'player_lock', 'Log', 'Lock Player Commands', 'lock', TRUE);
+REPLACE INTO `adkats_commands` VALUES(67, 'Active', 'player_unlock', 'Log', 'Unlock Player Commands', 'unlock', TRUE);
 
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
   `player_id` int(11) unsigned NOT NULL,
@@ -389,8 +399,30 @@ CREATE TABLE IF NOT EXISTS `adkats_specialplayers`(
   `player_game` tinyint(4) UNSIGNED DEFAULT NULL,
   `player_server` smallint(5) UNSIGNED DEFAULT NULL,
   `player_identifier` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `player_expiration` DATETIME NOT NULL,
   PRIMARY KEY (`specialplayer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Special Player List';
+
+CREATE TABLE `adkats_player_reputation` (
+  `player_id` int(10) unsigned NOT NULL,
+  `game_id` tinyint(4) unsigned NOT NULL,
+  `target_rep` float NOT NULL,
+  `source_rep` float NOT NULL,
+  `total_rep` float NOT NULL,
+  `total_rep_co` float NOT NULL,
+  PRIMARY KEY (`player_id`),
+  KEY `game_id` (`game_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Player Reputation';
+
+CREATE TABLE `adkats_orchestration` (
+	`setting_id` int(10) NOT NULL AUTO_INCREMENT,
+	`setting_server` SMALLINT(5) NOT NULL,
+	`setting_plugin` VARCHAR(100) NOT NULL,
+	`setting_name` VARCHAR(100) NOT NULL,
+	`setting_value` VARCHAR (2000) NOT NULL,
+	PRIMARY KEY (`setting_id`),
+	UNIQUE(`setting_server`, `setting_plugin`, `setting_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Plugin Orchestration';
 
 SET FOREIGN_KEY_CHECKS=1;
 
