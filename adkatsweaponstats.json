@@ -353,7 +353,7 @@
                 {
                         "id":"sw40",
                         "damage_max":56,
-                        "damage_min":28
+                        "damage_min":28 
                 }
         ]
 }
