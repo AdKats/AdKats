@@ -1600,31 +1600,23 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by IP", typeof (Boolean), _DefaultEnforceIP));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Ban Search").Success) {
-                    //Create new thread to run ban search
-                    var banSearchThread = new Thread(new ThreadStart(delegate {
-                        try {
-                            Thread.CurrentThread.Name = "bansearch";
-                            if (String.IsNullOrEmpty(strValue) || strValue.Length < 3) {
-                                ConsoleError("Search query must be 3 or more characters.");
-                                return;
-                            }
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-                            lock (_BanEnforcerSearchResults) {
-                                _BanEnforcerSearchResults = FetchMatchingBans(strValue, 5);
-                                if (_BanEnforcerSearchResults.Count == 0) {
-                                    ConsoleError("No players matching '" + strValue + "' have active bans.");
-                                }
-                            }
+                else if (Regex.Match(strVariable, @"Ban Search").Success)
+                {
+                    if (_isTestingAuthorized)
+                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
+                    if (String.IsNullOrEmpty(strValue) || strValue.Length < 3)
+                    {
+                        ConsoleError("Search query must be 3 or more characters.");
+                        return;
+                    }
+                    lock (_BanEnforcerSearchResults)
+                    {
+                        _BanEnforcerSearchResults = FetchMatchingBans(strValue, 5); 
+                        if (_BanEnforcerSearchResults.Count == 0)
+                        {
+                            ConsoleError("No players matching '" + strValue + "' have active bans.");
                         }
-                        catch (Exception e) {
-                            HandleException(new AdKatsException("Error while running ban search.", e));
-                        }
-                        LogThreadExit();
-                    }));
-                    //Start the thread
-                    StartAndLogThread(banSearchThread);
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Minimum Required Reason Length").Success) {
                     Int32 required = Int32.Parse(strValue);
