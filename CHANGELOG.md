@@ -399,4 +399,84 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
+<h4>5.0.0.0 (17-JUL-2014)</h4>
+<b>Changes</b><br/>
+<ul>
+    <li>Stat logger settings are now immediately fed on AdKats start, and at 1 hour intervals afterward, if the setting enabled.</li>
+    <li>Low population setting now stored in section 1, server settings.</li>
+    <li>Live scoreboard in DB is now force enabled.</li>
+    <li>Player reputation algorithm modified to have a ceiling.</li>
+    <li>Default name of balance whitelist command has been changed to blwhitelist instead of just whitelist.</li>
+    <li>Move command now automatically changes to force move if the player is currently dead.</li>
+</ul>
+<b>Enhancements</b><br/>
+<ul>
+    <li>Added metabans support when using ban enforcer. Both bans and unbans supported.</li>
+    <li>Commands, rules and assist for the time being, now have timeouts on them, specific to targeted players. </li>
+    <li>Added option to remove rule numbers from printing.</li>
+    <li>Low/high population is now tracked over the current running duration.</li>
+    <li>Population statistics are now available using the uptime command.</li>
+    <li>Player report messages completely revamped, now showing extended information about target and source.</li>
+    <li>Additional precautions added to ensure admin powers are assigned properly when database connection goes offline.</li>
+    <li>Added chat history/conversation to report emails.</li>
+    <li>Added fkill command, it bypasses all other kill functionality and issues admin kill on the target immediately.</li>
+    <li>Added remaining time to server-wide ban enforce messages.</li>
+    <li>Reports on players recently acted on by admins are now blocked. 20 second timeout default.</li>
+    <li>Players who have left the server can still be acted on using in-game commands now.</li>
+    <li>Added help command, it lists all commands a player can access.</li>
+    <li>Special player table now has expiration dates for all elements.</li>
+    <li>Whatis command now supports command names, entering a command name will tell the source what that command does.</li>
+    <li>Reporters are now informed when a player they reported leaves the server.</li>
+    <li>Added an expiration date to users.</li>
+    <li>All admins are informed when a kicked player rejoins the server.</li>
+    <li>Added dequeue command. It cancels any queued actions for the player; moves, kills, etc.</li>
+    <li>Added notes line for all users.</li>
+    <li>Commands in the role allowed list now display if they cause a role to be considered "admin".</li>
+    <li>Player reputation system, once private to ADK, is now public.</li>
+    <li>Temp ban command now has a max duration, default 10 years.</li>
+    <li>Added find command, return a player's current team, position, and score.</li>
+    <li>Players targeted with reports (with report notification on), now ensure the player knows they were reported.</li>
+    <li>Reports now have an optional timeout in seconds for admin action. They cannot be acted on by ID before this timeout expires.</li>
+    <li>Online admins are now informed when a player requests server rules.</li>
+    <li>Added automatic AFK kicker after X idle time, optional, with whitelists.</li>
+    <li>Added afk command, activates AFK kicking functionality if automatic action is not enabled.</li>
+    <li>Added secondary confirmation for punishment timeout, avoiding database calls if necessary.</li>
+    <li>Added pull command, pulls a player to your squad, killing them in the process.</li>
+    <li>Added ignore command, ignores round reports.</li>
+    <li>Added mark command, marks a player for notification to admins if they leave the server.</li>
+    <li>Commands can now be used with a period (.) prefix, in addition to all other prefixes.</li>
+    <li>Added pchat command, returns recent chat and conversations from targeted players.</li>
+    <li>Startup sequence notifications to admins have been moved and made more informative.</li>
+    <li>Some commands can now have multiple targets, the first of such being the pchat command.</li>
+    <li>Added pinfo command, gives extensive information about the targeted player.</li>
+    <li>Unban command can now have a custom reason.</li>
+    <li>Added hcwhitelist command, it adds a player to the hacker-checker whitelist, and unbans them if they are banned.</li>
+    <li>Added more information to denied assist command attempts, and still more information given to admins.</li>
+    <li>Added warn to punishment options.</li>
+    <li>Self targeting the rules command as an admin now sends rules to the whole server.</li>
+    <li>Commands are not included in mute enforcement anymore. Optional.</li>
+    <li>Automatic new line has been added to the beginning of all yells in BF4, placing the [ADMIN] tag on a separate line.</li>
+    <li>Added optional first spawn tell to players. Optional, disabled by default.</li>
+    <li>Added logs to procon's event log for all records processed through AdKats.</li>
+    <li>Now using BF4Stats API weapon damage for weapons not in AdKats weapon stat list.</li>
+    <li>Added lock/unlock commands, blocking actions for 10 minutes on players who are locked, except by the locking admin.</li>
+    <li>3rd party plugin settings can now be managed via the database.</li>
+    <li>Greatly improved the performance of "Ban Search" in mini-ban-management section.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+    <li>Automatic unbans for changed names caused record spam.</li>
+    <li>Assist command was unreliable due to ticket/rate logging errors.</li>
+    <li>Chat log table trigger had a bug in the player ID assignment which would assign incorrect IDs for players with multiple games in the database.</li>
+    <li>Rules command did not give feedback when targeted at a player.</li>
+    <li>IP change logging caused spam and sometimes duplicated records.</li>
+    <li>Unban command had several performance issues.</li>
+    <li>Some settings were not included in the interval setting pull/push.</li>
+    <li>Ticket rate and ticket count calculations were incorrect, and sometimes completely absent.</li>
+    <li>Teamswap had multiple move errors when multiple people were queued for teamswap.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
 </blockquote>

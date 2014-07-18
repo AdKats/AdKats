@@ -18,11 +18,12 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 4.2.1.0
- * 30-MAR-2014
+ * Version 5.0.0.0
+ * 18-JUL-2014
  */
 
 using System;
+using System.IO.Compression;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -39,10 +40,14 @@ using PRoCon.Core;
 using PRoCon.Core.Plugin;
 using PRoCon.Core.Plugin.Commands;
 using PRoCon.Core.Players;
+using System.IO;
 
 
 namespace PRoConEvents {
-    public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
+    public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
+    {
+        private const String PluginVersion = "5.0.0.0";
+
         public enum ConsoleMessageType {
             Warning,
             Error,
@@ -56,238 +61,44 @@ namespace PRoConEvents {
             BF4
         };
 
+        //Metabans Ref
+        internal enum SupportedGames
+        {
+            BF_3,
+            BF_4
+        }
+
         public enum RoundState {
             Loaded,
             Playing,
             Ended
         }
-
-        private const String PluginVersion = "4.2.1.0";
+        
+        //State
         private const Boolean FullDebug = false;
         private const Boolean SlowMoOnException = false;
-        private const Int32 DbUserFetchFrequency = 300;
-
-        private const Boolean UseConnectionPooling = true;
-        private const Int32 MinConnectionPoolSize = 0;
-        private const Int32 MaxConnectionPoolSize = 20;
-        private const Boolean UseCompressedConnection = false;
-        private const Int32 DbActionFetchFrequency = 10;
-        private const Int32 DatabaseTimeoutThreshold = 10;
-        private const Int32 DatabaseSuccessThreshold = 5;
-        private const Int32 DbSettingFetchFrequency = 300;
-        private const Int32 DbBanFetchFrequency = 60;
-        private readonly Dictionary<String, AdKatsRecord> _ActOnIsAliveDictionary = new Dictionary<String, AdKatsRecord>();
-        private readonly Dictionary<String, AdKatsRecord> _ActOnSpawnDictionary = new Dictionary<String, AdKatsRecord>();
-        private readonly Dictionary<String, AdKatsRecord> _ActionConfirmDic = new Dictionary<String, AdKatsRecord>();
-        private readonly Queue<AdKatsPlayer> _BanEnforcerCheckingQueue = new Queue<AdKatsPlayer>();
-        private readonly Queue<AdKatsBan> _BanEnforcerProcessingQueue = new Queue<AdKatsBan>();
-        private readonly Queue<CBanInfo> _CBanProcessingQueue = new Queue<CBanInfo>();
-        private readonly Dictionary<long, AdKatsCommand> _CommandIDDictionary = new Dictionary<long, AdKatsCommand>();
-        private readonly Dictionary<String, AdKatsCommand> _CommandKeyDictionary = new Dictionary<String, AdKatsCommand>();
-        private readonly Dictionary<String, AdKatsCommand> _CommandNameDictionary = new Dictionary<String, AdKatsCommand>();
-        private readonly Dictionary<String, DateTime> _commandUsageTimes = new Dictionary<string, DateTime>(); 
-        private readonly Queue<AdKatsCommand> _CommandRemovalQueue = new Queue<AdKatsCommand>();
-        private readonly Dictionary<String, AdKatsCommand> _CommandTextDictionary = new Dictionary<String, AdKatsCommand>();
-        private readonly Queue<AdKatsCommand> _CommandUploadQueue = new Queue<AdKatsCommand>();
-        private readonly Queue<AdKatsPlayer> _HackerCheckerQueue = new Queue<AdKatsPlayer>();
-        private readonly Queue<Kill> _KillProcessingQueue = new Queue<Kill>();
-        private readonly Queue<List<CPlayerInfo>> _PlayerListProcessingQueue = new Queue<List<CPlayerInfo>>();
-        private readonly Queue<CPlayerInfo> _PlayerRemovalProcessingQueue = new Queue<CPlayerInfo>();
-        private readonly DateTime _ProconStartTime = DateTime.UtcNow;
-
-        private readonly List<String> _PunishmentSeverityIndex;
-        private readonly Dictionary<long, AdKatsRole> _RoleIDDictionary = new Dictionary<long, AdKatsRole>();
-        private readonly Dictionary<String, AdKatsRole> _RoleKeyDictionary = new Dictionary<String, AdKatsRole>();
-        private readonly Dictionary<String, AdKatsRole> _RoleNameDictionary = new Dictionary<String, AdKatsRole>();
-        private readonly Queue<AdKatsRole> _RoleRemovalQueue = new Queue<AdKatsRole>();
-        private readonly Queue<AdKatsRole> _RoleUploadQueue = new Queue<AdKatsRole>();
-        private readonly Dictionary<String, Int32> _RoundMutedPlayers = new Dictionary<String, Int32>();
-        private readonly Dictionary<String, AdKatsRecord> _RoundReports = new Dictionary<String, AdKatsRecord>();
-        private readonly Queue<CPluginVariable> _SettingUploadQueue = new Queue<CPluginVariable>();
-        private readonly Queue<CPlayerInfo> _Team1MoveQueue = new Queue<CPlayerInfo>();
-        private readonly Queue<CPlayerInfo> _Team2MoveQueue = new Queue<CPlayerInfo>();
-        private readonly Queue<CPlayerInfo> _TeamswapForceMoveQueue = new Queue<CPlayerInfo>();
-        private readonly Queue<CPlayerInfo> _TeamswapOnDeathCheckingQueue = new Queue<CPlayerInfo>();
-        private readonly Dictionary<String, CPlayerInfo> _TeamswapOnDeathMoveDic = new Dictionary<String, CPlayerInfo>();
-        private readonly Dictionary<String, bool> _TeamswapRoundWhitelist = new Dictionary<String, bool>();
-        private readonly Queue<KeyValuePair<String, String>> _UnparsedCommandQueue = new Queue<KeyValuePair<String, String>>();
-        private readonly Queue<KeyValuePair<String, String>> _UnparsedMessageQueue = new Queue<KeyValuePair<String, String>>();
-        private readonly Queue<AdKatsRecord> _UnprocessedActionQueue = new Queue<AdKatsRecord>();
-        private readonly Queue<AdKatsRecord> _UnprocessedRecordQueue = new Queue<AdKatsRecord>();
-        private readonly Queue<AdKatsUser> _UserRemovalQueue = new Queue<AdKatsUser>();
-        private readonly Queue<AdKatsUser> _UserUploadQueue = new Queue<AdKatsUser>();
-        private readonly EventWaitHandle _WeaponStatsWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
-        private readonly MySqlConnectionStringBuilder _dbCommStringBuilder = new MySqlConnectionStringBuilder();
-        private readonly MatchCommand _fetchAuthorizedSoldiersMatchCommand;
-        private readonly Dictionary<Int64, GameVersion> _gameIDDictionary = new Dictionary<Int64, GameVersion>();
-        private readonly MatchCommand _issueCommandMatchCommand;
-        private readonly Dictionary<String, AdKatsPlayer> _playerDictionary = new Dictionary<String, AdKatsPlayer>();
-        private readonly Dictionary<String, List<AdKatsSpecialPlayer>> _specialPlayerGroupCache = new Dictionary<String, List<AdKatsSpecialPlayer>>();
-        private readonly Dictionary<Int32, AdKatsTeam> _teamDictionary = new Dictionary<Int32, AdKatsTeam>();
-        private readonly Dictionary<long, AdKatsUser> _userCache = new Dictionary<long, AdKatsUser>();
-        public Func<AdKats, AdKatsPlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => (plugin._EnableAdminAssistantPerk && aPlayer.player_aa));
-        private EventWaitHandle _AccessFetchWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _AccessFetchingThread;
-        private Thread _ActionHandlingThread;
-        private EventWaitHandle _ActionHandlingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _Activator;
-        private DateTime _AdKatsStartTime = DateTime.UtcNow;
-        private Boolean _AllowAdminSayCommands = true;
-        public String[] _AutoReportHandleStrings = {};
-        private String _BanAppend = "Appeal at your_site.com";
-        private List<AdKatsBan> _BanEnforcerSearchResults = new List<AdKatsBan>();
-        private Thread _BanEnforcerThread;
-        private EventWaitHandle _BanEnforcerWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Boolean _BansQueuing;
-        private String _CBanAdminName = "BanEnforcer";
-        private Boolean _CombineServerPunishments;
-        private Thread _CommandParsingThread;
-        private EventWaitHandle _CommandParsingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private DateTime _CommandStartTime = DateTime.UtcNow;
-        private List<String> _CurrentReservedSlotPlayers;
-        private RoundState _CurrentRoundState = RoundState.Loaded;
-        private List<String> _CurrentSpectatorListPlayers;
-        private Thread _DatabaseCommunicationThread;
-        private EventWaitHandle _DbCommunicationWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-
-        private volatile Int32 _DebugLevel;
-        private String _DebugSoldierName = "ColColonCleaner";
-        private Boolean _DefaultEnforceGUID = true;
-        private Boolean _DefaultEnforceIP;
-        private Boolean _DefaultEnforceName;
-        private Thread _DisconnectHandlingThread;
-        private Double _DpsTriggerLevel = 50.0;
-        private EmailHandler _EmailHandler;
-        public Boolean _EnableAdminAssistantPerk = true;
-        public Boolean _EnableAdminAssistants = false;
-        private String _ExternalCommandAccessKey = "NoPasswordSet";
-        private Boolean _FeedMultiBalancerDisperseList;
-
-        private Boolean _FeedMultiBalancerWhitelist;
-        private Boolean _FeedMultiBalancerWhitelist_UserCache = true;
-        private Boolean _FeedServerReservedSlots;
-        private Boolean _FeedServerReservedSlots_UserCache = true;
-        private Boolean _FeedServerSpectatorList;
-        private Boolean _FeedServerSpectatorList_UserCache = true;
-        private Boolean _FeedStatLoggerSettings;
-        private Thread _Finalizer;
-        private Int64 _GUIDBanCount = -1;
-        private String _HackerCheckerDPSBanMessage = "DPS Automatic Ban";
-        private String _HackerCheckerHSKBanMessage = "HSK Automatic Ban";
-        private String _HackerCheckerKPMBanMessage = "KPM Automatic Ban";
-        private Thread _HackerCheckerThread;
-        private EventWaitHandle _HackerCheckerWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private volatile Int32 _HighestTicketCount;
-        private Double _HskTriggerLevel = 60.0;
-        private Int64 _IPBanCount = -1;
-        private Boolean _IROActive = true;
-        private Boolean _IROOverridesLowPop;
-        private Int32 _IROTimeout = 10;
-        private Thread _KillProcessingThread;
-        private EventWaitHandle _KillProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Double _KpmTriggerLevel = 5.0;
-        private DateTime _LastBanListCall = DateTime.UtcNow;
-        private DateTime _LastDbBanFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private DateTime _LastGUIDBanCountFetch = DateTime.UtcNow;
-        private DateTime _LastIPBanCountFetch = DateTime.UtcNow;
-        private DateTime _LastNameBanCountFetch = DateTime.UtcNow;
-        private Hashtable _LastStatLoggerStatusUpdate;
-        private DateTime _LastStatLoggerStatusUpdateTime = DateTime.UtcNow;
-        private DateTime _LastSuccessfulBanList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private Int32 _LowPopPlayerCount = 20;
-
-        private volatile Int32 _LowestTicketCount = 500000;
-        private EventWaitHandle _MessageParsingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _MessageProcessingThread;
-        public Int32 _MinimumRequiredMonthlyReports = 10;
-        private Int32 _MutedPlayerChances = 5;
-        private String _MutedPlayerKickMessage = "Talking excessively while muted.";
-        private String _MutedPlayerKillMessage = "Do not talk while muted. You can speak again next round.";
-        private String _MutedPlayerMuteMessage = "You have been muted by an admin, talking will cause punishment. You can speak again next round.";
-        private Int64 _NameBanCount = -1;
-        private Boolean _OnlyKillOnLowPop = true;
-        private DateTime _PermaBanEndTime = DateTime.UtcNow.AddYears(20);
-        private EventWaitHandle _PlayerListUpdateWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _PlayerListingThread;
-        private EventWaitHandle _PlayerProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Boolean _PlayerRoleRefetch;
-        private Int32 _PlayersToAutoWhitelist = 2;
-        private EventWaitHandle _PluginDescriptionWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private List<String> _PreMessageList;
-        private String[] _PunishmentHierarchy = {"kill", "kill", "kick", "tban60", "tban120", "tbanday", "tbanweek", "tban2weeks", "tbanmonth", "ban"};
-        private Boolean _RequirePreMessageUse;
-        private Int32 _RequiredReasonLength = 4;
-        private Dictionary<String, AdKatsPlayer> _RoundCookers = new Dictionary<String, AdKatsPlayer>();
-        private EventWaitHandle _RoundEndingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _RoundTimerThread;
-        private EventWaitHandle _ServerInfoWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-
-        private Double _ServerRulesDelay = 0.5;
-        private Double _ServerRulesInterval = 5;
-        private String[] _ServerRulesList = {"This server has not set rules yet."};
-        private String _ServerVoipAddress = "(TS3) TS.ADKGamers.com:3796";
-        private Boolean _ShowAdminNameInSay;
-        private Boolean _InformReportedPlayers;
-        private String[] _PlayerInformExclusionStrings = { };
-        private StatLibrary _StatLibrary;
-        private EventWaitHandle _StatLoggerStatusWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Thread _TeamSwapThread;
-        private Int32 _TeamSwapTicketWindowHigh = 500000;
-        private Int32 _TeamSwapTicketWindowLow;
-        private EventWaitHandle _TeamswapWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
-        private Boolean _ToldCol;
-        public Boolean _UseAAReportAutoHandler = false;
-        private Boolean _UseBanAppend;
-        private Boolean _UseBanEnforcer;
-        private Boolean _UseBanEnforcerPreviousState;
-        private Boolean _UseDpsChecker;
-        private Boolean _UseEmail;
-        private Boolean _UseGrenadeCookCatcher;
-        private Boolean _UseHackerChecker;
-        private Boolean _UseHskChecker;
-        private Boolean _UseKpmChecker;
-        private Boolean _UseWeaponLimiter;
-        private Boolean _UsingAwa;
-        private Boolean _WeaponCodesTableConfirmed;
-        private Boolean _WeaponCodesTableTested;
-        private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
-        private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
-        private Int32 _YellDuration = 5;
-        private Dictionary<String, Double> _commandSourceReputationDictionary;
-        private Dictionary<String, Double> _commandTargetReputationDictionary;
-        private Boolean _commanderEnabled;
-        private Boolean _databaseConnectionCriticalState;
-        private Int32 _databaseSuccess;
-        private Int32 _databaseTimeouts;
-        private volatile Boolean _dbSettingsChanged = true;
-        private Boolean _fairFightEnabled;
-        private Boolean _fetchActionsFromDb;
-        private volatile Boolean _fetchedPluginInformation;
-        private Boolean _firstPlayerListComplete;
-        private Boolean _forceReloadWholeMags;
-        private Int32 _gameID = -1;
-        private String _gamePatchVersion = "UNKNOWN";
-        private GameVersion _gameVersion = GameVersion.BF3;
-        private Boolean _hitIndicatorEnabled;
-        private Boolean _isTestingAuthorized;
-        private DateTime _lastDatabaseTimeout = DateTime.UtcNow;
-        private DateTime _lastDbActionFetch = DateTime.UtcNow;
-        private DateTime _lastDbSettingFetch = DateTime.UtcNow;
-        private DateTime _lastSuccessfulPlayerList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private DateTime _lastUpdateSettingRequest = DateTime.UtcNow;
-        private DateTime _lastUserFetch = DateTime.UtcNow;
-        private Int32 _maxSpectators = -1;
-        private String _mySqlDatabaseName = "";
-        private String _mySqlHostname = "";
-        private String _mySqlPassword = "";
-        private String _mySqlPort = "";
-        private String _mySqlUsername = "";
+        private Boolean _slowmo;
         private volatile String _pluginChangelog;
         private volatile String _pluginDescription;
         private volatile Boolean _pluginEnabled;
+        private volatile Boolean _threadsReady;
         private volatile String _pluginVersionStatus;
-        private Double _roundTimeMinutes = 30;
+        private volatile Boolean _useKeepAlive;
+        private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
+        private RoundState _currentRoundState = RoundState.Loaded;
+        private Int32 _highestTicketCount;
+        private Int32 _lowestTicketCount = 500000;
+        private volatile Boolean _fetchedPluginInformation;
+        private Boolean _firstPlayerListComplete;
+        private Int32 _gameID = -1;
+        private Boolean _commanderEnabled;
+        private Boolean _fairFightEnabled;
+        private Boolean _forceReloadWholeMags;
+        private Boolean _hitIndicatorEnabled;
+        private String _gamePatchVersion = "UNKNOWN";
+        private Int32 _maxSpectators = -1;
+        private GameVersion _gameVersion = GameVersion.BF3;
+        private Boolean _isTestingAuthorized;
         private Int64 _serverGroup = -1;
         private Int64 _serverID = -1;
         private String _serverIP;
@@ -298,13 +109,301 @@ namespace PRoConEvents {
         private Boolean _settingsFetched;
         private Boolean _settingsLocked;
         private String _settingsPassword;
-        private Boolean _slowmo;
-        private String _statLoggerVersion = "BF3";
-        private volatile Boolean _threadsReady;
-        private Boolean _useExperimentalTools;
-        private volatile Boolean _useKeepAlive;
-        private Boolean _useRoundTimer;
 
+        //Debug
+        private volatile Int32 _debugLevel;
+        private String _debugSoldierName = "ColColonCleaner";
+        private Boolean _toldCol;
+
+        //Timing
+        private readonly DateTime _proconStartTime = DateTime.UtcNow;
+        private DateTime _AdKatsStartTime = DateTime.UtcNow;
+        private DateTime _commandStartTime = DateTime.UtcNow;
+        private DateTime _lastBanListCall = DateTime.UtcNow;
+        private DateTime _lastDbBanFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastGUIDBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastIPBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastNameBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastStatLoggerStatusUpdateTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastSuccessfulBanList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _populationTransitionTime = DateTime.UtcNow;
+        private DateTime _populationUpdateTime = DateTime.UtcNow;
+        private DateTime _lastDatabaseTimeout = DateTime.UtcNow;
+        private DateTime _lastDbActionFetch = DateTime.UtcNow;
+        private DateTime _lastDbSettingFetch = DateTime.UtcNow;
+        private DateTime _lastSuccessfulPlayerList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastUpdateSettingRequest = DateTime.UtcNow;
+        private DateTime _lastUserFetch = DateTime.UtcNow;
+
+        //Server
+        private Boolean _populationStatusLow = true;
+        private Int32 _lowPopulationPlayerCount = 20;
+        private TimeSpan _populationDurationHigh = TimeSpan.Zero;
+        private TimeSpan _populationDurationLow = TimeSpan.Zero;
+
+        //MySQL connection
+        private String _mySqlDatabaseName = "";
+        private String _mySqlHostname = "";
+        private String _mySqlPassword = "";
+        private String _mySqlPort = "";
+        private String _mySqlUsername = "";
+        private readonly MySqlConnectionStringBuilder _dbCommStringBuilder = new MySqlConnectionStringBuilder();
+        private Boolean _fetchActionsFromDb;
+        private const Boolean UseConnectionPooling = true;
+        private const Int32 MinConnectionPoolSize = 0;
+        private const Int32 MaxConnectionPoolSize = 20;
+        private const Boolean UseCompressedConnection = false;
+        private const Int32 DatabaseTimeoutThreshold = 10;
+        private const Int32 DatabaseSuccessThreshold = 5;
+        private Boolean _databaseConnectionCriticalState;
+        private Int32 _databaseSuccess;
+        private Int32 _databaseTimeouts;
+        private volatile Boolean _dbSettingsChanged = true;
+        private Hashtable _lastStatLoggerStatusUpdate;
+        private String _statLoggerVersion = "BF3";
+
+        //Action fetching
+        private const Int32 DbActionFetchFrequency = 10;
+        private const Int32 DbSettingFetchFrequency = 300;
+        private const Int32 DbBanFetchFrequency = 60;
+
+        //Event trigger dictionaries
+        private readonly Dictionary<String, AdKatsRecord> _ActOnIsAliveDictionary = new Dictionary<String, AdKatsRecord>();
+        private readonly Dictionary<String, AdKatsRecord> _ActOnSpawnDictionary = new Dictionary<String, AdKatsRecord>();
+        private readonly Dictionary<String, AdKatsRecord> _ActionConfirmDic = new Dictionary<String, AdKatsRecord>();
+        private readonly Dictionary<String, Int32> _RoundMutedPlayers = new Dictionary<String, Int32>();
+        private readonly Dictionary<String, AdKatsRecord> _RoundReports = new Dictionary<String, AdKatsRecord>();
+
+        //Threads
+        private Thread _Activator;
+        private Thread _Finalizer;
+        private Thread _DatabaseCommunicationThread;
+        private Thread _MessageProcessingThread;
+        private Thread _CommandParsingThread;
+        private Thread _PlayerListingThread;
+        private Thread _TeamSwapThread;
+        private Thread _BanEnforcerThread;
+        private Thread _RoundTimerThread;
+        private Thread _KillProcessingThread;
+        private Thread _HackerCheckerThread;
+        private Thread _DisconnectHandlingThread;
+        private Thread _AccessFetchingThread;
+        private Thread _ActionHandlingThread;
+
+        //Threading queues
+        private readonly Queue<AdKatsPlayer> _BanEnforcerCheckingQueue = new Queue<AdKatsPlayer>();
+        private readonly Queue<AdKatsBan> _BanEnforcerProcessingQueue = new Queue<AdKatsBan>();
+        private readonly Queue<CBanInfo> _CBanProcessingQueue = new Queue<CBanInfo>();
+        private readonly Queue<AdKatsCommand> _CommandRemovalQueue = new Queue<AdKatsCommand>();
+        private readonly Queue<AdKatsCommand> _CommandUploadQueue = new Queue<AdKatsCommand>();
+        private readonly Queue<AdKatsPlayer> _HackerCheckerQueue = new Queue<AdKatsPlayer>();
+        private readonly Queue<Kill> _KillProcessingQueue = new Queue<Kill>();
+        private readonly Queue<List<CPlayerInfo>> _PlayerListProcessingQueue = new Queue<List<CPlayerInfo>>();
+        private readonly Queue<CPlayerInfo> _PlayerRemovalProcessingQueue = new Queue<CPlayerInfo>();
+        private readonly Queue<AdKatsRole> _RoleRemovalQueue = new Queue<AdKatsRole>();
+        private readonly Queue<AdKatsRole> _RoleUploadQueue = new Queue<AdKatsRole>();
+        private readonly Queue<CPluginVariable> _SettingUploadQueue = new Queue<CPluginVariable>();
+        private readonly Queue<KeyValuePair<String, String>> _UnparsedCommandQueue = new Queue<KeyValuePair<String, String>>();
+        private readonly Queue<KeyValuePair<String, String>> _UnparsedMessageQueue = new Queue<KeyValuePair<String, String>>();
+        private readonly Queue<AdKatsRecord> _UnprocessedActionQueue = new Queue<AdKatsRecord>();
+        private readonly Queue<AdKatsRecord> _UnprocessedRecordQueue = new Queue<AdKatsRecord>();
+        private readonly Queue<AdKatsUser> _UserRemovalQueue = new Queue<AdKatsUser>();
+        private readonly Queue<AdKatsUser> _UserUploadQueue = new Queue<AdKatsUser>();
+
+        //Threading wait handles
+        private EventWaitHandle _WeaponStatsWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _AccessFetchWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _TeamswapWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _StatLoggerStatusWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _ServerInfoWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _RoundEndingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _PlayerListUpdateWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _MessageParsingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _KillProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _HackerCheckerWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _DbCommunicationWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _CommandParsingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _BanEnforcerWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _ActionHandlingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _PlayerProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _PluginDescriptionWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+
+        //Procon MatchCommand
+        private readonly MatchCommand _fetchAuthorizedSoldiersMatchCommand;
+        private readonly MatchCommand _issueCommandMatchCommand;
+
+        //Commands global
+        private readonly Dictionary<long, AdKatsCommand> _CommandIDDictionary = new Dictionary<long, AdKatsCommand>();
+        private readonly Dictionary<String, AdKatsCommand> _CommandKeyDictionary = new Dictionary<String, AdKatsCommand>();
+        private readonly Dictionary<String, AdKatsCommand> _CommandNameDictionary = new Dictionary<String, AdKatsCommand>();
+        private readonly Dictionary<String, AdKatsCommand> _CommandTextDictionary = new Dictionary<String, AdKatsCommand>();
+        private readonly Dictionary<String, String> _CommandDescriptionDictionary = new Dictionary<string, string>();
+        private readonly Dictionary<String, Func<AdKats, Double>> _commandTimeoutDictionary = new Dictionary<string, Func<AdKats, double>>();
+        private readonly Dictionary<String, DateTime> _commandUsageTimes = new Dictionary<string, DateTime>();
+        private Boolean _AllowAdminSayCommands = true;
+        private List<String> _ExternalPlayerCommands = new List<string>();
+        private List<String> _ExternalAdminCommands = new List<string>();
+        private Int32 _RequiredReasonLength = 4;
+        //Commands specific
+        private String _ServerVoipAddress = "(TS3) TS.ADKGamers.com:3796";
+        //Dynamic access
+        public Func<AdKats, AdKatsPlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => (plugin._EnableAdminAssistantPerk && aPlayer.player_aa));
+
+        //Roles
+        private readonly Dictionary<long, AdKatsRole> _RoleIDDictionary = new Dictionary<long, AdKatsRole>();
+        private readonly Dictionary<String, AdKatsRole> _RoleKeyDictionary = new Dictionary<String, AdKatsRole>();
+        private readonly Dictionary<String, AdKatsRole> _RoleNameDictionary = new Dictionary<String, AdKatsRole>();
+        private Boolean _PlayerRoleRefetch;
+
+        //Users
+        private const Int32 DbUserFetchFrequency = 300;
+        private readonly Dictionary<long, AdKatsUser> _userCache = new Dictionary<long, AdKatsUser>();
+        private readonly Dictionary<String, List<AdKatsSpecialPlayer>> _specialPlayerGroupCache = new Dictionary<String, List<AdKatsSpecialPlayer>>();
+
+        //Games and teams
+        private readonly Dictionary<Int64, GameVersion> _gameIDDictionary = new Dictionary<Int64, GameVersion>();
+        private readonly Dictionary<Int32, AdKatsTeam> _teamDictionary = new Dictionary<Int32, AdKatsTeam>();
+
+        //Players
+        private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
+        private readonly Dictionary<String, AdKatsPlayer> _PlayerLeftDictionary = new Dictionary<String, AdKatsPlayer>();
+
+        //Punishment settings
+        private readonly List<String> _PunishmentSeverityIndex;
+        private Boolean _CombineServerPunishments;
+        private Boolean _IROActive = true;
+        private Boolean _IROOverridesLowPop;
+        private Int32 _IROTimeout = 10;
+        private Boolean _OnlyKillOnLowPop = true;
+        private String[] _PunishmentHierarchy = { "warn", "kill", "kick", "tban60", "tban120", "tbanday", "tbanweek", "tban2weeks", "tbanmonth", "ban" };
+
+        //Teamswap
+        private Int32 _TeamSwapTicketWindowHigh = 500000;
+        private Int32 _TeamSwapTicketWindowLow;
+        private Queue<CPlayerInfo> _Team1MoveQueue = new Queue<CPlayerInfo>();
+        private Queue<CPlayerInfo> _Team2MoveQueue = new Queue<CPlayerInfo>();
+        private Queue<CPlayerInfo> _TeamswapForceMoveQueue = new Queue<CPlayerInfo>();
+        private Queue<CPlayerInfo> _TeamswapOnDeathCheckingQueue = new Queue<CPlayerInfo>();
+        private readonly Dictionary<String, CPlayerInfo> _TeamswapOnDeathMoveDic = new Dictionary<String, CPlayerInfo>();
+
+        //AFK manager
+        private Boolean _AFKSystemEnable;
+        private Boolean _AFKAutoKickEnable;
+        private Double _AFKAutoKickDurationMinutes = 5;
+        private Int32 _AFKAutoKickMinimumPlayers = 20;
+        private Boolean _AFKIgnoreUserList = true;
+        private String[] _AFKIgnoreRoles = { };
+        private Boolean _AFKIgnoreChat;
+
+        //Ban enforcer
+        private Boolean _UseBanAppend;
+        private String _BanAppend = "Appeal at your_site.com";
+        private Boolean _UseBanEnforcer;
+        private Boolean _UseBanEnforcerPreviousState;
+        private List<AdKatsBan> _BanEnforcerSearchResults = new List<AdKatsBan>();
+        private Boolean _BansQueuing;
+        private String _CBanAdminName = "BanEnforcer";
+        private Boolean _DefaultEnforceGUID = true;
+        private Boolean _DefaultEnforceIP;
+        private Boolean _DefaultEnforceName;
+        private Int64 _GUIDBanCount = -1;
+        private Int64 _IPBanCount = -1;
+        private Int64 _NameBanCount = -1;
+        private readonly DateTime _PermaBanEndTime = DateTime.UtcNow.AddYears(20);
+        private TimeSpan _MaxTempBanDuration = TimeSpan.FromDays(3650);
+        //Metabans
+        private Boolean _useMetabans;
+        private String _metabansAPIKey = "";
+        private Boolean _metabansConnectionConfirmed = false;
+        private String _metabansUsername = "";
+
+        //Reports
+        public String[] _AutoReportHandleStrings = { };
+        private Boolean _InformReportedPlayers;
+        private String[] _PlayerInformExclusionStrings = { };
+        private Int32 _MinimumReportHandleSeconds;
+
+        //Email
+        private Boolean _UseEmail;
+
+        //Muting
+        private Int32 _MutedPlayerChances = 5;
+        private String _MutedPlayerKickMessage = "Talking excessively while muted.";
+        private String _MutedPlayerKillMessage = "Do not talk while muted. You can speak again next round.";
+        private String _MutedPlayerMuteMessage = "You have been muted by an admin, talking will cause punishment. You can speak again next round.";
+        private Boolean _MutedPlayerIgnoreCommands = true;
+
+        //EmailHandler
+        private EmailHandler _EmailHandler;
+
+        //Orchestration
+        private List<String> _CurrentReservedSlotPlayers;
+        private List<String> _CurrentSpectatorListPlayers;
+        private Boolean _FeedMultiBalancerWhitelist;
+        private Boolean _FeedMultiBalancerWhitelist_UserCache = true;
+        private Boolean _FeedMultiBalancerDisperseList;
+        private Boolean _FeedServerReservedSlots;
+        private Boolean _FeedServerReservedSlots_UserCache = true;
+        private Boolean _FeedServerSpectatorList;
+        private Boolean _FeedServerSpectatorList_UserCache;
+        private Boolean _FeedStatLoggerSettings;
+
+        //Hacker-checker
+        private Boolean _UseHackerChecker;
+        private Boolean _UseDpsChecker;
+        private Boolean _UseHskChecker;
+        private Boolean _UseKpmChecker;
+        private Double _DpsTriggerLevel = 50.0;
+        private Double _HskTriggerLevel = 60.0;
+        private Double _KpmTriggerLevel = 5.0;
+        private String _HackerCheckerDPSBanMessage = "DPS Automatic Ban";
+        private String _HackerCheckerHSKBanMessage = "HSK Automatic Ban";
+        private String _HackerCheckerKPMBanMessage = "KPM Automatic Ban";
+
+        //External commands
+        private String _ExternalCommandAccessKey = "NoPasswordSet";
+
+        //Admin assistants
+        public Boolean _EnableAdminAssistantPerk = true;
+        public Boolean _EnableAdminAssistants = false;
+        public Int32 _MinimumRequiredMonthlyReports = 10;
+        public Boolean _UseAAReportAutoHandler = false;
+
+        //Messaging
+        private List<String> _PreMessageList;
+        private Boolean _RequirePreMessageUse;
+        private Boolean _ShowAdminNameInSay;
+        private Int32 _YellDuration = 5;
+        private Boolean _UseFirstSpawnMessage = false;
+        private String _FirstSpawnMessage = "FIRST SPAWN MESSAGE";
+
+        //Rules
+        private Double _ServerRulesDelay = 0.5;
+        private Double _ServerRulesInterval = 5;
+        private String[] _ServerRulesList = { "This server has not set rules yet." };
+        private Boolean _ServerRulesNumbers = true;
+
+        //Round monitor
+        private Boolean _useRoundTimer;
+        private Double _maxRoundTimeMinutes = 30;
+
+        //Reputation
+        private Dictionary<String, Double> _commandSourceReputationDictionary;
+        private Dictionary<String, Double> _commandTargetReputationDictionary;
+
+        //Weapon stats
+        private StatLibrary _StatLibrary;
+
+        //Experimental
+        private Boolean _useExperimentalTools;
+        private Boolean _UsingAwa;
+        private Boolean _WeaponCodesTableTested;
+        private Boolean _WeaponCodesTableConfirmed;
+        private Boolean _UseGrenadeCookCatcher;
+        private Dictionary<String, AdKatsPlayer> _RoundCookers = new Dictionary<String, AdKatsPlayer>();
+        private Boolean _UseWeaponLimiter;
+        private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
+        private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
 
         public AdKats() {
             //Set defaults for webclient
@@ -317,12 +416,13 @@ namespace PRoConEvents {
             _issueCommandMatchCommand = new MatchCommand("AdKats", "IssueCommand", new List<String>(), "AdKats_IssueCommand", new List<MatchArgumentFormat>(), new ExecutionRequirements(ExecutionScope.None), "Useable by other plugins to call AdKats commands.");
             _fetchAuthorizedSoldiersMatchCommand = new MatchCommand("AdKats", "FetchAuthorizedSoldiers", new List<String>(), "AdKats_FetchAuthorizedSoldiers", new List<MatchArgumentFormat>(), new ExecutionRequirements(ExecutionScope.None), "Useable by other plugins to fetch authorized soldiers.");
             //Debug level is 0 by default
-            _DebugLevel = 0;
+            _debugLevel = 0;
             //Randomize the external access key
             _ExternalCommandAccessKey = AdKats.GetRandom32BitHashCode();
 
             //Init the punishment severity index
             _PunishmentSeverityIndex = new List<String> {
+                "warn",
                 "kill",
                 "kick",
                 "tban60",
@@ -346,6 +446,9 @@ namespace PRoConEvents {
 
             //Fetch the plugin description and changelog
             FetchPluginDescAndChangelog();
+
+            //Fill command descriptions
+            FillCommandDescDictionary();
 
             //Prepare the keep-alive
             SetupKeepAlive();
@@ -424,7 +527,7 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Password", typeof (String), _mySqlPassword));
                     }
                     //Debugging Settings
-                    lstReturn.Add(new CPluginVariable("2. Debugging|Debug level", typeof (Int32), _DebugLevel));
+                    lstReturn.Add(new CPluginVariable("2. Debugging|Debug level", typeof (Int32), _debugLevel));
                 }
                 else {
                     if (_settingsLocked) {
@@ -438,8 +541,8 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable(banManagementPrefix + "Ban Search", typeof (String), ""));
                             lstReturn.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(banManagementPrefix + "BAN" + aBan.ban_id + separator + aBan.ban_record.target_player.player_name + separator + aBan.ban_record.source_name + separator + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
                         }
-                        lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _DebugLevel));
-                        lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof (String), _DebugSoldierName));
+                        lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
+                        lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof (String), _debugSoldierName));
                         lstReturn.Add(new CPluginVariable("D99. Debugging|Command Entry", typeof (String), ""));
                         return lstReturn;
                     }
@@ -457,9 +560,6 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Punishment Hierarchy", typeof (String[]), _PunishmentHierarchy));
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Combine Server Punishments", typeof (Boolean), _CombineServerPunishments));
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Only Kill Players when Server in low population", typeof (Boolean), _OnlyKillOnLowPop));
-                    if (_OnlyKillOnLowPop) {
-                        lstReturn.Add(new CPluginVariable("7. Punishment Settings|Low Population Value", typeof (int), _LowPopPlayerCount));
-                    }
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Use IRO Punishment", typeof (Boolean), _IROActive));
                     if (_IROActive) {
                         lstReturn.Add(new CPluginVariable("7. Punishment Settings|IRO Timeout Minutes", typeof (Int32), _IROTimeout));
@@ -498,18 +598,23 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|On-Player-Muted Message", typeof (String), _MutedPlayerMuteMessage));
                     lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|On-Player-Killed Message", typeof (String), _MutedPlayerKillMessage));
                     lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|On-Player-Kicked Message", typeof (String), _MutedPlayerKickMessage));
-                    lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|# Chances to give player before kicking", typeof (int), _MutedPlayerChances));
+                    lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|# Chances to give player before kicking", typeof(int), _MutedPlayerChances));
+                    lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|Ignore commands for mute enforcement", typeof(Boolean), _MutedPlayerIgnoreCommands));
 
                     //Message Settings
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Admin Name in Kick and Ban Announcement", typeof (Boolean), _ShowAdminNameInSay));
-                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
-                    if (_InformReportedPlayers)
-                    {
-                        lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Player Inform Exclusion Strings", typeof(String[]), _PlayerInformExclusionStrings));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Inform players of reports against them", typeof (Boolean), _InformReportedPlayers));
+                    if (_InformReportedPlayers) {
+                        lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Player Inform Exclusion Strings", typeof (String[]), _PlayerInformExclusionStrings));
                     }
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Yell display time seconds", typeof (int), _YellDuration));
-                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Pre-Message List", typeof (String[]), _PreMessageList.ToArray()));
-                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Require Use of Pre-Messages", typeof (Boolean), _RequirePreMessageUse));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Pre-Message List", typeof(String[]), _PreMessageList.ToArray()));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
+                    if (_UseFirstSpawnMessage)
+                    {
+                        lstReturn.Add(new CPluginVariable("A12. Messaging Settings|First spawn message text", typeof(String), _FirstSpawnMessage));
+                    }
 
                     //Ban Settings
                     lstReturn.Add(new CPluginVariable("A13. Banning Settings|Use Additional Ban Message", typeof (Boolean), _UseBanAppend));
@@ -525,6 +630,13 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by NAME", typeof (Boolean), _DefaultEnforceName));
                         lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by GUID", typeof (Boolean), _DefaultEnforceGUID));
                         lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by IP", typeof (Boolean), _DefaultEnforceIP));
+
+                        //Metabans Settings
+                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Use Metabans?", typeof (bool), _useMetabans));
+                        if (_useMetabans) {
+                            lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Metabans Username", typeof (String), _metabansUsername));
+                            lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Metabans API Key", typeof (String), _metabansAPIKey));
+                        }
                     }
 
                     //External Command Settings
@@ -552,7 +664,7 @@ namespace PRoConEvents {
 
                     lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                     if (_useRoundTimer) {
-                        lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Round Duration Minutes", typeof (Double), _roundTimeMinutes));
+                        lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Round Duration Minutes", typeof (Double), _maxRoundTimeMinutes));
                     }
 
                     lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Enable", typeof (Boolean), _UseHackerChecker));
@@ -579,13 +691,29 @@ namespace PRoConEvents {
                     }
 
                     //Server rules Settings
-                    lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Rule Print Delay", typeof (Double), _ServerRulesDelay));
-                    lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Rule Print Interval", typeof (Double), _ServerRulesInterval));
-                    lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Server Rule List", typeof (String[]), _ServerRulesList));
+                    lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Rule Print Delay", typeof(Double), _ServerRulesDelay));
+                    lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Rule Print Interval", typeof(Double), _ServerRulesInterval));
+                    lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Server Rule List", typeof(String[]), _ServerRulesList));
+                    lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
+
+                    //AFK Settings
+                    lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK System Enable", typeof(Boolean), _AFKSystemEnable));
+                    if (_AFKSystemEnable)
+                    {
+                        lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
+                        lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
+                        lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Trigger Minutes", typeof(Double), _AFKAutoKickDurationMinutes));
+                        lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Minimum Players", typeof(Int32), _AFKAutoKickMinimumPlayers));
+                        lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Ignore User List", typeof(Boolean), _AFKIgnoreUserList));
+                        if (!_AFKIgnoreUserList)
+                        {
+                            lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Ignore Roles", typeof(String[]), _AFKIgnoreRoles));
+                        }
+                    }
 
                     //Debug settings
-                    lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _DebugLevel));
-                    lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof (String), _DebugSoldierName));
+                    lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
+                    lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof (String), _debugSoldierName));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Command Entry", typeof (String), ""));
 
                     //Experimental tools
@@ -607,6 +735,7 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("1. Server Settings|Setting Import", typeof (String), _serverID));
                     lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof (int), _serverID));
                     lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof (String), _serverIP));
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Low Population Value", typeof (int), _lowPopulationPlayerCount));
                     if (!_UsingAwa) {
                         const string userSettingsPrefix = "3. User Settings|";
                         //User Settings
@@ -634,22 +763,28 @@ namespace PRoConEvents {
                                 if (_UseEmail) {
                                     lstReturn.Add(new CPluginVariable(userPrefix + "User Email", typeof (String), user.user_email));
                                 }
+                                lstReturn.Add(new CPluginVariable(userPrefix + "User Expiration", typeof(String), user.user_expiration.ToShortDateString()));
+                                lstReturn.Add(new CPluginVariable(userPrefix + "User Notes", typeof(String), user.user_notes));
                                 //Do not display phone input until that operation is available for use
                                 //lstReturn.Add(new CPluginVariable(userPrefix + "User Phone", typeof(String), user.user_phone));
                                 lstReturn.Add(new CPluginVariable(userPrefix + "User Role", roleEnum, user.user_role.role_name));
                                 lstReturn.Add(new CPluginVariable(userPrefix + "Delete User?", typeof (String), ""));
                                 lstReturn.Add(new CPluginVariable(userPrefix + "Add Soldier?", typeof (String), ""));
                                 String soldierPrefix = userPrefix + "Soldiers" + separator;
-                                lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + separator + _gameIDDictionary[aPlayer.game_id] + separator + aPlayer.player_name + separator + "Delete Soldier?", typeof (String), "")));
+
+                                lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + separator + (_gameIDDictionary.ContainsKey(aPlayer.game_id) ? (_gameIDDictionary[aPlayer.game_id].ToString()) : ("INVALID GAME ID [" + aPlayer.game_id + "]")) + separator + aPlayer.player_name + separator + "Delete Soldier?", typeof (String), "")));
                             }
                         }
                         else {
                             lstReturn.Add(new CPluginVariable(userSettingsPrefix + "No Users in User List", typeof (String), "Add Users with 'Add User'."));
                         }
 
-
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Required Reason Length", typeof (int), _RequiredReasonLength));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Allow Commands from Admin Say", typeof (Boolean), _AllowAdminSayCommands));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin player commands", typeof (String[]), _ExternalPlayerCommands.ToArray()));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
 
                         //Role Settings
                         const string roleListPrefix = "4. Role Settings|";
@@ -662,8 +797,16 @@ namespace PRoConEvents {
                                     if (_isTestingAuthorized)
                                         PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                     lock (_CommandNameDictionary) {
-                                        String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + aRole.role_name + separator;
-                                        lstReturn.AddRange(from aCommand in _CommandNameDictionary.Values where aCommand.command_active == AdKatsCommand.CommandActive.Active select new CPluginVariable(rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name, "enum.roleAllowCommandEnum(Allow|Deny)", aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) ? ("Allow") : ("Deny")));
+                                        String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
+                                        foreach (AdKatsCommand aCommand in _CommandNameDictionary.Values) {
+                                            if (aCommand.command_active == AdKatsCommand.CommandActive.Active) {
+                                                String allowEnum = "enum.roleAllowCommandEnum(Allow|Deny)";
+                                                Boolean allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key);
+                                                String display = rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name + ((allowed && aCommand.command_playerInteraction)?(" [ADMIN]"):(""));
+                                                var cVar = new CPluginVariable(display , allowEnum, allowed ? ("Allow") : ("Deny"));
+                                                lstReturn.Add(cVar);
+                                            }
+                                        }
                                         //Do not display the delete option for default guest
                                         if (aRole.role_key != "guest_default") {
                                             lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof (String), ""));
@@ -732,7 +875,7 @@ namespace PRoConEvents {
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof (String), _mySqlUsername));
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof (String), _mySqlPassword));
 
-            lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof (Int32), _DebugLevel));
+            lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof (Int32), _debugLevel));
             return lstReturn;
         }
 
@@ -872,13 +1015,16 @@ namespace PRoConEvents {
                         return;
                     }
                     //Check if the message is a command
-                    if (strValue.StartsWith("@") || strValue.StartsWith("!")) {
+                    if (strValue.StartsWith("@") || strValue.StartsWith("!") || strValue.StartsWith("."))
+                    {
                         strValue = strValue.Substring(1);
                     }
-                    else if (strValue.StartsWith("/@") || strValue.StartsWith("/!")) {
+                    else if (strValue.StartsWith("/@") || strValue.StartsWith("/!") || strValue.StartsWith("/."))
+                    {
                         strValue = strValue.Substring(2);
                     }
-                    else if (strValue.StartsWith("/")) {
+                    else if (strValue.StartsWith("/")) 
+                    {
                         strValue = strValue.Substring(1);
                     }
                     else {
@@ -901,21 +1047,38 @@ namespace PRoConEvents {
                                 ConsoleWrite("Server is priviledged for testing during this instance.");
                             }
                         }
-                        else if (tmp != _DebugLevel) {
-                            _DebugLevel = tmp;
+                        else if (tmp != _debugLevel) {
+                            _debugLevel = tmp;
                             //Once setting has been changed, upload the change to database
-                            QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (int), _DebugLevel));
+                            QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (int), _debugLevel));
                         }
                     }
                 }
                 else if (Regex.Match(strVariable, @"Debug Soldier Name").Success) {
                     if (SoldierNameValid(strValue)) {
-                        if (strValue != _DebugSoldierName) {
-                            _DebugSoldierName = strValue;
+                        if (strValue != _debugSoldierName) {
+                            _debugSoldierName = strValue;
                             //Once setting has been changed, upload the change to database
-                            QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof (String), _DebugSoldierName));
+                            QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof (String), _debugSoldierName));
                         }
                     }
+                }
+                else if (Regex.Match(strVariable, @"Maximum Temp-Ban Duration Minutes").Success)
+                {
+                    Double maxDuration = Double.Parse(strValue);
+                    if (maxDuration <= 0)
+                    {
+                        ConsoleError("Max duration cannot be negative.");
+                        return;
+                    }
+                    TimeSpan tempMaxDur = TimeSpan.FromMinutes(maxDuration);
+                    if (tempMaxDur.TotalDays > 3650) {
+                        ConsoleError("Max duration cannot be longer than 10 years.");
+                        return;
+                    }
+                    _MaxTempBanDuration = tempMaxDur;
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
                 }
                 else if (Regex.Match(strVariable, @"Server VOIP Address").Success) {
                     if (strValue != _ServerVoipAddress) {
@@ -924,34 +1087,127 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof (String), _ServerVoipAddress));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Rule Print Delay").Success) {
+                else if (Regex.Match(strVariable, @"Rule Print Delay").Success)
+                {
                     Double delay = Double.Parse(strValue);
-                    if (_ServerRulesDelay != delay) {
-                        if (delay <= 0) {
+                    if (_ServerRulesDelay != delay)
+                    {
+                        if (delay <= 0)
+                        {
                             ConsoleError("Delay cannot be negative.");
                             delay = 1.0;
                         }
                         _ServerRulesDelay = delay;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Rule Print Delay", typeof (Double), _ServerRulesDelay));
+                        QueueSettingForUpload(new CPluginVariable(@"Rule Print Delay", typeof(Double), _ServerRulesDelay));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Rule Print Interval").Success) {
+                else if (Regex.Match(strVariable, @"Rule Print Interval").Success)
+                {
                     Double interval = Double.Parse(strValue);
-                    if (_ServerRulesInterval != interval) {
-                        if (interval <= 0) {
+                    if (_ServerRulesInterval != interval)
+                    {
+                        if (interval <= 0)
+                        {
                             ConsoleError("Interval cannot be negative.");
                             interval = 5.0;
                         }
                         _ServerRulesInterval = interval;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Rule Print Interval", typeof (Double), _ServerRulesInterval));
+                        QueueSettingForUpload(new CPluginVariable(@"Rule Print Interval", typeof(Double), _ServerRulesInterval));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Server Rule List").Success) {
+                else if (Regex.Match(strVariable, @"Server Rule List").Success)
+                {
                     _ServerRulesList = CPluginVariable.DecodeStringArray(strValue);
                     //Once setting has been changed, upload the change to database
-                    QueueSettingForUpload(new CPluginVariable(@"Server Rule List", typeof (String), CPluginVariable.EncodeStringArray(_ServerRulesList)));
+                    QueueSettingForUpload(new CPluginVariable(@"Server Rule List", typeof(String), CPluginVariable.EncodeStringArray(_ServerRulesList)));
+                }
+                else if (Regex.Match(strVariable, @"Server Rule Numbers").Success)
+                {
+                    Boolean ruleNumbers = Boolean.Parse(strValue);
+                    if (ruleNumbers != _ServerRulesNumbers)
+                    {
+                        _ServerRulesNumbers = ruleNumbers;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"AFK System Enable").Success)
+                {
+                    Boolean afkSystemEnable = Boolean.Parse(strValue);
+                    if (afkSystemEnable != _AFKSystemEnable)
+                    {
+                        _AFKSystemEnable = afkSystemEnable;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKSystemEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"AFK Ignore Chat").Success)
+                {
+                    Boolean afkIgnoreChat = Boolean.Parse(strValue);
+                    if (afkIgnoreChat != _AFKIgnoreChat)
+                    {
+                        _AFKIgnoreChat = afkIgnoreChat;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"AFK Auto-Kick Enable").Success)
+                {
+                    Boolean afkAutoKickEnable = Boolean.Parse(strValue);
+                    if (afkAutoKickEnable != _AFKAutoKickEnable)
+                    {
+                        _AFKAutoKickEnable = afkAutoKickEnable;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"AFK Trigger Minutes").Success)
+                {
+                    Double afkAutoKickDurationMinutes = Double.Parse(strValue);
+                    if (_AFKAutoKickDurationMinutes != afkAutoKickDurationMinutes)
+                    {
+                        if (afkAutoKickDurationMinutes < 0)
+                        {
+                            ConsoleError("Duration cannot be negative.");
+                            return;
+                        }
+                        _AFKAutoKickDurationMinutes = afkAutoKickDurationMinutes;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"AFK Trigger Minutes", typeof(Double), _AFKAutoKickDurationMinutes));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"AFK Minimum Players").Success)
+                {
+                    Int32 afkAutoKickMinimumPlayers = Int32.Parse(strValue);
+                    if (_AFKAutoKickMinimumPlayers != afkAutoKickMinimumPlayers)
+                    {
+                        if (afkAutoKickMinimumPlayers < 0)
+                        {
+                            ConsoleError("Minimum players cannot be negative.");
+                            return;
+                        }
+                        _AFKAutoKickMinimumPlayers = afkAutoKickMinimumPlayers;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"AFK Minimum Players", typeof(Int32), _AFKAutoKickMinimumPlayers));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"AFK Ignore User List").Success)
+                {
+                    Boolean afkIgnoreUserList = Boolean.Parse(strValue);
+                    if (afkIgnoreUserList != _AFKIgnoreUserList)
+                    {
+                        _AFKIgnoreUserList = afkIgnoreUserList;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"AFK Ignore User List", typeof(Boolean), _AFKIgnoreUserList));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"AFK Ignore Roles").Success)
+                {
+                    _AFKIgnoreRoles = CPluginVariable.DecodeStringArray(strValue);
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_AFKIgnoreRoles)));
                 }
                 else if (Regex.Match(strVariable, @"Feed MULTIBalancer Whitelist").Success) {
                     Boolean feedMTBWhite = Boolean.Parse(strValue);
@@ -1068,13 +1324,13 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Round Timer: Round Duration Minutes").Success) {
                     Double duration = Double.Parse(strValue);
-                    if (_roundTimeMinutes != duration) {
+                    if (_maxRoundTimeMinutes != duration) {
                         if (duration <= 0) {
                             duration = 30.0;
                         }
-                        _roundTimeMinutes = duration;
+                        _maxRoundTimeMinutes = duration;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _roundTimeMinutes));
+                        QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _maxRoundTimeMinutes));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use NO EXPLOSIVES Limiter").Success) {
@@ -1344,39 +1600,23 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by IP", typeof (Boolean), _DefaultEnforceIP));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Ban Search").Success) {
-                    //Create new thread to run ban search
-                    var banSearchThread = new Thread(new ThreadStart(delegate {
-                        try {
-                            Thread.CurrentThread.Name = "bansearch";
-                            if (String.IsNullOrEmpty(strValue) || strValue.Length < 3) {
-                                ConsoleError("Search query must be 3 or more characters.");
-                                return;
-                            }
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-                            lock (_BanEnforcerSearchResults) {
-                                _BanEnforcerSearchResults = new List<AdKatsBan>();
-                                List<AdKatsPlayer> matchingPlayers;
-                                if (FetchMatchingPlayers(strValue, out matchingPlayers, false)) {
-                                    foreach (AdKatsPlayer aPlayer in matchingPlayers) {
-                                        foreach (AdKatsBan aBan in FetchPlayerBans(aPlayer)) {
-                                            _BanEnforcerSearchResults.Add(aBan);
-                                        }
-                                    }
-                                }
-                                if (_BanEnforcerSearchResults.Count == 0) {
-                                    ConsoleError("No players matching '" + strValue + "' have active bans.");
-                                }
-                            }
+                else if (Regex.Match(strVariable, @"Ban Search").Success)
+                {
+                    if (_isTestingAuthorized)
+                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
+                    if (String.IsNullOrEmpty(strValue) || strValue.Length < 3)
+                    {
+                        ConsoleError("Search query must be 3 or more characters.");
+                        return;
+                    }
+                    lock (_BanEnforcerSearchResults)
+                    {
+                        _BanEnforcerSearchResults = FetchMatchingBans(strValue, 5); 
+                        if (_BanEnforcerSearchResults.Count == 0)
+                        {
+                            ConsoleError("No players matching '" + strValue + "' have active bans.");
                         }
-                        catch (Exception e) {
-                            HandleException(new AdKatsException("Error while running ban search.", e));
-                        }
-                        LogThreadExit();
-                    }));
-                    //Start the thread
-                    StartAndLogThread(banSearchThread);
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Minimum Required Reason Length").Success) {
                     Int32 required = Int32.Parse(strValue);
@@ -1389,6 +1629,17 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Minimum Required Reason Length", typeof (Int32), _RequiredReasonLength));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Minimum Report Handle Seconds").Success) {
+                    Int32 minimumReportHandleSeconds = Int32.Parse(strValue);
+                    if (_MinimumReportHandleSeconds != minimumReportHandleSeconds) {
+                        _MinimumReportHandleSeconds = minimumReportHandleSeconds;
+                        if (_MinimumReportHandleSeconds < 0) {
+                            _MinimumReportHandleSeconds = 0;
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Minimum Report Handle Seconds", typeof (Int32), _MinimumReportHandleSeconds));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Allow Commands from Admin Say").Success) {
                     Boolean allowSayCommands = Boolean.Parse(strValue);
                     if (_AllowAdminSayCommands != allowSayCommands) {
@@ -1396,6 +1647,18 @@ namespace PRoConEvents {
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Allow Commands from Admin Say", typeof (Boolean), _AllowAdminSayCommands));
                     }
+                }
+                else if (Regex.Match(strVariable, @"External plugin player commands").Success)
+                {
+                    _ExternalPlayerCommands = new List<String>(CPluginVariable.DecodeStringArray(strValue));
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"External plugin player commands", typeof(String), CPluginVariable.EncodeStringArray(_ExternalPlayerCommands.ToArray())));
+                }
+                else if (Regex.Match(strVariable, @"External plugin admin commands").Success)
+                {
+                    _ExternalAdminCommands = new List<String>(CPluginVariable.DecodeStringArray(strValue));
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"External plugin admin commands", typeof(String), CPluginVariable.EncodeStringArray(_ExternalAdminCommands.ToArray())));
                 }
                 else if (strVariable.StartsWith("USR")) {
                     //USR1 | ColColonCleaner | User Email
@@ -1416,11 +1679,32 @@ namespace PRoConEvents {
                             case "User Email":
                                 if (String.IsNullOrEmpty(strValue) || Regex.IsMatch(strValue, @"^([\w-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([\w-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$")) {
                                     aUser.user_email = strValue;
+                                    //Reupload the user
+                                    QueueUserForUpload(aUser);
                                 }
                                 else {
                                     ConsoleError(strValue + " is an invalid email address.");
                                     return;
                                 }
+                                break;
+                            case "User Expiration":
+                                DateTime newExpiration;
+                                if (DateTime.TryParse(strValue, out newExpiration)) {
+                                    aUser.user_expiration = newExpiration;
+                                    //Reupload the user
+                                    QueueUserForUpload(aUser);
+                                }
+                                else
+                                {
+                                    ConsoleError(strValue + " is an invalid date.");
+                                }
+                                break;
+                            case "User Notes":
+                                if (String.IsNullOrEmpty(strValue)) {
+                                    ConsoleError("User notes cannot be blank.");
+                                    return;
+                                }
+                                aUser.user_notes = strValue;
                                 //Reupload the user
                                 QueueUserForUpload(aUser);
                                 break;
@@ -1557,7 +1841,7 @@ namespace PRoConEvents {
                     }
                 }
                 else if (strVariable.StartsWith("RLE")) {
-                    //Trim off all but the command ID and section
+                    //Trim off all but the role ID and section
                     //RLE1 | Default Guest | CDE3 | Kill Player
 
                     String[] commandSplit = CPluginVariable.DecodeStringArray(strVariable);
@@ -1675,10 +1959,10 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Low Population Value").Success) {
                     Int32 lowPop = Int32.Parse(strValue);
-                    if (lowPop != _LowPopPlayerCount) {
-                        _LowPopPlayerCount = lowPop;
+                    if (lowPop != _lowPopulationPlayerCount) {
+                        _lowPopulationPlayerCount = lowPop;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof (Int32), _LowPopPlayerCount));
+                        QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof (Int32), _lowPopulationPlayerCount));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use IRO Punishment").Success) {
@@ -1702,7 +1986,7 @@ namespace PRoConEvents {
                     if (timeout != _IROTimeout) {
                         _IROTimeout = timeout;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"IRO Timeout (Minutes)", typeof (Int32), _IROTimeout));
+                        QueueSettingForUpload(new CPluginVariable(@"IRO Timeout Minutes", typeof(Int32), _IROTimeout));
                     }
                 }
                 else if (Regex.Match(strVariable, @"MySQL Hostname").Success) {
@@ -1806,6 +2090,33 @@ namespace PRoConEvents {
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable(@"Extra Recipient Email Addresses", typeof (String), strValue));
                 }
+                else if (Regex.Match(strVariable, @"Use Metabans?").Success) {
+                    _useMetabans = Boolean.Parse(strValue);
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable("Use Metabans?", typeof (Boolean), _useMetabans));
+                }
+                else if (Regex.Match(strVariable, @"Metabans API Key").Success) {
+                    if (string.IsNullOrEmpty(strValue)) {
+                        _metabansAPIKey = "";
+                        ConsoleError("No API key for Metabans was given! Canceling Operation.");
+                    }
+                    else {
+                        _metabansAPIKey = strValue;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof (String), _metabansAPIKey));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Metabans Username").Success) {
+                    if (string.IsNullOrEmpty(strValue)) {
+                        _metabansUsername = "";
+                        ConsoleError("No username for Metabans was given! Canceling Operation.");
+                    }
+                    else {
+                        _metabansUsername = strValue;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof (String), _metabansUsername));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"On-Player-Muted Message").Success) {
                     if (_MutedPlayerMuteMessage != strValue) {
                         _MutedPlayerMuteMessage = strValue;
@@ -1836,15 +2147,12 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"# Chances to give player before kicking", typeof (Int32), _MutedPlayerChances));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Auto-Whitelist Count").Success) {
-                    Int32 tmp = 1;
-                    int.TryParse(strValue, out tmp);
-                    if (tmp != _PlayersToAutoWhitelist) {
-                        if (tmp < 0)
-                            tmp = 0;
-                        _PlayersToAutoWhitelist = tmp;
+                else if (Regex.Match(strVariable, @"Ignore commands for mute enforcement").Success) {
+                    Boolean ignoreCommands = Boolean.Parse(strValue);
+                    if (_MutedPlayerIgnoreCommands != ignoreCommands) {
+                        _MutedPlayerIgnoreCommands = ignoreCommands;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Auto-Whitelist Count", typeof (Int32), _PlayersToAutoWhitelist));
+                        QueueSettingForUpload(new CPluginVariable(@"Ignore commands for mute enforcement", typeof(Boolean), _MutedPlayerIgnoreCommands));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Ticket Window High").Success) {
@@ -1897,11 +2205,10 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Use AA Report Auto Handler", typeof (Boolean), _UseAAReportAutoHandler));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Auto-Report-Handler Strings").Success)
-                {
+                else if (Regex.Match(strVariable, @"Auto-Report-Handler Strings").Success) {
                     _AutoReportHandleStrings = CPluginVariable.DecodeStringArray(strValue);
                     //Once setting has been changed, upload the change to database
-                    QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
+                    QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof (String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 }
                 else if (Regex.Match(strVariable, @"Minimum Confirmed Reports Per Month").Success) {
                     Int32 monthlyReports = Int32.Parse(strValue);
@@ -1932,36 +2239,50 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof (Boolean), _RequirePreMessageUse));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Display Admin Name in Kick and Ban Announcement").Success)
+                else if (Regex.Match(strVariable, @"Use first spawn message").Success) {
+                    Boolean useFirstSpawnMessage = Boolean.Parse(strValue);
+                    if (useFirstSpawnMessage != _RequirePreMessageUse) {
+                        _UseFirstSpawnMessage = useFirstSpawnMessage;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"First spawn message text").Success)
                 {
-                    Boolean display = Boolean.Parse(strValue);
-                    if (display != _ShowAdminNameInSay)
+                    if (_FirstSpawnMessage != strValue)
                     {
+                        _FirstSpawnMessage = strValue;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"First spawn message text", typeof(String), _FirstSpawnMessage));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Display Admin Name in Kick and Ban Announcement").Success) {
+                    Boolean display = Boolean.Parse(strValue);
+                    if (display != _ShowAdminNameInSay) {
                         _ShowAdminNameInSay = display;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInSay));
+                        QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof (Boolean), _ShowAdminNameInSay));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Inform players of reports against them").Success)
-                {
+                else if (Regex.Match(strVariable, @"Inform players of reports against them").Success) {
                     Boolean inform = Boolean.Parse(strValue);
-                    if (inform != _InformReportedPlayers)
-                    {
+                    if (inform != _InformReportedPlayers) {
                         _InformReportedPlayers = inform;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
+                        QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof (Boolean), _InformReportedPlayers));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Player Inform Exclusion Strings").Success)
-                {
+                else if (Regex.Match(strVariable, @"Player Inform Exclusion Strings").Success) {
                     _PlayerInformExclusionStrings = CPluginVariable.DecodeStringArray(strValue);
                     //Once setting has been changed, upload the change to database
-                    QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
+                    QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof (String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 }
                 else if (Regex.Match(strVariable, @"Add User").Success) {
                     if (SoldierNameValid(strValue)) {
                         var aUser = new AdKatsUser {
-                            user_name = strValue
+                            user_name = strValue,
+                            user_expiration = DateTime.UtcNow.AddYears(20),
+                            user_notes = "No Notes"
                         };
                         Boolean valid = true;
                         if (_isTestingAuthorized)
@@ -2040,7 +2361,8 @@ namespace PRoConEvents {
             try {
                 //If the finalizer is still alive, inform the user and disable
                 if (_Finalizer != null && _Finalizer.IsAlive) {
-                    ConsoleError("Cannot enable plugin while it is shutting down. Please Wait.");
+                    ConsoleError("Cannot enable plugin while it is shutting down. Please Wait for it to shut down.");
+                    Thread.Sleep(TimeSpan.FromSeconds(2));
                     //Disable the plugin
                     Disable();
                     return;
@@ -2050,7 +2372,7 @@ namespace PRoConEvents {
                     try {
                         Thread.CurrentThread.Name = "enabler";
 
-                        if ((DateTime.UtcNow - _ProconStartTime).TotalSeconds < 10) {
+                        if ((DateTime.UtcNow - _proconStartTime).TotalSeconds < 10) {
                             ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
                             //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
                             for (Int32 index = 5; index > 0; index--) {
@@ -2180,7 +2502,7 @@ namespace PRoConEvents {
                             _UnprocessedRecordQueue.Clear();
                         if (_BanEnforcerCheckingQueue != null)
                             _BanEnforcerCheckingQueue.Clear();
-                        _ToldCol = false;
+                        _toldCol = false;
                         if (_Team2MoveQueue != null)
                             _Team2MoveQueue.Clear();
                         if (_Team1MoveQueue != null)
@@ -2191,8 +2513,10 @@ namespace PRoConEvents {
                             _RoundReports.Clear();
                         if (_RoundMutedPlayers != null)
                             _RoundMutedPlayers.Clear();
-                        if (_playerDictionary != null)
-                            _playerDictionary.Clear();
+                        if (_PlayerDictionary != null)
+                            _PlayerDictionary.Clear();
+                        if (_PlayerLeftDictionary != null)
+                            _PlayerLeftDictionary.Clear();
                         _firstPlayerListComplete = false;
                         if (_userCache != null)
                             _userCache.Clear();
@@ -2208,8 +2532,6 @@ namespace PRoConEvents {
                             _ActOnIsAliveDictionary.Clear();
                         if (_ActionConfirmDic != null)
                             _ActionConfirmDic.Clear();
-                        if (_TeamswapRoundWhitelist != null)
-                            _TeamswapRoundWhitelist.Clear();
                         _slowmo = false;
                         //Now that plugin is disabled, update the settings page to reflect
                         UpdateSettingPage();
@@ -2345,9 +2667,14 @@ namespace PRoConEvents {
                     DateTime lastDatabaseConnectionCheck = DateTime.UtcNow;
                     while (true) {
                         //Check for keep alive every 60 seconds
-                        if (_useKeepAlive && (DateTime.UtcNow - lastKeepAliveCheck).TotalSeconds > 60) {
-                            Enable();
+                        if ((DateTime.UtcNow - lastKeepAliveCheck).TotalSeconds > 60)
+                        {
                             lastKeepAliveCheck = DateTime.UtcNow;
+
+                            //Enable if auto-enable wanted
+                            if (_useKeepAlive) {
+                                Enable();
+                            }
 
                             if (_aliveThreads.Count() >= 20) {
                                 String aliveThreads = "";
@@ -2371,6 +2698,39 @@ namespace PRoConEvents {
                                 };
                                 //Process the record
                                 QueueRecordForProcessing(record);
+                            }
+
+                            //Perform AFK processing
+                            if (_AFKSystemEnable && _AFKAutoKickEnable && (_PlayerDictionary.Count > _AFKAutoKickMinimumPlayers))
+                            {
+                                List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
+                                    aPlayer =>
+                                        (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKAutoKickDurationMinutes &&
+                                        _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
+                                        !RoleIsAdmin(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKAutoKickMinimumPlayers).ToList();
+                                if (_AFKIgnoreUserList) {
+                                    IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
+                                    afkPlayers = afkPlayers.Where(aPlayer => !userSoldierGuids.Contains(aPlayer.player_guid)).ToList();
+                                }
+                                else {
+                                    afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key)).ToList();
+                                }
+                                foreach (AdKatsPlayer aPlayer in afkPlayers) {
+                                    string afkTime = FormatTimeString(DateTime.UtcNow - aPlayer.lastAction, 2);
+                                    DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
+                                    var record = new AdKatsRecord
+                                    {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        server_id = _serverID,
+                                        command_type = _CommandKeyDictionary["player_kick"],
+                                        command_numeric = 0,
+                                        target_name = aPlayer.player_name,
+                                        target_player = aPlayer,
+                                        source_name = "AFKManager",
+                                        record_message = "AFK time exceeded [" + afkTime + " / " + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
+                                    };
+                                    QueueRecordForProcessing(record);
+                                }
                             }
                         }
                         //Check for possible connection interuption every 10 seconds
@@ -2477,6 +2837,7 @@ namespace PRoConEvents {
             DebugWrite("Entering StartThreads", 7);
             try {
                 //Start the main thread
+                OnlineAdminSayMessage("AdKats starting. Fetching user list.");
                 //DB Comm is the heart of AdKats, everything revolves around that thread
                 StartAndLogThread(_DatabaseCommunicationThread);
                 //Other threads are started within the db comm thread
@@ -2532,19 +2893,34 @@ namespace PRoConEvents {
             if (_isTestingAuthorized)
                 PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_teamDictionary) {
-                if (_teamDictionary.ContainsKey(targetTeamID)) {
-                    _teamDictionary.Remove(targetTeamID);
-                }
                 switch (overrideTeamId) {
                     case 0:
+                        //Check for already existing US team
+                        if (_serverInfo.RoundTime > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "US")
+                        {
+                            DebugWrite("Team US already set for team " + targetTeamID + ", cancelling override.", 4);
+                            break;
+                        }
                         _teamDictionary.Add(targetTeamID, new AdKatsTeam(targetTeamID, "US", "US Army", "United States Army"));
-                        DebugWrite("Assigning team ID " + targetTeamID + " to US", 4);
+                        DebugWrite("Assigning team ID " + targetTeamID + " to US ", 4);
                         break;
                     case 1:
+                        //Check for already existing US team
+                        if (_serverInfo.RoundTime > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "RU")
+                        {
+                            DebugWrite("Team RU already set for team " + targetTeamID + ", cancelling override.", 4);
+                            break;
+                        }
                         _teamDictionary.Add(targetTeamID, new AdKatsTeam(targetTeamID, "RU", "Russian Army", "Russian Federation Army"));
                         DebugWrite("Assigning team ID " + targetTeamID + " to RU", 4);
                         break;
                     case 2:
+                        //Check for already existing US team
+                        if (_serverInfo.RoundTime > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "CN")
+                        {
+                            DebugWrite("Team CN already set for team " + targetTeamID + ", cancelling override.", 4);
+                            break;
+                        }
                         _teamDictionary.Add(targetTeamID, new AdKatsTeam(targetTeamID, "CN", "Chinese Army", "Chinese People's Liberation Army"));
                         DebugWrite("Assigning team ID " + targetTeamID + " to CN", 4);
                         break;
@@ -2603,6 +2979,8 @@ namespace PRoConEvents {
                 OnTeamFactionOverride(4, 1);
             }
             else if (_gameVersion == GameVersion.BF4) {
+                _teamDictionary[0] = new AdKatsTeam(0, "Spectator", "Spectators", "Server Spectators");
+                DebugWrite("Assigning team ID " + 0 + " to Spectator", 4);
                 ExecuteCommand("procon.protected.send", "vars.teamFactionOverride");
             }
         }
@@ -2738,26 +3116,44 @@ namespace PRoConEvents {
                             DebugWrite("PLIST: No inbound player lists or removals found. Waiting for Input.", 5);
                             //Wait for input
                             if (!_firstPlayerListComplete) {
-                                OnlineAdminSayMessage("Startup sequence has begun. Commands will be online shortly.");
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
                             _PlayerProcessingWaitHandle.Reset();
                             _PlayerProcessingWaitHandle.WaitOne(Timeout.Infinite);
+                            if (_firstPlayerListComplete) {
+                                //Case where all players are gone after first player list
+                                _lastSuccessfulPlayerList = DateTime.UtcNow;
+                            }
                             continue;
                         }
 
                         if (_isTestingAuthorized)
                             PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-                        lock (_playerDictionary) {
+                        var removedPlayers = new List<string>();
+                        lock (_PlayerDictionary)
+                        {
                             //Firstly, go through removal queue, remove all names, and log them.
-                            var removedPlayers = new List<string>();
                             while (inboundPlayerRemoval.Any()) {
                                 CPlayerInfo playerInfo = inboundPlayerRemoval.Dequeue();
                                 AdKatsPlayer aPlayer;
-                                if (_playerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
+                                if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
                                     if (aPlayer.TargetedRecords.Count > 0 && !aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "player_kick" || aRecord.command_action.command_key == "player_ban_temp" || aRecord.command_action.command_key == "player_ban_perm" || aRecord.command_action.command_key == "banenforcer_enforce" || aRecord.command_action.command_key == "player_changeip" || aRecord.command_action.command_key == "player_changename" || aRecord.command_action.command_key.Contains("self_"))) {
                                         OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server.");
+
+                                        //This terribly needs streamlining but I cant be asked right now...
+                                        List<AdKatsRecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
+                                        var reporters = new Dictionary<string, AdKatsPlayer>();
+                                        foreach (AdKatsRecord report in reports.Where(report => report.source_player != null)) {
+                                            reporters[report.source_player.player_name] = report.source_player;
+                                        }
+                                        foreach (AdKatsPlayer player in reporters.Values) {
+                                            PlayerSayMessage(player.player_name, "Player " + aPlayer.player_name + " you reported has left the server.", 1);
+                                        }
                                     }
+                                    //Add player to the left dictionary
+                                    aPlayer.player_online = false;
+                                    aPlayer.player_firstSpawned = false;
+                                    _PlayerLeftDictionary.Add(aPlayer.player_name, aPlayer);
                                 }
                                 RemovePlayerFromDictionary(playerInfo.SoldierName, false);
                                 removedPlayers.Add(playerInfo.SoldierName);
@@ -2772,6 +3168,7 @@ namespace PRoConEvents {
                                 Int32 team3PC = 0;
                                 Int32 team4PC = 0;
 
+                                Double index = 0;
                                 foreach (CPlayerInfo playerInfo in inboundPlayerList.Where(player => !removedPlayers.Contains(player.SoldierName))) {
                                     if (!_pluginEnabled) {
                                         break;
@@ -2779,32 +3176,96 @@ namespace PRoConEvents {
                                     validPlayers.Add(playerInfo.SoldierName);
                                     //Check if the player is already in the player dictionary
                                     AdKatsPlayer aPlayer = null;
-                                    if (_playerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
+                                    if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
                                         //If they are, only update the internal frostbite player info
-                                        _playerDictionary[playerInfo.SoldierName].frostbitePlayerInfo = playerInfo;
+                                        if (aPlayer.frostbitePlayerInfo.Score != playerInfo.Score || aPlayer.frostbitePlayerInfo.Kills != playerInfo.Kills || aPlayer.frostbitePlayerInfo.Deaths != playerInfo.Deaths) {
+                                            aPlayer.lastAction = DateTime.UtcNow;
+                                        }
+                                        aPlayer.frostbitePlayerInfo = playerInfo;
                                     }
                                     else {
-                                        //If they aren't in the list, fetch their profile from the database
-                                        aPlayer = FetchPlayer(true, false, null, -1, playerInfo.SoldierName, playerInfo.GUID, null);
-                                        if (aPlayer == null) {
-                                            //Do not handle the player if not returned
-                                            continue;
+                                        //Player is not already online, handle fetching
+                                        //First check if the player is rejoining
+                                        aPlayer = _PlayerLeftDictionary.Values.FirstOrDefault(oPlayer => oPlayer.player_guid == playerInfo.GUID);
+                                        if (aPlayer != null) {
+                                            DebugWrite("Player " + playerInfo.SoldierName + " rejoined the server.", 3);
+                                            //Player is re-joining, check for name changes
+                                            if (!String.IsNullOrEmpty(playerInfo.SoldierName) && playerInfo.SoldierName != aPlayer.player_name)
+                                            {
+                                                aPlayer.player_name_previous = aPlayer.player_name;
+                                                aPlayer.player_name = playerInfo.SoldierName;
+                                                var record = new AdKatsRecord
+                                                {
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    server_id = _serverID,
+                                                    command_type = _CommandKeyDictionary["player_changename"],
+                                                    command_numeric = 0,
+                                                    target_name = aPlayer.player_name,
+                                                    target_player = aPlayer,
+                                                    source_name = "AdKats",
+                                                    record_message = aPlayer.player_name_previous
+                                                };
+                                                QueueRecordForProcessing(record);
+                                                DebugWrite(aPlayer.player_name_previous + " changed their name to " + playerInfo.SoldierName + ". Updating the database.", 2);
+                                                UpdatePlayer(aPlayer);
+                                            }
+                                            aPlayer.player_online = true;
+                                            //Remove them from the left dictionary
+                                            _PlayerLeftDictionary.Remove(playerInfo.SoldierName);
+                                            //Add the frostbite player info
+                                            aPlayer.frostbitePlayerInfo = playerInfo;
+                                            //Set their last death/spawn times
+                                            aPlayer.lastDeath = DateTime.UtcNow;
+                                            aPlayer.lastSpawn = DateTime.UtcNow;
+                                            aPlayer.lastAction = DateTime.UtcNow;
+                                            //Add them to the dictionary
+                                            _PlayerDictionary.Add(playerInfo.SoldierName, aPlayer);
+                                            //Update rep
+                                            UpdatePlayerReputation(aPlayer);
+                                            //If using ban enforcer, check the player's ban status
+                                            if (_UseBanEnforcer)
+                                            {
+                                                QueuePlayerForBanCheck(aPlayer);
+                                            }
+                                            else if (_UseHackerChecker)
+                                            {
+                                                //Queue the player for a hacker check
+                                                QueuePlayerForHackerCheck(aPlayer);
+                                            }
+                                            if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "player_kick" && (DateTime.UtcNow - aRecord.record_time).TotalMinutes < 30) && aPlayer.TargetedRecords.All(aRecord => aRecord.command_action.command_key != "banenforcer_enforce"))
+                                            {
+                                                OnlineAdminSayMessage("Kicked player " + aPlayer.player_name + " rejoined the server.");
+                                            }
                                         }
-                                        //Add the frostbite player info
-                                        aPlayer.frostbitePlayerInfo = playerInfo;
-                                        //Set their last death/spawn times
-                                        aPlayer.lastDeath = DateTime.UtcNow;
-                                        aPlayer.lastSpawn = DateTime.UtcNow;
-                                        //Add them to the dictionary
-                                        _playerDictionary.Add(playerInfo.SoldierName, aPlayer);
-                                        UpdatePlayerReputation(aPlayer);
-                                        //If using ban enforcer, check the player's ban status
-                                        if (_UseBanEnforcer) {
-                                            QueuePlayerForBanCheck(aPlayer);
-                                        }
-                                        else if (_UseHackerChecker) {
-                                            //Queue the player for a hacker check
-                                            QueuePlayerForHackerCheck(aPlayer);
+                                        else
+                                        {
+                                            //If they aren't in the list, fetch their profile from the database
+                                            aPlayer = FetchPlayer(true, false, false, null, -1, playerInfo.SoldierName, playerInfo.GUID, null);
+                                            if (aPlayer == null)
+                                            {
+                                                //Do not handle the player if not returned
+                                                continue;
+                                            }
+                                            //Add the frostbite player info
+                                            aPlayer.frostbitePlayerInfo = playerInfo;
+                                            //Set their last death/spawn times
+                                            aPlayer.lastDeath = DateTime.UtcNow;
+                                            aPlayer.lastSpawn = DateTime.UtcNow;
+                                            aPlayer.lastAction = DateTime.UtcNow;
+                                            //Add them to the dictionary
+                                            _PlayerDictionary.Add(playerInfo.SoldierName, aPlayer);
+                                            //Update rep
+                                            UpdatePlayerReputation(aPlayer);
+                                            //If using ban enforcer, check the player's ban status
+                                            if (_UseBanEnforcer)
+                                            {
+                                                QueuePlayerForBanCheck(aPlayer);
+                                            }
+                                            else if (_UseHackerChecker)
+                                            {
+                                                //Queue the player for a hacker check
+                                                QueuePlayerForHackerCheck(aPlayer);
+                                            }
                                         }
                                     }
                                     switch (playerInfo.TeamID) {
@@ -2834,11 +3295,11 @@ namespace PRoConEvents {
                                 _teamDictionary[4].UpdatePlayerCount(team4PC);
                                 //Make sure the player dictionary is clean of any straglers
                                 Int32 straglerCount = 0;
-                                Int32 dicCount = _playerDictionary.Count;
-                                foreach (string playerName in _playerDictionary.Keys.Where(playerName => !validPlayers.Contains(playerName)).ToList()) {
+                                Int32 dicCount = _PlayerDictionary.Count;
+                                foreach (string playerName in _PlayerDictionary.Keys.Where(playerName => !validPlayers.Contains(playerName)).ToList()) {
                                     straglerCount++;
                                     DebugWrite("PLIST: Removing " + playerName + " from current player list (VIA CLEANUP).", 4);
-                                    _playerDictionary.Remove(playerName);
+                                    _PlayerDictionary.Remove(playerName);
                                 }
                                 if (straglerCount > 1 && straglerCount > (dicCount / 2)) {
                                     var record = new AdKatsRecord {
@@ -2856,12 +3317,35 @@ namespace PRoConEvents {
                                     QueueRecordForProcessing(record);
                                     ConsoleError(record.record_message);
                                     //Set round ended
-                                    _CurrentRoundState = RoundState.Ended;
+                                    _currentRoundState = RoundState.Ended;
                                 }
+                                if (_PlayerDictionary.Count >= _lowPopulationPlayerCount) {
+                                    if (_populationStatusLow) {
+                                        //Switching state from low to high
+                                        _populationStatusLow = false;
+                                        _populationTransitionTime = DateTime.UtcNow;
+                                        _populationDurationLow += (DateTime.UtcNow - _populationUpdateTime);
+                                    }
+                                    else {
+                                        _populationDurationHigh += (DateTime.UtcNow - _populationUpdateTime);
+                                    }
+                                }
+                                else {
+                                    if (!_populationStatusLow) {
+                                        //Switching state from high to low
+                                        _populationStatusLow = true;
+                                        _populationTransitionTime = DateTime.UtcNow;
+                                        _populationDurationHigh += (DateTime.UtcNow - _populationUpdateTime);
+                                    }
+                                    else {
+                                        _populationDurationLow += (DateTime.UtcNow - _populationUpdateTime);
+                                    }
+                                }
+                                _populationUpdateTime = DateTime.UtcNow;
                             }
                             if (_PlayerRoleRefetch) {
                                 //Update roles for all online players
-                                foreach (AdKatsPlayer aPlayer in _playerDictionary.Values) {
+                                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values) {
                                     AssignPlayerRole(aPlayer);
                                 }
                                 _PlayerRoleRefetch = false;
@@ -2875,8 +3359,9 @@ namespace PRoConEvents {
                         _TeamswapWaitHandle.Set();
                         if (!_firstPlayerListComplete) {
                             _firstPlayerListComplete = true;
-                            OnlineAdminSayMessage("Startup processing complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.");
-                            DebugWrite("Startup processing complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.", 1);
+                            OnlineAdminSayMessage("Player listing complete. " + _PlayerDictionary.Count + " players in server.");
+                            OnlineAdminSayMessage("AdKats startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.");
+                            DebugWrite("AdKats startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.", 1);
                         }
                     }
                     catch (Exception e) {
@@ -2901,7 +3386,7 @@ namespace PRoConEvents {
             try {
                 DebugWrite("OPPI: OnPunkbusterPlayerInfo fired!", 7);
                 AdKatsPlayer aPlayer;
-                if (_playerDictionary.TryGetValue(cpbiPlayer.SoldierName, out aPlayer)) {
+                if (_PlayerDictionary.TryGetValue(cpbiPlayer.SoldierName, out aPlayer)) {
                     DebugWrite("OPPI: PB player already in the player list.", 7);
                     Boolean updatePlayer = false;
                     //Update the player with pb info
@@ -2909,20 +3394,22 @@ namespace PRoConEvents {
                     aPlayer.player_pbguid = cpbiPlayer.GUID;
                     aPlayer.player_slot = cpbiPlayer.SlotID;
                     String player_ip = cpbiPlayer.Ip.Split(':')[0];
-                    if (player_ip != aPlayer.player_ip) {
+                    if (player_ip != aPlayer.player_ip && !String.IsNullOrEmpty(player_ip)) {
                         updatePlayer = true;
-                        DebugWrite(aPlayer.player_name + " changed their IP from " + (String.IsNullOrEmpty(aPlayer.player_ip) ? ("No previous IP on record") : (aPlayer.player_ip)) + " to " + player_ip + ". Updating the database.", 2);
-                        var record = new AdKatsRecord {
-                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                            server_id = _serverID,
-                            command_type = _CommandKeyDictionary["player_changeip"],
-                            command_numeric = 0,
-                            target_name = aPlayer.player_name,
-                            target_player = aPlayer,
-                            source_name = "AdKats",
-                            record_message = (String.IsNullOrEmpty(aPlayer.player_ip) ? ("No previous IP on record") : (aPlayer.player_ip))
-                        };
-                        QueueRecordForProcessing(record);
+                        if (!String.IsNullOrEmpty(aPlayer.player_ip)) {
+                            DebugWrite(aPlayer.player_name + " changed their IP from " + aPlayer.player_ip + " to " + player_ip + ". Updating the database.", 2);
+                            var record = new AdKatsRecord {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverID,
+                                command_type = _CommandKeyDictionary["player_changeip"],
+                                command_numeric = 0,
+                                target_name = aPlayer.player_name,
+                                target_player = aPlayer,
+                                source_name = "AdKats",
+                                record_message = aPlayer.player_ip
+                            };
+                            QueueRecordForProcessing(record);
+                        }
                     }
                     aPlayer.player_ip = player_ip;
                     if (updatePlayer) {
@@ -3001,202 +3488,6 @@ namespace PRoConEvents {
             }
         }
 
-        private void StartRoundTicketLogger() {
-            try {
-                if (!_pluginEnabled || !_threadsReady || !_isTestingAuthorized) {
-                    return;
-                }
-                var roundLoggerThread = new Thread(new ThreadStart(delegate {
-                    try {
-                        Thread.CurrentThread.Name = "roundticketlogger";
-                        Int32 TPCSCounter = 0;
-                        Boolean TPCSActionTaken = false;
-                        Int32 roundTimeSeconds = 0;
-                        Int32 currentRoundID = 0;
-                        using (MySqlConnection connection = GetDatabaseConnection()) {
-                            using (MySqlCommand command = connection.CreateCommand()) {
-                                command.CommandText = @"
-                                SELECT
-	                                MAX(`round_id`) AS `max_round_id`
-                                FROM
-	                                `tbl_extendedroundstats`
-                                WHERE 
-                                    `server_id` = @server_id";
-                                command.Parameters.AddWithValue("server_id", _serverID);
-                                using (MySqlDataReader reader = command.ExecuteReader()) {
-                                    if (reader.Read()) {
-                                        Int32 oldRoundID = reader.GetInt32("max_round_id");
-                                        ConsoleSuccess("Old round ID: " + oldRoundID);
-                                        currentRoundID = oldRoundID + 1;
-                                        ConsoleSuccess("New round ID: " + currentRoundID);
-                                    }
-                                    else {
-                                        currentRoundID = 1;
-                                    }
-                                }
-                            }
-                        }
-
-                        var watch = new Stopwatch();
-                        AdKatsTeam team1 = _teamDictionary[1];
-                        AdKatsTeam team2 = _teamDictionary[2];
-                        while (true) {
-                            watch.Reset();
-                            watch.Start();
-                            //Check for exit and entry cases
-                            if (_CurrentRoundState == RoundState.Ended || !_pluginEnabled) {
-                                break;
-                            }
-                            if (_CurrentRoundState == RoundState.Loaded) {
-                                Thread.Sleep(TimeSpan.FromSeconds(2));
-                                continue;
-                            }
-                            using (MySqlConnection connection = GetDatabaseConnection()) {
-                                using (MySqlCommand command = connection.CreateCommand()) {
-                                    //Set the insert command structure
-                                    command.CommandText = @"
-                                    INSERT INTO 
-                                        `tbl_extendedroundstats` 
-                                    (
-                                        `server_id`, 
-                                        `round_id`, 
-                                        `round_elapsedTimeSec`, 
-                                        `team1_count`, 
-                                        `team2_count`, 
-                                        `team1_score`, 
-                                        `team2_score`, 
-                                        `team1_spm`, 
-                                        `team2_spm`, 
-                                        `team1_tickets`, 
-                                        `team2_tickets`,
-                                        `team1_tpm`, 
-                                        `team2_tpm`
-                                    ) 
-                                    VALUES 
-                                    (
-                                        @server_id, 
-                                        @round_id, 
-                                        @round_elapsedTimeSec, 
-                                        @team1_count, 
-                                        @team2_count, 
-                                        @team1_score, 
-                                        @team2_score, 
-                                        @team1_spm, 
-                                        @team2_spm, 
-                                        @team1_tickets, 
-                                        @team2_tickets,
-                                        @team1_tpm, 
-                                        @team2_tpm
-                                    )";
-                                    command.Parameters.AddWithValue("@server_id", _serverID);
-                                    command.Parameters.AddWithValue("@round_id", currentRoundID);
-                                    command.Parameters.AddWithValue("@round_elapsedTimeSec", roundTimeSeconds);
-                                    command.Parameters.AddWithValue("@team1_count", team1.TeamPlayerCount);
-                                    command.Parameters.AddWithValue("@team2_count", team2.TeamPlayerCount);
-                                    command.Parameters.AddWithValue("@team1_score", team1.TeamTotalScore);
-                                    command.Parameters.AddWithValue("@team2_score", team2.TeamTotalScore);
-                                    command.Parameters.AddWithValue("@team1_spm", team1.TeamScoreDifferenceRate);
-                                    command.Parameters.AddWithValue("@team2_spm", team2.TeamScoreDifferenceRate);
-                                    command.Parameters.AddWithValue("@team1_tickets", team1.TeamTicketCount);
-                                    command.Parameters.AddWithValue("@team2_tickets", team2.TeamTicketCount);
-                                    command.Parameters.AddWithValue("@team1_tpm", team1.TeamTicketDifferenceRate);
-                                    command.Parameters.AddWithValue("@team2_tpm", team2.TeamTicketDifferenceRate);
-                                    //Attempt to execute the query
-                                    if (command.ExecuteNonQuery() > 0) {
-                                        DebugWrite("round stat pushed to database", 5);
-                                    }
-                                }
-                            }
-
-                            if (_serverInfo.Map == "MP_Prison" && false) {
-                                AdKatsTeam winningTeam, losingTeam;
-                                if (team1.TeamTicketCount > team2.TeamTicketCount) {
-                                    winningTeam = team1;
-                                    losingTeam = team2;
-                                }
-                                else {
-                                    winningTeam = team2;
-                                    losingTeam = team1;
-                                }
-                                Double ticketDifference = Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount);
-                                Double winningPower = Math.Abs(losingTeam.TeamTicketDifferenceRate);
-                                Double losingPower = Math.Abs(winningTeam.TeamTicketDifferenceRate);
-                                Double winningTicketPower = (ticketDifference * winningPower);
-                                ConsoleWrite("TicketPower: " + String.Format("{0:0.00}", winningTicketPower));
-                                /*if (winningTicketPower > 20000 && !TPCSActionTaken)
-                                {
-                                    this.ConsoleWarn("ISSUING TICKET POWER NUKE ON " + winningTeam.TeamName.ToUpper());
-                                    TPCSActionTaken = true;
-                                }*/
-                                if (winningPower > losingPower) {
-                                    if (winningPower >= 60 && ticketDifference > 200) {
-                                        ConsoleWarn(winningTeam.TeamName + " is winning, and baseraping.");
-                                        if (roundTimeSeconds > 400 && winningTeam.TeamPlayerCount > 20 && losingTeam.TeamPlayerCount > 20 && winningTeam.TeamTicketCount > 150 && losingTeam.TeamTicketCount > 150) {
-                                            ConsoleWarn("ISSUING BASERAPE NUKE ON " + winningTeam.TeamName.ToUpper() + " (" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + ")");
-                                            TPCSActionTaken = true;
-                                            AdminTellMessage(winningTeam.TeamName + " is being nuked for baserape! Advance! Advance!");
-                                            //Create the nuke record
-                                            var record = new AdKatsRecord {
-                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverID,
-                                                command_type = _CommandKeyDictionary["server_nuke"],
-                                                command_numeric = winningTeam.TeamID,
-                                                target_name = winningTeam.TeamName,
-                                                source_name = "AutoAdmin",
-                                                record_message = "Baserape"
-                                            };
-                                            //Process the record
-                                            QueueRecordForProcessing(record);
-                                            TPCSCounter = 0;
-                                        }
-                                    }
-                                    else if (winningPower >= 55) {
-                                        ConsoleWarn(winningTeam.TeamName + " is winning, and has 4+ flags.");
-                                        TPCSCounter = 0;
-                                    }
-                                    else if (winningPower >= 45) {
-                                        ConsoleWarn(winningTeam.TeamName + " is winning, and has 3+ flags.");
-                                        TPCSCounter = 0;
-                                    }
-                                    else {
-                                        ConsoleSuccess("Teams are equal. With " + winningTeam.TeamName + " currently winning.");
-                                        TPCSCounter = 0;
-                                    }
-                                }
-                                else {
-                                    if (losingPower >= 45) {
-                                        ConsoleWarn(losingTeam.TeamName + " is making a comeback.");
-                                        AdminSayMessage(losingTeam.TeamName + " is making a comeback! Keep pushing!");
-                                        TPCSCounter = 0;
-                                    }
-                                    else {
-                                        ConsoleSuccess("Teams are equal. With " + winningTeam.TeamName + " currently winning.");
-                                        TPCSCounter = 0;
-                                    }
-                                }
-                            }
-
-                            watch.Stop();
-                            if (watch.Elapsed.TotalSeconds < 30) {
-                                Thread.Sleep(TimeSpan.FromSeconds(30) - watch.Elapsed);
-                            }
-                            roundTimeSeconds += 30;
-                        }
-                    }
-                    catch (Exception e) {
-                        //HandleException(new AdKatsException("Error in round stat logger thread", e));
-                    }
-                    LogThreadExit();
-                }));
-
-                //Start the thread
-                StartAndLogThread(roundLoggerThread);
-            }
-            catch (Exception e) {
-                //HandleException(new AdKatsException("Error while starting round ticket logger", e));
-            }
-        }
-
         public override void OnServerInfo(CServerInfo serverInfo) {
             DebugWrite("Entering OnServerInfo", 7);
             try {
@@ -3215,7 +3506,7 @@ namespace PRoConEvents {
                                         AdKatsTeam currentTeam;
                                         if (_teamDictionary.TryGetValue(score.TeamID, out currentTeam)) {
                                             currentTeam.UpdateTicketCount(score.Score);
-                                            currentTeam.UpdateTotalScore(_playerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == score.TeamID).Aggregate<AdKatsPlayer, double>(0, (current, aPlayer) => current + aPlayer.frostbitePlayerInfo.Score));
+                                            currentTeam.UpdateTotalScore(_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == score.TeamID).Aggregate<AdKatsPlayer, double>(0, (current, aPlayer) => current + aPlayer.frostbitePlayerInfo.Score));
                                         }
                                         else {
                                             ConsoleError("Team ID " + score.TeamID + " could not be recognized.");
@@ -3230,8 +3521,8 @@ namespace PRoConEvents {
                             AdKatsTeam team1 = _teamDictionary[1];
                             AdKatsTeam team2 = _teamDictionary[2];
                             if (team1.TeamTicketCount >= 0 && team2.TeamTicketCount >= 0) {
-                                _LowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
-                                _HighestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
+                                _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
+                                _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
 
                             _serverName = serverInfo.ServerName;
@@ -3260,16 +3551,14 @@ namespace PRoConEvents {
             DebugWrite("Entering OnLevelLoaded", 7);
             try {
                 if (_pluginEnabled) {
-                    _CurrentRoundState = RoundState.Loaded;
+                    _currentRoundState = RoundState.Loaded;
                     //Completely clear all round-specific data
                     _RoundReports.Clear();
                     _RoundMutedPlayers.Clear();
-                    _TeamswapRoundWhitelist.Clear();
                     _ActionConfirmDic.Clear();
                     _ActOnSpawnDictionary.Clear();
                     _ActOnIsAliveDictionary.Clear();
                     _TeamswapOnDeathMoveDic.Clear();
-                    //AutoWhitelistPlayers();
                     _Team1MoveQueue.Clear();
                     _Team2MoveQueue.Clear();
                     _RoundCookers.Clear();
@@ -3279,7 +3568,6 @@ namespace PRoConEvents {
                     if (_useRoundTimer) {
                         StartRoundTimer();
                     }
-                    StartRoundTicketLogger();
                 }
             }
             catch (Exception e) {
@@ -3290,11 +3578,11 @@ namespace PRoConEvents {
 
         //Round ended stuff
         public override void OnRoundOverTeamScores(List<TeamScore> teamScores) {
-            _CurrentRoundState = RoundState.Ended;
+            _currentRoundState = RoundState.Ended;
         }
 
         public override void OnRunNextLevel() {
-            _CurrentRoundState = RoundState.Ended;
+            _currentRoundState = RoundState.Ended;
         }
 
         //Move delayed players when they are killed
@@ -3346,6 +3634,14 @@ namespace PRoConEvents {
                                         }
                                     }
                                 }
+                                break;
+                            case "player_move":
+                                //If player is not alive, change to force move
+                                if (!isAlive) {
+                                    aRecord.command_type = GetCommandByKey("player_fmove");
+                                    aRecord.command_action = GetCommandByKey("player_fmove");
+                                }
+                                QueueRecordForActionHandling(aRecord);
                                 break;
                             default:
                                 ConsoleError("Command " + aRecord.command_action.command_key + " not useable in OnPlayerIsAlive");
@@ -3451,19 +3747,20 @@ namespace PRoConEvents {
         }
 
         private void ProcessPlayerKill(Kill kKillerVictimDetails) {
-            try
-            {
+            try {
                 UploadWeaponCode(kKillerVictimDetails.DamageType);
                 if (!_firstPlayerListComplete) {
                     return;
                 }
                 AdKatsPlayer victim = null;
-                _playerDictionary.TryGetValue(kKillerVictimDetails.Victim.SoldierName, out victim);
+                _PlayerDictionary.TryGetValue(kKillerVictimDetails.Victim.SoldierName, out victim);
                 AdKatsPlayer killer = null;
-                _playerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer);
+                _PlayerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer);
                 if (victim == null || killer == null) {
                     return;
                 }
+                victim.lastAction = DateTime.UtcNow;
+                killer.lastAction = DateTime.UtcNow;
                 //Used for delayed player moving
                 if (_TeamswapOnDeathMoveDic.Count > 0) {
                     if (_isTestingAuthorized)
@@ -3476,7 +3773,7 @@ namespace PRoConEvents {
 
                 Boolean gKillHandled = false;
                 //Update player death information
-                if (_playerDictionary.ContainsKey(kKillerVictimDetails.Victim.SoldierName)) {
+                if (_PlayerDictionary.ContainsKey(kKillerVictimDetails.Victim.SoldierName)) {
                     if (victim != null) {
                         DebugWrite("Setting " + victim.player_name + " time of death to " + kKillerVictimDetails.TimeOfDeath, 7);
                         victim.lastDeath = DateTime.UtcNow;
@@ -3538,8 +3835,8 @@ namespace PRoConEvents {
                                                         DebugWrite(cooker.Key.player_name + " in " + killer.player_name + "'s recent kills has a " + probability + "% cooking probability.", 2);
                                                         gKillHandled = true;
                                                         //Code to avoid spam
-                                                        if (killer.lastAction.AddSeconds(2) < DateTime.UtcNow) {
-                                                            killer.lastAction = DateTime.UtcNow;
+                                                        if (killer.lastKill.AddSeconds(2) < DateTime.UtcNow) {
+                                                            killer.lastKill = DateTime.UtcNow;
                                                         }
                                                         else {
                                                             DebugWrite("Skipping additional auto-actions for multi-kill event.", 2);
@@ -3548,7 +3845,7 @@ namespace PRoConEvents {
 
                                                         if (!told) {
                                                             //Inform the victim player that they will not be punished
-                                                            PlayerSayMessage(kKillerVictimDetails.Killer.SoldierName, "You appear to be a victim of grenade cooking and will NOT be punished.");
+                                                            PlayerSayMessage(kKillerVictimDetails.Killer.SoldierName, "You appear to be a victim of grenade cooking and will NOT be punished.", 1);
                                                             told = true;
                                                         }
 
@@ -3673,8 +3970,8 @@ namespace PRoConEvents {
                                     //Get player from the dictionary
                                     if (killer != null) {
                                         //Code to avoid spam
-                                        if (killer.lastAction.AddSeconds(2) < DateTime.UtcNow) {
-                                            killer.lastAction = DateTime.UtcNow;
+                                        if (killer.lastKill.AddSeconds(2) < DateTime.UtcNow) {
+                                            killer.lastKill = DateTime.UtcNow;
                                             //Create the punish record
                                             var record = new AdKatsRecord {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -3709,7 +4006,7 @@ namespace PRoConEvents {
                                             else {
                                                 record.record_message = "Rules: Using Explosives [" + weapon + "]";
                                             }
-                                            PlayerYellMessage(victim.player_name, killer.player_name + " was punished for killing you with " + weapon);
+                                            PlayerYellMessage(victim.player_name, killer.player_name + " was punished for killing you with " + weapon, 1);
                                             //Process the record
                                             QueueRecordForProcessing(record);
                                         }
@@ -3791,17 +4088,19 @@ namespace PRoConEvents {
 
         public override void OnPlayerSpawned(String soldierName, Inventory spawnedInventory) {
             DebugWrite("Entering OnPlayerSpawned", 7);
-            try {
-                if (_pluginEnabled) {
-                    if (_CurrentRoundState == RoundState.Loaded) {
-                        _CurrentRoundState = RoundState.Playing;
+            try
+            {
+                AdKatsPlayer aPlayer = null;
+                if (_pluginEnabled && _threadsReady) {
+                    if (_currentRoundState == RoundState.Loaded) {
+                        _currentRoundState = RoundState.Playing;
                     }
                     if (_CommandNameDictionary.Count > 0) {
                         //Handle TeamSwap notifications
                         String command = _CommandKeyDictionary["self_teamswap"].command_text;
-                        AdKatsPlayer aPlayer;
-                        if (_playerDictionary.TryGetValue(soldierName, out aPlayer)) {
+                        if (_PlayerDictionary.TryGetValue(soldierName, out aPlayer)) {
                             aPlayer.lastSpawn = DateTime.UtcNow;
+                            aPlayer.lastAction = DateTime.UtcNow;
                             if (aPlayer.player_aa && !aPlayer.player_aa_told) {
                                 String adminAssistantMessage = "You are now considered an Admin Assistant. ";
                                 if (!_UseAAReportAutoHandler && !_EnableAdminAssistantPerk) {
@@ -3816,25 +4115,25 @@ namespace PRoConEvents {
                                         adminAssistantMessage += "You can use the @" + command + " command.";
                                     }
                                 }
-                                PlayerSayMessage(soldierName, adminAssistantMessage);
+                                PlayerSayMessage(soldierName, adminAssistantMessage, 1);
                                 aPlayer.player_aa_told = true;
-                            }
-                            else {
-                                Boolean informed;
-                                if (_TeamswapRoundWhitelist.Count > 0 && _TeamswapRoundWhitelist.TryGetValue(soldierName, out informed)) {
-                                    if (!informed) {
-                                        PlayerTellMessage(soldierName, "By random selection you can use @" + command + " for this round. Type @" + command + " to move yourself between teams.");
-                                        _TeamswapRoundWhitelist[soldierName] = true;
-                                    }
-                                }
                             }
                         }
                     }
 
                     //Handle Dev Notifications
-                    if (soldierName == "ColColonCleaner" && !_ToldCol) {
-                        PlayerTellMessage("ColColonCleaner", "CONGRATS! This server is running AdKats " + PluginVersion + "!");
-                        _ToldCol = true;
+                    if (soldierName == "ColColonCleaner" && (!_isTestingAuthorized || !_toldCol)) {
+                        PlayerTellMessage("ColColonCleaner", "CONGRATS! This server is running AdKats " + PluginVersion + "!", 1);
+                        _toldCol = true;
+                    }
+
+                    if (aPlayer != null && !aPlayer.player_firstSpawned) {
+                        aPlayer.player_firstSpawned = true;
+                        if(_UseFirstSpawnMessage) {
+                            //Wait 3 seconds
+                            Thread.Sleep(2000);
+                            PlayerTellMessage(aPlayer.player_name, _FirstSpawnMessage, 1);
+                        }
                     }
 
                     if (_ActOnSpawnDictionary.Count > 0) {
@@ -4050,7 +4349,7 @@ namespace PRoConEvents {
                             //Grab first/next player
                             AdKatsPlayer aPlayer = playerCheckingQueue.Dequeue();
                             DebugWrite("BANENF: begin reading player", 5);
-                            if (_playerDictionary.ContainsKey(aPlayer.player_name)) {
+                            if (_PlayerDictionary.ContainsKey(aPlayer.player_name)) {
                                 List<AdKatsBan> aBanList = FetchPlayerBans(aPlayer);
                                 if (aBanList.Count > 0) {
                                     foreach (AdKatsBan aBan in aBanList) {
@@ -4118,7 +4417,7 @@ namespace PRoConEvents {
             }
             try {
                 //Return if small duration (0.5 seconds) since last ban list, or if there is already a ban list going on
-                if ((DateTime.UtcNow - _LastSuccessfulBanList) < TimeSpan.FromSeconds(0.5)) {
+                if ((DateTime.UtcNow - _lastSuccessfulBanList) < TimeSpan.FromSeconds(0.5)) {
                     DebugWrite("Banlist being called quickly.", 4);
                     return;
                 }
@@ -4127,7 +4426,7 @@ namespace PRoConEvents {
                     return;
                 }
                 DateTime startTime = DateTime.UtcNow;
-                _LastSuccessfulBanList = startTime;
+                _lastSuccessfulBanList = startTime;
                 if (!_pluginEnabled)
                     return;
                 DebugWrite("OnBanList fired", 5);
@@ -4288,7 +4587,7 @@ namespace PRoConEvents {
                                         break;
                                     }
                                     aPlayer = repeatCheckingQueue.Dequeue();
-                                    if (!_playerDictionary.ContainsKey(aPlayer.player_name)) {
+                                    if (!_PlayerDictionary.ContainsKey(aPlayer.player_name)) {
                                         stillInServer = false;
                                     }
                                 } while (!stillInServer && repeatCheckingQueue.Count > 0);
@@ -4452,7 +4751,20 @@ namespace PRoConEvents {
                             }
                         }
                         else {
-                            ConsoleWarn("Could not find " + weaponStat.ID + " in " + _gameVersion + " library of " + _StatLibrary.Weapons.Count + " weapons.");
+                            //Could not find actual value for weapon max damage. Use bfxstats weapon damage, without restrictions.
+                            if (weaponStat.Kills > 50) {
+                                if (weaponStat.DPS > weaponStat.MaxDPS) {
+                                    //Get the percentage over normal
+                                    Double percDiff = (weaponStat.DPS - weaponStat.MaxDPS) / weaponStat.DPS;
+                                    if (percDiff > (_DpsTriggerLevel / 100)) {
+                                        if (percDiff > actedPerc) {
+                                            actedPerc = percDiff;
+                                            actedWeapon = weaponStat;
+                                        }
+                                    }
+                                }
+                            }
+                            ConsoleWarn("Could not find damage stats for " + weaponStat.ID + " in " + _gameVersion + " library of " + _StatLibrary.Weapons.Count + " weapons. Using BFXStats API damage of " + weaponStat.MaxDPS + " DPS in the meantime.");
                         }
                     }
                 }
@@ -4681,8 +4993,8 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     //Performance testing area
-                    if (speaker == _DebugSoldierName) {
-                        _CommandStartTime = DateTime.UtcNow;
+                    if (speaker == _debugSoldierName) {
+                        _commandStartTime = DateTime.UtcNow;
                     }
                     //If message contains comorose just return and ignore
                     if (message.Contains("ComoRose:")) {
@@ -4706,7 +5018,7 @@ namespace PRoConEvents {
                 }
                 switch (record.record_source) {
                     case AdKatsRecord.Sources.InGame:
-                        PlayerSayMessage(record.source_name, message);
+                        PlayerSayMessage(record.source_name, message, 1);
                         break;
                     case AdKatsRecord.Sources.ServerCommand:
                         ProconChatWrite(message);
@@ -4758,7 +5070,7 @@ namespace PRoConEvents {
             Boolean adminsTold = false;
             foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers()) {
                 adminsTold = true;
-                PlayerSayMessage(player.player_name, message);
+                PlayerSayMessage(player.player_name, message, 1);
             }
             if (!adminsTold) {
                 ProconChatWrite(ColorMessageRed(BoldMessage(message)));
@@ -4766,7 +5078,7 @@ namespace PRoConEvents {
             return adminsTold;
         }
 
-        public void PlayerSayMessage(String target, String message) {
+        public void PlayerSayMessage(String target, String message, Int32 spamCount) {
             DebugWrite("Entering playerSayMessage", 7);
             try {
                 if (String.IsNullOrEmpty(target) || String.IsNullOrEmpty(message)) {
@@ -4774,7 +5086,11 @@ namespace PRoConEvents {
                     return;
                 }
                 ProconChatWrite("Say > " + target + " > " + message);
-                ExecuteCommand("procon.protected.send", "admin.say", message, "player", target);
+                for (int count = 0; count < spamCount; count++)
+                {
+                    ExecuteCommand("procon.protected.send", "admin.say", message, "player", target); 
+                    Thread.Sleep(50);
+                }
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while sending message to player.", e));
@@ -4798,7 +5114,7 @@ namespace PRoConEvents {
             DebugWrite("Exiting adminYell", 7);
         }
 
-        public void PlayerYellMessage(String target, String message) {
+        public void PlayerYellMessage(String target, String message, Int32 spamCount) {
             DebugWrite("Entering adminYell", 7);
             try {
                 if (String.IsNullOrEmpty(message)) {
@@ -4806,7 +5122,11 @@ namespace PRoConEvents {
                     return;
                 }
                 ProconChatWrite("Yell[" + _YellDuration + "] > " + target + " > " + message);
-                ExecuteCommand("procon.protected.send", "admin.yell", message.ToUpper(), _YellDuration + "", "player", target);
+                for (int count = 0; count < spamCount; count++)
+                {
+                    ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4)?(System.Environment.NewLine):("")) + message.ToUpper(), _YellDuration + "", "player", target);
+                    Thread.Sleep(50);
+                }
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while sending admin yell.", e));
@@ -4819,9 +5139,9 @@ namespace PRoConEvents {
             AdminYellMessage(message);
         }
 
-        public void PlayerTellMessage(String target, String message) {
-            PlayerSayMessage(target, message);
-            PlayerYellMessage(target, message);
+        public void PlayerTellMessage(String target, String message, Int32 spamCount) {
+            PlayerSayMessage(target, message, spamCount);
+            PlayerYellMessage(target, message, spamCount);
         }
 
         private void QueueMessageForParsing(String speaker, String message) {
@@ -4908,55 +5228,73 @@ namespace PRoConEvents {
                             String speaker = messagePair.Key;
                             String message = messagePair.Value;
 
-                            //check for player mute case
-                            //ignore if it's a server call
-                            if (speaker != "Server") {
-                                if (_isTestingAuthorized)
-                                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-                                lock (_RoundMutedPlayers) {
-                                    //Check if the player is muted
-                                    DebugWrite("MESSAGE: Checking for mute case.", 7);
-                                    if (_RoundMutedPlayers.ContainsKey(speaker)) {
-                                        DebugWrite("MESSAGE: Player is muted. Acting.", 7);
-                                        //Increment the muted chat count
-                                        _RoundMutedPlayers[speaker] = _RoundMutedPlayers[speaker] + 1;
-                                        //Create record
-                                        var record = new AdKatsRecord();
-                                        record.record_source = AdKatsRecord.Sources.InternalAutomated;
-                                        record.server_id = _serverID;
-                                        record.source_name = "PlayerMuteSystem";
-                                        _playerDictionary.TryGetValue(speaker, out record.target_player);
-                                        record.target_name = speaker;
-                                        if (_RoundMutedPlayers[speaker] > _MutedPlayerChances) {
-                                            record.record_message = _MutedPlayerKickMessage;
-                                            record.command_type = _CommandKeyDictionary["player_kick"];
-                                            record.command_action = _CommandKeyDictionary["player_kick"];
-                                        }
-                                        else {
-                                            record.record_message = _MutedPlayerKillMessage;
-                                            record.command_type = _CommandKeyDictionary["player_kill"];
-                                            record.command_action = _CommandKeyDictionary["player_kill"];
-                                        }
-
-                                        QueueRecordForProcessing(record);
-                                        continue;
-                                    }
+                            if (!_AFKIgnoreChat)
+                            {
+                                //Update player last action
+                                AdKatsPlayer aPlayer;
+                                if (_PlayerDictionary.TryGetValue(speaker, out aPlayer))
+                                {
+                                    aPlayer.lastAction = DateTime.UtcNow;
                                 }
                             }
 
+                            Boolean isCommand = false;
                             //Check if the message is a command
-                            if (message.StartsWith("@") || message.StartsWith("!")) {
+                            if (message.StartsWith("@") || message.StartsWith("!") || message.StartsWith(".")) {
                                 message = message.Substring(1);
+                                isCommand = true;
                             }
-                            else if (message.StartsWith("/@") || message.StartsWith("/!")) {
+                            else if (message.StartsWith("/@") || message.StartsWith("/!") || message.StartsWith("/.")) {
                                 message = message.Substring(2);
+                                isCommand = true;
                             }
                             else if (message.StartsWith("/")) {
                                 message = message.Substring(1);
+                                isCommand = true;
                             }
-                            else {
-                                //If the message does not cause either of the above clauses, then ignore it.
+
+                            if (!isCommand) {
                                 DebugWrite("MESSAGE: Message is regular chat. Ignoring.", 7);
+                            }
+                            
+                            //Optionally ignore if message is command
+                            if(!isCommand || !_MutedPlayerIgnoreCommands){
+                                //If the message does not cause either of the above clauses, then ignore it for command parsing.
+
+                                //check for player mute case
+                                //ignore if it's a server call
+                                if (speaker != "Server") {
+                                    if (_isTestingAuthorized)
+                                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
+                                    lock (_RoundMutedPlayers) {
+                                        //Check if the player is muted
+                                        DebugWrite("MESSAGE: Checking for mute case.", 7);
+                                        if (_RoundMutedPlayers.ContainsKey(speaker)) {
+                                            DebugWrite("MESSAGE: Player is muted. Acting.", 7);
+                                            //Increment the muted chat count
+                                            _RoundMutedPlayers[speaker] = _RoundMutedPlayers[speaker] + 1;
+                                            //Create record
+                                            var record = new AdKatsRecord();
+                                            record.record_source = AdKatsRecord.Sources.InternalAutomated;
+                                            record.server_id = _serverID;
+                                            record.source_name = "PlayerMuteSystem";
+                                            _PlayerDictionary.TryGetValue(speaker, out record.target_player);
+                                            record.target_name = speaker;
+                                            if (_RoundMutedPlayers[speaker] > _MutedPlayerChances) {
+                                                record.record_message = _MutedPlayerKickMessage;
+                                                record.command_type = _CommandKeyDictionary["player_kick"];
+                                                record.command_action = _CommandKeyDictionary["player_kick"];
+                                            }
+                                            else {
+                                                record.record_message = _MutedPlayerKillMessage;
+                                                record.command_type = _CommandKeyDictionary["player_kill"];
+                                                record.command_action = _CommandKeyDictionary["player_kill"];
+                                            }
+
+                                            QueueRecordForProcessing(record);
+                                        }
+                                    }
+                                }
                                 continue;
                             }
                             QueueCommandForParsing(speaker, message.Trim());
@@ -5116,19 +5454,19 @@ namespace PRoConEvents {
                                     case 1:
                                         if (!ContainsCPlayerInfo(_Team1MoveQueue, player.SoldierName)) {
                                             _Team1MoveQueue.Enqueue(player);
-                                            PlayerSayMessage(player.SoldierName, "You have been added to the (" + team1.TeamName + " -> " + team2.TeamName + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1) + ".");
+                                            PlayerSayMessage(player.SoldierName, "You have been added to the (" + team1.TeamName + " -> " + team2.TeamName + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1) + ".", 1);
                                         }
                                         else {
-                                            PlayerSayMessage(player.SoldierName, team2.TeamName + " Team Full (" + team2.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1));
+                                            PlayerSayMessage(player.SoldierName, team2.TeamName + " Team Full (" + team2.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1), 1);
                                         }
                                         break;
                                     case 2:
                                         if (!ContainsCPlayerInfo(_Team2MoveQueue, player.SoldierName)) {
                                             _Team2MoveQueue.Enqueue(player);
-                                            PlayerSayMessage(player.SoldierName, "You have been added to the (" + team2.TeamName + " -> " + team1.TeamName + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1) + ".");
+                                            PlayerSayMessage(player.SoldierName, "You have been added to the (" + team2.TeamName + " -> " + team1.TeamName + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1) + ".", 1);
                                         }
                                         else {
-                                            PlayerSayMessage(player.SoldierName, team1.TeamName + " Team Full (" + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1));
+                                            PlayerSayMessage(player.SoldierName, team1.TeamName + " Team Full (" + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1), 1);
                                         }
                                         break;
                                 }
@@ -5147,7 +5485,7 @@ namespace PRoConEvents {
                                     if (team1.TeamPlayerCount < maxTeamPlayerCount) {
                                         CPlayerInfo player = _Team2MoveQueue.Dequeue();
                                         AdKatsPlayer dicPlayer;
-                                        if (_playerDictionary.TryGetValue(player.SoldierName, out dicPlayer)) {
+                                        if (_PlayerDictionary.TryGetValue(player.SoldierName, out dicPlayer)) {
                                             if (dicPlayer.frostbitePlayerInfo.TeamID == 1) {
                                                 //Skip the kill/swap if they are already on the goal team by some other means
                                                 continue;
@@ -5161,16 +5499,16 @@ namespace PRoConEvents {
                                             team1.TeamPlayerCount++;
                                             team2.TeamPlayerCount--;
                                         }
-                                        PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamName + " to team " + team1.TeamName);
+                                        PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamName + " to team " + team1.TeamName, 1);
                                         movedPlayer = true;
-                                        Thread.Sleep(1000);
+                                        Thread.Sleep(100);
                                     }
                                 }
                                 if (_Team1MoveQueue.Count > 0) {
                                     if (team2.TeamPlayerCount < maxTeamPlayerCount) {
                                         CPlayerInfo player = _Team1MoveQueue.Dequeue();
                                         AdKatsPlayer dicPlayer;
-                                        if (_playerDictionary.TryGetValue(player.SoldierName, out dicPlayer)) {
+                                        if (_PlayerDictionary.TryGetValue(player.SoldierName, out dicPlayer)) {
                                             if (dicPlayer.frostbitePlayerInfo.TeamID == 2) {
                                                 //Skip the kill/swap if they are already on the goal team by some other means
                                                 continue;
@@ -5184,12 +5522,11 @@ namespace PRoConEvents {
                                             team2.TeamPlayerCount++;
                                             team1.TeamPlayerCount--;
                                         }
-                                        PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamName + "to team " + team2.TeamName);
+                                        PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamName + " to team " + team2.TeamName, 1);
                                         movedPlayer = true;
-                                        Thread.Sleep(1000);
                                     }
                                 }
-                            } while (movedPlayer);
+                            } while (false);
                         }
                         else {
                             DebugWrite("TSWAP: No players to swap. Waiting for input.", 4);
@@ -5259,7 +5596,91 @@ namespace PRoConEvents {
         private void QueueRecordForProcessing(AdKatsRecord record) {
             DebugWrite("Entering queueRecordForProcessing", 7);
             try {
-                DebugWrite("Preparing to queue record for processing", 6);
+                //Check for command lock
+                if (record.target_player != null && record.target_player.player_locked) {
+                    if (record.target_player.player_locked_start + record.target_player.player_locked_duration < DateTime.UtcNow) {
+                        //Unlock the player
+                        record.target_player.player_locked = false;
+                    }
+                    else if (record.source_name != record.target_player.player_locked_source){
+                        SendMessageToSource(record, record.target_player.player_name + " is currently command locked by " + record.target_player.player_locked_source + ". Please wait for unlock.");
+                        FinalizeRecord(record);
+                        return;
+                    }
+                }
+                if (record.command_action != null && _commandTimeoutDictionary.ContainsKey(record.command_action.command_key) && !record.record_action_executed)
+                {
+                    if (record.target_player != null && !record.TargetPlayersLocal.Any())
+                    {
+                        //Cancel call if record is on timeout for single player
+                        if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow))
+                        {
+                            SendMessageToSource(record, record.command_type.command_name + " on timeout for " + record.target_player.player_name);
+                            FinalizeRecord(record);
+                            return;
+                        }
+                    }
+                    else if (record.TargetPlayersLocal.Any())
+                    {
+                        //Cancel call if record is on timeout for any targeted players
+                        foreach (AdKatsPlayer aPlayer in record.TargetPlayersLocal)
+                        {
+                            if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow))
+                            {
+                                SendMessageToSource(record, record.command_type.command_name + " on timeout for " + aPlayer.player_name);
+                                FinalizeRecord(record);
+                                return;
+                            }
+                        }
+                    }
+                }
+                if (record.target_player != null && (record.command_type.command_key == "player_report" || record.command_type.command_key == "player_calladmin")) {
+                    var triggerCommands = new List<String>();
+                    triggerCommands.Add("player_kill");
+                    triggerCommands.Add("player_kill_lowpop");
+                    triggerCommands.Add("player_kill_repeat");
+                    triggerCommands.Add("player_punish");
+                    triggerCommands.Add("player_mute");
+                    triggerCommands.Add("player_say");
+                    triggerCommands.Add("player_yell");
+                    triggerCommands.Add("player_tell");
+                    triggerCommands.Add("player_kill_force");
+                    foreach (AdKatsRecord targetRecord in record.target_player.TargetedRecords) {
+                        if (triggerCommands.Contains(targetRecord.command_type.command_key) && (DateTime.UtcNow - targetRecord.record_time).TotalSeconds < 60) {
+                            OnlineAdminSayMessage("Report on " + record.target_player.player_name + " blocked. Player already acted on.");
+                            SendMessageToSource(record, "Report on " + record.target_player.player_name + " blocked. Player already acted on.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                    }
+                }
+                //Conditional command replacement (single target only)
+                if (_isTestingAuthorized && 
+                    _populationStatusLow && 
+                    record.target_player != null && 
+                    record.command_type.command_key == "player_punish") {
+                    int punishCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_punish");
+                    int killCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_kill");
+                    if (killCount < 2 ||
+                       (killCount < 4 && punishCount == 1)) {
+                        if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
+                        {
+                            AdminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
+                        }
+                        else
+                        {
+                            AdminSayMessage(record.target_name + " was PUNISHED by " + record.source_name + " for " + record.record_message);
+                        }
+                        record.command_type = _CommandKeyDictionary["player_kill"];
+                        record.command_action = _CommandKeyDictionary["player_kill"];
+                    }
+                    else if (killCount >= 4 && punishCount >= 2)
+                    {
+                        record.command_type = _CommandKeyDictionary["player_kick"];
+                        record.command_action = _CommandKeyDictionary["player_kick"];
+                    }
+                }
+                DebugWrite("Preparing to queue " + record.command_type.command_key + " record for processing", 6);
                 if (_isTestingAuthorized)
                     PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_UnprocessedRecordQueue) {
@@ -5401,14 +5822,14 @@ namespace PRoConEvents {
                     return;
                 }
                 if (!_firstPlayerListComplete) {
-                    SendMessageToSource(record, "Command startup sequence in progress, please wait.");
+                    SendMessageToSource(record, "Command startup sequence in progress.");
                     FinalizeRecord(record);
                     return;
                 }
                 //Check if player has the right to perform what he's asking, only perform for InGame actions
                 if (record.record_source == AdKatsRecord.Sources.InGame) {
                     //Attempt to fetch the source player
-                    if (!_playerDictionary.TryGetValue(record.source_name, out record.source_player)) {
+                    if (!_PlayerDictionary.TryGetValue(record.source_name, out record.source_player)) {
                         ConsoleError("Source player not found in server for in-game command, unable to complete command.");
                         FinalizeRecord(record);
                         return;
@@ -5441,19 +5862,19 @@ namespace PRoConEvents {
                         switch (parameters.Length) {
                             case 0:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     break;
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.record_message = "MovePlayer";
                                 record.target_name = parameters[0];
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
-                                    CompleteTargetInformation(record, false);
+                                    CompleteTargetInformation(record, false, false);
                                 }
                                 break;
                             default:
@@ -5477,20 +5898,20 @@ namespace PRoConEvents {
                         switch (parameters.Length) {
                             case 0:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     FinalizeRecord(record);
                                     return;
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.record_message = "ForceMovePlayer";
                                 record.target_name = parameters[0];
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
-                                    CompleteTargetInformation(record, false);
+                                    CompleteTargetInformation(record, false, false);
                                 }
                                 break;
                             default:
@@ -5511,13 +5932,13 @@ namespace PRoConEvents {
 
                         //May only call this command from in-game
                         if (record.record_source != AdKatsRecord.Sources.InGame) {
-                            SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                            SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                             FinalizeRecord(record);
                             return;
                         }
                         record.record_message = "TeamSwap";
                         record.target_name = record.source_name;
-                        CompleteTargetInformation(record, false);
+                        CompleteTargetInformation(record, false, false);
                     }
                         break;
                     case "self_assist": {
@@ -5532,7 +5953,7 @@ namespace PRoConEvents {
 
                         //May only call this command from in-game
                         if (record.record_source != AdKatsRecord.Sources.InGame) {
-                            SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                            SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -5540,8 +5961,16 @@ namespace PRoConEvents {
                         //Player Info Check
                         record.record_message = "Assist Losing Team";
                         record.target_name = record.source_name;
-                        if (!_playerDictionary.TryGetValue(record.target_name, out record.target_player)) {
+                        if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player)) {
                             SendMessageToSource(record, "Player information not found. Unable to process command.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+
+                        //May only call this command from in-game
+                        if (_teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey == "Spectator")
+                        {
+                            SendMessageToSource(record, "You can't use the assist command from spectator.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -5550,36 +5979,58 @@ namespace PRoConEvents {
                         AdKatsTeam team1 = _teamDictionary[1];
                         AdKatsTeam team2 = _teamDictionary[2];
                         AdKatsTeam winningTeam, losingTeam;
-                        if (team1.TeamTicketCount > team2.TeamTicketCount)
-                        {
+                        if (team1.TeamTicketCount > team2.TeamTicketCount) {
                             winningTeam = team1;
                             losingTeam = team2;
                         }
-                        else
-                        {
+                        else {
                             winningTeam = team2;
                             losingTeam = team1;
                         }
-                        String debug = (record.source_name == "ColColonCleaner") ? ("[" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + (int)winningTeam.TeamTicketDifferenceRate + ":" + (int)losingTeam.TeamTicketDifferenceRate + "]") : ("");
-                        
-                        record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "]";
-                        if ((record.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID) && 
-                            Math.Abs(winningTeam.TeamTicketDifferenceRate) < Math.Abs(losingTeam.TeamTicketDifferenceRate))
+                        AdKatsTeam friendlyTeam, enemyTeam;
+                        if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID) {
+                            friendlyTeam = team1;
+                            enemyTeam = team2;
+                        }
+                        else if (record.target_player.frostbitePlayerInfo.TeamID == team2.TeamID) {
+                            friendlyTeam = team2;
+                            enemyTeam = team1;
+                        }
+                        else
                         {
-                            //60 second timeout
+                            SendMessageToSource(record, "Invalid teams when attempting to assist.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        String debug = (RoleIsAdmin(record.source_player.player_role)) ? ("[" + friendlyTeam.TeamKey + ":" + friendlyTeam.TeamTicketCount + ":" + (int)friendlyTeam.TeamTicketDifferenceRate + "][" + enemyTeam.TeamKey + ":" + enemyTeam.TeamTicketCount + ":" + (int)enemyTeam.TeamTicketDifferenceRate + "]") : ("");
+
+                        record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "]";
+                        if ((record.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID) 
+                            && Math.Abs(winningTeam.TeamTicketDifferenceRate) < Math.Abs(losingTeam.TeamTicketDifferenceRate)) {
+                            //30 second timeout
                             Double timeout = (30 - (DateTime.UtcNow - _commandUsageTimes["self_assist"]).TotalSeconds);
-                            if (timeout > 0)
-                            {
-                                SendMessageToSource(record, "Assist recently used. Please wait " + (int)timeout + " seconds before using it. Thank you. " + debug);
+                            if (timeout > 0) {
+                                SendMessageToSource(record, "Assist recently used. Please wait " + (int) timeout + " seconds before using it. Thank you. " + debug);
                                 FinalizeRecord(record);
                                 return;
                             }
 
                             SendMessageToSource(record, "Queuing you to assist the weak team. Thank you. " + debug);
                         }
-                        else
-                        {
-                            SendMessageToSource(record, "You may only assist a weak team. " + debug);
+                        else {
+                            String enemyTicketSpeed;
+                            if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID) {
+                                    
+                                enemyTicketSpeed = ((Math.Abs(team2.TeamTicketDifferenceRate) > Math.Abs(team1.TeamTicketDifferenceRate)) ? ("faster") : ("slower"));
+                            }
+                            else //player is on team 2
+                            {
+                                enemyTicketSpeed = ((Math.Abs(team1.TeamTicketDifferenceRate) > Math.Abs(team2.TeamTicketDifferenceRate)) ? ("faster") : ("slower"));
+                            }
+                            SendMessageToSource(record, 
+                                "You may only assist a weak team. Enemy team is " + 
+                                ((record.target_player.frostbitePlayerInfo.TeamID == winningTeam.TeamID) ? ("losing") : ("winning")) + 
+                                ", and losing tickets " + enemyTicketSpeed + " than your team. " + debug);
                             FinalizeRecord(record);
                             return;
                         }
@@ -5599,14 +6050,14 @@ namespace PRoConEvents {
 
                         //May only call this command from in-game
                         if (record.record_source != AdKatsRecord.Sources.InGame) {
-                            SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                            SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                             FinalizeRecord(record);
                             return;
                         }
 
                         record.record_message = "Self-Inflicted";
                         record.target_name = record.source_name;
-                        CompleteTargetInformation(record, false);
+                        CompleteTargetInformation(record, false, false);
                     }
                         break;
                     case "player_kill": {
@@ -5624,13 +6075,13 @@ namespace PRoConEvents {
                         switch (parameters.Length) {
                             case 0:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     FinalizeRecord(record);
                                     return;
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -5654,7 +6105,67 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false);
+                                        CompleteTargetInformation(record, false, false);
+                                    }
+                                    else {
+                                        SendMessageToSource(record, "Reason too short, unable to submit.");
+                                        FinalizeRecord(record);
+                                    }
+                                }
+                                break;
+                            default:
+                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                FinalizeRecord(record);
+                                return;
+                        }
+                    }
+                        break;
+                    case "player_kill_force": {
+                        //Remove previous commands awaiting confirmation
+                        CancelSourcePendingAction(record);
+
+                        if (_serverType == "OFFICIAL") {
+                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+
+                        //Parse parameters using max param count
+                        String[] parameters = ParseParameters(remainingMessage, 2);
+                        switch (parameters.Length) {
+                            case 0:
+                                if (record.record_source != AdKatsRecord.Sources.InGame) {
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                record.record_message = "Self-Inflicted";
+                                record.target_name = record.source_name;
+                                CompleteTargetInformation(record, false, false);
+                                break;
+                            case 1:
+                                record.target_name = parameters[0];
+                                //Handle based on report ID as only option
+                                if (!HandleRoundReport(record)) {
+                                    SendMessageToSource(record, "No reason given, unable to submit.");
+                                }
+                                FinalizeRecord(record);
+                                return;
+                            case 2:
+                                record.target_name = parameters[0];
+
+                                //attempt to handle via pre-message ID
+                                record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
+                                if (record.record_message == null) {
+                                    SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+
+                                //Handle based on report ID if possible
+                                if (!HandleRoundReport(record)) {
+                                    if (record.record_message.Length >= _RequiredReasonLength) {
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -5684,13 +6195,13 @@ namespace PRoConEvents {
                         switch (parameters.Length) {
                             case 0:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     FinalizeRecord(record);
                                     return;
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -5714,7 +6225,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -5778,8 +6289,12 @@ namespace PRoConEvents {
                             }
                             record.command_numeric = (int) (recordDuration * durationMultiplier);
                             if (record.command_numeric > 5259490.0) {
-                                SendMessageToSource(record, "You cannot temp ban for longer than 10 years. Do a permaban instead.");
+                                SendMessageToSource(record, "You cannot temp ban for longer than 10 years. Issue a permanent ban instead.");
                                 return;
+                            }
+                            if (record.command_numeric > _MaxTempBanDuration.TotalMinutes) {
+                                SendMessageToSource(record, "You cannot temp ban for longer than " + FormatTimeString(_MaxTempBanDuration, 2) + ". Defaulting to max temp ban time.");
+                                record.command_numeric = (int)_MaxTempBanDuration.TotalMinutes;
                             }
                         }
 
@@ -5790,7 +6305,7 @@ namespace PRoConEvents {
                                 return;
                             case 1:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -5798,7 +6313,7 @@ namespace PRoConEvents {
                                 //Target is source
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 2:
                                 record.command_numeric = (int) (recordDuration * durationMultiplier);
@@ -5831,7 +6346,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -5861,13 +6376,13 @@ namespace PRoConEvents {
                         switch (parameters.Length) {
                             case 0:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     FinalizeRecord(record);
                                     return;
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -5891,7 +6406,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -5967,7 +6482,7 @@ namespace PRoConEvents {
                                 return;
                             case 1:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -5975,7 +6490,7 @@ namespace PRoConEvents {
                                 //Target is source
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 2:
                                 record.command_numeric = (int) (recordDuration * durationMultiplier);
@@ -6008,7 +6523,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -6038,10 +6553,10 @@ namespace PRoConEvents {
                             return;
                         }
 
-                        record.record_message = "Admin Unban";
-
                         //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 1);
+                        String[] parameters = ParseParameters(remainingMessage, 2);
+                        String partialName;
+                        List<AdKatsBan> matchingBans;
                         switch (parameters.Length) {
                             case 0:
                                 //Unban the last player you've banned
@@ -6050,37 +6565,20 @@ namespace PRoConEvents {
                                 return;
                             case 1:
                                 //Unban the target player
-                                String partialName = parameters[0];
+                                partialName = parameters[0];
+                                record.record_message = "Admin Unban";
+                                break;
+                            case 2:
+                                //Unban the target player
+                                partialName = parameters[0];
 
-                                if (String.IsNullOrEmpty(partialName) || partialName.Length < 3) {
-                                    SendMessageToSource(record, "Name search must be at least 3 characters.");
+                                //attempt to handle via pre-message ID
+                                record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
+                                if (record.record_message == null)
+                                {
+                                    SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
                                     FinalizeRecord(record);
                                     return;
-                                }
-
-                                var matchingBans = new List<AdKatsBan>();
-                                List<AdKatsPlayer> matchingPlayers;
-                                if (FetchMatchingPlayers(partialName, out matchingPlayers, false)) {
-                                    foreach (AdKatsPlayer aPlayer in matchingPlayers) {
-                                        matchingBans.AddRange(FetchPlayerBans(aPlayer));
-                                    }
-                                }
-                                if (matchingBans.Count == 0) {
-                                    SendMessageToSource(record, "No players matching '" + partialName + "' have active bans.");
-                                    FinalizeRecord(record);
-                                }
-                                if (matchingBans.Count <= 3) {
-                                    foreach (AdKatsBan innerBan in matchingBans) {
-                                        SendMessageToSource(record, innerBan.ban_record.target_player.player_name + " | " + innerBan.ban_record.record_message);
-                                    }
-                                    AdKatsBan aBan = matchingBans[0];
-                                    record.target_name = aBan.ban_record.target_player.player_name;
-                                    record.target_player = aBan.ban_record.target_player;
-                                    ConfirmActionWithSource(record);
-                                }
-                                else {
-                                    SendMessageToSource(record, "Too many banned players match your search, try again.");
-                                    FinalizeRecord(record);
                                 }
                                 break;
                             default:
@@ -6088,7 +6586,87 @@ namespace PRoConEvents {
                                 FinalizeRecord(record);
                                 return;
                         }
+
+                        if (String.IsNullOrEmpty(partialName) || partialName.Length < 3)
+                        {
+                            SendMessageToSource(record, "Name search must be at least 3 characters.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        SendMessageToSource(record, "Fetching matching bans. Please wait.");
+                        matchingBans = FetchMatchingBans(partialName, 4);
+                        if (matchingBans.Count == 0)
+                        {
+                            SendMessageToSource(record, "No players matching '" + partialName + "' have active bans.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (matchingBans.Count <= 3)
+                        {
+                            foreach (AdKatsBan innerBan in matchingBans)
+                            {
+                                SendMessageToSource(record, innerBan.ban_record.target_player.player_name + " | " + innerBan.ban_record.record_time.ToShortDateString() + " | " + innerBan.ban_record.record_message);
+                            }
+                            AdKatsBan aBan = matchingBans[0];
+                            record.target_name = aBan.ban_record.target_player.player_name;
+                            record.target_player = aBan.ban_record.target_player;
+                            ConfirmActionWithSource(record);
+                        }
+                        else
+                        {
+                            SendMessageToSource(record, "Too many banned players match your search, try again.");
+                            FinalizeRecord(record);
+                        }
                     }
+                        break;
+                    case "player_whitelisthackerchecker":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (_serverType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 1:
+                                    //Unban the target player
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Hacker-Checker Whitelist Player";
+                                    break;
+                                case 2:
+                                    //Unban the target player
+                                    record.target_name = parameters[0];
+
+                                    //attempt to handle via pre-message ID
+                                    record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+
+                            if (String.IsNullOrEmpty(record.target_name) || record.target_name.Length < 3)
+                            {
+                                SendMessageToSource(record, "Name search must be at least 3 characters.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            CompleteTargetInformation(record, false, true);
+                        }
                         break;
                     case "player_punish": {
                         //Remove previous commands awaiting confirmation
@@ -6105,13 +6683,13 @@ namespace PRoConEvents {
                         switch (parameters.Length) {
                             case 0:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     FinalizeRecord(record);
                                     return;
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -6135,7 +6713,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -6159,13 +6737,13 @@ namespace PRoConEvents {
                         switch (parameters.Length) {
                             case 0:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     FinalizeRecord(record);
                                     return;
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -6189,7 +6767,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -6219,13 +6797,13 @@ namespace PRoConEvents {
                         switch (parameters.Length) {
                             case 0:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     FinalizeRecord(record);
                                     return;
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -6249,7 +6827,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -6264,36 +6842,78 @@ namespace PRoConEvents {
                         }
                     }
                         break;
-                    case "player_join": {
-                        //Remove previous commands awaiting confirmation
-                        CancelSourcePendingAction(record);
+                    case "player_join":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
 
-                        if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
-                            FinalizeRecord(record);
-                            return;
-                        }
-
-                        //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 1);
-                        switch (parameters.Length) {
-                            case 0:
-                                SendMessageToSource(record, "foreveralone.jpg");
+                            if (_serverType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
-                            case 1:
-                                record.target_name = parameters[0];
-                                record.record_message = "Joining Player";
-                                if (!HandleRoundReport(record)) {
-                                    CompleteTargetInformation(record, false);
-                                }
-                                break;
-                            default:
-                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "foreveralone.jpg");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Joining Player";
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_pull":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (_serverType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "foreveralone.jpg");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use this command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Pulling Player";
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
                         }
-                    }
                         break;
                     case "player_roundwhitelist": {
                         //Remove previous commands awaiting confirmation
@@ -6313,13 +6933,13 @@ namespace PRoConEvents {
                         switch (parameters.Length) {
                             case 0:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     FinalizeRecord(record);
                                     return;
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -6338,7 +6958,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -6382,7 +7002,7 @@ namespace PRoConEvents {
 
                                 //Only 1 character reasons are required for reports and admin calls
                                 if (record.record_message.Length >= 1) {
-                                    CompleteTargetInformation(record, false);
+                                    CompleteTargetInformation(record, false, false);
                                 }
                                 else {
                                     DebugWrite("reason too short", 6);
@@ -6425,7 +7045,7 @@ namespace PRoConEvents {
                                 DebugWrite("reason: " + record.record_message, 6);
                                 //Only 1 character reasons are required for reports and admin calls
                                 if (record.record_message.Length >= 1) {
-                                    CompleteTargetInformation(record, false);
+                                    CompleteTargetInformation(record, false, false);
                                 }
                                 else {
                                     DebugWrite("reason too short", 6);
@@ -6439,6 +7059,307 @@ namespace PRoConEvents {
                                 return;
                         }
                     }
+                        break;
+                    case "player_info":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Fetching Own Info";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Fetching Player Info";
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_chat":
+                        {
+                            /*
+                             * This command will get chat history for a player. Comes in 4 variations. 
+                             * Variable number of seconds between printed lines, based on the number of characters in the message. 
+                             * Oldest to newest. Default last 5 lines, max 30. Spam protection enabled.
+                             *  
+                             * /pchat - returns your chat history, default length.
+                             * /pchat (#) - returns your chat history, custom length.
+                             * /pchat (playername) - returns player chat history, default length.
+                             * /pchat (#) (playername) - returns player chat history, custom length.
+                             * /pchat self (playername) - returns last conversation between you and player, default length.
+                             * /pchat (#) self (playername) - returns last conversation between you and player, custom length.
+                             * /pchat (playernameA) (playernameB) - returns last conversation between playerA and playerB, default length.
+                             * /pchat (#) (playernameA) (playernameB) - returns last conversation between playerA and playerB, custom length.
+                             */
+
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            Int32 numeric;
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    //One case, assign to self
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Fetching own chat history";
+                                    record.target_name = record.source_name;
+                                    record.command_numeric = 5;
+                                    //TODO: SendMessageToSource(record, "Fetching last " + record.command_numeric + " records of own chat history.");
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                case 1:
+                                    //Two cases
+                                    if (Int32.TryParse(parameters[0], out numeric) && numeric <= 30) {
+                                        //Case numeric, assign to duration
+                                        record.record_message = "Fetching own chat history";
+                                        record.target_name = record.source_name;
+                                        record.command_numeric = numeric;
+                                        CompleteTargetInformation(record, false, false);
+                                    }
+                                    else
+                                    {
+                                        //Case player, assign to target name
+                                        record.record_message = "Fetching player chat history";
+                                        record.target_name = parameters[0];
+                                        record.command_numeric = 5;
+                                        CompleteTargetInformation(record, false, false);
+                                    }
+                                    return;
+                                case 2:
+                                    //Three cases
+                                    if (Int32.TryParse(parameters[0], out numeric) && numeric <= 30)
+                                    {
+                                        //Case numeric, assign to duration
+                                        record.record_message = "Fetching player chat history";
+                                        record.target_name = parameters[1];
+                                        record.command_numeric = numeric;
+                                        CompleteTargetInformation(record, false, false);
+                                    }
+                                    else
+                                    {
+                                        SendMessageToSource(record, "");
+                                        //Two target case, assign both players
+                                        if (parameters[0].ToLower() == "self")
+                                        {
+                                            //Players are self and target
+                                            record.record_message = "Fetching own conversation history.";
+                                            record.TargetNamesLocal.Add(record.source_name);
+                                            record.TargetNamesLocal.Add(parameters[0]);
+                                            record.command_numeric = 5;
+                                            CompleteTargetInformation(record, false, false);
+                                        }
+                                        else
+                                        {
+                                            //Players are target 1 and target 2
+                                            record.record_message = "Fetching player conversation history.";
+                                            record.TargetNamesLocal.Add(parameters[0]);
+                                            record.TargetNamesLocal.Add(parameters[1]);
+                                            record.command_numeric = 5;
+                                            CompleteTargetInformation(record, false, false);
+                                        }
+                                    }
+                                    break;
+                                case 3:
+                                    //Two cases
+                                    if (Int32.TryParse(parameters[0], out numeric) && numeric <= 30)
+                                    {
+                                        //Two target case, assign both players
+                                        if (parameters[1].ToLower() == "self")
+                                        {
+                                            //Players are self and target
+                                            record.record_message = "Fetching own conversation history.";
+                                            record.TargetNamesLocal.Add(record.source_name);
+                                            record.TargetNamesLocal.Add(parameters[2]);
+                                            record.command_numeric = numeric;
+                                            CompleteTargetInformation(record, false, false);
+                                        }
+                                        else
+                                        {
+                                            //Players are target 1 and target 2
+                                            record.record_message = "Fetching player conversation history.";
+                                            record.TargetNamesLocal.Add(parameters[1]);
+                                            record.TargetNamesLocal.Add(parameters[2]);
+                                            record.command_numeric = numeric;
+                                            CompleteTargetInformation(record, false, false);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                        FinalizeRecord(record);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_find":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Finding Self";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Finding Player";
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_lock":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "You can't lock yourself...");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Locking Player";
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_unlock":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "You can't unlock yourself...");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Unlocking Player";
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_mark":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Marking Self";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Marking Player";
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "server_afk":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (_AFKAutoKickEnable) {
+                                        SendMessageToSource(record, "AFK players are being managed automatically; Disable to use this command.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Manage AFK Players";
+                                    record.target_name = "Server";
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
                         break;
                     case "server_nuke": {
                         //Remove previous commands awaiting confirmation
@@ -6667,8 +7588,19 @@ namespace PRoConEvents {
                             case 1:
                                 record.record_message = GetPreMessage(parameters[0], true);
                                 if (record.record_message == null) {
-                                    SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
-                                    FinalizeRecord(record);
+                                    AdKatsCommand aCommand;
+                                    if (_CommandTextDictionary.TryGetValue(parameters[0], out aCommand)) {
+                                        if (record.source_player == null || HasAccess(record.source_player, aCommand)) {
+                                            record.record_message = _CommandDescriptionDictionary[aCommand.command_key];
+                                        }
+                                        else {
+                                            record.record_message = "Your user role " + record.source_player.player_role.role_name + " does not have access to " + aCommand.command_name + ".";
+                                        }
+                                    }
+                                    else
+                                    {
+                                        record.record_message = "Invalid PreMessage ID or command name. !" + _CommandKeyDictionary["self_help"].command_text + " for command list. Valid PreMessage IDs are 1-" + _PreMessageList.Count;
+                                    }
                                 }
                                 SendMessageToSource(record, record.record_message);
                                 FinalizeRecord(record);
@@ -6690,125 +7622,159 @@ namespace PRoConEvents {
                         FinalizeRecord(record);
                     }
                         break;
-                    case "self_rules": {
-                        //Remove previous commands awaiting confirmation
-                        CancelSourcePendingAction(record);
+                    case "self_rules":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
 
-                        //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 1);
-                        switch (parameters.Length) {
-                            case 0:
-                                record.target_name = record.source_name;
-                                record.record_message = "Player Requested Rules";
-                                if (record.record_source == AdKatsRecord.Sources.InGame) {
-                                    if (_playerDictionary.TryGetValue(record.target_name, out record.target_player)) {
-                                        record.target_name = record.target_player.player_name;
-                                        //Cancel call if rules already requested in the past 10 seconds
-                                        if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "self_rules" && aRecord.record_time.AddSeconds(Math.Abs(_ServerRulesList.Count() * _ServerRulesInterval)) > DateTime.UtcNow)) {
-                                            SendMessageToSource(record, "Please wait for previous rules request to finish.");
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    record.target_name = record.source_name;
+                                    record.record_message = "Player Requested Rules";
+                                    if (record.record_source == AdKatsRecord.Sources.InGame)
+                                    {
+                                        if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
+                                        {
+                                            SendMessageToSource(record, "Source player not found, unable to submit.");
+                                            FinalizeRecord(record);
+                                            return;
+                                        }
+                                        OnlineAdminSayMessage(record.source_name + " requested server rules.");
+                                    }
+                                    else
+                                    {
+                                        record.target_name = "ExternalSource";
+                                    }
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Telling Player Rules";
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "self_help":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    record.target_name = record.source_name;
+                                    record.record_message = "Player Requested Commands";
+                                    if (record.record_source == AdKatsRecord.Sources.InGame)
+                                    {
+                                        if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
+                                        {
+                                            SendMessageToSource(record, "Source player not found, unable to submit.");
                                             FinalizeRecord(record);
                                             return;
                                         }
                                     }
-                                    else {
-                                        ConsoleError("394871 this error should never happen.");
-                                        FinalizeRecord(record);
-                                        return;
+                                    else
+                                    {
+                                        record.target_name = "ExternalSource";
                                     }
-                                }
-                                else {
-                                    record.target_name = "ExternalSource";
-                                }
-                                QueueRecordForProcessing(record);
-                                break;
-                            case 1:
-                                record.target_name = parameters[0];
-                                record.record_message = "Telling Player Rules";
-                                if (!HandleRoundReport(record)) {
-                                    CompleteTargetInformation(record, false);
-                                }
-                                break;
-                            default:
-                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
-                        }
-                    }
-                        break;
-                    case "self_uptime":
-                        {
-                            //Remove previous commands awaiting confirmation
-                            CancelSourcePendingAction(record);
-
-                            record.record_message = "Player Requested Uptime";
-                            if (record.record_source == AdKatsRecord.Sources.InGame)
-                            {
-                                record.target_name = record.source_name;
-                                if (_playerDictionary.TryGetValue(record.target_name, out record.target_player))
-                                {
-                                    record.target_name = record.target_player.player_name;
-                                }
-                                else
-                                {
-                                    ConsoleError("48204928 this error should never happen.");
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Telling Player Commands";
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
                                     FinalizeRecord(record);
                                     return;
-                                }
                             }
-                            else
-                            {
-                                record.target_name = "ExternalSource";
-                            }
-                            QueueRecordForProcessing(record);
                         }
                         break;
-                    case "self_contest":
-                        {
-                            //Remove previous commands awaiting confirmation
-                            CancelSourcePendingAction(record);
-                            
-                            //May only call this command from in-game
-                            if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
-                                FinalizeRecord(record);
-                                return;
-                            }
+                    case "self_uptime": {
+                        //Remove previous commands awaiting confirmation
+                        CancelSourcePendingAction(record);
 
-                            //Player Info Check
-                            record.record_message = "Player Contested Report";
+                        record.record_message = "Player Requested Uptime";
+                        if (record.record_source == AdKatsRecord.Sources.InGame) {
                             record.target_name = record.source_name;
-                            if (!_playerDictionary.TryGetValue(record.target_name, out record.target_player)) {
-                                SendMessageToSource(record, "Player information not found. Unable to process command.");
+                            if (_PlayerDictionary.TryGetValue(record.target_name, out record.target_player)) {
+                                record.target_name = record.target_player.player_name;
+                            }
+                            else {
+                                ConsoleError("48204928 this error should never happen.");
                                 FinalizeRecord(record);
                                 return;
                             }
+                        }
+                        else {
+                            record.target_name = "ExternalSource";
+                        }
+                        QueueRecordForProcessing(record);
+                    }
+                        break;
+                    case "self_contest": {
+                        //Remove previous commands awaiting confirmation
+                        CancelSourcePendingAction(record);
 
-                            AdKatsRecord aRecord = null;
-                            foreach (AdKatsRecord reportRecord in _RoundReports.Values) {
-                                if (reportRecord.target_player.player_id == record.target_player.player_id) {
-                                    if (aRecord == null || reportRecord.record_time > aRecord.record_time) {
-                                        aRecord = reportRecord;
-                                    }
+                        //May only call this command from in-game
+                        if (record.record_source != AdKatsRecord.Sources.InGame) {
+                            SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+
+                        //Player Info Check
+                        record.record_message = "Player Contested Report";
+                        record.target_name = record.source_name;
+                        if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player)) {
+                            SendMessageToSource(record, "Player information not found. Unable to process command.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+
+                        AdKatsRecord aRecord = null;
+                        foreach (AdKatsRecord reportRecord in _RoundReports.Values) {
+                            if (reportRecord.target_player.player_id == record.target_player.player_id) {
+                                if (aRecord == null || reportRecord.record_time > aRecord.record_time) {
+                                    aRecord = reportRecord;
                                 }
                             }
-
-                            if (aRecord == null) {
-                                SendMessageToSource(record, "You have no reports to contest.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-
-                            //Assign the report ID housed in command numeric
-                            record.command_numeric = aRecord.command_numeric;
-                            //Set Contested
-                            aRecord.isContested = true;
-                            //Inform All Parties
-                            SendMessageToSource(aRecord, aRecord.target_player.player_name + " has contested your report against them.");
-                            SendMessageToSource(record, "You have contested " + aRecord.source_name + "'s report against you.");
-                            OnlineAdminSayMessage(record.source_name + " has contested report [" + aRecord.command_numeric + "] for " + aRecord.record_message);
-
-                            QueueRecordForProcessing(record);
                         }
+
+                        if (aRecord == null) {
+                            SendMessageToSource(record, "You have no reports to contest.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+
+                        //Assign the report ID housed in command numeric
+                        record.command_numeric = aRecord.command_numeric;
+                        //Set Contested
+                        aRecord.isContested = true;
+                        //Inform All Parties
+                        SendMessageToSource(aRecord, aRecord.target_player.player_name + " has contested your report against them.");
+                        SendMessageToSource(record, "You have contested " + aRecord.source_name + "'s report against you.");
+                        OnlineAdminSayMessage(record.source_name + " has contested report [" + aRecord.command_numeric + "] for " + aRecord.record_message);
+
+                        QueueRecordForProcessing(record);
+                    }
                         break;
                     case "self_admins": {
                         //Remove previous commands awaiting confirmation
@@ -6817,7 +7783,7 @@ namespace PRoConEvents {
                         record.record_message = "Player Requested Online Admins";
                         if (record.record_source == AdKatsRecord.Sources.InGame) {
                             record.target_name = record.source_name;
-                            CompleteTargetInformation(record, false);
+                            CompleteTargetInformation(record, false, false);
                         }
                         else {
                             record.target_name = "ExternalSource";
@@ -6834,19 +7800,19 @@ namespace PRoConEvents {
                         switch (parameters.Length) {
                             case 0:
                                 if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-inflicting command from outside the game.");
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                     FinalizeRecord(record);
                                     return;
                                 }
                                 record.target_name = record.source_name;
                                 record.record_message = "Player Taking Squad Lead";
-                                CompleteTargetInformation(record, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
                                 record.record_message = "Giving Player Squad Lead";
                                 if (!HandleRoundReport(record)) {
-                                    CompleteTargetInformation(record, false);
+                                    CompleteTargetInformation(record, false, false);
                                 }
                                 break;
                             default:
@@ -6883,32 +7849,65 @@ namespace PRoConEvents {
                         record.record_action_executed = true;
                     }
                         break;
-                    case "admin_deny": {
-                        //Remove previous commands awaiting confirmation
-                        CancelSourcePendingAction(record);
+                    case "admin_deny":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
 
-                        //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 1);
-                        switch (parameters.Length) {
-                            case 0:
-                                SendMessageToSource(record, "Report ID must be given. Unable to submit.");
-                                FinalizeRecord(record);
-                                break;
-                            case 1:
-                                record.target_name = parameters[0];
-                                //Handle based on report ID as only option
-                                if (!DenyRoundReport(record)) {
-                                    SendMessageToSource(record, "Invalid report ID given, unable to submit.");
-                                }
-                                FinalizeRecord(record);
-                                return;
-                            default:
-                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "Report ID must be given. Unable to submit.");
+                                    FinalizeRecord(record);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID as only option
+                                    if (!DenyRoundReport(record))
+                                    {
+                                        SendMessageToSource(record, "Invalid report ID given, unable to submit.");
+                                    }
+                                    FinalizeRecord(record);
+                                    return;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                            record.record_action_executed = true;
                         }
-                        record.record_action_executed = true;
-                    }
+                        break;
+                    case "admin_ignore":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "Report ID must be given. Unable to submit.");
+                                    FinalizeRecord(record);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID as only option
+                                    if (!IgnoreRoundReport(record))
+                                    {
+                                        SendMessageToSource(record, "Invalid report ID given, unable to submit.");
+                                    }
+                                    FinalizeRecord(record);
+                                    return;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                            record.record_action_executed = true;
+                        }
                         break;
                     case "admin_say": {
                         //Remove previous commands awaiting confirmation
@@ -6956,7 +7955,7 @@ namespace PRoConEvents {
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -7011,7 +8010,7 @@ namespace PRoConEvents {
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -7044,36 +8043,70 @@ namespace PRoConEvents {
                         }
                     }
                         break;
-                    case "player_tell": {
-                        //Remove previous commands awaiting confirmation
-                        CancelSourcePendingAction(record);
+                    case "player_tell":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
 
-                        //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 2);
-                        switch (parameters.Length) {
-                            case 0:
-                                SendMessageToSource(record, "No parameters given, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
-                            case 1:
-                                SendMessageToSource(record, "No message given, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
-                            case 2:
-                                record.target_name = parameters[0];
-                                DebugWrite("target: " + record.target_name, 6);
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    SendMessageToSource(record, "No message given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 2:
+                                    record.target_name = parameters[0];
+                                    DebugWrite("target: " + record.target_name, 6);
 
-                                record.record_message = GetPreMessage(parameters[1], false);
-                                DebugWrite("message: " + record.record_message, 6);
+                                    record.record_message = GetPreMessage(parameters[1], false);
+                                    DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false);
-                                break;
-                            default:
-                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
                         }
-                    }
+                        break;
+                    case "player_dequeue":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame) {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Dequeueing Self";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Dequeueing Player";
+                                    DebugWrite("target: " + record.target_name, 6);
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
                         break;
                     case "player_blacklistdisperse": {
                         //Remove previous commands awaiting confirmation
@@ -7103,7 +8136,7 @@ namespace PRoConEvents {
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -7140,7 +8173,7 @@ namespace PRoConEvents {
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -7177,7 +8210,7 @@ namespace PRoConEvents {
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -7214,7 +8247,7 @@ namespace PRoConEvents {
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -7282,132 +8315,317 @@ namespace PRoConEvents {
                 ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, JSON.JsonEncode(responseHashtable));
             }
             //Performance testing area
-            if (record.source_name == _DebugSoldierName) {
-                SendMessageToSource(record, "Duration: " + ((int) DateTime.UtcNow.Subtract(_CommandStartTime).TotalMilliseconds) + "ms");
+            if (record.source_name == _debugSoldierName) {
+                SendMessageToSource(record, "Duration: " + ((int) DateTime.UtcNow.Subtract(_commandStartTime).TotalMilliseconds) + "ms");
             }
             if (record.record_source == AdKatsRecord.Sources.InGame || record.record_source == AdKatsRecord.Sources.InternalAutomated) {
                 DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + (DateTime.UtcNow - record.record_time).TotalMilliseconds + "ms to complete.", 3);
+            } 
+            //Add event log
+            if (String.IsNullOrEmpty(record.target_name) || String.IsNullOrEmpty(record.source_name) || record.command_action == null) {
+                ConsoleError("Error in record information, unable to log procon event.");
+                return;
             }
+            String message;
+            if (record.record_action_executed) {
+                message = record.command_action.command_name + " issued on " + record.target_name + " for " + record.record_message;
+            }
+            else {
+                message = "Failed to issue " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
+            }
+            this.ExecuteCommand("procon.protected.events.write", "Plugins", "AdKats", message, record.source_name);
         }
 
-        public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm) {
-            try {
-                //Check for an exact match
-                if (_playerDictionary.TryGetValue(record.target_name, out record.target_player)) {
-                    record.target_name = record.target_player.player_name;
-                    if (!requireConfirm) {
-                        //Process record right away
-                        QueueRecordForProcessing(record);
+        public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm, Boolean externalFetchOverFuzzy) {
+            try
+            {
+                Boolean confirmNeeded = false;
+                //Multiple target case
+                if (record.TargetNamesLocal.Any()) {
+                    foreach (string targetName in record.TargetNamesLocal)
+                    {
+                        //Attempt to get the player object
+                        AdKatsPlayer aPlayer;
+                        String resultMessage;
+                        Boolean curConfirm;
+                        if (FetchPlayerFromName(targetName, externalFetchOverFuzzy, out aPlayer, out curConfirm, out resultMessage))
+                        {
+                            record.TargetPlayersLocal.Add(aPlayer);
+                            if (curConfirm)
+                            {
+                                SendMessageToSource(record, resultMessage);
+                                confirmNeeded = true;
+                            }
+                        }
+                        else {
+                            SendMessageToSource(record, resultMessage);
+                        }
+                    }
+                    //Ensure main target player is null
+                    record.target_player = null;
+                }
+                //Single target case
+                else {
+                    //Attempt to get the player object
+                    AdKatsPlayer aPlayer;
+                    String resultMessage;
+                    Boolean curConfirm;
+                    if (FetchPlayerFromName(record.target_name, externalFetchOverFuzzy, out aPlayer, out curConfirm, out resultMessage))
+                    {
+                        record.target_name = aPlayer.player_name;
+                        record.target_player = aPlayer;
+                        if (curConfirm)
+                        {
+                            SendMessageToSource(record, resultMessage);
+                            confirmNeeded = true;
+                        }
                     }
                     else {
-                        ConfirmActionWithSource(record);
+                        SendMessageToSource(record, resultMessage);
                     }
                 }
+                if (confirmNeeded) {
+                    ConfirmActionWithSource(record);
+                }
                 else {
-                    List<String> currentPlayerNames = _playerDictionary.Keys.ToList();
-                    //Get all subString matches
-                    var subStringMatches = new List<string>();
-                    subStringMatches.AddRange(currentPlayerNames.Where(playerName => Regex.Match(playerName, record.target_name, RegexOptions.IgnoreCase).Success));
-                    if (subStringMatches.Count == 1) {
-                        //Only one subString match, call processing without confirmation if able
-                        if (!_playerDictionary.TryGetValue(subStringMatches[0], out record.target_player)) {
-                            ConsoleError("Error fetching player for substring match.");
-                            return;
-                        }
-                        record.target_name = subStringMatches[0];
-                        if (!requireConfirm) {
-                            //Process record right away
-                            QueueRecordForProcessing(record);
-                        }
-                        else {
-                            ConfirmActionWithSource(record);
-                        }
-                    }
-                    else if (subStringMatches.Count > 1) {
-                        //Multiple players matched the query, choose correct one
-                        String msg = "'" + record.target_name + "' matches multiple players: ";
-                        bool first = true;
-                        String suggestion = null;
-                        foreach (String playerName in subStringMatches) {
-                            if (first) {
-                                msg = msg + playerName;
-                                first = false;
-                            }
-                            else {
-                                msg = msg + ", " + playerName;
-                            }
-                            //Suggest player names that start with the text admins entered over others
-                            if (playerName.ToLower().StartsWith(record.target_name.ToLower())) {
-                                suggestion = playerName;
-                            }
-                        }
-                        if (suggestion == null) {
-                            //If no player id starts with what admins typed, suggest subString id with lowest Levenshtein distance
-                            Int32 bestDistance = Int32.MaxValue;
-                            foreach (String playerName in subStringMatches) {
-                                Int32 distance = LevenshteinDistance(record.target_name, playerName);
-                                if (distance < bestDistance) {
-                                    bestDistance = distance;
-                                    suggestion = playerName;
-                                }
-                            }
-                        }
-                        //If the suggestion is still null, something has failed
-                        if (suggestion == null) {
-                            DebugWrite("id suggestion system failed subString match", 5);
-                            SendMessageToSource(record, "name suggestion system failed substring match");
-                            FinalizeRecord(record);
-                            return;
-                        }
-
-                        //Inform admin of multiple players found
-                        SendMessageToSource(record, msg);
-
-                        //Use suggestion for target
-                        if (_playerDictionary.TryGetValue(suggestion, out record.target_player)) {
-                            record.target_name = suggestion;
-                            //Send record to attempt list for confirmation
-                            ConfirmActionWithSource(record);
-                        }
-                        else {
-                            ConsoleError("Substring match fetch failed.");
-                            FinalizeRecord(record);
-                        }
-                    }
-                    else {
-                        //There were no players found, run a fuzzy search using Levenshtein Distance on all players in server
-                        String fuzzyMatch = null;
-                        Int32 bestDistance = Int32.MaxValue;
-                        foreach (String playerName in currentPlayerNames) {
-                            Int32 distance = LevenshteinDistance(record.target_name, playerName);
-                            if (distance < bestDistance) {
-                                bestDistance = distance;
-                                fuzzyMatch = playerName;
-                            }
-                        }
-                        //If the suggestion is still null, something has failed
-                        if (fuzzyMatch == null) {
-                            DebugWrite("id suggestion system failed fuzzy match", 5);
-                            SendMessageToSource(record, "Player suggestion could not find a matching player.");
-                            FinalizeRecord(record);
-                            return;
-                        }
-                        if (_playerDictionary.TryGetValue(fuzzyMatch, out record.target_player)) {
-                            record.target_name = fuzzyMatch;
-                            //Send record to attempt list for confirmation
-                            ConfirmActionWithSource(record);
-                        }
-                        else {
-                            SendMessageToSource(record, "Player suggestion found matching player, but it could not be fetched.");
-                            FinalizeRecord(record);
-                        }
-                    }
+                    QueueRecordForProcessing(record);
                 }
             }
             catch (Exception e) {
                 record.record_exception = HandleException(new AdKatsException("Error while completing target information.", e));
                 FinalizeRecord(record);
             }
+        }
+
+        public Boolean FetchPlayerFromName(String playerNameInput, Boolean externalFetchOverFuzzy, out AdKatsPlayer aPlayer, out Boolean confirmNeeded, out String resultMessage)
+        {
+            //Set default return values
+            resultMessage = "Error finding player for " + playerNameInput;
+            confirmNeeded = false;
+            aPlayer = null;
+            try {
+                //Check for an exact match
+                if (_PlayerDictionary.TryGetValue(playerNameInput, out aPlayer) || _PlayerLeftDictionary.TryGetValue(playerNameInput, out aPlayer)) {
+                    return true;
+                }
+                //Check online players for substring match
+                List<String> currentPlayerNames = _PlayerDictionary.Keys.ToList();
+                //Get all subString matches
+                var subStringMatches = new List<string>();
+                subStringMatches.AddRange(currentPlayerNames.Where(playerName => Regex.Match(playerName, playerNameInput, RegexOptions.IgnoreCase).Success));
+                if (subStringMatches.Count == 1)
+                {
+                    //Only one subString match, call processing without confirmation if able
+                    if (_PlayerDictionary.TryGetValue(subStringMatches[0], out aPlayer)) {
+                        resultMessage = "Player match found for " + playerNameInput;
+                        return true;
+                    }
+                    ConsoleError("Error fetching player for substring match.");
+                    return false;
+                }
+                if (subStringMatches.Count > 1)
+                {
+                    //Multiple players matched the query, choose correct one
+                    String msg = "'" + playerNameInput + "' matches multiple players: ";
+                    bool first = true;
+                    String suggestion = null;
+                    foreach (String playerName in subStringMatches)
+                    {
+                        if (first)
+                        {
+                            msg = msg + playerName;
+                            first = false;
+                        }
+                        else
+                        {
+                            msg = msg + ", " + playerName;
+                        }
+                        //Suggest player names that start with the text admins entered over others
+                        if (playerName.ToLower().StartsWith(playerNameInput.ToLower()))
+                        {
+                            suggestion = playerName;
+                        }
+                    }
+                    if (suggestion == null)
+                    {
+                        //If no player id starts with what admins typed, suggest subString id with lowest Levenshtein distance
+                        Int32 bestDistance = Int32.MaxValue;
+                        foreach (String playerName in subStringMatches)
+                        {
+                            Int32 distance = LevenshteinDistance(playerNameInput, playerName);
+                            if (distance < bestDistance)
+                            {
+                                bestDistance = distance;
+                                suggestion = playerName;
+                            }
+                        }
+                    }
+                    //If the suggestion is still null, something has failed
+                    if (suggestion == null)
+                    {
+                        ConsoleError("id suggestion system failed subString match");
+                        return false;
+                    }
+
+
+                    //Use suggestion for target
+                    if (_PlayerDictionary.TryGetValue(suggestion, out aPlayer))
+                    {
+                        resultMessage = msg;
+                        confirmNeeded = true;
+                        return true;
+                    }
+                    ConsoleError("Substring match fetch failed.");
+                    return false;
+                }
+                //There were no players found in the online dictionary. Run a search on the offline dictionary
+                List<String> leftPlayerNames = _PlayerLeftDictionary.Keys.ToList();
+                //Get all subString matches
+                var subStringLeftMatches = new List<string>();
+                subStringLeftMatches.AddRange(leftPlayerNames.Where(playerName => Regex.Match(playerName, playerNameInput, RegexOptions.IgnoreCase).Success));
+                if (subStringLeftMatches.Count == 1)
+                {
+                    //Only one subString match, call processing without confirmation if able
+                    if (_PlayerLeftDictionary.TryGetValue(subStringLeftMatches[0], out aPlayer))
+                    {
+                        resultMessage = "Player match found for " + playerNameInput;
+                        return true;
+                    }
+                    ConsoleError("Error fetching player for substring match.");
+                    return false;
+                }
+                if (subStringLeftMatches.Count > 1)
+                {
+                    //Multiple players matched the query, choose correct one
+                    String msg = "'" + playerNameInput + "' matches multiple offline players: ";
+                    bool first = true;
+                    String suggestion = null;
+                    foreach (String playerName in subStringLeftMatches)
+                    {
+                        if (first)
+                        {
+                            msg = msg + playerName;
+                            first = false;
+                        }
+                        else
+                        {
+                            msg = msg + ", " + playerName;
+                        }
+                        //Suggest player names that start with the text admins entered over others
+                        if (playerName.ToLower().StartsWith(playerNameInput.ToLower()))
+                        {
+                            suggestion = playerName;
+                        }
+                    }
+                    if (suggestion == null)
+                    {
+                        //If no player id starts with what admins typed, suggest subString id with lowest Levenshtein distance
+                        Int32 bestDistance = Int32.MaxValue;
+                        foreach (String playerName in subStringLeftMatches)
+                        {
+                            Int32 distance = LevenshteinDistance(playerNameInput, playerName);
+                            if (distance < bestDistance)
+                            {
+                                bestDistance = distance;
+                                suggestion = playerName;
+                            }
+                        }
+                    }
+                    //If the suggestion is still null, something has failed
+                    if (suggestion == null)
+                    {
+                        ConsoleError("id suggestion system failed subString match");
+                        return false;
+                    }
+
+                    //Use suggestion for target
+                    if (_PlayerLeftDictionary.TryGetValue(suggestion, out aPlayer))
+                    {
+                        resultMessage = msg;
+                        confirmNeeded = true;
+                        return true;
+                    }
+                    ConsoleError("Substring match fetch failed.");
+                    return false;
+                }
+                if (!externalFetchOverFuzzy)
+                {
+                    if (currentPlayerNames.Count > 0)
+                    {
+                        //Player not found in either dictionary, run a fuzzy search using Levenshtein Distance on all players in server
+                        String fuzzyMatch = null;
+                        Int32 bestFuzzyDistance = Int32.MaxValue;
+                        foreach (String playerName in currentPlayerNames)
+                        {
+                            Int32 distance = LevenshteinDistance(playerNameInput, playerName);
+                            if (distance < bestFuzzyDistance)
+                            {
+                                bestFuzzyDistance = distance;
+                                fuzzyMatch = playerName;
+                            }
+                        }
+                        //If the suggestion is still null, something has failed
+                        if (fuzzyMatch == null)
+                        {
+                            ConsoleError("id suggestion system failed fuzzy match");
+                            return false;
+                        }
+                        if (_PlayerDictionary.TryGetValue(fuzzyMatch, out aPlayer))
+                        {
+                            resultMessage = "Fuzzy player match found for " + playerNameInput;
+                            confirmNeeded = true;
+                            return true;
+                        }
+                        ConsoleError("Player suggestion found matching player, but it could not be fetched.");
+                        return false;
+                    }
+                    if (leftPlayerNames.Count > 0)
+                    {
+                        //No players in the online dictionary, but there are players in the offline dictionary,
+                        //run a fuzzy search using Levenshtein Distance on all players who have left
+                        String fuzzyMatch = null;
+                        Int32 bestFuzzyDistance = Int32.MaxValue;
+                        foreach (String playerName in leftPlayerNames)
+                        {
+                            Int32 distance = LevenshteinDistance(playerNameInput, playerName);
+                            if (distance < bestFuzzyDistance)
+                            {
+                                bestFuzzyDistance = distance;
+                                fuzzyMatch = playerName;
+                            }
+                        }
+                        //If the suggestion is still null, something has failed
+                        if (fuzzyMatch == null)
+                        {
+                            ConsoleError("id suggestion system failed fuzzy match");
+                            return false;
+                        }
+                        if (_PlayerLeftDictionary.TryGetValue(fuzzyMatch, out aPlayer))
+                        {
+                            resultMessage = "Fuzzy player match found for " + playerNameInput;
+                            confirmNeeded = true;
+                            return true;
+                        }
+                        ConsoleError("Player suggestion found matching player, but it could not be fetched.");
+                        return false;
+                    }
+                    ConsoleError("Unable to find a matching player.");
+                    return false;
+                }
+                aPlayer = FetchPlayer(false, true, true, null, -1, playerNameInput, null, null);
+                if (aPlayer == null) {
+                    return false;
+                }
+                resultMessage = "Offline player found.";
+                aPlayer.player_online = false;
+                confirmNeeded = true;
+                return true;
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching player from name.", e));
+            }
+            return false;
         }
 
         public void ConfirmActionWithSource(AdKatsRecord record) {
@@ -7420,7 +8638,19 @@ namespace PRoConEvents {
                     CancelSourcePendingAction(record);
                     //Send record to attempt list
                     _ActionConfirmDic.Add(record.source_name, record);
-                    SendMessageToSource(record, record.command_type.command_name + "->" + record.target_name + " for " + record.record_message + "?");
+
+                    String targets = "";
+                    if (record.TargetPlayersLocal.Any()) {
+                        foreach (AdKatsPlayer aPlayer in record.TargetPlayersLocal) {
+                            targets += ((aPlayer.player_online) ? ("") : ("[OFFLINE]")) + aPlayer.player_name + ", ";
+                        }
+                        targets = targets.Trim().TrimEnd(',');
+                    }
+                    else
+                    {
+                        targets += ((record.target_player != null && !record.target_player.player_online) ? ("[OFFLINE]") : ("")) + record.target_name;
+                    }
+                    SendMessageToSource(record, record.command_type.command_name + "->" + targets + " for " + record.record_message + "?");
                 }
             }
             catch (Exception e) {
@@ -7447,61 +8677,6 @@ namespace PRoConEvents {
             DebugWrite("Exiting cancelSourcePendingAction", 7);
         }
 
-        /*public void AutoWhitelistPlayers() {
-            try {
-                ConsoleWrite(DateTime.Now.Ticks + " " + (String.IsNullOrEmpty(Thread.CurrentThread.Name)?("mainthread"):(Thread.CurrentThread.Name)) + " preparing to lock at " + new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber()); lock (_PlayerDictionary) {
-                    if (_PlayersToAutoWhitelist > 0) {
-                        var random = new Random();
-                        var playerListCopy = new List<String>();
-                        foreach (AdKatsPlayer player in _PlayerDictionary.Values) {
-                            DebugWrite("Checking for TeamSwap access on " + player.player_name, 6);
-                            if (!HasAccess(player, _CommandKeyDictionary["self_teamswap"])) {
-                                DebugWrite("player doesnt have access, adding them to chance list", 6);
-                                if (!playerListCopy.Contains(player.player_name)) {
-                                    playerListCopy.Add(player.player_name);
-                                }
-                            }
-                        }
-                        if (playerListCopy.Count > 0) {
-                            Int32 maxIndex = (playerListCopy.Count < _PlayersToAutoWhitelist) ? (playerListCopy.Count) : (_PlayersToAutoWhitelist);
-                            DebugWrite("MaxIndex: " + maxIndex, 6);
-                            for (Int32 index = 0; index < maxIndex; index++) {
-                                String playerName = null;
-                                Int32 iterations = 0;
-                                do {
-                                    playerName = playerListCopy[random.Next(0, playerListCopy.Count - 1)];
-                                } while (_TeamswapRoundWhitelist.ContainsKey(playerName) && (iterations++ < 100));
-                                if (!_TeamswapRoundWhitelist.ContainsKey(playerName)) {
-                                    AdKatsPlayer aPlayer = null;
-                                    if (_PlayerDictionary.TryGetValue(playerName, out aPlayer)) {
-                                        //Create the Exception record
-                                        var record = new AdKatsRecord {
-                                                                                   record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                                                   server_id = _ServerID,
-                                                                                   command_type = _CommandKeyDictionary["player_roundwhitelist"],
-                                                                                   command_numeric = 0,
-                                                                                   target_name = aPlayer.player_name,
-                                                                                   target_player = aPlayer,
-                                                                                   source_name = "AdKats",
-                                                                                   record_message = "Round-Whitelisting Player"
-                                                                               };
-                                        //Process the record
-                                        QueueRecordForProcessing(record);
-                                    }
-                                    else {
-                                        ConsoleError("Player was not in player dictionary when calling auto-whitelist.");
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e) {
-                HandleException(new AdKatsException("Error while auto-whitelisting players.", e));
-            }
-        }*/
-
         public AdKatsRecord FetchRoundReport(String reportID, Boolean remove) {
             AdKatsRecord reportedRecord = null;
             try {
@@ -7521,11 +8696,14 @@ namespace PRoConEvents {
             return reportedRecord;
         }
 
-        public Boolean DenyRoundReport(AdKatsRecord record) {
-            try {
+        public Boolean DenyRoundReport(AdKatsRecord record)
+        {
+            try
+            {
                 DebugWrite("Attempting to handle based on round report.", 6);
                 AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, true);
-                if (reportedRecord != null) {
+                if (reportedRecord != null)
+                {
                     DebugWrite("Denying round report.", 5);
                     reportedRecord.command_action = _CommandKeyDictionary["player_report_deny"];
                     UpdateRecord(reportedRecord);
@@ -7538,8 +8716,37 @@ namespace PRoConEvents {
                     return true;
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 HandleException(new AdKatsException("Error while denying round report.", e));
+            }
+            return false;
+        }
+
+        public Boolean IgnoreRoundReport(AdKatsRecord record)
+        {
+            try
+            {
+                DebugWrite("Attempting to handle based on round report.", 6);
+                AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, true);
+                if (reportedRecord != null)
+                {
+                    DebugWrite("Ignoring round report.", 5);
+                    reportedRecord.command_action = _CommandKeyDictionary["player_report_ignore"];
+                    UpdateRecord(reportedRecord);
+                    //Do not inform the player their report was ignored
+                    //SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been ignored.");
+                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been ignored by " + record.source_name + ".");
+
+                    record.target_name = reportedRecord.source_name;
+                    record.target_player = reportedRecord.source_player;
+                    QueueRecordForProcessing(record);
+                    return true;
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while ignoring round report.", e));
             }
             return false;
         }
@@ -7572,12 +8779,20 @@ namespace PRoConEvents {
         public Boolean HandleRoundReport(AdKatsRecord record) {
             try {
                 DebugWrite("Attempting to handle based on round report.", 6);
-                AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, true);
+                AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, false);
                 if (reportedRecord != null) {
+                    if ((DateTime.UtcNow - reportedRecord.record_time).TotalSeconds < _MinimumReportHandleSeconds) {
+                        SendMessageToSource(record, "Report " + record.target_name + " cannot be acted on. " + FormatTimeString(TimeSpan.FromSeconds(_MinimumReportHandleSeconds - (DateTime.UtcNow - reportedRecord.record_time).TotalSeconds), 2) + " remaining.");
+                        return true;
+                    }
+                    if (_RoundReports.Remove(record.target_name))
+                    {
+                        DebugWrite("Round report [" + record.target_name + "] removed.", 3);
+                    }
                     if (reportedRecord.isContested) {
-                        SendMessageToSource(record, "Report [" + reportedRecord.command_numeric + "] is contested. Please investigate." );
+                        SendMessageToSource(record, "Report [" + reportedRecord.command_numeric + "] is contested. Please investigate.");
                         if (record.source_player != null) {
-                            PlayerYellMessage(record.source_player.player_name, "Report [" + reportedRecord.command_numeric + "] is contested. Please investigate.");
+                            PlayerYellMessage(record.source_player.player_name, "Report [" + reportedRecord.command_numeric + "] is contested. Please investigate.", 1);
                         }
                         return true;
                     }
@@ -7744,10 +8959,13 @@ namespace PRoConEvents {
                         AssistWeakTeam(record);
                         break;
                     case "self_kill":
-                        KillTarget(record, null);
+                        ForceKillTarget(record, null);
                         break;
                     case "player_kill":
                         KillTarget(record, null);
+                        break;
+                    case "player_kill_force":
+                        ForceKillTarget(record, null);
                         break;
                     case "player_kill_lowpop":
                         KillTarget(record, null);
@@ -7782,11 +9000,35 @@ namespace PRoConEvents {
                     case "player_join":
                         JoinTarget(record);
                         break;
+                    case "player_pull":
+                        PullTarget(record);
+                        break;
                     case "player_report":
                         ReportTarget(record);
                         break;
                     case "player_calladmin":
                         CallAdminOnTarget(record);
+                        break;
+                    case "player_info":
+                        SendTargetInfo(record);
+                        break;
+                    case "player_chat":
+                        SendTargetChat(record);
+                        break;
+                    case "player_find":
+                        FindTarget(record);
+                        break;
+                    case "player_lock":
+                        LockTarget(record);
+                        break;
+                    case "player_unlock":
+                        UnlockTarget(record);
+                        break;
+                    case "player_mark":
+                        MarkTarget(record);
+                        break;
+                    case "server_afk":
+                        ManageAFKPlayers(record);
                         break;
                     case "round_restart":
                         RestartLevel(record);
@@ -7824,6 +9066,9 @@ namespace PRoConEvents {
                     case "player_tell":
                         PlayerTell(record);
                         break;
+                    case "player_dequeue":
+                        DequeueTarget(record);
+                        break;
                     case "player_blacklistdisperse":
                         BalanceDisperseTarget(record);
                         break;
@@ -7836,8 +9081,14 @@ namespace PRoConEvents {
                     case "player_slotspectator":
                         SpectatorSlotTarget(record);
                         break;
+                    case "player_whitelisthackerchecker":
+                        HackerCheckerWhitelistTarget(record);
+                        break;
                     case "self_rules":
                         SendServerRules(record);
+                        break;
+                    case "self_help":
+                        SendServerCommands(record);
                         break;
                     case "self_uptime":
                         SendUptime(record);
@@ -7881,9 +9132,25 @@ namespace PRoConEvents {
 
         public void MoveTarget(AdKatsRecord record) {
             DebugWrite("Entering moveTarget", 6);
-            try {
+            try
+            {
+                if (_gameVersion == GameVersion.BF4 && !record.isAliveChecked)
+                {
+                    if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
+                    {
+                        if (_isTestingAuthorized)
+                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
+                        lock (_ActOnIsAliveDictionary)
+                        {
+                            _ActOnIsAliveDictionary.Add(record.target_player.player_name, record);
+                        }
+                    }
+                    ExecuteCommand("procon.protected.send", "player.isAlive", record.target_name);
+                    return;
+                }
+
                 QueuePlayerForMove(record.target_player.frostbitePlayerInfo);
-                PlayerSayMessage(record.target_name, "On your next death you will be moved to the opposing team.");
+                PlayerSayMessage(record.target_name, "On your next death you will be moved to the opposing team.", 1);
                 SendMessageToSource(record, record.target_name + " will be sent to TeamSwap on their next death.");
                 record.record_action_executed = true;
             }
@@ -7900,7 +9167,7 @@ namespace PRoConEvents {
             String message = null;
             try {
                 if (record.command_type == _CommandKeyDictionary["self_teamswap"]) {
-                    if ((record.source_player != null && HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"])) || ((_TeamSwapTicketWindowHigh >= _HighestTicketCount) && (_TeamSwapTicketWindowLow <= _LowestTicketCount))) {
+                    if ((record.source_player != null && HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"])) || ((_TeamSwapTicketWindowHigh >= _highestTicketCount) && (_TeamSwapTicketWindowLow <= _lowestTicketCount))) {
                         message = "Calling Teamswap on self";
                         DebugWrite(message, 6);
                         QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
@@ -7949,8 +9216,12 @@ namespace PRoConEvents {
                 if (record.source_name != record.target_name) {
                     switch (_gameVersion) {
                         case GameVersion.BF3:
-                            if ((record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin") && record.command_type.command_key == "player_punish") {
-                                AdminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
+                            if (record.command_type.command_key == "player_punish") {
+                                if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin") {
+                                    AdminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
+                                } else {
+                                    AdminSayMessage(record.target_name + " was PUNISHED by " + record.source_name + " for " + record.record_message);
+                                }
                             }
                             var seconds = (int) DateTime.UtcNow.Subtract(record.target_player.lastDeath).TotalSeconds;
                             DebugWrite("Killing player. Player last died " + seconds + " seconds ago.", 3);
@@ -7967,9 +9238,18 @@ namespace PRoConEvents {
                             }
                             break;
                         case GameVersion.BF4:
-                            if (!record.isAliveChecked) {
-                                if ((record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin") && record.command_type.command_key == "player_punish") {
-                                    AdminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
+                            if (!record.isAliveChecked)
+                            {
+                                if (record.command_type.command_key == "player_punish")
+                                {
+                                    if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
+                                    {
+                                        AdminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
+                                    }
+                                    else
+                                    {
+                                        AdminSayMessage(record.target_name + " was PUNISHED by " + record.source_name + " for " + record.record_message);
+                                    }
                                 }
                                 if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name)) {
                                     if (_isTestingAuthorized)
@@ -7995,11 +9275,11 @@ namespace PRoConEvents {
                 else {
                     ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_player.player_name);
                     if (record.source_name != record.target_name) {
-                        PlayerTellMessage(record.target_name, "Killed by admin for " + record.record_message + " " + additionalMessage);
+                        PlayerTellMessage(record.target_name, "Killed by admin for " + record.record_message + " " + additionalMessage, 1);
                         SendMessageToSource(record, "You KILLED " + record.target_name + " for " + record.record_message + additionalMessage);
                     }
                     else {
-                        PlayerTellMessage(record.target_name, "You killed yourself");
+                        PlayerTellMessage(record.target_name, "You killed yourself", 1);
                     }
                 }
                 record.record_action_executed = true;
@@ -8010,6 +9290,86 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting killTarget", 6);
+        }
+
+        public void ForceKillTarget(AdKatsRecord record, String additionalMessage)
+        {
+            DebugWrite("Entering ForceKillTarget", 6);
+            String message = null;
+            try
+            {
+                additionalMessage = !string.IsNullOrEmpty(additionalMessage) ? (" " + additionalMessage) : ("");
+
+                //Perform actions
+                if (String.IsNullOrEmpty(record.target_player.player_name))
+                {
+                    ConsoleError("playername null in 5437");
+                }
+                else
+                {
+                    ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_player.player_name);
+                    if (record.source_name != record.target_name)
+                    {
+                        PlayerTellMessage(record.target_name, "Killed by admin for " + record.record_message + " " + additionalMessage, 1);
+                        SendMessageToSource(record, "You KILLED " + record.target_name + " for " + record.record_message + additionalMessage);
+                    }
+                    else
+                    {
+                        PlayerTellMessage(record.target_name, "You killed yourself", 1);
+                    }
+                }
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for kill record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting ForceKillTarget", 6);
+        }
+
+        public void DequeueTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering DequeueTarget", 6);
+            try
+            {
+                //Handle spawn action
+                if (_ActOnSpawnDictionary.ContainsKey(record.target_name)) {
+                    _ActOnSpawnDictionary.Remove(record.target_name);
+                }
+                //Handle teamswap action
+                CPlayerInfo info = _Team1MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == record.target_name);
+                if(info != null)
+                    _Team1MoveQueue = new Queue<CPlayerInfo>(_Team1MoveQueue.Where(p => p != info));
+                
+                info = _Team2MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == record.target_name);
+                if (info != null)
+                    _Team2MoveQueue = new Queue<CPlayerInfo>(_Team2MoveQueue.Where(p => p != info));
+
+                info = _TeamswapForceMoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == record.target_name);
+                if (info != null)
+                    _TeamswapForceMoveQueue = new Queue<CPlayerInfo>(_TeamswapForceMoveQueue.Where(p => p != info));
+
+                info = _TeamswapOnDeathCheckingQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == record.target_name);
+                if (info != null)
+                    _TeamswapOnDeathCheckingQueue = new Queue<CPlayerInfo>(_TeamswapOnDeathCheckingQueue.Where(p => p != info));
+
+                if (_TeamswapOnDeathMoveDic.ContainsKey(record.target_name))
+                {
+                    _TeamswapOnDeathMoveDic.Remove(record.target_name);
+                }
+                record.record_action_executed = true;
+                PlayerSayMessage(record.target_name, "All queued actions canceled.", 1);
+                SendMessageToSource(record, "All queued actions for " + record.target_name + " canceled.");
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for dequeue record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting DequeueTarget", 6);
         }
 
         public void KickTarget(AdKatsRecord record, String additionalMessage) {
@@ -8209,7 +9569,13 @@ namespace PRoConEvents {
 
         public void UnBanTarget(AdKatsRecord record, String additionalMessage) {
             DebugWrite("Entering UnBanTarget", 6);
-            try {
+            try
+            {
+                //Cancel call if not using ban enforcer
+                if (!_UseBanEnforcer || !_UseBanEnforcerPreviousState)
+                {
+                    return;
+                }
                 record.record_action_executed = true;
                 if (record.target_player == null) {
                     ConsoleError("Player was null when attempting to unban.");
@@ -8218,13 +9584,18 @@ namespace PRoConEvents {
                 }
                 List<AdKatsBan> banList = FetchPlayerBans(record.target_player);
                 if (banList.Count == 0) {
-                    ConsoleError("Bans could not be fetched when attempting to unban");
                     FinalizeRecord(record);
                     return;
                 }
                 foreach (AdKatsBan aBan in banList) {
                     aBan.ban_status = "Disabled";
                     UpdateBanStatus(aBan);
+
+                    //Submit ban removal to metabans
+                    if (_useMetabans && !String.IsNullOrEmpty(_metabansUsername) && !String.IsNullOrEmpty(_metabansAPIKey))
+                    {
+                        SubmitToMetabans(aBan, AssessmentTypes.none);
+                    }
                 }
                 SendMessageToSource(record, record.target_player.player_name + " is now unbanned.");
             }
@@ -8244,11 +9615,20 @@ namespace PRoConEvents {
                 DebugWrite("Ban Enforce Message: '" + generatedBanReason + "'", 3);
 
                 //Perform Actions
-                if (_playerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < DateTime.UtcNow) {
+                if (_PlayerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < DateTime.UtcNow) {
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", aBan.ban_record.target_player.player_name, generatedBanReason);
                     //Inform the server of the enforced ban
                     if (verbose) {
-                        AdminSayMessage("Enforcing ban on " + aBan.ban_record.target_player.player_name + " for " + aBan.ban_record.record_message);
+                        String banDurationString;
+                        //If ban time > 1000 days just say perm
+                        TimeSpan remainingTime = GetRemainingBanTime(aBan);
+                        if (remainingTime.TotalDays > 1000) {
+                            banDurationString = "permanent";
+                        }
+                        else {
+                            banDurationString = FormatTimeString(remainingTime, 2);
+                        }
+                        AdminSayMessage("Enforcing " + banDurationString + " ban on " + aBan.ban_record.target_player.player_name + " for " + aBan.ban_record.record_message);
                     }
                 }
             }
@@ -8295,13 +9675,16 @@ namespace PRoConEvents {
                     }
                     const string additionalMessage = "";
 
-                    Boolean isLowPop = _OnlyKillOnLowPop && (_playerDictionary.Count < _LowPopPlayerCount);
+                    Boolean isLowPop = _OnlyKillOnLowPop && (_PlayerDictionary.Count < _lowPopulationPlayerCount);
                     Boolean iroOverride = record.isIRO && _IROOverridesLowPop;
 
-                    DebugWrite("Server low population: " + isLowPop + " (" + _playerDictionary.Count + " <? " + _LowPopPlayerCount + ") | Override: " + iroOverride, 5);
+                    DebugWrite("Server low population: " + isLowPop + " (" + _PlayerDictionary.Count + " <? " + _lowPopulationPlayerCount + ") | Override: " + iroOverride, 5);
 
                     //Call correct action
-                    if ((action == "kill" || (isLowPop && !iroOverride)) && !action.Equals("ban")) {
+                    if (action == "warn") {
+                        PlayerTellMessage(record.target_name, "Warned by admin for " + record.record_message, 1);
+                    }
+                    else if ((action == "kill" || (isLowPop && !iroOverride)) && !action.Equals("ban")) {
                         record.command_action = (isLowPop) ? (_CommandKeyDictionary["player_kill_lowpop"]) : (_CommandKeyDictionary["player_kill"]);
                         KillTarget(record, additionalMessage);
                     }
@@ -8371,7 +9754,7 @@ namespace PRoConEvents {
                 //If the record has any exceptions, skip everything
                 if (record.record_exception == null) {
                     Int32 points = FetchPoints(record.target_player, false);
-                    PlayerSayMessage(record.target_player.player_name, "Forgiven 1 infraction point. You now have " + points + " point(s) against you.");
+                    PlayerSayMessage(record.target_player.player_name, "Forgiven 1 infraction point. You now have " + points + " point(s) against you.", 1);
                     SendMessageToSource(record, "Forgive Logged for " + record.target_player.player_name + ". They now have " + points + " infraction points.");
                 }
                 record.record_action_executed = true;
@@ -8401,13 +9784,17 @@ namespace PRoConEvents {
                         (
 	                        `player_group`,
 	                        `player_id`,
-                            `player_server`
+                            `player_server`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
 	                        'blacklist_dispersion',
 	                        @player_id,
-                            @player_server
+                            @player_server,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverID);
@@ -8449,13 +9836,17 @@ namespace PRoConEvents {
                         (
 	                        `player_group`,
 	                        `player_id`,
-                            `player_server`
+                            `player_server`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
 	                        'whitelist_multibalancer',
 	                        @player_id,
-                            @player_server
+                            @player_server,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverID);
@@ -8497,13 +9888,17 @@ namespace PRoConEvents {
                         (
 	                        `player_group`,
 	                        `player_id`,
-                            `player_server`
+                            `player_server`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
 	                        'slot_reserved',
 	                        @player_id,
-                            @player_server
+                            @player_server,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverID);
@@ -8528,52 +9923,133 @@ namespace PRoConEvents {
             DebugWrite("Exiting ReservedSlotTarget", 6);
         }
 
-        public void SpectatorSlotTarget(AdKatsRecord record) {
+        public void SpectatorSlotTarget(AdKatsRecord record)
+        {
             DebugWrite("Entering SpectatorSlotTarget", 6);
-            try {
+            try
+            {
                 record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("slot_spectator", record.target_player);
-                if (matchingPlayers.Count > 0) {
+                if (matchingPlayers.Count > 0)
+                {
                     SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in spectator slot list for this server.");
                     return;
                 }
-                using (MySqlConnection connection = GetDatabaseConnection()) {
-                    using (MySqlCommand command = connection.CreateCommand()) {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
                         command.CommandText = @"
                         INSERT INTO
 	                        `adkats_specialplayers`
                         (
 	                        `player_group`,
 	                        `player_id`,
-                            `player_server`
+                            `player_server`,
+                            `player_effective`,
+                            `player_expiration`
                         )
                         VALUES
                         (
 	                        'slot_spectator',
 	                        @player_id,
-                            @player_server
+                            @player_server,
+                            UTC_TIMESTAMP(),
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverID);
 
                         Int32 rowsAffected = command.ExecuteNonQuery();
-                        if (rowsAffected > 0) {
+                        if (rowsAffected > 0)
+                        {
                             SendMessageToSource(record, "Player " + record.target_player.player_name + " added to spectator slot for this server.");
                             DebugWrite("Player " + record.target_player.player_name + " added to spectator slot for this server.", 3);
                             FetchAllAccess(true);
                         }
-                        else {
+                        else
+                        {
                             ConsoleError("Unable to add player to spectator slot. Error uploading.");
                         }
                     }
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 record.record_exception = new AdKatsException("Error while taking action for Spectator Slot record.", e);
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting SpectatorSlotTarget", 6);
+        }
+
+        public void HackerCheckerWhitelistTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering HackerCheckerWhitelistTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null) {
+                    SendMessageToSource(record, "HackerCheckerWhitelistTarget not available for multiple targets.");
+                    ConsoleError("HackerCheckerWhitelistTarget not available for multiple targets.");
+                }
+                record.record_action_executed = true;
+                List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("whitelist_hackerchecker", record.target_player);
+                if (matchingPlayers.Count > 0)
+                {
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in hacker checker whitelist for this server.");
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'whitelist_hackerchecker',
+	                        @player_id,
+	                        @player_name,
+	                        UTC_TIMESTAMP(),
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
+                        )";
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+
+                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        if (rowsAffected > 0)
+                        {
+                            SendMessageToSource(record, "Player " + record.target_player.player_name + " added to hacker checker whitelist for all servers.");
+                            DebugWrite("Player " + record.target_player.player_name + " added to hacker checker whitelist for all servers.", 3);
+                            FetchAllAccess(true);
+                        }
+                        else
+                        {
+                            ConsoleError("Unable to add player to spectator slot. Error uploading.");
+                        }
+                    }
+                }
+                //Unban the player
+                UnBanTarget(record, null);
+                //Fetch the special player cache
+                FetchAllAccess(true);
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for Spectator Slot record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting HackerCheckerWhitelistTarget", 6);
         }
 
         public void MuteTarget(AdKatsRecord record) {
@@ -8582,7 +10058,7 @@ namespace PRoConEvents {
                 if (!HasAccess(record.target_player, _CommandKeyDictionary["player_mute"])) {
                     if (!_RoundMutedPlayers.ContainsKey(record.target_player.player_name)) {
                         _RoundMutedPlayers.Add(record.target_player.player_name, 0);
-                        PlayerSayMessage(record.target_player.player_name, _MutedPlayerMuteMessage);
+                        PlayerSayMessage(record.target_player.player_name, _MutedPlayerMuteMessage, 1);
                         SendMessageToSource(record, record.target_player.player_name + " has been muted for this round.");
                     }
                     else {
@@ -8602,14 +10078,18 @@ namespace PRoConEvents {
             DebugWrite("Exiting muteTarget", 6);
         }
 
-        public void JoinTarget(AdKatsRecord record) {
+        public void JoinTarget(AdKatsRecord record)
+        {
             DebugWrite("Entering joinTarget", 6);
-            try {
+            try
+            {
                 //Get source player
                 AdKatsPlayer sourcePlayer = null;
-                if (_playerDictionary.TryGetValue(record.source_name, out sourcePlayer)) {
+                if (_PlayerDictionary.TryGetValue(record.source_name, out sourcePlayer))
+                {
                     //If the source has access to move players, then the squad will be unlocked for their entry
-                    if (HasAccess(record.source_player, _CommandKeyDictionary["player_move"])) {
+                    if (HasAccess(record.source_player, _CommandKeyDictionary["player_move"]))
+                    {
                         //Unlock target squad
                         SendMessageToSource(record, "Unlocking target squad if needed, please wait.");
                         ExecuteCommand("procon.protected.send", "squad.private", record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "false");
@@ -8617,26 +10097,53 @@ namespace PRoConEvents {
                         Thread.Sleep(500);
                     }
                     //Check for player access to change teams
-                    if (record.target_player.frostbitePlayerInfo.TeamID != sourcePlayer.frostbitePlayerInfo.TeamID && !HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"])) {
+                    if (record.target_player.frostbitePlayerInfo.TeamID != sourcePlayer.frostbitePlayerInfo.TeamID && !HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"]))
+                    {
                         SendMessageToSource(record, "Target player is not on your team, you need @" + _CommandKeyDictionary["self_teamswap"].command_text + "/TeamSwap access to join them.");
                     }
-                    else {
+                    else
+                    {
                         //Move to specific squad
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "true");
                         SendMessageToSource(record, "Attempting to join " + record.target_player.player_name);
                     }
                 }
-                else {
+                else
+                {
                     SendMessageToSource(record, "Unable to find you in the player list, please try again.");
                 }
                 record.record_action_executed = true;
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 record.record_exception = new AdKatsException("Error while taking action for Join record.", e);
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting joinTarget", 6);
+        }
+
+        public void PullTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering PullTarget", 6);
+            try
+            {
+                //Unlock squad
+                SendMessageToSource(record, "Unlocking source squad for player entry.");
+                ExecuteCommand("procon.protected.send", "squad.private", record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "false");
+                Thread.Sleep(500);
+                //Move to specific squad
+                ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "true");
+                SendMessageToSource(record, "Attempting to pull " + record.target_player.player_name);
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for Join record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting PullTarget", 6);
         }
 
         public void ReportTarget(AdKatsRecord record) {
@@ -8657,14 +10164,44 @@ namespace PRoConEvents {
                 if (!String.IsNullOrEmpty(slotID)) {
                     ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", "pb_sv_getss " + slotID);
                 }
-                OnlineAdminSayMessage("REPORT [" + reportID + "]: " + sourceAAIdentifier + record.source_name + " reported " + targetAAIdentifier + record.target_player.player_name + " for " + record.record_message);
-                if (_InformReportedPlayers) {
-                    if (!(_PlayerInformExclusionStrings.Any() && !String.IsNullOrEmpty(_PlayerInformExclusionStrings[0])) || !_PlayerInformExclusionStrings.Any(record.record_message.Contains))
+                String sourcePlayerInfo = "";
+                if (record.source_player != null && record.source_player.frostbitePlayerInfo != null) {
+                    if (record.source_player.player_online) {
+                        sourcePlayerInfo = " (" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
+                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
+                                    record.source_player.frostbitePlayerInfo.Score + ")";
+                    }
+                    else
                     {
-                        PlayerTellMessage(record.target_player.player_name, record.source_name + " reported you for " + record.record_message);
+                        sourcePlayerInfo = " (OFFLINE)";
+                    }
+                }
+                String targetPlayerInfo = "";
+                if (record.target_player != null && record.target_player.frostbitePlayerInfo != null)
+                {
+                    if (record.target_player.player_online)
+                    {
+                        targetPlayerInfo = " (" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
+                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
+                                    record.target_player.frostbitePlayerInfo.Score + ")";
+                    }
+                    else
+                    {
+                        targetPlayerInfo = " (OFFLINE)";
+                    }
+                }
+                OnlineAdminSayMessage("REPORT [" + reportID + "] Source: " + sourceAAIdentifier + record.source_name + sourcePlayerInfo);
+                OnlineAdminSayMessage("REPORT [" + reportID + "] Target: " + targetAAIdentifier + record.target_name + targetPlayerInfo);
+                OnlineAdminSayMessage("REPORT [" + reportID + "] Reason: " + record.record_message);
+                if (_InformReportedPlayers) {
+                    String mesLow = record.record_message.ToLower();
+                    if (!_PlayerInformExclusionStrings.Any(exc => mesLow.Contains(exc.ToLower())))
+                    {
+                        PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message, 6);
                     }
                 }
                 if (_UseEmail) {
+                    ConsoleWarn("Preparing to send report email.");
                     _EmailHandler.SendReport(record);
                 }
             }
@@ -8693,9 +10230,42 @@ namespace PRoConEvents {
                 if (!String.IsNullOrEmpty(slotID)) {
                     ExecuteCommand("procon.protected.send", "punkBuster.pb_sv_command", "pb_sv_getss " + slotID);
                 }
-                OnlineAdminSayMessage("ADMIN CALL [" + reportID + "]: " + sourceAAIdentifier + record.source_name + " called admin on " + targetAAIdentifier + record.target_name + " for " + record.record_message);
-                if (_InformReportedPlayers) {
-                    PlayerTellMessage(record.target_player.player_name, record.source_name + " reported you for " + record.record_message);
+                String sourcePlayerInfo = "";
+                if (record.source_player != null && record.source_player.frostbitePlayerInfo != null)
+                {
+                    if (record.source_player.player_online)
+                    {
+                        sourcePlayerInfo = " (" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + ":" + record.source_player.frostbitePlayerInfo.Score + ")";
+                    }
+                    else
+                    {
+                        sourcePlayerInfo = " (OFFLINE)";
+                    }
+                }
+                String targetPlayerInfo = "";
+                if (record.target_player != null && record.target_player.frostbitePlayerInfo != null)
+                {
+                    if (record.target_player.player_online)
+                    {
+                        targetPlayerInfo = " (" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
+                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
+                                    record.target_player.frostbitePlayerInfo.Score + ")";
+                    }
+                    else
+                    {
+                        targetPlayerInfo = " (OFFLINE)";
+                    }
+                }
+                OnlineAdminSayMessage("ADMIN CALL [" + reportID + "] Source: " + sourceAAIdentifier + record.source_name + sourcePlayerInfo);
+                OnlineAdminSayMessage("ADMIN CALL [" + reportID + "] Target: " + targetAAIdentifier + record.target_name + targetPlayerInfo);
+                OnlineAdminSayMessage("ADMIN CALL [" + reportID + "] Reason: " + record.record_message);
+                if (_InformReportedPlayers)
+                {
+                    String mesLow = record.record_message.ToLower();
+                    if (!_PlayerInformExclusionStrings.Any(exc => mesLow.Contains(exc.ToLower())))
+                    {
+                        PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message, 6);
+                    }
                 }
                 if (_UseEmail) {
                     _EmailHandler.SendReport(record);
@@ -8714,7 +10284,7 @@ namespace PRoConEvents {
             Boolean sourceAA = record.source_player != null && record.source_player.player_aa;
             Int32 onlineAdminCount = FetchOnlineAdminSoldiers().Count;
             String messageLower = record.record_message.ToLower();
-            Boolean canAutoHandle = _UseAAReportAutoHandler && sourceAA && _AutoReportHandleStrings.Any() && !String.IsNullOrEmpty(_AutoReportHandleStrings[0]) && _AutoReportHandleStrings.Any(messageLower.Contains) && !record.target_player.player_aa && !RoleIsInteractionAble(record.target_player.player_role);
+            Boolean canAutoHandle = _UseAAReportAutoHandler && sourceAA && _AutoReportHandleStrings.Any() && !String.IsNullOrEmpty(_AutoReportHandleStrings[0]) && _AutoReportHandleStrings.Any(messageLower.Contains) && !record.target_player.player_aa && !RoleIsAdmin(record.target_player.player_role);
             Boolean adminsOnline = onlineAdminCount > 0;
             String reportMessage = "";
             if (!_isTestingAuthorized || !sourceAA || !adminsOnline) {
@@ -8825,10 +10395,10 @@ namespace PRoConEvents {
                 int count = 0;
                 if (_isTestingAuthorized)
                     PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-                lock (_playerDictionary) {
-                    foreach (AdKatsPlayer player in _playerDictionary.Values.Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"))) {
+                lock (_PlayerDictionary) {
+                    foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"))) {
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
-                        PlayerSayMessage(record.source_name, "Admin Nuke Issued On " + record.target_name);
+                        PlayerSayMessage(record.source_name, "Admin Nuke Issued On " + record.target_name, 1);
                     }
                 }
                 SendMessageToSource(record, "You NUKED " + record.target_name + " for " + record.record_message + ".");
@@ -8847,8 +10417,8 @@ namespace PRoConEvents {
             try {
                 if (_isTestingAuthorized)
                     PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-                lock (_playerDictionary) {
-                    foreach (AdKatsPlayer player in _playerDictionary.Values) {
+                lock (_PlayerDictionary) {
+                    foreach (AdKatsPlayer player in _PlayerDictionary.Values) {
                         QueuePlayerForForceMove(player.frostbitePlayerInfo);
                     }
                 }
@@ -8868,8 +10438,8 @@ namespace PRoConEvents {
             try {
                 if (_isTestingAuthorized)
                     PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-                lock (_playerDictionary) {
-                    foreach (AdKatsPlayer player in _playerDictionary.Values.Where(player => player.player_role.role_key == "guest_default")) {
+                lock (_PlayerDictionary) {
+                    foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => player.player_role.role_key == "guest_default")) {
                         Thread.Sleep(50);
                         ExecuteCommand("procon.protected.send", "admin.kickPlayer", player.player_name, "(" + record.source_name + ") " + record.record_message);
                     }
@@ -8906,7 +10476,7 @@ namespace PRoConEvents {
         public void PlayerSay(AdKatsRecord record) {
             DebugWrite("Entering playerSay", 6);
             try {
-                PlayerSayMessage(record.target_player.player_name, record.record_message);
+                PlayerSayMessage(record.target_player.player_name, record.record_message, 1);
                 SendMessageToSource(record, record.target_player.player_name + " has been told '" + record.record_message + "' by SAY");
                 record.record_action_executed = true;
             }
@@ -8938,7 +10508,7 @@ namespace PRoConEvents {
         public void PlayerYell(AdKatsRecord record) {
             DebugWrite("Entering playerYell", 6);
             try {
-                PlayerYellMessage(record.target_player.player_name, record.record_message);
+                PlayerYellMessage(record.target_player.player_name, record.record_message, 1);
                 SendMessageToSource(record, record.target_player.player_name + " has been told '" + record.record_message + "' by YELL");
                 record.record_action_executed = true;
             }
@@ -8970,7 +10540,7 @@ namespace PRoConEvents {
         public void PlayerTell(AdKatsRecord record) {
             DebugWrite("Entering playerTell", 6);
             try {
-                PlayerTellMessage(record.target_player.player_name, record.record_message);
+                PlayerTellMessage(record.target_player.player_name, record.record_message, 1);
                 SendMessageToSource(record, record.target_player.player_name + " has been told '" + record.record_message + "' by TELL");
                 record.record_action_executed = true;
             }
@@ -8982,31 +10552,58 @@ namespace PRoConEvents {
             DebugWrite("Exiting playerTell", 6);
         }
 
-        public void SendServerRules(AdKatsRecord record) {
+        public void SendServerRules(AdKatsRecord record)
+        {
             DebugWrite("Entering sendServerRules", 6);
-            try {
+            try
+            {
                 //If server has rules
-                if (_ServerRulesList.Length > 0) {
-                    var rulePrinter = new Thread(new ThreadStart(delegate {
+                if (_ServerRulesList.Length > 0)
+                {
+                    if (record.source_name != record.target_name && 
+                        record.target_player != null && 
+                        RoleIsAdmin(record.target_player.player_role)) {
+                        SendMessageToSource(record, ((record.source_name.ToLower().Contains("pepsi"))?("Bad Pepsi. "):("")) + record.target_player.player_name + " is an admin, they already know the server rules.");
+                        //Set the executed bool
+                        record.record_action_executed = true;
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    //If requesting rules on yourself as an admin, rules should be sent to the whole server.
+                    Boolean allPlayers = (record.source_player == null || RoleIsAdmin(record.source_player.player_role)) && 
+                                         (record.target_player == null || record.target_name == record.source_name);
+                    var rulePrinter = new Thread(new ThreadStart(delegate
+                    {
                         DebugWrite("Starting a rule printer thread.", 5);
-                        try {
+                        try
+                        {
                             Thread.CurrentThread.Name = "ruleprinter";
                             //Wait the rule delay duration
                             Thread.Sleep(TimeSpan.FromSeconds(_ServerRulesDelay));
                             Int32 ruleIndex = 0;
                             IEnumerable<string> validRules = _ServerRulesList.Where(rule => !String.IsNullOrEmpty(rule));
-                            foreach (string rule in validRules) {
-                                String currentPrefix = "(" + (++ruleIndex) + "/" + validRules.Count() + ") ";
-                                if (record.target_player != null) {
-                                    PlayerSayMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false));
+                            foreach (string rule in validRules)
+                            {
+                                String currentPrefix = (_ServerRulesNumbers) ? ("(" + (++ruleIndex) + "/" + validRules.Count() + ") ") : ("");
+                                if (allPlayers) {
+                                    AdminSayMessage(currentPrefix + GetPreMessage(rule, false));
                                 }
-                                else {
-                                    SendMessageToSource(record, currentPrefix + GetPreMessage(rule, false));
+                                else
+                                {
+                                    if (record.target_player != null)
+                                    {
+                                        PlayerSayMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false), 1);
+                                    }
+                                    else
+                                    {
+                                        SendMessageToSource(record, currentPrefix + GetPreMessage(rule, false));
+                                    }
                                 }
                                 Thread.Sleep(TimeSpan.FromSeconds(_ServerRulesInterval));
                             }
                         }
-                        catch (Exception) {
+                        catch (Exception)
+                        {
                             HandleException(new AdKatsException("Error while printing server rules"));
                         }
                         DebugWrite("Exiting a rule printer.", 5);
@@ -9015,16 +10612,91 @@ namespace PRoConEvents {
 
                     //Start the thread
                     StartAndLogThread(rulePrinter);
+
+                    if (record.source_name != record.target_name && !allPlayers) {
+                        SendMessageToSource(record, "Telling server rules to " + record.target_name);
+                    }
                 }
                 //Set the executed bool
                 record.record_action_executed = true;
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 record.record_exception = new AdKatsException("Error while sending server rules.", e);
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting sendServerRules", 6);
+        }
+
+        public void SendServerCommands(AdKatsRecord record)
+        {
+            DebugWrite("Entering SendServerCommands", 6);
+            try {
+                var commandPrinter = new Thread(new ThreadStart(delegate
+                {
+                    DebugWrite("Starting a command printer thread.", 5);
+                    try
+                    {
+                        Thread.CurrentThread.Name = "commandprinter";
+
+                        var fullCommandList = new List<String>();
+                        foreach (AdKatsCommand aCommand in _CommandIDDictionary.Values)
+                        {
+                            if ((record.target_player == null && aCommand.command_active == AdKatsCommand.CommandActive.Active) || HasAccess(record.target_player, aCommand))
+                            {
+                                fullCommandList.Add("!" + aCommand.command_text);
+                            }
+                        }
+                        if (record.target_player == null || RoleIsAdmin(record.target_player.player_role))
+                        {
+                            fullCommandList.AddRange(_ExternalAdminCommands);
+                        }
+                        else
+                        {
+                            fullCommandList.AddRange(_ExternalPlayerCommands);
+                        }
+                        List<List<String>> commandSplits =
+                        fullCommandList
+                        .Select((x, i) => new { Index = i, Value = x })
+                        .GroupBy(x => x.Index / 5)
+                        .Select(x => x.Select(v => v.Value).ToList())
+                        .ToList();
+                        
+                        foreach (var curCommands in commandSplits) {
+                            String curCommandsStr = "";
+                            foreach (String cur in curCommands) {
+                                curCommandsStr += cur + ", ";
+                            }
+                            PlayerSayMessage(record.target_name, curCommandsStr, 1);
+                            Thread.Sleep(TimeSpan.FromSeconds(2));
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        HandleException(new AdKatsException("Error while printing server commands"));
+                    }
+                    DebugWrite("Exiting a command printer.", 5);
+                    LogThreadExit();
+                }));
+
+                //Start the thread
+                StartAndLogThread(commandPrinter);
+
+                if (record.source_name != record.target_name)
+                {
+                    SendMessageToSource(record, "Telling server commands to " + record.target_name);
+                }
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while sending server commands.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SendServerCommands", 6);
         }
 
         public void SendUptime(AdKatsRecord record) {
@@ -9036,12 +10708,21 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "uptimeprinter";
                         Thread.Sleep(500);
                         SendMessageToSource(record, "Server: " + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.ServerUptime), 10));
-                        Thread.Sleep(2000);
-                        SendMessageToSource(record, "Procon: " + FormatTimeString(DateTime.UtcNow - _ProconStartTime, 10));
-                        Thread.Sleep(2000);
+                        Thread.Sleep(3000);
+                        SendMessageToSource(record, "Procon: " + FormatTimeString(DateTime.UtcNow - _proconStartTime, 10));
+                        Thread.Sleep(3000);
                         SendMessageToSource(record, "AdKats: " + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 10));
-                        Thread.Sleep(2000);
+                        Thread.Sleep(3000);
                         SendMessageToSource(record, "Last Player List: " + FormatTimeString(DateTime.UtcNow - _lastSuccessfulPlayerList, 10) + " ago");
+                        Thread.Sleep(3000);
+                        SendMessageToSource(record, "Server has been in " + ((_populationStatusLow) ? ("low") : ("high")) + " population for " + FormatTimeString(DateTime.UtcNow - _populationTransitionTime, 3));
+                        Double totalPopulationDuration = (_populationDurationLow.TotalSeconds + _populationDurationHigh.TotalSeconds);
+                        if (totalPopulationDuration > 0) {
+                            Thread.Sleep(5000);
+                            Double lowPopPercentage = _populationDurationLow.TotalSeconds / totalPopulationDuration * 100;
+                            Double highPopPercentage = _populationDurationHigh.TotalSeconds / totalPopulationDuration * 100;
+                            SendMessageToSource(record, "Population since AdKats start: " + (int) lowPopPercentage + "% low. " + (int) highPopPercentage + "% high.");
+                        }
                     }
                     catch (Exception) {
                         HandleException(new AdKatsException("Error while printing uptime"));
@@ -9061,6 +10742,382 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting SendUptime", 6);
+        }
+
+        public void SendTargetInfo(AdKatsRecord record)
+        {
+            DebugWrite("Entering SendTargetInfo", 6);
+            try
+            {
+                var infoPrinter = new Thread(new ThreadStart(delegate
+                {
+                    DebugWrite("Starting a player info printer thread.", 5);
+                    try
+                    {
+                        Thread.CurrentThread.Name = "playerinfoprinter";
+                        if (record.target_player == null)
+                        {
+                            ConsoleError("Player null in player info printer.");
+                            return;
+                        }
+                        Thread.Sleep(500);
+                        String playerInfo = record.target_player.player_name + ": " + record.target_player.player_id + ", " + record.target_player.player_role.role_name;
+                        if (record.target_player != null && record.target_player.frostbitePlayerInfo != null)
+                        {
+                            if (record.target_player.player_online)
+                            {
+                                playerInfo += ", " + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamName + " / " +
+                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
+                                    record.target_player.frostbitePlayerInfo.Score;
+                            }
+                            else
+                            {
+                                playerInfo += ", OFFLINE";
+                            }
+                        }
+                        SendMessageToSource(record, playerInfo);
+                        Thread.Sleep(2000);
+                        SendMessageToSource(record, "First seen: " + FormatTimeString(DateTime.UtcNow - record.target_player.player_firstseen, 3) + " ago. ");
+                        Thread.Sleep(2000);
+                        SendMessageToSource(record, "Time on server: " + FormatTimeString(record.target_player.player_serverplaytime, 3));
+                        Thread.Sleep(2000);
+                        String playerLoc = "Unknown";
+                        if (!String.IsNullOrEmpty(record.target_player.player_ip))
+                        {
+                            IPAPILocation loc = FetchIPLocation(record.target_player.player_ip);
+                            if (loc.status == "success")
+                            {
+                                playerLoc = String.Empty;
+                                if (!String.IsNullOrEmpty(loc.city))
+                                {
+                                    playerLoc += loc.city + ", ";
+                                }
+                                if (!String.IsNullOrEmpty(loc.regionName))
+                                {
+                                    playerLoc += loc.regionName + ", ";
+                                }
+                                playerLoc += loc.country;
+                                IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_changeip"].command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message != "No previous IP on record");
+                                if (locRecords.Count() > 0)
+                                {
+                                    playerLoc += " with " + locRecords.Count() + " IP changes.";
+                                }
+                            }
+                        }
+                        SendMessageToSource(record, "Location: " + playerLoc);
+                        Thread.Sleep(2000);
+                        IEnumerable<AdKatsRecord> reportsFrom = _RoundReports.Values.Where(aRecord => aRecord.source_name == record.target_name);
+                        IEnumerable<AdKatsRecord> reportsAgainst = _RoundReports.Values.Where(aRecord => aRecord.target_name == record.target_name);
+                        String playerReps = "None from or against.";
+                        if (reportsAgainst.Any() || reportsFrom.Any())
+                        {
+                            playerReps = String.Empty;
+                            if (reportsAgainst.Any())
+                            {
+                                playerReps += "[" + reportsAgainst.Count() + " against:";
+                                playerReps = reportsAgainst.Aggregate(playerReps, (current, playerRep) => current + (" (" + ((playerRep.isContested) ? ("-CONTESTED- ") : ("")) + playerRep.record_message + ")"));
+                                playerReps += "]";
+                            }
+                            if (reportsFrom.Any())
+                            {
+                                playerReps += "[" + reportsFrom.Count() + " from:";
+                                playerReps = reportsFrom.Aggregate(playerReps, (current, playerRep) => current + (" (" + ((playerRep.isContested) ? ("-CONTESTED- ") : ("")) + playerRep.record_message + ")"));
+                                playerReps += "]";
+                            }
+                        }
+                        SendMessageToSource(record, "Reports: " + playerReps);
+                        Thread.Sleep(2000);
+                        String playerInf = "Player in good standing.";
+                        Int64 infPoints = FetchPoints(record.target_player, false);
+                        if (infPoints > 0)
+                        {
+                            AdKatsRecord lastPunish = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_punish"].command_id, 1000, 1, true, false)[0];
+                            playerInf = infPoints + " points. Last punishment " + FormatTimeString(DateTime.UtcNow - lastPunish.record_time, 2) + " ago: " + lastPunish.record_message;
+                        }
+                        SendMessageToSource(record, "Infractions: " + playerInf);
+                        Thread.Sleep(2000);
+                        SendMessageToSource(record, "Reputation: " + Math.Round(record.target_player.player_reputation, 2));
+                        Thread.Sleep(2000);
+                        String playerNames = "No previous names.";
+                        List<AdKatsRecord> nameRecords = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_changename"].command_id, 1000, 50, true, false);
+                        if (nameRecords.Count > 0)
+                        {
+                            playerNames = record.target_name;
+                            foreach (AdKatsRecord nameRecord in nameRecords)
+                            {
+                                playerNames += ", " + nameRecord.record_message;
+                            }
+                        }
+                        SendMessageToSource(record, "Previous names: " + playerNames);
+                    }
+                    catch (Exception)
+                    {
+                        HandleException(new AdKatsException("Error while printing player info"));
+                    }
+                    DebugWrite("Exiting a player info printer.", 5);
+                    LogThreadExit();
+                }));
+
+                //Start the thread
+                StartAndLogThread(infoPrinter);
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while sending player info.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SendTargetInfo", 6);
+        }
+
+        public void SendTargetChat(AdKatsRecord record)
+        {
+            DebugWrite("Entering SendTargetChat", 6);
+            try
+            {
+                var chatPrinter = new Thread(new ThreadStart(delegate
+                {
+                    DebugWrite("Starting a player chat printer thread.", 5);
+                    try
+                    {
+                        Thread.CurrentThread.Name = "playerchatprinter";
+                        if (record.target_player != null)
+                        {
+                            List<KeyValuePair<DateTime, string>> chatList = FetchChat(record.target_player.player_id, record.command_numeric, 30);
+                            if (chatList.Any())
+                            {
+                                int index = 1;
+                                foreach (var chatLine in chatList)
+                                {
+                                    SendMessageToSource(record, "(" + index++ + ") " + chatLine.Value);
+                                    Thread.Sleep(2000);
+                                }
+                            }
+                            else {
+                                SendMessageToSource(record, "Target player(s) have no chat to fetch.");
+                            }
+                        }
+                        else if (record.TargetPlayersLocal.Count == 2)
+                        {
+                            long firstPlayerID = record.TargetPlayersLocal[0].player_id;
+                            long secondPlayerID = record.TargetPlayersLocal[1].player_id;
+                            List<KeyValuePair<DateTime, KeyValuePair<string, string>>> chatList = FetchConversation(firstPlayerID, secondPlayerID, record.command_numeric, 30);
+                            if (chatList.Any())
+                            {
+                                int index = 1;
+                                foreach (var chatLine in chatList)
+                                {
+                                    SendMessageToSource(record, "(" + index++ + "/" + chatLine.Value.Key + ") " + chatLine.Value.Value);
+                                    Thread.Sleep(2000);
+                                }
+                            }
+                            else
+                            {
+                                SendMessageToSource(record, "Target player(s) have no chat to fetch.");
+                            }
+                        }
+                        else {
+                            ConsoleError("Invalid target conditions when printing chat.");
+                            SendMessageToSource(record, "Unable to fetch chat for target players.");
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        HandleException(new AdKatsException("Error while printing player chat"));
+                    }
+                    DebugWrite("Exiting a player chat printer.", 5);
+                    LogThreadExit();
+                }));
+
+                //Start the thread
+                StartAndLogThread(chatPrinter);
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while sending player chat.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SendTargetChat", 6);
+        }
+
+        public void FindTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering FindTarget", 6);
+            try
+            {
+                if (record.target_player == null)
+                {
+                    ConsoleError("Player null when finding player.");
+                    return;
+                }
+                String playerInfo = record.target_player.player_name + ": ";
+                if (record.target_player.player_online)
+                {
+
+                    playerInfo += _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamName + " / " +
+                        (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
+                        record.target_player.frostbitePlayerInfo.Score;
+                }
+                else
+                {
+                    playerInfo += "OFFLINE";
+                }
+                SendMessageToSource(record, playerInfo);
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while sending player info.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting FindTarget", 6);
+        }
+
+        public void LockTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering LockTarget", 6);
+            try
+            {
+                if (record.target_player == null)
+                {
+                    ConsoleError("Player null when locking player.");
+                    return;
+                }
+                //Set the executed bool
+                record.record_action_executed = true;
+                //Check if already locked
+                if (record.target_player.player_locked) {
+                    SendMessageToSource(record, record.target_player.player_name + " is already locked.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                //Player not locked, assign the new lock
+                record.target_player.player_locked = true;
+                record.target_player.player_locked_duration = TimeSpan.FromMinutes(10);
+                record.target_player.player_locked_start = DateTime.UtcNow;
+                record.target_player.player_locked_source = record.source_name;
+                SendMessageToSource(record, record.target_player.player_name + " is now locked for 10 minutes, or until unlock.");
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while locking player.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting LockTarget", 6);
+        }
+
+        public void UnlockTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering UnlockTarget", 6);
+            try
+            {
+                if (record.target_player == null)
+                {
+                    ConsoleError("Player null when unlocking player.");
+                    return;
+                }
+                //Set the executed bool
+                record.record_action_executed = true;
+                //Check if already locked
+                if (!record.target_player.player_locked)
+                {
+                    SendMessageToSource(record, record.target_player.player_name + " is not locked.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.target_player.player_locked = false;
+                SendMessageToSource(record, record.target_player.player_name + " is now unlocked.");
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while unlocking player.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting UnlockTarget", 6);
+        }
+
+        public void MarkTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering FindTarget", 6);
+            try
+            {
+                if (record.target_player == null)
+                {
+                    ConsoleError("Player null when marking player.");
+                    return;
+                }
+                SendMessageToSource(record, record.target_name + " marked for leave notification.");
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while marking player.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting MarkTarget", 6);
+        }
+
+        public void ManageAFKPlayers(AdKatsRecord record)
+        {
+            DebugWrite("Entering ManageAFKPlayers", 6);
+            try
+            {
+                List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
+                    aPlayer =>
+                        (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKAutoKickDurationMinutes &&
+                        _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
+                        !RoleIsAdmin(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKAutoKickMinimumPlayers).ToList();
+                if (_AFKIgnoreUserList) {
+                    IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
+                    afkPlayers = afkPlayers.Where(aPlayer => !userSoldierGuids.Contains(aPlayer.player_guid)).ToList();
+                }
+                else {
+                    afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key)).ToList();
+                }
+                if (afkPlayers.Any())
+                {
+                    foreach (AdKatsPlayer aPlayer in afkPlayers) {
+                        string afkTime = FormatTimeString(DateTime.UtcNow - aPlayer.lastAction, 2);
+                        DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
+                        var kickRecord = new AdKatsRecord
+                        {
+                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                            server_id = _serverID,
+                            command_type = _CommandKeyDictionary["player_kick"],
+                            command_numeric = 0,
+                            target_name = aPlayer.player_name,
+                            target_player = aPlayer,
+                            source_name = "AFKManager",
+                            record_message = "AFK time exceeded [" + afkTime + " / " + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
+                        };
+                        QueueRecordForProcessing(kickRecord);
+                    }
+                    SendMessageToSource(record, afkPlayers.Count() + " players kicked for being AFK.");
+                }
+                else {
+                    SendMessageToSource(record, "No AFK players found or kickable.");
+                }
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while managing AFK players.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting ManageAFKPlayers", 6);
         }
 
         public void SendOnlineAdmins(AdKatsRecord record) {
@@ -9084,7 +11141,7 @@ namespace PRoConEvents {
             DebugWrite("Entering LeadCurrentSquad", 6);
             try {
                 ExecuteCommand("procon.protected.send", "squad.leader", record.target_player.frostbitePlayerInfo.TeamID.ToString(), record.target_player.frostbitePlayerInfo.SquadID.ToString(), record.target_player.player_name);
-                PlayerSayMessage(record.target_player.player_name, "You are now the leader of your current squad.");
+                PlayerSayMessage(record.target_player.player_name, "You are now the leader of your current squad.", 1);
                 if (record.source_name != record.target_name) {
                     SendMessageToSource(record, record.target_player.player_name + " is now the leader of their current squad.");
                 }
@@ -9193,14 +11250,20 @@ namespace PRoConEvents {
                         }
                         //On first run, pull all roles and commands and update database if needed
                         if (firstRun) {
+                            counter.Reset();
+                            counter.Start();
+
                             FetchCommands();
                             FetchRoles();
                             UpdateDatabase37014000();
+
+                            counter.Stop();
+                            if (FullDebug)
+                                ConsoleWrite("DBCOMM: Initial command fetch took " + counter.ElapsedMilliseconds + "ms");
                         }
                         counter.Reset();
                         counter.Start();
                         FeedStatLoggerSettings();
-                        counter.Stop();
                         if (FullDebug)
                             ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
 
@@ -9230,6 +11293,7 @@ namespace PRoConEvents {
                             DebugWrite("Preparing to fetch settings from server " + _serverID, 6);
                             //Fetch new settings from the database
                             FetchSettings(_settingImportID, _settingImportID != _serverID);
+                            RunPluginOrchestration();
                         }
 
                         counter.Reset();
@@ -9297,6 +11361,9 @@ namespace PRoConEvents {
                             //Register a command to indicate availibility to other plugins
                             RegisterCommand(_issueCommandMatchCommand);
                             RegisterCommand(_fetchAuthorizedSoldiersMatchCommand);
+
+                            //Call player listing immediately
+                            ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
 
                             ConsoleWrite("^b^2Running!^n^0 Version: " + GetPluginVersion());
                         }
@@ -9403,9 +11470,10 @@ namespace PRoConEvents {
 
         private void FeedStatLoggerSettings() {
             //Every 30 minutes feed stat logger settings
-            if (_LastStatLoggerStatusUpdateTime.AddMinutes(60) < DateTime.UtcNow) {
-                _LastStatLoggerStatusUpdateTime = DateTime.UtcNow;
+            if (_lastStatLoggerStatusUpdateTime.AddMinutes(60) < DateTime.UtcNow) {
+                _lastStatLoggerStatusUpdateTime = DateTime.UtcNow;
                 if (_statLoggerVersion == "BF3") {
+                    SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Livescoreboard in DB?", "Yes");
                     if (_isTestingAuthorized) {
                         _FeedStatLoggerSettings = true;
                     }
@@ -9425,6 +11493,7 @@ namespace PRoConEvents {
                     }
                 }
                 else if (_statLoggerVersion == "UNIVERSAL") {
+                    SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Livescoreboard in DB?", "Yes");
                     if (_isTestingAuthorized) {
                         _FeedStatLoggerSettings = true;
                     }
@@ -9620,8 +11689,8 @@ namespace PRoConEvents {
 
         private void HandleActiveBanEnforcer() {
             //Call banlist at set interval (20 seconds)
-            if (_UseBanEnforcerPreviousState && (DateTime.UtcNow > _LastBanListCall.AddSeconds(20))) {
-                _LastBanListCall = DateTime.UtcNow;
+            if (_UseBanEnforcerPreviousState && (DateTime.UtcNow > _lastBanListCall.AddSeconds(20))) {
+                _lastBanListCall = DateTime.UtcNow;
                 DebugWrite("banlist.list called at interval.", 6);
                 ExecuteCommand("procon.protected.send", "banList.list");
             }
@@ -9629,7 +11698,7 @@ namespace PRoConEvents {
             FetchNameBanCount();
             FetchGUIDBanCount();
             FetchIPBanCount();
-            if (!_UseBanEnforcerPreviousState || (DateTime.UtcNow > _LastDbBanFetch.AddSeconds(DbBanFetchFrequency))) {
+            if (!_UseBanEnforcerPreviousState || (DateTime.UtcNow > _lastDbBanFetch.AddSeconds(DbBanFetchFrequency))) {
                 //Load all bans on startup
                 if (!_UseBanEnforcerPreviousState) {
                     //Get all bans from procon
@@ -9754,7 +11823,7 @@ namespace PRoConEvents {
                     }
                     record.source_name = _CBanAdminName;
                     record.server_id = _serverID;
-                    record.target_player = FetchPlayer(true, false, null, -1, cBan.SoldierName, (!String.IsNullOrEmpty(cBan.Guid)) ? (cBan.Guid.ToUpper()) : (null), cBan.IpAddress);
+                    record.target_player = FetchPlayer(true, false, false, null, -1, cBan.SoldierName, (!String.IsNullOrEmpty(cBan.Guid)) ? (cBan.Guid.ToUpper()) : (null), cBan.IpAddress);
                     if (!String.IsNullOrEmpty(record.target_player.player_name)) {
                         record.target_name = record.target_player.player_name;
                     }
@@ -9797,6 +11866,42 @@ namespace PRoConEvents {
                 }
             }
             _UseBanEnforcerPreviousState = true;
+        }
+
+        private void SubmitToMetabans(AdKatsBan aBan, AssessmentTypes type) {
+            DebugWrite("^4Metabans (SubmitAssessment): Submitting assessment of GUID " + aBan.ban_record.target_player.player_guid, 3);
+
+            var api = new MetabansAPI(_metabansUsername, _metabansAPIKey, enumBoolOnOff.On);
+            api.ExecuteCommand += new MetabansAPI.ExecuteCommandHandler(api_ExecuteCommand);
+            api.mb_assess_player_ok += new MetabansAPI.RequestSuccessHandler(api_mb_assess_player_ok);
+
+            SupportedGames gameType;
+            switch (_gameVersion) {
+                case GameVersion.BF3:
+                    gameType = SupportedGames.BF_3;
+                    break;
+                case GameVersion.BF4:
+                    gameType = SupportedGames.BF_4;
+                    break;
+                default:
+                    ConsoleError("Invalid game version when posting to metabans.");
+                    return;
+                    break;
+            }
+            api.mb_assess_player(gameType, aBan.ban_record.target_player.player_guid, type, aBan.ban_record.record_message, (int) (aBan.ban_endTime - aBan.ban_startTime).TotalSeconds).Post();
+        }
+
+        public void api_ExecuteCommand(params string[] commands) {
+            ExecuteCommand(commands);
+        }
+
+        public void api_mb_assess_player_ok(Hashtable request, Hashtable data) {
+            try {
+                ConsoleWarn("^4Metabans (api_mb_assess_player_ok): Assessment accepted");
+            }
+            catch (Exception e) {
+                ConsoleWarn("^1Metabans (api_mb_assess_player_ok): " + e.Message);
+            }
         }
 
         private Boolean ConnectionCapable() {
@@ -9927,22 +12032,70 @@ namespace PRoConEvents {
             }
         }
 
-        private Boolean ConfirmAdKatsTables() {
-            if (!ConfirmTable("adkats_specialplayers")) {
+        private Boolean ConfirmAdKatsTables()
+        {
+            if (!ConfirmTable("adkats_specialplayers"))
+            {
                 ConsoleWarn("Special players table not found. Attempting to add.");
-                SendNonQuery("Adding special soldiers table", @"CREATE TABLE IF NOT EXISTS `adkats_specialplayers`( 
+                SendNonQuery("Adding special soldiers table", @"
+                    CREATE TABLE IF NOT EXISTS `adkats_specialplayers`( 
                       `specialplayer_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
                       `player_group` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
                       `player_id` int(10) UNSIGNED DEFAULT NULL,
                       `player_game` tinyint(4) UNSIGNED DEFAULT NULL,
                       `player_server` smallint(5) UNSIGNED DEFAULT NULL,
                       `player_identifier` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+                      `player_expiration` DATETIME NOT NULL,
                       PRIMARY KEY (`specialplayer_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Special Player List'", true);
-                SendNonQuery("Adding special soldiers table foreign keys", @"ALTER TABLE `adkats_specialplayers`
-                          ADD CONSTRAINT `adkats_specialplayers_game_id` FOREIGN KEY (`player_game`) REFERENCES `tbl_games`(`GameID`) ON UPDATE NO ACTION ON DELETE CASCADE, 
-                          ADD CONSTRAINT `adkats_specialplayers_server_id` FOREIGN KEY (`player_server`) REFERENCES `tbl_server`(`ServerID`) ON UPDATE NO ACTION ON DELETE CASCADE, 
-                          ADD CONSTRAINT `adkats_specialplayers_player_id` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata`(`PlayerID`) ON UPDATE NO ACTION ON DELETE CASCADE", true);
+                SendNonQuery("Adding special soldiers table foreign keys", @"
+                    ALTER TABLE `adkats_specialplayers`
+                        ADD CONSTRAINT `adkats_specialplayers_game_id` FOREIGN KEY (`player_game`) REFERENCES `tbl_games`(`GameID`) ON UPDATE NO ACTION ON DELETE CASCADE, 
+                        ADD CONSTRAINT `adkats_specialplayers_server_id` FOREIGN KEY (`player_server`) REFERENCES `tbl_server`(`ServerID`) ON UPDATE NO ACTION ON DELETE CASCADE, 
+                        ADD CONSTRAINT `adkats_specialplayers_player_id` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata`(`PlayerID`) ON UPDATE NO ACTION ON DELETE CASCADE", true);
+            }
+            if (!ConfirmTable("adkats_player_reputation"))
+            {
+                ConsoleWarn("Player reputation table not found. Attempting to add.");
+                SendNonQuery("Adding player reputation table", @"
+                    CREATE TABLE `adkats_player_reputation` (
+                      `player_id` int(10) unsigned NOT NULL,
+                      `game_id` tinyint(4) unsigned NOT NULL,
+                      `target_rep` float NOT NULL,
+                      `source_rep` float NOT NULL,
+                      `total_rep` float NOT NULL,
+                      `total_rep_co` float NOT NULL,
+                      PRIMARY KEY (`player_id`),
+                      KEY `game_id` (`game_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Player Reputation'", true);
+                SendNonQuery("Adding player reputation table foreign keys", @"
+                    ALTER TABLE `adkats_player_reputation`
+                        ADD CONSTRAINT `adkats_player_reputation_ibfk_1` FOREIGN KEY (`player_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE CASCADE ON UPDATE CASCADE,
+                        ADD CONSTRAINT `adkats_player_reputation_ibfk_2` FOREIGN KEY (`game_id`) REFERENCES `tbl_games` (`GameID`) ON DELETE CASCADE ON UPDATE CASCADE", true);
+            }
+            if (!ConfirmTable("adkats_orchestration"))
+            {
+                ConsoleWarn("Plugin orchestration table not found. Attempting to add.");
+                SendNonQuery("Adding plugin orchestration table", @"
+                     CREATE TABLE `adkats_orchestration` (
+                        `setting_id` int(10) NOT NULL AUTO_INCREMENT,
+                        `setting_server` SMALLINT(5) NOT NULL,
+                        `setting_plugin` VARCHAR(100) NOT NULL,
+                        `setting_name` VARCHAR(100) NOT NULL,
+                        `setting_value` VARCHAR (2000) NOT NULL,
+                        PRIMARY KEY (`setting_id`),
+                        UNIQUE(`setting_server`, `setting_plugin`, `setting_name`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Plugin Orchestration'", true);
+            }
+            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_effective' )", false))
+            {
+                SendNonQuery("Adding special player expiration.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_effective` DATETIME NOT NULL AFTER `player_identifier`", true);
+                SendNonQuery("Adding initial special player effective values.", "UPDATE `adkats_specialplayers` SET `player_effective` = UTC_TIMESTAMP()", true);
+            }
+            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_expiration' )", false))
+            {
+                SendNonQuery("Adding special player expiration.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_expiration` DATETIME NOT NULL AFTER `player_effective`", true);
+                SendNonQuery("Adding initial special player expiration values.", "UPDATE `adkats_specialplayers` SET `player_expiration` = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)", true);
             }
             return ConfirmTable("adkats_bans") && ConfirmTable("adkats_commands") && ConfirmTable("adkats_infractions_global") && ConfirmTable("adkats_infractions_server") && ConfirmTable("adkats_records_debug") && ConfirmTable("adkats_records_main") && ConfirmTable("adkats_rolecommands") && ConfirmTable("adkats_roles") && ConfirmTable("adkats_settings") && ConfirmTable("adkats_users") && ConfirmTable("adkats_usersoldiers") && ConfirmTable("adkats_specialplayers");
         }
@@ -10046,7 +12199,9 @@ namespace PRoConEvents {
                                 //Set all users to default guest role
                                 oldUsers.Add(new AdKatsUser {
                                     user_name = reader.GetString("player_name"),
-                                    user_role = _RoleKeyDictionary["guest_default"]
+                                    user_role = _RoleKeyDictionary["guest_default"],
+                                    user_expiration = DateTime.UtcNow.AddYears(20),
+                                    user_notes = "No Notes"
                                 });
                             }
                         }
@@ -10382,8 +12537,8 @@ namespace PRoConEvents {
             try {
                 DebugWrite("uploadAllSettings starting!", 6);
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof (Boolean), _useKeepAlive));
-                QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (int), _DebugLevel));
-                QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof (String), _DebugSoldierName));
+                QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (int), _debugLevel));
+                QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof (String), _debugSoldierName));
                 QueueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof (String), _ServerVoipAddress));
                 QueueSettingForUpload(new CPluginVariable(@"Rule Print Delay", typeof (Double), _ServerRulesDelay));
                 QueueSettingForUpload(new CPluginVariable(@"Rule Print Interval", typeof (Double), _ServerRulesInterval));
@@ -10394,10 +12549,11 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof (Boolean), _FeedServerSpectatorList));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof (Boolean), _FeedStatLoggerSettings));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof (Boolean), _useRoundTimer));
-                QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _roundTimeMinutes));
+                QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _maxRoundTimeMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof (Boolean), _UseWeaponLimiter));
                 QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Weapon String", typeof (String), _WeaponLimiterString));
-                QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Exception String", typeof (String), _WeaponLimiterExceptionString));
+                QueueSettingForUpload(new CPluginVariable(@"NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
+                QueueSettingForUpload(new CPluginVariable(@"Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof (String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof (Boolean), _UseGrenadeCookCatcher));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Enable", typeof (Boolean), _UseHackerChecker));
@@ -10419,14 +12575,16 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by NAME", typeof (Boolean), _DefaultEnforceName));
                 QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by GUID", typeof (Boolean), _DefaultEnforceGUID));
                 QueueSettingForUpload(new CPluginVariable(@"Enforce New Bans by IP", typeof (Boolean), _DefaultEnforceIP));
-                QueueSettingForUpload(new CPluginVariable(@"Minimum Required Reason Length", typeof (Int32), _RequiredReasonLength));
+                QueueSettingForUpload(new CPluginVariable(@"Minimum Required Reason Length", typeof(Int32), _RequiredReasonLength));
+                QueueSettingForUpload(new CPluginVariable(@"Minimum Report Handle Seconds", typeof(Int32), _MinimumReportHandleSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Punishment Hierarchy", typeof (String), CPluginVariable.EncodeStringArray(_PunishmentHierarchy)));
                 QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof (Boolean), _CombineServerPunishments));
                 QueueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof (Boolean), _OnlyKillOnLowPop));
-                QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof (Int32), _LowPopPlayerCount));
+                QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof (Int32), _lowPopulationPlayerCount));
                 QueueSettingForUpload(new CPluginVariable(@"Use IRO Punishment", typeof (Boolean), _IROActive));
                 QueueSettingForUpload(new CPluginVariable(@"IRO Punishment Overrides Low Pop", typeof (Boolean), _IROOverridesLowPop));
-                QueueSettingForUpload(new CPluginVariable(@"IRO Timeout (Minutes)", typeof (Int32), _IROTimeout));
+                QueueSettingForUpload(new CPluginVariable(@"IRO Timeout Minutes", typeof(Int32), _IROTimeout));
+                QueueSettingForUpload(new CPluginVariable(@"Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Send Emails", typeof (Boolean), _UseEmail));
                 QueueSettingForUpload(new CPluginVariable(@"Use SSL?", typeof (Boolean), _EmailHandler.UseSSL));
                 QueueSettingForUpload(new CPluginVariable(@"SMTP-Server address", typeof (String), _EmailHandler.SMTPServer));
@@ -10436,19 +12594,34 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"SMTP-Server password", typeof (String), _EmailHandler.SMTPPassword));
                 QueueSettingForUpload(new CPluginVariable(@"Custom HTML Addition", typeof (String), _EmailHandler.CustomHTMLAddition));
                 QueueSettingForUpload(new CPluginVariable(@"Extra Recipient Email Addresses", typeof (String[]), _EmailHandler.RecipientEmails.ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Use Metabans?", typeof (Boolean), _useMetabans));
+                QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof (String), _metabansAPIKey));
+                QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof (String), _metabansUsername));
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Muted Message", typeof (String), _MutedPlayerMuteMessage));
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Killed Message", typeof (String), _MutedPlayerKillMessage));
                 QueueSettingForUpload(new CPluginVariable(@"On-Player-Kicked Message", typeof (String), _MutedPlayerKickMessage));
-                QueueSettingForUpload(new CPluginVariable(@"# Chances to give player before kicking", typeof (Int32), _MutedPlayerChances));
-                QueueSettingForUpload(new CPluginVariable(@"Auto-Whitelist Count", typeof (Int32), _PlayersToAutoWhitelist));
+                QueueSettingForUpload(new CPluginVariable(@"# Chances to give player before kicking", typeof(Int32), _MutedPlayerChances));
+                QueueSettingForUpload(new CPluginVariable(@"Ignore commands for mute enforcement", typeof(Boolean), _MutedPlayerIgnoreCommands));
                 QueueSettingForUpload(new CPluginVariable(@"Ticket Window High", typeof (Int32), _TeamSwapTicketWindowHigh));
-                QueueSettingForUpload(new CPluginVariable(@"Ticket Window Low", typeof (Int32), _TeamSwapTicketWindowLow));
+                QueueSettingForUpload(new CPluginVariable(@"Ticket Window Low", typeof(Int32), _TeamSwapTicketWindowLow));
+                QueueSettingForUpload(new CPluginVariable(@"Enable Admin Assistants", typeof(Boolean), _EnableAdminAssistants));
                 QueueSettingForUpload(new CPluginVariable(@"Enable Admin Assistant Perk", typeof (Boolean), _EnableAdminAssistantPerk));
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Confirmed Reports Per Month", typeof (Int32), _MinimumRequiredMonthlyReports));
                 QueueSettingForUpload(new CPluginVariable(@"Yell display time seconds", typeof (Int32), _YellDuration));
                 QueueSettingForUpload(new CPluginVariable(@"Pre-Message List", typeof (String), CPluginVariable.EncodeStringArray(_PreMessageList.ToArray())));
-                QueueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof (Boolean), _RequirePreMessageUse));
-                QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof (Boolean), _ShowAdminNameInSay));
+                QueueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
+                QueueSettingForUpload(new CPluginVariable(@"Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
+                QueueSettingForUpload(new CPluginVariable(@"First spawn message text", typeof(String), _FirstSpawnMessage));
+                QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInSay));
+                QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
+                QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
+                QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKSystemEnable));
+                QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
+                QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
+                QueueSettingForUpload(new CPluginVariable(@"AFK Trigger Minutes", typeof(Double), _AFKAutoKickDurationMinutes));
+                QueueSettingForUpload(new CPluginVariable(@"AFK Minimum Players", typeof(Int32), _AFKAutoKickMinimumPlayers));
+                QueueSettingForUpload(new CPluginVariable(@"AFK Ignore User List", typeof(Boolean), _AFKIgnoreUserList));
+                QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_AFKIgnoreRoles)));
                 DebugWrite("uploadAllSettings finished!", 6);
             }
             catch (Exception e) {
@@ -10632,7 +12805,7 @@ namespace PRoConEvents {
             if (_isTestingAuthorized)
                 PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_userCache) {
-                foreach (AdKatsUser user in _userCache.Values.Where(user => RoleIsInteractionAble(user.user_role))) {
+                foreach (AdKatsUser user in _userCache.Values.Where(user => RoleIsAdmin(user.user_role))) {
                     adminSoldiers.AddRange(user.soldierDictionary.Values);
                 }
             }
@@ -10643,7 +12816,7 @@ namespace PRoConEvents {
             var onlineAdminSoldiers = new Dictionary<String, AdKatsPlayer>();
             foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers()) {
                 AdKatsPlayer adminSoldier;
-                if (_playerDictionary.TryGetValue(aPlayer.player_name, out adminSoldier)) {
+                if (_PlayerDictionary.TryGetValue(aPlayer.player_name, out adminSoldier)) {
                     if (!onlineAdminSoldiers.ContainsKey(aPlayer.player_name)) {
                         onlineAdminSoldiers.Add(adminSoldier.player_name, adminSoldier);
                     }
@@ -10661,26 +12834,32 @@ namespace PRoConEvents {
                         //Attempt to execute the query
                         command.CommandText = @"
                         SELECT 
-	                        specialplayer_id,
-	                        player_group,
-	                        player_id,
-	                        player_game,
-	                        player_server,
-	                        player_identifier
+	                        `specialplayer_id`,
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_game`,
+	                        `player_server`,
+	                        `player_identifier`,
+	                        `player_effective`,
+                            `player_expiration`
                         FROM 
-	                        adkats_specialplayers
+	                        `adkats_specialplayers`
                         WHERE
-	                        player_id = @player_id
-                        OR
-	                        player_identifier = @player_identifier_name
-                        OR
-	                        player_identifier = @player_identifier_guid
-                        OR
-	                        player_identifier = @player_identifier_ip";
-                        command.Parameters.AddWithValue("player_id", aPlayer.player_id);
-                        command.Parameters.AddWithValue("player_identifier_name", aPlayer.player_name);
-                        command.Parameters.AddWithValue("player_identifier_guid", aPlayer.player_guid);
-                        command.Parameters.AddWithValue("player_identifier_ip", aPlayer.player_ip);
+                            `player_expiration` > UTC_TIMESTAMP()
+                        AND
+                        (
+	                            `player_id` = @player_id
+                            OR
+	                            `player_identifier` = @player_name
+                            OR
+	                            `player_identifier` = @player_guid
+                            OR
+	                            `player_identifier` = @player_ip
+                        )";
+                        command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
+                        command.Parameters.AddWithValue("@player_name", aPlayer.player_name);
+                        command.Parameters.AddWithValue("@player_guid", aPlayer.player_guid);
+                        command.Parameters.AddWithValue("@player_ip", aPlayer.player_ip);
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             while (reader.Read()) {
                                 var asPlayer = new AdKatsSpecialPlayer();
@@ -10698,6 +12877,8 @@ namespace PRoConEvents {
                                     asPlayer.player_server = reader.GetInt32("player_server");
                                 if (!reader.IsDBNull(5))
                                     asPlayer.player_identifier = reader.GetString("player_identifier");
+                                asPlayer.player_effective = reader.GetDateTime("player_effective");
+                                asPlayer.player_expiration = reader.GetDateTime("player_expiration");
                                 if (asPlayer.player_game != null && asPlayer.player_game != _gameID) {
                                     DebugWrite("Matching player rejected for mismatched game id", 4);
                                     continue;
@@ -10707,7 +12888,7 @@ namespace PRoConEvents {
                                     continue;
                                 }
                                 if (player_id != null) {
-                                    if (player_id == aPlayer.player_id) {
+                                    if (player_id != aPlayer.player_id) {
                                         DebugWrite("Matching player rejected for mismatched player id", 4);
                                         continue;
                                     }
@@ -10737,8 +12918,9 @@ namespace PRoConEvents {
             if (_isTestingAuthorized)
                 PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_userCache) {
-                foreach (AdKatsUser user in _userCache.Values.Where(user => !RoleIsInteractionAble(user.user_role))) {
-                    elevatedSoldiers.AddRange(user.soldierDictionary.Values);
+                foreach (AdKatsUser aUser in _userCache.Values.Where(user => !RoleIsAdmin(user.user_role) && user.user_role.role_key != "guest_default"))
+                {
+                    elevatedSoldiers.AddRange(aUser.soldierDictionary.Values);
                 }
             }
             return elevatedSoldiers;
@@ -10763,7 +12945,8 @@ namespace PRoConEvents {
             if (_isTestingAuthorized)
                 PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_userCache) {
-                foreach (AdKatsUser user in _userCache.Values) {
+                foreach (AdKatsUser user in _userCache.Values.Where(aUser => aUser.user_role.role_key != "guest_default"))
+                {
                     userSoldiers.AddRange(user.soldierDictionary.Values);
                 }
             }
@@ -10798,6 +12981,7 @@ namespace PRoConEvents {
                     DebugWrite("DBCOMM: Record needs full upload, checking.", 5);
                     //No record ID. Perform full upload
                     switch (record.command_type.command_key) {
+                        //TODO: Add ability for multiple targets
                         case "player_punish":
                             //Upload for punish is required
                             if (CanPunish(record, 20)) {
@@ -10821,6 +13005,7 @@ namespace PRoConEvents {
                                 return false;
                             }
                             break;
+                        //TODO: Add ability for multiple targets
                         case "player_forgive":
                             //Upload for forgive is required
                             //No restriction on forgives/minute
@@ -10849,6 +13034,47 @@ namespace PRoConEvents {
         }
 
         private Boolean UploadRecord(AdKatsRecord record) {
+            Boolean success = true;
+            //If record has multiple targets, create a new record for each target
+            if (record.TargetPlayersLocal.Any())
+            {
+                record.TargetInnerRecords.Clear();
+                foreach (AdKatsPlayer aPlayer in record.TargetPlayersLocal)
+                {
+                    var aRecord = new AdKatsRecord
+                    {
+                        isAliveChecked = record.isAliveChecked,
+                        isConfirmed = record.isConfirmed,
+                        isContested = record.isContested,
+                        isDebug = record.isDebug,
+                        isIRO = record.isIRO,
+                        record_source = record.record_source,
+                        server_id = record.server_id,
+                        command_type = record.command_type,
+                        command_action = record.command_action,
+                        command_numeric = record.command_numeric,
+                        target_name = aPlayer.player_name,
+                        target_player = aPlayer,
+                        source_name = record.source_name,
+                        source_player = record.source_player,
+                        record_message = record.record_message,
+                        record_action_executed = record.record_action_executed,
+                        record_time = record.record_time
+                    };
+                    record.TargetInnerRecords.Add(aRecord);
+                    if (!UploadInnerRecord(aRecord)) {
+                        success = false;
+                    }
+                }
+            }
+            else
+            {
+                success = UploadInnerRecord(record);
+            }
+            return success;
+        }
+
+        private Boolean UploadInnerRecord(AdKatsRecord record) {
             DebugWrite("uploadRecord starting!", 6);
 
             Boolean success = false;
@@ -10977,12 +13203,11 @@ namespace PRoConEvents {
         }
 
         private void UpdatePlayerReputation(AdKatsPlayer aPlayer) {
-            try {
-                if (!_isTestingAuthorized) {
-                    return;
-                }
+            try {  
                 double sourceReputation = 0.0;
                 double targetReputation = (-25) * FetchPoints(aPlayer, true);
+                double totalReputation = 0;
+                double totalReputationConstrained = 0;
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"SELECT 
@@ -11040,6 +13265,13 @@ namespace PRoConEvents {
                             }
                         }
                     }
+                    totalReputation = sourceReputation + targetReputation;
+                    if (totalReputation >= 0) {
+                        totalReputationConstrained = (1000 * totalReputation) / (totalReputation + 1000);
+                    }
+                    else {
+                        totalReputationConstrained = -(1000 * Math.Abs(totalReputation)) / (Math.Abs(totalReputation) + 1000);
+                    }
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"REPLACE INTO
 	                        adkats_player_reputation
@@ -11049,7 +13281,8 @@ namespace PRoConEvents {
 	                        @game_id,
 	                        @target_rep,
 	                        @source_rep,
-	                        @total_rep
+	                        @total_rep,
+                            @total_rep_co
                         )";
 
                         command.Parameters.AddWithValue("player_id", aPlayer.player_id);
@@ -11059,9 +13292,10 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("game_id", aPlayer.game_id);
                         command.Parameters.AddWithValue("target_rep", targetReputation);
                         command.Parameters.AddWithValue("source_rep", sourceReputation);
-                        command.Parameters.AddWithValue("total_rep", targetReputation + sourceReputation);
-
+                        command.Parameters.AddWithValue("total_rep", totalReputation);
+                        command.Parameters.AddWithValue("total_rep_co", totalReputationConstrained);
                         Int32 rowsAffected = command.ExecuteNonQuery();
+                        aPlayer.player_reputation = totalReputationConstrained;
                     }
                 }
             }
@@ -11127,7 +13361,29 @@ namespace PRoConEvents {
             }
         }
 
+        //DONE
         private void UpdateRecord(AdKatsRecord record) {
+            //If record has multiple inner records, update those instead
+            if (record.TargetInnerRecords.Any())
+            {
+                foreach (AdKatsRecord innerRecord in record.TargetInnerRecords)
+                {
+                    //Update the inner record with action, numeric, and message, before pushing
+                    innerRecord.command_action = record.command_action;
+                    innerRecord.command_numeric = record.command_numeric;
+                    innerRecord.record_message = record.record_message;
+                    //Call inner upload
+                    UpdateInnerRecord(innerRecord);
+                }
+            }
+            else
+            {
+                UpdateInnerRecord(record);
+            }
+        }
+
+        //DONE
+        private void UpdateInnerRecord(AdKatsRecord record) {
             DebugWrite("updateRecord starting!", 6);
 
             //Make sure database connection active
@@ -11189,18 +13445,23 @@ namespace PRoConEvents {
         }
 
         //DONE
-        private AdKatsRecord FetchRecordByID(Int64 recordID, Boolean debug) {
+        private AdKatsRecord FetchRecordByID(Int64 recordID, Boolean debug)
+        {
             DebugWrite("fetchRecordByID starting!", 6);
             AdKatsRecord record = null;
             //Make sure database connection active
-            if (HandlePossibleDisconnect()) {
+            if (HandlePossibleDisconnect())
+            {
                 return null;
             }
-            try {
+            try
+            {
                 //Success fetching record
                 Boolean success = false;
-                using (MySqlConnection connection = GetDatabaseConnection()) {
-                    using (MySqlCommand command = connection.CreateCommand()) {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
                         String tablename = (debug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
                         String sql = @"
                         SELECT 
@@ -11211,7 +13472,8 @@ namespace PRoConEvents {
                             `command_numeric`, 
                             `target_name`, 
                             `target_id`, 
-                            `source_name`, 
+                            `source_name`,
+                            `source_id`, 
                             `record_message`, 
                             `record_time` 
                         FROM 
@@ -11219,9 +13481,11 @@ namespace PRoConEvents {
                         WHERE 
                             `record_id` = " + recordID;
                         command.CommandText = sql;
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
                             //Grab the record
-                            if (reader.Read()) {
+                            if (reader.Read())
+                            {
                                 success = true;
 
                                 record = new AdKatsRecord();
@@ -11229,49 +13493,67 @@ namespace PRoConEvents {
                                 record.record_id = reader.GetInt64("record_id");
                                 record.server_id = reader.GetInt64("server_id");
                                 Int32 commandTypeInt = reader.GetInt32("command_type");
-                                if (!_CommandIDDictionary.TryGetValue(commandTypeInt, out record.command_type)) {
+                                if (!_CommandIDDictionary.TryGetValue(commandTypeInt, out record.command_type))
+                                {
                                     ConsoleError("Unable to parse command type " + commandTypeInt + " when fetching record by ID.");
                                 }
                                 Int32 commandActionInt = reader.GetInt32("command_action");
-                                if (!_CommandIDDictionary.TryGetValue(commandActionInt, out record.command_action)) {
+                                if (!_CommandIDDictionary.TryGetValue(commandActionInt, out record.command_action))
+                                {
                                     ConsoleError("Unable to parse command action " + commandActionInt + " when fetching record by ID.");
                                 }
                                 record.command_numeric = reader.GetInt32("command_numeric");
                                 record.target_name = reader.GetString("target_name");
-                                if (!reader.IsDBNull(6)) {
-                                    record.target_player = new AdKatsPlayer {
+                                if (!reader.IsDBNull(6))
+                                {
+                                    record.target_player = new AdKatsPlayer
+                                    {
                                         player_id = reader.GetInt64(6)
                                     };
                                 }
                                 record.source_name = reader.GetString("source_name");
+                                if (!reader.IsDBNull(8))
+                                {
+                                    record.source_player = new AdKatsPlayer
+                                    {
+                                        player_id = reader.GetInt64(6)
+                                    };
+                                }
                                 record.record_message = reader.GetString("record_message");
                                 record.record_time = reader.GetDateTime("record_time");
                             }
-                            if (success) {
+                            if (success)
+                            {
                                 DebugWrite("Record found for ID " + recordID, 5);
                             }
-                            else {
+                            else
+                            {
                                 DebugWrite("No record found for ID " + recordID, 5);
                             }
                         }
-                        if (success && record.target_player != null) {
+                        if (success && record.target_player != null)
+                        {
                             long oldID = record.target_player.player_id;
-                            record.target_player = FetchPlayer(false, true, null, oldID, null, null, null);
-                            if (record.target_player == null) {
+                            record.target_player = FetchPlayer(false, true, false, null, oldID, null, null, null);
+                            if (record.target_player == null)
+                            {
                                 ConsoleError("Unable to find player ID: " + oldID);
                                 return null;
                             }
-                            if (!String.IsNullOrEmpty(record.target_player.player_name)) {
+                            if (!String.IsNullOrEmpty(record.target_player.player_name))
+                            {
                                 record.target_name = record.target_player.player_name;
                             }
-                            else {
+                            else
+                            {
                                 record.target_name = "NoNameTarget";
                             }
                         }
                     }
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 HandleException(new AdKatsException("Error while fetching record by ID", e));
             }
 
@@ -11280,7 +13562,141 @@ namespace PRoConEvents {
         }
 
         //DONE
-        private IEnumerable<AdKatsRecord> FetchUnreadRecords() {
+        private List<AdKatsRecord> FetchRecentRecords(Int64? player_id, Int64? command_id, Int64 limit_days, Int64 limit_records, Boolean target_only, Boolean debug)
+        {
+            DebugWrite("FetchRecentRecords starting!", 6);
+            var records = new List<AdKatsRecord>();
+            //Make sure database connection active
+            if (HandlePossibleDisconnect())
+            {
+                return null;
+            }
+            try
+            {
+                //Success fetching record
+                Boolean success = false;
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        String tablename = (debug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
+                        String sql = @"
+                        (SELECT 
+	                        `record_id`, 
+	                        `server_id`, 
+	                        `command_type`, 
+	                        `command_action`, 
+	                        `command_numeric`, 
+	                        `target_name`, 
+	                        `target_id`, 
+	                        `source_name`, 
+	                        `source_id`,
+	                        `record_message`, 
+	                        `record_time` 
+                        FROM 
+	                        " + tablename + @" 
+                        WHERE
+	                        `record_id` = `record_id`";
+                        if (command_id != null && command_id > 0) {
+                            sql += @" 
+                            AND
+                            (
+	                            `command_type` = @command_id
+	                            OR
+	                            `command_action` = @command_id
+                            )";
+                            command.Parameters.AddWithValue("@command_id", command_id);
+                        }
+                        if (player_id != null && player_id > 0) {
+                            sql += @" 
+                            AND 
+                            (
+	                            `target_id` = @player_id
+	                            " + ((target_only)?(""):(" OR `source_id` = @player_id ")) + @"
+                            )";
+                            command.Parameters.AddWithValue("@player_id", player_id);
+                        }
+                        sql += @" 
+                        AND
+                        (
+	                        DATE_ADD(`record_time`, INTERVAL @limit_days DAY) > NOW()
+                        )
+                        ORDER BY
+	                        `record_id` DESC
+                        LIMIT
+	                        @limit_records)
+                        ORDER BY `record_id` ASC";
+                        command.Parameters.AddWithValue("@limit_days", limit_days);
+                        command.Parameters.AddWithValue("@limit_records", limit_records);
+                        command.CommandText = sql;
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            //Grab the records
+                            while (reader.Read())
+                            {
+                                success = true;
+                                var record = new AdKatsRecord();
+                                record = new AdKatsRecord();
+                                record.record_source = AdKatsRecord.Sources.Database;
+                                record.record_id = reader.GetInt64("record_id");
+                                record.server_id = reader.GetInt64("server_id");
+                                Int32 commandTypeInt = reader.GetInt32("command_type");
+                                if (!_CommandIDDictionary.TryGetValue(commandTypeInt, out record.command_type))
+                                {
+                                    ConsoleError("Unable to parse command type " + commandTypeInt + " when fetching record.");
+                                }
+                                Int32 commandActionInt = reader.GetInt32("command_action");
+                                if (!_CommandIDDictionary.TryGetValue(commandActionInt, out record.command_action))
+                                {
+                                    ConsoleError("Unable to parse command action " + commandActionInt + " when fetching record.");
+                                }
+                                record.command_numeric = reader.GetInt32("command_numeric");
+                                record.target_name = reader.GetString("target_name");
+                                if (!reader.IsDBNull(6)) {
+                                    Int64 targetID = reader.GetInt64(6);
+                                    AdKatsPlayer tPlayer;
+                                    if ((_PlayerDictionary.TryGetValue(record.target_name, out tPlayer) || _PlayerLeftDictionary.TryGetValue(record.target_name, out tPlayer)) && tPlayer.player_id == targetID) {
+                                        DebugWrite("Target player fetched from memory.", 4);
+                                    }
+                                    else {
+                                        tPlayer = FetchPlayer(false, true, false, null, targetID, null, null, null);
+                                    }
+                                    record.target_player = tPlayer;
+                                }
+                                record.source_name = reader.GetString("source_name");
+                                if (!reader.IsDBNull(8))
+                                {
+                                    Int64 targetID = reader.GetInt64(8);
+                                    AdKatsPlayer sPlayer;
+                                    if ((_PlayerDictionary.TryGetValue(record.target_name, out sPlayer) || _PlayerLeftDictionary.TryGetValue(record.target_name, out sPlayer)) && sPlayer.player_id == targetID)
+                                    {
+                                        DebugWrite("Target player fetched from memory.", 4);
+                                    }
+                                    else
+                                    {
+                                        sPlayer = FetchPlayer(false, true, false, null, targetID, null, null, null);
+                                    }
+                                    record.source_player = sPlayer;
+                                }
+                                record.record_message = reader.GetString("record_message");
+                                record.record_time = reader.GetDateTime("record_time");
+                                records.Add(record);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching recent records", e));
+            }
+
+            DebugWrite("FetchRecentRecords finished!", 6);
+            return records;
+        }
+
+        //DONE
+        private List<AdKatsRecord> FetchUnreadRecords() {
             DebugWrite("fetchUnreadRecords starting!", 6);
             //Create return list
             var records = new List<AdKatsRecord>();
@@ -11333,12 +13749,12 @@ namespace PRoConEvents {
                                 if (Int64.TryParse(value.ToString(), out targetIDParse)) {
                                     DebugWrite("id parsed! " + targetIDParse, 6);
                                     //Check if the player needs to be imported, or if they are already in the server
-                                    AdKatsPlayer importedPlayer = FetchPlayer(false, true, null, targetIDParse, null, null, null);
+                                    AdKatsPlayer importedPlayer = FetchPlayer(false, true, false, null, targetIDParse, null, null, null);
                                     if (importedPlayer == null) {
                                         continue;
                                     }
                                     AdKatsPlayer currentPlayer = null;
-                                    if (!String.IsNullOrEmpty(importedPlayer.player_name) && _playerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer)) {
+                                    if (!String.IsNullOrEmpty(importedPlayer.player_name) && _PlayerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer)) {
                                         DebugWrite("External player is currently in the server, using existing data.", 5);
                                         record.target_player = currentPlayer;
                                     }
@@ -11370,16 +13786,53 @@ namespace PRoConEvents {
         }
 
         //DONE
+        private void RunPluginOrchestration() {
+            DebugWrite("RunPluginOrchestration starting!", 6);
+            //Make sure database connection active
+            if (HandlePossibleDisconnect()) {
+                return;
+            }
+            try {
+                DebugWrite("Running plugin orchestration", 5);
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        command.CommandText = @"
+                        SELECT
+	                        `setting_plugin`,
+	                        `setting_name`,
+	                        `setting_value`
+                        FROM
+	                        `adkats_orchestration`
+                        WHERE
+	                        `setting_server` = @server_id";
+                        command.Parameters.AddWithValue("server_id", _serverID);
+                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                            while (reader.Read()) {
+                                SetExternalPluginSetting(reader.GetString("setting_plugin"), reader.GetString("setting_name"), reader.GetString("setting_value"));
+                                Thread.Sleep(10);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while running plugin orchestration.", e));
+            }
+
+            DebugWrite("RunPluginOrchestration finished!", 6);
+        }
+
+        //DONE
         private Int64 FetchNameBanCount() {
             DebugWrite("fetchNameBanCount starting!", 7);
             //Make sure database connection active
             if (HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (_NameBanCount >= 0 && (DateTime.UtcNow - _LastNameBanCountFetch).TotalSeconds < 30) {
+            if (_NameBanCount >= 0 && (DateTime.UtcNow - _lastNameBanCountFetch).TotalSeconds < 30) {
                 return _NameBanCount;
             }
-            _LastNameBanCountFetch = DateTime.UtcNow;
+            _lastNameBanCountFetch = DateTime.UtcNow;
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -11417,10 +13870,10 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (_GUIDBanCount >= 0 && (DateTime.UtcNow - _LastGUIDBanCountFetch).TotalSeconds < 30) {
+            if (_GUIDBanCount >= 0 && (DateTime.UtcNow - _lastGUIDBanCountFetch).TotalSeconds < 30) {
                 return _GUIDBanCount;
             }
-            _LastGUIDBanCountFetch = DateTime.UtcNow;
+            _lastGUIDBanCountFetch = DateTime.UtcNow;
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -11458,10 +13911,10 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (_IPBanCount >= 0 && (DateTime.UtcNow - _LastIPBanCountFetch).TotalSeconds < 30) {
+            if (_IPBanCount >= 0 && (DateTime.UtcNow - _lastIPBanCountFetch).TotalSeconds < 30) {
                 return _IPBanCount;
             }
-            _LastIPBanCountFetch = DateTime.UtcNow;
+            _lastIPBanCountFetch = DateTime.UtcNow;
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -11579,7 +14032,9 @@ namespace PRoConEvents {
 	                        `user_name`,
 	                        `user_email`,
 	                        `user_phone`,
-	                        `user_role`
+	                        `user_role`,
+                            `user_expiration`,
+                            `user_notes`
                         )
                         VALUES
                         (
@@ -11587,13 +14042,17 @@ namespace PRoConEvents {
 	                        @user_name,
 	                        @user_email,
 	                        @user_phone,
-	                        @user_role
+	                        @user_role,
+                            @user_expiration,
+                            @user_notes
                         )
                         ON DUPLICATE KEY UPDATE
 	                        `user_name` = @user_name,
 	                        `user_email` = @user_email,
 	                        `user_phone` = @user_phone,
-	                        `user_role` = @user_role";
+	                        `user_role` = @user_role,
+                            `user_expiration` = @user_expiration,
+                            `user_notes` = @user_notes";
                         if (aUser.user_id > 0) {
                             command.Parameters.AddWithValue("@user_id", aUser.user_id);
                         }
@@ -11601,6 +14060,8 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@user_email", aUser.user_email);
                         command.Parameters.AddWithValue("@user_phone", aUser.user_phone);
                         command.Parameters.AddWithValue("@user_role", aUser.user_role.role_id);
+                        command.Parameters.AddWithValue("@user_expiration", aUser.user_expiration);
+                        command.Parameters.AddWithValue("@user_notes", aUser.user_notes);
 
                         //Attempt to execute the query
                         Int32 rowsAffected = command.ExecuteNonQuery();
@@ -11817,7 +14278,6 @@ namespace PRoConEvents {
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while uploading role.", e));
             }
-
             DebugWrite("uploadRole finished!", 6);
         }
 
@@ -11962,6 +14422,12 @@ namespace PRoConEvents {
                             }
                         }
                     }
+
+                    //Submit ban to metabans
+                    if (aBan.ban_record.command_type.command_key == "banenforcer_enforce" && _useMetabans && !String.IsNullOrEmpty(_metabansUsername) && !String.IsNullOrEmpty(_metabansAPIKey))
+                    {
+                        SubmitToMetabans(aBan, AssessmentTypes.black);
+                    }
                 }
                 catch (Exception e) {
                     HandleException(new AdKatsException("Error while uploading new ban.", e));
@@ -11992,7 +14458,7 @@ namespace PRoConEvents {
                     using (MySqlDataReader reader = command.ExecuteReader()) {
                         //Grab the matching players
                         while (reader.Read()) {
-                            AdKatsPlayer aPlayer = FetchPlayer(false, true, null, reader.GetInt64("player_id"), null, null, null);
+                            AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
                             if (aPlayer != null) {
                                 resultPlayers.Add(aPlayer);
                             }
@@ -12011,7 +14477,7 @@ namespace PRoConEvents {
         }
 
         //DONE
-        private AdKatsPlayer FetchPlayer(Boolean allowUpdate, Boolean allowOtherGames, Int32? gameID, Int64 playerID, String playerName, String playerGUID, String playerIP) {
+        private AdKatsPlayer FetchPlayer(Boolean allowUpdate, Boolean allowOtherGames, Boolean allowNameSubstringSearch, Int32? gameID, Int64 playerID, String playerName, String playerGUID, String playerIP) {
             DebugWrite("fetchPlayer starting!", 6);
             //Create return list
             AdKatsPlayer aPlayer = null;
@@ -12033,7 +14499,8 @@ namespace PRoConEvents {
             else {
                 try {
                     using (MySqlConnection connection = GetDatabaseConnection()) {
-                        using (MySqlCommand command = connection.CreateCommand()) {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
                             String sql = @"
                             SELECT 
                                 `PlayerID` as `player_id`, 
@@ -12041,60 +14508,79 @@ namespace PRoConEvents {
                                 `EAGUID` as `player_guid`, 
                                 `PBGUID` as `player_pbguid`, 
                                 `IP_Address` as `player_ip`";
-                            if (_gameID > 0) {
+                            if (_gameID > 0)
+                            {
                                 sql += ",`GameID` as `game_id` ";
                             }
                             sql += "FROM `" + _mySqlDatabaseName + @"`.`tbl_playerdata` ";
                             bool sqlEnder = true;
-                            if (playerID >= 0) {
+                            if (playerID >= 0)
+                            {
                                 sql += " WHERE ( ";
                                 sqlEnder = false;
                                 sql += " `PlayerID` = " + playerID + " ";
                             }
-                            if (!String.IsNullOrEmpty(playerGUID)) {
-                                if (sqlEnder) {
+                            if (!String.IsNullOrEmpty(playerGUID))
+                            {
+                                if (sqlEnder)
+                                {
                                     sql += " WHERE ( ";
                                     sqlEnder = false;
                                 }
-                                else {
+                                else
+                                {
                                     sql += " OR ";
                                 }
                                 sql += " `EAGUID` LIKE '" + playerGUID + "' ";
                             }
-                            if (String.IsNullOrEmpty(playerGUID) && !String.IsNullOrEmpty(playerName)) {
-                                if (sqlEnder) {
+                            if (String.IsNullOrEmpty(playerGUID) && !String.IsNullOrEmpty(playerName))
+                            {
+                                if (sqlEnder)
+                                {
                                     sql += " WHERE ( ";
                                     sqlEnder = false;
                                 }
-                                else {
+                                else
+                                {
                                     sql += " OR ";
                                 }
-                                sql += " `SoldierName` LIKE '" + playerName + "' ";
+                                sql += " `SoldierName` LIKE '" + ((allowNameSubstringSearch) ? ("%" + playerName + "%") : (playerName)) + "' ";
                             }
-                            if (String.IsNullOrEmpty(playerGUID) && !String.IsNullOrEmpty(playerIP)) {
-                                if (sqlEnder) {
+                            if (String.IsNullOrEmpty(playerGUID) && !String.IsNullOrEmpty(playerIP))
+                            {
+                                if (sqlEnder)
+                                {
                                     sql += " WHERE ( ";
                                     sqlEnder = false;
                                 }
-                                else {
+                                else
+                                {
                                     sql += " OR ";
                                 }
                                 sql += " `IP_Address` LIKE '" + playerIP + "' ";
                             }
-                            if (!sqlEnder) {
+                            if (!sqlEnder)
+                            {
                                 sql += " ) ";
                             }
-                            if ((_gameID > 0 && !allowOtherGames) || gameID != null) {
-                                if (gameID != null) {
+                            if ((_gameID > 0 && !allowOtherGames) || gameID != null)
+                            {
+                                if (gameID != null)
+                                {
                                     sql += " AND `GameID` = " + gameID + " ";
                                 }
-                                else {
+                                else
+                                {
                                     sql += " AND `GameID` = " + _gameID + " ";
                                 }
                             }
+                            sql += @"
+                            LIMIT 1";
                             command.CommandText = sql;
-                            using (MySqlDataReader reader = command.ExecuteReader()) {
-                                if (reader.Read()) {
+                            using (MySqlDataReader reader = command.ExecuteReader())
+                            {
+                                if (reader.Read())
+                                {
                                     aPlayer = new AdKatsPlayer();
                                     //Player ID will never be null
                                     aPlayer.player_id = reader.GetInt64("player_id");
@@ -12108,8 +14594,16 @@ namespace PRoConEvents {
                                     if (!reader.IsDBNull(4))
                                         aPlayer.player_ip = reader.GetString("player_ip");
                                 }
-                                else {
-                                    DebugWrite("No player matching search information.", 5);
+                                else
+                                {
+                                    DebugWrite("No player matching search information. " + 
+                                        allowUpdate + ", " + 
+                                        allowOtherGames + ", " + 
+                                        ((gameID != null) ? (gameID + "") : ("No game ID")) + ", " + 
+                                        playerID + ", " + 
+                                        ((!String.IsNullOrEmpty(playerName)) ? (playerName) : ("No name search")) + ", " + 
+                                        ((!String.IsNullOrEmpty(playerGUID)) ? (playerGUID) : ("No GUID search")) + ", " + 
+                                        ((!String.IsNullOrEmpty(playerIP)) ? (playerIP) : ("No IP search")), 4);
                                 }
                             }
                         }
@@ -12187,11 +14681,76 @@ namespace PRoConEvents {
                                 UpdatePlayer(aPlayer);
                             }
                         }
+
                         if (aPlayer == null) {
                             return null;
                         }
+
                         //Assign player role
                         AssignPlayerRole(aPlayer);
+
+                        //Pull player first seen
+                        if (aPlayer.player_id > 0)
+                        {
+                            using (MySqlCommand command = connection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                SELECT
+                                    FirstSeenOnServer
+                                FROM
+                                    tbl_server_player
+                                        INNER JOIN
+                                    tbl_playerstats ON tbl_playerstats.StatsID = tbl_server_player.StatsID
+                                WHERE
+                                    tbl_server_player.PlayerID = @player_id
+                                ORDER BY 
+	                                tbl_playerstats.FirstSeenOnServer
+                                LIMIT 1";
+                                command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
+                                using (MySqlDataReader reader = command.ExecuteReader())
+                                {
+                                    if (reader.Read())
+                                    {
+                                        aPlayer.player_firstseen = reader.GetDateTime("FirstSeenOnServer");
+                                    }
+                                    else
+                                    {
+                                        aPlayer.player_firstseen = DateTime.UtcNow;
+                                        DebugWrite("No stats found to fetch first seen time.", 5);
+                                    }
+                                }
+                            }
+
+                            using (MySqlCommand command = connection.CreateCommand())
+                            {
+                                command.CommandText = @"
+                                SELECT
+                                    (Playtime/60) as playtime_minutes
+                                FROM
+                                    tbl_server_player
+                                        INNER JOIN
+                                    tbl_playerstats ON tbl_playerstats.StatsID = tbl_server_player.StatsID
+                                WHERE
+                                    tbl_server_player.PlayerID = @player_id
+                                AND
+	                                tbl_server_player.Serverid = @server_id
+                                ORDER BY
+	                                Serverid ASC";
+                                command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
+                                command.Parameters.AddWithValue("@server_id", _serverID);
+                                using (MySqlDataReader reader = command.ExecuteReader())
+                                {
+                                    if (reader.Read())
+                                    {
+                                        aPlayer.player_serverplaytime = TimeSpan.FromMinutes(reader.GetDouble("playtime_minutes"));
+                                    }
+                                    else
+                                    {
+                                        DebugWrite("No stats found to fetch time on server.", 5);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 catch (Exception e) {
@@ -12237,17 +14796,92 @@ namespace PRoConEvents {
             return player;
         }
 
-        //DONE
-        private List<AdKatsBan> FetchPlayerBans(AdKatsPlayer player) {
-            DebugWrite("fetchPlayerBan starting!", 6);
-            var aBanList = new List<AdKatsBan>();
+        private AdKatsBan FetchBanByID(Int64 ban_id)
+        {
+            DebugWrite("FetchBanByID starting!", 6);
+            AdKatsBan aBan = null;
             //Make sure database connection active
-            if (HandlePossibleDisconnect()) {
+            if (HandlePossibleDisconnect())
+            {
                 return null;
             }
-            try {
-                using (MySqlConnection connection = GetDatabaseConnection()) {
-                    using (MySqlCommand command = connection.CreateCommand()) {
+            try
+            {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        //Build the query
+                        command.CommandText = @"
+                        SELECT 
+                            `ban_id`, 
+                            `player_id`, 
+                            `latest_record_id`, 
+                            `ban_status`, 
+                            `ban_notes`, 
+                            `ban_startTime`, 
+                            `ban_endTime`, 
+                            `ban_enforceName`, 
+                            `ban_enforceGUID`, 
+                            `ban_enforceIP`, 
+                            `ban_sync`
+                        FROM 
+                            `adkats_bans` 
+                        WHERE 
+                            `ban_id` = @ban_id";
+                        command.Parameters.AddWithValue("@ban_id", ban_id);
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                //Create the ban object
+                                aBan = new AdKatsBan
+                                {
+                                    ban_id = reader.GetInt64("ban_id"),
+                                    ban_status = reader.GetString("ban_status"),
+                                    ban_notes = reader.GetString("ban_notes"),
+                                    ban_sync = reader.GetString("ban_sync"),
+                                    ban_startTime = reader.GetDateTime("ban_startTime"),
+                                    ban_endTime = reader.GetDateTime("ban_endTime"),
+                                    ban_enforceName = (reader.GetString("ban_enforceName") == "Y"),
+                                    ban_enforceGUID = (reader.GetString("ban_enforceGUID") == "Y"),
+                                    ban_enforceIP = (reader.GetString("ban_enforceIP") == "Y"),
+                                    ban_record = FetchRecordByID(reader.GetInt64("latest_record_id"), false)
+                                };
+                                if (aBan.ban_endTime.Subtract(DateTime.UtcNow).TotalSeconds < 0)
+                                {
+                                    aBan.ban_status = "Expired";
+                                    UpdateBanStatus(aBan);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching ban.", e));
+            }
+            DebugWrite("FetchBanByID finished!", 6);
+            return aBan;
+        }
+
+        //DONE
+        private List<AdKatsBan> FetchPlayerBans(AdKatsPlayer player)
+        {
+            DebugWrite("FetchPlayerBans starting!", 6);
+            var aBanList = new List<AdKatsBan>();
+            //Make sure database connection active
+            if (HandlePossibleDisconnect())
+            {
+                return null;
+            }
+            try
+            {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
                         //Build the query
                         String query = @"
                         SELECT 
@@ -12270,30 +14904,44 @@ namespace PRoConEvents {
                             `tbl_playerdata`.`PlayerID` = `adkats_bans`.`player_id` 
                         WHERE 
                             `adkats_bans`.`ban_status` = 'Active' ";
-                        if (_gameID > 0) {
+                        if (_gameID > 0 && player.game_id < 0)
+                        {
                             query += " AND `tbl_playerdata`.`GameID` = " + _gameID;
+                        }
+                        else if (player.game_id > 0) {
+                            query += " AND `tbl_playerdata`.`GameID` = " + player.game_id;
+                        }
+                        else {
+                            ConsoleError("Unusable game IDs when fetching player bans for " + player.player_name + ".");
+                            return aBanList;
                         }
                         query += " AND (";
                         Boolean started = false;
-                        if (!String.IsNullOrEmpty(player.player_name)) {
+                        if (!String.IsNullOrEmpty(player.player_name))
+                        {
                             started = true;
                             query += "(`tbl_playerdata`.`SoldierName` = '" + player.player_name + @"' AND `adkats_bans`.`ban_enforceName` = 'Y')";
                         }
-                        if (!String.IsNullOrEmpty(player.player_guid)) {
-                            if (started) {
+                        if (!String.IsNullOrEmpty(player.player_guid))
+                        {
+                            if (started)
+                            {
                                 query += " OR ";
                             }
                             started = true;
                             query += "(`tbl_playerdata`.`EAGUID` = '" + player.player_guid + "' AND `adkats_bans`.`ban_enforceGUID` = 'Y')";
                         }
-                        if (!String.IsNullOrEmpty(player.player_ip)) {
-                            if (started) {
+                        if (!String.IsNullOrEmpty(player.player_ip))
+                        {
+                            if (started)
+                            {
                                 query += " OR ";
                             }
                             started = true;
                             query += "(`tbl_playerdata`.`IP_Address` = '" + player.player_ip + "' AND `adkats_bans`.`ban_enforceIP` = 'Y')";
                         }
-                        if (!started) {
+                        if (!started)
+                        {
                             HandleException(new AdKatsException("No data to fetch ban with. This should never happen."));
                             return aBanList;
                         }
@@ -12302,10 +14950,13 @@ namespace PRoConEvents {
                         //Assign the query
                         command.CommandText = query;
 
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
-                            while (reader.Read()) {
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
                                 //Create the ban element
-                                var aBan = new AdKatsBan {
+                                var aBan = new AdKatsBan
+                                {
                                     ban_id = reader.GetInt64("ban_id"),
                                     ban_status = reader.GetString("ban_status"),
                                     ban_notes = reader.GetString("ban_notes"),
@@ -12317,12 +14968,15 @@ namespace PRoConEvents {
                                     ban_enforceIP = (reader.GetString("ban_enforceIP") == "Y"),
                                     ban_record = FetchRecordByID(reader.GetInt64("latest_record_id"), false)
                                 };
-                                if (aBan.ban_endTime.Subtract(DateTime.UtcNow).TotalSeconds < 0) {
+                                if (aBan.ban_endTime.Subtract(DateTime.UtcNow).TotalSeconds < 0)
+                                {
                                     aBan.ban_status = "Expired";
                                     UpdateBanStatus(aBan);
                                 }
-                                else if (String.IsNullOrEmpty(player.player_name_previous) && aBan.ban_enforceName && !aBan.ban_enforceGUID && !aBan.ban_enforceIP) {
-                                    var record = new AdKatsRecord {
+                                else if (!String.IsNullOrEmpty(player.player_name_previous) && aBan.ban_enforceName && !aBan.ban_enforceGUID && !aBan.ban_enforceIP)
+                                {
+                                    var record = new AdKatsRecord
+                                    {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverID,
                                         command_type = _CommandKeyDictionary["player_unban"],
@@ -12334,18 +14988,89 @@ namespace PRoConEvents {
                                     };
                                     QueueRecordForProcessing(record);
                                 }
-                                else if (_serverGroup == FetchServerGroup(aBan.ban_record.server_id) && aBan.ban_startTime < DateTime.UtcNow) {
+                                else if (_serverGroup == FetchServerGroup(aBan.ban_record.server_id) && aBan.ban_startTime < DateTime.UtcNow)
+                                {
                                     aBanList.Add(aBan);
                                 }
                             }
-                            if (aBanList.Count > 1) {
+                            if (aBanList.Count > 1)
+                            {
                                 ConsoleWarn("Multiple bans matched player information, multiple accounts detected.");
                             }
                         }
                     }
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching player ban.", e));
+            }
+            DebugWrite("FetchPlayerBans finished!", 6);
+            return aBanList;
+        }
+
+        //DONE
+        private List<AdKatsBan> FetchMatchingBans(String playerSubstring, Int64 searchLimit)
+        {
+            DebugWrite("FetchMatchingBans starting!", 6);
+            var aBanList = new List<AdKatsBan>();
+            //Make sure database connection active
+            if (HandlePossibleDisconnect())
+            {
+                return null;
+            }
+            try
+            {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        //Build the query
+                        command.CommandText = @"
+                        SELECT
+	                        `ban_id`
+	                        -- `player_id`,
+	                        -- `SoldierName` AS `player_name`,
+	                        -- `source_name`,
+	                        -- `target_name`,
+	                        -- `record_message`
+                        FROM
+	                        `tbl_playerdata`
+                        INNER JOIN
+	                        `adkats_bans`
+                        ON
+	                        `PlayerID` = `player_id`
+                        INNER JOIN
+	                        `adkats_records_main`
+                        ON
+	                        `latest_record_id` = `record_id`
+                        WHERE 
+	                        `ban_status` = 'Active'
+                        AND
+                        (
+	                        `SoldierName` LIKE @PlayerSubstring
+                            OR
+                            `target_name` LIKE @PlayerSubstring
+                        )
+                        ORDER BY
+                            `record_time` DESC 
+                        LIMIT
+                            @searchLimit";
+                        //Add the search value
+                        command.Parameters.Add("@PlayerSubstring", "%" + playerSubstring + "%");
+                        command.Parameters.Add("@searchLimit", searchLimit);
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            while (reader.Read())
+                            {
+                                aBanList.Add(FetchBanByID(reader.GetInt64("ban_id")));
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
                 HandleException(new AdKatsException("Error while fetching player ban.", e));
             }
             return aBanList;
@@ -12414,6 +15139,7 @@ namespace PRoConEvents {
                                 //Create the ban element
                                 var aBan = new AdKatsBan {
                                     ban_id = reader.GetInt64("ban_id"),
+                                    player_id = reader.GetInt64("player_id"),
                                     ban_status = reader.GetString("ban_status"),
                                     ban_notes = reader.GetString("ban_notes"),
                                     ban_sync = reader.GetString("ban_sync"),
@@ -12424,10 +15150,24 @@ namespace PRoConEvents {
                                     ban_enforceGUID = (reader.GetString("ban_enforceGUID") == "Y"),
                                     ban_enforceIP = (reader.GetString("ban_enforceIP") == "Y")
                                 };
-                                importedBans.Add(aBan);
-
-                                if (++bansDownloaded % 15 == 0) {
-                                    ConsoleWrite(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((DateTime.UtcNow - startTime).TotalSeconds), 2) + " downloads/sec.");
+                                if (aBan.ban_record == null) {
+                                    aBan.ban_record = new AdKatsRecord {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        isDebug = false,
+                                        target_player = FetchPlayer(false, true, false, null, aBan.player_id, null, null, null),
+                                        source_name = "AdKats",
+                                        record_message = "Ban Reason Expunged"
+                                    };
+                                    aBan.ban_record.target_name = aBan.ban_record.target_player.player_name;
+                                }
+                                if (aBan.ban_record.target_player == null) {
+                                    aBan.ban_record.target_player = FetchPlayer(false, true, false, null, aBan.player_id, null, null, null);
+                                }
+                                if (aBan.ban_record.target_player != null) {
+                                    importedBans.Add(aBan);
+                                    if (++bansDownloaded % 15 == 0) {
+                                        ConsoleWrite(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((DateTime.UtcNow - startTime).TotalSeconds), 2) + " downloads/sec.");
+                                    }
                                 }
                             }
                         }
@@ -12489,7 +15229,7 @@ namespace PRoConEvents {
                         }
 
                         //Update the last db ban fetch time
-                        _LastDbBanFetch = DateTime.UtcNow;
+                        _lastDbBanFetch = DateTime.UtcNow;
                     }
                 }
             }
@@ -12639,7 +15379,7 @@ namespace PRoConEvents {
                     //Create the record
                     var record = new AdKatsRecord();
                     //Fetch the player
-                    record.target_player = FetchPlayer(true, true, null, -1, bbmBan.soldiername, bbmBan.eaguid, null);
+                    record.target_player = FetchPlayer(true, true, false, null, -1, bbmBan.soldiername, bbmBan.eaguid, null);
 
                     record.record_source = AdKatsRecord.Sources.InternalAutomated;
                     if (bbmBan.ban_length == "permanent") {
@@ -12709,6 +15449,14 @@ namespace PRoConEvents {
             DebugWrite("canPunish starting!", 6);
             if (duration < 1) {
                 ConsoleError("CanPunish duration must be positive.");
+                return false;
+            }
+            //TODO: Add check for multiple targets
+            if (record.target_player != null && 
+                record.target_player.TargetedRecords.Any(
+                    aRecord => 
+                        aRecord.command_type.command_key == "player_punish" && 
+                        (DateTime.UtcNow - aRecord.record_time).TotalSeconds < duration)) {
                 return false;
             }
             //Make sure database connection active
@@ -12852,6 +15600,110 @@ namespace PRoConEvents {
             return (returnVal > 0) ? (returnVal) : (0);
         }
 
+        //DONE
+        private List<KeyValuePair<DateTime, KeyValuePair<String, String>>> FetchConversation(Int64 player1_id, Int64 player2_id, Int64 limit_lines, Int64 limit_days) {
+            DebugWrite("FetchConversation starting!", 6);
+
+            var pchat = new List<KeyValuePair<DateTime, KeyValuePair<String, String>>>();
+            //Make sure database connection active
+            if (HandlePossibleDisconnect()) {
+                return pchat;
+            }
+
+            try {
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        command.CommandText = @"
+                        (SELECT
+	                        `tbl_chatlog`.`logDate` as `chat_time`,
+	                        `tbl_chatlog`.`logSoldierName` as `chat_player`,
+	                        `tbl_chatlog`.`logMessage` as `chat_message`
+                        FROM 
+	                        `tbl_chatlog` 
+                        WHERE 
+                        (
+	                        `tbl_chatlog`.`logPlayerID` = @player1_id
+                        OR
+	                        `tbl_chatlog`.`logPlayerID` = @player2_id
+                        )
+                        AND
+	                        `tbl_chatlog`.`ServerID` = @server_id
+                        AND 
+	                        DATE_ADD(`tbl_chatlog`.`logDate`, INTERVAL @limit_days DAY) > NOW()
+                        ORDER BY 
+	                        `ID` DESC
+                        LIMIT
+	                        @limit_lines)
+                        ORDER BY `chat_time` ASC";
+                        command.Parameters.AddWithValue("@player1_id", player1_id);
+                        command.Parameters.AddWithValue("@player2_id", player2_id);
+                        command.Parameters.AddWithValue("@limit_lines", limit_lines);
+                        command.Parameters.AddWithValue("@limit_days", limit_days);
+                        command.Parameters.AddWithValue("@server_id", _serverID);
+                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                            while (reader.Read()) {
+                                pchat.Add(new KeyValuePair<DateTime, KeyValuePair<string, string>>(reader.GetDateTime("chat_time"), new KeyValuePair<String, String>(reader.GetString("chat_player"), reader.GetString("chat_message"))));
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while getting conversation for player.", e));
+            }
+            DebugWrite("FetchConversation finished!", 6);
+            return pchat;
+        }
+
+        //DONE
+        private List<KeyValuePair<DateTime, String>> FetchChat(Int64 player_id, Int64 limit_lines, Int64 limit_days) {
+            DebugWrite("FetchChat starting!", 6);
+
+            var pchat = new List<KeyValuePair<DateTime, String>>();
+            //Make sure database connection active
+            if (HandlePossibleDisconnect()) {
+                return pchat;
+            }
+
+            try {
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        command.CommandText = @"
+                        (SELECT
+	                        `tbl_chatlog`.`logDate` as `chat_time`,
+	                        `tbl_chatlog`.`logMessage` as `chat_message`
+                        FROM 
+	                        `tbl_chatlog` 
+                        WHERE 
+                            `tbl_chatlog`.`logPlayerID` = @player_id
+                        AND
+	                        `tbl_chatlog`.`ServerID` = @server_id
+                        AND 
+	                        DATE_ADD(`tbl_chatlog`.`logDate`, INTERVAL @limit_days DAY) > NOW()
+                        ORDER BY 
+	                        `ID` DESC
+                        LIMIT
+	                        @limit_lines)
+                        ORDER BY `chat_time` ASC";
+                        command.Parameters.AddWithValue("@player_id", player_id);
+                        command.Parameters.AddWithValue("@limit_lines", limit_lines);
+                        command.Parameters.AddWithValue("@limit_days", limit_days);
+                        command.Parameters.AddWithValue("@server_id", _serverID);
+                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                            while (reader.Read()) {
+                                pchat.Add(new KeyValuePair<DateTime, String>(reader.GetDateTime("chat_time"), reader.GetString("chat_message")));
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while getting conversation for player.", e));
+            }
+            DebugWrite("FetchChat finished!", 6);
+            return pchat;
+        }
+
         private void FetchCommands() {
             DebugWrite("fetchCommands starting!", 6);
             if (HandlePossibleDisconnect()) {
@@ -12941,171 +15793,299 @@ namespace PRoConEvents {
                                     ConsoleWarn("Removing command " + remCommand.command_key);
                                     _CommandIDDictionary.Remove(remCommand.command_id);
                                 }
+                                Boolean changed = false;
                                 if (!_CommandIDDictionary.ContainsKey(1)) {
                                     SendNonQuery("Adding command 1", "REPLACE INTO `adkats_commands` VALUES(1, 'Active', 'command_confirm', 'Unable', 'Confirm Command', 'yes', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(2)) {
                                     SendNonQuery("Adding command 2", "REPLACE INTO `adkats_commands` VALUES(2, 'Active', 'command_cancel', 'Unable', 'Cancel Command', 'no', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(3)) {
                                     SendNonQuery("Adding command 3", "REPLACE INTO `adkats_commands` VALUES(3, 'Active', 'player_kill', 'Log', 'Kill Player', 'kill', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(4)) {
                                     SendNonQuery("Adding command 4", "REPLACE INTO `adkats_commands` VALUES(4, 'Invisible', 'player_kill_lowpop', 'Log', 'Kill Player (Low Population)', 'lowpopkill', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(5)) {
                                     SendNonQuery("Adding command 5", "REPLACE INTO `adkats_commands` VALUES(5, 'Invisible', 'player_kill_repeat', 'Log', 'Kill Player (Repeat Kill)', 'repeatkill', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(6)) {
                                     SendNonQuery("Adding command 6", "REPLACE INTO `adkats_commands` VALUES(6, 'Active', 'player_kick', 'Log', 'Kick Player', 'kick', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(7)) {
                                     SendNonQuery("Adding command 7", "REPLACE INTO `adkats_commands` VALUES(7, 'Active', 'player_ban_temp', 'Log', 'Temp-Ban Player', 'tban', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(8)) {
                                     SendNonQuery("Adding command 8", "REPLACE INTO `adkats_commands` VALUES(8, 'Active', 'player_ban_perm', 'Log', 'Permaban Player', 'ban', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(9)) {
                                     SendNonQuery("Adding command 9", "REPLACE INTO `adkats_commands` VALUES(9, 'Active', 'player_punish', 'Mandatory', 'Punish Player', 'punish', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(10)) {
                                     SendNonQuery("Adding command 10", "REPLACE INTO `adkats_commands` VALUES(10, 'Active', 'player_forgive', 'Mandatory', 'Forgive Player', 'forgive', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(11)) {
                                     SendNonQuery("Adding command 11", "REPLACE INTO `adkats_commands` VALUES(11, 'Active', 'player_mute', 'Log', 'Mute Player', 'mute', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(12)) {
                                     SendNonQuery("Adding command 12", "REPLACE INTO `adkats_commands` VALUES(12, 'Active', 'player_join', 'Log', 'Join Player', 'join', FALSE)", true);
+                                    changed = true;
                                 }
-                                if (!_CommandIDDictionary.ContainsKey(13)) {
-                                    SendNonQuery("Adding command 13", "REPLACE INTO `adkats_commands` VALUES(13, 'Active', 'player_roundwhitelist', 'Ignore', 'Round Whitelist Player', 'roundwhitelist', TRUE)", true);
+                                if (_CommandIDDictionary.ContainsKey(13)) {
+                                    SendNonQuery("Removing command 13", "DELETE FROM `adkats_commands` WHERE `command_id` = 13", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(14)) {
                                     SendNonQuery("Adding command 14", "REPLACE INTO `adkats_commands` VALUES(14, 'Active', 'player_move', 'Log', 'On-Death Move Player', 'move', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(15)) {
                                     SendNonQuery("Adding command 15", "REPLACE INTO `adkats_commands` VALUES(15, 'Active', 'player_fmove', 'Log', 'Force Move Player', 'fmove', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(16)) {
                                     SendNonQuery("Adding command 16", "REPLACE INTO `adkats_commands` VALUES(16, 'Active', 'self_teamswap', 'Log', 'Teamswap Self', 'moveme', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(17)) {
                                     SendNonQuery("Adding command 17", "REPLACE INTO `adkats_commands` VALUES(17, 'Active', 'self_kill', 'Log', 'Kill Self', 'killme', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(18)) {
                                     SendNonQuery("Adding command 18", "REPLACE INTO `adkats_commands` VALUES(18, 'Active', 'player_report', 'Log', 'Report Player', 'report', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(19)) {
                                     SendNonQuery("Adding command 19", "REPLACE INTO `adkats_commands` VALUES(19, 'Invisible', 'player_report_confirm', 'Log', 'Report Player (Confirmed)', 'confirmreport', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(20)) {
                                     SendNonQuery("Adding command 20", "REPLACE INTO `adkats_commands` VALUES(20, 'Active', 'player_calladmin', 'Log', 'Call Admin on Player', 'admin', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(21)) {
                                     SendNonQuery("Adding command 21", "REPLACE INTO `adkats_commands` VALUES(21, 'Active', 'admin_say', 'Log', 'Admin Say', 'say', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(22)) {
                                     SendNonQuery("Adding command 22", "REPLACE INTO `adkats_commands` VALUES(22, 'Active', 'player_say', 'Log', 'Player Say', 'psay', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(23)) {
                                     SendNonQuery("Adding command 23", "REPLACE INTO `adkats_commands` VALUES(23, 'Active', 'admin_yell', 'Log', 'Admin Yell', 'yell', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(24)) {
                                     SendNonQuery("Adding command 24", "REPLACE INTO `adkats_commands` VALUES(24, 'Active', 'player_yell', 'Log', 'Player Yell', 'pyell', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(25)) {
                                     SendNonQuery("Adding command 25", "REPLACE INTO `adkats_commands` VALUES(25, 'Active', 'admin_tell', 'Log', 'Admin Tell', 'tell', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(26)) {
                                     SendNonQuery("Adding command 26", "REPLACE INTO `adkats_commands` VALUES(26, 'Active', 'player_tell', 'Log', 'Player Tell', 'ptell', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(27)) {
                                     SendNonQuery("Adding command 27", "REPLACE INTO `adkats_commands` VALUES(27, 'Active', 'self_whatis', 'Unable', 'What Is', 'whatis', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(28)) {
                                     SendNonQuery("Adding command 28", "REPLACE INTO `adkats_commands` VALUES(28, 'Active', 'self_voip', 'Unable', 'VOIP', 'voip', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(29)) {
                                     SendNonQuery("Adding command 29", "REPLACE INTO `adkats_commands` VALUES(29, 'Active', 'self_rules', 'Log', 'Request Rules', 'rules', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(30)) {
                                     SendNonQuery("Adding command 30", "REPLACE INTO `adkats_commands` VALUES(30, 'Active', 'round_restart', 'Log', 'Restart Current Round', 'restart', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(31)) {
                                     SendNonQuery("Adding command 31", "REPLACE INTO `adkats_commands` VALUES(31, 'Active', 'round_next', 'Log', 'Run Next Round', 'nextlevel', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(32)) {
                                     SendNonQuery("Adding command 32", "REPLACE INTO `adkats_commands` VALUES(32, 'Active', 'round_end', 'Log', 'End Current Round', 'endround', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(33)) {
                                     SendNonQuery("Adding command 33", "REPLACE INTO `adkats_commands` VALUES(33, 'Active', 'server_nuke', 'Log', 'Server Nuke', 'nuke', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(34)) {
                                     SendNonQuery("Adding command 34", "REPLACE INTO `adkats_commands` VALUES(34, 'Active', 'server_kickall', 'Log', 'Kick All Guests', 'kickall', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(35)) {
                                     SendNonQuery("Adding command 35", "REPLACE INTO `adkats_commands` VALUES(35, 'Invisible', 'adkats_exception', 'Mandatory', 'Logged Exception', 'logexception', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(36)) {
                                     SendNonQuery("Adding command 36", "REPLACE INTO `adkats_commands` VALUES(36, 'Invisible', 'banenforcer_enforce', 'Mandatory', 'Enforce Active Ban', 'enforceban', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(37)) {
                                     SendNonQuery("Adding command 37", "REPLACE INTO `adkats_commands` VALUES(37, 'Active', 'player_unban', 'Log', 'Unban Player', 'unban', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(38)) {
                                     SendNonQuery("Adding command 38", "REPLACE INTO `adkats_commands` VALUES(38, 'Active', 'self_admins', 'Log', 'Request Online Admins', 'admins', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(39)) {
                                     SendNonQuery("Adding command 39", "REPLACE INTO `adkats_commands` VALUES(39, 'Active', 'self_lead', 'Log', 'Lead Current Squad', 'lead', FALSE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(40)) {
                                     SendNonQuery("Adding command 40", "REPLACE INTO `adkats_commands` VALUES(40, 'Active', 'admin_accept', 'Log', 'Accept Round Report', 'accept', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(41)) {
                                     SendNonQuery("Adding command 41", "REPLACE INTO `adkats_commands` VALUES(41, 'Active', 'admin_deny', 'Log', 'Deny Round Report', 'deny', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(42)) {
                                     SendNonQuery("Adding command 42", "REPLACE INTO `adkats_commands` VALUES(42, 'Invisible', 'player_report_deny', 'Log', 'Report Player (Denied)', 'denyreport', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(43)) {
                                     SendNonQuery("Adding command 43", "REPLACE INTO `adkats_commands` VALUES(43, 'Active', 'server_swapnuke', 'Log', 'SwapNuke Server', 'swapnuke', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(44)) {
                                     SendNonQuery("Adding command 44", "REPLACE INTO `adkats_commands` VALUES(44, 'Active', 'player_blacklistdisperse', 'Log', 'Blacklist Disperse Player', 'disperse', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(45)) {
-                                    SendNonQuery("Adding command 45", "REPLACE INTO `adkats_commands` VALUES(45, 'Active', 'player_whitelistbalance', 'Log', 'Autobalance Whitelist Player', 'whitelist', TRUE)", true);
+                                    SendNonQuery("Adding command 45", "REPLACE INTO `adkats_commands` VALUES(45, 'Active', 'player_whitelistbalance', 'Log', 'Autobalance Whitelist Player', 'mbwhitelist', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(46)) {
                                     SendNonQuery("Adding command 46", "REPLACE INTO `adkats_commands` VALUES(46, 'Active', 'player_slotreserved', 'Log', 'Reserved Slot Player', 'reserved', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(47)) {
                                     SendNonQuery("Adding command 47", "REPLACE INTO `adkats_commands` VALUES(47, 'Active', 'player_slotspectator', 'Log', 'Spectator Slot Player', 'spectator', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(48)) {
                                     SendNonQuery("Adding command 48", "REPLACE INTO `adkats_commands` VALUES(48, 'Invisible', 'player_changename', 'Log', 'Player Changed Name', 'changename', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(49)) {
                                     SendNonQuery("Adding command 49", "REPLACE INTO `adkats_commands` VALUES(49, 'Invisible', 'player_changeip', 'Log', 'Player Changed IP', 'changeip', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(50)) {
                                     SendNonQuery("Adding command 50", "REPLACE INTO `adkats_commands` VALUES(50, 'Active', 'player_ban_perm_future', 'Log', 'Future Permaban Player', 'fban', TRUE)", true);
+                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(51)) {
                                     SendNonQuery("Adding command 51", "REPLACE INTO `adkats_commands` VALUES(51, 'Active', 'self_assist', 'Log', 'Assist Losing Team', 'assist', FALSE)", true);
+                                    changed = true;
                                 }
                                 SendNonQuery("Updating command 51 player interaction", "UPDATE `adkats_commands` SET `command_playerInteraction`=0 WHERE `command_id`=51", false);
                                 if (!_CommandIDDictionary.ContainsKey(52)) {
                                     SendNonQuery("Adding command 52", "REPLACE INTO `adkats_commands` VALUES(52, 'Active', 'self_uptime', 'Log', 'Request Uptimes', 'uptime', FALSE)", true);
+                                    changed = true;
                                 }
-                                if (!_CommandIDDictionary.ContainsKey(53))
-                                {
+                                if (!_CommandIDDictionary.ContainsKey(53)) {
                                     SendNonQuery("Adding command 53", "REPLACE INTO `adkats_commands` VALUES(53, 'Active', 'self_contest', 'Log', 'Contest Report', 'contest', FALSE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(54)) {
+                                    SendNonQuery("Adding command 54", "REPLACE INTO `adkats_commands` VALUES(54, 'Active', 'player_kill_force', 'Log', 'Kill Player (Force)', 'fkill', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(55))
+                                {
+                                    SendNonQuery("Adding command 55", "REPLACE INTO `adkats_commands` VALUES(55, 'Active', 'player_info', 'Log', 'Fetch Player Info', 'pinfo', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(56))
+                                {
+                                    SendNonQuery("Adding command 56", "REPLACE INTO `adkats_commands` VALUES(56, 'Active', 'player_dequeue', 'Log', 'Dequeue Player Action', 'deq', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(57))
+                                {
+                                    SendNonQuery("Adding command 57", "REPLACE INTO `adkats_commands` VALUES(57, 'Active', 'self_help', 'Log', 'Request Server Commands', 'help', FALSE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(58))
+                                {
+                                    SendNonQuery("Adding command 58", "REPLACE INTO `adkats_commands` VALUES(58, 'Active', 'player_find', 'Log', 'Find Player', 'find', FALSE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(59))
+                                {
+                                    SendNonQuery("Adding command 59", "REPLACE INTO `adkats_commands` VALUES(59, 'Active', 'server_afk', 'Log', 'Manage AFK Players', 'afk', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(60))
+                                {
+                                    SendNonQuery("Adding command 60", "REPLACE INTO `adkats_commands` VALUES(60, 'Active', 'player_pull', 'Log', 'Pull Player', 'pull', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(61))
+                                {
+                                    SendNonQuery("Adding command 61", "REPLACE INTO `adkats_commands` VALUES(61, 'Active', 'admin_ignore', 'Log', 'Ignore Round Report', 'ignore', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(62))
+                                {
+                                    SendNonQuery("Adding command 62", "REPLACE INTO `adkats_commands` VALUES(62, 'Invisible', 'player_report_ignore', 'Log', 'Report Player (Ignored)', 'ignorereport', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(63))
+                                {
+                                    SendNonQuery("Adding command 63", "REPLACE INTO `adkats_commands` VALUES(63, 'Active', 'player_mark', 'Unable', 'Mark Player', 'mark', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(64))
+                                {
+                                    SendNonQuery("Adding command 64", "REPLACE INTO `adkats_commands` VALUES(64, 'Active', 'player_chat', 'Log', 'Fetch Player Chat', 'pchat', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(65))
+                                {
+                                    SendNonQuery("Adding command 65", "REPLACE INTO `adkats_commands` VALUES(65, 'Active', 'player_whitelisthackerchecker', 'Log', 'Hacker-Checker Whitelist Player', 'hcwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(66))
+                                {
+                                    SendNonQuery("Adding command 66", "REPLACE INTO `adkats_commands` VALUES(66, 'Active', 'player_lock', 'Log', 'Lock Player Commands', 'lock', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(67))
+                                {
+                                    SendNonQuery("Adding command 67", "REPLACE INTO `adkats_commands` VALUES(67, 'Active', 'player_unlock', 'Log', 'Unlock Player Commands', 'unlock', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (changed) {
+                                    FetchCommands();
+                                    return;
                                 }
                             }
                             else {
                                 ConsoleError("Commands could not be fetched.");
                             }
+                            //Update functions for command timeouts
+                            UpdateCommandTimeouts();
                         }
                     }
                 }
@@ -13115,6 +16095,80 @@ namespace PRoConEvents {
             }
             UpdateSettingPage();
             DebugWrite("fetchCommands finished!", 6);
+        }
+
+        private void FillCommandDescDictionary() {
+            _CommandDescriptionDictionary["command_confirm"] = "Command used to confirm actions. No parameters.";
+            _CommandDescriptionDictionary["command_cancel"] = "Command used to cancel actions. No parameters.";
+            _CommandDescriptionDictionary["player_kill"] = "Kills a player, queues for kill on spawn if dead. Requires a reason.";
+            _CommandDescriptionDictionary["player_kill_lowpop"] = "Invisible command. Assigned when a player_punish is issued during low population.";
+            _CommandDescriptionDictionary["player_kill_repeat"] = "Invisible command. Assigned when a player_kill is issued and player is dead.";
+            _CommandDescriptionDictionary["player_kick"] = "Kicks a player from the server. Requires a reason.";
+            _CommandDescriptionDictionary["player_ban_temp"] = "Temporarily bans a player from the server for the given time. Requires a reason.";
+            _CommandDescriptionDictionary["player_ban_perm"] = "Permanently bans a player from the server. Requires a reason.";
+            _CommandDescriptionDictionary["player_punish"] = "Increases infraction points, then punishes the player. Requires a reason.";
+            _CommandDescriptionDictionary["player_forgive"] = "Decreases infraction points and informs the player. Requires a reason.";
+            _CommandDescriptionDictionary["player_mute"] = "Mutes a player for the current round. Talking will cause punishment. Requires a reason.";
+            _CommandDescriptionDictionary["player_join"] = "Switches you to a players squad if there is room.";
+            _CommandDescriptionDictionary["player_roundwhitelist"] = "DISABLED COMMAND";
+            _CommandDescriptionDictionary["player_move"] = "When the player dies it queues them to switch teams when a slot is available.";
+            _CommandDescriptionDictionary["player_fmove"] = "Immediately queues the player to switch teams when a slot is available.";
+            _CommandDescriptionDictionary["self_teamswap"] = "Immediately queues you to switch teams when a slot is available.";
+            _CommandDescriptionDictionary["self_kill"] = "Makes you commit suicide and regret your existence.";
+            _CommandDescriptionDictionary["player_report"] = "Reports a player to admins. Requires a reason.";
+            _CommandDescriptionDictionary["player_report_confirm"] = "Invisible command. Assigned when an admin confirms a report.";
+            _CommandDescriptionDictionary["player_calladmin"] = "Calls admin on a player. Requires a reason.";
+            _CommandDescriptionDictionary["admin_say"] = "Sends a chat message to the whole server.";
+            _CommandDescriptionDictionary["player_say"] = "Sends a chat message to a particular player.";
+            _CommandDescriptionDictionary["admin_yell"] = "Sends a yell message to the whole server.";
+            _CommandDescriptionDictionary["player_yell"] = "Sends a yell message to a particular player.";
+            _CommandDescriptionDictionary["admin_tell"] = "Sends both a chat message and yell message to the whole server.";
+            _CommandDescriptionDictionary["player_tell"] = "Sends both a chat message and yell message to a particular player.";
+            _CommandDescriptionDictionary["self_whatis"] = "Tells you what a command or pre-message ID means.";
+            _CommandDescriptionDictionary["self_voip"] = "Tells you what the VOIP address for this server is.";
+            _CommandDescriptionDictionary["self_rules"] = "Tells you what the server rules are.";
+            _CommandDescriptionDictionary["round_restart"] = "Restarts the current round. All players keep their points.";
+            _CommandDescriptionDictionary["round_next"] = "Runs the next round/map in line. All players keep their points.";
+            _CommandDescriptionDictionary["round_end"] = "Ends the current round with a decided winner.";
+            _CommandDescriptionDictionary["server_nuke"] = "Kills all players in the decided subset.";
+            _CommandDescriptionDictionary["server_kickall"] = "Kicks all non-admins from the server.";
+            _CommandDescriptionDictionary["adkats_exception"] = "Invisible command. Issued by AdKats to log exceptions.";
+            _CommandDescriptionDictionary["banenforcer_enforce"] = "Invisible command. Issued by BanEnforcer when a player's ban is enforced.";
+            _CommandDescriptionDictionary["player_unban"] = "Searches for banned players with the given name, and gives the option to unban.";
+            _CommandDescriptionDictionary["self_admins"] = "Tells you the list of online admins.";
+            _CommandDescriptionDictionary["self_lead"] = "Gives the target leader of their current squad. No parameters to target yourself.";
+            _CommandDescriptionDictionary["admin_accept"] = "Accepts the given report ID. Takes no action against the target player.";
+            _CommandDescriptionDictionary["admin_deny"] = "Denys the given report ID. Reduces the reporter's reputation.";
+            _CommandDescriptionDictionary["player_report_deny"] = "Invisible command. Assigned when an admin denies a report.";
+            _CommandDescriptionDictionary["server_swapnuke"] = "Queues all players to switch teams immediately.";
+            _CommandDescriptionDictionary["player_blacklistdisperse"] = "Adds the target player to even dispersion for the server.";
+            _CommandDescriptionDictionary["player_whitelistbalance"] = "Adds the target player to autobalance whitelist for the server.";
+            _CommandDescriptionDictionary["player_slotreserved"] = "Adds the target player to reserved slots for the server.";
+            _CommandDescriptionDictionary["player_slotspectator"] = "Adds the target player to spectator slots for the server.";
+            _CommandDescriptionDictionary["player_changename"] = "Invisible command. Assigned when a player changes their name.";
+            _CommandDescriptionDictionary["player_changeip"] = "Invisible command. Assigned when a player changes location/IP.";
+            _CommandDescriptionDictionary["player_ban_perm_future"] = "Future-permaban, inverse of a temp-ban. Requires a reason.";
+            _CommandDescriptionDictionary["self_assist"] = "Queues you to assist the losing team.";
+            _CommandDescriptionDictionary["self_uptime"] = "Tells you the uptime/population information for the server.";
+            _CommandDescriptionDictionary["self_contest"] = "Contests any current report against you. Admins must act manually on the report afterward.";
+            _CommandDescriptionDictionary["player_kill_force"] = "Immediately kills the target player, avoids all other player_kill logic.";
+            _CommandDescriptionDictionary["player_info"] = "Returns all known information about the player.";
+            _CommandDescriptionDictionary["player_dequeue"] = "Cancels any queued action on a player.";
+            _CommandDescriptionDictionary["self_help"] = "Tells you all commands your user role can access.";
+            _CommandDescriptionDictionary["player_find"] = "Target a player to fetch their team, position, and current score.";
+            _CommandDescriptionDictionary["server_afk"] = "Calls the AFK Manager logic to remove AFK players from the server.";
+            _CommandDescriptionDictionary["player_pull"] = "Pulls a player to your squad, killing them in the process.";
+            _CommandDescriptionDictionary["admin_ignore"] = "Ignores the given report ID. Takes no action against the target or source player.";
+            _CommandDescriptionDictionary["player_mark"] = "Marks a player for notification if they leave the server.";
+            _CommandDescriptionDictionary["player_chat"] = "Fetches player or conversation chat history.";
+            _CommandDescriptionDictionary["player_whitelisthackerchecker"] = "Whitelists the target player from Hacker-Checker, and unbans them if necessary.";
+            _CommandDescriptionDictionary["player_lock"] = "Temporarily locks a player from admin commands.";
+            _CommandDescriptionDictionary["player_unlock"] = "Removes command lock from a player.";
+        }
+
+        private void UpdateCommandTimeouts() {
+            //Add rules timeout
+            _commandTimeoutDictionary["self_rules"] = (plugin => (plugin._ServerRulesList.Count() * plugin._ServerRulesInterval));
         }
 
         private void FetchRoles() {
@@ -13208,7 +16262,7 @@ namespace PRoConEvents {
                                             ConsoleError("Command for ID " + curRoleID + " not found in command dictionary when assigning commands.");
                                             continue;
                                         }
-                                        if (!aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key)) {
+                                        if (!aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) && aCommand.command_active==AdKatsCommand.CommandActive.Active) {
                                             aRole.RoleAllowedCommands.Add(aCommand.command_key, aCommand);
                                         }
                                     }
@@ -13260,7 +16314,17 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return;
             }
-            try {
+            try
+            {
+                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_expiration' )", false))
+                {
+                    SendNonQuery("Adding user expiration.", "ALTER TABLE `adkats_users` ADD COLUMN `user_expiration` DATETIME NOT NULL AFTER `user_role`", true);
+                    SendNonQuery("Adding initial user expiration values.", "UPDATE `adkats_users` SET `user_expiration` = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)", true);
+                }
+                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_notes' )", false))
+                {
+                    SendNonQuery("Adding user notes.", "ALTER TABLE `adkats_users` ADD COLUMN `user_notes` VARCHAR(1000) NOT NULL DEFAULT 'No Notes' AFTER `user_expiration`", true);
+                }
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"SELECT 
@@ -13268,7 +16332,9 @@ namespace PRoConEvents {
 	                        `adkats_users`.`user_name`,
 	                        `adkats_users`.`user_email`,
 	                        `adkats_users`.`user_phone`,
-	                        `adkats_users`.`user_role`
+	                        `adkats_users`.`user_role`,
+	                        `adkats_users`.`user_expiration`,
+	                        `adkats_users`.`user_notes`
                         FROM 
 	                        `adkats_users`";
                         var validIDs = new List<Int64>();
@@ -13287,16 +16353,29 @@ namespace PRoConEvents {
                                     if (!reader.IsDBNull(3))
                                         userPhone = reader.GetString("user_phone"); //3
                                     AdKatsRole userRole;
-                                    if (!_RoleIDDictionary.TryGetValue(reader.GetInt32("user_role"), out userRole)) {
+                                    if (!_RoleIDDictionary.TryGetValue(reader.GetInt32("user_role"), out userRole))
+                                    {
                                         ConsoleError("Unable to find user role for role ID " + reader.GetInt32("user_role"));
                                         continue;
                                     }
+                                    DateTime expirationTime = reader.GetDateTime("user_expiration");
+                                    String userNotes = reader.GetString("user_notes");
+
                                     AdKatsUser aUser;
-                                    if (_userCache.TryGetValue(userID, out aUser)) {
+                                    if (_userCache.TryGetValue(userID, out aUser))
+                                    {
+                                        if (expirationTime < DateTime.UtcNow)
+                                        {
+                                            userRole = _RoleKeyDictionary["guest_default"];
+                                            expirationTime = DateTime.UtcNow.AddYears(20);
+                                            QueueUserForUpload(aUser);
+                                        }
                                         aUser.user_name = userName;
                                         aUser.user_email = userEmail;
                                         aUser.user_phone = userPhone;
                                         aUser.user_role = userRole;
+                                        aUser.user_expiration = expirationTime;
+                                        aUser.user_notes = userNotes;
                                     }
                                     else {
                                         aUser = new AdKatsUser {
@@ -13304,8 +16383,16 @@ namespace PRoConEvents {
                                             user_name = userName,
                                             user_email = userEmail,
                                             user_phone = userPhone,
-                                            user_role = userRole
+                                            user_role = userRole,
+                                            user_expiration = expirationTime,
+                                            user_notes = userNotes
                                         };
+                                        if (expirationTime < DateTime.UtcNow)
+                                        {
+                                            userRole = _RoleKeyDictionary["guest_default"];
+                                            expirationTime = DateTime.UtcNow.AddYears(20);
+                                            QueueUserForUpload(aUser);
+                                        }
                                         _userCache.Add(aUser.user_id, aUser);
                                     }
                                 }
@@ -13397,6 +16484,10 @@ namespace PRoConEvents {
                                         aUser.soldierDictionary.Remove(aPlayer.player_id);
                                     }
                                 }
+                                if (!_firstPlayerListComplete)
+                                {
+                                    OnlineAdminSayMessage("User fetch complete. Fetching player list.");
+                                }
                             }
                         }
                     }
@@ -13408,9 +16499,13 @@ namespace PRoConEvents {
 	                        `player_id`,
 	                        `player_game`,
 	                        `player_server`,
-	                        `player_identifier`
+	                        `player_identifier`,
+                            `player_effective`,
+                            `player_expiration`
                         FROM 
 	                        `adkats_specialplayers`
+                        WHERE
+                            `player_expiration` > UTC_TIMESTAMP()
                         ORDER BY 
 	                        `player_group`
                         DESC";
@@ -13419,13 +16514,15 @@ namespace PRoConEvents {
                                 var asPlayer = new AdKatsSpecialPlayer();
                                 asPlayer.player_group = reader.GetString("player_group"); //0
                                 if (!reader.IsDBNull(1))
-                                    asPlayer.player_object = FetchPlayer(false, false, null, reader.GetInt32("player_id"), null, null, null); //1
+                                    asPlayer.player_object = FetchPlayer(false, true, false, null, reader.GetInt32("player_id"), null, null, null); //1
                                 if (!reader.IsDBNull(2))
                                     asPlayer.player_game = reader.GetInt32("player_game"); //2
                                 if (!reader.IsDBNull(3))
                                     asPlayer.player_server = reader.GetInt32("player_server"); //3
                                 if (!reader.IsDBNull(4))
                                     asPlayer.player_identifier = reader.GetString("player_identifier"); //4
+                                asPlayer.player_effective = reader.GetDateTime("player_effective");
+                                asPlayer.player_expiration = reader.GetDateTime("player_expiration");
                                 //Check if special player applies to this server
                                 Boolean allowed = true;
                                 if (asPlayer.player_object == null) {
@@ -13476,7 +16573,7 @@ namespace PRoConEvents {
                             }
                         }
                         //Debug logging purposes only
-                        if (_DebugLevel > 4) {
+                        if (_debugLevel > 4) {
                             foreach (string key in _specialPlayerGroupCache.Keys) {
                                 List<AdKatsSpecialPlayer> asPlayerList;
                                 if (_specialPlayerGroupCache.TryGetValue(key, out asPlayerList)) {
@@ -13507,7 +16604,8 @@ namespace PRoConEvents {
             UpdateReservedSlots();
             UpdateSpectatorList();
             _lastUserFetch = DateTime.UtcNow;
-            if (_userCache.Count > 0) {
+            if (_userCache.Count > 0)
+            {
                 DebugWrite("User List Fetched from Database. User Count: " + _userCache.Count, 1);
             }
             else {
@@ -13519,7 +16617,7 @@ namespace PRoConEvents {
         }
 
         private Boolean AssignPlayerRole(AdKatsPlayer aPlayer) {
-            AdKatsUser matchingUser = _userCache.Values.FirstOrDefault(aUser => aUser.soldierDictionary.Values.Any(uPlayer => uPlayer.player_id == aPlayer.player_id));
+            AdKatsUser matchingUser = _userCache.Values.FirstOrDefault(aUser => aUser.soldierDictionary.Values.Any(uPlayer => uPlayer.player_id == aPlayer.player_id || uPlayer.player_guid == aPlayer.player_guid));
             AdKatsRole aRole = null;
             Boolean authorized = false;
             if (matchingUser != null) {
@@ -13542,11 +16640,11 @@ namespace PRoConEvents {
                 if (aPlayer.player_role.role_key != aRole.role_key) {
                     if (authorized) {
                         DebugWrite("Role for authorized player " + aPlayer.player_name + " has been CHANGED to " + aRole.role_name + ".", 4);
-                        PlayerSayMessage(aPlayer.player_name, "You have been assigned the authorized role " + aRole.role_name + ".");
+                        PlayerSayMessage(aPlayer.player_name, "You have been assigned the authorized role " + aRole.role_name + ".", 1);
                     }
                     else {
                         DebugWrite("Player " + aPlayer.player_name + " has been assigned the guest role.", 4);
-                        PlayerSayMessage(aPlayer.player_name, "You have been assigned the guest role.");
+                        PlayerSayMessage(aPlayer.player_name, "You have been assigned the guest role.", 1);
                     }
                 }
             }
@@ -13570,7 +16668,7 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return false;
             }
-            if (RoleIsInteractionAble(aPlayer.player_role)) {
+            if (RoleIsAdmin(aPlayer.player_role)) {
                 return false;
             }
             try {
@@ -13804,12 +16902,6 @@ namespace PRoConEvents {
                             }
                         }
                     }
-                    //Pull players from teamswap whitelist
-                    foreach (String tempName in _TeamswapRoundWhitelist.Keys) {
-                        if (!autobalanceWhitelistedPlayers.Contains(tempName)) {
-                            autobalanceWhitelistedPlayers.Add(tempName);
-                        }
-                    }
                     SetExternalPluginSetting("MULTIbalancer", "2 - Exclusions|On Whitelist", "True");
                     SetExternalPluginSetting("MULTIbalancer", "1 - Settings|Whitelist", CPluginVariable.EncodeStringArray(autobalanceWhitelistedPlayers.ToArray()));
                 }
@@ -13831,7 +16923,7 @@ namespace PRoConEvents {
                         if (_specialPlayerGroupCache.TryGetValue("blacklist_dispersion", out evenDispersedPlayers)) {
                             foreach (AdKatsSpecialPlayer asPlayer in evenDispersedPlayers) {
                                 String playerIdentifier = null;
-                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name)) {
+                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_guid)) {
                                     playerIdentifier = asPlayer.player_object.player_name;
                                 }
                                 else {
@@ -13907,13 +16999,11 @@ namespace PRoConEvents {
                     if (_isTestingAuthorized)
                         PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_userCache) {
-                        foreach (AdKatsUser user in _userCache.Values) {
-                            foreach (AdKatsPlayer soldier in user.soldierDictionary.Values) {
-                                //Only add soldiers for the current game
-                                if (soldier.game_id == _gameID) {
-                                    if (!allowedReservedSlotPlayers.Contains(soldier.player_name)) {
-                                        allowedReservedSlotPlayers.Add(soldier.player_name);
-                                    }
+                        foreach (AdKatsPlayer soldier in FetchAllUserSoldiers()) {
+                            //Only add soldiers for the current game
+                            if (soldier.game_id == _gameID) {
+                                if (!allowedReservedSlotPlayers.Contains(soldier.player_name)) {
+                                    allowedReservedSlotPlayers.Add(soldier.player_name);
                                 }
                             }
                         }
@@ -13993,16 +17083,16 @@ namespace PRoConEvents {
                     }
                 }
                 //Pull players from user list
-                if (_userCache.Count > 0 && _FeedServerSpectatorList_UserCache) {
-                    foreach (AdKatsUser user in _userCache.Values) {
-                        foreach (AdKatsPlayer soldier in user.soldierDictionary.Values) {
-                            //Only add soldiers for the current game
-                            if (soldier.game_id == _gameID) {
-                                //Only add if players are admins
-                                if (RoleIsInteractionAble(soldier.player_role)) {
-                                    if (!allowedSpectatorSlotPlayers.Contains(soldier.player_name)) {
-                                        allowedSpectatorSlotPlayers.Add(soldier.player_name);
-                                    }
+                if (_userCache.Count > 0 && _FeedServerSpectatorList_UserCache)
+                {
+                    foreach (AdKatsPlayer soldier in FetchAllUserSoldiers())
+                    {
+                        //Only add soldiers for the current game
+                        if (soldier.game_id == _gameID) {
+                            //Only add if players are admins
+                            if (RoleIsAdmin(soldier.player_role)) {
+                                if (!allowedSpectatorSlotPlayers.Contains(soldier.player_name)) {
+                                    allowedSpectatorSlotPlayers.Add(soldier.player_name);
                                 }
                             }
                         }
@@ -14210,13 +17300,13 @@ namespace PRoConEvents {
                 }
                 record.record_message = recordMessage;
 
-                _playerDictionary.TryGetValue(record.source_name, out record.source_player);
-                if (!_playerDictionary.TryGetValue(record.target_name, out record.target_player) && record.command_type.command_key.StartsWith("player_")) {
+                _PlayerDictionary.TryGetValue(record.source_name, out record.source_player);
+                if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player) && record.command_type.command_key.StartsWith("player_")) {
                     if (String.IsNullOrEmpty(target_guid)) {
                         ConsoleError("Target player '" + record.target_name + "' was not found in the server. And target_guid was not provided. Unable to process external command.");
                         return;
                     }
-                    record.target_player = FetchPlayer(true, false, null, -1, record.target_name, target_guid, null);
+                    record.target_player = FetchPlayer(true, false, false, null, -1, record.target_name, target_guid, null);
                 }
                 QueueRecordForProcessing(record);
             }
@@ -14516,7 +17606,14 @@ namespace PRoConEvents {
 
                                     //Grab detail data
                                     var currentWeaponDetail = (Hashtable) currentWeapon["detail"];
-                                    weapon.Category = (String) currentWeaponDetail["category"];
+                                    weapon.Category = (String)currentWeaponDetail["category"];
+
+                                    //Attempt to grab weapon max damage
+                                    var weaponDetailData = (Hashtable)currentWeaponDetail["weaponData"];
+                                    if (weaponDetailData != null && weaponDetailData.ContainsKey("statDamage"))
+                                    {
+                                        weapon.MaxDPS = (Double)weaponDetailData["statDamage"] * 100;
+                                    }
                                     //leave kit alone
                                     //leave range alone
                                     //Calculate values
@@ -14613,7 +17710,7 @@ namespace PRoConEvents {
             ArrayList repTable = null;
             using (var client = new WebClient()) {
                 try {
-                    const string url = "https://raw.github.com/ColColonCleaner/AdKats/dev/adkatsreputationstats.json";
+                    const string url = "https://raw.github.com/ColColonCleaner/AdKats/master/adkatsreputationstats.json";
                     String textResponse = client.DownloadString(url);
                     repTable = (ArrayList) JSON.JsonDecode(textResponse);
                 }
@@ -14685,7 +17782,7 @@ namespace PRoConEvents {
 
         private void PushThreadDebug(Int64 ticks, String thread, Int32 threadid, Int32 line, String element) {
             try {
-                DebugWrite(ticks + " " + thread + " " + threadid + " " + line + " " + element, 4);
+                DebugWrite(ticks + " " + thread + " " + threadid + " " + line + " " + element, 8);
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("error pushing thread debug", e));
@@ -14720,9 +17817,9 @@ namespace PRoConEvents {
             return processedString;
         }
 
-        public Boolean RoleIsInteractionAble(AdKatsRole aRole) {
+        public Boolean RoleIsAdmin(AdKatsRole aRole) {
             if (aRole == null) {
-                ConsoleError("role null in RoleIsInteractionAble");
+                ConsoleError("role null in RoleIsAdmin");
                 return false;
             }
             if (_isTestingAuthorized)
@@ -14785,14 +17882,17 @@ namespace PRoConEvents {
 
         public String FormatTimeString(TimeSpan timeSpan, Int32 maxComponents) {
             DebugWrite("Entering formatTimeString", 7);
-            String returnMessage = null;
+            String timeString = null;
             if (maxComponents < 1) {
-                return returnMessage;
+                return timeString;
             }
             try {
                 String formattedTime = (timeSpan.TotalMilliseconds >= 0) ? ("") : ("-");
 
                 Double secondSubset = Math.Abs(timeSpan.TotalSeconds);
+                if (secondSubset < 1) {
+                    return "0s";
+                }
                 Double minuteSubset = (secondSubset / 60);
                 Double hourSubset = (minuteSubset / 60);
                 Double daySubset = (hourSubset / 24);
@@ -14800,57 +17900,53 @@ namespace PRoConEvents {
                 Double monthSubset = (weekSubset / 4);
                 Double yearSubset = (monthSubset / 12);
 
-                var years = (Int32)yearSubset;
-                Int32 months = (Int32)monthSubset % 12;
-                Int32 weeks = (Int32)weekSubset % 4;
-                Int32 days = (Int32)daySubset % 7;
-                Int32 hours = (Int32)hourSubset % 24;
-                Int32 minutes = (Int32)minuteSubset % 60;
-                Int32 seconds = (Int32)secondSubset % 60;
+                var years = (Int32) yearSubset;
+                Int32 months = (Int32) monthSubset % 12;
+                Int32 weeks = (Int32) weekSubset % 4;
+                Int32 days = (Int32) daySubset % 7;
+                Int32 hours = (Int32) hourSubset % 24;
+                Int32 minutes = (Int32) minuteSubset % 60;
+                Int32 seconds = (Int32) secondSubset % 60;
 
                 Int32 usedComponents = 0;
-                if (years > 0 && usedComponents < maxComponents)
-                {
+                if (years > 0 && usedComponents < maxComponents) {
                     usedComponents++;
                     formattedTime += years + "y";
                 }
-                if (months > 0 && usedComponents < maxComponents)
-                {
+                if (months > 0 && usedComponents < maxComponents) {
                     usedComponents++;
                     formattedTime += months + "M";
                 }
-                if (weeks > 0 && usedComponents < maxComponents)
-                {
+                if (weeks > 0 && usedComponents < maxComponents) {
                     usedComponents++;
                     formattedTime += weeks + "w";
                 }
-                if (days > 0 && usedComponents < maxComponents)
-                {
+                if (days > 0 && usedComponents < maxComponents) {
                     usedComponents++;
                     formattedTime += days + "d";
                 }
-                if (hours > 0 && usedComponents < maxComponents)
-                {
+                if (hours > 0 && usedComponents < maxComponents) {
                     usedComponents++;
                     formattedTime += hours + "h";
                 }
-                if (minutes > 0 && usedComponents < maxComponents)
-                {
+                if (minutes > 0 && usedComponents < maxComponents) {
                     usedComponents++;
                     formattedTime += minutes + "m";
                 }
-                if (seconds > 0 && usedComponents < maxComponents)
-                {
+                if (seconds > 0 && usedComponents < maxComponents) {
                     usedComponents++;
                     formattedTime += seconds + "s";
                 }
-                returnMessage = formattedTime;
+                timeString = formattedTime;
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while formatting time String.", e));
             }
+            if (String.IsNullOrEmpty(timeString)) {
+                timeString = "0s";
+            }
             DebugWrite("Exiting formatTimeString", 7);
-            return returnMessage;
+            return timeString;
         }
 
         private Double ConvertToTimestamp(DateTime value) {
@@ -14867,17 +17963,17 @@ namespace PRoConEvents {
             try {
                 //If the player is currently in the player list, remove them
                 if (!String.IsNullOrEmpty(playerName)) {
-                    if (_playerDictionary.ContainsKey(playerName)) {
+                    if (_PlayerDictionary.ContainsKey(playerName)) {
                         DebugWrite("Removing " + playerName + " from current player list.", 4);
                         if (lockDictionary) {
                             if (_isTestingAuthorized)
                                 PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-                            lock (_playerDictionary) {
-                                _playerDictionary.Remove(playerName);
+                            lock (_PlayerDictionary) {
+                                _PlayerDictionary.Remove(playerName);
                             }
                         }
                         else {
-                            _playerDictionary.Remove(playerName);
+                            _PlayerDictionary.Remove(playerName);
                         }
                     }
                 }
@@ -15032,9 +18128,9 @@ namespace PRoConEvents {
                         return null;
                     }
                 }
-                if (_LastStatLoggerStatusUpdate != null && _LastStatLoggerStatusUpdate.ContainsKey("pluginVersion") && _LastStatLoggerStatusUpdate.ContainsKey("pluginEnabled") && _LastStatLoggerStatusUpdate.ContainsKey("DBHost") && _LastStatLoggerStatusUpdate.ContainsKey("DBPort") && _LastStatLoggerStatusUpdate.ContainsKey("DBName") && _LastStatLoggerStatusUpdate.ContainsKey("DBTimeOffset") && _LastStatLoggerStatusUpdate.ContainsKey("DBConnectionActive") && _LastStatLoggerStatusUpdate.ContainsKey("ChatloggingEnabled") && _LastStatLoggerStatusUpdate.ContainsKey("InstantChatLoggingEnabled") && _LastStatLoggerStatusUpdate.ContainsKey("StatsLoggingEnabled") && _LastStatLoggerStatusUpdate.ContainsKey("DBliveScoreboardEnabled") && _LastStatLoggerStatusUpdate.ContainsKey("DebugMode") && _LastStatLoggerStatusUpdate.ContainsKey("Error")) {
+                if (_lastStatLoggerStatusUpdate != null && _lastStatLoggerStatusUpdate.ContainsKey("pluginVersion") && _lastStatLoggerStatusUpdate.ContainsKey("pluginEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("DBHost") && _lastStatLoggerStatusUpdate.ContainsKey("DBPort") && _lastStatLoggerStatusUpdate.ContainsKey("DBName") && _lastStatLoggerStatusUpdate.ContainsKey("DBTimeOffset") && _lastStatLoggerStatusUpdate.ContainsKey("DBConnectionActive") && _lastStatLoggerStatusUpdate.ContainsKey("ChatloggingEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("InstantChatLoggingEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("StatsLoggingEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("DBliveScoreboardEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("DebugMode") && _lastStatLoggerStatusUpdate.ContainsKey("Error")) {
                     //Response appears to be valid, return it
-                    return _LastStatLoggerStatusUpdate;
+                    return _lastStatLoggerStatusUpdate;
                 }
                 //Response is invalid, throw error and return null
                 ConsoleError("Status response from CChatGUIDStatsLoggerBF3 was not valid.");
@@ -15053,8 +18149,8 @@ namespace PRoConEvents {
                     ConsoleError("Status fetch response handle canceled, no parameters provided.");
                     return;
                 }
-                _LastStatLoggerStatusUpdate = (Hashtable) JSON.JsonDecode(commands[0]);
-                _LastStatLoggerStatusUpdateTime = DateTime.UtcNow;
+                _lastStatLoggerStatusUpdate = (Hashtable) JSON.JsonDecode(commands[0]);
+                _lastStatLoggerStatusUpdateTime = DateTime.UtcNow;
                 _StatLoggerStatusWaitHandle.Set();
             }
             catch (Exception e) {
@@ -15330,13 +18426,13 @@ namespace PRoConEvents {
         }
 
         public void DebugWrite(String msg, Int32 level) {
-            if (_DebugLevel >= level) {
+            if (_debugLevel >= level) {
                 ConsoleWrite(msg, ConsoleMessageType.Normal);
             }
         }
 
         public void PrintPreparedCommand(MySqlCommand cmd) {
-            String query = cmd.Parameters.Cast<MySqlParameter>().Aggregate(cmd.CommandText, (current, p) => current.Replace(p.ParameterName, p.Value.ToString()));
+            String query = cmd.Parameters.Cast<MySqlParameter>().Aggregate(cmd.CommandText, (current, p) => current.Replace(p.ParameterName, (p.Value != null)?(p.Value.ToString()):("NULL")));
             ConsoleWrite(query);
         }
 
@@ -15444,8 +18540,8 @@ namespace PRoConEvents {
                                     //Clear the player dinctionary, causing all players to be fetched from the database again
                                     if (_isTestingAuthorized)
                                         PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-                                    lock (_playerDictionary) {
-                                        _playerDictionary.Clear();
+                                    lock (_PlayerDictionary) {
+                                        _PlayerDictionary.Clear();
                                     }
 
                                     //Create the Exception record
@@ -15502,9 +18598,9 @@ namespace PRoConEvents {
                             Thread.CurrentThread.Name = "RoundTimer";
                             DebugWrite("starting round timer", 2);
                             Thread.Sleep(3000);
-                            var roundTimeSeconds = (Int32) (_roundTimeMinutes * 60);
+                            var roundTimeSeconds = (Int32) (_maxRoundTimeMinutes * 60);
                             for (Int32 secondsRemaining = roundTimeSeconds; secondsRemaining > 0; secondsRemaining--) {
-                                if (_CurrentRoundState == RoundState.Ended || !_pluginEnabled || !_threadsReady) {
+                                if (_currentRoundState == RoundState.Ended || !_pluginEnabled || !_threadsReady) {
                                     return;
                                 }
                                 if (secondsRemaining == roundTimeSeconds - 60 && secondsRemaining > 60) {
@@ -15555,6 +18651,47 @@ namespace PRoConEvents {
             }
         }
 
+        private IPAPILocation FetchIPLocation(String ip) {
+            var loc = new IPAPILocation();
+            if (String.IsNullOrEmpty(ip)) {
+                ConsoleError("Invalid IP in location query.");
+                loc.status = "fail";
+                loc.message = "invalid query";
+                return loc;
+            }
+            using (var client = new WebClient()) {
+                try {
+                    var response = (Hashtable) JSON.JsonDecode(client.DownloadString("http://ip-api.com/json/" + ip));
+                    loc.status = (String) response["status"];
+                    if (loc.status == "fail") {
+                        loc.message = (String) response["message"];
+                        return loc;
+                    }
+                    if (loc.status == "success") {
+                        loc.country = (String) response["country"];
+                        loc.countryCode = (String) response["countryCode"];
+                        loc.region = (String) response["region"];
+                        loc.regionName = (String) response["regionName"];
+                        loc.city = (String) response["city"];
+                        loc.zip = (String) response["zip"];
+                        loc.lat = Double.Parse((String) response["lat"]);
+                        loc.lon = Double.Parse((String) response["lon"]);
+                        loc.timezone = (String) response["timezone"];
+                        loc.isp = (String) response["isp"];
+                        loc.org = (String) response["org"];
+                        loc.query = (String) response["query"];
+                        return loc;
+                    }
+                }
+                catch (Exception e) {
+                    ConsoleError(e.ToString());
+                }
+            }
+            loc.status = "fail";
+            loc.message = "unknown error";
+            return loc;
+        }
+
         public class AdKatsBan {
             //Current exception state of the ban
             public DateTime ban_endTime;
@@ -15569,6 +18706,7 @@ namespace PRoConEvents {
             public DateTime ban_startTime;
             public String ban_status = "Active";
             public String ban_sync = null;
+            public Int64 player_id = -1;
             //startTime and endTime are not set by AdKats, they are set in the database.
             //startTime and endTime will be valid only when bans are fetched from the database
         }
@@ -15633,6 +18771,7 @@ namespace PRoConEvents {
             public CPlayerInfo frostbitePlayerInfo = null;
             public Int64 game_id = -1;
             public DateTime lastAction = DateTime.UtcNow;
+            public DateTime lastKill = DateTime.UtcNow;
             public DateTime lastDeath = DateTime.UtcNow;
             public DateTime lastSpawn = DateTime.UtcNow;
             public Boolean player_aa = false;
@@ -15643,10 +18782,19 @@ namespace PRoConEvents {
             public String player_ip = null;
             public String player_name = null;
             public String player_name_previous = null;
-            public Boolean player_online = false;
+            public Boolean player_online = true;
             public String player_pbguid = null;
             public AdKatsRole player_role = null;
             public String player_slot = null;
+            public Double player_reputation = 0;
+            public DateTime player_firstseen = DateTime.UtcNow;
+            public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
+            public Boolean player_firstSpawned = false;
+
+            public Boolean player_locked = false;
+            public DateTime player_locked_start = DateTime.UtcNow;
+            public TimeSpan player_locked_duration = TimeSpan.Zero;
+            public String player_locked_source = null;
 
             public AdKatsPlayerStats stats = null;
 
@@ -15655,6 +18803,10 @@ namespace PRoConEvents {
             public AdKatsPlayer() {
                 RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
                 TargetedRecords = new List<AdKatsRecord>();
+            }
+
+            public TimeSpan GetIdleTime() {
+                return DateTime.UtcNow - lastAction;
             }
         }
 
@@ -15728,10 +18880,12 @@ namespace PRoConEvents {
             public String external_responseClass = null;
             public String external_responseMethod = null;
             public Boolean external_responseRequested = false;
+
+            public Boolean isConfirmed = false;
             public Boolean isAliveChecked = false;
+            public Boolean isContested = false;
             public Boolean isDebug = false;
             public Boolean isIRO = false;
-            public Boolean isContested = false;
             public Boolean record_action_executed = false;
             public AdKatsException record_exception = null;
             public Int64 record_id = -1;
@@ -15745,9 +18899,18 @@ namespace PRoConEvents {
             public String target_name = null;
             public AdKatsPlayer target_player = null;
 
+            //Multiple targets if needed
+            //Not pushed to database
+            public List<String> TargetNamesLocal; 
+            public List<AdKatsPlayer> TargetPlayersLocal;
+            public List<AdKatsRecord> TargetInnerRecords;
+
             //Default Constructor
             public AdKatsRecord() {
-                debugMessages = new List<string>();
+                debugMessages = new List<String>();
+                TargetNamesLocal = new List<String>();
+                TargetPlayersLocal = new List<AdKatsPlayer>();
+                TargetInnerRecords = new List<AdKatsRecord>();
             }
         }
 
@@ -15770,6 +18933,8 @@ namespace PRoConEvents {
             public String player_identifier = null;
             public AdKatsPlayer player_object = null;
             public Int32? player_server = null;
+            public DateTime player_effective;
+            public DateTime player_expiration;
         }
 
         public class AdKatsTeam {
@@ -15860,6 +19025,8 @@ namespace PRoConEvents {
             public String user_name = null;
             public String user_phone = null;
             public AdKatsRole user_role = null;
+            public DateTime user_expiration;
+            public String user_notes = "";
 
             public AdKatsUser() {
                 soldierDictionary = new Dictionary<long, AdKatsPlayer>();
@@ -15879,6 +19046,14 @@ namespace PRoConEvents {
             public String Range = null;
             public Double Shots = -1;
             public TimeSpan Time = TimeSpan.FromSeconds(0);
+            public Double MaxDPS = 1;
+        }
+
+        internal enum AssessmentTypes {
+            none,
+            black,
+            white,
+            watch
         }
 
         public class BBM5108Ban {
@@ -15930,8 +19105,12 @@ namespace PRoConEvents {
 
             public void SendReport(AdKatsRecord record) {
                 try {
-                    if (Plugin.FetchOnlineAdminSoldiers().Any()) {
+                    if (Plugin.FetchOnlineAdminSoldiers().Any() && false) {
+                        Plugin.ConsoleWarn("Online admins detected, report email aborted.");
                         return;
+                    }
+                    if (record.target_player == null) {
+                        Plugin.SendMessageToSource(record, "Unable to send report email. No target player found.");
                     }
                     //Create a new thread to handle keep-alive
                     //This thread will remain running for the duration the layer is online
@@ -15974,8 +19153,35 @@ namespace PRoConEvents {
                             String processedCustomHTML = Plugin.ReplacePlayerInformation(CustomHTMLAddition, record.target_player);
                             sb.Append(processedCustomHTML);
                             sb.Append("</p>");
+                            //TODO: Add chat back for ADK usage.
+                            if (record.target_player != null && !Plugin._isTestingAuthorized) {
+                                sb.Append("<table>");
+                                sb.Append(@"<thead><td>Time</td><td>Player</td><td>Message</td></thead>");
+                                sb.Append("<tbody>");
+                                if (record.source_player != null) {
+                                    foreach (var chatLine in Plugin.FetchConversation(record.source_player.player_id, record.target_player.player_id, 30, 7)) {
+                                        sb.Append("<tr>");
+                                        sb.Append("<td>" + chatLine.Key.ToShortDateString() + " " + chatLine.Key.ToShortTimeString() + "</td>");
+                                        sb.Append("<td>" + chatLine.Value.Key + "</td>");
+                                        sb.Append("<td>" + chatLine.Value.Value + "</td>");
+                                        sb.Append("</tr>");
+                                    }
+                                }
+                                else {
+                                    foreach (var chatLine in Plugin.FetchChat(record.target_player.player_id, 30, 7)) {
+                                        sb.Append("<tr>");
+                                        sb.Append("<td>" + chatLine.Key.ToShortDateString() + " " + chatLine.Key.ToShortTimeString() + "</td>");
+                                        sb.Append("<td>" + record.target_player.player_name + "</td>");
+                                        sb.Append("<td>" + chatLine.Value + "</td>");
+                                        sb.Append("</tr>");
+                                    }
+                                }
+                                sb.Append("</tbody>");
+                                sb.Append("</table>");
+                            }
 
                             body = sb.ToString();
+
 
                             EmailWrite(subject, body);
                         }
@@ -16004,7 +19210,7 @@ namespace PRoConEvents {
                     lock (Plugin._userCache) {
                         foreach (AdKatsUser aUser in Plugin._userCache.Values) {
                             //Check for not null and default values
-                            if (Plugin.RoleIsInteractionAble(aUser.user_role) && !String.IsNullOrEmpty(aUser.user_email)) {
+                            if (Plugin.RoleIsAdmin(aUser.user_role) && !String.IsNullOrEmpty(aUser.user_email)) {
                                 if (Regex.IsMatch(aUser.user_email, @"^([\w-\.]+)@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.)|(([\w-]+\.)+))([a-zA-Z]{2,4}|[0-9]{1,3})(\]?)$")) {
                                     email.Bcc.Add(new MailAddress(aUser.user_email));
                                     someAdded = true;
@@ -16038,8 +19244,6 @@ namespace PRoConEvents {
                     email.BodyEncoding = Encoding.UTF8;
 
                     QueueEmailForSending(email);
-
-                    Plugin.DebugWrite("A notification email has been sent.", 1);
                 }
                 catch (Exception e) {
                     Plugin.ConsoleError("Error while sending email: " + e);
@@ -16115,6 +19319,19 @@ namespace PRoConEvents {
                                     break;
                                 }
                                 Plugin.DebugWrite("EMAIL: begin reading mail", 6);
+                                MailMessage message = inboundEmailMessages.Dequeue();
+                                if (Plugin._debugLevel >= 5) {
+                                    Plugin.ConsoleWrite("EMAIL: server: " + SMTPServer);
+                                    Plugin.ConsoleWrite("EMAIL: port: " + SMTPPort);
+                                    Plugin.ConsoleWrite("EMAIL: user/pass: " + ((!String.IsNullOrEmpty(SMTPUser) && !String.IsNullOrEmpty(SMTPPassword)) ? "OK" : "INVALID"));
+                                    Plugin.ConsoleWrite("EMAIL: details sender: " + message.Sender);
+                                    Plugin.ConsoleWrite("EMAIL: details from: " + message.From);
+                                    Plugin.ConsoleWrite("EMAIL: details to: " + message.To);
+                                    Plugin.ConsoleWrite("EMAIL: details cc: " + message.CC);
+                                    Plugin.ConsoleWrite("EMAIL: details bcc: " + message.Bcc);
+                                    Plugin.ConsoleWrite("EMAIL: details subject: " + message.Subject);
+                                    Plugin.ConsoleWrite("EMAIL: details body: " + message.Body);
+                                }
                                 //Dequeue the first/next mail
                                 var smtp = new SmtpClient(SMTPServer, SMTPPort) {
                                     EnableSsl = UseSSL,
@@ -16123,7 +19340,14 @@ namespace PRoConEvents {
                                     UseDefaultCredentials = false,
                                     Credentials = new NetworkCredential(SMTPUser, SMTPPassword)
                                 };
-                                smtp.Send(inboundEmailMessages.Dequeue());
+                                smtp.SendCompleted += new SendCompletedEventHandler(smtp_SendCompleted);
+
+                                Plugin.DebugWrite("Sending notification email...please wait...", 1);
+
+                                smtp.Send(message);
+
+                                Plugin.DebugWrite("A notification email has been sent.", 1);
+
                                 if (inboundEmailMessages.Any()) {
                                     //Wait 5 seconds between loops
                                     Thread.Sleep(5000);
@@ -16146,6 +19370,514 @@ namespace PRoConEvents {
                 catch (Exception e) {
                     Plugin.HandleException(new AdKatsException("Error occured in mail processing thread.", e));
                 }
+            }
+
+            private void smtp_SendCompleted(object sender, System.ComponentModel.AsyncCompletedEventArgs e) {
+                if (e.Cancelled == true || e.Error != null) {
+                    Plugin.HandleException(new AdKatsException("Error occured in mail processing. Sending Canceled.", e.Error));
+                }
+            }
+        }
+
+        private class IPAPILocation {
+            public String city;
+            public String country;
+            public String countryCode;
+            public String isp;
+            public Double lat;
+            public Double lon;
+            public String message;
+            public String org;
+            public String query;
+            public String region;
+            public String regionName;
+            public String status;
+            public String timezone;
+            public String zip;
+        }
+
+        internal class MetabansAPI {
+            public delegate void ExecuteCommandHandler(params string[] commands);
+
+            public delegate void RequestSuccessHandler(Hashtable request, Hashtable data);
+
+            private static string METABANS_API_HREF = "http://metabans.com/mb-api.php";
+
+            private readonly string ApiKey;
+            private readonly enumBoolOnOff Debug;
+            private readonly string Username;
+            private readonly ArrayList m_requests;
+
+            public MetabansAPI(string Username, string ApiKey, enumBoolOnOff Debug) {
+                m_requests = new ArrayList();
+
+                // if username + apikey == "", load from xml file.
+
+                this.Username = Username;
+                this.ApiKey = ApiKey;
+                this.Debug = Debug;
+            }
+
+            // You must have this event registered to see output of the Debug.
+
+            public event ExecuteCommandHandler ExecuteCommand;
+
+            public event RequestSuccessHandler mb_sight_player_ok;
+            public event RequestSuccessHandler mb_assess_player_ok;
+
+            // You may implement more functions if you need them at http://wiki.metabans.com/API
+            // Just remember to change the API version and publish your changes on the forums
+
+            public MetabansAPI mb_assess_player(int player_id, AssessmentTypes assessment_type, string reason, int assessment_length) {
+                var hash = new Hashtable();
+                hash.Add("action", "mb_assess_player");
+                hash.Add("player_id", player_id.ToString());
+                hash.Add("assessment_type", assessment_type.ToString());
+                hash.Add("reason", reason);
+                hash.Add("assessment_length", assessment_length.ToString());
+
+                m_requests.Add(hash);
+
+                return this;
+            }
+
+            public MetabansAPI mb_assess_player(SupportedGames game_name, string player_uid, AssessmentTypes assessment_type, string reason, int assessment_length) {
+                var hash = new Hashtable();
+                hash.Add("action", "mb_assess_player");
+                hash.Add("game_name", game_name.ToString());
+                hash.Add("player_uid", player_uid);
+                hash.Add("assessment_type", assessment_type.ToString());
+                hash.Add("reason", reason);
+                hash.Add("assessment_length", assessment_length.ToString());
+
+                m_requests.Add(hash);
+
+                return this;
+            }
+
+            // You shouldn't ever need to sight a player.  Only the main Metabans plugin should ever need to do this.
+            public MetabansAPI mb_sight_player(SupportedGames game_name, string player_uid, string player_name, string group_name, string player_ip, string alternate_uid) {
+                var hash = new Hashtable();
+                hash.Add("action", "mb_sight_player");
+                hash.Add("game_name", game_name.ToString());
+                hash.Add("player_uid", player_uid);
+                hash.Add("player_name", player_name);
+                hash.Add("group_name", group_name);
+
+                if (player_ip != null) {
+                    hash.Add("player_ip", player_ip.Split(':')[0]);
+                }
+
+                hash.Add("alternate_uid", alternate_uid);
+
+                m_requests.Add(hash);
+
+                return this;
+            }
+
+            private static string GenerateSalt() {
+                var random = new Random();
+                var salt = new byte[random.Next(24, 48)];
+
+                for (int i = 0; i < salt.Length; i++) {
+                    salt[i] = (byte) random.Next(1, 254);
+                }
+
+                return SHA1.Data(salt);
+            }
+
+            private string GeneratePostData() {
+                var postBuilder = new StringBuilder();
+
+                postBuilder.AppendFormat("&username={0}", Uri.EscapeUriString(Username));
+
+                string salt = MetabansAPI.GenerateSalt();
+                postBuilder.AppendFormat("&salt={0}", Uri.EscapeUriString(salt));
+                postBuilder.AppendFormat("&apikey={0}", Uri.EscapeUriString(SHA1.String(salt + ApiKey)));
+                postBuilder.Append("&options=mirror");
+
+                for (int offset = 0; offset < m_requests.Count; offset++) {
+                    if (m_requests[offset] is Hashtable) {
+                        foreach (DictionaryEntry entry in (Hashtable) m_requests[offset]) {
+                            if (entry.Value != null) {
+                                postBuilder.AppendFormat("&{0}={1}", Uri.EscapeUriString(String.Format("requests[{0}][{1}]", offset, entry.Key)), Uri.EscapeUriString(entry.Value.ToString()));
+                            }
+                        }
+                    }
+                }
+
+                return postBuilder.ToString();
+            }
+
+            private void request_RequestComplete(MetabansRequest sender) {
+                var table = (Hashtable) JSON.JsonDecode(Encoding.UTF8.GetString(sender.CompleteFileData));
+
+                try {
+                    if (Debug == enumBoolOnOff.On && ExecuteCommand != null) {
+                        ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Received sync response, beginning parse");
+                    }
+
+                    foreach (Hashtable response in (ArrayList) table["responses"]) {
+                        if (response.ContainsKey("status") == true && (string) response["status"] == "OK") {
+                            if (response.ContainsKey("request") == true && response.ContainsKey("data") == true) {
+                                var request = (Hashtable) response["request"];
+                                var data = (Hashtable) response["data"];
+
+                                if (request.ContainsKey("action") == true) {
+                                    switch ((string) request["action"]) {
+                                        case "mb_sight_player":
+                                            if (mb_sight_player_ok != null) {
+                                                mb_sight_player_ok(request, data);
+                                            }
+                                            break;
+                                        case "mb_assess_player":
+                                            if (mb_assess_player_ok != null) {
+                                                mb_assess_player_ok(request, data);
+                                            }
+                                            break;
+                                    }
+                                }
+                            }
+                        }
+                        else if (response.ContainsKey("error") == true) {
+                            if ( /*this.Debug == enumBoolOnOff.On && */ExecuteCommand != null) {
+                                // This is an error because of information sent to the metabans (like api key error or something)
+                                // not an actual problem that requires debugging.
+                                ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API: Response error; " + (string) ((Hashtable) response["error"])["message"]);
+                            }
+                        }
+                    }
+
+                    if (Debug == enumBoolOnOff.On && ExecuteCommand != null) {
+                        ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Received sync and parse completed");
+                    }
+                }
+                catch (Exception e) {
+                    if (Debug == enumBoolOnOff.On && ExecuteCommand != null) {
+                        ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API (request_RequestComplete): " + e.Message);
+                    }
+                }
+            }
+
+            private void request_RequestError(MetabansRequest sender) {
+                if (Debug == enumBoolOnOff.On && ExecuteCommand != null) {
+                    ExecuteCommand("procon.protected.pluginconsole.write", "^1Metabans API request_RequestError: " + sender.Error);
+                }
+            }
+
+            public MetabansAPI Post() {
+                var request = new MetabansRequest(MetabansAPI.METABANS_API_HREF);
+                request.RequestComplete += new MetabansRequest.RequestEventDelegate(request_RequestComplete);
+                request.RequestError += new MetabansRequest.RequestEventDelegate(request_RequestError);
+                request.Method = "POST";
+                request.RequestContent = GeneratePostData();
+
+                if (Debug == enumBoolOnOff.On && ExecuteCommand != null) {
+                    ExecuteCommand("procon.protected.pluginconsole.write", "^4Metabans API: Post " + Uri.EscapeUriString(request.RequestContent));
+                }
+
+                request.BeginRequest();
+
+                return this;
+            }
+        }
+
+        // This is similar to CDownloadFile but has some POST options included
+        internal class MetabansRequest {
+            public delegate void RequestEventDelegate(MetabansRequest sender);
+
+            private const int INT_BUFFER_SIZE = UInt16.MaxValue;
+            public object AdditionalData;
+
+            public int BytesDownloaded;
+
+            public byte[] CompleteFileData;
+            public string DownloadSource;
+
+            public string Error;
+            public bool FileDownloading;
+            public int FileSize;
+
+            /// <summary>
+            ///     The WebRequestMethods.Http string representing the type of
+            ///     method to use in the request.  Default is Get.
+            /// </summary>
+            public string Method;
+
+            /// <summary>
+            ///     Optional range to include in the request header
+            /// </summary>
+            public int? Range;
+
+            /// <summary>
+            ///     Optional referrer to include in the request header
+            /// </summary>
+            public string Referrer = "PRoCon Metabans Plugin/1.0.6.0";
+
+            /// <summary>
+            ///     The contents of a POST request
+            /// </summary>
+            public string RequestContent;
+
+            public bool UnknownSize;
+            private System.Timers.Timer m_progressTimer;
+            private Stream m_responseStream;
+
+            private int m_timeout;
+            private HttpWebRequest m_webRequest;
+            private WebResponse m_webResponse;
+            private byte[] ma_bBufferStream;
+
+            public MetabansRequest(string downloadSource) {
+                DownloadSource = downloadSource;
+
+                m_timeout = 30000;
+                Method = WebRequestMethods.Http.Get;
+            }
+
+            /// <summary>
+            ///     ReadTimeout of the stream in milliseconds.  Default is 10 seconds.
+            /// </summary>
+            public int Timeout {
+                get { return m_timeout; }
+                set {
+                    m_timeout = value;
+
+                    if (m_responseStream != null) {
+                        m_responseStream.ReadTimeout = value;
+                    }
+                }
+            }
+
+            public string FileName {
+                get {
+                    string strReturnFileName = String.Empty;
+
+                    if (DownloadSource.Length > 0) {
+                        strReturnFileName = DownloadSource.Substring(DownloadSource.LastIndexOf("/") + 1, (DownloadSource.Length - DownloadSource.LastIndexOf("/") - 1));
+                    }
+
+                    return strReturnFileName;
+                }
+            }
+
+            public event RequestEventDelegate RequestComplete;
+            public event RequestEventDelegate RequestError;
+            public event RequestEventDelegate RequestDiscoveredFileSize;
+            public event RequestEventDelegate RequestProgressUpdate;
+
+            public void EndDownload() {
+                FileDownloading = false;
+            }
+
+            private void RequestTimeoutCallback(object state, bool timedOut) {
+                if (timedOut == true) {
+                    var cdfParent = (MetabansRequest) state;
+
+                    if (cdfParent != null) {
+                        try {
+                            cdfParent.m_webRequest.Abort();
+                        }
+                        catch (Exception e) {
+                            if (RequestError != null) {
+                                Error = e.Message;
+
+                                RequestError(this);
+                            }
+                        }
+                    }
+                }
+            }
+
+            public void BeginRequest() {
+                try {
+                    new Thread(new ThreadStart(BeginRequestCallback)).Start();
+                }
+                catch (Exception e) {
+                    if (RequestError != null) {
+                        Error = e.Message;
+
+                        RequestError(this);
+                    }
+                }
+            }
+
+            private void BeginRequestCallback() {
+                UnknownSize = true;
+
+                BytesDownloaded = 0;
+                FileSize = 1;
+
+                FileDownloading = true;
+
+                ma_bBufferStream = new byte[MetabansRequest.INT_BUFFER_SIZE];
+
+                try {
+                    m_webRequest = (HttpWebRequest) WebRequest.Create(DownloadSource);
+                    m_webRequest.Method = Method;
+
+                    if (Range != null) {
+                        m_webRequest.AddRange((int) Range);
+                    }
+
+                    if (Referrer != null) {
+                        m_webRequest.UserAgent = Referrer;
+                    }
+
+                    m_webRequest.Headers.Add(System.Net.HttpRequestHeader.AcceptEncoding, "gzip");
+
+                    try {
+                        m_webRequest.Proxy = null;
+                    }
+                    catch (Exception) {
+                    }
+
+                    if (RequestContent != null && RequestContent.Length > 0) {
+                        m_webRequest.ContentType = "application/x-www-form-urlencoded";
+                        m_webRequest.ContentLength = RequestContent.Length;
+
+                        Stream newStream = m_webRequest.GetRequestStream();
+                        // Send the data.
+                        newStream.Write(Encoding.UTF8.GetBytes(RequestContent), 0, RequestContent.Length);
+                        newStream.Close();
+                    }
+
+                    if (m_webRequest != null) {
+                        IAsyncResult arResult = m_webRequest.BeginGetResponse(new AsyncCallback(ResponseCallback), this);
+                        ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(RequestTimeoutCallback), this, m_timeout, true);
+                    }
+                }
+                catch (Exception e) {
+                    Console.WriteLine(DownloadSource);
+                    Console.WriteLine(e.StackTrace);
+
+                    if (RequestError != null) {
+                        Error = e.Message;
+
+                        RequestError(this);
+                    }
+                }
+            }
+
+            private void ResponseCallback(IAsyncResult ar) {
+                //Request cdfParent = (Request)ar.AsyncState;
+
+                try {
+                    m_webResponse = m_webRequest.EndGetResponse(ar);
+
+                    string strContentLength = null;
+                    if ((strContentLength = m_webResponse.Headers["Content-Length"]) != null) {
+                        FileSize = Convert.ToInt32(strContentLength);
+                        CompleteFileData = new byte[FileSize];
+
+                        UnknownSize = false;
+
+                        if (RequestDiscoveredFileSize != null) {
+                            RequestDiscoveredFileSize(this);
+                        }
+                    }
+                    else {
+                        CompleteFileData = new byte[0];
+                    }
+
+                    m_responseStream = m_webResponse.GetResponseStream();
+
+                    if (m_webResponse.Headers.Get("Content-Encoding") != null && m_webResponse.Headers.Get("Content-Encoding").ToLower() == "gzip") {
+                        m_responseStream = new GZipStream(m_responseStream, CompressionMode.Decompress);
+                    }
+
+                    IAsyncResult arResult = m_responseStream.BeginRead(ma_bBufferStream, 0, MetabansRequest.INT_BUFFER_SIZE, new AsyncCallback(ReadCallBack), this);
+
+                    ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(ReadTimeoutCallback), this, m_timeout, true);
+                }
+                catch (Exception e) {
+                    FileDownloading = false;
+                    if (RequestError != null) {
+                        Error = e.Message;
+
+                        RequestError(this);
+                    }
+                }
+            }
+
+            private void ReadTimeoutCallback(object state, bool timedOut) {
+                if (timedOut == true) {
+                    var cdfParent = (MetabansRequest) state;
+                    if (cdfParent != null && cdfParent.m_responseStream != null) {
+                        cdfParent.m_responseStream.Close();
+
+                        if (cdfParent.RequestError != null) {
+                            cdfParent.Error = "Read Timeout";
+
+                            cdfParent.RequestError(cdfParent);
+                        }
+                    }
+                }
+            }
+
+            private void ReadCallBack(IAsyncResult ar) {
+                if (FileDownloading == true) {
+                    try {
+                        int iBytesRead = -1;
+                        if ((iBytesRead = m_responseStream.EndRead(ar)) > 0) {
+                            if (UnknownSize == true) {
+                                var resizedFileData = new byte[CompleteFileData.Length + iBytesRead];
+
+                                CompleteFileData.CopyTo(resizedFileData, 0);
+
+                                CompleteFileData = resizedFileData;
+
+                                // Array.Resize<byte>(ref cdfParent.CompleteFileData, cdfParent.CompleteFileData.Length + iBytesRead);
+                            }
+
+                            Array.Copy(ma_bBufferStream, 0, CompleteFileData, BytesDownloaded, iBytesRead);
+                            BytesDownloaded += iBytesRead;
+
+                            IAsyncResult arResult = m_responseStream.BeginRead(ma_bBufferStream, 0, MetabansRequest.INT_BUFFER_SIZE, new AsyncCallback(ReadCallBack), this);
+
+                            ThreadPool.RegisterWaitForSingleObject(arResult.AsyncWaitHandle, new WaitOrTimerCallback(ReadTimeoutCallback), this, m_timeout, true);
+                        }
+                        else {
+                            FileDownloading = false;
+                            if (RequestComplete != null) {
+                                //FrostbiteConnection.RaiseEvent(cdfParent.DownloadComplete.GetInvocationList(), cdfParent);
+                                RequestComplete(this);
+                            }
+
+                            m_responseStream.Close();
+                            m_responseStream.Dispose();
+                            m_responseStream = null;
+                        }
+                    }
+                    catch (Exception e) {
+                        FileDownloading = false;
+                        if (RequestError != null) {
+                            Error = e.Message;
+
+                            //FrostbiteConnection.RaiseEvent(cdfParent.DownloadError.GetInvocationList(), cdfParent);
+                            RequestError(this);
+                        }
+                    }
+                }
+            }
+        }
+
+        internal static class SHA1 {
+            private static readonly System.Security.Cryptography.SHA1 HASHER = System.Security.Cryptography.SHA1.Create();
+
+            public static string Data(byte[] data) {
+                var stringifyHash = new StringBuilder();
+                byte[] hash = SHA1.HASHER.ComputeHash(data);
+
+                for (int x = 0; x < hash.Length; x++) {
+                    stringifyHash.Append(hash[x].ToString("x2"));
+                }
+
+                return stringifyHash.ToString();
+            }
+
+            public static string String(string data) {
+                return SHA1.Data(Encoding.UTF8.GetBytes(data));
             }
         }
 
@@ -16656,7 +20388,7 @@ namespace PRoConEvents {
                 try {
                     Hashtable statTable = FetchWeaponStats();
                     if (Plugin._gameVersion == GameVersion.BF3) {
-                        //No need for bandwidth, all BF3 weapons are set in stone now.
+                        //No need for download, all BF3 weapons are set in stone now.
                         Weapons = OverloadBF3Weapons();
                         if (Plugin._UseHackerChecker) {
                             Plugin.ConsoleWarn("Downloaded " + Weapons.Count + " " + Plugin._gameVersion + " weapon definitions for hacker checker.");
@@ -16700,7 +20432,7 @@ namespace PRoConEvents {
                 Hashtable statTable = null;
                 using (var client = new WebClient()) {
                     try {
-                        const string url = "https://raw.github.com/ColColonCleaner/AdKats/dev/adkatsweaponstats.json";
+                        const string url = "https://raw.github.com/ColColonCleaner/AdKats/master/adkatsweaponstats.json";
                         String textResponse = client.DownloadString(url);
                         statTable = (Hashtable) JSON.JsonDecode(textResponse);
                     }
