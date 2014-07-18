@@ -8,7 +8,7 @@
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any
     setup.
     Includes a cross-server ban enforcer with advanced enforcement features, metabans support, and the AdKats WebAdmin
-    for out-of-game control has been released.
+    for external control has been released.
     Designed for groups with high-traffic servers and many admins, but will function just as well for small servers.
 </p>
 <ul>
