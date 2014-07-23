@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 5.0.0.4
+ * Version 5.0.0.5
  * 23-JUL-2014
  */
 
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.0.4";
+        private const String PluginVersion = "5.0.0.5";
 
         public enum ConsoleMessageType {
             Warning,
@@ -13233,10 +13233,21 @@ namespace PRoConEvents {
             if (aRecord.target_player != null && aRecord.target_player.player_id > 0) {
                 UpdatePlayerReputation(aRecord.target_player);
             }
+            if (aRecord.TargetPlayersLocal != null) {
+                foreach (AdKatsPlayer aPlayer in aRecord.TargetPlayersLocal) {
+                    UpdatePlayerReputation(aPlayer);
+                }
+            }
         }
 
         private void UpdatePlayerReputation(AdKatsPlayer aPlayer) {
-            try {  
+            try {
+                if (_commandSourceReputationDictionary == null || 
+                    !_commandSourceReputationDictionary.Any() ||
+                    _commandTargetReputationDictionary == null || 
+                    !_commandTargetReputationDictionary.Any()) {
+                    DebugWrite("Reputation dictionaries not populated. Can't update reputation for " + aPlayer.player_name + ".", 4);
+                }
                 double sourceReputation = 0.0;
                 double targetReputation = (-25) * FetchPoints(aPlayer, true);
                 double totalReputation = 0;
@@ -13328,6 +13339,9 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("total_rep", totalReputation);
                         command.Parameters.AddWithValue("total_rep_co", totalReputationConstrained);
                         Int32 rowsAffected = command.ExecuteNonQuery();
+                        if (_firstPlayerListComplete && aPlayer.player_reputation != totalReputationConstrained) {
+                            DebugWrite(aPlayer.player_name + "'s reputation " + ((totalReputationConstrained > aPlayer.player_reputation) ? ("increased") : ("decreased")) + " to " + Math.Round(totalReputationConstrained, 2), 3);
+                        }
                         aPlayer.player_reputation = totalReputationConstrained;
                     }
                 }
@@ -15879,7 +15893,6 @@ namespace PRoConEvents {
                                 if (_CommandIDDictionary.ContainsKey(13)) {
                                     _CommandIDDictionary.Remove(13);
                                     SendNonQuery("Removing command 13", "DELETE FROM `adkats_commands` WHERE `command_id` = 13", true);
-                                    changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(14)) {
                                     SendNonQuery("Adding command 14", "REPLACE INTO `adkats_commands` VALUES(14, 'Active', 'player_move', 'Log', 'On-Death Move Player', 'move', TRUE)", true);
