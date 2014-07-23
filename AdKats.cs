@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 5.0.0.3
+ * Version 5.0.0.4
  * 23-JUL-2014
  */
 
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.0.3";
+        private const String PluginVersion = "5.0.0.4";
 
         public enum ConsoleMessageType {
             Warning,
@@ -14564,7 +14564,7 @@ namespace PRoConEvents {
                                 {
                                     sql += " OR ";
                                 }
-                                sql += " `EAGUID` LIKE '" + playerGUID + "' ";
+                                sql += " `EAGUID` = '" + playerGUID + "' ";
                             }
                             if (String.IsNullOrEmpty(playerGUID) && !String.IsNullOrEmpty(playerName))
                             {
@@ -14590,7 +14590,7 @@ namespace PRoConEvents {
                                 {
                                     sql += " OR ";
                                 }
-                                sql += " `IP_Address` LIKE '" + playerIP + "' ";
+                                sql += " `IP_Address` = '" + playerIP + "' ";
                             }
                             if (!sqlEnder)
                             {
@@ -15813,6 +15813,7 @@ namespace PRoConEvents {
                                             command_text = commandText,
                                             command_playerInteraction = commandPlayerInteraction
                                         };
+
                                         _CommandIDDictionary.Add(currentCommand.command_id, currentCommand);
                                     }
                                     _CommandKeyDictionary.Add(currentCommand.command_key, currentCommand);
@@ -15876,6 +15877,7 @@ namespace PRoConEvents {
                                     changed = true;
                                 }
                                 if (_CommandIDDictionary.ContainsKey(13)) {
+                                    _CommandIDDictionary.Remove(13);
                                     SendNonQuery("Removing command 13", "DELETE FROM `adkats_commands` WHERE `command_id` = 13", true);
                                     changed = true;
                                 }
@@ -16285,26 +16287,33 @@ namespace PRoConEvents {
                                 }
                                 foreach (var currentRoleElement in rIDcIDDictionary) {
                                     AdKatsRole aRole;
+                                    Boolean uploadRequired = false;
                                     if (!_RoleIDDictionary.TryGetValue(currentRoleElement.Key, out aRole)) {
-                                        ConsoleError("Role for ID " + currentRoleElement.Key + " not found in role dictionary when assigning commands.");
+                                        ConsoleWarn("Role for ID " + currentRoleElement.Key + " not found in role dictionary when assigning commands.");
                                         continue;
                                     }
                                     foreach (long curRoleID in currentRoleElement.Value) {
                                         AdKatsCommand aCommand;
                                         if (!_CommandIDDictionary.TryGetValue(curRoleID, out aCommand)) {
-                                            ConsoleError("Command for ID " + curRoleID + " not found in command dictionary when assigning commands.");
+                                            ConsoleWarn("Command for ID " + curRoleID + " not found in command dictionary when assigning commands.");
+                                            uploadRequired = true;
                                             continue;
                                         }
                                         if (!aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) && aCommand.command_active==AdKatsCommand.CommandActive.Active) {
                                             aRole.RoleAllowedCommands.Add(aCommand.command_key, aCommand);
                                         }
-                                    }
+                                    } 
                                     KeyValuePair<Int64, HashSet<Int64>> element = currentRoleElement;
                                     foreach (AdKatsCommand remCommand in aRole.RoleAllowedCommands.Values.ToList().Where(remCommand => !element.Value.Contains(remCommand.command_id))) {
                                         ConsoleWarn("Removing command " + remCommand.command_key + " from role " + aRole.role_key);
                                         aRole.RoleAllowedCommands.Remove(remCommand.command_key);
+                                        uploadRequired = true;
                                     }
                                     FillConditionalAllowedCommands(aRole);
+                                    if (_CommandIDDictionary.Any() && uploadRequired)
+                                    {
+                                        QueueRoleForUpload(aRole);
+                                    }
                                 }
                             }
                         }
@@ -19375,7 +19384,7 @@ namespace PRoConEvents {
                                 };
                                 smtp.SendCompleted += new SendCompletedEventHandler(smtp_SendCompleted);
 
-                                Plugin.DebugWrite("Sending notification email...please wait...", 1);
+                                Plugin.DebugWrite("Sending notification email. Please wait.", 1);
 
                                 smtp.Send(message);
 
