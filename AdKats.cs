@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 5.0.0.0
- * 18-JUL-2014
+ * Version 5.0.0.2
+ * 23-JUL-2014
  */
 
 using System;
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.0.0";
+        private const String PluginVersion = "5.0.0.2";
 
         public enum ConsoleMessageType {
             Warning,
@@ -289,8 +289,8 @@ namespace PRoConEvents {
         //AFK manager
         private Boolean _AFKSystemEnable;
         private Boolean _AFKAutoKickEnable;
-        private Double _AFKAutoKickDurationMinutes = 5;
-        private Int32 _AFKAutoKickMinimumPlayers = 20;
+        private Double _AFKTriggerDurationMinutes = 5;
+        private Int32 _AFKTriggerMinimumPlayers = 20;
         private Boolean _AFKIgnoreUserList = true;
         private String[] _AFKIgnoreRoles = { };
         private Boolean _AFKIgnoreChat;
@@ -702,8 +702,8 @@ namespace PRoConEvents {
                     {
                         lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
                         lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
-                        lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Trigger Minutes", typeof(Double), _AFKAutoKickDurationMinutes));
-                        lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Minimum Players", typeof(Int32), _AFKAutoKickMinimumPlayers));
+                        lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Trigger Minutes", typeof(Double), _AFKTriggerDurationMinutes));
+                        lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Minimum Players", typeof(Int32), _AFKTriggerMinimumPlayers));
                         lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Ignore User List", typeof(Boolean), _AFKIgnoreUserList));
                         if (!_AFKIgnoreUserList)
                         {
@@ -1166,31 +1166,31 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"AFK Trigger Minutes").Success)
                 {
                     Double afkAutoKickDurationMinutes = Double.Parse(strValue);
-                    if (_AFKAutoKickDurationMinutes != afkAutoKickDurationMinutes)
+                    if (_AFKTriggerDurationMinutes != afkAutoKickDurationMinutes)
                     {
                         if (afkAutoKickDurationMinutes < 0)
                         {
                             ConsoleError("Duration cannot be negative.");
                             return;
                         }
-                        _AFKAutoKickDurationMinutes = afkAutoKickDurationMinutes;
+                        _AFKTriggerDurationMinutes = afkAutoKickDurationMinutes;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"AFK Trigger Minutes", typeof(Double), _AFKAutoKickDurationMinutes));
+                        QueueSettingForUpload(new CPluginVariable(@"AFK Trigger Minutes", typeof(Double), _AFKTriggerDurationMinutes));
                     }
                 }
                 else if (Regex.Match(strVariable, @"AFK Minimum Players").Success)
                 {
                     Int32 afkAutoKickMinimumPlayers = Int32.Parse(strValue);
-                    if (_AFKAutoKickMinimumPlayers != afkAutoKickMinimumPlayers)
+                    if (_AFKTriggerMinimumPlayers != afkAutoKickMinimumPlayers)
                     {
                         if (afkAutoKickMinimumPlayers < 0)
                         {
                             ConsoleError("Minimum players cannot be negative.");
                             return;
                         }
-                        _AFKAutoKickMinimumPlayers = afkAutoKickMinimumPlayers;
+                        _AFKTriggerMinimumPlayers = afkAutoKickMinimumPlayers;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"AFK Minimum Players", typeof(Int32), _AFKAutoKickMinimumPlayers));
+                        QueueSettingForUpload(new CPluginVariable(@"AFK Minimum Players", typeof(Int32), _AFKTriggerMinimumPlayers));
                     }
                 }
                 else if (Regex.Match(strVariable, @"AFK Ignore User List").Success)
@@ -2701,13 +2701,13 @@ namespace PRoConEvents {
                             }
 
                             //Perform AFK processing
-                            if (_AFKSystemEnable && _AFKAutoKickEnable && (_PlayerDictionary.Count > _AFKAutoKickMinimumPlayers))
+                            if (_AFKSystemEnable && _AFKAutoKickEnable && (_PlayerDictionary.Count > _AFKTriggerMinimumPlayers))
                             {
                                 List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
                                     aPlayer =>
-                                        (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKAutoKickDurationMinutes &&
+                                        (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes &&
                                         _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
-                                        !RoleIsAdmin(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKAutoKickMinimumPlayers).ToList();
+                                        !RoleIsAdmin(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
                                 if (_AFKIgnoreUserList) {
                                     IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
                                     afkPlayers = afkPlayers.Where(aPlayer => !userSoldierGuids.Contains(aPlayer.player_guid)).ToList();
@@ -5252,25 +5252,22 @@ namespace PRoConEvents {
                                 message = message.Substring(1);
                                 isCommand = true;
                             }
-
-                            if (!isCommand) {
-                                DebugWrite("MESSAGE: Message is regular chat. Ignoring.", 7);
-                            }
                             
-                            //Optionally ignore if message is command
-                            if(!isCommand || !_MutedPlayerIgnoreCommands){
-                                //If the message does not cause either of the above clauses, then ignore it for command parsing.
-
-                                //check for player mute case
-                                //ignore if it's a server call
-                                if (speaker != "Server") {
-                                    if (_isTestingAuthorized)
-                                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-                                    lock (_RoundMutedPlayers) {
-                                        //Check if the player is muted
-                                        DebugWrite("MESSAGE: Checking for mute case.", 7);
-                                        if (_RoundMutedPlayers.ContainsKey(speaker)) {
-                                            DebugWrite("MESSAGE: Player is muted. Acting.", 7);
+                            //check for player mute case
+                            //ignore if it's a server call
+                            if (speaker != "Server") {
+                                if (_isTestingAuthorized)
+                                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
+                                lock (_RoundMutedPlayers) {
+                                    //Check if the player is muted
+                                    DebugWrite("MESSAGE: Checking for mute case.", 7);
+                                    if (_RoundMutedPlayers.ContainsKey(speaker)) {
+                                        if (_MutedPlayerIgnoreCommands && isCommand) {
+                                            DebugWrite("Player muted, but ignoring since message is command.", 3);
+                                        }
+                                        else
+                                        {
+                                            DebugWrite("MESSAGE: Player is muted and valid. Acting.", 7);
                                             //Increment the muted chat count
                                             _RoundMutedPlayers[speaker] = _RoundMutedPlayers[speaker] + 1;
                                             //Create record
@@ -5280,24 +5277,33 @@ namespace PRoConEvents {
                                             record.source_name = "PlayerMuteSystem";
                                             _PlayerDictionary.TryGetValue(speaker, out record.target_player);
                                             record.target_name = speaker;
-                                            if (_RoundMutedPlayers[speaker] > _MutedPlayerChances) {
+                                            if (_RoundMutedPlayers[speaker] > _MutedPlayerChances)
+                                            {
                                                 record.record_message = _MutedPlayerKickMessage;
                                                 record.command_type = _CommandKeyDictionary["player_kick"];
                                                 record.command_action = _CommandKeyDictionary["player_kick"];
                                             }
-                                            else {
+                                            else
+                                            {
                                                 record.record_message = _MutedPlayerKillMessage;
                                                 record.command_type = _CommandKeyDictionary["player_kill"];
                                                 record.command_action = _CommandKeyDictionary["player_kill"];
                                             }
-
                                             QueueRecordForProcessing(record);
+                                            continue;
                                         }
                                     }
                                 }
-                                continue;
                             }
-                            QueueCommandForParsing(speaker, message.Trim());
+
+                            if (isCommand)
+                            {
+                                QueueCommandForParsing(speaker, message.Trim());
+                            }
+                            else
+                            {
+                                DebugWrite("MESSAGE: Message is regular chat. Ignoring.", 7);
+                            }
                         }
                     }
                     catch (Exception e) {
@@ -8322,9 +8328,31 @@ namespace PRoConEvents {
                 DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + (DateTime.UtcNow - record.record_time).TotalMilliseconds + "ms to complete.", 3);
             } 
             //Add event log
-            if (String.IsNullOrEmpty(record.target_name) || String.IsNullOrEmpty(record.source_name) || record.command_action == null) {
-                ConsoleError("Error in record information, unable to log procon event.");
-                return;
+            if (String.IsNullOrEmpty(record.target_name)) {
+                if (record.target_player != null) {
+                    record.target_name = record.target_player.player_name;
+                }
+                else {
+                    record.target_name = "UnknownTarget";
+                }
+            } 
+            if (String.IsNullOrEmpty(record.source_name)) {
+                if (record.source_player != null) {
+                    record.source_name = record.source_player.player_name;
+                }
+                else {
+                    record.source_name = "UnknownSource";
+                }
+            } 
+            if(record.command_action == null) {
+                if (record.command_type != null) {
+                    record.command_action = record.command_type;
+                }
+                else
+                {
+                    ConsoleError("Record command not found, unable to log procon event.");
+                    return;
+                }
             }
             String message;
             if (record.record_action_executed) {
@@ -8333,6 +8361,7 @@ namespace PRoConEvents {
             else {
                 message = "Failed to issue " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
             }
+            ConsoleWarn("AdKats, " + record.source_name + ", " + message);
             this.ExecuteCommand("procon.protected.events.write", "Plugins", "AdKats", message, record.source_name);
         }
 
@@ -11073,11 +11102,15 @@ namespace PRoConEvents {
             DebugWrite("Entering ManageAFKPlayers", 6);
             try
             {
+                if(_PlayerDictionary.Count < _AFKTriggerMinimumPlayers)
+                {
+                    SendMessageToSource(record, "Server contains less than " + _AFKTriggerMinimumPlayers + ", unable to kick AFK players.");
+                }
                 List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
                     aPlayer =>
-                        (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKAutoKickDurationMinutes &&
+                        (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes &&
                         _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
-                        !RoleIsAdmin(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKAutoKickMinimumPlayers).ToList();
+                        !RoleIsAdmin(aPlayer.player_role)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
                 if (_AFKIgnoreUserList) {
                     IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
                     afkPlayers = afkPlayers.Where(aPlayer => !userSoldierGuids.Contains(aPlayer.player_guid)).ToList();
@@ -11479,7 +11512,6 @@ namespace PRoConEvents {
                     }
                     if (_FeedStatLoggerSettings) {
                         SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Log ServerSPAM?", "Yes");
                         SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "Yes");
                         SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Statslogging?", "Yes");
                         SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Weaponstats?", "Yes");
@@ -11499,7 +11531,6 @@ namespace PRoConEvents {
                     }
                     if (_FeedStatLoggerSettings) {
                         SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Chatlogging?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLogger", "Log ServerSPAM?", "Yes");
                         SetExternalPluginSetting("CChatGUIDStatsLogger", "Instant Logging of Chat Messages?", "Yes");
                         SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Statslogging?", "Yes");
                         SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Weaponstats?", "Yes");
@@ -12087,12 +12118,12 @@ namespace PRoConEvents {
                         UNIQUE(`setting_server`, `setting_plugin`, `setting_name`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Plugin Orchestration'", true);
             }
-            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_effective' )", false))
+            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_effective' )", false))
             {
                 SendNonQuery("Adding special player expiration.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_effective` DATETIME NOT NULL AFTER `player_identifier`", true);
                 SendNonQuery("Adding initial special player effective values.", "UPDATE `adkats_specialplayers` SET `player_effective` = UTC_TIMESTAMP()", true);
             }
-            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_expiration' )", false))
+            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_expiration' )", false))
             {
                 SendNonQuery("Adding special player expiration.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_expiration` DATETIME NOT NULL AFTER `player_effective`", true);
                 SendNonQuery("Adding initial special player expiration values.", "UPDATE `adkats_specialplayers` SET `player_expiration` = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)", true);
@@ -12618,8 +12649,8 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKSystemEnable));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
-                QueueSettingForUpload(new CPluginVariable(@"AFK Trigger Minutes", typeof(Double), _AFKAutoKickDurationMinutes));
-                QueueSettingForUpload(new CPluginVariable(@"AFK Minimum Players", typeof(Int32), _AFKAutoKickMinimumPlayers));
+                QueueSettingForUpload(new CPluginVariable(@"AFK Trigger Minutes", typeof(Double), _AFKTriggerDurationMinutes));
+                QueueSettingForUpload(new CPluginVariable(@"AFK Minimum Players", typeof(Int32), _AFKTriggerMinimumPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore User List", typeof(Boolean), _AFKIgnoreUserList));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_AFKIgnoreRoles)));
                 DebugWrite("uploadAllSettings finished!", 6);
@@ -16316,12 +16347,12 @@ namespace PRoConEvents {
             }
             try
             {
-                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_expiration' )", false))
+                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_expiration' )", false))
                 {
                     SendNonQuery("Adding user expiration.", "ALTER TABLE `adkats_users` ADD COLUMN `user_expiration` DATETIME NOT NULL AFTER `user_role`", true);
                     SendNonQuery("Adding initial user expiration values.", "UPDATE `adkats_users` SET `user_expiration` = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)", true);
                 }
-                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_notes' )", false))
+                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_notes' )", false))
                 {
                     SendNonQuery("Adding user notes.", "ALTER TABLE `adkats_users` ADD COLUMN `user_notes` VARCHAR(1000) NOT NULL DEFAULT 'No Notes' AFTER `user_expiration`", true);
                 }
