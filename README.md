@@ -1,5 +1,5 @@
 <script>
-    //<latest_stable_release>5.0.0.0</latest_stable_release>
+    //<latest_stable_release>5.0.0.5</latest_stable_release>
 </script>
 <h1>AdKats - User Manual</h1>
 <p>
@@ -215,8 +215,8 @@
     <li>
         <b>Download AdKats Source.</b>
         Download the latest stable version of AdKats from here:
-        <a href="http://sourceforge.net/projects/adkats/files/AdKats_v5.0.0.0.zip/download" target="_blank">Version
-            5.0.0.0</a>
+        <a href="http://sourceforge.net/projects/adkats/files/AdKats_v5.0.0.5.zip/download" target="_blank">Version
+            5.0.0.5</a>
     </li>
     <li>
         <b>Add plugin file to Procon.</b>
