@@ -8359,12 +8359,11 @@ namespace PRoConEvents {
             }
             String message;
             if (record.record_action_executed) {
-                message = "AdKats issued " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
+                message = record.source_name + " issued " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
             }
             else {
-                message = "AdKats FAILED to issue " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
+                message = record.source_name + " FAILED to issue " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
             }
-            //ConsoleWarn("AdKats, " + record.source_name + ", " + message);
             this.ExecuteCommand("procon.protected.events.write", "Plugins", "PluginAction", message, record.source_name);
         }
 
