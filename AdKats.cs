@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 5.0.0.2
+ * Version 5.0.0.3
  * 23-JUL-2014
  */
 
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.0.2";
+        private const String PluginVersion = "5.0.0.3";
 
         public enum ConsoleMessageType {
             Warning,
@@ -2241,7 +2241,7 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Use first spawn message").Success) {
                     Boolean useFirstSpawnMessage = Boolean.Parse(strValue);
-                    if (useFirstSpawnMessage != _RequirePreMessageUse) {
+                    if (useFirstSpawnMessage != _UseFirstSpawnMessage) {
                         _UseFirstSpawnMessage = useFirstSpawnMessage;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
@@ -3074,6 +3074,8 @@ namespace PRoConEvents {
                             break;
                         }
 
+                        Boolean playerListFetched = false;
+
                         //Get all unparsed inbound lists
                         List<CPlayerInfo> inboundPlayerList = null;
                         if (_PlayerListProcessingQueue.Count > 0) {
@@ -3084,6 +3086,7 @@ namespace PRoConEvents {
                                 DebugWrite("PLIST: Inbound player lists found. Grabbing.", 6);
                                 while (_PlayerListProcessingQueue.Any()) {
                                     inboundPlayerList = _PlayerListProcessingQueue.Dequeue();
+                                    playerListFetched = true;
                                 }
                                 //Clear the queue for next run
                                 _PlayerListProcessingQueue.Clear();
@@ -3357,7 +3360,7 @@ namespace PRoConEvents {
                         //Set required handles 
                         _PlayerListUpdateWaitHandle.Set();
                         _TeamswapWaitHandle.Set();
-                        if (!_firstPlayerListComplete) {
+                        if (!_firstPlayerListComplete && playerListFetched) {
                             _firstPlayerListComplete = true;
                             OnlineAdminSayMessage("Player listing complete. " + _PlayerDictionary.Count + " players in server.");
                             OnlineAdminSayMessage("AdKats startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.");
@@ -8356,13 +8359,13 @@ namespace PRoConEvents {
             }
             String message;
             if (record.record_action_executed) {
-                message = record.command_action.command_name + " issued on " + record.target_name + " for " + record.record_message;
+                message = "AdKats issued " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
             }
             else {
-                message = "Failed to issue " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
+                message = "AdKats FAILED to issue " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
             }
-            ConsoleWarn("AdKats, " + record.source_name + ", " + message);
-            this.ExecuteCommand("procon.protected.events.write", "Plugins", "AdKats", message, record.source_name);
+            //ConsoleWarn("AdKats, " + record.source_name + ", " + message);
+            this.ExecuteCommand("procon.protected.events.write", "Plugins", "PluginAction", message, record.source_name);
         }
 
         public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm, Boolean externalFetchOverFuzzy) {
