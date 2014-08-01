@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 5.0.0.5
- * 23-JUL-2014
+ * Version 5.0.0.7 
+ * 31-JUL-2014
  */
 
 using System;
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.0.5";
+        private const String PluginVersion = "5.0.0.7";
 
         public enum ConsoleMessageType {
             Warning,
@@ -241,6 +241,7 @@ namespace PRoConEvents {
         private readonly Dictionary<String, Func<AdKats, Double>> _commandTimeoutDictionary = new Dictionary<string, Func<AdKats, double>>();
         private readonly Dictionary<String, DateTime> _commandUsageTimes = new Dictionary<string, DateTime>();
         private Boolean _AllowAdminSayCommands = true;
+        private Boolean _bypassCommandConfirmation = false;
         private List<String> _ExternalPlayerCommands = new List<string>();
         private List<String> _ExternalAdminCommands = new List<string>();
         private Int32 _RequiredReasonLength = 4;
@@ -783,6 +784,7 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
                         lstReturn.Add(new CPluginVariable("5. Command Settings|Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
                         lstReturn.Add(new CPluginVariable("5. Command Settings|Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|Bypass all command confirmation -DO NOT USE-", typeof(Boolean), _bypassCommandConfirmation));
                         lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin player commands", typeof (String[]), _ExternalPlayerCommands.ToArray()));
                         lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
 
@@ -1640,12 +1642,24 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Minimum Report Handle Seconds", typeof (Int32), _MinimumReportHandleSeconds));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Allow Commands from Admin Say").Success) {
+                else if (Regex.Match(strVariable, @"Allow Commands from Admin Say").Success)
+                {
                     Boolean allowSayCommands = Boolean.Parse(strValue);
-                    if (_AllowAdminSayCommands != allowSayCommands) {
+                    if (_AllowAdminSayCommands != allowSayCommands)
+                    {
                         _AllowAdminSayCommands = allowSayCommands;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Allow Commands from Admin Say", typeof (Boolean), _AllowAdminSayCommands));
+                        QueueSettingForUpload(new CPluginVariable(@"Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Bypass all command confirmation -DO NOT USE-").Success)
+                {
+                    Boolean bypassAllConfirmation = Boolean.Parse(strValue);
+                    if (_bypassCommandConfirmation != bypassAllConfirmation)
+                    {
+                        _bypassCommandConfirmation = bypassAllConfirmation;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Bypass all command confirmation -DO NOT USE-", typeof(Boolean), _bypassCommandConfirmation));
                     }
                 }
                 else if (Regex.Match(strVariable, @"External plugin player commands").Success)
@@ -2096,25 +2110,35 @@ namespace PRoConEvents {
                     QueueSettingForUpload(new CPluginVariable("Use Metabans?", typeof (Boolean), _useMetabans));
                 }
                 else if (Regex.Match(strVariable, @"Metabans API Key").Success) {
-                    if (string.IsNullOrEmpty(strValue)) {
-                        _metabansAPIKey = "";
-                        ConsoleError("No API key for Metabans was given! Canceling Operation.");
-                    }
-                    else {
-                        _metabansAPIKey = strValue;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof (String), _metabansAPIKey));
+                    if (_useMetabans)
+                    {
+                        if (string.IsNullOrEmpty(strValue))
+                        {
+                            _metabansAPIKey = "";
+                            ConsoleError("No API key for Metabans was given! Canceling Operation.");
+                        }
+                        else
+                        {
+                            _metabansAPIKey = strValue;
+                            //Once setting has been changed, upload the change to database
+                            QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
+                        }
                     }
                 }
                 else if (Regex.Match(strVariable, @"Metabans Username").Success) {
-                    if (string.IsNullOrEmpty(strValue)) {
-                        _metabansUsername = "";
-                        ConsoleError("No username for Metabans was given! Canceling Operation.");
-                    }
-                    else {
-                        _metabansUsername = strValue;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof (String), _metabansUsername));
+                    if (_useMetabans)
+                    {
+                        if (string.IsNullOrEmpty(strValue))
+                        {
+                            _metabansUsername = "";
+                            ConsoleError("No username for Metabans was given! Canceling Operation.");
+                        }
+                        else
+                        {
+                            _metabansUsername = strValue;
+                            //Once setting has been changed, upload the change to database
+                            QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof(String), _metabansUsername));
+                        }
                     }
                 }
                 else if (Regex.Match(strVariable, @"On-Player-Muted Message").Success) {
@@ -2890,44 +2914,52 @@ namespace PRoConEvents {
         }
 
         public override void OnTeamFactionOverride(Int32 targetTeamID, Int32 overrideTeamId) {
-            if (_isTestingAuthorized)
-                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-            lock (_teamDictionary) {
-                switch (overrideTeamId) {
-                    case 0:
-                        //Check for already existing US team
-                        if (_serverInfo.RoundTime > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "US")
-                        {
-                            DebugWrite("Team US already set for team " + targetTeamID + ", cancelling override.", 4);
+            try
+            {
+                if (_isTestingAuthorized)
+                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
+                lock (_teamDictionary)
+                {
+                    switch (overrideTeamId)
+                    {
+                        case 0:
+                            //Check for already existing US team
+                            if (_serverInfo.RoundTime > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "US")
+                            {
+                                DebugWrite("Team US already set for team " + targetTeamID + ", cancelling override.", 4);
+                                break;
+                            }
+                            _teamDictionary[targetTeamID] = new AdKatsTeam(targetTeamID, "US", "US Army", "United States Army");
+                            DebugWrite("Assigning team ID " + targetTeamID + " to US ", 4);
                             break;
-                        }
-                        _teamDictionary.Add(targetTeamID, new AdKatsTeam(targetTeamID, "US", "US Army", "United States Army"));
-                        DebugWrite("Assigning team ID " + targetTeamID + " to US ", 4);
-                        break;
-                    case 1:
-                        //Check for already existing US team
-                        if (_serverInfo.RoundTime > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "RU")
-                        {
-                            DebugWrite("Team RU already set for team " + targetTeamID + ", cancelling override.", 4);
+                        case 1:
+                            //Check for already existing US team
+                            if (_serverInfo.RoundTime > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "RU")
+                            {
+                                DebugWrite("Team RU already set for team " + targetTeamID + ", cancelling override.", 4);
+                                break;
+                            }
+                            _teamDictionary[targetTeamID] = new AdKatsTeam(targetTeamID, "RU", "Russian Army", "Russian Federation Army");
+                            DebugWrite("Assigning team ID " + targetTeamID + " to RU", 4);
                             break;
-                        }
-                        _teamDictionary.Add(targetTeamID, new AdKatsTeam(targetTeamID, "RU", "Russian Army", "Russian Federation Army"));
-                        DebugWrite("Assigning team ID " + targetTeamID + " to RU", 4);
-                        break;
-                    case 2:
-                        //Check for already existing US team
-                        if (_serverInfo.RoundTime > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "CN")
-                        {
-                            DebugWrite("Team CN already set for team " + targetTeamID + ", cancelling override.", 4);
+                        case 2:
+                            //Check for already existing US team
+                            if (_serverInfo.RoundTime > 20 && _teamDictionary.ContainsKey(targetTeamID) && _teamDictionary[targetTeamID].TeamKey == "CN")
+                            {
+                                DebugWrite("Team CN already set for team " + targetTeamID + ", cancelling override.", 4);
+                                break;
+                            }
+                            _teamDictionary[targetTeamID] = new AdKatsTeam(targetTeamID, "CN", "Chinese Army", "Chinese People's Liberation Army");
+                            DebugWrite("Assigning team ID " + targetTeamID + " to CN", 4);
                             break;
-                        }
-                        _teamDictionary.Add(targetTeamID, new AdKatsTeam(targetTeamID, "CN", "Chinese Army", "Chinese People's Liberation Army"));
-                        DebugWrite("Assigning team ID " + targetTeamID + " to CN", 4);
-                        break;
-                    default:
-                        ConsoleError("Team ID " + overrideTeamId + " was not understood.");
-                        break;
+                        default:
+                            ConsoleError("Team ID " + overrideTeamId + " was not understood.");
+                            break;
+                    }
                 }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while processing team faction override.", e));
             }
         }
 
@@ -8664,6 +8696,10 @@ namespace PRoConEvents {
             try {
                 if (_isTestingAuthorized)
                     PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
+                if (_bypassCommandConfirmation) {
+                    QueueRecordForProcessing(record);
+                    return;
+                }
                 lock (_ActionConfirmDic) {
                     //Cancel any source pending action
                     CancelSourcePendingAction(record);
@@ -8812,6 +8848,10 @@ namespace PRoConEvents {
                 DebugWrite("Attempting to handle based on round report.", 6);
                 AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, false);
                 if (reportedRecord != null) {
+                    if (record.source_player != null && 
+                        !RoleIsAdmin(record.source_player.player_role)) {
+                        return false;
+                    }
                     if ((DateTime.UtcNow - reportedRecord.record_time).TotalSeconds < _MinimumReportHandleSeconds) {
                         SendMessageToSource(record, "Report " + record.target_name + " cannot be acted on. " + FormatTimeString(TimeSpan.FromSeconds(_MinimumReportHandleSeconds - (DateTime.UtcNow - reportedRecord.record_time).TotalSeconds), 2) + " remaining.");
                         return true;
@@ -9414,7 +9454,7 @@ namespace PRoConEvents {
                 }
                 else {
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_player.player_name, kickReason);
-                    if (record.target_name != record.source_name) {
+                    if (record.target_name != record.source_name && record.source_name != "AFKManager") {
                         AdminSayMessage("Player " + record.target_name + " was KICKED by " + ((_ShowAdminNameInSay) ? (record.source_name) : ("admin")) + " for " + record.record_message + " " + additionalMessage);
                     }
                     SendMessageToSource(record, "You KICKED " + record.target_name + " for " + record.record_message + ". " + additionalMessage);
@@ -11880,6 +11920,20 @@ namespace PRoConEvents {
                         continue;
                     }
 
+                    //Check for duplicate ban posting
+                    Boolean duplicateFound = false;
+                    foreach (AdKatsBan storedBan in FetchPlayerBans(record.target_player)) {
+                        if (storedBan.ban_record.record_message == record.record_message && 
+                            storedBan.ban_record.source_name == record.source_name) {
+                            duplicateFound = true;
+                        }
+                    }
+                    if (duplicateFound)
+                    {
+                        ConsoleWarn("Attempted to post duplicate ban for player " + record.target_player.player_id + ". Cancelling operation.");
+                        continue;
+                    }
+                        
                     //Upload the ban
                     DebugWrite("Uploading ban from procon.", 5);
                     UploadBan(aBan);
@@ -12927,7 +12981,8 @@ namespace PRoConEvents {
                                     }
                                     asPlayer.player_object = aPlayer;
                                 }
-                                if (String.IsNullOrEmpty(asPlayer.player_identifier) && asPlayer.player_identifier != aPlayer.player_name && asPlayer.player_identifier != aPlayer.player_guid && asPlayer.player_identifier != aPlayer.player_ip) {
+                                if (asPlayer.player_object == null && String.IsNullOrEmpty(asPlayer.player_identifier) && asPlayer.player_identifier != aPlayer.player_name && asPlayer.player_identifier != aPlayer.player_guid && asPlayer.player_identifier != aPlayer.player_ip)
+                                {
                                     DebugWrite("Matching player rejected for mismatched player identifier", 4);
                                     continue;
                                 }
@@ -15890,10 +15945,6 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 12", "REPLACE INTO `adkats_commands` VALUES(12, 'Active', 'player_join', 'Log', 'Join Player', 'join', FALSE)", true);
                                     changed = true;
                                 }
-                                if (_CommandIDDictionary.ContainsKey(13)) {
-                                    _CommandIDDictionary.Remove(13);
-                                    SendNonQuery("Removing command 13", "DELETE FROM `adkats_commands` WHERE `command_id` = 13", true);
-                                }
                                 if (!_CommandIDDictionary.ContainsKey(14)) {
                                     SendNonQuery("Adding command 14", "REPLACE INTO `adkats_commands` VALUES(14, 'Active', 'player_move', 'Log', 'On-Death Move Player', 'move', TRUE)", true);
                                     changed = true;
@@ -16217,6 +16268,10 @@ namespace PRoConEvents {
         private void UpdateCommandTimeouts() {
             //Add rules timeout
             _commandTimeoutDictionary["self_rules"] = (plugin => (plugin._ServerRulesList.Count() * plugin._ServerRulesInterval));
+            _commandTimeoutDictionary["player_kick"] = (plugin => (30));
+            _commandTimeoutDictionary["player_ban_temp"] = (plugin => (30));
+            _commandTimeoutDictionary["player_ban_perm"] = (plugin => (30));
+            _commandTimeoutDictionary["player_ban_perm_future"] = (plugin => (30));
         }
 
         private void FetchRoles() {
@@ -16945,8 +17000,8 @@ namespace PRoConEvents {
                                                 //If the teamswap command is allowed add each of the user's soldiers to the whitelist
                                                 if (command.command_key == "self_teamswap") {
                                                     foreach (AdKatsPlayer soldier in user.soldierDictionary.Values) {
-                                                        if (!autobalanceWhitelistedPlayers.Contains(soldier.player_name)) {
-                                                            autobalanceWhitelistedPlayers.Add(soldier.player_name);
+                                                        if (!autobalanceWhitelistedPlayers.Contains(soldier.player_guid)) {
+                                                            autobalanceWhitelistedPlayers.Add(soldier.player_guid);
                                                         }
                                                     }
                                                 }
@@ -16979,7 +17034,7 @@ namespace PRoConEvents {
                             foreach (AdKatsSpecialPlayer asPlayer in evenDispersedPlayers) {
                                 String playerIdentifier = null;
                                 if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_guid)) {
-                                    playerIdentifier = asPlayer.player_object.player_name;
+                                    playerIdentifier = asPlayer.player_object.player_guid;
                                 }
                                 else {
                                     playerIdentifier = asPlayer.player_identifier;
@@ -17220,8 +17275,7 @@ namespace PRoConEvents {
                     ConsoleError("External command handling canceled. No parameters were provided.");
                     return;
                 }
-                //TODO add logging for this
-                new Thread(ParseExternalCommand).Start(commandParams[0]);
+                new Thread(ParseExternalCommand).Start(commandParams);
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while starting external command processing.", e));
@@ -17229,7 +17283,7 @@ namespace PRoConEvents {
             DebugWrite("IssueCommand finished!", 6);
         }
 
-        private void ParseExternalCommand(Object clientInformation) {
+        private void ParseExternalCommand(Object commandParams) {
             DebugWrite("ParseExternalCommand starting!", 6);
             try {
                 //Set current thread id
@@ -17243,7 +17297,28 @@ namespace PRoConEvents {
                 };
 
                 //Parse information into a record
-                var parsedClientInformation = (Hashtable) JSON.JsonDecode((String) clientInformation);
+                if (commandParams == null) {
+                    ConsoleError("Command params were null when parsing external command. Unable to continue.");
+                    return;
+                }
+                String[] paramArray = commandParams as String[];
+                if (paramArray == null) {
+                    ConsoleError("Command params could not be properly converted to String[]. Unable to continue.");
+                    return;
+                }
+                if (paramArray.Length != 2) {
+                    ConsoleError("Invalid parameter count [source, jsonParams]. Unable to continue.");
+                    return;
+                }
+                String commandSource = paramArray[0];
+                String unparsedCommandJSON = paramArray[1];
+
+                Hashtable parsedClientInformation = (Hashtable)JSON.JsonDecode(unparsedCommandJSON);
+                if (parsedClientInformation == null)
+                {
+                    ConsoleError("Command params could not be properly converted from JSON. Unable to continue.");
+                    return;
+                }
 
                 //Import the caller identity
                 if (!parsedClientInformation.ContainsKey("caller_identity")) {
