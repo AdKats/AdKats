@@ -812,13 +812,13 @@ If all the required parameters are provided, the command will execute and log to
 <b>Plugin Example:</b><br/>
 <br/>
 var requestHashtable = new Hashtable{<br/>
-{"caller_identity", "YourPlugin"},<br/>
-{"response_requested", false},<br/>
-{"command_type", "player_ban_perm"},<br/>
-{"source_name", "AutoTest"},<br/>
-{"target_name", "ColColonCleaner"},<br/>
-{"target_guid", "EA_698E70AF4E420A99824EA9A438FE3CB1"},<br/>
-{"record_message", "Testing"}<br/>
+</t>{"caller_identity", "YourPlugin"},<br/>
+</t>{"response_requested", false},<br/>
+</t>{"command_type", "player_ban_perm"},<br/>
+</t>{"source_name", "AutoTest"},<br/>
+</t>{"target_name", "ColColonCleaner"},<br/>
+</t>{"target_guid", "EA_698E70AF4E420A99824EA9A438FE3CB1"},<br/>
+</t>{"record_message", "Testing"}<br/>
 };<br/>
 ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", "YourPlugin", JSON.JsonEncode(requestHashtable));<br/>
 <br/>
