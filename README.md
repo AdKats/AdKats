@@ -1768,7 +1768,6 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <ul>
             <li>"Servertime Offset" (TIME OFFSET CONVERSION TO UTC TIME)</li>
             <li>"Enable Chatlogging?" "Yes"</li>
-            <li>"Log ServerSPAM?" "Yes"</li>
             <li>"Instant Logging of Chat Messages?" "Yes"</li>
             <li>"Enable Statslogging?" "Yes"</li>
             <li>"Enable Weaponstats?" "Yes"</li>
