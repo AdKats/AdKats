@@ -809,7 +809,7 @@ Response:
 If all the required parameters are provided, the command will execute and log to the database. Response sent if it was requested.
 <br/>
 <br/>
-Plugin Example:<br/>
+<b>Plugin Example:</b><br/>
 <br/>
 var requestHashtable = new Hashtable{<br/>
 {"caller_identity", "YourPlugin"},<br/>
@@ -822,7 +822,7 @@ var requestHashtable = new Hashtable{<br/>
 };<br/>
 ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", "YourPlugin", JSON.JsonEncode(requestHashtable));<br/>
 <br/>
-InsaneLimits Example (OnKill Activation):<br/>
+<b>InsaneLimits Example (OnKill Activation):</b><br/>
 <br/>
 Hashtable command = new Hashtable();<br/>
 command.Add("caller_identity", "InsaneLimits");<br/>
