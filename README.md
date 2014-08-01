@@ -809,7 +809,8 @@ Response:
 If all the required parameters are provided, the command will execute and log to the database. Response sent if it was requested.
 <br/>
 <br/>
-Example:<br/>
+Plugin Example:<br/>
+<br/>
 var requestHashtable = new Hashtable{<br/>
 {"caller_identity", "YourPlugin"},<br/>
 {"response_requested", false},<br/>
@@ -819,7 +820,19 @@ var requestHashtable = new Hashtable{<br/>
 {"target_guid", "EA_698E70AF4E420A99824EA9A438FE3CB1"},<br/>
 {"record_message", "Testing"}<br/>
 };<br/>
-ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", "YourPlugin", JSON.JsonEncode(requestHashtable));
+ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", "YourPlugin", JSON.JsonEncode(requestHashtable));<br/>
+<br/>
+InsaneLimits Example (OnKill Activation):<br/>
+<br/>
+Hashtable command = new Hashtable();<br/>
+command.Add("caller_identity", "InsaneLimits");<br/>
+command.Add("response_requested", false);<br/>
+command.Add("command_type", "player_punish");<br/>
+command.Add("source_name", "AutoAdmin");<br/>
+command.Add("target_name", player.Name);<br/>
+command.Add("target_guid", player.EAGuid);<br/>
+command.Add("record_message", "Using restricted weapon " + kill.Weapon);<br/>
+plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </p>
 <h3>Available In-Game Commands</h3>
 <p>
