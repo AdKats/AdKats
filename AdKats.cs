@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 5.0.0.7 
- * 31-JUL-2014
+ * Version 5.0.1.3
+ * 3-AUG-2014
  */
 
 using System;
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.0.7";
+        private const String PluginVersion = "5.0.1.3";
 
         public enum ConsoleMessageType {
             Warning,
@@ -89,6 +89,7 @@ namespace PRoConEvents {
         private Int32 _highestTicketCount;
         private Int32 _lowestTicketCount = 500000;
         private volatile Boolean _fetchedPluginInformation;
+        private Boolean _firstUserListComplete;
         private Boolean _firstPlayerListComplete;
         private Int32 _gameID = -1;
         private Boolean _commanderEnabled;
@@ -116,24 +117,25 @@ namespace PRoConEvents {
         private Boolean _toldCol;
 
         //Timing
-        private readonly DateTime _proconStartTime = DateTime.UtcNow;
-        private DateTime _AdKatsStartTime = DateTime.UtcNow;
-        private DateTime _commandStartTime = DateTime.UtcNow;
-        private DateTime _lastBanListCall = DateTime.UtcNow;
+        private readonly DateTime _proconStartTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _AdKatsStartTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _commandStartTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastBanListCall = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastDbBanFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastGUIDBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastIPBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastNameBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastStatLoggerStatusUpdateTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastSuccessfulBanList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private DateTime _populationTransitionTime = DateTime.UtcNow;
-        private DateTime _populationUpdateTime = DateTime.UtcNow;
-        private DateTime _lastDatabaseTimeout = DateTime.UtcNow;
-        private DateTime _lastDbActionFetch = DateTime.UtcNow;
-        private DateTime _lastDbSettingFetch = DateTime.UtcNow;
+        private DateTime _populationTransitionTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _populationUpdateTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastDatabaseTimeout = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastDbActionFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastDbSettingFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastSuccessfulPlayerList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private DateTime _lastUpdateSettingRequest = DateTime.UtcNow;
-        private DateTime _lastUserFetch = DateTime.UtcNow;
+        private DateTime _lastUpdateSettingRequest = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastUserFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _LastPlayerMoveIssued = DateTime.UtcNow - TimeSpan.FromSeconds(5);
 
         //Server
         private Boolean _populationStatusLow = true;
@@ -348,6 +350,7 @@ namespace PRoConEvents {
         private Boolean _FeedServerSpectatorList;
         private Boolean _FeedServerSpectatorList_UserCache;
         private Boolean _FeedStatLoggerSettings;
+        private Boolean _MULTIBalancerUnswitcherDisabled = false;
 
         //Hacker-checker
         private Boolean _UseHackerChecker;
@@ -868,6 +871,9 @@ namespace PRoConEvents {
 
         public List<CPluginVariable> GetPluginVariables() {
             var lstReturn = new List<CPluginVariable>();
+
+            lstReturn.Add(new CPluginVariable("0. Instance Settings|Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
+
             lstReturn.Add(new CPluginVariable("1. Server Settings|Settings Locked", typeof (Boolean), _settingsLocked, true));
             lstReturn.Add(new CPluginVariable("2. Server Settings|Settings Password", typeof (String), _settingsPassword));
 
@@ -878,6 +884,7 @@ namespace PRoConEvents {
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof (String), _mySqlPassword));
 
             lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof (Int32), _debugLevel));
+
             return lstReturn;
         }
 
@@ -2373,7 +2380,7 @@ namespace PRoConEvents {
                 //Set the server IP
                 _serverIP = strHostName + ":" + strPort;
                 //Register all events
-                RegisterEvents(GetType().Name, "OnVersion", "OnServerInfo", "OnListPlayers", "OnPunkbusterPlayerInfo", "OnReservedSlotsList", "OnPlayerKilled", "OnPlayerIsAlive", "OnPlayerSpawned", "OnPlayerTeamChange", "OnPlayerJoin", "OnPlayerLeft", "OnGlobalChat", "OnTeamChat", "OnSquadChat", "OnLevelLoaded", "OnBanAdded", "OnBanRemoved", "OnBanListClear", "OnBanListSave", "OnBanListLoad", "OnBanList", "OnRoundOverTeamScores", "OnSpectatorListLoad", "OnSpectatorListSave", "OnSpectatorListPlayerAdded", "OnSpectatorListPlayerRemoved", "OnSpectatorListCleared", "OnSpectatorListList", "OnGameAdminLoad", "OnGameAdminSave", "OnGameAdminPlayerAdded", "OnGameAdminPlayerRemoved", "OnGameAdminCleared", "OnGameAdminList", "OnFairFight", "OnIsHitIndicator", "OnCommander", "OnForceReloadWholeMags", "OnServerType", "OnMaxSpectators", "OnTeamFactionOverride");
+                RegisterEvents(GetType().Name, "OnVersion", "OnServerInfo", "OnListPlayers", "OnPunkbusterPlayerInfo", "OnReservedSlotsList", "OnPlayerKilled", "OnPlayerIsAlive", "OnPlayerSpawned", "OnPlayerTeamChange", "OnPlayerSquadChange", "OnPlayerJoin", "OnPlayerLeft", "OnGlobalChat", "OnTeamChat", "OnSquadChat", "OnLevelLoaded", "OnBanAdded", "OnBanRemoved", "OnBanListClear", "OnBanListSave", "OnBanListLoad", "OnBanList", "OnRoundOverTeamScores", "OnSpectatorListLoad", "OnSpectatorListSave", "OnSpectatorListPlayerAdded", "OnSpectatorListPlayerRemoved", "OnSpectatorListCleared", "OnSpectatorListList", "OnGameAdminLoad", "OnGameAdminSave", "OnGameAdminPlayerAdded", "OnGameAdminPlayerRemoved", "OnGameAdminCleared", "OnGameAdminList", "OnFairFight", "OnIsHitIndicator", "OnCommander", "OnForceReloadWholeMags", "OnServerType", "OnMaxSpectators", "OnTeamFactionOverride");
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("FATAL ERROR on plugin load.", e));
@@ -2542,6 +2549,7 @@ namespace PRoConEvents {
                         if (_PlayerLeftDictionary != null)
                             _PlayerLeftDictionary.Clear();
                         _firstPlayerListComplete = false;
+                        _firstUserListComplete = false;
                         if (_userCache != null)
                             _userCache.Clear();
                         if (FrostbitePlayerInfoList != null)
@@ -2690,8 +2698,8 @@ namespace PRoConEvents {
                     DateTime lastKeepAliveCheck = DateTime.UtcNow;
                     DateTime lastDatabaseConnectionCheck = DateTime.UtcNow;
                     while (true) {
-                        //Check for keep alive every 60 seconds
-                        if ((DateTime.UtcNow - lastKeepAliveCheck).TotalSeconds > 60)
+                        //Check for keep alive every 30 seconds
+                        if ((DateTime.UtcNow - lastKeepAliveCheck).TotalSeconds > 30)
                         {
                             lastKeepAliveCheck = DateTime.UtcNow;
 
@@ -2722,6 +2730,12 @@ namespace PRoConEvents {
                                 };
                                 //Process the record
                                 QueueRecordForProcessing(record);
+                            }
+
+                            if (_MULTIBalancerUnswitcherDisabled && (DateTime.UtcNow - _LastPlayerMoveIssued).TotalSeconds > 120) {
+                                DebugWrite("MULTIBalancer Unswitcher Re-Enabled", 3);
+                                ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
+                                _MULTIBalancerUnswitcherDisabled = false;
                             }
 
                             //Perform AFK processing
@@ -3022,6 +3036,11 @@ namespace PRoConEvents {
         public override void OnPlayerTeamChange(String soldierName, Int32 teamId, Int32 squadId) {
             DebugWrite("Entering OnPlayerTeamChange", 7);
             try {
+                if (_PlayerDictionary.ContainsKey(soldierName))
+                {
+                    _PlayerDictionary[soldierName].frostbitePlayerInfo.TeamID = teamId;
+                    _PlayerDictionary[soldierName].frostbitePlayerInfo.SquadID = squadId;
+                }
                 //When a player changes team, tell teamswap to recheck queues
                 _TeamswapWaitHandle.Set();
             }
@@ -3029,6 +3048,24 @@ namespace PRoConEvents {
                 HandleException(new AdKatsException("Error while handling player team change.", e));
             }
             DebugWrite("Exiting OnPlayerTeamChange", 7);
+        }
+
+        public override void OnPlayerSquadChange(string soldierName, int teamId, int squadId)
+        {
+            DebugWrite("Entering OnPlayerSquadChange", 7);
+            try
+            {
+                if (_PlayerDictionary.ContainsKey(soldierName))
+                {
+                    _PlayerDictionary[soldierName].frostbitePlayerInfo.TeamID = teamId;
+                    _PlayerDictionary[soldierName].frostbitePlayerInfo.SquadID = squadId;
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while handling player squad change.", e));
+            }
+            DebugWrite("Exiting OnPlayerSquadChange", 7);
         }
 
         public override void OnListPlayers(List<CPlayerInfo> players, CPlayerSubset cpsSubset) {
@@ -3109,8 +3146,9 @@ namespace PRoConEvents {
                         Boolean playerListFetched = false;
 
                         //Get all unparsed inbound lists
+                        //Only allow player list fetching if the user list is already fetched
                         List<CPlayerInfo> inboundPlayerList = null;
-                        if (_PlayerListProcessingQueue.Count > 0) {
+                        if (_PlayerListProcessingQueue.Count > 0 && _firstUserListComplete) {
                             DebugWrite("PLIST: Preparing to lock player list queues to retrive new player lists", 7);
                             if (_isTestingAuthorized)
                                 PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
@@ -3172,7 +3210,15 @@ namespace PRoConEvents {
                                 CPlayerInfo playerInfo = inboundPlayerRemoval.Dequeue();
                                 AdKatsPlayer aPlayer;
                                 if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
-                                    if (aPlayer.TargetedRecords.Count > 0 && !aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "player_kick" || aRecord.command_action.command_key == "player_ban_temp" || aRecord.command_action.command_key == "player_ban_perm" || aRecord.command_action.command_key == "banenforcer_enforce" || aRecord.command_action.command_key == "player_changeip" || aRecord.command_action.command_key == "player_changename" || aRecord.command_action.command_key.Contains("self_"))) {
+                                    if (aPlayer.TargetedRecords.Count > 0 && 
+                                        !aPlayer.TargetedRecords.Any(aRecord => 
+                                            aRecord.command_action.command_key == "player_kick" || 
+                                            aRecord.command_action.command_key == "player_ban_temp" || 
+                                            aRecord.command_action.command_key == "player_ban_perm" || 
+                                            aRecord.command_action.command_key == "banenforcer_enforce" || 
+                                            aRecord.command_action.command_key == "player_changeip" || 
+                                            aRecord.command_action.command_key == "player_changename" || 
+                                            aRecord.command_action.command_key.Contains("self_"))) {
                                         OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server.");
 
                                         //This terribly needs streamlining but I cant be asked right now...
@@ -3394,9 +3440,11 @@ namespace PRoConEvents {
                         _TeamswapWaitHandle.Set();
                         if (!_firstPlayerListComplete && playerListFetched) {
                             _firstPlayerListComplete = true;
-                            OnlineAdminSayMessage("Player listing complete. " + _PlayerDictionary.Count + " players in server.");
+                            OnlineAdminSayMessage("Player listing complete [" + _PlayerDictionary.Count + " players]. Performing final startup.");
+                            //Possible post processing later
+                            Thread.Sleep(500);
                             OnlineAdminSayMessage("AdKats startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.");
-                            DebugWrite("AdKats startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.", 1);
+                            DebugWrite("AdKats startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. " + _PlayerDictionary.Count + " players in server. Commands are now online.", 1);
                         }
                     }
                     catch (Exception e) {
@@ -3657,10 +3705,11 @@ namespace PRoConEvents {
                                     QueueRecordForActionHandling(aRecord);
                                 }
                                 else {
-                                    DebugWrite(aRecord.target_player.player_name + " is dead. Queueing them for kill on-spawn.", 3);
-                                    SendMessageToSource(aRecord, aRecord.target_player.player_name + " is dead. Queueing them for kill on-spawn.");
-                                    DebugWrite("Queueing player for kill on spawn.", 3);
-                                    if (!_ActOnSpawnDictionary.ContainsKey(aRecord.target_player.player_name)) {
+                                    if (!_ActOnSpawnDictionary.ContainsKey(aRecord.target_player.player_name))
+                                    {
+                                        DebugWrite(aRecord.target_player.player_name + " is dead. Queueing them for kill on-spawn.", 3);
+                                        SendMessageToSource(aRecord, aRecord.target_player.player_name + " is dead. Queueing them for kill on-spawn.");
+                                        ExecuteCommand("procon.protected.send", "admin.killPlayer", aRecord.target_player.player_name);
                                         if (_isTestingAuthorized)
                                             PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                         lock (_ActOnSpawnDictionary) {
@@ -5535,8 +5584,13 @@ namespace PRoConEvents {
                                         if (String.IsNullOrEmpty(player.SoldierName)) {
                                             ConsoleError("soldiername null in team 2 -> 1 teamswap");
                                         }
-                                        else {
+                                        else
+                                        {
+                                            DebugWrite("MULTIBalancer Unswitcher Disabled", 3);
+                                            ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                                            _MULTIBalancerUnswitcherDisabled = true;
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "1", "1", "true");
+                                            _LastPlayerMoveIssued = DateTime.UtcNow;
                                             team1.TeamPlayerCount++;
                                             team2.TeamPlayerCount--;
                                         }
@@ -5558,8 +5612,13 @@ namespace PRoConEvents {
                                         if (String.IsNullOrEmpty(player.SoldierName)) {
                                             ConsoleError("soldiername null in team 1 -> 2 teamswap");
                                         }
-                                        else {
+                                        else
+                                        {
+                                            DebugWrite("MULTIBalancer Unswitcher Disabled", 3);
+                                            ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                                            _MULTIBalancerUnswitcherDisabled = true;
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "2", "1", "true");
+                                            _LastPlayerMoveIssued = DateTime.UtcNow;
                                             team2.TeamPlayerCount++;
                                             team1.TeamPlayerCount--;
                                         }
@@ -5680,6 +5739,9 @@ namespace PRoConEvents {
                     triggerCommands.Add("player_kill");
                     triggerCommands.Add("player_kill_lowpop");
                     triggerCommands.Add("player_kill_repeat");
+                    triggerCommands.Add("player_kick");
+                    triggerCommands.Add("player_ban_temp");
+                    triggerCommands.Add("player_ban_perm");
                     triggerCommands.Add("player_punish");
                     triggerCommands.Add("player_mute");
                     triggerCommands.Add("player_say");
@@ -5693,6 +5755,17 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
+                    }
+                }
+                //General command options
+                if (record.command_action != null && record.command_action.command_key == "blacklist_dispersion")
+                {
+                    List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("blacklist_dispersion", record.target_player);
+                    if (matchingPlayers.Count > 0)
+                    {
+                        SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already under dispersion for this server.");
+                        FinalizeRecord(record);
+                        return;
                     }
                 }
                 //Conditional command replacement (single target only)
@@ -8167,16 +8240,15 @@ namespace PRoConEvents {
                                 FinalizeRecord(record);
                                 return;
                             case 1:
-                                SendMessageToSource(record, "No message given, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
+                                record.target_name = parameters[0];
+                                record.record_message = "Server Balance";
+                                CompleteTargetInformation(record, false, false);
+                                break;
                             case 2:
                                 record.target_name = parameters[0];
                                 DebugWrite("target: " + record.target_name, 6);
-
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
-
                                 CompleteTargetInformation(record, false, false);
                                 break;
                             default:
@@ -8445,6 +8517,8 @@ namespace PRoConEvents {
                     }
                     else {
                         SendMessageToSource(record, resultMessage);
+                        FinalizeRecord(record);
+                        return;
                     }
                 }
                 if (confirmNeeded) {
@@ -8466,7 +8540,13 @@ namespace PRoConEvents {
             resultMessage = "Error finding player for " + playerNameInput;
             confirmNeeded = false;
             aPlayer = null;
-            try {
+            try
+            {
+                if (!SoldierNameValid(playerNameInput))
+                {
+                    resultMessage = "'" + playerNameInput + "' was an invalid player name.";
+                    return false;
+                }
                 //Check for an exact match
                 if (_PlayerDictionary.TryGetValue(playerNameInput, out aPlayer) || _PlayerLeftDictionary.TryGetValue(playerNameInput, out aPlayer)) {
                     return true;
@@ -9842,11 +9922,6 @@ namespace PRoConEvents {
             DebugWrite("Entering DisperseTarget", 6);
             try {
                 record.record_action_executed = true;
-                List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("blacklist_dispersion", record.target_player);
-                if (matchingPlayers.Count > 0) {
-                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already under dispersion for this server.");
-                    return;
-                }
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"
@@ -9856,6 +9931,7 @@ namespace PRoConEvents {
 	                        `player_group`,
 	                        `player_id`,
                             `player_server`,
+                            `player_identifier`,
                             `player_effective`,
                             `player_expiration`
                         )
@@ -9864,11 +9940,13 @@ namespace PRoConEvents {
 	                        'blacklist_dispersion',
 	                        @player_id,
                             @player_server,
+                            @player_identifier,
                             UTC_TIMESTAMP(),
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverID);
+                        command.Parameters.AddWithValue("@player_identifier", record.target_player.player_name);
 
                         Int32 rowsAffected = command.ExecuteNonQuery();
                         if (rowsAffected > 0) {
@@ -10175,7 +10253,11 @@ namespace PRoConEvents {
                     else
                     {
                         //Move to specific squad
+                        DebugWrite("MULTIBalancer Unswitcher Disabled", 3);
+                        ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                        _MULTIBalancerUnswitcherDisabled = true;
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "true");
+                        _LastPlayerMoveIssued = DateTime.UtcNow;
                         SendMessageToSource(record, "Attempting to join " + record.target_player.player_name);
                     }
                 }
@@ -10204,7 +10286,11 @@ namespace PRoConEvents {
                 ExecuteCommand("procon.protected.send", "squad.private", record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "false");
                 Thread.Sleep(500);
                 //Move to specific squad
+                DebugWrite("MULTIBalancer Unswitcher Disabled", 3);
+                ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
+                _MULTIBalancerUnswitcherDisabled = true;
                 ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "true");
+                _LastPlayerMoveIssued = DateTime.UtcNow;
                 SendMessageToSource(record, "Attempting to pull " + record.target_player.player_name);
                 record.record_action_executed = true;
             }
@@ -11436,9 +11522,6 @@ namespace PRoConEvents {
                             //Register a command to indicate availibility to other plugins
                             RegisterCommand(_issueCommandMatchCommand);
                             RegisterCommand(_fetchAuthorizedSoldiersMatchCommand);
-
-                            //Call player listing immediately
-                            ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
 
                             ConsoleWrite("^b^2Running!^n^0 Version: " + GetPluginVersion());
                         }
@@ -16594,10 +16677,6 @@ namespace PRoConEvents {
                                         aUser.soldierDictionary.Remove(aPlayer.player_id);
                                     }
                                 }
-                                if (!_firstPlayerListComplete)
-                                {
-                                    OnlineAdminSayMessage("User fetch complete. Fetching player list.");
-                                }
                             }
                         }
                     }
@@ -16703,7 +16782,7 @@ namespace PRoConEvents {
                 }
             }
             catch (Exception e) {
-                HandleException(new AdKatsException("Error while fetching access list.", e));
+                HandleException(new AdKatsException("Error while fetching user list.", e));
             }
 
             _PlayerRoleRefetch = true;
@@ -16714,6 +16793,12 @@ namespace PRoConEvents {
             UpdateReservedSlots();
             UpdateSpectatorList();
             _lastUserFetch = DateTime.UtcNow;
+            if (!_firstUserListComplete) {
+                _firstUserListComplete = true;
+                OnlineAdminSayMessage("User fetch complete [" + _userCache.Count + " users]. Fetching player list.");
+                //Call player listing immediately
+                ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+            }
             if (_userCache.Count > 0)
             {
                 DebugWrite("User List Fetched from Database. User Count: " + _userCache.Count, 1);
@@ -17990,15 +18075,15 @@ namespace PRoConEvents {
             try {
                 DebugWrite("Checking player '" + input + "' for validity.", 7);
                 if (String.IsNullOrEmpty(input)) {
-                    ConsoleError("Soldier Name empty or null.");
+                    DebugWrite("Soldier Name empty or null.", 5);
                     return false;
                 }
                 if (input.Length > 16) {
-                    ConsoleError("Soldier Name '" + input + "' too long, maximum length is 16 characters.");
+                    DebugWrite("Soldier Name '" + input + "' too long, maximum length is 16 characters.", 5);
                     return false;
                 }
                 if (new Regex("[^a-zA-Z0-9_-]").Replace(input, "").Length != input.Length) {
-                    ConsoleError("Soldier Name '" + input + "' contained invalid characters.");
+                    DebugWrite("Soldier Name '" + input + "' contained invalid characters.", 5);
                     return false;
                 }
                 return true;
