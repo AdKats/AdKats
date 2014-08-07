@@ -18,8 +18,8 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 5.0.1.3
- * 3-AUG-2014
+ * Version 5.0.1.6
+ * 6-AUG-2014
  */
 
 using System;
@@ -46,7 +46,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.1.3";
+        private const String PluginVersion = "5.0.1.6";
 
         public enum ConsoleMessageType {
             Warning,
@@ -3234,6 +3234,7 @@ namespace PRoConEvents {
                                     //Add player to the left dictionary
                                     aPlayer.player_online = false;
                                     aPlayer.player_firstSpawned = false;
+                                    DequeuePlayer(aPlayer);
                                     _PlayerLeftDictionary.Add(aPlayer.player_name, aPlayer);
                                 }
                                 RemovePlayerFromDictionary(playerInfo.SoldierName, false);
@@ -5696,102 +5697,118 @@ namespace PRoConEvents {
         private void QueueRecordForProcessing(AdKatsRecord record) {
             DebugWrite("Entering queueRecordForProcessing", 7);
             try {
-                //Check for command lock
-                if (record.target_player != null && record.target_player.player_locked) {
-                    if (record.target_player.player_locked_start + record.target_player.player_locked_duration < DateTime.UtcNow) {
-                        //Unlock the player
-                        record.target_player.player_locked = false;
-                    }
-                    else if (record.source_name != record.target_player.player_locked_source){
-                        SendMessageToSource(record, record.target_player.player_name + " is currently command locked by " + record.target_player.player_locked_source + ". Please wait for unlock.");
-                        FinalizeRecord(record);
-                        return;
-                    }
-                }
-                if (record.command_action != null && _commandTimeoutDictionary.ContainsKey(record.command_action.command_key) && !record.record_action_executed)
-                {
-                    if (record.target_player != null && !record.TargetPlayersLocal.Any())
+                if (!record.record_action_executed) {
+                    //Check for command lock
+                    if (record.target_player != null && record.target_player.player_locked)
                     {
-                        //Cancel call if record is on timeout for single player
-                        if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow))
+                        if (record.target_player.player_locked_start + record.target_player.player_locked_duration < DateTime.UtcNow)
                         {
-                            SendMessageToSource(record, record.command_type.command_name + " on timeout for " + record.target_player.player_name);
+                            //Unlock the player
+                            record.target_player.player_locked = false;
+                        }
+                        else if (record.source_name != record.target_player.player_locked_source)
+                        {
+                            SendMessageToSource(record, record.target_player.player_name + " is currently command locked by " + record.target_player.player_locked_source + ". Please wait for unlock.");
                             FinalizeRecord(record);
                             return;
                         }
                     }
-                    else if (record.TargetPlayersLocal.Any())
+                    if (record.command_action != null && _commandTimeoutDictionary.ContainsKey(record.command_action.command_key) && !record.record_action_executed)
                     {
-                        //Cancel call if record is on timeout for any targeted players
-                        foreach (AdKatsPlayer aPlayer in record.TargetPlayersLocal)
+                        if (record.target_player != null && !record.TargetPlayersLocal.Any())
                         {
-                            if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow))
+                            //Cancel call if record is on timeout for single player
+                            if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow))
                             {
-                                SendMessageToSource(record, record.command_type.command_name + " on timeout for " + aPlayer.player_name);
+                                SendMessageToSource(record, record.command_type.command_name + " on timeout for " + record.target_player.player_name);
+                                FinalizeRecord(record);
+                                return;
+                            }
+                        }
+                        else if (record.TargetPlayersLocal.Any())
+                        {
+                            //Cancel call if record is on timeout for any targeted players
+                            foreach (AdKatsPlayer aPlayer in record.TargetPlayersLocal)
+                            {
+                                if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow))
+                                {
+                                    SendMessageToSource(record, record.command_type.command_name + " on timeout for " + aPlayer.player_name);
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+                    if (record.target_player != null && (record.command_type.command_key == "player_report" || record.command_type.command_key == "player_calladmin"))
+                    {
+                        var triggerCommands = new List<String>();
+                        triggerCommands.Add("player_kill");
+                        triggerCommands.Add("player_kill_lowpop");
+                        triggerCommands.Add("player_kill_repeat");
+                        triggerCommands.Add("player_kick");
+                        triggerCommands.Add("player_ban_temp");
+                        triggerCommands.Add("player_ban_perm");
+                        triggerCommands.Add("player_punish");
+                        triggerCommands.Add("player_mute");
+                        triggerCommands.Add("player_say");
+                        triggerCommands.Add("player_yell");
+                        triggerCommands.Add("player_tell");
+                        triggerCommands.Add("player_kill_force");
+                        foreach (AdKatsRecord targetRecord in record.target_player.TargetedRecords)
+                        {
+                            if (triggerCommands.Contains(targetRecord.command_type.command_key) && (DateTime.UtcNow - targetRecord.record_time).TotalSeconds < 60)
+                            {
+                                OnlineAdminSayMessage("Report on " + record.target_player.player_name + " blocked. Player already acted on.");
+                                SendMessageToSource(record, "Report on " + record.target_player.player_name + " blocked. Player already acted on.");
                                 FinalizeRecord(record);
                                 return;
                             }
                         }
                     }
-                }
-                if (record.target_player != null && (record.command_type.command_key == "player_report" || record.command_type.command_key == "player_calladmin")) {
-                    var triggerCommands = new List<String>();
-                    triggerCommands.Add("player_kill");
-                    triggerCommands.Add("player_kill_lowpop");
-                    triggerCommands.Add("player_kill_repeat");
-                    triggerCommands.Add("player_kick");
-                    triggerCommands.Add("player_ban_temp");
-                    triggerCommands.Add("player_ban_perm");
-                    triggerCommands.Add("player_punish");
-                    triggerCommands.Add("player_mute");
-                    triggerCommands.Add("player_say");
-                    triggerCommands.Add("player_yell");
-                    triggerCommands.Add("player_tell");
-                    triggerCommands.Add("player_kill_force");
-                    foreach (AdKatsRecord targetRecord in record.target_player.TargetedRecords) {
-                        if (triggerCommands.Contains(targetRecord.command_type.command_key) && (DateTime.UtcNow - targetRecord.record_time).TotalSeconds < 60) {
-                            OnlineAdminSayMessage("Report on " + record.target_player.player_name + " blocked. Player already acted on.");
-                            SendMessageToSource(record, "Report on " + record.target_player.player_name + " blocked. Player already acted on.");
-                            FinalizeRecord(record);
-                            return;
-                        }
-                    }
-                }
-                //General command options
-                if (record.command_action != null && record.command_action.command_key == "blacklist_dispersion")
-                {
-                    List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("blacklist_dispersion", record.target_player);
-                    if (matchingPlayers.Count > 0)
+                    //Special command case
+                    DebugWrite("Preparing to check " + record.command_type.command_key + " record for pre-upload processing.", 5);
+                    switch (record.command_type.command_key)
                     {
-                        SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already under dispersion for this server.");
-                        FinalizeRecord(record);
-                        return;
+                        case "player_blacklistdisperse":
+                            {
+                                List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("blacklist_dispersion", record.target_player);
+                                if (matchingPlayers.Count > 0)
+                                {
+                                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already under dispersion for this server.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            }
+                            break;
                     }
-                }
-                //Conditional command replacement (single target only)
-                if (_isTestingAuthorized && 
-                    _populationStatusLow && 
-                    record.target_player != null && 
-                    record.command_type.command_key == "player_punish") {
-                    int punishCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_punish");
-                    int killCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_kill");
-                    if (killCount < 2 ||
-                       (killCount < 4 && punishCount == 1)) {
-                        if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
-                        {
-                            AdminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
-                        }
-                        else
-                        {
-                            AdminSayMessage(record.target_name + " was PUNISHED by " + record.source_name + " for " + record.record_message);
-                        }
-                        record.command_type = _CommandKeyDictionary["player_kill"];
-                        record.command_action = _CommandKeyDictionary["player_kill"];
-                    }
-                    else if (killCount >= 4 && punishCount >= 2)
+                    //Conditional command replacement (single target only)
+                    if (_isTestingAuthorized &&
+                        _populationStatusLow &&
+                        record.target_player != null &&
+                        record.command_type.command_key == "player_punish")
                     {
-                        record.command_type = _CommandKeyDictionary["player_kick"];
-                        record.command_action = _CommandKeyDictionary["player_kick"];
+                        int punishCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_punish");
+                        int killCount = record.target_player.TargetedRecords.Count(aRecord => aRecord.command_type.command_key == "player_kill");
+                        if (killCount < 2 ||
+                           (killCount < 4 && punishCount == 1))
+                        {
+                            if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin")
+                            {
+                                AdminSayMessage("Punishing " + record.target_name + " for " + record.record_message);
+                            }
+                            else
+                            {
+                                AdminSayMessage(record.target_name + " was PUNISHED by " + record.source_name + " for " + record.record_message);
+                            }
+                            record.command_type = _CommandKeyDictionary["player_kill"];
+                            record.command_action = _CommandKeyDictionary["player_kill"];
+                        }
+                        else if (killCount >= 4 && punishCount >= 2)
+                        {
+                            record.command_type = _CommandKeyDictionary["player_kick"];
+                            record.command_action = _CommandKeyDictionary["player_kick"];
+                        }
                     }
                 }
                 DebugWrite("Preparing to queue " + record.command_type.command_key + " record for processing", 6);
@@ -9485,34 +9502,12 @@ namespace PRoConEvents {
             DebugWrite("Entering DequeueTarget", 6);
             try
             {
-                //Handle spawn action
-                if (_ActOnSpawnDictionary.ContainsKey(record.target_name)) {
-                    _ActOnSpawnDictionary.Remove(record.target_name);
-                }
-                //Handle teamswap action
-                CPlayerInfo info = _Team1MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == record.target_name);
-                if(info != null)
-                    _Team1MoveQueue = new Queue<CPlayerInfo>(_Team1MoveQueue.Where(p => p != info));
-                
-                info = _Team2MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == record.target_name);
-                if (info != null)
-                    _Team2MoveQueue = new Queue<CPlayerInfo>(_Team2MoveQueue.Where(p => p != info));
-
-                info = _TeamswapForceMoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == record.target_name);
-                if (info != null)
-                    _TeamswapForceMoveQueue = new Queue<CPlayerInfo>(_TeamswapForceMoveQueue.Where(p => p != info));
-
-                info = _TeamswapOnDeathCheckingQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == record.target_name);
-                if (info != null)
-                    _TeamswapOnDeathCheckingQueue = new Queue<CPlayerInfo>(_TeamswapOnDeathCheckingQueue.Where(p => p != info));
-
-                if (_TeamswapOnDeathMoveDic.ContainsKey(record.target_name))
-                {
-                    _TeamswapOnDeathMoveDic.Remove(record.target_name);
+                if (record.target_player != null) {
+                    DequeuePlayer(record.target_player);
+                    PlayerSayMessage(record.target_name, "All queued actions canceled.", 1);
+                    SendMessageToSource(record, "All queued actions for " + record.target_name + " canceled.");
                 }
                 record.record_action_executed = true;
-                PlayerSayMessage(record.target_name, "All queued actions canceled.", 1);
-                SendMessageToSource(record, "All queued actions for " + record.target_name + " canceled.");
             }
             catch (Exception e)
             {
@@ -9521,6 +9516,45 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting DequeueTarget", 6);
+        }
+
+        public void DequeuePlayer(AdKatsPlayer aPlayer)
+        {
+            DebugWrite("Entering DequeuePlayer", 6);
+            try
+            {
+                //Handle spawn action
+                if (_ActOnSpawnDictionary.ContainsKey(aPlayer.player_name))
+                {
+                    _ActOnSpawnDictionary.Remove(aPlayer.player_name);
+                }
+                //Handle teamswap action
+                CPlayerInfo info = _Team1MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
+                if (info != null)
+                    _Team1MoveQueue = new Queue<CPlayerInfo>(_Team1MoveQueue.Where(p => p != info));
+
+                info = _Team2MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
+                if (info != null)
+                    _Team2MoveQueue = new Queue<CPlayerInfo>(_Team2MoveQueue.Where(p => p != info));
+
+                info = _TeamswapForceMoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
+                if (info != null)
+                    _TeamswapForceMoveQueue = new Queue<CPlayerInfo>(_TeamswapForceMoveQueue.Where(p => p != info));
+
+                info = _TeamswapOnDeathCheckingQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
+                if (info != null)
+                    _TeamswapOnDeathCheckingQueue = new Queue<CPlayerInfo>(_TeamswapOnDeathCheckingQueue.Where(p => p != info));
+
+                if (_TeamswapOnDeathMoveDic.ContainsKey(aPlayer.player_name))
+                {
+                    _TeamswapOnDeathMoveDic.Remove(aPlayer.player_name);
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while dequeuing player.", e));
+            }
+            DebugWrite("Exiting DequeuePlayer", 6);
         }
 
         public void KickTarget(AdKatsRecord record, String additionalMessage) {
