@@ -86,12 +86,12 @@
   },
   {
     "command_typeaction": "10|10",
-    "target_weight": 10,
+    "target_weight": 20,
     "source_weight": 1
   },
   {
     "command_typeaction": "11|11",
-    "target_weight": -7,
+    "target_weight": -10,
     "source_weight": 0.25
   },
   {
@@ -108,6 +108,11 @@
     "command_typeaction": "14|14",
     "target_weight": 0,
     "source_weight": 0.05
+  },
+  {
+    "command_typeaction": "14|15",
+    "target_weight": 0,
+    "source_weight": 0
   },
   {
     "command_typeaction": "15|15",
@@ -127,12 +132,12 @@
   {
     "command_typeaction": "18|18",
     "target_weight": 0,
-    "source_weight": 0.25
+    "source_weight": 0.5
   },
   {
     "command_typeaction": "18|19",
     "target_weight": -5.00,
-    "source_weight": 1.00
+    "source_weight": 1.5
   },
   {
     "command_typeaction": "18|42",
@@ -158,6 +163,11 @@
     "command_typeaction": "20|42",
     "target_weight": 0.00,
     "source_weight": -10.00
+  },
+  {
+    "command_typeaction": "20|62",
+    "target_weight": 0.00,
+    "source_weight": 0.00
   },
   {
     "command_typeaction": "21|21",
@@ -391,11 +401,6 @@
   },
   {
     "command_typeaction": "67|67",
-    "target_weight": 0,
-    "source_weight": 0
-  },
-  {
-    "command_typeaction": "14|15",
     "target_weight": 0,
     "source_weight": 0
   }
