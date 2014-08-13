@@ -3,8 +3,8 @@
 </script>
 <h1>AdKats - User Manual</h1>
 <p>
-    Admin Toolset with a plethora of features, over 50 available in-game commands, and extensive ability for
-    customization.
+    Admin Toolset with a plethora of features, over 50 available in-game commands, and many 
+    customization options.
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any
     setup.
     Includes a cross-server ban enforcer with advanced enforcement features, metabans support, and the AdKats WebAdmin
