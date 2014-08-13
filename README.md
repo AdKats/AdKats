@@ -14,7 +14,7 @@
 <ul>
     <li>
         <b>Basic Action Commands.</b>
-        Standard commands for player killing, kicking, punishing, banning, unbanning, moving, etc...Over 40 available
+        Standard commands for player killing, kicking, punishing, banning, unbanning, moving, etc...Over 50 available
         in-game commands.
         Commands can be accessed from almost anywhere: In-game, Procon's chat window, database, HTTP server, other
         plugins, etc, etc...
