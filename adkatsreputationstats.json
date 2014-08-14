@@ -86,7 +86,7 @@
   },
   {
     "command_typeaction": "10|10",
-    "target_weight": 20,
+    "target_weight": 10,
     "source_weight": 1
   },
   {
