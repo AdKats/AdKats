@@ -146,7 +146,7 @@
   },
   {
     "command_typeaction": "19|19",
-    "target_weight": -5,
+    "target_weight": 0,
     "source_weight": 1.00
   },
   {
@@ -156,7 +156,7 @@
   },
   {
     "command_typeaction": "20|19",
-    "target_weight": -5.00,
+    "target_weight": 0,
     "source_weight": 1.00
   },
   {
