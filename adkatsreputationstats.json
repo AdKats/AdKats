@@ -51,22 +51,22 @@
   },
   {
     "command_typeaction": "9|9",
-    "target_weight": -25,
+    "target_weight": -20,
     "source_weight": 0
   },
   {
     "command_typeaction": "9|3",
-    "target_weight": -5,
+    "target_weight": -10,
     "source_weight": 0.5
   },
   {
     "command_typeaction": "9|4",
-    "target_weight": -5,
+    "target_weight": -10,
     "source_weight": 0.5
   },
   {
     "command_typeaction": "9|5",
-    "target_weight": -5,
+    "target_weight": -10,
     "source_weight": 0.5
   },
   {
@@ -76,12 +76,12 @@
   },
   {
     "command_typeaction": "9|7",
-    "target_weight": -30,
+    "target_weight": -10,
     "source_weight": 0.5
   },
   {
     "command_typeaction": "9|8",
-    "target_weight": -100,
+    "target_weight": -10,
     "source_weight": 0.5
   },
   {
