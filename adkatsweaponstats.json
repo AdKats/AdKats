@@ -354,6 +354,21 @@
                         "id":"sw40",
                         "damage_max":56,
                         "damage_min":28 
+                },
+                {
+                        "id":"bulldog",
+                        "damage_max":34,
+                        "damage_min":25 
+                },
+                {
+                        "id":"mpx",
+                        "damage_max":27,
+                        "damage_min":13 
+                },
+                {
+                        "id":"unica-6",
+                        "damage_max":56,
+                        "damage_min":28 
                 }
         ]
 }
