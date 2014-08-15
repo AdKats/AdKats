@@ -321,8 +321,8 @@
   },
   {
     "command_typeaction": "51|51",
-    "target_weight": 0,
-    "source_weight": 5
+    "target_weight": 5,
+    "source_weight": 0.0
   },
   {
     "command_typeaction": "52|52",
