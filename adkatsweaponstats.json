@@ -366,6 +366,11 @@
                         "damage_min":13 
                 },
                 {
+                        "id":"deagle-44",
+                        "damage_max":56.0,
+                        "damage_min":37.5 
+                },
+                {
                         "id":"unica-6",
                         "damage_max":56,
                         "damage_min":28 
