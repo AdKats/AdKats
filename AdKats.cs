@@ -18,7 +18,7 @@
  * Development by ColColonCleaner
  * 
  * AdKats.cs
- * Version 5.0.5.0
+ * Version 5.0.5.1
  * 3-SEP-2014
  */
 
@@ -47,7 +47,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.5.0";
+        private const String PluginVersion = "5.0.5.1";
 
         public enum ConsoleMessageType {
             Warning,
@@ -13112,6 +13112,29 @@ namespace PRoConEvents {
                         PRIMARY KEY (`setting_id`),
                         UNIQUE(`setting_server`, `setting_plugin`, `setting_name`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Plugin Orchestration'", true);
+            }
+            if (!ConfirmTable("tbl_extendedroundstats"))
+            {
+                ConsoleWarn("Extended round stats table not found. Attempting to add.");
+                SendNonQuery("Adding extended round stats table", @"
+                    CREATE TABLE `tbl_extendedroundstats` (
+                        `roundstat_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+                        `server_id` smallint(5) unsigned NOT NULL,
+                        `round_id` int(10) unsigned NOT NULL,
+                        `round_elapsedTimeSec` int(10) unsigned NOT NULL,
+                        `team1_count` int(10) unsigned NOT NULL,
+                        `team2_count` int(10) unsigned NOT NULL,
+                        `team1_score` int(10) NOT NULL,
+                        `team2_score` int(10) NOT NULL,
+                        `team1_spm` double NOT NULL,
+                        `team2_spm` double NOT NULL,
+                        `team1_tickets` int(10) NOT NULL,
+                        `team2_tickets` int(10) NOT NULL,
+                        `team1_tpm` double NOT NULL,
+                        `team2_tpm` double NOT NULL,
+                        `roundstat_time` datetime NOT NULL,
+                        PRIMARY KEY (`roundstat_id`)
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Extended Round Stats'", true);
             }
             if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_effective' )", false))
             {
