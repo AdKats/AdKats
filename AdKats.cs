@@ -15,10 +15,10 @@
  * Modded Levenshtein Distance algorithm from Micovery's InsaneLimits
  * Email System adapted from MorpheusX(AUT)'s "Notify Me!"
  * 
- * Development by ColColonCleaner
+ * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.0.5.1
+ * Version 5.0.5.3
  * 3-SEP-2014
  */
 
@@ -47,7 +47,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.5.1";
+        private const String PluginVersion = "5.0.5.3";
 
         public enum ConsoleMessageType {
             Warning,
@@ -3344,7 +3344,7 @@ namespace PRoConEvents {
                                         if (_currentRoundState == RoundState.Playing) {
                                             aPlayer.AddPingEntry(ping);
                                             //Automatic ping kick for ADK
-                                            if (_isTestingAuthorized && aPlayer.player_pings_full && aPlayer.player_type == PlayerType.Player && !RoleIsAdmin(aPlayer.player_role)) {
+                                            if (_isTestingAuthorized && _gameVersion == GameVersion.BF4 && aPlayer.player_pings_full && aPlayer.player_type == PlayerType.Player && !RoleIsAdmin(aPlayer.player_role)) {
                                                 var playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
                                                 if ((playerCount > 50 && aPlayer.player_ping_avg > 300) || (playerCount > 62 && aPlayer.player_ping_avg > 200) || aPlayer.player_ping_avg < 0) {
                                                     if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0)) {
@@ -6634,7 +6634,7 @@ namespace PRoConEvents {
                         }
                         String debug = (RoleIsAdmin(record.source_player.player_role)) ? ("[" + friendlyTeam.TeamKey + ":" + friendlyTeam.TeamTicketCount + ":" + (int)friendlyTeam.TeamTicketDifferenceRate + "][" + enemyTeam.TeamKey + ":" + enemyTeam.TeamTicketCount + ":" + (int)enemyTeam.TeamTicketDifferenceRate + "]") : ("");
 
-                        record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "]";
+                        record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + _serverInfo.RoundTime + "]";
                         Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
                         Boolean enemyStrong = true;
                         if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID)
@@ -6644,6 +6644,11 @@ namespace PRoConEvents {
                         else
                         {
                             enemyStrong = Math.Abs(team1.TeamTicketDifferenceRate) < Math.Abs(team2.TeamTicketDifferenceRate);
+                        }
+                        if (_isTestingAuthorized && _serverInfo.RoundTime < 180) {
+                            SendMessageToSource(record, "Please wait at least 3 minutes into the round to use assist.");
+                            FinalizeRecord(record);
+                            return;
                         }
                         if ((!enemyWinning && !enemyStrong) ||
                             (!enemyWinning && winningTeam.TeamTicketCount - losingTeam.TeamTicketCount > 200)) {
