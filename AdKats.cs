@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.0.5.3
- * 3-SEP-2014
+ * Version 5.0.5.4
+ * 5-SEP-2014
  */
 
 using System;
@@ -47,7 +47,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.5.3";
+        private const String PluginVersion = "5.0.5.4";
 
         public enum ConsoleMessageType {
             Warning,
@@ -161,7 +161,7 @@ namespace PRoConEvents {
         private String _mySqlPort = "";
         private String _mySqlUsername = "";
         private readonly MySqlConnectionStringBuilder _dbCommStringBuilder = new MySqlConnectionStringBuilder();
-        private Boolean _fetchActionsFromDb;
+        private Boolean _fetchActionsFromDb = true;
         private const Boolean UseConnectionPooling = true;
         private const Int32 MinConnectionPoolSize = 0;
         private const Int32 MaxConnectionPoolSize = 20;
@@ -820,6 +820,10 @@ namespace PRoConEvents {
                                         String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
                                         foreach (AdKatsCommand aCommand in _CommandNameDictionary.Values) {
                                             if (aCommand.command_active == AdKatsCommand.CommandActive.Active) {
+                                                //Hidden ADK commands
+                                                if (!_isTestingAuthorized && aCommand.command_id == 71) {
+                                                    continue;
+                                                }
                                                 String allowEnum = "enum.roleAllowCommandEnum(Allow|Deny)";
                                                 Boolean allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key);
                                                 String display = rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name + ((allowed && aCommand.command_playerInteraction)?(" [ADMIN]"):(""));
@@ -17275,7 +17279,7 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 70", "REPLACE INTO `adkats_commands` VALUES(70, 'Active', 'player_log', 'Log', 'Log Player Information', 'log', FALSE)", true);
                                     changed = true;
                                 }
-                                if (!_CommandIDDictionary.ContainsKey(71))
+                                if (!_CommandIDDictionary.ContainsKey(71) && _isTestingAuthorized)
                                 {
                                     SendNonQuery("Adding command 71", "REPLACE INTO `adkats_commands` VALUES(71, 'Active', 'player_whitelistping', 'Log', 'Ping Whitelist Player', 'pwhitelist', TRUE)", true);
                                     changed = true;
@@ -17478,7 +17482,14 @@ namespace PRoConEvents {
                                             uploadRequired = true;
                                             continue;
                                         }
-                                        if (!aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) && aCommand.command_active==AdKatsCommand.CommandActive.Active) {
+                                        if (!aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) && 
+                                            aCommand.command_active == AdKatsCommand.CommandActive.Active) {
+                                            //Conditional check for default guest admin commands
+                                            if (aRole.role_key == "guest_default" && aCommand.command_playerInteraction) {
+                                                ConsoleWarn("The guest role cannot have access to admin commands.");
+                                                uploadRequired = true;
+                                                continue;
+                                            }
                                             aRole.RoleAllowedCommands.Add(aCommand.command_key, aCommand);
                                         }
                                     } 
