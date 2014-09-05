@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.0.5.4
+ * Version 5.0.5.5
  * 5-SEP-2014
  */
 
@@ -47,7 +47,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.5.4";
+        private const String PluginVersion = "5.0.5.5";
 
         public enum ConsoleMessageType {
             Warning,
@@ -820,6 +820,10 @@ namespace PRoConEvents {
                                         String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
                                         foreach (AdKatsCommand aCommand in _CommandNameDictionary.Values) {
                                             if (aCommand.command_active == AdKatsCommand.CommandActive.Active) {
+                                                //Guest admin command block
+                                                if (aRole.role_key == "guest_default" && aCommand.command_playerInteraction) {
+                                                    continue;
+                                                }
                                                 //Hidden ADK commands
                                                 if (!_isTestingAuthorized && aCommand.command_id == 71) {
                                                     continue;
