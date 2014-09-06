@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.0.5.5
- * 5-SEP-2014
+ * Version 5.0.5.7
+ * 6-SEP-2014
  */
 
 using System;
@@ -47,7 +47,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.5.5";
+        private const String PluginVersion = "5.0.5.7";
 
         public enum ConsoleMessageType {
             Warning,
@@ -5295,22 +5295,75 @@ namespace PRoConEvents {
                 if (actedWeapon != null) {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    ConsoleWarn(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int) actedWeapon.DPS + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]");
-                    if (!debugMode) {
-                        //Create the ban record
-                        var record = new AdKatsRecord {
-                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                            server_id = _serverID,
-                            command_type = _CommandKeyDictionary["player_ban_perm"],
-                            command_numeric = 0,
-                            target_name = aPlayer.player_name,
-                            target_player = aPlayer,
-                            source_name = "AutoAdmin",
-                            record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int) actedWeapon.DPS + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]"
-                        };
-                        //Process the record
-                        QueueRecordForProcessing(record);
-                        //AdminSayMessage(player.player_name + " auto-banned for damage mod. [" + actedWeapon.id + "-" + (int) actedWeapon.dps + "-" + (int) actedWeapon.kills + "-" + (int) actedWeapon.headshots + "]");
+                    if (_isTestingAuthorized) {
+                        var banPlayer = aPlayer;
+                        //Special case. Let server live with the hacker for 1 minute then watch them be banned
+                        var banDelayThread = new Thread(new ThreadStart(delegate {
+                            DebugWrite("Starting a ban delay thread.", 5);
+                            try {
+                                Thread.CurrentThread.Name = "bandelay";
+                                var start = DateTime.UtcNow;
+                                ConsoleWarn(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (DateTime.UtcNow - start).TotalSeconds < 300) {
+                                    //Wait for trigger case to start timer
+                                    Thread.Sleep(1000);
+                                }
+                                //Onced triggered, ban after 60 seconds.
+                                OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 60 seconds.");
+                                Thread.Sleep(TimeSpan.FromSeconds(53));
+                                PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", 6);
+                                Thread.Sleep(TimeSpan.FromSeconds(5));
+
+                                ConsoleWarn(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                                if (!debugMode)
+                                {
+                                    //Create the ban record
+                                    var record = new AdKatsRecord
+                                    {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        server_id = _serverID,
+                                        command_type = _CommandKeyDictionary["player_ban_perm"],
+                                        command_numeric = 0,
+                                        target_name = aPlayer.player_name,
+                                        target_player = aPlayer,
+                                        source_name = "AutoAdmin",
+                                        record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                                    };
+                                    //Process the record
+                                    QueueRecordForProcessing(record);
+                                }
+                            }
+                            catch (Exception) {
+                                HandleException(new AdKatsException("Error while runnin ban delay."));
+                            }
+                            DebugWrite("Exiting a ban delay thread.", 5);
+                            LogThreadExit();
+                        }));
+
+                        //Start the thread
+                        StartAndLogThread(banDelayThread);
+                    }
+                    else
+                    {
+                        ConsoleWarn(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                        if (!debugMode)
+                        {
+                            //Create the ban record
+                            var record = new AdKatsRecord
+                            {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverID,
+                                command_type = _CommandKeyDictionary["player_ban_perm"],
+                                command_numeric = 0,
+                                target_name = aPlayer.player_name,
+                                target_player = aPlayer,
+                                source_name = "AutoAdmin",
+                                record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                            };
+                            //Process the record
+                            QueueRecordForProcessing(record);
+                        }
                     }
                 }
             }
@@ -5381,22 +5434,83 @@ namespace PRoConEvents {
                 if (actedWeapon != null) {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    ConsoleWarn(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int) (actedWeapon.HSKR * 100) + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]");
-                    if (!debugMode) {
-                        //Create the ban record
-                        var record = new AdKatsRecord {
-                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                            server_id = _serverID,
-                            command_type = _CommandKeyDictionary["player_ban_perm"],
-                            command_numeric = 0,
-                            target_name = aPlayer.player_name,
-                            target_player = aPlayer,
-                            source_name = "AutoAdmin",
-                            record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int) (actedWeapon.HSKR * 100) + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]"
-                        };
-                        //Process the record
-                        QueueRecordForProcessing(record);
-                        //AdminSayMessage(player.player_name + " auto-banned for aimbot. [" + actedWeapon.id + "-" + (int) actedWeapon.hskr + "-" + (int) actedWeapon.kills + "-" + (int) actedWeapon.headshots + "]");
+                    if (_isTestingAuthorized)
+                    {
+                        var banPlayer = aPlayer;
+                        //Special case. Let server live with the hacker for 1 minute then watch them be banned
+                        var banDelayThread = new Thread(new ThreadStart(delegate
+                        {
+                            DebugWrite("Starting a ban delay thread.", 5);
+                            try
+                            {
+                                Thread.CurrentThread.Name = "bandelay";
+                                var start = DateTime.UtcNow;
+                                ConsoleWarn(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (DateTime.UtcNow - start).TotalSeconds < 300)
+                                {
+                                    //Wait for trigger case to start timer
+                                    Thread.Sleep(1000);
+                                }
+                                //Onced triggered, ban after 60 seconds.
+                                OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 60 seconds.");
+                                Thread.Sleep(TimeSpan.FromSeconds(53));
+                                if (actedWeapon.HSKR >= 60)
+                                {
+                                    PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", 6);
+                                }
+                                Thread.Sleep(TimeSpan.FromSeconds(5));
+
+                                ConsoleWarn(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                                if (!debugMode)
+                                {
+                                    //Create the ban record
+                                    var record = new AdKatsRecord
+                                    {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        server_id = _serverID,
+                                        command_type = _CommandKeyDictionary["player_ban_perm"],
+                                        command_numeric = 0,
+                                        target_name = aPlayer.player_name,
+                                        target_player = aPlayer,
+                                        source_name = "AutoAdmin",
+                                        record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                                    };
+                                    //Process the record
+                                    QueueRecordForProcessing(record);
+                                }
+                            }
+                            catch (Exception)
+                            {
+                                HandleException(new AdKatsException("Error while runnin ban delay."));
+                            }
+                            DebugWrite("Exiting a ban delay thread.", 5);
+                            LogThreadExit();
+                        }));
+
+                        //Start the thread
+                        StartAndLogThread(banDelayThread);
+                    }
+                    else
+                    {
+                        ConsoleWarn(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                        if (!debugMode)
+                        {
+                            //Create the ban record
+                            var record = new AdKatsRecord
+                            {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverID,
+                                command_type = _CommandKeyDictionary["player_ban_perm"],
+                                command_numeric = 0,
+                                target_name = aPlayer.player_name,
+                                target_player = aPlayer,
+                                source_name = "AutoAdmin",
+                                record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                            };
+                            //Process the record
+                            QueueRecordForProcessing(record);
+                        }
                     }
                 }
             }
@@ -6661,7 +6775,7 @@ namespace PRoConEvents {
                         if ((!enemyWinning && !enemyStrong) ||
                             (!enemyWinning && winningTeam.TeamTicketCount - losingTeam.TeamTicketCount > 200)) {
                             //15 second timeout
-                            Double timeout = (15 - (DateTime.UtcNow - _commandUsageTimes["self_assist"]).TotalSeconds);
+                            Double timeout = (60 - (DateTime.UtcNow - _commandUsageTimes["self_assist"]).TotalSeconds);
                             if (timeout > 0) {
                                 SendMessageToSource(record, "Assist recently used. Please wait " + (int) timeout + " seconds before using it. Thank you. " + debug);
                                 FinalizeRecord(record);
