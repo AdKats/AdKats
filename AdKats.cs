@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.0.5.7
- * 6-SEP-2014
+ * Version 5.0.5.8
+ * 7-SEP-2014
  */
 
 using System;
@@ -47,7 +47,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.5.7";
+        private const String PluginVersion = "5.0.5.8";
 
         public enum ConsoleMessageType {
             Warning,
@@ -3835,6 +3835,11 @@ namespace PRoConEvents {
                             AdKatsTeam team2 = _teamDictionary[2];
                             watch.Reset();
                             watch.Start();
+                            if (_currentRoundState == RoundState.Loaded)
+                            {
+                                Thread.Sleep(TimeSpan.FromSeconds(2));
+                                continue;
+                            }
                             if (_currentRoundState == RoundState.Ended ||
                                 !_pluginEnabled ||
                                 (team1.TeamPlayerCount <= 1 && team1.Populated) ||
@@ -3842,10 +3847,33 @@ namespace PRoConEvents {
                             {
                                 break;
                             }
-                            if (_currentRoundState == RoundState.Loaded)
-                            {
-                                Thread.Sleep(TimeSpan.FromSeconds(2));
-                                continue;
+
+                            if (_isTestingAuthorized && _serverInfo.ServerName.Contains("#7")) {
+                                AdKatsTeam baserapingTeam = null;
+                                if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > 100)
+                                {
+                                    if (team1.TeamTicketDifferenceRate <= -70) {
+                                        baserapingTeam = team2;
+                                    }
+                                    else if (team2.TeamTicketDifferenceRate <= -70) {
+                                        baserapingTeam = team1;
+                                    }
+                                }
+                                if (baserapingTeam != null) {
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                    Thread.Sleep(8000);
+                                    var repRecord = new AdKatsRecord
+                                    {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        server_id = _serverID,
+                                        command_type = _CommandKeyDictionary["round_end"],
+                                        command_numeric = baserapingTeam.TeamID,
+                                        target_name = baserapingTeam.TeamName,
+                                        source_name = "RoundManager",
+                                        record_message = "End Baserape Round (" + baserapingTeam.TeamKey + " Win)"
+                                    };
+                                    QueueRecordForProcessing(repRecord);
+                                }
                             }
                             using (MySqlConnection connection = GetDatabaseConnection())
                             {
@@ -5309,11 +5337,11 @@ namespace PRoConEvents {
                                     //Wait for trigger case to start timer
                                     Thread.Sleep(1000);
                                 }
-                                //Onced triggered, ban after 60 seconds.
-                                OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 60 seconds.");
-                                Thread.Sleep(TimeSpan.FromSeconds(53));
+                                //Onced triggered, ban after 90 seconds.
+                                OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 90 seconds.");
+                                Thread.Sleep(TimeSpan.FromSeconds(83));
                                 PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", 6);
-                                Thread.Sleep(TimeSpan.FromSeconds(5));
+                                Thread.Sleep(TimeSpan.FromSeconds(7));
 
                                 ConsoleWarn(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
                                 if (!debugMode)
@@ -5452,14 +5480,14 @@ namespace PRoConEvents {
                                     //Wait for trigger case to start timer
                                     Thread.Sleep(1000);
                                 }
-                                //Onced triggered, ban after 60 seconds.
-                                OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 60 seconds.");
-                                Thread.Sleep(TimeSpan.FromSeconds(53));
-                                if (actedWeapon.HSKR >= 60)
+                                //Onced triggered, ban after 90 seconds.
+                                OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 90 seconds.");
+                                Thread.Sleep(TimeSpan.FromSeconds(83));
+                                if (actedWeapon.HSKR >= .6)
                                 {
                                     PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", 6);
                                 }
-                                Thread.Sleep(TimeSpan.FromSeconds(5));
+                                Thread.Sleep(TimeSpan.FromSeconds(7));
 
                                 ConsoleWarn(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
                                 if (!debugMode)
@@ -5962,7 +5990,7 @@ namespace PRoConEvents {
                                         }
                                     }
                                 }
-                                if (_isTestingAuthorized)
+                                if (_isTestingAuthorized && _gameVersion == GameVersion.BF4)
                                 {
                                     var lowerM = " " + message.ToLower() + " ";
                                     if (lowerM.Contains(" ping ") || lowerM.Contains(" pings ") || lowerM.Contains(" ping.") || lowerM.Contains(" ping,"))
@@ -6767,13 +6795,13 @@ namespace PRoConEvents {
                         {
                             enemyStrong = Math.Abs(team1.TeamTicketDifferenceRate) < Math.Abs(team2.TeamTicketDifferenceRate);
                         }
-                        if (_isTestingAuthorized && _serverInfo.RoundTime < 180) {
-                            SendMessageToSource(record, "Please wait at least 3 minutes into the round to use assist.");
+                        if (_isTestingAuthorized && _serverInfo.RoundTime < 300) {
+                            SendMessageToSource(record, "Please wait at least 5 minutes into the round to use assist.");
                             FinalizeRecord(record);
                             return;
                         }
                         if ((!enemyWinning && !enemyStrong) ||
-                            (!enemyWinning && winningTeam.TeamTicketCount - losingTeam.TeamTicketCount > 200)) {
+                            (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 200)) {
                             //15 second timeout
                             Double timeout = (60 - (DateTime.UtcNow - _commandUsageTimes["self_assist"]).TotalSeconds);
                             if (timeout > 0) {
