@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.0.5.8
- * 7-SEP-2014
+ * Version 5.0.5.9
+ * 8-SEP-2014
  */
 
 using System;
@@ -5323,7 +5323,8 @@ namespace PRoConEvents {
                 if (actedWeapon != null) {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    if (_isTestingAuthorized) {
+                    if (_isTestingAuthorized && _aliveThreads.Values.All(thread => thread.Name != "bandelay"))
+                    {
                         var banPlayer = aPlayer;
                         //Special case. Let server live with the hacker for 1 minute then watch them be banned
                         var banDelayThread = new Thread(new ThreadStart(delegate {
