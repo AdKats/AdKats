@@ -15743,7 +15743,7 @@ namespace PRoConEvents {
                     }
 
                     //Submit ban to metabans
-                    if (aBan.ban_record.command_type.command_key == "banenforcer_enforce" && _useMetabans && !String.IsNullOrEmpty(_metabansUsername) && !String.IsNullOrEmpty(_metabansAPIKey))
+                    if (aBan.ban_record.command_type.command_key != "banenforcer_enforce" && _useMetabans && !String.IsNullOrEmpty(_metabansUsername) && !String.IsNullOrEmpty(_metabansAPIKey))
                     {
                         SubmitToMetabans(aBan, AssessmentTypes.black);
                     }
