@@ -1,6 +1,7 @@
 <script>
     //<latest_stable_release>5.1.0.0</latest_stable_release>
 </script>
+<img src="http://i.imgur.com/lKqNKcc.png" alt="AdKats Advanced In-Game Admin Tools">
 <h1>AdKats - User Manual</h1>
 <p>
     Admin Toolset with a plethora of features, over 50 available in-game commands, and many
