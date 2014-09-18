@@ -1,6 +1,6 @@
 <h2>Development</h2>
 <p>
-    Started by ColColonCleaner for A Different Kind (ADK) on Apr. 20, 2013
+    Started by Daniel J. Gradinjan (ColColonCleaner) for A Different Kind (ADK) on Apr. 20, 2013
 </p>
 <h3>Changelog</h3>
 <blockquote>
@@ -474,6 +474,49 @@ fine for performance). Right now only Punish and Forgive are required to be logg
     <li>Some settings were not included in the interval setting pull/push.</li>
     <li>Ticket rate and ticket count calculations were incorrect, and sometimes completely absent.</li>
     <li>Teamswap had multiple move errors when multiple people were queued for teamswap.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
+<h4>5.1.0.0 (17-SEP-2014)</h4>
+<b>Changes</b><br/>
+<ul>
+    <li>Report IDs can only be acted on by admin role players now.</li>
+    <li>All player orchestration in other plugins is done by player EAGUID now, instead of player name.</li>
+</ul>
+<b>Enhancements</b><br/>
+<ul>
+    <li>Released extended round statistics publicly. You can now track how rounds progress, not just how they end.</li>
+    <li>Kicks by the AFK Manager are now hidden to avoid chat spam.</li>
+    <li>Added command timeouts for kick, tban, ban, and fban, to avoid command spam.</li>
+    <li>Multibalancer unswitcher is now disabled for a few seconds for each admin move, so the autobalancer will never fight admin moves.</li>
+    <li>Players are now blocked from moving off a team they were moved to by admin. Lasts for the current round only.</li>
+    <li>Player team/squad are now updated faster so incorrect location information is avoided.</li>
+    <li>Startup notification for admins is now more prominent and readable.</li>
+    <li>Player fetching is now cached layer-side for the current running instance, so after enabling and running for a while, operation will be less database heavy.</li>
+    <li>Added useful information to the targeted player leaving messages.</li>
+    <li>Added notification of reputation change for players.</li>
+    <li>Added reputation command.</li>
+    <li>Added confirmation message to the cancel command if a previous command was canceled.</li>
+    <li>BF4 Case. Player type is now processed, i.e. Player, Spectator, CommanderPC, and CommanderMobile.</li>
+    <li>Added more information to the player info command.</li>
+    <li>Added log command.</li>
+    <li>Added option that should never be used. Bypass setting for all command confirmation.</li>
+    <li>Made the assist command's deny message more understandable.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+    <li>Fixed metabans credential request spam.</li>
+    <li>Fixed internal team elements being overwritten when they shouldn't have been. This gave incorrect stats for player location and round storage stats.</li>
+    <li>Fixed loophole where duplicate bans could be posted if the server lagged when clearing the ban list.</li>
+    <li>Fixed edge case where players changing their name could cause specialplayer identifier mismatch.</li>
+    <li>Fixed logic for plugin orchestration on player names, GUIDs were intended for use there but test player names remained in the release.</li>
+    <li>Fixed command parsing from Insane Limits.</li>
+    <li>Fixed issue where whitelisted players could be banned during startup as player listing happened in parallel with user listing.</li>
+    <li>Fixed command rejection for existing specialplayer entries, no more duplicate postings allowed.</li>
+    <li>Fixed command usage timeouts for assist, and all commands in general.</li>
+    <li>Fixed reputation gain for the assist command.</li>
 </ul>
 <b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
 <ul>
