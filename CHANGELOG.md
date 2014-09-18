@@ -3,8 +3,7 @@
     Started by Daniel J. Gradinjan (ColColonCleaner) for A Different Kind (ADK) on Apr. 20, 2013
 </p>
 <h3>Changelog</h3>
-<br/>
-<br/>
+<blockquote>
 <h4>0.0.1 (20-APR-2013)</h4>
 <b>Main: </b> <br/>
 * Initial Version <br/>
@@ -523,3 +522,4 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
+</blockquote>
