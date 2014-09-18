@@ -157,7 +157,7 @@
                                                 target="_blank">HERE</a> and they will be fixed ASAP.
 </p>
 <p>
-    AdKats was inspired by the gaming community A Different Kind (ADK), and created by ColColonCleaner.
+    AdKats was inspired by the gaming community A Different Kind (ADK), and created by Daniel J. Gradinjan (ColColonCleaner).
     Visit <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
 </p>
 <h2>Dependencies</h2>
