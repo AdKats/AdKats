@@ -1,9 +1,9 @@
 <script>
-    //<latest_stable_release>5.0.0.5</latest_stable_release>
+    //<latest_stable_release>5.1.0.0</latest_stable_release>
 </script>
 <h1>AdKats - User Manual</h1>
 <p>
-    Admin Toolset with a plethora of features, over 50 available in-game commands, and many 
+    Admin Toolset with a plethora of features, over 50 available in-game commands, and many
     customization options.
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any
     setup.
@@ -216,7 +216,7 @@
         <b>Download AdKats Source.</b>
         Download the latest stable version of AdKats from here:
         <a href="https://sourceforge.net/projects/adkats/files/latest/download" target="_blank">Version
-            5.0.0.5</a>
+            5.1.0.0</a>
     </li>
     <li>
         <b>Add plugin file to Procon.</b>
@@ -536,6 +536,15 @@
     Automatic action will also not be taken if the target player has already been acted on in some way in the past 60
     seconds.
 </p>
+<h3>Extended Round Statistics</h3>
+<p>
+    Basic round statistics can be found through stat logger in the tbl_mapstats table, but these stats only give basic
+    information at round end. AdKats adds a table tbl_extendedroundstats, which shows how matches progress while the
+    round is still going, not just at the end. Every 30 seconds, the current round ID, round duration, team counts,
+    ticket counts, ticket difference rates, team total scores, score rates, and a timestamp are logged in the table. A
+    display of this information (in part) can be seen in the WebAdmin stats page. Logging starts at the beginning of
+    each round, it will not start immediately for the current round when AdKats enables.
+</p>
 <h3>Player Muting</h3>
 <p>
     Players can be muted using the mute command.
@@ -557,6 +566,13 @@
     If user has admin access, the target squad will be unlocked for their entry.
     NOTE: For cross-team joining, TeamSwap queues are not used, so if there is no room on the target team you will need
     to retry the command once room is available.
+</p>
+<h3>AFK Player Management</h3>
+<p>
+    AFK players can be managed automatically, and logs made of when, where, and how long they were AFK.
+    Limits can be placed on AFK kicking, including minimum player count, minimum AFK time before kick, admin/role
+    whitelisting, and chat ignore.
+    If automatic management is not desired, you can use the AFK command to kick AFK players manually.
 </p>
 <h3>Pre-Messaging</h3>
 <p>
@@ -595,6 +611,10 @@
     This is meant to be available to players outside the admin list, usually by paid usage to your community or to clan
     members only.
     Admins can also use '@moveme', and in their case it bypasses the ticket window restriction.
+    When players are moved by admins, use the moveme command, or use assist, they are locked to that team for the
+    current round.
+    When a player is moved by admin, multibalancer unswitcher is disabled for a few seconds to remove the chance of
+    autobalancer fighting admin moves.
 </p>
 <h3>Requiring Reasons</h3>
 <p>
@@ -635,15 +655,9 @@
 <p>
     Orchestration table "adkats_orchestration" has been added. All entries in this table are polled every 5 minutes and
     sent to the appropriate plugins. Add entries to that table with a given server ID, plugin name, plugin setting name,
-    and setting value. AdKats will send those settings to the target plugin every 5 minutes.
+    and setting value. AdKats will send those settings to the target plugins every 5 minutes.
 </p>
 <h3>Internal Hacker-Checker with Whitelist</h3>
-<p>
-    Ever since we started running servers we never banned off of "cheat-o-meter" results, since there were too many
-    false positives, so we built our own.
-    This code has been dormant in AdKats for several months now, only activating on =ADK= servers while we tested it.
-    We are releasing the fully tested BF3 and BF4 versions now.
-</p>
 <p>
     The hacker-checker uses BF3Stats.com and BF4Stats.com for player stats, and is able to catch both aimbots and damage
     mods.
@@ -1305,6 +1319,16 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </td>
 </tr>
 <tr>
+    <td><b>Log Player Information</b></td>
+    <td>log</td>
+    <td>
+        [player][message]
+    </td>
+    <td>
+        The in-game command used for logging a message on a player's record. Does not affect their gameplay in any way.
+    </td>
+</tr>
+<tr>
     <td><b>What Is</b></td>
     <td>whatis</td>
     <td>
@@ -1340,6 +1364,19 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <td>
         The in-game command used to request the server rules. When targeted at a player, that player will be told the
         server rules. When targeted at a player, the command goes on timeout for that player.
+    </td>
+</tr>
+<tr>
+    <td><b>Request Reputation</b></td>
+    <td>rep</td>
+    <td>
+        none<br/>
+        OR<br/>
+        [player]
+    </td>
+    <td>
+        The in-game command used to request the server reputation. When targeted at a player, you will be told that
+        player's reputation. Requesting a player's reputation other than your own is admin only.
     </td>
 </tr>
 <tr>
@@ -1583,6 +1620,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         access to all enabled commands through procon's chat tab. When issuing commands through procon's chat tab, the
         commands must be prefixed with a / for them to work.
     </li>
+    <li><b>'Bypass all command confirmation -DO NOT USE-'</b> - Disables all command confirmation. Do not use this
+    setting unless you want to accidentally kick/ban the wrong people.
     <li><b>'External plugin player commands'</b> - List of commands (with prefixes) that general players can access.
         Currently used for the help command.
     <li><b>'External plugin admin commands'</b> - List of commands (with prefixes) that admins can access. Currently
