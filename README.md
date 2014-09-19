@@ -153,14 +153,14 @@
     </li>
 </ul>
 <p>
-    If you find any bugs, please submit them <a href="https://github.com/ColColonCleaner/AdKats/issues?state=open"
-                                                target="_blank">HERE</a> and they will be fixed ASAP.
-</p>
-<p>
-    AdKats was inspired by the gaming community A Different Kind, =ADK=. Visit <a href="http://www.adkgamers.com/" target="_blank">ADKGamers.com</a> to say thanks!
+    <b>AdKats was inspired by the gaming community A Different Kind, =ADK=.<br/>
+    Visit <a href="http://www.adkgamers.com/" target="_blank">ADKGamers.com</a> to say thanks!</b>
 </p>
 <p>
     <b>Development by Daniel J. Gradinjan (ColColonCleaner)</b>
+</p>
+<p>
+    If you find any bugs, please submit them <a href="https://github.com/ColColonCleaner/AdKats/issues?state=open" target="_blank">HERE</a> and they will be fixed ASAP.
 </p>
 <h2>Dependencies</h2>
 <h4>1. A MySQL Database</h4>
