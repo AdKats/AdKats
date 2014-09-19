@@ -157,8 +157,10 @@
                                                 target="_blank">HERE</a> and they will be fixed ASAP.
 </p>
 <p>
-    AdKats was inspired by the gaming community A Different Kind (ADK), and created by Daniel J. Gradinjan (ColColonCleaner).
-    Visit <a href="http://www.adkgamers.com/" target="_blank">http://www.adkgamers.com/</a> to say thanks!
+    AdKats was inspired by the gaming community A Different Kind (ADK)<br/>
+    Development by Daniel J. Gradinjan (ColColonCleaner)<br/>
+    <br/>
+    Visit <a href="http://www.adkgamers.com/" target="_blank">ADKGamers.com</a> to say thanks!
 </p>
 <h2>Dependencies</h2>
 <h4>1. A MySQL Database</h4>
