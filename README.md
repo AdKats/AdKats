@@ -153,11 +153,11 @@
     </li>
 </ul>
 <p>
-    <b>AdKats was inspired by the gaming community A Different Kind, =ADK=.<br/>
-    Visit <a href="http://www.adkgamers.com/" target="_blank">ADKGamers.com</a> to say thanks!</b>
+    AdKats was inspired by the gaming community A Different Kind, =ADK=.<br/>
+    Visit <a href="http://www.adkgamers.com/" target="_blank">ADKGamers.com</a> to say thanks!
 </p>
 <p>
-    <b>Development by Daniel J. Gradinjan (ColColonCleaner)</b>
+    Development by Daniel J. Gradinjan (ColColonCleaner)
 </p>
 <p>
     If you find any bugs, please submit them <a href="https://github.com/ColColonCleaner/AdKats/issues?state=open" target="_blank">HERE</a> and they will be fixed ASAP.
