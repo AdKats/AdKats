@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.0.5.9
- * 8-SEP-2014
+ * Version 5.1.0.1
+ * 19-SEP-2014
  */
 
 using System;
@@ -47,7 +47,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.0.5.8";
+        private const String PluginVersion = "5.1.0.1";
 
         public enum ConsoleMessageType {
             Warning,
@@ -2742,7 +2742,8 @@ namespace PRoConEvents {
                             if (_aliveThreads.Count() >= 20) {
                                 String aliveThreads = "";
                                 lock (_aliveThreads) {
-                                    aliveThreads = _aliveThreads.Values.Aggregate(aliveThreads, (current, aliveThread) => current + (aliveThread.Name + "[" + aliveThread.ManagedThreadId + "] "));
+                                    foreach (Thread value in _aliveThreads.Values)
+                                        aliveThreads = aliveThreads + (value.Name + "[" + value.ManagedThreadId + "] ");
                                 }
                                 ConsoleWarn("Thread warning: " + aliveThreads);
                             }
@@ -3352,12 +3353,22 @@ namespace PRoConEvents {
                                         if (_currentRoundState == RoundState.Playing) {
                                             aPlayer.AddPingEntry(ping);
                                             //Automatic ping kick for ADK
-                                            if (_isTestingAuthorized && _gameVersion == GameVersion.BF4 && aPlayer.player_pings_full && aPlayer.player_type == PlayerType.Player && !RoleIsAdmin(aPlayer.player_role)) {
+                                            if (_isTestingAuthorized && _gameVersion == GameVersion.BF4 && aPlayer.player_type == PlayerType.Player && !RoleIsAdmin(aPlayer.player_role) && !FetchMatchingSpecialPlayers("whitelist_ping", aPlayer).Any()) {
                                                 var playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
-                                                if ((playerCount > 50 && aPlayer.player_ping_avg > 300) || (playerCount > 62 && aPlayer.player_ping_avg > 200) || aPlayer.player_ping_avg < 0) {
-                                                    if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0)) {
-                                                        if (!FetchMatchingSpecialPlayers("whitelist_ping", aPlayer).Any())
-                                                        {
+                                                if (playerCount > 50) {
+                                                    //Warn players of limit and spikes
+                                                    if (ping > 300) {
+                                                        if (aPlayer.player_pings_full && aPlayer.player_ping_avg < 300) {
+                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current:" + Math.Round(ping, 2) + " Avg:" + Math.Round(aPlayer.player_ping_avg, 2), 1);
+                                                        }
+                                                        else {
+                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. " + Math.Round(ping, 2), 1);
+                                                        }
+                                                    }
+                                                    //Are they over the limit, or missing
+                                                    if ((aPlayer.player_ping_avg > 300 && aPlayer.player_pings_full) || aPlayer.player_ping_avg < 0) {
+                                                        //Are they higher ping than the current picked player
+                                                        if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0)) {
                                                             pingPickedPlayer = aPlayer;
                                                         }
                                                     }
@@ -5043,7 +5054,28 @@ namespace PRoConEvents {
 
         public List<AdKatsSpecialPlayer> getASPlayersOfGroup(String specialPlayerGroup) {
             return _specialPlayerCache.Values.Where(asPlayer => asPlayer.player_group == specialPlayerGroup).ToList();
-        } 
+        }
+
+        public List<AdKatsSpecialPlayer> FetchMatchingSpecialPlayers(String group, AdKatsPlayer aPlayer)
+        {
+            DebugWrite("Entering FetchMatchingSpecialPlayers", 6);
+            try
+            {
+                List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
+                matchingSpecialPlayers.AddRange(getASPlayersOfGroup(group).Where(asPlayer => asPlayer.player_object != null &&
+                    (asPlayer.player_object.player_id == aPlayer.player_id ||
+                     asPlayer.player_identifier == aPlayer.player_name ||
+                     asPlayer.player_identifier == aPlayer.player_guid ||
+                     asPlayer.player_identifier == aPlayer.player_ip)));
+                return matchingSpecialPlayers;
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching matching special players.", e));
+            }
+            DebugWrite("Exiting FetchMatchingSpecialPlayers", 6);
+            return null;
+        }
 
         public Boolean PlayerProtected(AdKatsPlayer aPlayer) {
             //Pull players from special player cache
@@ -5999,7 +6031,7 @@ namespace PRoConEvents {
                                         AdKatsPlayer aPlayer;
                                         if (_PlayerDictionary.TryGetValue(speaker, out aPlayer) && !RoleIsAdmin(aPlayer.player_role))
                                         {
-                                            PlayerTellMessage(speaker, "Ping limit is 300 when over 50 players, and 200 when completely full. Missing pings are kicked. ADK members are whitelisted.", 1);
+                                            PlayerTellMessage(speaker, "Ping limit is 300 when over 50 players. Missing pings are kicked. ADK members are whitelisted.", 1);
                                             continue;
                                         }
                                     }
@@ -14030,94 +14062,6 @@ namespace PRoConEvents {
             return onlineAdminSoldiers.Values.ToList();
         }
 
-        public List<AdKatsSpecialPlayer> FetchMatchingSpecialPlayers(String group, AdKatsPlayer aPlayer) {
-            DebugWrite("Entering FetchMatchingSpecialPlayers", 6);
-            try {
-                var matchingPlayers = new List<AdKatsSpecialPlayer>();
-                using (MySqlConnection connection = GetDatabaseConnection()) {
-                    using (MySqlCommand command = connection.CreateCommand()) {
-                        //Attempt to execute the query
-                        command.CommandText = @"
-                        SELECT 
-	                        `specialplayer_id`,
-	                        `player_group`,
-	                        `player_id`,
-	                        `player_game`,
-	                        `player_server`,
-	                        `player_identifier`,
-	                        `player_effective`,
-                            `player_expiration`
-                        FROM 
-	                        `adkats_specialplayers`
-                        WHERE
-                            `player_expiration` > UTC_TIMESTAMP()
-                        AND
-                        (
-	                            `player_id` = @player_id
-                            OR
-	                            `player_identifier` = @player_name
-                            OR
-	                            `player_identifier` = @player_guid
-                            OR
-	                            `player_identifier` = @player_ip
-                        )";
-                        command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
-                        command.Parameters.AddWithValue("@player_name", aPlayer.player_name);
-                        command.Parameters.AddWithValue("@player_guid", aPlayer.player_guid);
-                        command.Parameters.AddWithValue("@player_ip", aPlayer.player_ip);
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
-                            while (reader.Read()) {
-                                var asPlayer = new AdKatsSpecialPlayer();
-                                asPlayer.player_group = reader.GetString("player_group");
-                                if (asPlayer.player_group != group) {
-                                    continue;
-                                }
-                                Int32? player_id = null;
-                                if (!reader.IsDBNull(2)) {
-                                    player_id = reader.GetInt32("player_id");
-                                }
-                                if (!reader.IsDBNull(3))
-                                    asPlayer.player_game = reader.GetInt32("player_game");
-                                if (!reader.IsDBNull(4))
-                                    asPlayer.player_server = reader.GetInt32("player_server");
-                                if (!reader.IsDBNull(5))
-                                    asPlayer.player_identifier = reader.GetString("player_identifier");
-                                asPlayer.player_effective = reader.GetDateTime("player_effective");
-                                asPlayer.player_expiration = reader.GetDateTime("player_expiration");
-                                if (asPlayer.player_game != null && asPlayer.player_game != _gameID) {
-                                    DebugWrite("Matching player rejected for mismatched game id", 4);
-                                    continue;
-                                }
-                                if (asPlayer.player_server != null && asPlayer.player_server != _serverID) {
-                                    DebugWrite("Matching player rejected for mismatched server id", 4);
-                                    continue;
-                                }
-                                if (player_id != null) {
-                                    if (player_id != aPlayer.player_id) {
-                                        DebugWrite("Matching player rejected for mismatched player id", 4);
-                                        continue;
-                                    }
-                                    asPlayer.player_object = aPlayer;
-                                }
-                                if (asPlayer.player_object == null && String.IsNullOrEmpty(asPlayer.player_identifier) && asPlayer.player_identifier != aPlayer.player_name && asPlayer.player_identifier != aPlayer.player_guid && asPlayer.player_identifier != aPlayer.player_ip)
-                                {
-                                    DebugWrite("Matching player rejected for mismatched player identifier", 4);
-                                    continue;
-                                }
-                                matchingPlayers.Add(asPlayer);
-                            }
-                        }
-                    }
-                }
-                return matchingPlayers;
-            }
-            catch (Exception e) {
-                HandleException(new AdKatsException("Error while taking action for Disperse record.", e));
-            }
-            DebugWrite("Exiting FetchMatchingSpecialPlayers", 6);
-            return null;
-        }
-
         private List<AdKatsPlayer> FetchElevatedSoldiers() {
             var elevatedSoldiers = new List<AdKatsPlayer>();
             //Loop over the user list
@@ -15742,7 +15686,7 @@ namespace PRoConEvents {
                     }
 
                     //Submit ban to metabans
-                    if (aBan.ban_record.command_type.command_key == "banenforcer_enforce" && _useMetabans && !String.IsNullOrEmpty(_metabansUsername) && !String.IsNullOrEmpty(_metabansAPIKey))
+                    if (aBan.ban_record.command_type.command_key != "banenforcer_enforce" && _useMetabans && !String.IsNullOrEmpty(_metabansUsername) && !String.IsNullOrEmpty(_metabansAPIKey))
                     {
                         SubmitToMetabans(aBan, AssessmentTypes.black);
                     }
@@ -20258,7 +20202,6 @@ namespace PRoConEvents {
                     }
                 } while (removed);
                 player_pings.Enqueue(new KeyValuePair<double, DateTime>(player_ping, DateTime.UtcNow));
-
                 player_ping_avg = player_pings.Sum(pingEntry => pingEntry.Key) / ((double)player_pings.Count);
             }
         }
