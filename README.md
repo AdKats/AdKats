@@ -158,8 +158,9 @@
 </p>
 <p>
     AdKats was inspired by the gaming community A Different Kind, =ADK=. Visit <a href="http://www.adkgamers.com/" target="_blank">ADKGamers.com</a> to say thanks!
-    <br/><br/>
-    Development by Daniel J. Gradinjan (ColColonCleaner)
+</p>
+<p>
+    <b>Development by Daniel J. Gradinjan (ColColonCleaner)</b>
 </p>
 <h2>Dependencies</h2>
 <h4>1. A MySQL Database</h4>
