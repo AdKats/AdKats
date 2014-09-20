@@ -420,7 +420,7 @@
     Player reputation system is now public. Each command is given a source and target reputation, and based on how
     players interact in the server they can either gain or lose reputation. Values for target and source rep are global
     for all instances of AdKats. Reputation is capped between -1000 and 1000, and is available for check using the
-    player info command.
+    player info/reputation commands.
 </p>
 <h3>Ban Enforcer</h3>
 <p>
