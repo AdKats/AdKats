@@ -154,7 +154,7 @@
     </li>
 </ul>
 <p>
-    AdKats was inspired by the gaming community A Different Kind, =ADK=.<br/>
+    AdKats was inspired by the gaming community A Different Kind (=ADK=)<br/>
     Visit <a href="http://www.adkgamers.com/" target="_blank">ADKGamers.com</a> to say thanks!
 </p>
 <p>
