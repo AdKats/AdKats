@@ -3,6 +3,7 @@
 </script>
 <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/AdKats.png" alt="AdKats Advanced In-Game Admin Tools">
 <h1>User Manual</h1>
+<h2>Overview</h2>
 <p>
     Admin Toolset with a plethora of features, over 50 available in-game commands, and many
     customization options.
