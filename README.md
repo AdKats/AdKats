@@ -532,9 +532,10 @@
     If admins are online, a 45 second window is given for the admin to act on the report before automatic handling
     fires.
     Admins can use any action command just like normal (e.g. @kill ID, @punish ID, etc...), but can also use the new
-    @accept or @deny commands.
+    @accept, @ignore, and @deny commands.
     @accept will confirm the report but take no action against the target player.
-    @deny is used for bad or invalid reports, and will hurt the reporter's AA status.<br/><br/>
+    @ignore is used for bad or invalid reports, the report is removed from the list and no action is taken.
+    @deny is for malicious reports and abuse of the report system, this command will destroy a reporter's reputation and hurt their AA status.<br/><br/>
 
     Exceptions and Security Measures:
     Automatic handling will not be taken if the target of a report is an admin or another AA, a real admin must act on
