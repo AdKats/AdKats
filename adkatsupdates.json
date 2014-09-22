@@ -1,6 +1,7 @@
 {
 	"SQLUpdates":[
 		{
+			"update_id":"command57adminfix",
 			"version_minimum":"5.0.0.0",
 			"version_maximum":null,
 			"message_name":"Fix command 57 admin-only status",
