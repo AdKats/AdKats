@@ -7,7 +7,7 @@
 			"message_success":"Command 57 admin-only status fixed",
 			"message_failure":"Failed to fix command 57 admin-only status",
 			"update_checks":[
-				"SELECT command_id FROM adkats_commands WHERE command_id = 57"
+				"SELECT command_id FROM adkats_commands WHERE command_id = 57",
 				"SELECT command_id FROM adkats_commands WHERE command_id = 57 AND command_playerInteraction = 1"
 			],
 			"update_execute":[
