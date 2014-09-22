@@ -1,8 +1,8 @@
 {
 	"SQLUpdates":[
 		{
-			"version_minimum":"5.0.0.0"
-			"version_maximum":null
+			"version_minimum":"5.0.0.0",
+			"version_maximum":null,
 			"message_name":"Fix command 57 admin-only status",
 			"message_success":"Command 57 admin-only status fixed",
 			"message_failure":"Failed to fix command 57 admin-only status",
