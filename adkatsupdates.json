@@ -11,6 +11,7 @@
 				"SELECT command_id FROM adkats_commands WHERE command_id = 57",
 				"SELECT command_id FROM adkats_commands WHERE command_id = 57 AND command_playerInteraction = 1"
 			],
+			"update_execute_requiresModRows":true,
 			"update_execute":[
 				"UPDATE adkats_commands SET command_playerInteraction = 0 WHERE command_id = 57"
 			],
