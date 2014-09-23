@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.0.1
- * 19-SEP-2014
+ * Version 5.1.0.4
+ * 22-SEP-2014
  */
 
 using System;
@@ -47,7 +47,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.0.1";
+        private const String PluginVersion = "5.1.0.4";
 
         public enum ConsoleMessageType {
             Warning,
@@ -2681,37 +2681,6 @@ namespace PRoConEvents {
             StartAndLogThread(descFetcher);
         }
 
-        private void FetchWeaponStats() {
-            _WeaponStatsWaitHandle.Reset();
-            //Create a new thread to fetch the plugin description and changelog
-            var descFetcher = new Thread(new ThreadStart(delegate {
-                try {
-                    Thread.CurrentThread.Name = "statsfetching";
-                    //Create web client
-                    var client = new WebClient();
-                    //Download the readme and changelog
-                    DebugWrite("Fetching weapon stats...", 2);
-                    try {
-                        _pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsweaponstats.json");
-                        DebugWrite("Weapon stats fetched.", 1);
-                    }
-                    catch (Exception) {
-                        ConsoleError("Failed to fetch weapon stats.");
-                    }
-                    if (_pluginDescription != "DESCRIPTION FETCH FAILED|") {
-                    }
-                    DebugWrite("Setting weapon stat fetch handle.", 1);
-                    _WeaponStatsWaitHandle.Set();
-                }
-                catch (Exception e) {
-                    HandleException(new AdKatsException("Error while fetching plugin description and changelog.", e));
-                }
-                LogThreadExit();
-            }));
-            //Start the thread
-            StartAndLogThread(descFetcher);
-        }
-
         private void SetupKeepAlive() {
             //Create a new thread to handle keep-alive
             //This thread will remain running for the duration the layer is online
@@ -3359,10 +3328,10 @@ namespace PRoConEvents {
                                                     //Warn players of limit and spikes
                                                     if (ping > 300) {
                                                         if (aPlayer.player_pings_full && aPlayer.player_ping_avg < 300) {
-                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current:" + Math.Round(ping, 2) + " Avg:" + Math.Round(aPlayer.player_ping_avg, 2), 1);
+                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping, 2) + "] Avg: [" + Math.Round(aPlayer.player_ping_avg, 2) + "]", 1);
                                                         }
                                                         else {
-                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. " + Math.Round(ping, 2), 1);
+                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping_avg, 2) + "]", 1);
                                                         }
                                                     }
                                                     //Are they over the limit, or missing
@@ -3863,10 +3832,10 @@ namespace PRoConEvents {
                                 AdKatsTeam baserapingTeam = null;
                                 if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > 100)
                                 {
-                                    if (team1.TeamTicketDifferenceRate <= -70) {
+                                    if (team1.TeamTicketDifferenceRate <= -70 && team2.TeamTicketCount > team1.TeamTicketCount) {
                                         baserapingTeam = team2;
                                     }
-                                    else if (team2.TeamTicketDifferenceRate <= -70) {
+                                    else if (team2.TeamTicketDifferenceRate <= -70 && team1.TeamTicketCount > team2.TeamTicketCount) {
                                         baserapingTeam = team1;
                                     }
                                 }
@@ -3881,7 +3850,7 @@ namespace PRoConEvents {
                                         command_numeric = baserapingTeam.TeamID,
                                         target_name = baserapingTeam.TeamName,
                                         source_name = "RoundManager",
-                                        record_message = "End Baserape Round (" + baserapingTeam.TeamKey + " Win)"
+                                        record_message = "End Baserape Round (" + baserapingTeam.TeamKey + " Win)(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + ")"
                                     };
                                     QueueRecordForProcessing(repRecord);
                                 }
@@ -12499,6 +12468,8 @@ namespace PRoConEvents {
                             //Fetch new settings from the database
                             FetchSettings(_settingImportID, _settingImportID != _serverID);
                             RunPluginOrchestration();
+                            //Run any available SQL Updates
+                            RunSQLUpdates();
                         }
 
                         counter.Reset();
@@ -17300,11 +17271,14 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 56", "REPLACE INTO `adkats_commands` VALUES(56, 'Active', 'player_dequeue', 'Log', 'Dequeue Player Action', 'deq', TRUE)", true);
                                     changed = true;
                                 }
-                                if (!_CommandIDDictionary.ContainsKey(57))
-                                {
+                                if (!_CommandIDDictionary.ContainsKey(57)) {
                                     SendNonQuery("Adding command 57", "REPLACE INTO `adkats_commands` VALUES(57, 'Active', 'self_help', 'Log', 'Request Server Commands', 'help', FALSE)", true);
                                     changed = true;
                                 }
+                                /*else if(_CommandIDDictionary[57].command_playerInteraction) {
+                                    SendNonQuery("Fixing command 57 admin-only status", "UPDATE adkats_commands SET command_playerInteraction = 0 WHERE command_id = 57", true);
+                                    changed = true;
+                                }*/
                                 if (!_CommandIDDictionary.ContainsKey(58))
                                 {
                                     SendNonQuery("Adding command 58", "REPLACE INTO `adkats_commands` VALUES(58, 'Active', 'player_find', 'Log', 'Find Player', 'find', FALSE)", true);
@@ -17373,6 +17347,16 @@ namespace PRoConEvents {
                                 if (!_CommandIDDictionary.ContainsKey(71) && _isTestingAuthorized)
                                 {
                                     SendNonQuery("Adding command 71", "REPLACE INTO `adkats_commands` VALUES(71, 'Active', 'player_whitelistping', 'Log', 'Ping Whitelist Player', 'pwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(72))
+                                {
+                                    SendNonQuery("Adding command 72", "REPLACE INTO `adkats_commands` VALUES(72, 'Invisible', 'player_ban_temp_old', 'Log', 'Previous Temp Ban', 'pretban', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(73))
+                                {
+                                    SendNonQuery("Adding command 73", "REPLACE INTO `adkats_commands` VALUES(73, 'Invisible', 'player_ban_perm_old', 'Log', 'Previous Perm Ban', 'preban', TRUE)", true);
                                     changed = true;
                                 }
                                 if (changed) {
@@ -19071,79 +19055,224 @@ namespace PRoConEvents {
             }
         }
 
-        private ArrayList FetchReputationStats() {
+        private ArrayList FetchReputationStats()
+        {
             ArrayList repTable = null;
-            using (var client = new WebClient()) {
-                try {
+            using (var client = new WebClient())
+            {
+                try
+                {
                     const string url = "https://raw.github.com/ColColonCleaner/AdKats/master/adkatsreputationstats.json";
                     String textResponse = client.DownloadString(url);
-                    repTable = (ArrayList) JSON.JsonDecode(textResponse);
+                    repTable = (ArrayList)JSON.JsonDecode(textResponse);
                 }
-                catch (Exception e) {
+                catch (Exception e)
+                {
                     ConsoleError(e.ToString());
                 }
             }
             return repTable;
         }
 
-        /*private Hashtable updateBF3StatsPlayer(String player_name)
-        {
-            Hashtable playerData = null;
+        private void RunSQLUpdates() {
+            DebugWrite("Entering RunSQLUpdates", 7);
             try
             {
-                using (WebClient client = new WebClient())
+                Int32 currentVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
+                foreach (AdKatsSQLUpdate update in FetchSQLUpdates())
                 {
-                    System.Security.Cryptography.HMACSHA256 hmac256 = new HMACSHA256(GetBytes("0wPt049KGUTESASnNdi6gnMLht3KdV20"));
-                    Hashtable hashData = new Hashtable();
-                    hashData.Add("time", ConvertToTimestamp(DateTime.UtcNow) + "");
-                    hashData.Add("ident", "pUNykTul3R");
-                    hashData.Add("player", player_name);
-                    hashData.Add("type", "cronjob");
-                    String dataString = JSON.JsonEncode(hashData);
-                    ConsoleError("DATA:" + dataString);
-                    //url encode the data
-                    dataString = System.Web.HttpUtility.UrlEncode(dataString);
-                    ConsoleError("E DATA: " + dataString);
-                    //Compute the sig
-                    String sig = System.Web.HttpUtility.UrlEncode(GetString(hmac256.ComputeHash(GetBytes(dataString))));
-                    ConsoleError("SIG: " + sig);
-                    NameValueCollection data = new NameValueCollection();
-                    data.Add("data", dataString);
-                    data.Add("sig", sig);
-                    byte[] response = client.UploadValues("http://api.bf3stats.com/pc/playerupdate/", data);
-                    if (response != null)
+                    if (update == null) {
+                        ConsoleError("SQL update was null. Skipping.");
+                        continue;
+                    }
+                    try
                     {
-                        String textResponse = System.Text.Encoding.Default.GetString(response);
-                        ConsoleSuccess(textResponse);
-                        playerData = (Hashtable)JSON.JsonDecode(textResponse);
+                        //Check for valid version
+                        if (!String.IsNullOrEmpty(update.version_minimum) && currentVersionInt < Int32.Parse(update.version_minimum.Replace(".", "")))
+                        {
+                            DebugWrite("Cancelling SQL update '" + update.update_id + "'. Version too early for update.", 5);
+                            continue;
+                        }
+                        if (!String.IsNullOrEmpty(update.version_maximum) && currentVersionInt > Int32.Parse(update.version_maximum.Replace(".", "")))
+                        {
+                            DebugWrite("Cancelling SQL update '" + update.update_id + "'. Version too late for update.", 5);
+                            continue;
+                        }
+                        //Check for valid initial conditions
+                        Boolean invalid = false;
+                        foreach (String checkSQL in update.update_checks) {
+                            if (!SendQuery(checkSQL, false))
+                            {
+                                invalid = true;
+                                break;
+                            }
+                        }
+                        if (invalid) {
+                            DebugWrite("Cancelling SQL update '" + update.update_id + "'. Update failed initial conditions.", 5);
+                            continue;
+                        }
+                        //Run the updates
+                        Int32 executeIndex = 0;
+                        Boolean failed = false;
+                        foreach (String executeSQL in update.update_execute) {
+                            if (!SendNonQuery("Executing SQL Update '" + update.update_id + "' (" + update.message_name + ")" + executeIndex++, executeSQL, false) && update.update_execute_requiresModRows) {
+                                failed = true;
+                                break;
+                            }
+                        }
+                        if (failed)
+                        {
+                            ConsoleError("Cancelling SQL update '" + update.update_id + "'. Update failed execution (" + update.message_failure + "), running failure clause(s). ");
+                            Int32 failureIndex = 0;
+                            foreach (String failureSQL in update.update_failure) {
+                                SendNonQuery("Running SQL Update '" + update.update_id + "' Failure Clause " + failureIndex++, failureSQL, false);
+                            }
+                            continue;
+                        }
+                        ConsoleSuccess("SQL Update '" + update.update_id + "' completed execution (" + update.message_success + ").");
+                        Int32 successIndex = 0;
+                        foreach (String successSQL in update.update_success)
+                        {
+                            SendNonQuery("Running SQL Update '" + update.update_id + "' Success Clause " + successIndex++, successSQL, false);
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        HandleException(new AdKatsException("Error while running SQL update '" + update.update_id + "'.", e));
                     }
                 }
             }
-            catch (Exception e)
-            {
-                HandleException(new AdKatsException("Error updating BF3Stats player.", e));
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while running SQL updates.", e));
             }
-            return playerData;
+            DebugWrite("Exiting RunSQLUpdates", 7);
         }
 
-        private Hashtable lookupBF3StatsPlayer(String player_name)
+        private List<AdKatsSQLUpdate> FetchSQLUpdates()
         {
-            Hashtable playerData = null;
-            using (WebClient client = new WebClient())
+            DebugWrite("Entering FetchSQLUpdates", 7);
+            List<AdKatsSQLUpdate> SQLUpdates = new List<AdKatsSQLUpdate>();
+            using (var client = new WebClient())
             {
-                NameValueCollection data = new NameValueCollection();
-                data.Add("player", player_name);
-                data.Add("ident", "pUNykTul3R");
-                data.Add("opt", "all");
-                byte[] response = client.UploadValues("http://api.bf3stats.com/pc/player/", data);
-                if (response != null)
+                try
                 {
-                    String textResponse = System.Text.Encoding.Default.GetString(response);
-                    playerData = (Hashtable)JSON.JsonDecode(textResponse);
+                    const string url = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/adkatsupdates.json";
+                    String textResponse = client.DownloadString(url);
+                    Hashtable updateTable = (Hashtable)JSON.JsonDecode(textResponse);
+                    ArrayList SQLUpdateList = (ArrayList) updateTable["SQLUpdates"];
+                    if (SQLUpdateList != null && SQLUpdateList.Count > 0) {
+                        DebugWrite("SQL updates found. Parsing...", 5);
+                        foreach (Hashtable updateHash in SQLUpdateList) {
+                            AdKatsSQLUpdate update = new AdKatsSQLUpdate();
+                            //update_id
+                            update.update_id = (String)updateHash["update_id"];
+                            if (String.IsNullOrEmpty(update.update_id))
+                            {
+                                ConsoleError("SQL update update_id was not found or empty.");
+                                continue;
+                            }
+                            DebugWrite("Parsing SQL Update '" + update.update_id + "'", 5);
+                            //version_minimum
+                            update.version_minimum = (String)updateHash["version_minimum"];
+                            DebugWrite("SQL update '" + update.update_id + "' version_minimum: " + update.version_minimum, 5);
+                            //version_maximum
+                            update.version_maximum = (String)updateHash["version_maximum"];
+                            DebugWrite("SQL update '" + update.update_id + "' version_maximum: " + update.version_maximum, 5);
+                            //message_name
+                            update.message_name = (String)updateHash["message_name"];
+                            if (String.IsNullOrEmpty(update.message_name))
+                            {
+                                ConsoleError("SQL update '" + update.update_id + "' message_name was not found or empty.");
+                                continue;
+                            }
+                            DebugWrite("SQL update '" + update.update_id + "' message_name: " + update.message_name, 5);
+                            //message_success
+                            update.message_success = (String)updateHash["message_success"];
+                            if (String.IsNullOrEmpty(update.message_success))
+                            {
+                                ConsoleError("SQL update '" + update.update_id + "' message_success was not found or empty.");
+                                continue;
+                            }
+                            DebugWrite("SQL update '" + update.update_id + "' message_success: " + update.message_success, 5);
+                            //message_failure
+                            update.message_failure = (String)updateHash["message_failure"];
+                            if (String.IsNullOrEmpty(update.message_failure))
+                            {
+                                ConsoleError("SQL update '" + update.update_id + "' message_failure was not found or empty.");
+                                continue;
+                            }
+                            DebugWrite("SQL update '" + update.update_id + "' message_failure: " + update.message_failure, 5);
+                            //update_checks
+                            var update_checks = (ArrayList)updateHash["update_checks"];
+                            if (update_checks == null) {
+                                ConsoleError("SQL update '" + update.update_id + "' update_checks was not found.");
+                                continue;
+                            }
+                            foreach (String line in update_checks)
+                            {
+                                update.update_checks.Add(line);
+                            }
+                            DebugWrite("SQL update '" + update.update_id + "' update_checks: " + update.update_checks.Count, 5);
+                            //update_execute_requiresModRows
+                            update.update_execute_requiresModRows = (Boolean)updateHash["update_execute_requiresModRows"];
+                            if (update.update_execute_requiresModRows == null)
+                            {
+                                ConsoleError("SQL update '" + update.update_id + "' update_execute_requiresModRows was not found.");
+                                continue;
+                            }
+                            DebugWrite("SQL update '" + update.update_id + "' update_execute_requiresModRows: " + update.update_execute_requiresModRows, 5);
+                            //update_execute
+                            var update_execute = (ArrayList)updateHash["update_execute"];
+                            if (update_execute == null)
+                            {
+                                ConsoleError("SQL update '" + update.update_id + "' update_execute was not found.");
+                                continue;
+                            }
+                            foreach (String line in update_execute)
+                            {
+                                update.update_execute.Add(line);
+                            }
+                            DebugWrite("SQL update '" + update.update_id + "' update_execute: " + update.update_execute.Count, 5);
+                            //update_success
+                            var update_success = (ArrayList)updateHash["update_success"];
+                            if (update_success == null)
+                            {
+                                ConsoleError("SQL update '" + update.update_id + "' update_success was not found.");
+                                continue;
+                            }
+                            foreach (String line in update_success)
+                            {
+                                update.update_success.Add(line);
+                            }
+                            DebugWrite("SQL update '" + update.update_id + "' update_success: " + update.update_success.Count, 5);
+                            //update_failure
+                            var update_failure = (ArrayList)updateHash["update_failure"];
+                            if (update_failure == null)
+                            {
+                                ConsoleError("SQL update '" + update.update_id + "' update_failure was not found.");
+                                continue;
+                            }
+                            foreach (String line in update_failure)
+                            {
+                                update.update_failure.Add(line);
+                            }
+                            DebugWrite("SQL update '" + update.update_id + "' update_failure: " + update.update_failure.Count, 5);
+                            //Add
+                            SQLUpdates.Add(update);
+                        }
+                    }
+                    else {
+                        ConsoleError("No SQL updates found.");
+                    }
+                }
+                catch (Exception e)
+                {
+                    HandleException(new AdKatsException("Error while fetching SQL updates.", e));
                 }
             }
-            return playerData;
-        }*/
+            DebugWrite("Exiting FetchSQLUpdates", 7);
+            return SQLUpdates;
+        }
 
         private void PushThreadDebug(Int64 ticks, String thread, Int32 threadid, Int32 line, String element) {
             try {
@@ -20446,6 +20575,26 @@ namespace PRoConEvents {
             public Double Shots = -1;
             public TimeSpan Time = TimeSpan.FromSeconds(0);
             public Double MaxDPS = 1;
+        }
+
+        public class AdKatsSQLUpdate {
+            public String update_id;
+            public String version_minimum;
+            public String version_maximum;
+            public String message_name;
+            public String message_success;
+            public String message_failure;
+            public List<String> update_checks;
+            public Boolean update_execute_requiresModRows;
+            public List<String> update_execute;
+            public List<String> update_success;
+            public List<String> update_failure;
+            public AdKatsSQLUpdate() {
+                update_checks = new List<string>();
+                update_execute = new List<string>();
+                update_success = new List<string>();
+                update_failure = new List<string>();
+            }
         }
 
         internal enum AssessmentTypes {
