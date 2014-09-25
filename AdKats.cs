@@ -736,7 +736,7 @@ namespace PRoConEvents {
                     //Debug settings
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof (String), _debugSoldierName));
-                    lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Update Data Posting", typeof(Boolean), _updatesDisabled));
+                    lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Usage Data Posting", typeof(Boolean), _updatesDisabled));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Command Entry", typeof (String), ""));
                     
                     //Experimental tools
@@ -911,7 +911,7 @@ namespace PRoConEvents {
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof (String), _mySqlPassword));
 
             lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof(Int32), _debugLevel));
-            lstReturn.Add(new CPluginVariable("3. Debugging|Disable Update Data Posting", typeof(Boolean), _updatesDisabled));
+            lstReturn.Add(new CPluginVariable("3. Debugging|Disable Usage Data Posting", typeof(Boolean), _updatesDisabled));
 
             return lstReturn;
         }
@@ -1200,7 +1200,7 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Disable Update Data Posting").Success)
+                else if (Regex.Match(strVariable, @"Disable Usage Data Posting").Success)
                 {
                     Boolean disableUpdatePosts = Boolean.Parse(strValue);
                     if (disableUpdatePosts != _updatesDisabled)
@@ -1210,7 +1210,7 @@ namespace PRoConEvents {
                             PostUsageStatsUpdate();
                         }
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Disable Update Data Posting", typeof(Boolean), _updatesDisabled));
+                        QueueSettingForUpload(new CPluginVariable(@"Disable Usage Data Posting", typeof(Boolean), _updatesDisabled));
                     }
                 }
                 else if (Regex.Match(strVariable, @"AFK Trigger Minutes").Success)
@@ -13847,7 +13847,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInSay));
                 QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
-                QueueSettingForUpload(new CPluginVariable(@"Disable Update Data Posting", typeof(Boolean), _updatesDisabled));
+                QueueSettingForUpload(new CPluginVariable(@"Disable Usage Data Posting", typeof(Boolean), _updatesDisabled));
                 QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKSystemEnable));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
