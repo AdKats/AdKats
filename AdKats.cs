@@ -4012,7 +4012,8 @@ namespace PRoConEvents {
                             }
                             Boolean hadServerName = !String.IsNullOrEmpty(_serverName);
                             _serverName = serverInfo.ServerName;
-                            if (!_updatesDisabled && !String.IsNullOrEmpty(_serverName) && !hadServerName) {
+                            Boolean haveServerName = !String.IsNullOrEmpty(_serverName);
+                            if (!_updatesDisabled && haveServerName && !hadServerName) {
                                 PostUsageStatsUpdate();
                             }
 
