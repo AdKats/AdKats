@@ -4010,8 +4010,11 @@ namespace PRoConEvents {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                                 _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
-
+                            Boolean hadServerName = !String.IsNullOrEmpty(_serverName);
                             _serverName = serverInfo.ServerName;
+                            if (!_updatesDisabled && !String.IsNullOrEmpty(_serverName) && !hadServerName) {
+                                PostUsageStatsUpdate();
+                            }
 
                             //Only activate the following on ADK servers.
                             Boolean wasADK = _isTestingAuthorized;
