@@ -18,14 +18,15 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.0.4
- * 22-SEP-2014
+ * Version 5.1.0.6
+ * 25-SEP-2014
  */
 
 using System;
 using System.IO.Compression;
 using System.Globalization;
 using System.Net.NetworkInformation;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
@@ -47,7 +48,7 @@ using System.IO;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.0.4";
+        private const String PluginVersion = "5.1.0.6";
 
         public enum ConsoleMessageType {
             Warning,
@@ -121,6 +122,7 @@ namespace PRoConEvents {
         private Int32 _pingKicksThisRound = 0;
         private Int32 _pingKicksTotal = 0;
         private Int32 _currentRoundID = 0;
+        private Boolean _updatesDisabled = false;
 
         //Debug
         private volatile Int32 _debugLevel;
@@ -147,6 +149,7 @@ namespace PRoConEvents {
         private DateTime _lastUpdateSettingRequest = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastUserFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastPlayerMoveIssued = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _LastUsageStatsUpdate = DateTime.UtcNow - TimeSpan.FromHours(1);
 
         //Server
         private Boolean _populationStatusLow = true;
@@ -733,8 +736,9 @@ namespace PRoConEvents {
                     //Debug settings
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof (String), _debugSoldierName));
+                    lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Update Data Posting", typeof(Boolean), _updatesDisabled));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Command Entry", typeof (String), ""));
-
+                    
                     //Experimental tools
                     if (_isTestingAuthorized) {
                         lstReturn.Add(new CPluginVariable("X99. Experimental|Use Experimental Tools", typeof (Boolean), _useExperimentalTools));
@@ -906,7 +910,8 @@ namespace PRoConEvents {
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof (String), _mySqlUsername));
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof (String), _mySqlPassword));
 
-            lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof (Int32), _debugLevel));
+            lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof(Int32), _debugLevel));
+            lstReturn.Add(new CPluginVariable("3. Debugging|Disable Update Data Posting", typeof(Boolean), _updatesDisabled));
 
             return lstReturn;
         }
@@ -1193,6 +1198,19 @@ namespace PRoConEvents {
                         _AFKAutoKickEnable = afkAutoKickEnable;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Disable Update Data Posting").Success)
+                {
+                    Boolean disableUpdatePosts = Boolean.Parse(strValue);
+                    if (disableUpdatePosts != _updatesDisabled)
+                    {
+                        _updatesDisabled = disableUpdatePosts;
+                        if (_updatesDisabled && _threadsReady) {
+                            PostUsageStatsUpdate();
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Disable Update Data Posting", typeof(Boolean), _updatesDisabled));
                     }
                 }
                 else if (Regex.Match(strVariable, @"AFK Trigger Minutes").Success)
@@ -2470,6 +2488,7 @@ namespace PRoConEvents {
 
                         //Set the enabled variable
                         _pluginEnabled = true;
+                        _LastUsageStatsUpdate = DateTime.UtcNow - TimeSpan.FromHours(1);
 
                         //Init and start all the threads
                         InitWaitHandles();
@@ -2692,12 +2711,18 @@ namespace PRoConEvents {
                     while (true)
                     {
                         //Check for unswitcher disable every 20 seconds
-                        if (_MULTIBalancerUnswitcherDisabled && (DateTime.UtcNow - _LastPlayerMoveIssued).TotalSeconds > 20)
+                        if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (DateTime.UtcNow - _LastPlayerMoveIssued).TotalSeconds > 20)
                         {
                             DebugWrite("MULTIBalancer Unswitcher Re-Enabled", 3);
                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
                             _MULTIBalancerUnswitcherDisabled = false;
                         }
+
+                        if (!_updatesDisabled && (DateTime.UtcNow - _LastUsageStatsUpdate).TotalHours > 1 && (_threadsReady || (DateTime.UtcNow - _proconStartTime).TotalSeconds > 15))
+                        {
+                            PostUsageStatsUpdate();
+                        }
+
                         //Check for keep alive every 30 seconds
                         if ((DateTime.UtcNow - lastKeepAliveCheck).TotalSeconds > 30)
                         {
@@ -3795,9 +3820,8 @@ namespace PRoConEvents {
                                     if (reader.Read())
                                     {
                                         Int32 oldRoundID = reader.GetInt32("max_round_id");
-                                        ConsoleSuccess("Old round ID: " + oldRoundID);
                                         _currentRoundID = oldRoundID + 1;
-                                        ConsoleSuccess("New round ID: " + _currentRoundID);
+                                        DebugWrite("New Round. ExtendedRoundID is " + _currentRoundID, 2);
                                     }
                                     else
                                     {
@@ -3953,10 +3977,9 @@ namespace PRoConEvents {
 
         public override void OnServerInfo(CServerInfo serverInfo) {
             DebugWrite("Entering OnServerInfo", 7);
-            try {
+            try
+            {
                 if (_pluginEnabled) {
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_serverInfo) {
                         if (serverInfo != null) {
                             //Get the server info
@@ -3989,6 +4012,7 @@ namespace PRoConEvents {
                             }
 
                             _serverName = serverInfo.ServerName;
+
                             //Only activate the following on ADK servers.
                             Boolean wasADK = _isTestingAuthorized;
                             _isTestingAuthorized = serverInfo.ServerName.Contains("=ADK=");
@@ -13823,6 +13847,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInSay));
                 QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
+                QueueSettingForUpload(new CPluginVariable(@"Disable Update Data Posting", typeof(Boolean), _updatesDisabled));
                 QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKSystemEnable));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
@@ -19035,6 +19060,32 @@ namespace PRoConEvents {
                 //Do nothing
             }
             return playerData;
+        }
+
+        private void PostUsageStatsUpdate() {
+            if (String.IsNullOrEmpty(_serverIP)) {
+                return;
+            }
+            try
+            {
+                using (var client = new WebClient())
+                {
+                    var data = new NameValueCollection {
+                        {"server_ip", _serverIP},
+                        {"server_name", _serverName},
+                        {"adkats_version_current", PluginVersion},
+                        {"adkats_enabled", _pluginEnabled.ToString().ToLower()},
+                        {"adkats_uptime", (_threadsReady)?((DateTime.UtcNow - _AdKatsStartTime).TotalSeconds.ToString()):("0")},
+                        {"updates_disabled", _updatesDisabled.ToString().ToLower()}
+                    };
+                    byte[] response = client.UploadValues("http://api.gamerethos.net/adkats/usage", data);
+                }
+            }
+            catch (Exception e)
+            {
+                //Do nothing
+            }
+            _LastUsageStatsUpdate = DateTime.UtcNow;
         }
 
         private void PopulateCommandReputationDictionaries() {
