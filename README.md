@@ -833,13 +833,13 @@ If all the required parameters are provided, the command will execute and log to
 <b>Plugin Example:</b><br/>
 <br/>
 var requestHashtable = new Hashtable{<br/>
-&#160;{"caller_identity", "YourPlugin"},<br/>
-&#160;{"response_requested", false},<br/>
-&#160;{"command_type", "player_ban_perm"},<br/>
-&#160;{"source_name", "AutoTest"},<br/>
-&#160;{"target_name", "ColColonCleaner"},<br/>
-&#160;{"target_guid", "EA_698E70AF4E420A99824EA9A438FE3CB1"},<br/>
-&#160;{"record_message", "Testing"}<br/>
+&#160;&#160;&#160;&#160;&#160;{"caller_identity", "YourPlugin"},<br/>
+&#160;&#160;&#160;&#160;&#160;{"response_requested", false},<br/>
+&#160;&#160;&#160;&#160;&#160;{"command_type", "player_ban_perm"},<br/>
+&#160;&#160;&#160;&#160;&#160;{"source_name", "AutoTest"},<br/>
+&#160;&#160;&#160;&#160;&#160;{"target_name", "ColColonCleaner"},<br/>
+&#160;&#160;&#160;&#160;&#160;{"target_guid", "EA_698E70AF4E420A99824EA9A438FE3CB1"},<br/>
+&#160;&#160;&#160;&#160;&#160;{"record_message", "Testing"}<br/>
 };<br/>
 ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", "YourPlugin", JSON.JsonEncode(requestHashtable));<br/>
 <br/>
@@ -1561,53 +1561,54 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </tr>
 </table>
 <h2>Web Requests</h2>
-    <p>Some layer providers require whitelisting of connections through their firewall.
-        <b>For AdKats to function properly, requests to the following domains/sub-domains must be allowed from your layer:</b>
-    </p>
-    <p>
-        <table>
-            <tr>
-                <td><b>Domain</b></td>
-                <td><b>Usage</b></td>
-            </tr>
-            <tr>
-                <td>api.bf3stats.com</td>
-                <td>Player statistic tracking.</td>
-            </tr>
-            <tr>
-                <td>api.bf3stats.com</td>
-                <td>Player statistic tracking.</td>
-            </tr>
-            <tr>
-                <td>raw.github.com</td>
-                <td>Global configuration/documentation fetching, and database updates.</td>
-            </tr>
-            <tr>
-                <td>raw.githubusercontent.com</td>
-                <td>Global configuration/documentation fetching, and database updates.</td>
-            </tr>
-            <tr>
-                <td>sourceforge.net</td>
-                <td>Source updates.</td>
-            </tr>
-            <tr>
-                <td>api.gamerethos.net</td>
-                <td>Version management.</td>
-            </tr>
-            <tr>
-                <td>ip-api.com</td>
-                <td>Player location tracking.</td>
-            </tr>
-            <tr>
-                <td>metabans.com</td>
-                <td>Ban enforcer posting.</td>
-            </tr>
-        </table>
-    </p>
-    <p>
-        All are either simple GET or POST requests.
-        BF4DB.com might be used in the future to trigger updates on players BF4Stats data.
-    </p>
+<p>
+    Some layer providers require whitelisting of connections through their firewall.
+    <b>For AdKats to function properly, requests to the following domains/sub-domains must be allowed from your layer:</b>
+</p>
+<p>
+    <table>
+        <tr>
+            <td><b>Domain</b></td>
+            <td><b>Usage</b></td>
+        </tr>
+        <tr>
+            <td>api.bf3stats.com</td>
+            <td>Player statistic tracking.</td>
+        </tr>
+        <tr>
+            <td>api.bf3stats.com</td>
+            <td>Player statistic tracking.</td>
+        </tr>
+        <tr>
+            <td>raw.github.com</td>
+            <td>Global configuration/documentation fetching, and database updates.</td>
+        </tr>
+        <tr>
+            <td>raw.githubusercontent.com</td>
+            <td>Global configuration/documentation fetching, and database updates.</td>
+        </tr>
+        <tr>
+            <td>sourceforge.net</td>
+            <td>Source updates.</td>
+        </tr>
+        <tr>
+            <td>api.gamerethos.net</td>
+            <td>Version management.</td>
+        </tr>
+        <tr>
+            <td>ip-api.com</td>
+            <td>Player location tracking.</td>
+        </tr>
+        <tr>
+            <td>metabans.com</td>
+            <td>Ban enforcer posting.</td>
+        </tr>
+    </table>
+</p>
+<p>
+    All are either simple GET or POST requests.
+    BF4DB.com might be used in the future to trigger updates on players BF4Stats data.
+</p>
 <h2>Settings</h2>
 <h3>0. Instance Settings:</h3>
 <ul>
