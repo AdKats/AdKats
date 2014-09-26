@@ -1563,6 +1563,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h2>Web Requests</h2>
 <p>
     Some layer providers require whitelisting of connections through their firewall.
+</p>
+<p>
     <b>For AdKats to function properly, requests to the following domains/sub-domains must be allowed from your layer:</b>
 </p>
 <p>
@@ -1576,7 +1578,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
             <td>Player statistic tracking.</td>
         </tr>
         <tr>
-            <td>api.bf3stats.com</td>
+            <td>api.bf4stats.com</td>
             <td>Player statistic tracking.</td>
         </tr>
         <tr>
@@ -1607,6 +1609,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </p>
 <p>
     All are either simple GET or POST requests.
+</p>
+<p>
     BF4DB.com might be used in the future to trigger updates on players BF4Stats data.
 </p>
 <h2>Settings</h2>
