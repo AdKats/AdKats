@@ -3296,7 +3296,12 @@ namespace PRoConEvents {
                         lock (_PlayerDictionary)
                         {
                             //Firstly, go through removal queue, remove all names, and log them.
-                            while (inboundPlayerRemoval.Any()) {
+                            while (inboundPlayerRemoval.Any())
+                            {
+                                if (!_pluginEnabled)
+                                {
+                                    break;
+                                }
                                 CPlayerInfo playerInfo = inboundPlayerRemoval.Dequeue();
                                 AdKatsPlayer aPlayer;
                                 if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
@@ -3886,6 +3891,10 @@ namespace PRoConEvents {
                         var watch = new Stopwatch();
                         while (true)
                         {
+                            if (!_pluginEnabled)
+                            {
+                                break;
+                            }
                             AdKatsTeam team1 = _teamDictionary[1];
                             AdKatsTeam team2 = _teamDictionary[2];
                             watch.Reset();
@@ -4954,7 +4963,12 @@ namespace PRoConEvents {
                         }
 
                         //Get all checks in order that they came in
-                        while (playerCheckingQueue.Count > 0) {
+                        while (playerCheckingQueue.Count > 0)
+                        {
+                            if (!_pluginEnabled)
+                            {
+                                break;
+                            }
                             //Grab first/next player
                             AdKatsPlayer aPlayer = playerCheckingQueue.Dequeue();
                             DebugWrite("BANENF: begin reading player", 5);
@@ -5414,7 +5428,12 @@ namespace PRoConEvents {
                                 var start = DateTime.UtcNow;
                                 ConsoleWarn(banPlayer.player_name + " will be banned. Waiting for starting case.");
                                 OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
-                                while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (DateTime.UtcNow - start).TotalSeconds < 300) {
+                                while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (DateTime.UtcNow - start).TotalSeconds < 300)
+                                {
+                                    if (!_pluginEnabled)
+                                    {
+                                        break;
+                                    }
                                     //Wait for trigger case to start timer
                                     _threadMasterWaitHandle.WaitOne(1000);
                                 }
@@ -5558,6 +5577,10 @@ namespace PRoConEvents {
                                 OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
                                 while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (DateTime.UtcNow - start).TotalSeconds < 300)
                                 {
+                                    if (!_pluginEnabled)
+                                    {
+                                        break;
+                                    }
                                     //Wait for trigger case to start timer
                                     _threadMasterWaitHandle.WaitOne(1000);
                                 }
@@ -5997,7 +6020,12 @@ namespace PRoConEvents {
                         }
 
                         //Loop through all messages in order that they came in
-                        while (inboundMessages.Count > 0) {
+                        while (inboundMessages.Count > 0)
+                        {
+                            if (!_pluginEnabled)
+                            {
+                                break;
+                            }
                             DebugWrite("MESSAGE: begin reading message", 6);
                             //Dequeue the first/next message
                             KeyValuePair<String, String> messagePair = inboundMessages.Dequeue();
@@ -6594,7 +6622,12 @@ namespace PRoConEvents {
                             }
 
                             //Loop through all commands in order that they came in
-                            while (unparsedCommands.Count > 0) {
+                            while (unparsedCommands.Count > 0)
+                            {
+                                if (!_pluginEnabled)
+                                {
+                                    break;
+                                }
                                 DebugWrite("COMMAND: begin reading command", 6);
                                 //Dequeue the first/next command
                                 KeyValuePair<String, String> commandPair = unparsedCommands.Dequeue();
@@ -9956,7 +9989,12 @@ namespace PRoConEvents {
                                 _UnprocessedActionQueue.Clear();
                             }
                             //Loop through all records in order that they came in
-                            while (unprocessedActions.Count > 0) {
+                            while (unprocessedActions.Count > 0)
+                            {
+                                if (!_pluginEnabled)
+                                {
+                                    break;
+                                }
                                 DebugWrite("ACTION: Preparing to Run Actions for record", 6);
                                 //Dequeue the record
                                 AdKatsRecord record = unprocessedActions.Dequeue();
@@ -12665,7 +12703,12 @@ namespace PRoConEvents {
                                 _UnprocessedRecordQueue.Clear();
                             }
                             //Loop through all records in order that they came in
-                            while (inboundRecords.Count > 0) {
+                            while (inboundRecords.Count > 0)
+                            {
+                                if (!_pluginEnabled)
+                                {
+                                    break;
+                                }
                                 DebugWrite("DBCOMM: Unprocessed: " + _UnprocessedRecordQueue.Count + " Current: " + inboundRecords.Count, 4);
                                 //Pull the next record
                                 AdKatsRecord record = inboundRecords.Dequeue();
