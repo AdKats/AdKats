@@ -51,7 +51,7 @@ using System.Reflection;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.1.1";
+        private const String PluginVersion = "5.1.1.2";
 
         public enum ConsoleMessageType {
             Warning,
