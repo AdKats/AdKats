@@ -4,7 +4,7 @@
 <p>
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
 </p>
-<h1>User Manual [Version 5.1.0.0]</h1>
+<h1>5.1.0.0 User Manual</h1>
 <h2>Overview</h2>
 <p>
     Admin Toolset with a plethora of features, over 50 available in-game commands, and many
