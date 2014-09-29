@@ -3429,6 +3429,7 @@ namespace PRoConEvents {
                                                 break;
                                         }
                                         Double ping = aPlayer.frostbitePlayerInfo.Ping;
+                                        Boolean proconFetched = false;
                                         if (_isTestingAuthorized && ping < 0 && !String.IsNullOrEmpty(aPlayer.player_ip)) {
                                             PingReply reply = null;
                                             try {
@@ -3439,6 +3440,7 @@ namespace PRoConEvents {
                                             }
                                             if (reply != null && reply.Status == IPStatus.Success) {
                                                 ping = reply.RoundtripTime;
+                                                proconFetched = true;
                                             }
                                             else
                                             {
@@ -3456,10 +3458,10 @@ namespace PRoConEvents {
                                                     //Warn players of limit and spikes
                                                     if (ping > 300) {
                                                         if (aPlayer.player_pings_full && aPlayer.player_ping_avg < 300) {
-                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping, 2) + "] Avg: [" + Math.Round(aPlayer.player_ping_avg, 2) + "]", 1);
+                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping, 1) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")), 1);
                                                         }
                                                         else {
-                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping_avg, 2) + "]", 1);
+                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched)?("[PR]"):("")), 1);
                                                         }
                                                     }
                                                     //Are they over the limit, or missing
@@ -20306,7 +20308,7 @@ namespace PRoConEvents {
         public Boolean CheckForPluginUpdates() {
             try
             {
-                if (_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled)
+                if (_pluginVersionStatus == VersionStatus.OutdatedBuild && (!_automaticUpdatesDisabled || _isTestingAuthorized))
                 {
                     ConsoleWarn("Preparing to download plugin update to version " + _latestPluginVersion);
                     String pluginSource = null;
