@@ -3465,7 +3465,8 @@ namespace PRoConEvents {
                                                         }
                                                     }
                                                     //Are they over the limit, or missing
-                                                    if ((aPlayer.player_ping_avg > 300 && aPlayer.player_pings_full) || aPlayer.player_ping_avg < 0) {
+                                                    if ((aPlayer.player_ping_avg > 300 || aPlayer.player_ping_avg < 0) && aPlayer.player_pings_full)
+                                                    {
                                                         //Are they higher ping than the current picked player
                                                         if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0)) {
                                                             pingPickedPlayer = aPlayer;
@@ -3749,7 +3750,7 @@ namespace PRoConEvents {
                                 target_name = pingPickedPlayer.player_name,
                                 target_player = pingPickedPlayer,
                                 source_name = "PingEnforcer",
-                                record_message = "Please fix your ping [" + ((pingPickedPlayer.player_ping_avg > 0)?(Math.Round(pingPickedPlayer.player_ping_avg, 2) + ""):("Missing")) + "] and join us again."
+                                record_message = "Please fix your ping (" + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur: [" + Math.Round(pingPickedPlayer.player_ping, 1) + "ms] Avg: [" + Math.Round(pingPickedPlayer.player_ping_avg, 2) + "ms]") : ("Missing")) + ") and join us again."
                             };
                             QueueRecordForProcessing(record);
                             OnlineAdminSayMessage((++_pingKicksThisRound) + " players kicked for ping during this round. " + Math.Round(++_pingKicksTotal / (DateTime.UtcNow - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
@@ -12046,7 +12047,6 @@ namespace PRoConEvents {
                     DebugWrite("Starting a uptime printer thread.", 5);
                     try {
                         Thread.CurrentThread.Name = "uptimeprinter";
-                        _threadMasterWaitHandle.WaitOne(500);
                         SendMessageToSource(record, "Server: " + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.ServerUptime), 10));
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "Procon: " + FormatTimeString(DateTime.UtcNow - _proconStartTime, 10));
