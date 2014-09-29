@@ -20308,28 +20308,43 @@ namespace PRoConEvents {
         public Boolean CheckForPluginUpdates() {
             try
             {
-                if (_pluginVersionStatus == VersionStatus.OutdatedBuild && (!_automaticUpdatesDisabled || _isTestingAuthorized))
+                if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled ) || (_isTestingAuthorized))
                 {
-                    ConsoleWarn("Preparing to download plugin update to version " + _latestPluginVersion);
+                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                        ConsoleWarn("Preparing to download plugin update to version " + _latestPluginVersion);
                     String pluginSource = null;
                     using (var client = new WebClient()) {
-                        try {
-                            const string url = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/AdKats.cs";
-                            pluginSource = client.DownloadString(url);
+                        try
+                        {
+                            const string stableURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/AdKats.cs";
+                            const string testURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/test/AdKats.cs";
+                            if (!_isTestingAuthorized) {
+                                pluginSource = client.DownloadString(stableURL);
+                            }
+                            else {
+                                pluginSource = client.DownloadString(testURL);
+                            }
                         }
-                        catch (Exception e) {
-                            ConsoleError("Unable to download plugin update to version " + _latestPluginVersion);
+                        catch (Exception e)
+                        {
+                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                ConsoleError("Unable to download plugin update to version " + _latestPluginVersion);
                             return false;
                         }
                     }
-                    if (String.IsNullOrEmpty(pluginSource)) {
-                        ConsoleError("Downloaded plugin source was empty. Unable update to version " + _latestPluginVersion);
+                    if (String.IsNullOrEmpty(pluginSource))
+                    {
+                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                            ConsoleError("Downloaded plugin source was empty. Unable update to version " + _latestPluginVersion);
                         return false;
                     }
-                    else {
-                        ConsoleSuccess("Updated plugin source downloaded.");
+                    else
+                    {
+                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                            ConsoleSuccess("Updated plugin source downloaded.");
                     }
-                    ConsoleWarn("Preparing test compile on updated plugin source.");
+                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                        ConsoleWarn("Preparing test compile on updated plugin source.");
                     String pluginFileName = "AdKats.cs";
                     String dllPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
                     String pluginPath = Path.Combine(dllPath.Trim(new char[] {Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar}), pluginFileName);
@@ -20352,26 +20367,36 @@ namespace PRoConEvents {
                     var compileResults = cSharpCodeProvider.CompileAssemblyFromSource(compilerParameters, pluginSource);
                     if (compileResults.Errors.HasErrors) {
                         foreach (CompilerError errComp in compileResults.Errors) {
-                            if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false) {
-                                ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] {pluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText}));
+                            if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false)
+                            {
+                                if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                    ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] {pluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText}));
                             }
                         }
-                        ConsoleError("Updated plugin source could not compile. Unable to update to version " + _latestPluginVersion);
+                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                            ConsoleError("Updated plugin source could not compile. Unable to update to version " + _latestPluginVersion);
                         return false;
                     }
-                    else {
-                        ConsoleSuccess("Plugin update compiled successfully.");
+                    else
+                    {
+                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                            ConsoleSuccess("Plugin update compiled successfully.");
                     }
-                    ConsoleWarn("Preparing to update source file on disk.");
+                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                        ConsoleWarn("Preparing to update source file on disk.");
                     using (FileStream stream = File.Open(pluginPath, FileMode.Create)) {
-                        if (!stream.CanWrite) {
-                            ConsoleError("Cannot write updates to source file. Unable to update to version " + _latestPluginVersion);
+                        if (!stream.CanWrite)
+                        {
+                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                ConsoleError("Cannot write updates to source file. Unable to update to version " + _latestPluginVersion);
                         }
                         Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
                         stream.Write(info, 0, info.Length);
                     }
-                    ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
-                    ConsoleSuccess("Updated plugin file located at: " + pluginPath);
+                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                        ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
+                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                        ConsoleSuccess("Updated plugin file located at: " + pluginPath);
                     _pluginVersionUpdated = true;
                     return true;
                 }
