@@ -23,29 +23,29 @@
  */
 
 using System;
-using System.CodeDom.Compiler;
 using System.IO;
-using System.Globalization;
 using System.IO.Compression;
+using System.Net;
+using System.Net.Mail;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Collections;
-using System.Net;
+using System.Windows.Forms;
+using System.CodeDom.Compiler;
 using System.Linq;
-using System.Net.Mail;
 using System.Threading;
 using System.Diagnostics;
-using System.Windows.Forms;
-using Microsoft.CSharp;
-using MySql.Data.MySqlClient;
+using System.Reflection;
+using System.Globalization;
 using PRoCon.Core;
 using PRoCon.Core.Plugin;
 using PRoCon.Core.Plugin.Commands;
 using PRoCon.Core.Players;
-using System.Reflection;
+using Microsoft.CSharp;
+using MySql.Data.MySqlClient;
 
 
 namespace PRoConEvents {
@@ -147,6 +147,7 @@ namespace PRoConEvents {
         //Timing
         private readonly DateTime _proconStartTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _AdKatsStartTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _AdKatsRunningTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _commandStartTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastBanListCall = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastDbBanFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
@@ -3749,7 +3750,7 @@ namespace PRoConEvents {
                                 record_message = "Please fix your ping [" + ((pingPickedPlayer.player_ping_avg > 0)?(Math.Round(pingPickedPlayer.player_ping_avg, 2) + ""):("Missing")) + "] and join us again."
                             };
                             QueueRecordForProcessing(record);
-                            OnlineAdminSayMessage((++_pingKicksThisRound) + " players kicked for ping during this round. " + Math.Round(++_pingKicksTotal / (DateTime.UtcNow - _AdKatsStartTime).TotalHours, 2) + " kicks/hour.");
+                            OnlineAdminSayMessage((++_pingKicksThisRound) + " players kicked for ping during this round. " + Math.Round(++_pingKicksTotal / (DateTime.UtcNow - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
                         }
 
                         //Update last successful player list time
@@ -3757,9 +3758,9 @@ namespace PRoConEvents {
                         //Set required handles 
                         _PlayerListUpdateWaitHandle.Set();
                         _TeamswapWaitHandle.Set();
-                        if (!_firstPlayerListComplete && playerListFetched)
+                        if (!_firstPlayerListComplete && playerListFetched) 
                         {
-                            _AdKatsStartTime = DateTime.UtcNow;
+                            _AdKatsRunningTime = DateTime.UtcNow;
                             _firstPlayerListComplete = true;
                             OnlineAdminSayMessage("Player listing complete [" + _PlayerDictionary.Count + " players]. Performing final startup.");
                             //Possible post processing later
@@ -6802,7 +6803,14 @@ namespace PRoConEvents {
                     return;
                 }
                 if (!_firstPlayerListComplete) {
-                    SendMessageToSource(record, "Command startup sequence in progress.");
+                    if (!_firstUserListComplete)
+                    {
+                        SendMessageToSource(record, "Command startup in progress, 1/3 complete, " + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + " elapsed.");
+                    }
+                    else
+                    {
+                        SendMessageToSource(record, "Command startup in progress, 2/3 complete, " + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + " elapsed.");
+                    }
                     FinalizeRecord(record);
                     return;
                 }
@@ -12041,7 +12049,7 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "Procon: " + FormatTimeString(DateTime.UtcNow - _proconStartTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "AdKats: " + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 10));
+                        SendMessageToSource(record, "AdKats: " + FormatTimeString(DateTime.UtcNow - _AdKatsRunningTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "Last Player List: " + FormatTimeString(DateTime.UtcNow - _lastSuccessfulPlayerList, 10) + " ago");
                         _threadMasterWaitHandle.WaitOne(3000);
@@ -12730,7 +12738,11 @@ namespace PRoConEvents {
                         HandleUserChanges();
 
                         //Start the other threads
-                        if (firstRun) {
+                        if (firstRun)
+                        {
+                            //Set the start time
+                            _AdKatsStartTime = DateTime.UtcNow;
+
                             //Start other threads
                             StartAndLogThread(_PlayerListingThread);
                             StartAndLogThread(_AccessFetchingThread);
