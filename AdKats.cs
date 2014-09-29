@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.1.4
- * 26-SEP-2014
+ * Version 5.1.1.6
+ * 28-SEP-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using System.Reflection;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.1.4";
+        private const String PluginVersion = "5.1.1.6";
 
         public enum ConsoleMessageType {
             Warning,
@@ -105,6 +105,7 @@ namespace PRoConEvents {
         private volatile String _latestPluginVersion;
         private volatile String _pluginVersionStatusString;
         private VersionStatus _pluginVersionStatus = VersionStatus.UnfetchedBuild;
+        private Boolean _pluginVersionUpdated = false;
         private volatile Boolean _useKeepAlive;
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
         private RoundState _currentRoundState = RoundState.Loaded;
@@ -291,6 +292,7 @@ namespace PRoConEvents {
         //Users
         private const Int32 DbUserFetchFrequency = 300;
         private readonly Dictionary<long, AdKatsUser> _userCache = new Dictionary<long, AdKatsUser>();
+        private Dictionary<String, AdKatsSpecialGroup> _specialPlayerGroupCache = new Dictionary<string, AdKatsSpecialGroup>();
         private readonly Dictionary<Int64, AdKatsSpecialPlayer> _specialPlayerCache = new Dictionary<Int64, AdKatsSpecialPlayer>();
 
         //Games and teams
@@ -509,29 +511,57 @@ namespace PRoConEvents {
         }
 
         public String GetPluginDescription() {
-            if (!_fetchedPluginInformation) {
-                //Wait up to 10 seconds for the description to fetch
-                DebugWrite("Waiting for plugin description...", 1);
-                _PluginDescriptionWaitHandle.WaitOne(10000);
-            }
-
-            //Parse out the descriptions
             String concat = String.Empty;
-            if (!String.IsNullOrEmpty(_pluginVersionStatusString)) {
-                concat += _pluginVersionStatusString;
-            }
-            if (!String.IsNullOrEmpty(_pluginDescription)) {
-                concat += _pluginDescription;
-            }
-            if (!String.IsNullOrEmpty(_pluginChangelog)) {
-                concat += _pluginChangelog;
-            }
+            try
+            {
+                if (!_fetchedPluginInformation)
+                {
+                    //Wait up to 10 seconds for the description to fetch
+                    DebugWrite("Waiting for plugin description...", 1);
+                    _PluginDescriptionWaitHandle.WaitOne(10000);
+                }
 
-            //Check if the description fetched
-            if (String.IsNullOrEmpty(concat)) {
-                concat = "Plugin description failed to download. Please visit AdKats on github (https://github.com/ColColonCleaner/AdKats) to view the plugin description.";
-            }
+                //Parse out the descriptions
+                if (!String.IsNullOrEmpty(_pluginVersionStatusString))
+                {
+                    concat += _pluginVersionStatusString;
+                }
+                if (!String.IsNullOrEmpty(_pluginDescription))
+                {
+                    concat += _pluginDescription;
+                }
+                if (!String.IsNullOrEmpty(_pluginChangelog))
+                {
+                    concat += _pluginChangelog;
+                }
 
+                /*
+                    String pluginFileName = "desc.html";
+                    String dllPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
+                    String pluginPath = Path.Combine(dllPath.Trim(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName);
+
+                    ConsoleWarn("Preparing to post desc html.");
+                    using (FileStream stream = File.Open(pluginPath, FileMode.Create))
+                    {
+                        if (!stream.CanWrite)
+                        {
+                            ConsoleError("Cannot write updates to source file. Unable to update to version " + _latestPluginVersion);
+                        }
+                        Byte[] info = new UTF8Encoding(true).GetBytes(concat);
+                        stream.Write(info, 0, info.Length);
+                    }
+                    ConsoleSuccess("success posted.");
+                */
+
+                //Check if the description fetched
+                if (String.IsNullOrEmpty(concat))
+                {
+                    concat = "Plugin description failed to download. Please visit AdKats on github (https://github.com/ColColonCleaner/AdKats) to view the plugin description.";
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while fetching plugin description.", e));
+            }
             return concat;
         }
 
@@ -2495,6 +2525,9 @@ namespace PRoConEvents {
 
                         //Fetch all reputation information
                         PopulateCommandReputationDictionaries();
+
+                        //Fetch all special player group information
+                        PopulateSpecialGroupsDictionary();
 
                         //Don't directly depend on stat logger being controllable at this time, connection is unstable
                         /*if (useDatabase)
@@ -4531,7 +4564,27 @@ namespace PRoConEvents {
                 }
 
                 try {
-                    if (_UseWeaponLimiter && !gKillHandled) {
+                    if(_isTestingAuthorized && 
+                       _serverName.Contains("#7") && 
+                       kKillerVictimDetails.Killer.TeamID == kKillerVictimDetails.Victim.TeamID &&
+                       !kKillerVictimDetails.IsSuicide &&
+                       kKillerVictimDetails.DamageType == "DamageArea")
+                    {
+                        var aRecord = new AdKatsRecord
+                        {
+                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                            server_id = _serverID,
+                            command_type = _CommandKeyDictionary["player_kill"],
+                            command_numeric = 0,
+                            target_name = killer.player_name,
+                            target_player = killer,
+                            source_name = "AutoAdmin",
+                            record_message = "Teamkilling " + victim.player_name + " with a damage area"
+                        };
+                        //Queue for processing
+                        QueueRecordForProcessing(aRecord);
+                    }
+                    else if (_UseWeaponLimiter && !gKillHandled) {
                         //Check for restricted weapon
                         if (Regex.Match(kKillerVictimDetails.DamageType, @"(?:" + _WeaponLimiterString + ")", RegexOptions.IgnoreCase).Success) {
                             //Check for exception type
@@ -5134,7 +5187,7 @@ namespace PRoConEvents {
         }
 
         public List<AdKatsSpecialPlayer> getASPlayersOfGroup(String specialPlayerGroup) {
-            return _specialPlayerCache.Values.Where(asPlayer => asPlayer.player_group == specialPlayerGroup).ToList();
+            return _specialPlayerCache.Values.Where(asPlayer => asPlayer.player_group.group_key == specialPlayerGroup).ToList();
         }
 
         public List<AdKatsSpecialPlayer> FetchMatchingSpecialPlayers(String group, AdKatsPlayer aPlayer)
@@ -6591,7 +6644,16 @@ namespace PRoConEvents {
                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild && 
                     (record.source_player == null || PlayerIsAdmin(record.source_player)))
                 {
-                    SendMessageToSource(record, "You are running an outdated build of AdKats. Update " + _latestPluginVersion + " is released.");
+                    if (_pluginVersionUpdated)
+                    {
+                        ProconChatWrite(BoldMessage("AdKats has been updated to version " + _latestPluginVersion + "! Please reboot PRoCon to activate this patch."));
+                        SendMessageToSource(record, "AdKats has been updated to version " + _latestPluginVersion + "! Please reboot PRoCon to activate this patch.");
+                    }
+                    else
+                    {
+                        ProconChatWrite(BoldMessage("You are running an outdated build of AdKats. Update " + _latestPluginVersion + " is released."));
+                        SendMessageToSource(record, "You are running an outdated build of AdKats. Update " + _latestPluginVersion + " is released.");
+                    }
                 }
                 DebugWrite("Preparing to queue " + record.command_type.command_key + " record for processing", 6);
                 if (_isTestingAuthorized)
@@ -18070,6 +18132,10 @@ namespace PRoConEvents {
                                     {
                                         //Get Values
                                         String playerGroup = reader.GetString("player_group"); //1
+                                        if (!_specialPlayerGroupCache.ContainsKey(playerGroup)) {
+                                            ConsoleError("player_group entry '" + playerGroup + "' for specialplayer_id " + specialPlayerID + " is invalid.");
+                                            continue;
+                                        }
                                         Int32 playerID = 0;
                                         if (!reader.IsDBNull(2))
                                         {
@@ -18096,7 +18162,7 @@ namespace PRoConEvents {
                                         //Build new Special Player Object
                                         asPlayer = new AdKatsSpecialPlayer();
                                         asPlayer.specialplayer_id = specialPlayerID;
-                                        asPlayer.player_group = playerGroup;
+                                        asPlayer.player_group = _specialPlayerGroupCache[playerGroup];
                                         if (playerID > 0) {
                                             asPlayer.player_object = FetchPlayer(false, true, false, null, playerID, null, null, null);
                                         }
@@ -19293,11 +19359,28 @@ namespace PRoConEvents {
             _LastUsageStatsUpdate = DateTime.UtcNow;
         }
 
+        private void PopulateSpecialGroupsDictionary() {
+            try {
+                var groupList = FetchAdKatsSpecialGroups();
+                if (groupList == null || groupList.Count == 0) {
+                    ConsoleError("Error populating special group cache");
+                    return;
+                }
+                foreach (var group in groupList) {
+                    _specialPlayerGroupCache[group.group_key] = group;
+                }
+                ConsoleSuccess("Populated group dictionaries");
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Exception while populating special group cache", e));
+            }
+        }
+
         private void PopulateCommandReputationDictionaries() {
             try {
                 var sourceDic = new Dictionary<String, Double>();
                 var targetDic = new Dictionary<String, Double>();
-                ArrayList reputationStats = FetchReputationStats();
+                ArrayList reputationStats = FetchAdKatsReputationStats();
                 foreach (Hashtable repWeapon in reputationStats) {
                     sourceDic[(String) repWeapon["command_typeaction"]] = (double) repWeapon["source_weight"];
                     targetDic[(String) repWeapon["command_typeaction"]] = (double) repWeapon["target_weight"];
@@ -19307,11 +19390,11 @@ namespace PRoConEvents {
                 ConsoleSuccess("Populated reputation dictionaries");
             }
             catch (Exception e) {
-                HandleException(new AdKatsException("Error while populating command reputations", e));
+                HandleException(new AdKatsException("Error while populating command reputation cache", e));
             }
         }
 
-        private ArrayList FetchReputationStats()
+        private ArrayList FetchAdKatsReputationStats()
         {
             ArrayList repTable = null;
             using (var client = new WebClient())
@@ -19328,6 +19411,60 @@ namespace PRoConEvents {
                 }
             }
             return repTable;
+        }
+
+        private List<AdKatsSpecialGroup> FetchAdKatsSpecialGroups()
+        {
+            DebugWrite("Entering FetchAdKatsSpecialGroups", 7);
+            List<AdKatsSpecialGroup> SpecialGroupsList = null;
+            using (var client = new WebClient())
+            {
+                try
+                {
+                    const string url = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/adkatsspecialgroups.json";
+                    String textResponse = client.DownloadString(url);
+                    var groupsTable  = (Hashtable)JSON.JsonDecode(textResponse);
+                    ArrayList GroupsList = (ArrayList)groupsTable["SpecialGroups"];
+                    if (GroupsList != null && GroupsList.Count > 0)
+                    {
+                        SpecialGroupsList = new List<AdKatsSpecialGroup>();
+                        foreach (Hashtable groupHash in GroupsList)
+                        {
+                            AdKatsSpecialGroup update = new AdKatsSpecialGroup();
+                            //update_id
+                            update.group_id = Convert.ToInt32(groupHash["group_id"]);
+                            //group_key
+                            Object group_key = groupHash["group_key"];
+                            if (group_key == null)
+                            {
+                                ConsoleError("AdKats special group entry group_key was not found.");
+                                continue;
+                            }
+                            update.group_key = (String)group_key;
+                            //group_name
+                            Object group_name = groupHash["group_name"];
+                            if (group_name == null)
+                            {
+                                ConsoleError("AdKats special group entry group_name was not found.");
+                                continue;
+                            }
+                            update.group_name = (String)group_name;
+                            //Add
+                            SpecialGroupsList.Add(update);
+                        }
+                    }
+                    else
+                    {
+                        ConsoleError("Special Groups list could not be downloaded.");
+                    }
+                }
+                catch (Exception e)
+                {
+                    ConsoleError(e.ToString());
+                }
+            }
+            DebugWrite("Exiting FetchAdKatsSpecialGroups", 7);
+            return SpecialGroupsList;
         }
 
         private void RunSQLUpdates() {
@@ -19470,12 +19607,13 @@ namespace PRoConEvents {
                             }
                             DebugWrite("SQL update '" + update.update_id + "' update_checks: " + update.update_checks.Count, 5);
                             //update_execute_requiresModRows
-                            update.update_execute_requiresModRows = (Boolean)updateHash["update_execute_requiresModRows"];
-                            if (update.update_execute_requiresModRows == null)
+                            Object update_execute_requiresModRows = updateHash["update_execute_requiresModRows"];
+                            if (update_execute_requiresModRows == null)
                             {
                                 ConsoleError("SQL update '" + update.update_id + "' update_execute_requiresModRows was not found.");
                                 continue;
                             }
+                            update.update_execute_requiresModRows = (Boolean)update_execute_requiresModRows;
                             DebugWrite("SQL update '" + update.update_id + "' update_execute_requiresModRows: " + update.update_execute_requiresModRows, 5);
                             //update_execute
                             var update_execute = (ArrayList)updateHash["update_execute"];
@@ -20220,6 +20358,7 @@ namespace PRoConEvents {
                     }
                     ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
                     ConsoleSuccess("Updated plugin file located at: " + pluginPath);
+                    _pluginVersionUpdated = true;
                     return true;
                 }
                 else {
@@ -20799,10 +20938,16 @@ namespace PRoConEvents {
             }
         }
 
+        public class AdKatsSpecialGroup {
+            public Int64 group_id;
+            public String group_key;
+            public String group_name;
+        }
+
         public class AdKatsSpecialPlayer {
             public Int64 specialplayer_id;
             public Int32? player_game = null;
-            public String player_group = null;
+            public AdKatsSpecialGroup player_group = null;
             public String player_identifier = null;
             public AdKatsPlayer player_object = null;
             public Int32? player_server = null;
