@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.1.6
- * 28-SEP-2014
+ * Version 5.1.1.7
+ * 29-SEP-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.1.6";
+        private const String PluginVersion = "5.1.1.7";
 
         public enum ConsoleMessageType {
             Warning,
@@ -410,7 +410,8 @@ namespace PRoConEvents {
         //Messaging
         private List<String> _PreMessageList;
         private Boolean _RequirePreMessageUse;
-        private Boolean _ShowAdminNameInSay;
+        private Boolean _ShowAdminNameInAnnouncement;
+        private Boolean _ShowNewPlayerAnnouncement = true;
         private Int32 _YellDuration = 5;
         private Boolean _UseFirstSpawnMessage = false;
         private String _FirstSpawnMessage = "FIRST SPAWN MESSAGE";
@@ -669,7 +670,8 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A11. Player Mute Settings|Ignore commands for mute enforcement", typeof(Boolean), _MutedPlayerIgnoreCommands));
 
                     //Message Settings
-                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Admin Name in Kick and Ban Announcement", typeof (Boolean), _ShowAdminNameInSay));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Inform players of reports against them", typeof (Boolean), _InformReportedPlayers));
                     if (_InformReportedPlayers) {
                         lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Player Inform Exclusion Strings", typeof (String[]), _PlayerInformExclusionStrings));
@@ -2395,10 +2397,19 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Display Admin Name in Kick and Ban Announcement").Success) {
                     Boolean display = Boolean.Parse(strValue);
-                    if (display != _ShowAdminNameInSay) {
-                        _ShowAdminNameInSay = display;
+                    if (display != _ShowAdminNameInAnnouncement) {
+                        _ShowAdminNameInAnnouncement = display;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof (Boolean), _ShowAdminNameInSay));
+                        QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof (Boolean), _ShowAdminNameInAnnouncement));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Display New Player Announcement").Success)
+                {
+                    Boolean display = Boolean.Parse(strValue);
+                    if (display != _ShowNewPlayerAnnouncement) {
+                        _ShowNewPlayerAnnouncement = display;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Inform players of reports against them").Success) {
@@ -10599,7 +10610,7 @@ namespace PRoConEvents {
                 else {
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_player.player_name, kickReason);
                     if (record.target_name != record.source_name && record.source_name != "AFKManager") {
-                        AdminSayMessage("Player " + record.target_name + " was KICKED by " + ((_ShowAdminNameInSay) ? (record.source_name) : ("admin")) + " for " + record.record_message);
+                        AdminSayMessage("Player " + record.target_name + " was KICKED by " + ((_ShowAdminNameInAnnouncement) ? (record.source_name) : ("admin")) + " for " + record.record_message);
                     }
                     SendMessageToSource(record, "You KICKED " + record.target_name + " from " + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + " team for " + record.record_message + ".");
                 }
@@ -10670,7 +10681,7 @@ namespace PRoConEvents {
                     }
                 }
                 if (record.target_name != record.source_name) {
-                    AdminSayMessage("Player " + record.target_player.player_name + " was BANNED by " + ((_ShowAdminNameInSay) ? (record.source_name) : ("admin")) + " for " + record.record_message);
+                    AdminSayMessage("Player " + record.target_player.player_name + " was BANNED by " + ((_ShowAdminNameInAnnouncement) ? (record.source_name) : ("admin")) + " for " + record.record_message);
                 }
                 SendMessageToSource(record, "You TEMP BANNED " + record.target_name + " for " + FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 3) + ".");
                 record.record_action_executed = true;
@@ -10737,7 +10748,7 @@ namespace PRoConEvents {
                     }
                 }
                 if (record.target_name != record.source_name) {
-                    AdminSayMessage("Player " + record.target_player.player_name + " was BANNED by " + ((_ShowAdminNameInSay) ? (record.source_name) : ("admin")) + " for " + record.record_message);
+                    AdminSayMessage("Player " + record.target_player.player_name + " was BANNED by " + ((_ShowAdminNameInAnnouncement) ? (record.source_name) : ("admin")) + " for " + record.record_message);
                 }
                 SendMessageToSource(record, "You PERMA BANNED " + record.target_player.player_name + ".");
                 record.record_action_executed = true;
@@ -14051,7 +14062,8 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
                 QueueSettingForUpload(new CPluginVariable(@"Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
                 QueueSettingForUpload(new CPluginVariable(@"First spawn message text", typeof(String), _FirstSpawnMessage));
-                QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInSay));
+                QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
+                QueueSettingForUpload(new CPluginVariable(@"Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
@@ -16134,7 +16146,10 @@ namespace PRoConEvents {
                                         else {
                                             aPlayer.game_id = _gameID;
                                         }
-                                        OnlineAdminSayMessage(playerName + " just joined this server group for the first time!");
+                                        if (_ShowNewPlayerAnnouncement)
+                                        {
+                                            OnlineAdminSayMessage(playerName + " just joined this server group for the first time!");
+                                        }
                                     }
                                     else {
                                         ConsoleError("Unable to add player to database.");
