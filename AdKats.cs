@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.1.7
- * 29-SEP-2014
+ * Version 5.1.1.8
+ * 30-SEP-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.1.7";
+        private const String PluginVersion = "5.1.1.8";
 
         public enum ConsoleMessageType {
             Warning,
@@ -3983,10 +3983,14 @@ namespace PRoConEvents {
                                 AdKatsTeam baserapingTeam = null;
                                 if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > 100)
                                 {
-                                    if (team1.TeamTicketDifferenceRate <= -70 && team2.TeamTicketCount > team1.TeamTicketCount) {
+                                    if (Math.Abs(team1.TeamTicketDifferenceRate) >= 70 && 
+                                        Math.Abs(team2.TeamTicketDifferenceRate) <= 13 && 
+                                        team2.TeamTicketCount > team1.TeamTicketCount) {
                                         baserapingTeam = team2;
                                     }
-                                    else if (team2.TeamTicketDifferenceRate <= -70 && team1.TeamTicketCount > team2.TeamTicketCount) {
+                                    else if (Math.Abs(team2.TeamTicketDifferenceRate) >= 70 && 
+                                             Math.Abs(team1.TeamTicketDifferenceRate) <= 13 && 
+                                             team1.TeamTicketCount > team2.TeamTicketCount) {
                                         baserapingTeam = team1;
                                     }
                                 }
@@ -4809,9 +4813,12 @@ namespace PRoConEvents {
                                             repMessage += System.Environment.NewLine;
                                             if (aPlayer.player_reputation < _reputationThresholdGood)
                                             {
-                                                if (aPlayer.player_reputation > 0)
+                                                if (aPlayer.player_reputation > 15)
                                                 {
                                                     repMessage += "At " + Math.Round(_reputationThresholdGood, 2) + " reputation you receive report auto-contest.";
+                                                }
+                                                else if (aPlayer.player_reputation > 0) {
+                                                    repMessage += "At 15 reputation you receive punishment warning.";
                                                 }
                                                 else
                                                 {
