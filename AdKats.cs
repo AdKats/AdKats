@@ -3984,12 +3984,12 @@ namespace PRoConEvents {
                                 if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > 100)
                                 {
                                     if (Math.Abs(team1.TeamTicketDifferenceRate) >= 70 && 
-                                        Math.Abs(team2.TeamTicketDifferenceRate) <= 13 && 
+                                        Math.Abs(team2.TeamTicketDifferenceRate) <= 10 && 
                                         team2.TeamTicketCount > team1.TeamTicketCount) {
                                         baserapingTeam = team2;
                                     }
                                     else if (Math.Abs(team2.TeamTicketDifferenceRate) >= 70 && 
-                                             Math.Abs(team1.TeamTicketDifferenceRate) <= 13 && 
+                                             Math.Abs(team1.TeamTicketDifferenceRate) <= 10 && 
                                              team1.TeamTicketCount > team2.TeamTicketCount) {
                                         baserapingTeam = team1;
                                     }
