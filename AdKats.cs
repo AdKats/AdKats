@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.1.8
- * 30-SEP-2014
+ * Version 5.1.1.9
+ * 1-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.1.8";
+        private const String PluginVersion = "5.1.1.9";
 
         public enum ConsoleMessageType {
             Warning,
