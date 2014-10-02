@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.1.9
- * 1-OCT-2014
+ * Version 5.1.2.0
+ * 2-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.1.9";
+        private const String PluginVersion = "5.1.2.0";
 
         public enum ConsoleMessageType {
             Warning,
@@ -4413,7 +4413,7 @@ namespace PRoConEvents {
                                 }
                                 const double possibleRange = 750.00;
                                 //Update killer information
-                                //Initialize / clean up the recent kills queue
+                                //Initialize the recent kills queue
                                 if (killer.RecentKills == null) {
                                     killer.RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
                                 }
@@ -4586,22 +4586,29 @@ namespace PRoConEvents {
                     if(_isTestingAuthorized && 
                        _serverName.Contains("#7") && 
                        kKillerVictimDetails.Killer.TeamID == kKillerVictimDetails.Victim.TeamID &&
-                       !kKillerVictimDetails.IsSuicide &&
-                       kKillerVictimDetails.DamageType == "DamageArea")
+                       !kKillerVictimDetails.IsSuicide)
                     {
-                        var aRecord = new AdKatsRecord
+                        if (kKillerVictimDetails.DamageType == "DamageArea")
                         {
-                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                            server_id = _serverID,
-                            command_type = _CommandKeyDictionary["player_kill"],
-                            command_numeric = 0,
-                            target_name = killer.player_name,
-                            target_player = killer,
-                            source_name = "AutoAdmin",
-                            record_message = "Teamkilling " + victim.player_name + " with a damage area"
-                        };
-                        //Queue for processing
-                        QueueRecordForProcessing(aRecord);
+                            //Slay the teamkiller
+                            var aRecord = new AdKatsRecord
+                            {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverID,
+                                command_type = _CommandKeyDictionary["player_kill"],
+                                command_numeric = 0,
+                                target_name = killer.player_name,
+                                target_player = killer,
+                                source_name = "AutoAdmin",
+                                record_message = "Teamkilling " + victim.player_name + " with a damage area"
+                            };
+                            QueueRecordForProcessing(aRecord);
+                            //Inform the victim
+                            PlayerTellMessage(victim.player_name, killer.player_name + " was slain for teamkilling you", 1);
+                        }
+                        else if (kKillerVictimDetails.DamageType == "Medkit" || kKillerVictimDetails.DamageType == "U_PortableMedicpack" || kKillerVictimDetails.DamageType == "U_Medkit") {
+                            PlayerSayMessage(killer.player_name, victim.player_name + " denied your revive!", 1);
+                        }
                     }
                     else if (_UseWeaponLimiter && !gKillHandled) {
                         //Check for restricted weapon
@@ -5996,7 +6003,7 @@ namespace PRoConEvents {
                     ConsoleError("message null in adminYell");
                     return;
                 }
-                ProconChatWrite("Yell[" + _YellDuration + "] > " + message);
+                ProconChatWrite("Yell[" + _YellDuration + "s] > " + message);
                 ExecuteCommand("procon.protected.send", "admin.yell", message.ToUpper(), _YellDuration + "", "all");
             }
             catch (Exception e) {
@@ -6012,7 +6019,7 @@ namespace PRoConEvents {
                     ConsoleError("message null in adminYell");
                     return;
                 }
-                ProconChatWrite("Yell[" + _YellDuration + "] > " + target + " > " + message);
+                ProconChatWrite("Yell[" + _YellDuration + "s] > " + target + " > " + message);
                 for (int count = 0; count < spamCount; count++)
                 {
                     ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4)?(System.Environment.NewLine):("")) + message.ToUpper(), _YellDuration + "", "player", target);
@@ -7024,8 +7031,8 @@ namespace PRoConEvents {
                         {
                             enemyStrong = Math.Abs(team1.TeamTicketDifferenceRate) < Math.Abs(team2.TeamTicketDifferenceRate);
                         }
-                        if (_isTestingAuthorized && _serverInfo.RoundTime < 300) {
-                            SendMessageToSource(record, "Please wait at least 5 minutes into the round to use assist.");
+                        if (_isTestingAuthorized && _serverInfo.RoundTime < 120) {
+                            SendMessageToSource(record, "Please wait at least 2 minutes into the round to use assist. [" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + "]");
                             FinalizeRecord(record);
                             return;
                         }
@@ -19692,7 +19699,7 @@ namespace PRoConEvents {
                         }
                     }
                     else {
-                        ConsoleError("No SQL updates found.");
+                        DebugWrite("No SQL updates found.", 5);
                     }
                 }
                 catch (Exception e)
