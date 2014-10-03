@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.2.3
+ * Version 5.1.2.5
  * 3-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.2.3";
+        private const String PluginVersion = "5.1.2.5";
 
         public enum ConsoleMessageType {
             Info,
@@ -6019,7 +6019,6 @@ namespace PRoConEvents {
                 for (int count = 0; count < spamCount; count++) {
                     var lineSplit = message.Split(new string[] { System.Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
                     foreach (String line in lineSplit) {
-                        ConsoleSuccess(line);
                         ExecuteCommand("procon.protected.send", "admin.say", line, "player", target); 
                     }
                     _threadMasterWaitHandle.WaitOne(50);
@@ -6713,6 +6712,14 @@ namespace PRoConEvents {
                                     }
                                 }
                                     
+                            }
+                            break;
+                        case "player_forgive": {
+                                if (_isTestingAuthorized && record.target_player != null && FetchPoints(record.target_player, _CombineServerPunishments) <= 0) {
+                                    SendMessageToSource(record, record.target_player.player_name + " does not have any infractions to forgive.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                             }
                             break;
                     }
