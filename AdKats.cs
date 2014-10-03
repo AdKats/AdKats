@@ -3764,7 +3764,7 @@ namespace PRoConEvents {
                                 target_name = pingPickedPlayer.player_name,
                                 target_player = pingPickedPlayer,
                                 source_name = "PingEnforcer",
-                                record_message = "Please fix your ping and join us again. " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping, 1) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg, 2) + "ms]") : ("[Missing]"))
+                                record_message = "Please fix your ping and join us again. " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]"))
                             };
                             QueueRecordForProcessing(record);
                             OnlineAdminSayMessage((++_pingKicksThisRound) + " players kicked for ping during this round. " + Math.Round(++_pingKicksTotal / (DateTime.UtcNow - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
@@ -11822,7 +11822,7 @@ namespace PRoConEvents {
             DebugWrite("Entering adminSay", 6);
             try {
                 AdminSayMessage(record.record_message);
-                if (record.record_source != AdKatsRecord.Sources.InGame) {
+                if (record.record_source != AdKatsRecord.Sources.InGame && record.record_source != AdKatsRecord.Sources.ServerCommand) {
                     SendMessageToSource(record, "Server has been told '" + record.record_message + "' by SAY");
                 }
                 record.record_action_executed = true;
@@ -11854,7 +11854,8 @@ namespace PRoConEvents {
             DebugWrite("Entering adminYell", 6);
             try {
                 AdminYellMessage(record.record_message);
-                if (record.record_source != AdKatsRecord.Sources.InGame) {
+                if (record.record_source != AdKatsRecord.Sources.InGame && record.record_source != AdKatsRecord.Sources.ServerCommand)
+                {
                     SendMessageToSource(record, "Server has been told '" + record.record_message + "' by YELL");
                 }
                 record.record_action_executed = true;
@@ -11886,7 +11887,8 @@ namespace PRoConEvents {
             DebugWrite("Entering adminTell", 6);
             try {
                 AdminTellMessage(record.record_message);
-                if (record.record_source != AdKatsRecord.Sources.InGame) {
+                if (record.record_source != AdKatsRecord.Sources.InGame && record.record_source != AdKatsRecord.Sources.ServerCommand)
+                {
                     SendMessageToSource(record, "Server has been told '" + record.record_message + "' by TELL");
                 }
                 record.record_action_executed = true;
@@ -20445,9 +20447,7 @@ namespace PRoConEvents {
                     _pluginVersionUpdated = true;
                     return true;
                 }
-                else {
-                    return false;
-                }
+                return false;
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while updating plugin source to latest version", e));
@@ -20456,7 +20456,8 @@ namespace PRoConEvents {
         }
 
         public void ProconChatWrite(String msg) {
-            ExecuteCommand("procon.protected.chat.write", "AdKats > " + msg.Replace(System.Environment.NewLine, ""));
+            msg = msg.Replace(System.Environment.NewLine, String.Empty);
+            ExecuteCommand("procon.protected.chat.write", "AdKats > " + msg);
             if (_slowmo) {
                 _threadMasterWaitHandle.WaitOne(1000);
             }
