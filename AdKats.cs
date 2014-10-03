@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.2.1
+ * Version 5.1.2.2
  * 2-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.2.1";
+        private const String PluginVersion = "5.1.2.2";
 
         public enum ConsoleMessageType {
             Info,
@@ -2811,7 +2811,8 @@ namespace PRoConEvents {
                             _MULTIBalancerUnswitcherDisabled = false;
                         }
 
-                        if ((DateTime.UtcNow - _LastPluginDescFetch).TotalHours > 1)
+                        if ((DateTime.UtcNow - _LastPluginDescFetch).TotalHours > 1 ||
+                            (_isTestingAuthorized && (DateTime.UtcNow - _LastPluginDescFetch).TotalMinutes > 20))
                         {
                             FetchPluginDescAndChangelog();
                         }
@@ -3473,7 +3474,7 @@ namespace PRoConEvents {
                                                             PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping, 1) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")), 1);
                                                         }
                                                         else {
-                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched)?("[PR]"):("")), 1);
+                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping, 1) + "ms]" + ((proconFetched)?("[PR]"):("")), 1);
                                                         }
                                                     }
                                                     //Are they over the limit, or missing
