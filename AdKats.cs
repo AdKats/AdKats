@@ -20456,7 +20456,7 @@ namespace PRoConEvents {
         }
 
         public void ProconChatWrite(String msg) {
-            ExecuteCommand("procon.protected.chat.write", "AdKats > " + msg);
+            ExecuteCommand("procon.protected.chat.write", "AdKats > " + msg.Replace(System.Environment.NewLine, ""));
             if (_slowmo) {
                 _threadMasterWaitHandle.WaitOne(1000);
             }
