@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.2.0
+ * Version 5.1.2.1
  * 2-OCT-2014
  */
 
@@ -51,9 +51,10 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.2.0";
+        private const String PluginVersion = "5.1.2.1";
 
         public enum ConsoleMessageType {
+            Info,
             Warning,
             Error,
             Exception,
@@ -542,7 +543,7 @@ namespace PRoConEvents {
                     String dllPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
                     String pluginPath = Path.Combine(dllPath.Trim(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName);
 
-                    ConsoleWarn("Preparing to post desc html.");
+                    ConsoleInfo("Preparing to post desc html.");
                     using (FileStream stream = File.Open(pluginPath, FileMode.Create))
                     {
                         if (!stream.CanWrite)
@@ -1041,7 +1042,7 @@ namespace PRoConEvents {
                             if (String.IsNullOrEmpty(strValue) || !_threadsReady) {
                                 return;
                             }
-                            ConsoleWarn("Preparing to hacker check " + strValue);
+                            ConsoleInfo("Preparing to hacker check " + strValue);
                             if (String.IsNullOrEmpty(strValue) || strValue.Length < 3) {
                                 ConsoleError("Player name must be at least 3 characters long.");
                                 return;
@@ -1411,7 +1412,7 @@ namespace PRoConEvents {
                             }
                         }
                         else {
-                            ConsoleWarn("Experimental tools disabled.");
+                            ConsoleInfo("Experimental tools disabled.");
                             _UseWeaponLimiter = false;
                             _UseGrenadeCookCatcher = false;
                             _UseHackerChecker = false;
@@ -1429,11 +1430,11 @@ namespace PRoConEvents {
                         _useRoundTimer = useTimer;
                         if (_useRoundTimer) {
                             if (_threadsReady) {
-                                ConsoleWarn("Internal Round Timer activated, will enable on next round.");
+                                ConsoleInfo("Internal Round Timer activated, will enable on next round.");
                             }
                         }
                         else {
-                            ConsoleWarn("Internal Round Timer disabled.");
+                            ConsoleInfo("Internal Round Timer disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof (Boolean), _useRoundTimer));
@@ -1456,11 +1457,11 @@ namespace PRoConEvents {
                         _UseWeaponLimiter = useLimiter;
                         if (_UseWeaponLimiter) {
                             if (_threadsReady) {
-                                ConsoleWarn("Internal NO EXPLOSIVES punish limit activated.");
+                                ConsoleInfo("Internal NO EXPLOSIVES punish limit activated.");
                             }
                         }
                         else {
-                            ConsoleWarn("Internal NO EXPLOSIVES punish limit disabled.");
+                            ConsoleInfo("Internal NO EXPLOSIVES punish limit disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof (Boolean), _UseWeaponLimiter));
@@ -1496,11 +1497,11 @@ namespace PRoConEvents {
                         _UseGrenadeCookCatcher = useCookCatcher;
                         if (_UseGrenadeCookCatcher) {
                             if (_threadsReady) {
-                                ConsoleWarn("Internal Grenade Cook Catcher activated.");
+                                ConsoleInfo("Internal Grenade Cook Catcher activated.");
                             }
                         }
                         else {
-                            ConsoleWarn("Internal Grenade Cook Catcher disabled.");
+                            ConsoleInfo("Internal Grenade Cook Catcher disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof (Boolean), _UseGrenadeCookCatcher));
@@ -1512,11 +1513,11 @@ namespace PRoConEvents {
                         _UseHackerChecker = useHackChecker;
                         if (_UseHackerChecker) {
                             if (_threadsReady) {
-                                ConsoleWarn("Internal Hacker Checker activated.");
+                                ConsoleInfo("Internal Hacker Checker activated.");
                             }
                         }
                         else {
-                            ConsoleWarn("Internal Hacker Checker disabled.");
+                            ConsoleInfo("Internal Hacker Checker disabled.");
                             _UseDpsChecker = false;
                             QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Enable", typeof (Boolean), _UseDpsChecker));
                             _UseHskChecker = false;
@@ -1539,11 +1540,11 @@ namespace PRoConEvents {
                         _UseDpsChecker = useDamageChecker;
                         if (_UseDpsChecker) {
                             if (_threadsReady) {
-                                ConsoleWarn("Internal Damage Mod Checker activated.");
+                                ConsoleInfo("Internal Damage Mod Checker activated.");
                             }
                         }
                         else {
-                            ConsoleWarn("Internal Damage Mod Checker disabled.");
+                            ConsoleInfo("Internal Damage Mod Checker disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Enable", typeof (Boolean), _UseDpsChecker));
@@ -1573,11 +1574,11 @@ namespace PRoConEvents {
                         _UseHskChecker = useAimbotChecker;
                         if (_UseHskChecker) {
                             if (_threadsReady) {
-                                ConsoleWarn("Internal Aimbot Checker activated.");
+                                ConsoleInfo("Internal Aimbot Checker activated.");
                             }
                         }
                         else {
-                            ConsoleWarn("Internal Aimbot Checker disabled.");
+                            ConsoleInfo("Internal Aimbot Checker disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Enable", typeof (Boolean), _UseHskChecker));
@@ -1607,11 +1608,11 @@ namespace PRoConEvents {
                         _UseKpmChecker = useKPMChecker;
                         if (_UseKpmChecker) {
                             if (_threadsReady) {
-                                ConsoleWarn("Internal KPM Checker activated.");
+                                ConsoleInfo("Internal KPM Checker activated.");
                             }
                         }
                         else {
-                            ConsoleWarn("Internal KPM Checker disabled.");
+                            ConsoleInfo("Internal KPM Checker disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Enable", typeof (Boolean), _UseKpmChecker));
@@ -2334,11 +2335,11 @@ namespace PRoConEvents {
                         _UseAAReportAutoHandler = useAAHandler;
                         if (_UseAAReportAutoHandler) {
                             if (_threadsReady) {
-                                ConsoleWarn("Internal Automatic Report Handler activated.");
+                                ConsoleInfo("Internal Automatic Report Handler activated.");
                             }
                         }
                         else {
-                            ConsoleWarn("Internal Automatic Report Handler disabled.");
+                            ConsoleInfo("Internal Automatic Report Handler disabled.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use AA Report Auto Handler", typeof (Boolean), _UseAAReportAutoHandler));
@@ -2563,7 +2564,7 @@ namespace PRoConEvents {
                         }*/
 
                         //Inform of IP
-                        ConsoleSuccess("Server IP is " + _serverIP + "!");
+                        ConsoleSuccess("Server IP is " + _serverIP + "");
 
                         //Set the enabled variable
                         _pluginEnabled = true;
@@ -2583,7 +2584,7 @@ namespace PRoConEvents {
                     LogThreadExit();
                 }));
 
-                ConsoleWrite("^b^2Enabled!^n^0 Beginning startup sequence...");
+                ConsoleWrite("^b^2ENABLED!^n^0 Beginning startup sequence...");
                 //Start the thread
                 StartAndLogThread(_Activator);
             }
@@ -2601,7 +2602,7 @@ namespace PRoConEvents {
                 _Finalizer = new Thread(new ThreadStart(delegate {
                     try {
                         Thread.CurrentThread.Name = "finalizer";
-                        ConsoleWarn("Shutting down AdKats.");
+                        ConsoleInfo("Shutting down AdKats.");
                         //Disable settings
                         _pluginEnabled = false;
                         _threadsReady = false;
@@ -3671,6 +3672,7 @@ namespace PRoConEvents {
                                         }
                                     }
                                     if (_isTestingAuthorized && 
+                                        _firstPlayerListComplete &&
                                         (aPlayer.player_type == PlayerType.CommanderPC || aPlayer.player_type == PlayerType.CommanderMobile) &&
                                         _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) < 40) {
                                         var record = new AdKatsRecord
@@ -3761,7 +3763,7 @@ namespace PRoConEvents {
                                 target_name = pingPickedPlayer.player_name,
                                 target_player = pingPickedPlayer,
                                 source_name = "PingEnforcer",
-                                record_message = "Please fix your ping (" + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur: [" + Math.Round(pingPickedPlayer.player_ping, 1) + "ms] Avg: [" + Math.Round(pingPickedPlayer.player_ping_avg, 2) + "ms]") : ("Missing")) + ") and join us again."
+                                record_message = "Please fix your ping and join us again. " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping, 1) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg, 2) + "ms]") : ("[Missing]"))
                             };
                             QueueRecordForProcessing(record);
                             OnlineAdminSayMessage((++_pingKicksThisRound) + " players kicked for ping during this round. " + Math.Round(++_pingKicksTotal / (DateTime.UtcNow - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
@@ -3772,15 +3774,21 @@ namespace PRoConEvents {
                         //Set required handles 
                         _PlayerListUpdateWaitHandle.Set();
                         _TeamswapWaitHandle.Set();
-                        if (!_firstPlayerListComplete && playerListFetched) 
+                        if (!_firstPlayerListComplete && playerListFetched && _pluginEnabled) 
                         {
                             _AdKatsRunningTime = DateTime.UtcNow;
                             _firstPlayerListComplete = true;
                             OnlineAdminSayMessage("Player listing complete [" + _PlayerDictionary.Count + " players]. Performing final startup.");
-                            //Possible post processing later
+                            ConsoleSuccess("Player listing complete [" + _PlayerDictionary.Count + " players].");
+
+                            ConsoleInfo("Performing final startup.");
+                            //Register external plugin commands
+                            RegisterCommand(_issueCommandMatchCommand);
+                            RegisterCommand(_fetchAuthorizedSoldiersMatchCommand);
                             _threadMasterWaitHandle.WaitOne(500);
+
                             OnlineAdminTellMessage("AdKats startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.");
-                            DebugWrite("AdKats startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. " + _PlayerDictionary.Count + " players in server. Commands are now online.", 1);
+                            ConsoleSuccess("AdKats " + GetPluginVersion() + " startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.");
                         }
                     }
                     catch (Exception e) {
@@ -3864,6 +3872,7 @@ namespace PRoConEvents {
                     if (!_firstUserListComplete)
                     {
                         OnlineAdminSayMessage("Fetching user list.");
+                        ConsoleInfo("Fetching user list.");
                     }
                     FetchUserList();
                     DebugWrite("User fetch took " + (DateTime.UtcNow - start).TotalMilliseconds + "ms.", 4);
@@ -4152,7 +4161,7 @@ namespace PRoConEvents {
                             Boolean wasADK = _isTestingAuthorized;
                             _isTestingAuthorized = serverInfo.ServerName.Contains("=ADK=");
                             if (!wasADK && _isTestingAuthorized) {
-                                ConsoleWrite("Server is priviledged for testing.");
+                                ConsoleSuccess("Server is testing authorized.");
                                 UpdateSettingPage();
                             }
                         }
@@ -4274,7 +4283,7 @@ namespace PRoConEvents {
                         }
                     }
                     else {
-                        ConsoleWarn(soldierName + " not not fetchable from the isalive dictionary.");
+                        ConsoleWarn(soldierName + " not fetchable from the isalive dictionary.");
                     }
                 }
             }
@@ -4755,7 +4764,7 @@ namespace PRoConEvents {
             try
             {
                 AdKatsPlayer aPlayer = null;
-                if (_pluginEnabled && _threadsReady) {
+                if (_pluginEnabled && _threadsReady && _firstPlayerListComplete) {
                     if (_currentRoundState == RoundState.Loaded) {
                         _currentRoundState = RoundState.Playing;
                     }
@@ -5527,7 +5536,7 @@ namespace PRoConEvents {
                             try {
                                 Thread.CurrentThread.Name = "bandelay";
                                 var start = DateTime.UtcNow;
-                                ConsoleWarn(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                ConsoleInfo(banPlayer.player_name + " will be banned. Waiting for starting case.");
                                 OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
                                 while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (DateTime.UtcNow - start).TotalSeconds < 300)
                                 {
@@ -5544,7 +5553,7 @@ namespace PRoConEvents {
                                 PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", 6);
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
 
-                                ConsoleWarn(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                                ConsoleInfo(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
                                 if (!debugMode)
                                 {
                                     //Create the ban record
@@ -5575,7 +5584,7 @@ namespace PRoConEvents {
                     }
                     else
                     {
-                        ConsoleWarn(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                        ConsoleInfo(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
                         if (!debugMode)
                         {
                             //Create the ban record
@@ -5674,7 +5683,7 @@ namespace PRoConEvents {
                             {
                                 Thread.CurrentThread.Name = "bandelay";
                                 var start = DateTime.UtcNow;
-                                ConsoleWarn(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                ConsoleInfo(banPlayer.player_name + " will be banned. Waiting for starting case.");
                                 OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
                                 while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (DateTime.UtcNow - start).TotalSeconds < 300)
                                 {
@@ -5694,7 +5703,7 @@ namespace PRoConEvents {
                                 }
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
 
-                                ConsoleWarn(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                                ConsoleInfo(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
                                 if (!debugMode)
                                 {
                                     //Create the ban record
@@ -5726,7 +5735,7 @@ namespace PRoConEvents {
                     }
                     else
                     {
-                        ConsoleWarn(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                        ConsoleInfo(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
                         if (!debugMode)
                         {
                             //Create the ban record
@@ -5819,7 +5828,7 @@ namespace PRoConEvents {
                 if (actedWeapon != null) {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    ConsoleWarn(aPlayer.player_name + ((debugMode) ? (" debug") : (" auto")) + "-banned for KPM. [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]");
+                    ConsoleInfo(aPlayer.player_name + ((debugMode) ? (" debug") : (" auto")) + "-banned for KPM. [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]");
                     if (!debugMode) {
                         //Create the ban record
                         var record = new AdKatsRecord {
@@ -11528,7 +11537,7 @@ namespace PRoConEvents {
                     }
                 }
                 if (_UseEmail) {
-                    ConsoleWarn("Preparing to send report email.");
+                    ConsoleInfo("Preparing to send report email.");
                     _EmailHandler.SendReport(record);
                 }
                 if (record.source_player != null &&  
@@ -12694,8 +12703,7 @@ namespace PRoConEvents {
                         if (_serverID < 0) {
                             //Checking for database server info
                             if (FetchDBServerInfo()) {
-                                ConsoleSuccess("Database Server Info Fetched. Server ID is " + _serverID + "!");
-
+                                ConsoleSuccess("Database server info fetched. Server ID is " + _serverID + ".");
                                 //Push all settings for this instance to the database
                                 UploadAllSettings();
                             }
@@ -12780,16 +12788,9 @@ namespace PRoConEvents {
                             StartAndLogThread(_TeamSwapThread);
                             StartAndLogThread(_BanEnforcerThread);
                             StartAndLogThread(_HackerCheckerThread);
+
                             firstRun = false;
-
                             _threadsReady = true;
-                            UpdateSettingPage();
-
-                            //Register a command to indicate availibility to other plugins
-                            RegisterCommand(_issueCommandMatchCommand);
-                            RegisterCommand(_fetchAuthorizedSoldiersMatchCommand);
-
-                            ConsoleWrite("^b^2Running!^n^0 Version: " + GetPluginVersion());
                         }
 
                         counter.Reset();
@@ -13101,7 +13102,7 @@ namespace PRoConEvents {
                 //Loop through all records in order that they came in
                 while (inboundUserRemoval.Count > 0) {
                     AdKatsUser user = inboundUserRemoval.Dequeue();
-                    ConsoleWarn("Removing user " + user.user_name);
+                    ConsoleInfo("Removing user " + user.user_name);
                     RemoveUser(user);
                 }
                 FetchAllAccess(true);
@@ -13129,7 +13130,7 @@ namespace PRoConEvents {
                 //Load all bans on startup
                 if (!_UseBanEnforcerPreviousState) {
                     //Get all bans from procon
-                    ConsoleWarn("Preparing to queue procon bans for import. Please wait.");
+                    ConsoleInfo("Preparing to queue procon bans for import. Please wait.");
                     _DbCommunicationWaitHandle.Reset();
                     ExecuteCommand("procon.protected.send", "banList.list");
                     _DbCommunicationWaitHandle.WaitOne(TimeSpan.FromMinutes(5));
@@ -13284,7 +13285,7 @@ namespace PRoConEvents {
                     }
                     if (duplicateFound)
                     {
-                        ConsoleWarn("Attempted to post duplicate ban for player " + record.target_player.player_id + ". Cancelling operation.");
+                        ConsoleInfo("Attempted to post duplicate ban for player " + record.target_player.player_id + ". Cancelling operation.");
                         continue;
                     }
                         
@@ -13338,7 +13339,7 @@ namespace PRoConEvents {
 
         public void api_mb_assess_player_ok(Hashtable request, Hashtable data) {
             try {
-                ConsoleWarn("^4Metabans (api_mb_assess_player_ok): Assessment accepted");
+                ConsoleInfo("^4Metabans (api_mb_assess_player_ok): Assessment accepted");
             }
             catch (Exception e) {
                 ConsoleWarn("^1Metabans (api_mb_assess_player_ok): " + e.Message);
@@ -13378,7 +13379,10 @@ namespace PRoConEvents {
                         UpdateMySqlConnectionStringBuilder();
                         //Prepare the connection String and create the connection object
                         using (MySqlConnection connection = GetDatabaseConnection()) {
-                            ConsoleWrite("Attempting database connection. Attempt " + attempt + " of 5.");
+                            if (attempt > 1)
+                            {
+                                ConsoleWrite("Attempting database connection. Attempt " + attempt + " of 5.");
+                            }
                             //Attempt a ping through the connection
                             if (connection.Ping()) {
                                 //Connection good
@@ -13477,7 +13481,7 @@ namespace PRoConEvents {
         {
             if (!ConfirmTable("adkats_specialplayers"))
             {
-                ConsoleWarn("Special players table not found. Attempting to add.");
+                ConsoleInfo("Special players table not found. Attempting to add.");
                 SendNonQuery("Adding special soldiers table", @"
                     CREATE TABLE IF NOT EXISTS `adkats_specialplayers`( 
                       `specialplayer_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -13497,7 +13501,7 @@ namespace PRoConEvents {
             }
             if (!ConfirmTable("adkats_player_reputation"))
             {
-                ConsoleWarn("Player reputation table not found. Attempting to add.");
+                ConsoleInfo("Player reputation table not found. Attempting to add.");
                 SendNonQuery("Adding player reputation table", @"
                     CREATE TABLE `adkats_player_reputation` (
                       `player_id` int(10) unsigned NOT NULL,
@@ -13516,7 +13520,7 @@ namespace PRoConEvents {
             }
             if (!ConfirmTable("adkats_orchestration"))
             {
-                ConsoleWarn("Plugin orchestration table not found. Attempting to add.");
+                ConsoleInfo("Plugin orchestration table not found. Attempting to add.");
                 SendNonQuery("Adding plugin orchestration table", @"
                      CREATE TABLE `adkats_orchestration` (
                         `setting_id` int(10) NOT NULL AUTO_INCREMENT,
@@ -13530,7 +13534,7 @@ namespace PRoConEvents {
             }
             if (!ConfirmTable("tbl_extendedroundstats"))
             {
-                ConsoleWarn("Extended round stats table not found. Attempting to add.");
+                ConsoleInfo("Extended round stats table not found. Attempting to add.");
                 SendNonQuery("Adding extended round stats table", @"
                     CREATE TABLE `tbl_extendedroundstats` (
                         `roundstat_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -13637,13 +13641,13 @@ namespace PRoConEvents {
                         LIMIT 1";
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             if (reader.Read()) {
-                                ConsoleWarn("Not updating database, new records already found.");
+                                ConsoleInfo("Not updating database, new records already found.");
                                 return;
                             }
                         }
                     }
                 }
-                ConsoleWarn("Updating database information from version 3.7 spec to 4.0 spec. DO NOT DISABLE ADKATS!");
+                ConsoleWarn("Updating database information from version 3.7 spec to 4.0 spec. DO NOT DISABLE AdKats!");
                 ConsoleWrite("Updating Users.");
                 //Add new users for every player in the access list
                 var oldUsers = new List<AdKatsUser>();
@@ -13678,7 +13682,7 @@ namespace PRoConEvents {
                     UploadUser(aUser);
                 }
                 ConsoleSuccess(oldUsers.Count + " old users fetched and updated to new spec.");
-                ConsoleWarn("Updating Records...");
+                ConsoleInfo("Updating Records...");
                 //Generate old->new command key dictionary
                 var commandConversionDictionary = new Dictionary<string, AdKatsCommand>();
                 commandConversionDictionary.Add("AdminSay", _CommandKeyDictionary["admin_say"]);
@@ -13830,7 +13834,7 @@ namespace PRoConEvents {
                             }
                         }
                         if (importedBans.Count > 0) {
-                            ConsoleWarn(importedBans.Count + " bans downloaded, beginning update to 4.0 spec.");
+                            ConsoleInfo(importedBans.Count + " bans downloaded, beginning update to 4.0 spec.");
                         }
                         startTime = DateTime.UtcNow;
                         //Upload all of those bans to the new database
@@ -13922,7 +13926,7 @@ namespace PRoConEvents {
                 }
                 ConsoleSuccess("All records prepared for update.");
                 //Upload all of those records to the new database spec
-                ConsoleWarn("Updating all prepared records...");
+                ConsoleInfo("Updating all prepared records...");
                 foreach (AdKatsRecord aRecord in oldRecords) {
                     //Attempt to upload the record
                     UploadRecord(aRecord);
@@ -16509,7 +16513,7 @@ namespace PRoConEvents {
                             }
                             if (aBanList.Count > 1)
                             {
-                                ConsoleWarn("Multiple bans matched player information, multiple accounts detected.");
+                                ConsoleWarn("Multiple bans matched player information, linked accounts detected.");
                             }
                         }
                     }
@@ -16593,7 +16597,7 @@ namespace PRoConEvents {
         //DONE
         private void RepopulateProconBanList() {
             DebugWrite("repopulateProconBanList starting!", 6);
-            ConsoleWarn("Downloading bans from database, please wait. This might take several minutes depending on your ban count!");
+            ConsoleInfo("Downloading bans from database, please wait. This might take several minutes depending on your ban count!");
 
             //Make sure database connection active
             if (HandlePossibleDisconnect()) {
@@ -16686,7 +16690,7 @@ namespace PRoConEvents {
                             }
                         }
                         if (importedBans.Count > 0) {
-                            ConsoleWarn(importedBans.Count + " bans downloaded, beginning repopulation to ban list.");
+                            ConsoleInfo(importedBans.Count + " bans downloaded, beginning repopulation to ban list.");
                         }
                         startTime = DateTime.UtcNow;
                         foreach (AdKatsBan aBan in importedBans) {
@@ -16804,7 +16808,7 @@ namespace PRoConEvents {
             if (!ConfirmTable("bm_banlist")) {
                 return;
             }
-            ConsoleWarn("BF3 Ban Manager tables detected. Checking validity....");
+            ConsoleInfo("BF3 Ban Manager tables detected. Checking validity.");
 
             //Check if any BBM5108 bans exist in the AdKats Banlist
             try {
@@ -16821,7 +16825,7 @@ namespace PRoConEvents {
 
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             if (reader.Read()) {
-                                ConsoleWarn("BF3 Ban Manager bans already imported, canceling import.");
+                                ConsoleInfo("BF3 Ban Manager bans already imported, canceling import.");
                                 return;
                             }
                         }
@@ -16833,7 +16837,8 @@ namespace PRoConEvents {
                 return;
             }
 
-            ConsoleWarn("Validity confirmed. Preparing to fetch all BF3 Ban Manager Bans...");
+            ConsoleSuccess("Validity confirmed.");
+            ConsoleInfo("Preparing to fetch all BF3 Ban Manager Bans...");
             Double totalBans = 0;
             Double bansImported = 0;
             var inboundBBMBans = new Queue<BBM5108Ban>();
@@ -16877,7 +16882,7 @@ namespace PRoConEvents {
                 HandleException(new AdKatsException("Error while fetching BBM Bans.", e));
                 return;
             }
-            ConsoleWarn(totalBans + " Ban Manager bans fetched, starting import to AdKats Ban Enforcer...");
+            ConsoleInfo(totalBans + " Ban Manager bans fetched, starting import to AdKats Ban Enforcer...");
 
             try {
                 //Loop through all BBMBans in order that they came in
@@ -17264,27 +17269,27 @@ namespace PRoConEvents {
                                     AdKatsCommand currentCommand;
                                     if (_CommandIDDictionary.TryGetValue(commandID, out currentCommand)) {
                                         if (!currentCommand.command_active.Equals(commandActive)) {
-                                            ConsoleWarn(currentCommand.command_key + " active state being changed from " + currentCommand.command_active + " to " + commandActive);
+                                            ConsoleInfo(currentCommand.command_key + " active state being changed from " + currentCommand.command_active + " to " + commandActive);
                                             currentCommand.command_active = commandActive;
                                         }
                                         if (currentCommand.command_key != commandKey) {
-                                            ConsoleWarn(currentCommand.command_key + " command key being changed from " + currentCommand.command_key + " to " + commandKey);
+                                            ConsoleInfo(currentCommand.command_key + " command key being changed from " + currentCommand.command_key + " to " + commandKey);
                                             currentCommand.command_key = commandKey;
                                         }
                                         if (!currentCommand.command_logging.Equals((commandLogging))) {
-                                            ConsoleWarn(currentCommand.command_key + " logging state being changed from " + currentCommand.command_logging + " to " + commandLogging);
+                                            ConsoleInfo(currentCommand.command_key + " logging state being changed from " + currentCommand.command_logging + " to " + commandLogging);
                                             currentCommand.command_logging = commandLogging;
                                         }
                                         if (currentCommand.command_name != commandName) {
-                                            ConsoleWarn(currentCommand.command_key + " command name being changed from " + currentCommand.command_name + " to " + commandName);
+                                            ConsoleInfo(currentCommand.command_key + " command name being changed from " + currentCommand.command_name + " to " + commandName);
                                             currentCommand.command_name = commandName;
                                         }
                                         if (currentCommand.command_text != commandText) {
-                                            ConsoleWarn(currentCommand.command_key + " command text being changed from " + currentCommand.command_text + " to " + commandText);
+                                            ConsoleInfo(currentCommand.command_key + " command text being changed from " + currentCommand.command_text + " to " + commandText);
                                             currentCommand.command_text = commandText;
                                         }
                                         if (currentCommand.command_playerInteraction != commandPlayerInteraction) {
-                                            ConsoleWarn(currentCommand.command_key + " player interaction state being changed from " + currentCommand.command_playerInteraction + " to " + commandPlayerInteraction);
+                                            ConsoleInfo(currentCommand.command_key + " player interaction state being changed from " + currentCommand.command_playerInteraction + " to " + commandPlayerInteraction);
                                             currentCommand.command_playerInteraction = commandPlayerInteraction;
                                         }
                                     }
@@ -17312,7 +17317,7 @@ namespace PRoConEvents {
                             }
                             if (_CommandIDDictionary.Count > 0) {
                                 foreach (AdKatsCommand remCommand in _CommandIDDictionary.Values.Where(aRole => !validIDs.Contains(aRole.command_id)).ToList()) {
-                                    ConsoleWarn("Removing command " + remCommand.command_key);
+                                    ConsoleInfo("Removing command " + remCommand.command_key);
                                     _CommandIDDictionary.Remove(remCommand.command_id);
                                 }
                                 Boolean changed = false;
@@ -17768,11 +17773,11 @@ namespace PRoConEvents {
                                     AdKatsRole currentRole;
                                     if (_RoleIDDictionary.TryGetValue(roleID, out currentRole)) {
                                         if (currentRole.role_key != roleKey) {
-                                            ConsoleWarn(currentRole.role_key + " role key being changed from " + currentRole.role_key + " to " + roleKey);
+                                            ConsoleInfo(currentRole.role_key + " role key being changed from " + currentRole.role_key + " to " + roleKey);
                                             currentRole.role_key = roleKey;
                                         }
                                         if (currentRole.role_name != roleName) {
-                                            ConsoleWarn(currentRole.role_key + " role name being changed from " + currentRole.role_name + " to " + roleName);
+                                            ConsoleInfo(currentRole.role_key + " role name being changed from " + currentRole.role_name + " to " + roleName);
                                             currentRole.role_name = roleName;
                                         }
                                     }
@@ -17793,7 +17798,7 @@ namespace PRoConEvents {
                                     {
                                         return;
                                     }
-                                    ConsoleWarn("Removing role " + remRole.role_key);
+                                    ConsoleInfo("Removing role " + remRole.role_key);
                                     _RoleIDDictionary.Remove(remRole.role_id);
                                 }
                             }
@@ -17868,7 +17873,7 @@ namespace PRoConEvents {
                                         {
                                             return;
                                         }
-                                        ConsoleWarn("Removing command " + remCommand.command_key + " from role " + aRole.role_key);
+                                        ConsoleInfo("Removing command " + remCommand.command_key + " from role " + aRole.role_key);
                                         aRole.RoleAllowedCommands.Remove(remCommand.command_key);
                                         uploadRequired = true;
                                     }
@@ -18240,7 +18245,7 @@ namespace PRoConEvents {
                                     {
                                         return;
                                     }
-                                    ConsoleWarn("Removing special player " + asPlayerID + " from cache.");
+                                    ConsoleInfo("Removing special player " + asPlayerID + " from cache.");
                                     _specialPlayerCache.Remove(asPlayerID);
                                 }
                             }
@@ -18267,15 +18272,22 @@ namespace PRoConEvents {
             if (!_firstUserListComplete) {
                 _firstUserListComplete = true;
                 OnlineAdminSayMessage("User fetch complete [" + _userCache.Count + " users, " + _specialPlayerCache.Count + " Special Players]. Fetching player list.");
+                ConsoleSuccess("User fetch complete [" + _userCache.Count + " users, " + _specialPlayerCache.Count + " Special Players].");
+                ConsoleInfo("Fetching player list.");
+                UpdateSettingPage();
                 //Call player listing immediately
                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
             }
-            if (_userCache.Count > 0)
+            else
             {
-                DebugWrite("User List Fetched from Database. [" + _userCache.Count + " users, " + _specialPlayerCache.Count + " Special Players]", 1);
-            }
-            else {
-                ConsoleWarn("No users in the user table. Add a new user with 'Add User'.");
+                if (_userCache.Count > 0)
+                {
+                    DebugWrite("User List Fetched from Database. [" + _userCache.Count + " users, " + _specialPlayerCache.Count + " Special Players]", 1);
+                }
+                else
+                {
+                    ConsoleWarn("No users have been added. Add a new user with 'Add User'.");
+                }
             }
 
             UpdateSettingPage();
@@ -19412,7 +19424,7 @@ namespace PRoConEvents {
                 foreach (var group in groupList) {
                     _specialPlayerGroupCache[group.group_key] = group;
                 }
-                ConsoleSuccess("Populated group dictionaries");
+                ConsoleSuccess("Populated group dictionaries.");
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Exception while populating special group cache", e));
@@ -19430,7 +19442,7 @@ namespace PRoConEvents {
                 }
                 _commandSourceReputationDictionary = sourceDic;
                 _commandTargetReputationDictionary = targetDic;
-                ConsoleSuccess("Populated reputation dictionaries");
+                ConsoleSuccess("Populated reputation dictionaries.");
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while populating command reputation cache", e));
@@ -20214,20 +20226,23 @@ namespace PRoConEvents {
 
         public String FormatMessage(String msg, ConsoleMessageType type) {
             String prefix = "[^bAdKats^n] ";
-
-            if (type.Equals(ConsoleMessageType.Warning)) {
-                prefix += "^1^bWARNING^0^n: ";
+            switch (type) {
+                case ConsoleMessageType.Info:
+                    prefix += "^1^bINFO^0^n: ";
+                    break;
+                case ConsoleMessageType.Warning:
+                    prefix += "^1^bWARNING^0^n: ";
+                    break;
+                case ConsoleMessageType.Error:
+                    prefix += "^1^bERROR^0^n: ";
+                    break;
+                case ConsoleMessageType.Success:
+                    prefix += "^b^2SUCCESS^n^0: ";
+                    break;
+                case ConsoleMessageType.Exception:
+                    prefix += "^1^bEXCEPTION^0^n: ";
+                    break;
             }
-            else if (type.Equals(ConsoleMessageType.Error)) {
-                prefix += "^1^bERROR^0^n: ";
-            }
-            else if (type.Equals(ConsoleMessageType.Success)) {
-                prefix += "^b^2SUCCESS^n^0: ";
-            }
-            else if (type.Equals(ConsoleMessageType.Exception)) {
-                prefix += "^1^bEXCEPTION^0^n: ";
-            }
-
             return prefix + msg;
         }
 
@@ -20340,7 +20355,7 @@ namespace PRoConEvents {
                 if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled ) || (_isTestingAuthorized))
                 {
                     if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                        ConsoleWarn("Preparing to download plugin update to version " + _latestPluginVersion);
+                        ConsoleInfo("Preparing to download plugin update to version " + _latestPluginVersion);
                     String pluginSource = null;
                     using (var client = new WebClient()) {
                         try
@@ -20373,7 +20388,7 @@ namespace PRoConEvents {
                             ConsoleSuccess("Updated plugin source downloaded.");
                     }
                     if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                        ConsoleWarn("Preparing test compile on updated plugin source.");
+                        ConsoleInfo("Preparing test compile on updated plugin source.");
                     String pluginFileName = "AdKats.cs";
                     String dllPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
                     String pluginPath = Path.Combine(dllPath.Trim(new char[] {Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar}), pluginFileName);
@@ -20412,7 +20427,7 @@ namespace PRoConEvents {
                             ConsoleSuccess("Plugin update compiled successfully.");
                     }
                     if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                        ConsoleWarn("Preparing to update source file on disk.");
+                        ConsoleInfo("Preparing to update source file on disk.");
                     using (FileStream stream = File.Open(pluginPath, FileMode.Create)) {
                         if (!stream.CanWrite)
                         {
@@ -20439,13 +20454,6 @@ namespace PRoConEvents {
             return false;
         }
 
-        public void LogWrite(String msg) {
-            ExecuteCommand("procon.protected.pluginconsole.write", msg);
-            if (_slowmo) {
-                _threadMasterWaitHandle.WaitOne(1000);
-            }
-        }
-
         public void ProconChatWrite(String msg) {
             ExecuteCommand("procon.protected.chat.write", "AdKats > " + msg);
             if (_slowmo) {
@@ -20454,11 +20462,19 @@ namespace PRoConEvents {
         }
 
         public void ConsoleWrite(String msg, ConsoleMessageType type) {
-            LogWrite(FormatMessage(msg, type));
+            ExecuteCommand("procon.protected.pluginconsole.write", FormatMessage(msg, type));
+            if (_slowmo)
+            {
+                _threadMasterWaitHandle.WaitOne(1000);
+            }
         }
 
         public void ConsoleWrite(String msg) {
             ConsoleWrite(msg, ConsoleMessageType.Normal);
+        }
+
+        public void ConsoleInfo(String msg) {
+            ConsoleWrite(msg, ConsoleMessageType.Info);
         }
 
         public void ConsoleWarn(String msg) {
@@ -20571,7 +20587,7 @@ namespace PRoConEvents {
                                         }
                                         else {
                                             _databaseSuccess++;
-                                            ConsoleWarn("Database connection appears restored, but waiting " + (DatabaseSuccessThreshold - _databaseSuccess) + " more successful connections to restore normal operation.");
+                                            ConsoleInfo("Database connection appears restored, but waiting " + (DatabaseSuccessThreshold - _databaseSuccess) + " more successful connections to restore normal operation.");
                                         }
                                     } while (_databaseSuccess < DatabaseSuccessThreshold);
                                     //Connection has been restored, inform the user
@@ -22500,7 +22516,7 @@ namespace PRoConEvents {
                         //No need for download, all BF3 weapons are set in stone now.
                         Weapons = OverloadBF3Weapons();
                         if (Plugin._UseHackerChecker) {
-                            Plugin.ConsoleWarn("Downloaded " + Weapons.Count + " " + Plugin._gameVersion + " weapon definitions for hacker checker.");
+                            Plugin.ConsoleInfo("Downloaded " + Weapons.Count + " " + Plugin._gameVersion + " weapon definitions for hacker checker.");
                         }
                         return;
                     }
@@ -22521,7 +22537,7 @@ namespace PRoConEvents {
                         if (tempWeapons.Count > 0) {
                             Weapons = tempWeapons;
                             if (Plugin._UseHackerChecker) {
-                                Plugin.ConsoleWarn("Downloaded " + Weapons.Count + " " + Plugin._gameVersion + " weapon definitions for hacker checker.");
+                                Plugin.ConsoleInfo("Downloaded " + Weapons.Count + " " + Plugin._gameVersion + " weapon definitions for hacker checker.");
                             }
                         }
                         else {
