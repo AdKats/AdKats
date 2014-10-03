@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.2.2
- * 2-OCT-2014
+ * Version 5.1.2.3
+ * 3-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.2.2";
+        private const String PluginVersion = "5.1.2.3";
 
         public enum ConsoleMessageType {
             Info,
@@ -3177,7 +3177,7 @@ namespace PRoConEvents {
                         _currentRoundState == RoundState.Playing)
                     {
                         OnlineAdminSayMessage(soldierName + " attempted to team switch after being admin moved.");
-                        PlayerTellMessage(soldierName, "You were moved to " + aPlayer.RequiredTeam.TeamKey + " team, please remain on that team.", 1);
+                        PlayerTellMessage(soldierName, "You were moved to " + aPlayer.RequiredTeam.TeamKey + " team, please remain on that team.");
                         _threadMasterWaitHandle.WaitOne(500);
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "true");
                     }
@@ -3385,7 +3385,7 @@ namespace PRoConEvents {
                                             reporters[report.source_player.player_name] = report.source_player;
                                         }
                                         foreach (AdKatsPlayer player in reporters.Values) {
-                                            PlayerSayMessage(player.player_name, "Player " + aPlayer.player_name + " you reported has left the server.", 1);
+                                            PlayerSayMessage(player.player_name, "Player " + aPlayer.player_name + " you reported has left the server.");
                                         }
                                     }
                                     //Add player to the left dictionary
@@ -3471,10 +3471,10 @@ namespace PRoConEvents {
                                                     //Warn players of limit and spikes
                                                     if (ping > 300) {
                                                         if (aPlayer.player_pings_full && aPlayer.player_ping_avg < 300) {
-                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping, 1) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")), 1);
+                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")));
                                                         }
                                                         else {
-                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping, 1) + "ms]" + ((proconFetched)?("[PR]"):("")), 1);
+                                                            PlayerSayMessage(aPlayer.player_name, "Warning, your ping is over the limit. [" + Math.Round(aPlayer.player_ping, 1) + "ms]" + ((proconFetched)?("[PR]"):("")));
                                                         }
                                                     }
                                                     //Are they over the limit, or missing
@@ -4480,7 +4480,8 @@ namespace PRoConEvents {
 
                                                 if (!told) {
                                                     //Inform the victim player that they will not be punished
-                                                    PlayerSayMessage(kKillerVictimDetails.Killer.SoldierName, "You appear to be a victim of grenade cooking and will NOT be punished.", 1);
+                                                    PlayerTellMessage(killer.player_name, "You appear to be a victim of grenade cooking and will NOT be punished.");
+                                                    PlayerTellMessage(victim.player_name, killer.player_name + " was a victim of grenade cooking, they did not use explosives.");
                                                     told = true;
                                                 }
 
@@ -4614,10 +4615,10 @@ namespace PRoConEvents {
                             };
                             QueueRecordForProcessing(aRecord);
                             //Inform the victim
-                            PlayerTellMessage(victim.player_name, killer.player_name + " was slain for teamkilling you", 1);
+                            PlayerTellMessage(victim.player_name, killer.player_name + " was slain for teamkilling you");
                         }
                         else if (kKillerVictimDetails.DamageType == "Medkit" || kKillerVictimDetails.DamageType == "U_PortableMedicpack" || kKillerVictimDetails.DamageType == "U_Medkit") {
-                            PlayerSayMessage(killer.player_name, victim.player_name + " denied your revive!", 1);
+                            PlayerSayMessage(killer.player_name, victim.player_name + " denied your revive!");
                         }
                     }
                     else if (_UseWeaponLimiter && !gKillHandled) {
@@ -4666,7 +4667,7 @@ namespace PRoConEvents {
                                             else {
                                                 record.record_message = "Rules: Using Explosives [" + weapon + "]";
                                             }
-                                            PlayerYellMessage(victim.player_name, killer.player_name + " was punished for killing you with " + weapon, 1);
+                                            PlayerYellMessage(victim.player_name, killer.player_name + " was punished for killing you with " + weapon);
                                             
                                             //Custom record to boost rep for victim
                                             var repRecord = new AdKatsRecord {
@@ -4789,7 +4790,7 @@ namespace PRoConEvents {
                                         adminAssistantMessage += "You can use the @" + command + " command.";
                                     }
                                 }
-                                PlayerSayMessage(soldierName, adminAssistantMessage, 1);
+                                PlayerSayMessage(soldierName, adminAssistantMessage);
                                 aPlayer.player_aa_told = true;
                             }
                         }
@@ -4797,7 +4798,7 @@ namespace PRoConEvents {
 
                     //Handle Dev Notifications
                     if (soldierName == "ColColonCleaner" && (!_isTestingAuthorized || !_toldCol)) {
-                        PlayerTellMessage("ColColonCleaner", "CONGRATS! This server is running AdKats " + PluginVersion + "!", 1);
+                        PlayerTellMessage("ColColonCleaner", "CONGRATS! This server is running AdKats " + PluginVersion + "!");
                         _toldCol = true;
                     }
 
@@ -4812,7 +4813,7 @@ namespace PRoConEvents {
                                     Thread.CurrentThread.Name = "spawnprinter";
                                     //Wait 2 seconds
                                     _threadMasterWaitHandle.WaitOne(2000);
-                                    PlayerTellMessage(aPlayer.player_name, _FirstSpawnMessage, 1);
+                                    PlayerTellMessage(aPlayer.player_name, _FirstSpawnMessage);
                                     var points = FetchPoints(aPlayer, false);
                                     if (_isTestingAuthorized && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")))
                                     {
@@ -4847,7 +4848,7 @@ namespace PRoConEvents {
                                                 repMessage += "You have report auto-contest. Thank you.";
                                             }
                                         }
-                                        PlayerTellMessage(aPlayer.player_name, repMessage, 1);
+                                        PlayerTellMessage(aPlayer.player_name, repMessage);
                                     }
                                 }
                                 catch (Exception)
@@ -5551,7 +5552,7 @@ namespace PRoConEvents {
                                 //Onced triggered, ban after 90 seconds.
                                 OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 90 seconds.");
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
-                                PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", 6);
+                                PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", true, 6);
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
 
                                 ConsoleInfo(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
@@ -5698,9 +5699,9 @@ namespace PRoConEvents {
                                 //Onced triggered, ban after 90 seconds.
                                 OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 90 seconds.");
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
-                                if (actedWeapon.HSKR >= .6)
+                                if (actedWeapon.HSKR >= .7)
                                 {
-                                    PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", 6);
+                                    PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", true, 6);
                                 }
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
 
@@ -5899,7 +5900,7 @@ namespace PRoConEvents {
                 }
                 switch (record.record_source) {
                     case AdKatsRecord.Sources.InGame:
-                        PlayerSayMessage(record.source_name, message, 1);
+                        PlayerSayMessage(record.source_name, message);
                         break;
                     case AdKatsRecord.Sources.ServerCommand:
                         ProconChatWrite(message);
@@ -5931,25 +5932,9 @@ namespace PRoConEvents {
             DebugWrite("Exiting sendMessageToSource", 7);
         }
 
-        public void AdminSayMessage(String message) {
-            DebugWrite("Entering adminSay", 7);
-            try {
-                if (String.IsNullOrEmpty(message)) {
-                    ConsoleError("message null in adminSay");
-                    return;
-                }
-                ProconChatWrite("Say > " + message);
-                ExecuteCommand("procon.protected.send", "admin.say", message, "all");
-            }
-            catch (Exception e) {
-                HandleException(new AdKatsException("Error while sending admin say.", e));
-            }
-            DebugWrite("Exiting adminSay", 7);
-        }
-
         public Boolean OnlineAdminSayMessage(String message)
         {
-            ProconChatWrite(ColorMessageRed(BoldMessage(message)));
+            ProconChatWrite(ColorMessageMaroon(BoldMessage(message)));
             Boolean adminsTold = false;
             foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers())
             {
@@ -5957,46 +5942,86 @@ namespace PRoConEvents {
                     continue;
                 }
                 adminsTold = true;
-                PlayerSayMessage(player.player_name, message, 1);
+                PlayerSayMessage(player.player_name, message, true, 1);
             }
             return adminsTold;
         }
 
         public Boolean OnlineAdminYellMessage(String message)
         {
-            ProconChatWrite(ColorMessageRed(BoldMessage(message)));
+            ProconChatWrite(ColorMessageMaroon(BoldMessage(message)));
             Boolean adminsTold = false;
             foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers())
             {
                 adminsTold = true;
-                PlayerYellMessage(player.player_name, message, 1);
+                PlayerYellMessage(player.player_name, message, true, 1);
             }
             return adminsTold;
         }
 
         public Boolean OnlineAdminTellMessage(String message)
         {
-            ProconChatWrite(ColorMessageRed(BoldMessage(message)));
+            ProconChatWrite(ColorMessageMaroon(BoldMessage(message)));
             Boolean adminsTold = false;
             foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers())
             {
                 adminsTold = true;
-                PlayerTellMessage(player.player_name, message, 1);
+                PlayerTellMessage(player.player_name, message, true, 1);
             }
             return adminsTold;
         }
 
-        public void PlayerSayMessage(String target, String message, Int32 spamCount) {
+        public void AdminSayMessage(String message) {
+            AdminSayMessage(message, true);
+        }
+
+        public void AdminSayMessage(String message, Boolean displayProconChat)
+        {
+            DebugWrite("Entering adminSay", 7);
+            try
+            {
+                if (String.IsNullOrEmpty(message))
+                {
+                    ConsoleError("message null in adminSay");
+                    return;
+                }
+                if (displayProconChat)
+                {
+                    ProconChatWrite("Say > " + message);
+                }
+                var lineSplit = message.Split(new string[] { System.Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                foreach (String line in lineSplit) {
+                    ExecuteCommand("procon.protected.send", "admin.say", line, "all");
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while sending admin say.", e));
+            }
+            DebugWrite("Exiting adminSay", 7);
+        }
+
+        public void PlayerSayMessage(String target, String message) {
+            PlayerSayMessage(target, message, true, 1);
+        }
+
+        public void PlayerSayMessage(String target, String message, Boolean displayProconChat, Int32 spamCount) {
             DebugWrite("Entering playerSayMessage", 7);
             try {
                 if (String.IsNullOrEmpty(target) || String.IsNullOrEmpty(message)) {
                     ConsoleError("target or message null in playerSayMessage");
                     return;
                 }
-                ProconChatWrite("Say > " + target + " > " + message);
-                for (int count = 0; count < spamCount; count++)
+                if (displayProconChat)
                 {
-                    ExecuteCommand("procon.protected.send", "admin.say", message, "player", target); 
+                    ProconChatWrite("Say > " + target + " > " + message);
+                }
+                for (int count = 0; count < spamCount; count++) {
+                    var lineSplit = message.Split(new string[] { System.Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (String line in lineSplit) {
+                        ConsoleSuccess(line);
+                        ExecuteCommand("procon.protected.send", "admin.say", line, "player", target); 
+                    }
                     _threadMasterWaitHandle.WaitOne(50);
                 }
             }
@@ -6007,49 +6032,89 @@ namespace PRoConEvents {
         }
 
         public void AdminYellMessage(String message) {
+            AdminYellMessage(message, true);
+        }
+
+        public void AdminYellMessage(String message, Boolean displayProconChat)
+        {
             DebugWrite("Entering adminYell", 7);
-            try {
-                if (String.IsNullOrEmpty(message)) {
+            try
+            {
+                if (String.IsNullOrEmpty(message))
+                {
                     ConsoleError("message null in adminYell");
                     return;
                 }
-                ProconChatWrite("Yell[" + _YellDuration + "s] > " + message);
+                if (displayProconChat)
+                {
+                    ProconChatWrite("Yell[" + _YellDuration + "s] > " + message);
+                }
                 ExecuteCommand("procon.protected.send", "admin.yell", message.ToUpper(), _YellDuration + "", "all");
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 HandleException(new AdKatsException("Error while sending admin yell.", e));
             }
             DebugWrite("Exiting adminYell", 7);
         }
 
-        public void PlayerYellMessage(String target, String message, Int32 spamCount) {
+        public void PlayerYellMessage(String target, String message) {
+            PlayerYellMessage(target, message, true, 1);
+        }
+
+        public void PlayerYellMessage(String target, String message, Boolean displayProconChat, Int32 spamCount)
+        {
             DebugWrite("Entering adminYell", 7);
-            try {
-                if (String.IsNullOrEmpty(message)) {
+            try
+            {
+                if (String.IsNullOrEmpty(message))
+                {
                     ConsoleError("message null in adminYell");
                     return;
                 }
-                ProconChatWrite("Yell[" + _YellDuration + "s] > " + target + " > " + message);
+                if (displayProconChat)
+                {
+                    ProconChatWrite("Yell[" + _YellDuration + "s] > " + target + " > " + message);
+                }
                 for (int count = 0; count < spamCount; count++)
                 {
-                    ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4)?(System.Environment.NewLine):("")) + message.ToUpper(), _YellDuration + "", "player", target);
+                    ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4) ? (System.Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "player", target);
                     _threadMasterWaitHandle.WaitOne(50);
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 HandleException(new AdKatsException("Error while sending admin yell.", e));
             }
             DebugWrite("Exiting adminYell", 7);
         }
 
         public void AdminTellMessage(String message) {
-            AdminSayMessage(message);
-            AdminYellMessage(message);
+            AdminTellMessage(message, true);
         }
 
-        public void PlayerTellMessage(String target, String message, Int32 spamCount) {
-            PlayerSayMessage(target, message, spamCount);
-            PlayerYellMessage(target, message, spamCount);
+        public void AdminTellMessage(String message, Boolean displayProconChat)
+        {
+            if (displayProconChat)
+            {
+                ProconChatWrite("Tell[" + _YellDuration + "s] > " + message);
+            }
+            AdminSayMessage(message, false);
+            AdminYellMessage(message, false);
+        }
+
+        public void PlayerTellMessage(String target, String message) {
+            PlayerTellMessage(target, message, true, 1);
+        }
+
+        public void PlayerTellMessage(String target, String message, Boolean displayProconChat, Int32 spamCount)
+        {
+            if (displayProconChat)
+            {
+                ProconChatWrite("Tell[" + _YellDuration + "s] > " + target + " > " + message);
+            }
+            PlayerSayMessage(target, message, false, spamCount);
+            PlayerYellMessage(target, message, false, spamCount);
         }
 
         private void QueueMessageForParsing(String speaker, String message) {
@@ -6218,7 +6283,7 @@ namespace PRoConEvents {
                                         AdKatsPlayer aPlayer;
                                         if (_PlayerDictionary.TryGetValue(speaker, out aPlayer) && !PlayerIsAdmin(aPlayer))
                                         {
-                                            PlayerTellMessage(speaker, "Ping limit is 300 when over 50 players. Missing pings are kicked. ADK members are whitelisted.", 1);
+                                            PlayerTellMessage(speaker, "Ping limit is 300 when over 50 players. Missing pings are kicked. ADK members are whitelisted.");
                                             continue;
                                         }
                                     }
@@ -6385,19 +6450,19 @@ namespace PRoConEvents {
                                     case 1:
                                         if (!ContainsCPlayerInfo(_Team1MoveQueue, player.SoldierName)) {
                                             _Team1MoveQueue.Enqueue(player);
-                                            PlayerSayMessage(player.SoldierName, "You have been added to the (" + team1.TeamName + " -> " + team2.TeamName + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1) + ".", 1);
+                                            PlayerSayMessage(player.SoldierName, "You have been added to the (" + team1.TeamName + " -> " + team2.TeamName + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1) + ".");
                                         }
                                         else {
-                                            PlayerSayMessage(player.SoldierName, team2.TeamName + " Team Full (" + team2.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1), 1);
+                                            PlayerSayMessage(player.SoldierName, team2.TeamName + " Team Full (" + team2.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1));
                                         }
                                         break;
                                     case 2:
                                         if (!ContainsCPlayerInfo(_Team2MoveQueue, player.SoldierName)) {
                                             _Team2MoveQueue.Enqueue(player);
-                                            PlayerSayMessage(player.SoldierName, "You have been added to the (" + team2.TeamName + " -> " + team1.TeamName + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1) + ".", 1);
+                                            PlayerSayMessage(player.SoldierName, "You have been added to the (" + team2.TeamName + " -> " + team1.TeamName + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1) + ".");
                                         }
                                         else {
-                                            PlayerSayMessage(player.SoldierName, team1.TeamName + " Team Full (" + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1), 1);
+                                            PlayerSayMessage(player.SoldierName, team1.TeamName + " Team Full (" + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1));
                                         }
                                         break;
                                 }
@@ -6436,7 +6501,7 @@ namespace PRoConEvents {
                                             team1.TeamPlayerCount++;
                                             team2.TeamPlayerCount--;
                                         }
-                                        PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamName + " to team " + team1.TeamName, 1);
+                                        PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamName + " to team " + team1.TeamName);
                                         movedPlayer = true;
                                         _threadMasterWaitHandle.WaitOne(100);
                                     }
@@ -6465,7 +6530,7 @@ namespace PRoConEvents {
                                             team2.TeamPlayerCount++;
                                             team1.TeamPlayerCount--;
                                         }
-                                        PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamName + " to team " + team2.TeamName, 1);
+                                        PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamName + " to team " + team2.TeamName);
                                         movedPlayer = true;
                                     }
                                 }
@@ -6803,7 +6868,7 @@ namespace PRoConEvents {
         public void CompleteRecordInformation(AdKatsRecord record, String message) {
             try {
                 //Initial split of command by whitespace
-                String[] splitMessage = message.Split(' ');
+                String[] splitMessage = message.Split(new char[]{' '}, StringSplitOptions.RemoveEmptyEntries);
                 if (splitMessage.Length < 1) {
                     DebugWrite("Completely blank command entered", 5);
                     SendMessageToSource(record, "You entered a completely blank command.");
@@ -10019,7 +10084,7 @@ namespace PRoConEvents {
                     if (reportedRecord.isContested) {  
                         SendMessageToSource(record, "Report [" + reportedRecord.command_numeric + "] is contested. Please investigate.");
                         if (record.source_player != null) {
-                            PlayerYellMessage(record.source_player.player_name, "Report [" + reportedRecord.command_numeric + "] is contested. Please investigate.", 1);
+                            PlayerYellMessage(record.source_player.player_name, "Report [" + reportedRecord.command_numeric + "] is contested. Please investigate.");
                         }
                         return true;
                     }
@@ -10386,7 +10451,7 @@ namespace PRoConEvents {
                 }
 
                 QueuePlayerForMove(record.target_player.frostbitePlayerInfo);
-                PlayerSayMessage(record.target_name, "On your next death you will be moved to the opposing team.", 1);
+                PlayerSayMessage(record.target_name, "On your next death you will be moved to the opposing team.");
                 SendMessageToSource(record, record.target_name + " will be sent to TeamSwap on their next death.");
                 record.record_action_executed = true;
             }
@@ -10510,11 +10575,11 @@ namespace PRoConEvents {
                 else {
                     ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_player.player_name);
                     if (record.source_name != record.target_name) {
-                        PlayerTellMessage(record.target_name, "Killed by admin for " + record.record_message, 1);
+                        PlayerTellMessage(record.target_name, "Killed by admin for " + record.record_message);
                         SendMessageToSource(record, "You KILLED " + record.target_name + " for " + record.record_message);
                     }
                     else {
-                        PlayerTellMessage(record.target_name, "You killed yourself", 1);
+                        PlayerTellMessage(record.target_name, "You killed yourself");
                     }
                 }
                 record.record_action_executed = true;
@@ -10543,12 +10608,12 @@ namespace PRoConEvents {
                     ExecuteCommand("procon.protected.send", "admin.killPlayer", record.target_player.player_name);
                     if (record.source_name != record.target_name)
                     {
-                        PlayerTellMessage(record.target_name, "Killed by admin for " + record.record_message, 1);
+                        PlayerTellMessage(record.target_name, "Killed by admin for " + record.record_message);
                         SendMessageToSource(record, "You KILLED " + record.target_name + " for " + record.record_message);
                     }
                     else
                     {
-                        PlayerTellMessage(record.target_name, "You killed yourself", 1);
+                        PlayerTellMessage(record.target_name, "You killed yourself");
                     }
                 }
                 record.record_action_executed = true;
@@ -10569,7 +10634,7 @@ namespace PRoConEvents {
             {
                 if (record.target_player != null) {
                     DequeuePlayer(record.target_player);
-                    PlayerSayMessage(record.target_name, "All queued actions canceled.", 1);
+                    PlayerSayMessage(record.target_name, "All queued actions canceled.");
                     SendMessageToSource(record, "All queued actions for " + record.target_name + " canceled.");
                 }
                 record.record_action_executed = true;
@@ -10935,10 +11000,10 @@ namespace PRoConEvents {
 
                     //Call correct action
                     if (action == "repwarn") {
-                        PlayerTellMessage(record.target_name, "Your reputation protected you from a punish, but has been reduced. Inform an admin!", 3);
+                        PlayerTellMessage(record.target_name, "Your reputation protected you from a punish, but has been reduced. Inform an admin!", true, 3);
                     }
                     else if (action == "warn") {
-                        PlayerTellMessage(record.target_name, "Warned by admin for " + record.record_message, 1);
+                        PlayerTellMessage(record.target_name, "Warned by admin for " + record.record_message, true , 3);
                     }
                     else if ((action == "kill" || (isLowPop && !iroOverride)) && !action.Equals("ban")) {
                         record.command_action = (isLowPop) ? (_CommandKeyDictionary["player_kill_lowpop"]) : (_CommandKeyDictionary["player_kill"]);
@@ -11010,7 +11075,7 @@ namespace PRoConEvents {
                 //If the record has any exceptions, skip everything
                 if (record.record_exception == null) {
                     Int32 points = FetchPoints(record.target_player, false);
-                    PlayerSayMessage(record.target_player.player_name, "Forgiven 1 infraction point. You now have " + points + " point(s) against you.", 1);
+                    PlayerSayMessage(record.target_player.player_name, "Forgiven 1 infraction point. You now have " + points + " point(s) against you.");
                     SendMessageToSource(record, "Forgive Logged for " + record.target_player.player_name + ". They now have " + points + " infraction points.");
                 }
                 record.record_action_executed = true;
@@ -11378,7 +11443,7 @@ namespace PRoConEvents {
                 if (!HasAccess(record.target_player, _CommandKeyDictionary["player_mute"])) {
                     if (!_RoundMutedPlayers.ContainsKey(record.target_player.player_name)) {
                         _RoundMutedPlayers.Add(record.target_player.player_name, 0);
-                        PlayerSayMessage(record.target_player.player_name, _MutedPlayerMuteMessage, 1);
+                        PlayerSayMessage(record.target_player.player_name, _MutedPlayerMuteMessage);
                         SendMessageToSource(record, record.target_player.player_name + " has been muted for this round.");
                     }
                     else {
@@ -11527,14 +11592,14 @@ namespace PRoConEvents {
                     record.isContested = true;
                     //Inform All Parties
                     SendMessageToSource(record, record.target_player.player_name + "'s reputation has automatically contested your report against them.");
-                    PlayerTellMessage(record.target_player.player_name, "Your reputation has automatically contested " + record.source_name + "'s report against you.", 1);
+                    PlayerTellMessage(record.target_player.player_name, "Your reputation has automatically contested " + record.source_name + "'s report against you.");
                     OnlineAdminSayMessage(record.target_player.player_name + "'s reputation has automatically contested report [" + record.command_numeric + "]");
                 }
                 else if (_InformReportedPlayers) {
                     String mesLow = record.record_message.ToLower();
                     if (!_PlayerInformExclusionStrings.Any(exc => mesLow.Contains(exc.ToLower())))
                     {
-                        PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message, 6);
+                        PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message, true, 6);
                     }
                 }
                 if (_UseEmail) {
@@ -11620,7 +11685,7 @@ namespace PRoConEvents {
                     String mesLow = record.record_message.ToLower();
                     if (!_PlayerInformExclusionStrings.Any(exc => mesLow.Contains(exc.ToLower())))
                     {
-                        PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message, 6);
+                        PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message, true, 6);
                     }
                 }
                 if (_UseEmail) {
@@ -11760,7 +11825,7 @@ namespace PRoConEvents {
                 lock (_PlayerDictionary) {
                     foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"))) {
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
-                        PlayerSayMessage(record.source_name, "Admin Nuke Issued On " + record.target_name, 1);
+                        PlayerSayMessage(record.source_name, "Admin Nuke Issued On " + record.target_name);
                     }
                 }
                 SendMessageToSource(record, "You NUKED " + record.target_name + " for " + record.record_message + ".");
@@ -11838,7 +11903,7 @@ namespace PRoConEvents {
         public void PlayerSay(AdKatsRecord record) {
             DebugWrite("Entering playerSay", 6);
             try {
-                PlayerSayMessage(record.target_player.player_name, record.record_message, 1);
+                PlayerSayMessage(record.target_player.player_name, record.record_message);
                 SendMessageToSource(record, record.target_player.player_name + " has been told '" + record.record_message + "' by SAY");
                 record.record_action_executed = true;
             }
@@ -11871,7 +11936,7 @@ namespace PRoConEvents {
         public void PlayerYell(AdKatsRecord record) {
             DebugWrite("Entering playerYell", 6);
             try {
-                PlayerYellMessage(record.target_player.player_name, record.record_message, 1);
+                PlayerYellMessage(record.target_player.player_name, record.record_message);
                 SendMessageToSource(record, record.target_player.player_name + " has been told '" + record.record_message + "' by YELL");
                 record.record_action_executed = true;
             }
@@ -11904,7 +11969,7 @@ namespace PRoConEvents {
         public void PlayerTell(AdKatsRecord record) {
             DebugWrite("Entering playerTell", 6);
             try {
-                PlayerTellMessage(record.target_player.player_name, record.record_message, 1);
+                PlayerTellMessage(record.target_player.player_name, record.record_message);
                 SendMessageToSource(record, record.target_player.player_name + " has been told '" + record.record_message + "' by TELL");
                 record.record_action_executed = true;
             }
@@ -11947,7 +12012,7 @@ namespace PRoConEvents {
                                 {
                                     if (record.target_player != null)
                                     {
-                                        PlayerSayMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false), 1);
+                                        PlayerSayMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false));
                                     }
                                     else
                                     {
@@ -12023,7 +12088,7 @@ namespace PRoConEvents {
                             foreach (String cur in curCommands) {
                                 curCommandsStr += cur + ", ";
                             }
-                            PlayerSayMessage(record.target_name, curCommandsStr, 1);
+                            PlayerSayMessage(record.target_name, curCommandsStr);
                             _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(2));
                         }
                     }
@@ -12576,7 +12641,7 @@ namespace PRoConEvents {
             DebugWrite("Entering LeadCurrentSquad", 6);
             try {
                 ExecuteCommand("procon.protected.send", "squad.leader", record.target_player.frostbitePlayerInfo.TeamID.ToString(), record.target_player.frostbitePlayerInfo.SquadID.ToString(), record.target_player.player_name);
-                PlayerSayMessage(record.target_player.player_name, "You are now the leader of your current squad.", 1);
+                PlayerSayMessage(record.target_player.player_name, "You are now the leader of your current squad.");
                 if (record.source_name != record.target_name) {
                     SendMessageToSource(record, record.target_player.player_name + " is now the leader of their current squad.");
                 }
@@ -14791,7 +14856,7 @@ namespace PRoConEvents {
                                         }
                                     }
                                     if(informPlayer)
-                                        PlayerSayMessage(aPlayer.player_name, message, 1);
+                                        PlayerSayMessage(aPlayer.player_name, message);
                                 }
                             }
                         }
@@ -18321,11 +18386,11 @@ namespace PRoConEvents {
                 if (aPlayer.player_role.role_key != aRole.role_key) {
                     if (authorized) {
                         DebugWrite("Role for authorized player " + aPlayer.player_name + " has been CHANGED to " + aRole.role_name + ".", 4);
-                        PlayerSayMessage(aPlayer.player_name, "You have been assigned the authorized role " + aRole.role_name + ".", 1);
+                        PlayerSayMessage(aPlayer.player_name, "You have been assigned the authorized role " + aRole.role_name + ".");
                     }
                     else {
                         DebugWrite("Player " + aPlayer.player_name + " has been assigned the guest role.", 4);
-                        PlayerSayMessage(aPlayer.player_name, "You have been assigned the guest role.", 1);
+                        PlayerSayMessage(aPlayer.player_name, "You have been assigned the guest role.");
                     }
                 }
             }
@@ -20204,7 +20269,7 @@ namespace PRoConEvents {
             var parameters = new List<String>();
             if (message.Length > 0) {
                 //Add all single word/number parameters
-                String[] paramSplit = message.Split(' ');
+                String[] paramSplit = message.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
                 Int32 maxLoop = (paramSplit.Length < maxParamCount) ? (paramSplit.Length) : (maxParamCount);
                 for (Int32 i = 0; i < maxLoop - 1; i++) {
                     DebugWrite("Param " + i + ": " + paramSplit[i], 6);
