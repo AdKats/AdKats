@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.2.5
- * 3-OCT-2014
+ * Version 5.1.2.6
+ * 4-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.2.5";
+        private const String PluginVersion = "5.1.2.6";
 
         public enum ConsoleMessageType {
             Info,
@@ -283,7 +283,7 @@ namespace PRoConEvents {
         //Commands specific
         private String _ServerVoipAddress = "(TS3) TS.ADKGamers.com:3796";
         //Dynamic access
-        public Func<AdKats, AdKatsPlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => (plugin._EnableAdminAssistantPerk && aPlayer.player_aa));
+        public Func<AdKats, AdKatsPlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => ((plugin._EnableAdminAssistantPerk && aPlayer.player_aa) || (aPlayer.player_reputation > _reputationThresholdGood)));
 
         //Roles
         private readonly Dictionary<long, AdKatsRole> _RoleIDDictionary = new Dictionary<long, AdKatsRole>();
@@ -3478,7 +3478,7 @@ namespace PRoConEvents {
                                                         }
                                                     }
                                                     //Are they over the limit, or missing
-                                                    if ((aPlayer.player_ping_avg > 300 || aPlayer.player_ping_avg < 0) && aPlayer.player_pings_full)
+                                                    if (((aPlayer.player_ping_avg > 300 && aPlayer.player_ping > 300) || aPlayer.player_ping_avg < 0) && aPlayer.player_pings_full)
                                                     {
                                                         //Are they higher ping than the current picked player
                                                         if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0)) {
