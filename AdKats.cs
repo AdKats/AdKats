@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.2.6
- * 4-OCT-2014
+ * Version 5.1.2.8
+ * 5-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.2.6";
+        private const String PluginVersion = "5.1.2.8";
 
         public enum ConsoleMessageType {
             Info,
@@ -1051,7 +1051,7 @@ namespace PRoConEvents {
                                 ConsoleError("Player name contained invalid characters.");
                                 return;
                             }
-                            var aPlayer = new AdKatsPlayer {
+                            var aPlayer = new AdKatsPlayer(this) {
                                 player_name = strValue
                             };
                             FetchPlayerStats(aPlayer);
@@ -2800,7 +2800,8 @@ namespace PRoConEvents {
                 try {
                     Thread.CurrentThread.Name = "keepalive";
                     DateTime lastKeepAliveCheck = DateTime.UtcNow;
-                    DateTime lastDatabaseConnectionCheck = DateTime.UtcNow;
+                    ExecuteCommand("procon.protected.send", "serverInfo");
+                    DateTime lastServerInfoRequest = DateTime.UtcNow;
                     while (true)
                     {
                         //Check for unswitcher disable every 20 seconds
@@ -2893,8 +2894,10 @@ namespace PRoConEvents {
                             }
                         }
                         //Check for possible connection interuption every 10 seconds
-                        if (_threadsReady && (DateTime.UtcNow - lastDatabaseConnectionCheck).TotalSeconds > 10) {
-                            HandlePossibleDisconnect();
+                        if (_threadsReady && (DateTime.UtcNow - lastServerInfoRequest).TotalSeconds > 10)
+                        {
+                            ExecuteCommand("procon.protected.send", "serverInfo");
+                            lastServerInfoRequest = DateTime.UtcNow;
                         }
                         //Sleep 1 second between loops
                         _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
@@ -3070,7 +3073,7 @@ namespace PRoConEvents {
                                 DebugWrite("Team US already set for team " + targetTeamID + ", cancelling override.", 4);
                                 break;
                             }
-                            _teamDictionary[targetTeamID] = new AdKatsTeam(targetTeamID, "US", "US Army", "United States Army");
+                            _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "US", "US Army", "United States Army");
                             DebugWrite("Assigning team ID " + targetTeamID + " to US ", 4);
                             break;
                         case 1:
@@ -3083,7 +3086,7 @@ namespace PRoConEvents {
                                 DebugWrite("Team RU already set for team " + targetTeamID + ", cancelling override.", 4);
                                 break;
                             }
-                            _teamDictionary[targetTeamID] = new AdKatsTeam(targetTeamID, "RU", "Russian Army", "Russian Federation Army");
+                            _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "RU", "Russian Army", "Russian Federation Army");
                             DebugWrite("Assigning team ID " + targetTeamID + " to RU", 4);
                             break;
                         case 2:
@@ -3096,7 +3099,7 @@ namespace PRoConEvents {
                                 DebugWrite("Team CN already set for team " + targetTeamID + ", cancelling override.", 4);
                                 break;
                             }
-                            _teamDictionary[targetTeamID] = new AdKatsTeam(targetTeamID, "CN", "Chinese Army", "Chinese People's Liberation Army");
+                            _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "CN", "Chinese Army", "Chinese People's Liberation Army");
                             DebugWrite("Assigning team ID " + targetTeamID + " to CN", 4);
                             break;
                         default:
@@ -3158,7 +3161,7 @@ namespace PRoConEvents {
                 OnTeamFactionOverride(4, 1);
             }
             else if (_gameVersion == GameVersion.BF4) {
-                _teamDictionary[0] = new AdKatsTeam(0, "Spectator", "Spectators", "Server Spectators");
+                _teamDictionary[0] = new AdKatsTeam(this, 0, "Spectator", "Spectators", "Server Spectators");
                 DebugWrite("Assigning team ID " + 0 + " to Spectator", 4);
                 ExecuteCommand("procon.protected.send", "vars.teamFactionOverride");
             }
@@ -6277,7 +6280,7 @@ namespace PRoConEvents {
                                 if (_isTestingAuthorized && _gameVersion == GameVersion.BF4)
                                 {
                                     var lowerM = " " + message.ToLower() + " ";
-                                    if (lowerM.Contains(" ping ") || lowerM.Contains(" pings ") || lowerM.Contains(" ping.") || lowerM.Contains(" ping,"))
+                                    if (lowerM.Contains(" ping") || lowerM.Contains(" pings ") || lowerM.Contains(" ping.") || lowerM.Contains(" ping,"))
                                     {
                                         AdKatsPlayer aPlayer;
                                         if (_PlayerDictionary.TryGetValue(speaker, out aPlayer) && !PlayerIsAdmin(aPlayer))
@@ -6714,11 +6717,53 @@ namespace PRoConEvents {
                                     
                             }
                             break;
-                        case "player_forgive": {
-                                if (_isTestingAuthorized && record.target_player != null && FetchPoints(record.target_player, _CombineServerPunishments) <= 0) {
+                        case "player_forgive":
+                            {
+                                if (_isTestingAuthorized && record.target_player != null && FetchPoints(record.target_player, _CombineServerPunishments) <= 0)
+                                {
                                     SendMessageToSource(record, record.target_player.player_name + " does not have any infractions to forgive.");
                                     FinalizeRecord(record);
                                     return;
+                                }
+                            }
+                            break;
+                        case "player_report":
+                            {
+                                if (_isTestingAuthorized)
+                                {
+                                    var lowerM = " " + record.record_message.ToLower() + " ";
+                                    if (lowerM.Contains("bipod"))
+                                    {
+                                        SendMessageToSource(record, "Bipod related actions are not bannable.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    if (lowerM.Contains(" ping") || lowerM.Contains(" pings ") || lowerM.Contains(" ping.") || lowerM.Contains(" ping,"))
+                                    {
+                                        SendMessageToSource(record, "Automatic system handles ping, do not report for it.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                }
+                            }
+                            break;
+                        case "player_calladmin":
+                            {
+                                if (_isTestingAuthorized)
+                                {
+                                    var lowerM = " " + record.record_message.ToLower() + " ";
+                                    if (lowerM.Contains("bipod")) 
+                                    {
+                                        SendMessageToSource(record, "Bipod related actions are not bannable.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    if (lowerM.Contains(" ping") || lowerM.Contains(" pings ") || lowerM.Contains(" ping.") || lowerM.Contains(" ping,")) 
+                                    {
+                                        SendMessageToSource(record, "Automatic system handles ping, do not report for it.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
                                 }
                             }
                             break;
@@ -13888,14 +13933,14 @@ namespace PRoConEvents {
                                 aRecord.target_name = reader.GetString("target_name");
                                 if (!reader.IsDBNull(6)) {
                                     Int32 playerID = reader.GetInt32(6);
-                                    aRecord.target_player = new AdKatsPlayer {
+                                    aRecord.target_player = new AdKatsPlayer(this) {
                                         player_id = playerID
                                     };
                                 }
                                 aRecord.source_name = reader.GetString("source_name");
                                 if (!reader.IsDBNull(8)) {
                                     Int32 playerID = reader.GetInt32(8);
-                                    aRecord.source_player = new AdKatsPlayer {
+                                    aRecord.source_player = new AdKatsPlayer(this) {
                                         player_id = playerID
                                     };
                                 }
@@ -13978,14 +14023,14 @@ namespace PRoConEvents {
                                 aRecord.target_name = reader.GetString("target_name");
                                 if (!reader.IsDBNull(6)) {
                                     Int32 playerID = reader.GetInt32(6);
-                                    aRecord.target_player = new AdKatsPlayer {
+                                    aRecord.target_player = new AdKatsPlayer(this) {
                                         player_id = playerID
                                     };
                                 }
                                 aRecord.source_name = reader.GetString("source_name");
                                 if (!reader.IsDBNull(8)) {
                                     Int32 playerID = reader.GetInt32(8);
-                                    aRecord.source_player = new AdKatsPlayer {
+                                    aRecord.source_player = new AdKatsPlayer(this) {
                                         player_id = playerID
                                     };
                                 }
@@ -15079,7 +15124,7 @@ namespace PRoConEvents {
                                 record.target_name = reader.GetString("target_name");
                                 if (!reader.IsDBNull(6))
                                 {
-                                    record.target_player = new AdKatsPlayer
+                                    record.target_player = new AdKatsPlayer(this)
                                     {
                                         player_id = reader.GetInt64(6)
                                     };
@@ -15087,7 +15132,7 @@ namespace PRoConEvents {
                                 record.source_name = reader.GetString("source_name");
                                 if (!reader.IsDBNull(8))
                                 {
-                                    record.source_player = new AdKatsPlayer
+                                    record.source_player = new AdKatsPlayer(this)
                                     {
                                         player_id = reader.GetInt64(6)
                                     };
@@ -16057,7 +16102,7 @@ namespace PRoConEvents {
             //Make sure database connection active
             if (HandlePossibleDisconnect()) {
                 //If AdKats is disconnected from the database, return the player as-is
-                aPlayer = new AdKatsPlayer {
+                aPlayer = new AdKatsPlayer(this) {
                     game_id = _gameID,
                     player_name = playerName,
                     player_guid = playerGUID,
@@ -16163,7 +16208,7 @@ namespace PRoConEvents {
                             {
                                 if (reader.Read())
                                 {
-                                    aPlayer = new AdKatsPlayer();
+                                    aPlayer = new AdKatsPlayer(this);
                                     //Player ID will never be null
                                     aPlayer.player_id = reader.GetInt64("player_id");
                                     aPlayer.game_id = reader.GetInt32("game_id");
@@ -16227,7 +16272,7 @@ namespace PRoConEvents {
                                     //Attempt to execute the query
                                     if (command.ExecuteNonQuery() > 0) {
                                         //Rows affected should be > 0
-                                        aPlayer = new AdKatsPlayer {
+                                        aPlayer = new AdKatsPlayer(this) {
                                             player_id = command.LastInsertedId,
                                             player_name = playerName,
                                             player_guid = playerGUID,
@@ -18171,7 +18216,7 @@ namespace PRoConEvents {
                                             aPlayer.player_ip = playerIP;
                                         }
                                         else {
-                                            aPlayer = new AdKatsPlayer {
+                                            aPlayer = new AdKatsPlayer(this) {
                                                 player_id = playerID,
                                                 game_id = gameID,
                                                 clan_tag = clanTag,
@@ -20935,15 +20980,20 @@ namespace PRoConEvents {
             public String player_locked_source = null;
             public AdKatsTeam RequiredTeam = null;
             public readonly Queue<KeyValuePair<Double, DateTime>> player_pings;
-            public Boolean player_pings_full;
-            public Double player_ping_avg;
-            public Double player_ping;
+            public Boolean player_pings_full { get; private set; }
+            public Double player_ping_avg { get; private set; }
+            public Double player_ping { get; private set; }
+            public DateTime player_ping_time { get; private set; }
+            public Boolean player_ping_added { get; private set; }
 
             public AdKatsPlayerStats stats = null;
 
             public Boolean update_playerUpdated = true;
 
-            public AdKatsPlayer() {
+            private AdKats Plugin;
+
+            public AdKatsPlayer(AdKats plugin) {
+                Plugin = plugin;
                 RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
                 player_pings = new Queue<KeyValuePair<Double, DateTime>>();
                 TargetedRecords = new List<AdKatsRecord>();
@@ -20960,9 +21010,34 @@ namespace PRoConEvents {
                 player_ping_avg = 0;
             }
 
-            public void AddPingEntry(Double ping)
+            public void AddPingEntry(Double newPingValue)
             {
-                player_ping = ping;
+                //Get rounded time (floor)
+                DateTime newPingTime = DateTime.UtcNow;
+                newPingTime = newPingTime.AddTicks(-(newPingTime.Ticks % TimeSpan.TicksPerSecond));
+                if (!player_ping_added) {
+                    player_ping_avg = newPingValue;
+                    player_ping = newPingValue;
+                    player_ping_time = newPingTime;
+                    player_pings.Enqueue(new KeyValuePair<double, DateTime>(newPingValue, newPingTime));
+                    player_ping_added = true;
+                    return;
+                }
+
+                //Linear Interpolation
+                DateTime oldPingTime = player_ping_time;
+                Double oldPingValue = player_ping;
+                Double interTimeOldSeconds = 0;
+                Double interTimeNewSeconds = (newPingTime - oldPingTime).TotalSeconds;
+                Double m = (newPingValue - oldPingValue) / (interTimeNewSeconds);
+                Double b = oldPingValue;
+                for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++) {
+                    DateTime subPingTime = oldPingTime.AddSeconds(sec);
+                    Double subPingValue = (m * sec) + b;
+                    player_pings.Enqueue(new KeyValuePair<double, DateTime>(subPingValue, subPingTime));
+                }
+
+                //Remove old values
                 Boolean removed = false;
                 do
                 {
@@ -20974,7 +21049,10 @@ namespace PRoConEvents {
                         removed = true;
                     }
                 } while (removed);
-                player_pings.Enqueue(new KeyValuePair<double, DateTime>(player_ping, DateTime.UtcNow));
+
+                //Set instance vars
+                player_ping = newPingValue;
+                player_ping_time = newPingTime;
                 player_ping_avg = player_pings.Sum(pingEntry => pingEntry.Key) / ((double)player_pings.Count);
             }
         }
@@ -21114,11 +21192,22 @@ namespace PRoConEvents {
         }
 
         public class AdKatsTeam {
+            private AdKats Plugin;
             //Final vars
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamTicketCounts;
-            private readonly Queue<KeyValuePair<Double, DateTime>> TeamTotalScores;
+            public Double TeamTicketDifferenceRate { get; private set; }
+            public Int32 TeamTicketCount { get; private set; }
+            public DateTime TeamTicketsTime { get; private set; }
+            public Boolean TeamTicketsAdded { get; private set; }
 
-            public AdKatsTeam(Int32 teamID, String teamKey, String teamName, String teamDesc) {
+            private readonly Queue<KeyValuePair<Double, DateTime>> TeamTotalScores;
+            public Double TeamScoreDifferenceRate { get; private set; }
+            public Double TeamTotalScore { get; private set; }
+            public DateTime TeamTotalScoresTime { get; private set; }
+            public Boolean TeamTotalScoresAdded { get; private set; }
+
+            public AdKatsTeam(AdKats plugin, Int32 teamID, String teamKey, String teamName, String teamDesc) {
+                Plugin = plugin;
                 TeamID = teamID;
                 TeamKey = teamKey;
                 TeamName = teamName;
@@ -21135,54 +21224,131 @@ namespace PRoConEvents {
             //Live Vars
             public Boolean Populated { get; private set; }
             public Int32 TeamPlayerCount { get; set; }
-            public Int32 TeamTicketCount { get; set; }
-            public Double TeamTotalScore { get; set; }
-            public Double TeamScoreDifferenceRate { get; private set; }
-            public Double TeamTicketDifferenceRate { get; private set; }
 
             public void UpdatePlayerCount(Int32 playerCount) {
                 Populated = true;
                 TeamPlayerCount = playerCount;
             }
 
-            public void UpdateTicketCount(Double ticketCount) {
-                TeamTicketCount = (int) ticketCount;
+            public void UpdateTicketCount(Double newTicketCount)
+            {
+                //Get rounded time (floor)
+                DateTime newTicketTime = DateTime.UtcNow;
+                newTicketTime = newTicketTime.AddTicks(-(newTicketTime.Ticks % TimeSpan.TicksPerSecond));
+                if (!TeamTicketsAdded)
+                {
+                    TeamScoreDifferenceRate = 0;
+                    TeamTicketCount = (Int32)newTicketCount;
+                    TeamTicketsTime = newTicketTime;
+                    if(TeamID == 0 || TeamID == 1 || TeamID == 2)
+                        Plugin.ConsoleSuccess(TeamName + ":(first) " + Math.Round(newTicketCount, 2) + " | " + newTicketTime.ToLongTimeString());
+                    TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(newTicketCount, newTicketTime));
+                    TeamTicketsAdded = true;
+                    return;
+                }
+
+                //Interpolation
+                DateTime oldTicketTime = TeamTicketsTime;
+                Double oldTicketValue = TeamTicketCount;
+                Double interTimeOldSeconds = 0;
+                Double interTimeNewSeconds = (newTicketTime - oldTicketTime).TotalSeconds;
+                Double m = (newTicketCount - oldTicketValue) / (interTimeNewSeconds);
+                Double b = oldTicketValue;
+                if (TeamID == 0 || TeamID == 1 || TeamID == 2)
+                    Plugin.ConsoleWarn(TeamName + ":(old) " + Math.Round(oldTicketValue, 2) + " | " + oldTicketTime.ToLongTimeString());
+                for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
+                {
+                    DateTime subTicketTime = oldTicketTime.AddSeconds(sec);
+                    Double subTicketValue = (m * sec) + b;
+                    if (TeamID == 0 || TeamID == 1 || TeamID == 2)
+                        Plugin.ConsoleWarn(TeamName + ":(sub) " + Math.Round(subTicketValue, 2) + " | " + subTicketTime.ToLongTimeString());
+                    TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
+                }
+                Plugin.ConsoleWarn(TeamName + ":(new) " + Math.Round(newTicketCount, 2) + " | " + newTicketTime.ToLongTimeString());
+
+                //Remove old values
                 Boolean removed = false;
-                do {
+                do
+                {
                     removed = false;
-                    if (TeamTicketCounts.Any() && (DateTime.UtcNow - TeamTicketCounts.Peek().Value).TotalSeconds > 120) {
+                    if (TeamTicketCounts.Any() && (DateTime.UtcNow - TeamTicketCounts.Peek().Value).TotalSeconds > 120)
+                    {
                         TeamTicketCounts.Dequeue();
                         removed = true;
                     }
                 } while (removed);
-                TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(TeamTicketCount, DateTime.UtcNow));
 
-                KeyValuePair<Double, DateTime> oldestSavedTicketCount = TeamTicketCounts.Peek();
-                Double ticketDifference = TeamTicketCount - oldestSavedTicketCount.Key;
-                Double ticketTimeDifference = (DateTime.UtcNow - oldestSavedTicketCount.Value).TotalMinutes;
-                if (TeamTicketCounts.Count >= 3 && ticketTimeDifference >= 0) {
-                    TeamTicketDifferenceRate = ticketDifference / ticketTimeDifference;
+                //Set instance vars
+                TeamTicketCount = (Int32)newTicketCount;
+                TeamTicketsTime = newTicketTime;
+
+                List<Double> values = TeamTicketCounts.Select(pair => pair.Key).ToList();
+                var differences = new List<Double>();
+                for (int i = 0; i < values.Count - 1; i++)
+                {
+                    differences.Add(values[i + 1] - values[i]);
                 }
+                differences.Sort();
+                //Convert to tickets/min
+                TeamTicketDifferenceRate = (differences.Sum() / differences.Count) * 60;
+                if (TeamID == 0 || TeamID == 1 || TeamID == 2)
+                    Plugin.ConsoleWarn(TeamName + ":(rate) " + Math.Round(TeamTicketDifferenceRate, 2) + " | " + newTicketTime.ToLongTimeString());
             }
 
-            public void UpdateTotalScore(Double totalScore) {
-                TeamTotalScore = totalScore;
+            public void UpdateTotalScore(Double newTotalScore)
+            {
+                //Get rounded time (floor)
+                DateTime newScoreTime = DateTime.UtcNow;
+                newScoreTime = newScoreTime.AddTicks(-(newScoreTime.Ticks % TimeSpan.TicksPerSecond));
+                if (!TeamTotalScoresAdded)
+                {
+                    TeamScoreDifferenceRate = 0;
+                    TeamTotalScore = newTotalScore;
+                    TeamTotalScoresTime = newScoreTime;
+                    TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(newTotalScore, newScoreTime));
+                    TeamTotalScoresAdded = true;
+                    return;
+                }
+
+                //Interpolation
+                DateTime oldScoreTime = TeamTotalScoresTime;
+                Double oldScoreValue = TeamTotalScore;
+                Double interTimeOldSeconds = 0;
+                Double interTimeNewSeconds = (newScoreTime - oldScoreTime).TotalSeconds;
+                Double m = (newTotalScore - oldScoreValue) / (interTimeNewSeconds);
+                Double b = oldScoreValue;
+                for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
+                {
+                    DateTime subScoreTime = oldScoreTime.AddSeconds(sec);
+                    Double subScoreValue = (m * sec) + b;
+                    TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(subScoreValue, subScoreTime));
+                }
+
+                //Remove old values
                 Boolean removed = false;
-                do {
+                do
+                {
                     removed = false;
-                    if (TeamTotalScores.Any() && (DateTime.UtcNow - TeamTotalScores.Peek().Value).TotalSeconds > 120) {
+                    if (TeamTotalScores.Any() && (DateTime.UtcNow - TeamTotalScores.Peek().Value).TotalSeconds > 120)
+                    {
                         TeamTotalScores.Dequeue();
                         removed = true;
                     }
                 } while (removed);
-                TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(TeamTotalScore, DateTime.UtcNow));
 
-                KeyValuePair<Double, DateTime> oldestSavedScore = TeamTotalScores.Peek();
-                Double scoreDifference = TeamTotalScore - oldestSavedScore.Key;
-                Double scoreTimeDifference = (DateTime.UtcNow - oldestSavedScore.Value).TotalMinutes;
-                if (TeamTotalScores.Count >= 3 && scoreTimeDifference >= 0) {
-                    TeamScoreDifferenceRate = scoreDifference / scoreTimeDifference;
+                //Set instance vars
+                TeamTotalScore = newTotalScore;
+                TeamTotalScoresTime = newScoreTime;
+
+                List<Double> values = TeamTotalScores.Select(pair => pair.Key).ToList();
+                var differences = new List<Double>();
+                for (int i = 0; i < values.Count - 1; i++)
+                {
+                    differences.Add(values[i + 1] - values[i]);
                 }
+                differences.Sort();
+                //Convert to tickets/min
+                TeamScoreDifferenceRate = (differences.Sum() / differences.Count) * 60;
             }
 
             public void Reset() {
