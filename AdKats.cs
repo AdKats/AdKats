@@ -4852,10 +4852,10 @@ namespace PRoConEvents {
                                             {
                                                 if (aPlayer.player_reputation > 15)
                                                 {
-                                                    repMessage += "At " + Math.Round(_reputationThresholdGood, 2) + " reputation you receive report auto-contest.";
+                                                    repMessage += "Thank you for helping the admins! At " + Math.Round(_reputationThresholdGood, 2) + " reputation you receive report auto-contest.";
                                                 }
                                                 else if (aPlayer.player_reputation > 0) {
-                                                    repMessage += "At 15 reputation you receive punishment warning.";
+                                                    repMessage += "Thank you for helping the admins! At 15 reputation you receive punishment warning.";
                                                 }
                                                 else
                                                 {
@@ -12408,7 +12408,7 @@ namespace PRoConEvents {
             try {
                 var isAdmin = PlayerIsAdmin(record.target_player);
                 if (record.source_name == record.target_name) {
-                    SendMessageToSource(record, "Your server reputation is " + ((!isAdmin) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)) + ((record.target_player.player_reputation > _reputationThresholdBad && (!isAdmin)) ? (", thank you for helping admins!") : ("")));
+                    SendMessageToSource(record, "Your server reputation is " + ((!isAdmin) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)) + ((record.target_player.player_reputation > _reputationThresholdBad && (!isAdmin)) ? (", thank you for helping the admins!") : ("")));
                 }
                 else {
                     SendMessageToSource(record, record.target_player.player_name + "'s server reputation is " + ((!isAdmin) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)));
