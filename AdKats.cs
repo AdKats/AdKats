@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.2.9
+ * Version 5.1.3.0
  * 5-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.2.9";
+        private const String PluginVersion = "5.1.3.0";
 
         public enum ConsoleMessageType {
             Info,
@@ -21240,8 +21240,6 @@ namespace PRoConEvents {
                     TeamScoreDifferenceRate = 0;
                     TeamTicketCount = (Int32)newTicketCount;
                     TeamTicketsTime = newTicketTime;
-                    if(TeamID == 0 || TeamID == 1 || TeamID == 2)
-                        Plugin.ConsoleSuccess(TeamName + ":(first) " + Math.Round(newTicketCount, 2) + " | " + newTicketTime.ToLongTimeString());
                     TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(newTicketCount, newTicketTime));
                     TeamTicketsAdded = true;
                     return;
@@ -21254,17 +21252,12 @@ namespace PRoConEvents {
                 Double interTimeNewSeconds = (newTicketTime - oldTicketTime).TotalSeconds;
                 Double m = (newTicketCount - oldTicketValue) / (interTimeNewSeconds);
                 Double b = oldTicketValue;
-                if (TeamID == 0 || TeamID == 1 || TeamID == 2)
-                    Plugin.ConsoleWarn(TeamName + ":(old) " + Math.Round(oldTicketValue, 2) + " | " + oldTicketTime.ToLongTimeString());
                 for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
                 {
                     DateTime subTicketTime = oldTicketTime.AddSeconds(sec);
                     Double subTicketValue = (m * sec) + b;
-                    if (TeamID == 0 || TeamID == 1 || TeamID == 2)
-                        Plugin.ConsoleWarn(TeamName + ":(sub) " + Math.Round(subTicketValue, 2) + " | " + subTicketTime.ToLongTimeString());
                     TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
                 }
-                Plugin.ConsoleWarn(TeamName + ":(new) " + Math.Round(newTicketCount, 2) + " | " + newTicketTime.ToLongTimeString());
 
                 //Remove old values
                 Boolean removed = false;
@@ -21291,8 +21284,6 @@ namespace PRoConEvents {
                 differences.Sort();
                 //Convert to tickets/min
                 TeamTicketDifferenceRate = (differences.Sum() / differences.Count) * 60;
-                if (TeamID == 0 || TeamID == 1 || TeamID == 2)
-                    Plugin.ConsoleWarn(TeamName + ":(rate) " + Math.Round(TeamTicketDifferenceRate, 2) + " | " + newTicketTime.ToLongTimeString());
             }
 
             public void UpdateTotalScore(Double newTotalScore)
