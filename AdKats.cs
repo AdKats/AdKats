@@ -6768,18 +6768,30 @@ namespace PRoConEvents {
                                 if (_isTestingAuthorized)
                                 {
                                     var lowerM = " " + record.record_message.ToLower() + " ";
-                                    if (lowerM.Contains("bipod")) 
+                                    if (lowerM.Contains("bipod"))
                                     {
                                         SendMessageToSource(record, "Bipod related actions are not bannable.");
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    if (lowerM.Contains(" ping") || lowerM.Contains(" pings ") || lowerM.Contains(" ping.") || lowerM.Contains(" ping,")) 
+                                    if (lowerM.Contains(" ping") || lowerM.Contains(" pings ") || lowerM.Contains(" ping.") || lowerM.Contains(" ping,"))
                                     {
                                         SendMessageToSource(record, "Automatic system handles ping, do not report for it.");
                                         FinalizeRecord(record);
                                         return;
                                     }
+                                }
+                            }
+                            break;
+                        case "player_pm_send":
+                            {
+                                if (record.target_player != null && record.source_player != null) {
+                                    if (record.target_player.player_guid == record.source_player.player_guid) {
+                                        SendMessageToSource(record, "foreveralone.jpg (You cannot start a conversation with yourself.)");
+                                    }
+                                }
+                                else {
+                                    SendMessageToSource(record, "Invalid players when trying to start conversation.");
                                 }
                             }
                             break;
@@ -8065,7 +8077,7 @@ namespace PRoConEvents {
                             switch (parameters.Length)
                             {
                                 case 0:
-                                    SendMessageToSource(record, "foreveralone.jpg");
+                                    SendMessageToSource(record, "foreveralone.jpg (You cannot join on yourself.)");
                                     FinalizeRecord(record);
                                     return;
                                 case 1:
@@ -8100,7 +8112,7 @@ namespace PRoConEvents {
                             switch (parameters.Length)
                             {
                                 case 0:
-                                    SendMessageToSource(record, "foreveralone.jpg");
+                                    SendMessageToSource(record, "foreveralone.jpg (You cannot pull yourself.)");
                                     FinalizeRecord(record);
                                     return;
                                 case 1:
