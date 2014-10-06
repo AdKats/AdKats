@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.3.2
+ * Version 5.1.3.3
  * 6-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.3.2";
+        private const String PluginVersion = "5.1.3.3";
 
         public enum ConsoleMessageType {
             Info,
@@ -413,6 +413,7 @@ namespace PRoConEvents {
         private Boolean _RequirePreMessageUse;
         private Boolean _ShowAdminNameInAnnouncement;
         private Boolean _ShowNewPlayerAnnouncement = true;
+        private Boolean _ShowPlayerNameChangeAnnouncement = true;
         private Int32 _YellDuration = 5;
         private Boolean _UseFirstSpawnMessage = false;
         private String _FirstSpawnMessage = "FIRST SPAWN MESSAGE";
@@ -673,6 +674,7 @@ namespace PRoConEvents {
                     //Message Settings
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Inform players of reports against them", typeof (Boolean), _InformReportedPlayers));
                     if (_InformReportedPlayers) {
                         lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Player Inform Exclusion Strings", typeof (String[]), _PlayerInformExclusionStrings));
@@ -2407,10 +2409,21 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Display New Player Announcement").Success)
                 {
                     Boolean display = Boolean.Parse(strValue);
-                    if (display != _ShowNewPlayerAnnouncement) {
+                    if (display != _ShowNewPlayerAnnouncement) 
+                    {
                         _ShowNewPlayerAnnouncement = display;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Display Player Name Change Announcement").Success)
+                {
+                    Boolean display = Boolean.Parse(strValue);
+                    if (display != _ShowPlayerNameChangeAnnouncement)
+                    {
+                        _ShowPlayerNameChangeAnnouncement = display;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Inform players of reports against them").Success) {
@@ -3593,7 +3606,10 @@ namespace PRoConEvents {
                                                 };
                                                 QueueRecordForProcessing(record);
                                                 DebugWrite(aPlayer.player_name_previous + " changed their name to " + playerInfo.SoldierName + ". Updating the database.", 2);
-                                                OnlineAdminSayMessage(aPlayer.player_name_previous + " changed their name to " + playerInfo.SoldierName);
+                                                if (_ShowPlayerNameChangeAnnouncement)
+                                                {
+                                                    OnlineAdminSayMessage(aPlayer.player_name_previous + " changed their name to " + playerInfo.SoldierName);
+                                                }
                                                 UpdatePlayer(aPlayer);
                                             }
                                             if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "player_kick" && (DateTime.UtcNow - aRecord.record_time).TotalMinutes < 30) && aPlayer.TargetedRecords.All(aRecord => aRecord.command_action.command_key != "banenforcer_enforce"))
@@ -14405,6 +14421,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"First spawn message text", typeof(String), _FirstSpawnMessage));
                 QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
+                QueueSettingForUpload(new CPluginVariable(@"Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
