@@ -4101,7 +4101,7 @@ namespace PRoConEvents {
                                             DebugWrite("round stat pushed to database", 5);
                                             if (_isTestingAuthorized)
                                             {
-                                                ProconChatWrite(BoldMessage(team1.TeamKey + " Diff: " + Math.Round(team1.TeamTicketDifferenceRate, 0) + " | " + team2.TeamKey + " Diff: " + Math.Round(team2.TeamTicketDifferenceRate, 0)));
+                                                ProconChatWrite(BoldMessage(team1.TeamKey + " Diff: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " | " + team2.TeamKey + " Diff: " + Math.Round(team2.TeamTicketDifferenceRate, 2)));
                                             }
                                         }
                                     }
