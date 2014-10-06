@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.3.0
- * 5-OCT-2014
+ * Version 5.1.3.2
+ * 6-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.3.0";
+        private const String PluginVersion = "5.1.3.2";
 
         public enum ConsoleMessageType {
             Info,
@@ -9368,6 +9368,108 @@ namespace PRoConEvents {
                             }
                         }
                         break;
+                    case "player_pm_send":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (record.record_source != AdKatsRecord.Sources.InGame)
+                            {
+                                SendMessageToSource(record, "You can't start private conversations from outside the game. Use player say.");
+                                break;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    SendMessageToSource(record, "No message given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 2:
+                                    record.target_name = parameters[0];
+                                    DebugWrite("target: " + record.target_name, 6);
+
+                                    record.record_message = GetPreMessage(parameters[1], false);
+                                    DebugWrite("message: " + record.record_message, 6);
+
+                                    CompleteTargetInformation(record, false, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_pm_reply":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (record.record_source != AdKatsRecord.Sources.InGame)
+                            {
+                                SendMessageToSource(record, "You can't reply to private conversations from outside the game. Use player say.");
+                                break;
+                            }
+
+                            if (record.source_player == null || 
+                                record.source_player.conversationPartner == null) {
+                                SendMessageToSource(record, "You are not in a private conversation. Use /" + GetCommandByKey("player_pm_send").command_text + " player message, to start one.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    record.record_message = GetPreMessage(parameters[0], false);
+                                    record.target_name = record.source_player.conversationPartner.player_name;
+                                    record.target_player = record.source_player.conversationPartner;
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "admin_pm_send":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    record.record_message = GetPreMessage(parameters[0], false);
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "player_dequeue":
                         {
                             //Remove previous commands awaiting confirmation
@@ -10410,6 +10512,15 @@ namespace PRoConEvents {
                         break;
                     case "player_tell":
                         PlayerTell(record);
+                        break;
+                    case "player_pm_send":
+                        PMSendTarget(record);
+                        break;
+                    case "player_pm_reply":
+                        PMReplyTarget(record);
+                        break;
+                    case "admin_pm_send":
+                        PMAdmin(record);
                         break;
                     case "player_dequeue":
                         DequeueTarget(record);
@@ -11965,6 +12076,85 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting playerSay", 6);
+        }
+
+        public void PMSendTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering PMSendTarget", 6);
+            try
+            {
+                //Check the source
+                if (record.source_player.conversationPartner == null)
+                {
+                    PlayerSayMessage(record.source_player.player_name, "You are now in a private conversation with " + record.target_player.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
+                    record.source_player.conversationPartner = record.target_player;
+                }
+                else if (record.source_player.conversationPartner.player_guid != record.target_player.player_guid)
+                {
+                    PlayerSayMessage(record.source_player.player_name, "Private conversation partner changed from " + record.source_player.conversationPartner.player_name + " to " + record.target_player.player_name);
+                    PlayerSayMessage(record.source_player.conversationPartner.player_name, record.source_player.player_name + " has left the private conversation.");
+                    record.source_player.conversationPartner.conversationPartner = null;
+                    record.source_player.conversationPartner = record.target_player;
+                }
+                //Check the target
+                if (record.target_player.conversationPartner == null)
+                {
+                    PlayerSayMessage(record.target_player.player_name, "You are now in a private conversation with " + record.source_player.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
+                    record.target_player.conversationPartner = record.source_player;
+                }
+                else if (record.target_player.conversationPartner.player_guid != record.source_player.player_guid)
+                {
+                    PlayerSayMessage(record.target_player.player_name, "Private conversation partner changed from " + record.target_player.conversationPartner.player_name + " to " + record.source_player.player_name);
+                    PlayerSayMessage(record.target_player.conversationPartner.player_name, record.target_player.player_name + " has left the private conversation.");
+                    record.target_player.conversationPartner.conversationPartner = null;
+                    record.target_player.conversationPartner = record.source_player;
+                }
+                PlayerSayMessage(record.source_player.player_name, "(MSG)(" + record.source_player.player_name + "): " + record.record_message);
+                PlayerSayMessage(record.target_player.player_name, "(MSG)(" + record.source_player.player_name + "): " + record.record_message);
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for Private Message record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting PMSendTarget", 6);
+        }
+
+        public void PMReplyTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering PMReplyTarget", 6);
+            try
+            {
+                PlayerSayMessage(record.source_player.player_name, "(MSG)(" + record.source_player.player_name + "): " + record.record_message);
+                PlayerSayMessage(record.target_player.player_name, "(MSG)(" + record.source_player.player_name + "): " + record.record_message);
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for Private Message Reply record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting PMReplyTarget", 6);
+        }
+
+        public void PMAdmin(AdKatsRecord record)
+        {
+            DebugWrite("Entering PMAdmin", 6);
+            try 
+            {
+                OnlineAdminSayMessage("(MSG)(" + record.source_player.player_name + "): " + record.record_message);
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for Private Message Admin record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting PMAdmin", 6);
         }
 
         public void AdminYell(AdKatsRecord record) {
@@ -17668,10 +17858,6 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 57", "REPLACE INTO `adkats_commands` VALUES(57, 'Active', 'self_help', 'Log', 'Request Server Commands', 'help', FALSE)", true);
                                     changed = true;
                                 }
-                                /*else if(_CommandIDDictionary[57].command_playerInteraction) {
-                                    SendNonQuery("Fixing command 57 admin-only status", "UPDATE adkats_commands SET command_playerInteraction = 0 WHERE command_id = 57", true);
-                                    changed = true;
-                                }*/
                                 if (!_CommandIDDictionary.ContainsKey(58))
                                 {
                                     SendNonQuery("Adding command 58", "REPLACE INTO `adkats_commands` VALUES(58, 'Active', 'player_find', 'Log', 'Find Player', 'find', FALSE)", true);
@@ -17750,6 +17936,21 @@ namespace PRoConEvents {
                                 if (!_CommandIDDictionary.ContainsKey(73))
                                 {
                                     SendNonQuery("Adding command 73", "REPLACE INTO `adkats_commands` VALUES(73, 'Invisible', 'player_ban_perm_old', 'Log', 'Previous Perm Ban', 'preban', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(74))
+                                {
+                                    SendNonQuery("Adding command 74", "REPLACE INTO `adkats_commands` VALUES(74, 'Active', 'player_pm_send', 'Unable', 'Player Private Message', 'msg', FALSE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(75))
+                                {
+                                    SendNonQuery("Adding command 75", "REPLACE INTO `adkats_commands` VALUES(75, 'Active', 'player_pm_reply', 'Unable', 'Player Private Reply', 'r', FALSE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(76))
+                                {
+                                    SendNonQuery("Adding command 76", "REPLACE INTO `adkats_commands` VALUES(76, 'Active', 'admin_pm_send', 'Unable', 'Admin Private Message', 'adminmsg', FALSE)", true);
                                     changed = true;
                                 }
                                 if (changed) {
@@ -17845,6 +18046,11 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["player_repboost"] = "Invisible command. Boosts player rep for a given reason.";
             _CommandDescriptionDictionary["player_log"] = "Logs the given information to the player's record.";
             _CommandDescriptionDictionary["player_whitelistping"] = "Whitelists a player from ping kick (ADK only).";
+            _CommandDescriptionDictionary["player_ban_temp_old"] = "Invisible command. Set to all disabled temp-bans.";
+            _CommandDescriptionDictionary["player_ban_perm_old"] = "Invisible command. Set to all disabled permabans.";
+            _CommandDescriptionDictionary["player_pm_send"] = "Sends a private message to the targeted player.";
+            _CommandDescriptionDictionary["player_pm_reply"] = "Replies to the current private message.";
+            _CommandDescriptionDictionary["admin_pm_send"] = "Sends a private message to all online admins.";
         }
 
         private void UpdateCommandTimeouts() {
@@ -20985,6 +21191,7 @@ namespace PRoConEvents {
             public Double player_ping { get; private set; }
             public DateTime player_ping_time { get; private set; }
             public Boolean player_ping_added { get; private set; }
+            public AdKatsPlayer conversationPartner = null;
 
             public AdKatsPlayerStats stats = null;
 
