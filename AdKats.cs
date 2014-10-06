@@ -10548,7 +10548,7 @@ namespace PRoConEvents {
                         PMReplyTarget(record);
                         break;
                     case "admin_pm_send":
-                        PMAdmin(record);
+                        PMOnlineAdmins(record);
                         break;
                     case "player_dequeue":
                         DequeueTarget(record);
@@ -12181,12 +12181,12 @@ namespace PRoConEvents {
             DebugWrite("Exiting PMReplyTarget", 6);
         }
 
-        public void PMAdmin(AdKatsRecord record)
+        public void PMOnlineAdmins(AdKatsRecord record)
         {
             DebugWrite("Entering PMAdmin", 6);
             try 
             {
-                OnlineAdminSayMessage("(MSG)(" + record.source_player.player_name + "): " + record.record_message);
+                OnlineAdminSayMessage("(MSG)(" + record.source_name + "): " + record.record_message);
                 record.record_action_executed = true;
             }
             catch (Exception e)
