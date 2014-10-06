@@ -12086,12 +12086,25 @@ namespace PRoConEvents {
                 //Check the source
                 if (record.source_player.conversationPartner == null)
                 {
-                    PlayerSayMessage(record.source_player.player_name, "You are now in a private conversation with " + record.target_player.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
+                    if (PlayerIsAdmin(record.source_player) && !PlayerIsAdmin(record.target_player)) {
+                        OnlineAdminSayMessage("Admin " + record.source_player.player_name + " now in a private conversation with " + record.target_player.player_name);
+                    }
+                    else
+                    {
+                        PlayerSayMessage(record.source_player.player_name, "You are now in a private conversation with " + record.target_player.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
+                    }
                     record.source_player.conversationPartner = record.target_player;
                 }
                 else if (record.source_player.conversationPartner.player_guid != record.target_player.player_guid)
                 {
-                    PlayerSayMessage(record.source_player.player_name, "Private conversation partner changed from " + record.source_player.conversationPartner.player_name + " to " + record.target_player.player_name);
+                    if (PlayerIsAdmin(record.source_player) && !PlayerIsAdmin(record.target_player))
+                    {
+                        OnlineAdminSayMessage("Admin " + record.source_player.player_name + " now in a private conversation with " + record.target_player.player_name);
+                    }
+                    else
+                    {
+                        PlayerSayMessage(record.source_player.player_name, "Private conversation partner changed from " + record.source_player.conversationPartner.player_name + " to " + record.target_player.player_name);
+                    }
                     PlayerSayMessage(record.source_player.conversationPartner.player_name, record.source_player.player_name + " has left the private conversation.");
                     record.source_player.conversationPartner.conversationPartner = null;
                     record.source_player.conversationPartner = record.target_player;
