@@ -106,7 +106,7 @@ namespace PRoConEvents {
         private volatile String _latestPluginVersion;
         private volatile String _pluginVersionStatusString;
         private VersionStatus _pluginVersionStatus = VersionStatus.UnfetchedBuild;
-        private Boolean _pluginVersionUpdated = false;
+        private Boolean _pluginUpdatePatched = false;
         private volatile Boolean _useKeepAlive;
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
         private RoundState _currentRoundState = RoundState.Loaded;
@@ -6828,7 +6828,7 @@ namespace PRoConEvents {
                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild && 
                     (record.source_player == null || PlayerIsAdmin(record.source_player)))
                 {
-                    if (_pluginVersionUpdated)
+                    if (_pluginUpdatePatched)
                     {
                         ProconChatWrite(BoldMessage("AdKats has been updated to version " + _latestPluginVersion + "! Please reboot PRoCon to activate this patch."));
                         SendMessageToSource(record, "AdKats has been updated to version " + _latestPluginVersion + "! Please reboot PRoCon to activate this patch.");
@@ -8925,7 +8925,7 @@ namespace PRoConEvents {
                                     record.record_message = "Telling Player Rules";
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, false);
+                                        CompleteTargetInformation(record, false, false, false);
                                     }
                                     break;
                                 default:
@@ -20720,7 +20720,7 @@ namespace PRoConEvents {
         public Boolean CheckForPluginUpdates() {
             try
             {
-                if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled ) || (_isTestingAuthorized))
+                if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled && !_pluginUpdatePatched) || (_isTestingAuthorized))
                 {
                     if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                         ConsoleInfo("Preparing to download plugin update to version " + _latestPluginVersion);
@@ -20809,7 +20809,7 @@ namespace PRoConEvents {
                         ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
                     if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                         ConsoleSuccess("Updated plugin file located at: " + pluginPath);
-                    _pluginVersionUpdated = true;
+                    _pluginUpdatePatched = true;
                     return true;
                 }
                 return false;
