@@ -4012,14 +4012,14 @@ namespace PRoConEvents {
                                 AdKatsTeam baserapingTeam = null;
                                 if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > 100)
                                 {
-                                    if (Math.Abs(team1.TeamTicketDifferenceRate) > 60 && 
-                                        Math.Abs(team2.TeamTicketDifferenceRate) < 10 && 
-                                        team2.TeamTicketCount > team1.TeamTicketCount) {
+                                    if ((Math.Abs(team1.TeamTicketDifferenceRate) > 60 && Math.Abs(team2.TeamTicketDifferenceRate) < 10 && team2.TeamTicketCount > team1.TeamTicketCount) ||
+                                        (Math.Abs(team1.TeamTicketDifferenceRate) > 70 && Math.Abs(team2.TeamTicketDifferenceRate) < 15 && team2.TeamTicketCount > team1.TeamTicketCount))
+                                    {
                                         baserapingTeam = team2;
                                     }
-                                    else if (Math.Abs(team2.TeamTicketDifferenceRate) > 60 && 
-                                             Math.Abs(team1.TeamTicketDifferenceRate) < 10 && 
-                                             team1.TeamTicketCount > team2.TeamTicketCount) {
+                                    else if ((Math.Abs(team2.TeamTicketDifferenceRate) > 60 && Math.Abs(team1.TeamTicketDifferenceRate) < 10 && team1.TeamTicketCount > team2.TeamTicketCount) ||
+                                             (Math.Abs(team2.TeamTicketDifferenceRate) > 70 && Math.Abs(team1.TeamTicketDifferenceRate) < 15 && team1.TeamTicketCount > team2.TeamTicketCount))
+                                    {
                                         baserapingTeam = team1;
                                     }
                                 }
@@ -16543,7 +16543,10 @@ namespace PRoConEvents {
                                 };
                                 QueueRecordForProcessing(record);
                                 DebugWrite(aPlayer.player_name_previous + " changed their name to " + playerName + ". Updating the database.", 2);
-                                OnlineAdminSayMessage(aPlayer.player_name_previous + " changed their name to " + playerName);
+                                if (_ShowPlayerNameChangeAnnouncement)
+                                {
+                                    OnlineAdminSayMessage(aPlayer.player_name_previous + " changed their name to " + playerName);
+                                }
                                 UpdatePlayer(aPlayer);
                             }
                         }
