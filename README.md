@@ -202,6 +202,7 @@
     Logger</a>
 </p>
 <p>
+    <a name=install />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Install.jpg" alt="AdKats User Manual">
 </p>
 <ol>
