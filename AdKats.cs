@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.3.3";
+        private const String PluginVersion = "5.1.3.4";
 
         public enum ConsoleMessageType {
             Info,
@@ -207,6 +207,7 @@ namespace PRoConEvents {
         private readonly Dictionary<String, AdKatsRecord> _ActionConfirmDic = new Dictionary<String, AdKatsRecord>();
         private readonly Dictionary<String, Int32> _RoundMutedPlayers = new Dictionary<String, Int32>();
         private readonly Dictionary<String, AdKatsRecord> _RoundReports = new Dictionary<String, AdKatsRecord>();
+        private readonly HashSet<String> _PlayersRequestingCommands = new HashSet<String>(); 
 
         //Threads
         private Thread _Activator;
@@ -3808,6 +3809,14 @@ namespace PRoConEvents {
                             _threadMasterWaitHandle.WaitOne(500);
 
                             OnlineAdminTellMessage("AdKats startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.");
+                            foreach (String playerName in _PlayersRequestingCommands) {
+                                AdKatsPlayer aPlayer;
+                                if (_PlayerDictionary.TryGetValue(playerName, out aPlayer)) {
+                                    if (!PlayerIsAdmin(aPlayer)) {
+                                        PlayerTellMessage(aPlayer.player_name, "Commands are now online. Thank you for your patience.");
+                                    }
+                                }
+                            }
                             ConsoleSuccess("AdKats " + GetPluginVersion() + " startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.");
                         }
                     }
@@ -4023,7 +4032,13 @@ namespace PRoConEvents {
                                         baserapingTeam = team1;
                                     }
                                 }
-                                if (baserapingTeam != null) {
+                                if (baserapingTeam != null)
+                                {
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
                                     AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
                                     _threadMasterWaitHandle.WaitOne(8000);
                                     var repRecord = new AdKatsRecord
@@ -6986,6 +7001,9 @@ namespace PRoConEvents {
                     return;
                 }
                 if (!_firstPlayerListComplete) {
+                    if (!_PlayersRequestingCommands.Contains(record.source_name)) {
+                        _PlayersRequestingCommands.Add(record.source_name);
+                    }
                     if (!_firstUserListComplete)
                     {
                         SendMessageToSource(record, "Command startup in progress, 1/3 complete, " + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + " elapsed.");
@@ -6996,6 +7014,9 @@ namespace PRoConEvents {
                     }
                     FinalizeRecord(record);
                     return;
+                }
+                else {
+                    _PlayersRequestingCommands.Clear();
                 }
                 //Check if player has the right to perform what he's asking, only perform for InGame actions
                 if (record.record_source == AdKatsRecord.Sources.InGame) {
@@ -10521,7 +10542,7 @@ namespace PRoConEvents {
                         KickAllPlayers(record);
                         break;
                     case "server_swapnuke":
-                        SwapNuke(record);
+                        SwapNukeServer(record);
                         break;
                     case "admin_say":
                         AdminSay(record);
@@ -12030,13 +12051,13 @@ namespace PRoConEvents {
             DebugWrite("Exiting nukeTarget", 6);
         }
 
-        public void SwapNuke(AdKatsRecord record) {
-            DebugWrite("Entering SwapNuke", 6);
+        public void SwapNukeServer(AdKatsRecord record) {
+            DebugWrite("Entering SwapNukeServer", 6);
             try {
                 if (_isTestingAuthorized)
                     PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_PlayerDictionary) {
-                    foreach (AdKatsPlayer player in _PlayerDictionary.Values) {
+                    foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(aPlayer => aPlayer.player_type == PlayerType.Player)) {
                         QueuePlayerForForceMove(player.frostbitePlayerInfo);
                     }
                 }
@@ -12048,7 +12069,7 @@ namespace PRoConEvents {
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            DebugWrite("Exiting SwapNuke", 6);
+            DebugWrite("Exiting SwapNukeServer", 6);
         }
 
         public void KickAllPlayers(AdKatsRecord record) {
