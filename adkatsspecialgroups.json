@@ -29,6 +29,11 @@
 			"group_id":5,
 			"group_key":"slot_spectator",
 			"group_name":"Spectator Slot"
+		},
+		{
+			"group_id":6,
+			"group_key":"whitelist_adminassistant",
+			"group_name":"Admin Assistant Whitelist"
 		}
 	]
 }
