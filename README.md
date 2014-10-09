@@ -171,7 +171,8 @@
     If you find any bugs, please submit them <a href="https://github.com/ColColonCleaner/AdKats/issues?state=open" target="_blank">HERE</a> and they will be fixed ASAP.
 </p>
 <p>
-    <a href="#dependencies"><img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Dependencies.jpg" alt="AdKats User Manual"></a>
+    <a name=dependencies />
+    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Dependencies.jpg" alt="AdKats User Manual">
 </p>
 <h4>1. A MySQL Database</h4>
 <p>
@@ -196,7 +197,7 @@
 </p>
 <p>
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a
-        href="https://forum.myrcon.com/showthread.php?6698" name=thinger target="_blank">Procon Chat, GUID, Stats and Mapstats
+        href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats
     Logger</a>
 </p>
 <p>
