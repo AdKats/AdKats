@@ -196,11 +196,10 @@
 </p>
 <p>
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a
-        href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats
+        href="https://forum.myrcon.com/showthread.php?6698" name=thinger target="_blank">Procon Chat, GUID, Stats and Mapstats
     Logger</a>
 </p>
 <p>
-    ### Dependencies
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Install.jpg" alt="AdKats User Manual">
 </p>
 <ol>
