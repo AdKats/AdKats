@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.3.7
+ * Version 5.1.3.8
  * 9-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.3.7";
+        private const String PluginVersion = "5.1.3.8";
 
         public enum ConsoleMessageType {
             Info,
@@ -518,13 +518,18 @@ namespace PRoConEvents {
         }
 
         public String GetPluginDescription() {
-            String concat = String.Empty;
+            String concat = @"
+            <p>
+                <a href='https://github.com/ColColonCleaner/AdKats' name=adkats>
+                    <img src='https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg' alt='AdKats Advanced In-Game Admin Tools'>
+                </a>
+            </p>";
             try
             {
                 if (!_fetchedPluginInformation)
                 {
                     //Wait up to 10 seconds for the description to fetch
-                    DebugWrite("Waiting for plugin description...", 1);
+                    DebugWrite("Waiting for plugin information...", 1);
                     _PluginDescriptionWaitHandle.WaitOne(10000);
                 }
 
@@ -537,15 +542,9 @@ namespace PRoConEvents {
                 {
                     concat += _pluginLinks;
                 }
-
-                //Check if the description fetched
-                if (String.IsNullOrEmpty(concat))
-                {
-                    concat = "Plugin information failed to download. Please visit AdKats on github (https://github.com/ColColonCleaner/AdKats) to view the plugin information.";
-                }
             }
             catch (Exception e) {
-                HandleException(new AdKatsException("Error while fetching plugin description.", e));
+                HandleException(new AdKatsException("Error while fetching plugin information.", e));
             }
             return concat;
         }
@@ -2754,7 +2753,7 @@ namespace PRoConEvents {
                             if (latestStableVersionInt > currentVersionInt) {
                                 versionStatus = @"
                                 <h2 style='color:#DF0101;'>
-                                    You are running an outdated build of AdKats! Version " + latestStableVersion + @" is available for download!
+                                    You are running an outdated build! Version " + latestStableVersion + @" is available for download!
                                 </h2>
                                 <a href='https://sourceforge.net/projects/adkats/files/latest/download' target='_blank'>
                                     Download Version " + latestStableVersion + @"!
@@ -2765,15 +2764,15 @@ namespace PRoConEvents {
                             else if (latestStableVersionInt == currentVersionInt) {
                                 versionStatus = @"
                                 <h2 style='color:#01DF01;'>
-                                    Congrats! You are running the latest stable build of AdKats!
+                                    Congrats! You are running the latest stable build!
                                 </h2>";
                                 _pluginVersionStatus = VersionStatus.StableBuild;
                             }
                             else if (latestStableVersionInt < currentVersionInt) {
                                 versionStatus = @"
                                 <h2 style='color:#FF8000;'>
-                                    CAUTION! You are running a BETA or TEST build of AdKats! Functionality might be untested.
-                                </h2> Below documentation is for stable build " + latestStableVersion + ".";
+                                    CAUTION! You are running a BETA or TEST build! Functionality might be untested.
+                                </h2>";
                                 _pluginVersionStatus = VersionStatus.TestBuild;
                             }
                             else {
@@ -2893,7 +2892,7 @@ namespace PRoConEvents {
                                         target_name = aPlayer.player_name,
                                         target_player = aPlayer,
                                         source_name = "AFKManager",
-                                        record_message = "AFK time exceeded [" + afkTime + " / " + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
+                                        record_message = "AFK time exceeded [" + afkTime + "/" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
                                     };
                                     QueueRecordForProcessing(record);
                                 }
@@ -7911,6 +7910,48 @@ namespace PRoConEvents {
                             CompleteTargetInformation(record, false, true);
                         }
                         break;
+                    case "player_whitelistaa":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 1:
+                                    //Unban the target player
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Admin Assistant Whitelist Player";
+                                    break;
+                                case 2:
+                                    //Unban the target player
+                                    record.target_name = parameters[0];
+
+                                    //attempt to handle via pre-message ID
+                                    record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+
+                            if (String.IsNullOrEmpty(record.target_name) || record.target_name.Length < 3)
+                            {
+                                SendMessageToSource(record, "Name search must be at least 3 characters.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            CompleteTargetInformation(record, false, true);
+                        }
+                        break;
                     case "player_punish": {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
@@ -10596,6 +10637,9 @@ namespace PRoConEvents {
                     case "player_whitelistping":
                         PingWhitelistTarget(record);
                         break;
+                    case "player_whitelistaa":
+                        AAWhitelistTarget(record);
+                        break;
                     case "player_log":
                         SendMessageToSource(record, "Log saved for " + record.target_name);
                         break;
@@ -11526,6 +11570,8 @@ namespace PRoConEvents {
                 if (record.target_player == null) {
                     SendMessageToSource(record, "HackerCheckerWhitelistTarget not available for multiple targets.");
                     ConsoleError("HackerCheckerWhitelistTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
                 }
                 record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("whitelist_hackerchecker", record.target_player);
@@ -11595,6 +11641,8 @@ namespace PRoConEvents {
                 if (record.target_player == null) {
                     SendMessageToSource(record, "PingWhitelistTarget not available for multiple targets.");
                     ConsoleError("PingWhitelistTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
                 }
                 record.record_action_executed = true;
                 List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("whitelist_ping", record.target_player);
@@ -11651,6 +11699,75 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting PingWhitelistTarget", 6);
+        }
+
+        public void AAWhitelistTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering AAWhitelistTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null) {
+                    SendMessageToSource(record, "AAWhitelistTarget not available for multiple targets.");
+                    ConsoleError("AAWhitelistTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("whitelist_adminassistant", record.target_player);
+                if (matchingPlayers.Count > 0)
+                {
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the Admin Assistant whitelist.");
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'whitelist_adminassistant',
+	                        @player_id,
+	                        @player_name,
+	                        UTC_TIMESTAMP(),
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
+                        )";
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+
+                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        if (rowsAffected > 0)
+                        {
+                            SendMessageToSource(record, "Player " + record.target_player.player_name + " added to Admin Assistant whitelist for all servers.");
+                            DebugWrite("Player " + record.target_player.player_name + " added to Admin Assistant whitelist for all servers.", 3);
+                            FetchAllAccess(true);
+                        }
+                        else
+                        {
+                            ConsoleError("Unable to add player to Admin Assistant whitelist. Error uploading.");
+                        }
+                    }
+                }
+                //Fetch the special player cache
+                FetchAllAccess(true);
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for Admin Assistant Whitelist record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting AAWhitelistTarget", 6);
         }
 
         public void MuteTarget(AdKatsRecord record) {
@@ -11776,8 +11893,8 @@ namespace PRoConEvents {
                 String sourcePlayerInfo = "";
                 if (record.source_player != null && record.source_player.frostbitePlayerInfo != null) {
                     if (record.source_player.player_online) {
-                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
-                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
+                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + "/" +
+                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" +
                                     record.source_player.frostbitePlayerInfo.Score + ")";
                     }
                     else
@@ -11790,8 +11907,8 @@ namespace PRoConEvents {
                 {
                     if (record.target_player.player_online)
                     {
-                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
-                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
+                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + "/" +
+                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" +
                                     record.target_player.frostbitePlayerInfo.Score + ")";
                     }
                     else
@@ -11870,8 +11987,8 @@ namespace PRoConEvents {
                 {
                     if (record.source_player.player_online)
                     {
-                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
-                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.source_player) + 1) + " / " +
+                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + "/" +
+                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.source_player) + 1) + "/" +
                                     record.source_player.frostbitePlayerInfo.Score + ")";
                     }
                     else
@@ -11884,8 +12001,8 @@ namespace PRoConEvents {
                 {
                     if (record.target_player.player_online)
                     {
-                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
-                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
+                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + "/" +
+                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" +
                                     record.target_player.frostbitePlayerInfo.Score + ")";
                     }
                     else
@@ -12516,8 +12633,8 @@ namespace PRoConEvents {
                         {
                             if (record.target_player.player_online)
                             {
-                                playerInfo += ", " + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamName + " / " +
-                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
+                                playerInfo += ", " + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamName + "/" +
+                                    (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" +
                                     record.target_player.frostbitePlayerInfo.Score;
                             }
                             else
@@ -12753,8 +12870,8 @@ namespace PRoConEvents {
                 if (record.target_player.player_online)
                 {
 
-                    playerInfo += _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamName + " / " +
-                        (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
+                    playerInfo += _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamName + "/" +
+                        (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" +
                         record.target_player.frostbitePlayerInfo.Score;
                 }
                 else
@@ -12897,7 +13014,7 @@ namespace PRoConEvents {
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
                             source_name = "AFKManager",
-                            record_message = "AFK time exceeded [" + afkTime + " / " + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
+                            record_message = "AFK time exceeded [" + afkTime + "/" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
                         };
                         QueueRecordForProcessing(kickRecord);
                     }
@@ -12927,9 +13044,9 @@ namespace PRoConEvents {
                     aPlayer.player_name + 
                     " (" + 
                     _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + 
-                    " / " + 
+                    "/" + 
                     (_PlayerDictionary.Values.Where(innerPlayer => innerPlayer.frostbitePlayerInfo.TeamID == aPlayer.frostbitePlayerInfo.TeamID).OrderBy(innerPlayer => innerPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(aPlayer) + 1) + 
-                    " / " +
+                    "/" +
                     aPlayer.frostbitePlayerInfo.Score + 
                     "), "));
                 //Send online admins
@@ -18026,6 +18143,11 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 76", "REPLACE INTO `adkats_commands` VALUES(76, 'Active', 'admin_pm_send', 'Unable', 'Admin Private Message', 'adminmsg', FALSE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(77))
+                                {
+                                    SendNonQuery("Adding command 77", "REPLACE INTO `adkats_commands` VALUES(77, 'Active', 'player_whitelistaa', 'Log', 'AA Whitelist Player', 'aawhitelist', TRUE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -18124,6 +18246,7 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["player_pm_send"] = "Sends a private message to the targeted player.";
             _CommandDescriptionDictionary["player_pm_reply"] = "Replies to the current private message.";
             _CommandDescriptionDictionary["admin_pm_send"] = "Sends a private message to all online admins.";
+            _CommandDescriptionDictionary["player_whitelistaa"] = "Whitelists a player for Admin Assistant status.";
         }
 
         private void UpdateCommandTimeouts() {
@@ -18726,28 +18849,39 @@ namespace PRoConEvents {
                 }
             }
             aPlayer.player_role = aRole;
-            aPlayer.player_aa = IsAdminAssistant(aPlayer);
+            AssignPlayerAdminAssistant(aPlayer);
             if (aPlayer.player_aa) {
                 DebugWrite(aPlayer.player_name + " IS an Admin Assistant.", 3);
             }
             return authorized;
         }
 
-        private Boolean IsAdminAssistant(AdKatsPlayer aPlayer) {
-            DebugWrite("IsAdminAssistant starting!", 7);
+        private void AssignPlayerAdminAssistant(AdKatsPlayer aPlayer) {
+            DebugWrite("PlayerIsAdminAssistant starting!", 7);
             if (!_EnableAdminAssistants) {
-                return false;
+                aPlayer.player_aa = false;
+                return;
             }
-            Boolean isAdminAssistant = aPlayer.player_aa;
             if (aPlayer.player_aa_fetched) {
-                return isAdminAssistant;
-            }
-            if (HandlePossibleDisconnect()) {
-                return false;
+                return;
             }
             if (PlayerIsAdmin(aPlayer))
             {
-                return false;
+                aPlayer.player_aa_fetched = true;
+                aPlayer.player_aa = false;
+                return;
+            }
+            List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("whitelist_adminassistant", aPlayer);
+            if (matchingPlayers.Count > 0)
+            {
+                aPlayer.player_aa_fetched = true;
+                aPlayer.player_aa = true;
+                return;
+            }
+            if (HandlePossibleDisconnect())
+            {
+                aPlayer.player_aa = false;
+                return;
             }
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
@@ -18777,10 +18911,10 @@ namespace PRoConEvents {
                         ) >= 75";
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             if (reader.Read()) {
-                                //Player is an admin assistant, give them access to the self_admins command
-                                isAdminAssistant = true;
+                                aPlayer.player_aa = true;
                             }
                             aPlayer.player_aa_fetched = true;
+                            return;
                         }
                     }
                 }
@@ -18788,8 +18922,7 @@ namespace PRoConEvents {
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while checking if player is an admin assistant.", e));
             }
-            DebugWrite("IsAdminAssistant finished!", 7);
-            return isAdminAssistant;
+            DebugWrite("PlayerIsAdminAssistant finished!", 7);
         }
 
         //DONE
