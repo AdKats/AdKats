@@ -170,7 +170,9 @@
 <p>
     If you find any bugs, please submit them <a href="https://github.com/ColColonCleaner/AdKats/issues?state=open" target="_blank">HERE</a> and they will be fixed ASAP.
 </p>
-<h2>Dependencies</h2>
+<p>
+    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Dependencies.jpg" alt="AdKats User Manual">
+</p>
 <h4>1. A MySQL Database</h4>
 <p>
     A MySQL database accessible from your Procon layer is required. AdKats checks the database for needed tables on
