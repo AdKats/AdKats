@@ -197,7 +197,9 @@
         href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats
     Logger</a>
 </p>
-<h2>Installation Instructions</h2>
+<p>
+    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Install.jpg" alt="AdKats User Manual">
+</p>
 <ol>
     <li>
         <b>Install XpKiller's Stat logger plugin.</b>
@@ -248,7 +250,9 @@
     If you have any problems installing AdKats please let me know on the MyRCON forums, or on Github as an issue and
     I'll respond promptly.
 </p>
-<h2>Installation FAQ</h2>
+<p>
+    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_FAQ.jpg" alt="AdKats User Manual">
+</p>
 <ul>
     <li>
         <b>Trouble running the setup SQL script.</b>
@@ -266,7 +270,9 @@
         <b>Suggest more for this list if you run across them.</b>
     </li>
 </ul>
-<h2>Features</h2>
+<p>
+    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Features.jpg" alt="AdKats User Manual">
+</p>
 <h3>User Ranks and Roles</h3>
 <p>
     On first enable you will need to add a user before you can access certain in-game commands.
@@ -860,7 +866,9 @@ command.Add("target_guid", player.EAGuid);<br/>
 command.Add("record_message", "Using restricted weapon " + kill.Weapon);<br/>
 plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </p>
-<h3>Available In-Game Commands</h3>
+<p>
+    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Commands.jpg" alt="AdKats User Manual">
+</p>
 <p>
     <u><b>You can edit the text for each command to suit your needs in plugin settings.</b></u>
 </p>
@@ -1565,7 +1573,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         </td>
     </tr>
 </table>
-<h2>Web Requests</h2>
+<p>
+    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Web.jpg" alt="AdKats User Manual">
+</p>
 <p>
     Some layer providers require whitelisting of connections through their firewall.
 </p>
@@ -1618,7 +1628,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <p>
     BF4DB.com might be used in the future to trigger updates on players BF4Stats data.
 </p>
-<h2>Settings</h2>
+<p>
+    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Settings.jpg" alt="AdKats User Manual">
+</p>
 <h3>0. Instance Settings:</h3>
 <ul>
     <li><b>'Auto-Enable/Keep-Alive'</b> - When this is enabled, AdKats will auto-recover from shutdowns and auto-restart
