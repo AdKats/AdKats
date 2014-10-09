@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.3.6
+ * Version 5.1.3.7
  * 9-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.3.6";
+        private const String PluginVersion = "5.1.3.7";
 
         public enum ConsoleMessageType {
             Info,
@@ -14725,7 +14725,9 @@ namespace PRoConEvents {
                 DebugWrite("DBCOMM: Entering handle record upload", 5);
                 if (record.record_id != -1 || record.record_action_executed) {
                     //Record already has a record ID, or action has already been taken, it can only be updated
-                    if (record.command_type.command_logging != AdKatsCommand.CommandLogging.Ignore) {
+                    if (record.command_type.command_logging != AdKatsCommand.CommandLogging.Ignore &&
+                        record.command_type.command_logging != AdKatsCommand.CommandLogging.Unable)
+                    {
                         if (record.record_exception == null) {
                             //Only call update if the record contained no errors
                             DebugWrite("DBCOMM: UPDATING record for " + record.command_type, 5);
@@ -14777,7 +14779,8 @@ namespace PRoConEvents {
                         default:
                             //Case for any other command
                             //Check logging setting for record command type
-                            if (record.command_type.command_logging != AdKatsCommand.CommandLogging.Ignore) {
+                            if (record.command_type.command_logging != AdKatsCommand.CommandLogging.Ignore && 
+                                record.command_type.command_logging != AdKatsCommand.CommandLogging.Unable) {
                                 DebugWrite("UPLOADING record for " + record.command_type, 5);
                                 //Upload Record
                                 UploadRecord(record);
