@@ -5,6 +5,7 @@
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
 </p>
 <p>
+    <a name=manual />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_UserManual.jpg" alt="AdKats User Manual">
 </p>
 <h2>Overview</h2>
@@ -254,6 +255,7 @@
     I'll respond promptly.
 </p>
 <p>
+    <a name=faq />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_FAQ.jpg" alt="AdKats User Manual">
 </p>
 <ul>
@@ -274,6 +276,7 @@
     </li>
 </ul>
 <p>
+    <a name=features />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Features.jpg" alt="AdKats User Manual">
 </p>
 <h3>User Ranks and Roles</h3>
@@ -870,6 +873,7 @@ command.Add("record_message", "Using restricted weapon " + kill.Weapon);<br/>
 plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </p>
 <p>
+    <a name=commands />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Commands.jpg" alt="AdKats User Manual">
 </p>
 <p>
@@ -1577,6 +1581,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </tr>
 </table>
 <p>
+    <a name=webrequests />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Web.jpg" alt="AdKats User Manual">
 </p>
 <p>
@@ -1632,6 +1637,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     BF4DB.com might be used in the future to trigger updates on players BF4Stats data.
 </p>
 <p>
+    <a name=settings />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Settings.jpg" alt="AdKats User Manual">
 </p>
 <h3>0. Instance Settings:</h3>
