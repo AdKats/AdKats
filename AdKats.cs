@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.3.5
- * 8-OCT-2014
+ * Version 5.1.3.6
+ * 9-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.3.5";
+        private const String PluginVersion = "5.1.3.6";
 
         public enum ConsoleMessageType {
             Info,
@@ -101,6 +101,7 @@ namespace PRoConEvents {
         private Boolean _slowmo;
         private volatile String _pluginChangelog;
         private volatile String _pluginDescription;
+        private volatile String _pluginLinks;
         private volatile Boolean _pluginEnabled;
         private volatile Boolean _threadsReady;
         private volatile String _latestPluginVersion;
@@ -532,37 +533,15 @@ namespace PRoConEvents {
                 {
                     concat += _pluginVersionStatusString;
                 }
-                if (!String.IsNullOrEmpty(_pluginDescription))
+                if (!String.IsNullOrEmpty(_pluginLinks))
                 {
-                    concat += _pluginDescription;
+                    concat += _pluginLinks;
                 }
-                if (!String.IsNullOrEmpty(_pluginChangelog))
-                {
-                    concat += _pluginChangelog;
-                }
-
-                /*
-                    String pluginFileName = "desc.html";
-                    String dllPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
-                    String pluginPath = Path.Combine(dllPath.Trim(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName);
-
-                    ConsoleInfo("Preparing to post desc html.");
-                    using (FileStream stream = File.Open(pluginPath, FileMode.Create))
-                    {
-                        if (!stream.CanWrite)
-                        {
-                            ConsoleError("Cannot write updates to source file. Unable to update to version " + _latestPluginVersion);
-                        }
-                        Byte[] info = new UTF8Encoding(true).GetBytes(concat);
-                        stream.Write(info, 0, info.Length);
-                    }
-                    ConsoleSuccess("success posted.");
-                */
 
                 //Check if the description fetched
                 if (String.IsNullOrEmpty(concat))
                 {
-                    concat = "Plugin description failed to download. Please visit AdKats on github (https://github.com/ColColonCleaner/AdKats) to view the plugin description.";
+                    concat = "Plugin information failed to download. Please visit AdKats on github (https://github.com/ColColonCleaner/AdKats) to view the plugin information.";
                 }
             }
             catch (Exception e) {
@@ -2731,12 +2710,24 @@ namespace PRoConEvents {
                     //Create web client
                     var client = new WebClient();
                     //Download the readme and changelog
+                    DebugWrite("Fetching plugin links...", 2);
+                    try
+                    {
+                        _pluginLinks = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/LINKS.md");
+                        DebugWrite("Plugin links fetched.", 1);
+                    }
+                    catch (Exception)
+                    {
+                        ConsoleError("Failed to fetch plugin links.");
+                    }
                     DebugWrite("Fetching plugin readme...", 2);
-                    try {
+                    try
+                    {
                         _pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
                         DebugWrite("Plugin description fetched.", 1);
                     }
-                    catch (Exception) {
+                    catch (Exception)
+                    {
                         ConsoleError("Failed to fetch plugin description.");
                     }
                     DebugWrite("Fetching plugin changelog...", 2);
@@ -3488,7 +3479,10 @@ namespace PRoConEvents {
                                                 if (playerCount > 50) {
                                                     //Warn players of limit and spikes
                                                     if (ping > 300) {
-                                                        if (aPlayer.player_pings_full && aPlayer.player_ping_avg < 300) {
+                                                        if (aPlayer.player_pings_full && 
+                                                            aPlayer.player_ping_avg < 300 && 
+                                                            ping > (aPlayer.player_ping_avg * 1.5))
+                                                        {
                                                             PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")));
                                                         }
                                                         else {
@@ -4662,6 +4656,7 @@ namespace PRoConEvents {
                         }
                         else if (kKillerVictimDetails.DamageType == "Medkit" || kKillerVictimDetails.DamageType == "U_PortableMedicpack" || kKillerVictimDetails.DamageType == "U_Medkit") {
                             PlayerSayMessage(killer.player_name, victim.player_name + " denied your revive!");
+                            PlayerTellMessage(victim.player_name, "You denied " + killer.player_name + "'s revive!");
                         }
                     }
                     else if (_UseWeaponLimiter && !gKillHandled) {
@@ -11781,7 +11776,7 @@ namespace PRoConEvents {
                 String sourcePlayerInfo = "";
                 if (record.source_player != null && record.source_player.frostbitePlayerInfo != null) {
                     if (record.source_player.player_online) {
-                        sourcePlayerInfo = " (" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
+                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
                                     (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
                                     record.source_player.frostbitePlayerInfo.Score + ")";
                     }
@@ -11795,7 +11790,7 @@ namespace PRoConEvents {
                 {
                     if (record.target_player.player_online)
                     {
-                        targetPlayerInfo = " (" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
+                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
                                     (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
                                     record.target_player.frostbitePlayerInfo.Score + ")";
                     }
@@ -11875,7 +11870,7 @@ namespace PRoConEvents {
                 {
                     if (record.source_player.player_online)
                     {
-                        sourcePlayerInfo = " (" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
+                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
                                     (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.source_player) + 1) + " / " +
                                     record.source_player.frostbitePlayerInfo.Score + ")";
                     }
@@ -11889,7 +11884,7 @@ namespace PRoConEvents {
                 {
                     if (record.target_player.player_online)
                     {
-                        targetPlayerInfo = " (" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
+                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + " / " +
                                     (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + " / " +
                                     record.target_player.frostbitePlayerInfo.Score + ")";
                     }
