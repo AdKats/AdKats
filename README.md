@@ -191,8 +191,7 @@
 </p>
 <h4>2. XpKiller's "Procon Chat, GUID, Stats and Mapstats Logger" Plugin</h4>
 <p>
-    Version 1.1.0.1+ of the BF3 version, or any universal version is required.
-    AdKats will only run if one of these plugins is (1) using the same database AdKats uses, and (2) running on every
+    AdKats will only run if one of this plugin is (1) using the same database AdKats uses, and (2) running on every
     battlefield Server you plan to install AdKats on.
     Running it along-side AdKats on each Procon layer will ensure these conditions are met.
 </p>
@@ -200,6 +199,11 @@
     The latest universal version of XpKiller's Stat Logger can be downloaded from here: <a
         href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats
     Logger</a>
+</p>
+<h4>3. Web Request Access</h4>
+<p>
+    AdKats uses web statistics to manage players, user lists, and updates. 
+    The list of domains/sub-domains AdKats must be able to access for proper function are documented below in the "Web Requests" section.
 </p>
 <p>
     <a name=install />
