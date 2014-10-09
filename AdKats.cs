@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.3.3
- * 6-OCT-2014
+ * Version 5.1.3.5
+ * 8-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.3.4";
+        private const String PluginVersion = "5.1.3.5";
 
         public enum ConsoleMessageType {
             Info,
@@ -124,6 +124,7 @@ namespace PRoConEvents {
         private Int32 _maxSpectators = -1;
         private GameVersion _gameVersion = GameVersion.BF3;
         private Boolean _isTestingAuthorized;
+        private Boolean _endingRound;
         private Int64 _serverGroup = -1;
         private Int64 _serverID = -1;
         private String _serverIP;
@@ -4017,43 +4018,6 @@ namespace PRoConEvents {
                                 break;
                             }
 
-                            if (_isTestingAuthorized && _serverInfo.ServerName.Contains("#7")) {
-                                AdKatsTeam baserapingTeam = null;
-                                if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > 100)
-                                {
-                                    if ((Math.Abs(team1.TeamTicketDifferenceRate) > 60 && Math.Abs(team2.TeamTicketDifferenceRate) < 10 && team2.TeamTicketCount > team1.TeamTicketCount) ||
-                                        (Math.Abs(team1.TeamTicketDifferenceRate) > 70 && Math.Abs(team2.TeamTicketDifferenceRate) < 15 && team2.TeamTicketCount > team1.TeamTicketCount))
-                                    {
-                                        baserapingTeam = team2;
-                                    }
-                                    else if ((Math.Abs(team2.TeamTicketDifferenceRate) > 60 && Math.Abs(team1.TeamTicketDifferenceRate) < 10 && team1.TeamTicketCount > team2.TeamTicketCount) ||
-                                             (Math.Abs(team2.TeamTicketDifferenceRate) > 70 && Math.Abs(team1.TeamTicketDifferenceRate) < 15 && team1.TeamTicketCount > team2.TeamTicketCount))
-                                    {
-                                        baserapingTeam = team1;
-                                    }
-                                }
-                                if (baserapingTeam != null)
-                                {
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    _threadMasterWaitHandle.WaitOne(8000);
-                                    var repRecord = new AdKatsRecord
-                                    {
-                                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        server_id = _serverID,
-                                        command_type = _CommandKeyDictionary["round_end"],
-                                        command_numeric = baserapingTeam.TeamID,
-                                        target_name = baserapingTeam.TeamName,
-                                        source_name = "RoundManager",
-                                        record_message = "End Baserape Round (" + baserapingTeam.TeamKey + " Win)(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + ")"
-                                    };
-                                    QueueRecordForProcessing(repRecord);
-                                }
-                            }
                             using (MySqlConnection connection = GetDatabaseConnection())
                             {
                                 using (MySqlCommand command = connection.CreateCommand())
@@ -4185,6 +4149,47 @@ namespace PRoConEvents {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                                 _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
+
+                            if (_isTestingAuthorized && _serverInfo.ServerName.Contains("#7") && !_endingRound)
+                            {
+                                AdKatsTeam baserapingTeam = null;
+                                if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > 100)
+                                {
+                                    if ((Math.Abs(team1.TeamTicketDifferenceRate) > 60 && Math.Abs(team2.TeamTicketDifferenceRate) < 10 && team2.TeamTicketCount > team1.TeamTicketCount) ||
+                                        (Math.Abs(team1.TeamTicketDifferenceRate) > 70 && Math.Abs(team2.TeamTicketDifferenceRate) < 15 && team2.TeamTicketCount > team1.TeamTicketCount))
+                                    {
+                                        baserapingTeam = team2;
+                                    }
+                                    else if ((Math.Abs(team2.TeamTicketDifferenceRate) > 60 && Math.Abs(team1.TeamTicketDifferenceRate) < 10 && team1.TeamTicketCount > team2.TeamTicketCount) ||
+                                             (Math.Abs(team2.TeamTicketDifferenceRate) > 70 && Math.Abs(team1.TeamTicketDifferenceRate) < 15 && team1.TeamTicketCount > team2.TeamTicketCount))
+                                    {
+                                        baserapingTeam = team1;
+                                    }
+                                }
+                                if (baserapingTeam != null) 
+                                {
+                                    _endingRound = true;
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                    _threadMasterWaitHandle.WaitOne(8000);
+                                    var repRecord = new AdKatsRecord
+                                    {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        server_id = _serverID,
+                                        command_type = _CommandKeyDictionary["round_end"],
+                                        command_numeric = baserapingTeam.TeamID,
+                                        target_name = baserapingTeam.TeamName,
+                                        source_name = "RoundManager",
+                                        record_message = "End Baserape Round (" + baserapingTeam.TeamKey + " Win)(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + ")"
+                                    };
+                                    QueueRecordForProcessing(repRecord);
+                                }
+                            }
+
                             Boolean hadServerName = !String.IsNullOrEmpty(_serverName);
                             _serverName = serverInfo.ServerName;
                             Boolean haveServerName = !String.IsNullOrEmpty(_serverName);
@@ -4244,13 +4249,17 @@ namespace PRoConEvents {
         }
 
         //Round ended stuff
-        public override void OnRoundOverTeamScores(List<TeamScore> teamScores) {
+        public override void OnRoundOverTeamScores(List<TeamScore> teamScores)
+        {
             _currentRoundState = RoundState.Ended;
             _pingKicksThisRound = 0;
+            _endingRound = false;
         }
 
         public override void OnRunNextLevel() {
             _currentRoundState = RoundState.Ended;
+            _pingKicksThisRound = 0;
+            _endingRound = false;
         }
 
         //Move delayed players when they are killed
