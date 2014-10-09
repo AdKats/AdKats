@@ -202,7 +202,7 @@
 </p>
 <h4>3. Web Request Access</h4>
 <p>
-    AdKats uses web statistics to manage players, user lists, and updates. 
+    AdKats uses web statistics and requests to manage players types, hack detection, user lists, and updates. 
     The list of domains/sub-domains AdKats must be able to access for proper function are documented below in the "Web Requests" section.
 </p>
 <p>
