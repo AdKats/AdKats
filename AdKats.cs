@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.3.8
+ * Version 5.1.4.1
  * 9-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.3.8";
+        private const String PluginVersion = "5.1.4.1";
 
         public enum ConsoleMessageType {
             Info,
@@ -335,6 +335,16 @@ namespace PRoConEvents {
         private Boolean _AFKIgnoreUserList = true;
         private String[] _AFKIgnoreRoles = { };
         private Boolean _AFKIgnoreChat;
+
+        //Ping enforcer
+        private Boolean _pingEnforcerSystemEnable;
+        private Int32 _pingEnforcerTriggerMinimumPlayers = 50;
+        private Double _pingEnforcerTriggerMS = 300;
+        private Double _pingMovingAverageDurationSeconds = 180;
+        private Boolean _pingEnforcerKickMissingPings;
+        private Boolean _pingEnforcerIgnoreUserList = true;
+        private String[] _pingEnforcerIgnoreRoles = { };
+        private Boolean _attemptManualPingWhenMissing = true;
 
         //Ban enforcer
         private Boolean _UseBanAppend;
@@ -742,13 +752,13 @@ namespace PRoConEvents {
                         }
                     }
 
-                    //Server rules Settings
+                    //Server rules settings
                     lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Rule Print Delay", typeof(Double), _ServerRulesDelay));
                     lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Rule Print Interval", typeof(Double), _ServerRulesInterval));
                     lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Server Rule List", typeof(String[]), _ServerRulesList));
                     lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
 
-                    //AFK Settings
+                    //AFK manager settings
                     lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK System Enable", typeof(Boolean), _AFKSystemEnable));
                     if (_AFKSystemEnable)
                     {
@@ -760,6 +770,22 @@ namespace PRoConEvents {
                         if (!_AFKIgnoreUserList)
                         {
                             lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Ignore Roles", typeof(String[]), _AFKIgnoreRoles));
+                        }
+                    }
+
+                    //Ping enforcer settings
+                    lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Enforcer Enable", typeof(Boolean), _pingEnforcerSystemEnable));
+                    if (_pingEnforcerSystemEnable)
+                    {
+                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
+                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Trigger ms", typeof(Double), _pingEnforcerTriggerMS));
+                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
+                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
+                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
+                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Ignore User List", typeof(Boolean), _pingEnforcerIgnoreUserList));
+                        if (!_pingEnforcerIgnoreUserList)
+                        {
+                            lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Ignore Roles", typeof(String[]), _pingEnforcerIgnoreRoles));
                         }
                     }
 
@@ -1202,36 +1228,6 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
                     }
                 }
-                else if (Regex.Match(strVariable, @"AFK System Enable").Success)
-                {
-                    Boolean afkSystemEnable = Boolean.Parse(strValue);
-                    if (afkSystemEnable != _AFKSystemEnable)
-                    {
-                        _AFKSystemEnable = afkSystemEnable;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKSystemEnable));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"AFK Ignore Chat").Success)
-                {
-                    Boolean afkIgnoreChat = Boolean.Parse(strValue);
-                    if (afkIgnoreChat != _AFKIgnoreChat)
-                    {
-                        _AFKIgnoreChat = afkIgnoreChat;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"AFK Auto-Kick Enable").Success)
-                {
-                    Boolean afkAutoKickEnable = Boolean.Parse(strValue);
-                    if (afkAutoKickEnable != _AFKAutoKickEnable)
-                    {
-                        _AFKAutoKickEnable = afkAutoKickEnable;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
-                    }
-                }
                 else if (Regex.Match(strVariable, @"Disable Automatic Updates").Success)
                 {
                     Boolean disableAutomaticUpdates = Boolean.Parse(strValue);
@@ -1261,6 +1257,36 @@ namespace PRoConEvents {
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Disable Usage Data Posting", typeof(Boolean), _usageDataDisabled));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"AFK System Enable").Success)
+                {
+                    Boolean afkSystemEnable = Boolean.Parse(strValue);
+                    if (afkSystemEnable != _AFKSystemEnable)
+                    {
+                        _AFKSystemEnable = afkSystemEnable;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKSystemEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"AFK Ignore Chat").Success)
+                {
+                    Boolean afkIgnoreChat = Boolean.Parse(strValue);
+                    if (afkIgnoreChat != _AFKIgnoreChat)
+                    {
+                        _AFKIgnoreChat = afkIgnoreChat;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"AFK Auto-Kick Enable").Success)
+                {
+                    Boolean afkAutoKickEnable = Boolean.Parse(strValue);
+                    if (afkAutoKickEnable != _AFKAutoKickEnable)
+                    {
+                        _AFKAutoKickEnable = afkAutoKickEnable;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
                     }
                 }
                 else if (Regex.Match(strVariable, @"AFK Trigger Minutes").Success)
@@ -1308,6 +1334,97 @@ namespace PRoConEvents {
                     _AFKIgnoreRoles = CPluginVariable.DecodeStringArray(strValue);
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_AFKIgnoreRoles)));
+                }
+                else if (Regex.Match(strVariable, @"Ping Enforcer Enable").Success)
+                {
+                    Boolean PingSystemEnable = Boolean.Parse(strValue);
+                    if (PingSystemEnable != _pingEnforcerSystemEnable)
+                    {
+                        _pingEnforcerSystemEnable = PingSystemEnable;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Ping Enforcer Enable", typeof(Boolean), _pingEnforcerSystemEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Ping Moving Average Duration sec").Success)
+                {
+                    Double pingMovingAverageDurationSeconds = Double.Parse(strValue);
+                    if (_pingMovingAverageDurationSeconds != pingMovingAverageDurationSeconds)
+                    {
+                        if (pingMovingAverageDurationSeconds < 30)
+                        {
+                            ConsoleError("Duration cannot be less than 30 seconds.");
+                            return;
+                        }
+                        _pingMovingAverageDurationSeconds = pingMovingAverageDurationSeconds;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Ping Kick Trigger ms").Success)
+                {
+                    Double pingEnforcerTriggerMS = Double.Parse(strValue);
+                    if (_pingEnforcerTriggerMS != pingEnforcerTriggerMS)
+                    {
+                        if (pingEnforcerTriggerMS < 10)
+                        {
+                            ConsoleError("Trigger ms cannot be less than 10.");
+                            return;
+                        }
+                        _pingEnforcerTriggerMS = pingEnforcerTriggerMS;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Ping Kick Trigger ms", typeof(Double), _pingEnforcerTriggerMS));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Ping Kick Minimum Players").Success)
+                {
+                    Int32 pingEnforcerTriggerMinimumPlayers = Int32.Parse(strValue);
+                    if (_pingEnforcerTriggerMinimumPlayers != pingEnforcerTriggerMinimumPlayers)
+                    {
+                        if (pingEnforcerTriggerMinimumPlayers < 0)
+                        {
+                            ConsoleError("Minimum players cannot be negative.");
+                            return;
+                        }
+                        _pingEnforcerTriggerMinimumPlayers = pingEnforcerTriggerMinimumPlayers;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Kick Missing Pings").Success)
+                {
+                    Boolean pingEnforcerKickMissingPings = Boolean.Parse(strValue);
+                    if (pingEnforcerKickMissingPings != _pingEnforcerKickMissingPings)
+                    {
+                        _pingEnforcerKickMissingPings = pingEnforcerKickMissingPings;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Attempt Manual Ping when Missing").Success)
+                {
+                    Boolean attemptManualPingWhenMissing = Boolean.Parse(strValue);
+                    if (attemptManualPingWhenMissing != _attemptManualPingWhenMissing)
+                    {
+                        _attemptManualPingWhenMissing = attemptManualPingWhenMissing;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Ping Kick Ignore User List").Success)
+                {
+                    Boolean pingEnforcerIgnoreUserList = Boolean.Parse(strValue);
+                    if (pingEnforcerIgnoreUserList != _pingEnforcerIgnoreUserList)
+                    {
+                        _pingEnforcerIgnoreUserList = pingEnforcerIgnoreUserList;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore User List", typeof(Boolean), _pingEnforcerIgnoreUserList));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Ping Kick Ignore Roles").Success)
+                {
+                    _pingEnforcerIgnoreRoles = CPluginVariable.DecodeStringArray(strValue);
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerIgnoreRoles)));
                 }
                 else if (Regex.Match(strVariable, @"Feed MULTIBalancer Whitelist").Success) {
                     Boolean feedMTBWhite = Boolean.Parse(strValue);
@@ -2809,103 +2926,120 @@ namespace PRoConEvents {
                     DateTime lastServerInfoRequest = DateTime.UtcNow;
                     while (true)
                     {
-                        //Check for unswitcher disable every 20 seconds
-                        if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (DateTime.UtcNow - _LastPlayerMoveIssued).TotalSeconds > 20)
+                        try
                         {
-                            DebugWrite("MULTIBalancer Unswitcher Re-Enabled", 3);
-                            ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
-                            _MULTIBalancerUnswitcherDisabled = false;
-                        }
-
-                        if ((DateTime.UtcNow - _LastPluginDescFetch).TotalHours > 1 ||
-                            (_isTestingAuthorized && (DateTime.UtcNow - _LastPluginDescFetch).TotalMinutes > 20))
-                        {
-                            FetchPluginDescAndChangelog();
-                        }
-
-                        if (!_usageDataDisabled && 
-                            (DateTime.UtcNow - _LastUsageStatsUpdate).TotalHours > 1 && 
-                            (_threadsReady || (DateTime.UtcNow - _proconStartTime).TotalSeconds > 30)) 
-                        {
-                            PostUsageStatsUpdate();
-                        }
-
-                        //Check for keep alive every 30 seconds
-                        if ((DateTime.UtcNow - lastKeepAliveCheck).TotalSeconds > 30)
-                        {
-                            lastKeepAliveCheck = DateTime.UtcNow;
-
-                            //Enable if auto-enable wanted
-                            if (_useKeepAlive && !_pluginEnabled) {
-                                Enable();
-                            }
-
-                            if (_aliveThreads.Count() >= 20) {
-                                String aliveThreads = "";
-                                lock (_aliveThreads) {
-                                    foreach (Thread value in _aliveThreads.Values)
-                                        aliveThreads = aliveThreads + (value.Name + "[" + value.ManagedThreadId + "] ");
-                                }
-                                ConsoleWarn("Thread warning: " + aliveThreads);
-                            }
-
-                            if ((DateTime.UtcNow - _lastSuccessfulPlayerList).TotalSeconds > 120 && _isTestingAuthorized && _firstPlayerListComplete) {
-                                //Create the report record
-                                var record = new AdKatsRecord {
-                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                    server_id = _serverID,
-                                    command_type = _CommandKeyDictionary["player_calladmin"],
-                                    command_numeric = 0,
-                                    target_name = "AdKats",
-                                    target_player = null,
-                                    source_name = "AdKats",
-                                    record_message = "Player Listing Offline"
-                                };
-                                //Process the record
-                                QueueRecordForProcessing(record);
-                            }
-
-                            //Perform AFK processing
-                            if (_AFKSystemEnable && _AFKAutoKickEnable && (_PlayerDictionary.Count > _AFKTriggerMinimumPlayers))
+                            //Check for unswitcher disable every 20 seconds
+                            if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (DateTime.UtcNow - _LastPlayerMoveIssued).TotalSeconds > 20)
                             {
-                                List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
-                                    aPlayer =>
-                                        (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes &&
-                                        _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
-                                        !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
-                                if (_AFKIgnoreUserList) {
-                                    IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
-                                    afkPlayers = afkPlayers.Where(aPlayer => !userSoldierGuids.Contains(aPlayer.player_guid)).ToList();
+                                DebugWrite("MULTIBalancer Unswitcher Re-Enabled", 3);
+                                ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
+                                _MULTIBalancerUnswitcherDisabled = false;
+                            }
+
+                            if ((DateTime.UtcNow - _LastPluginDescFetch).TotalHours > 1 ||
+                                (_isTestingAuthorized && (DateTime.UtcNow - _LastPluginDescFetch).TotalMinutes > 20))
+                            {
+                                FetchPluginDescAndChangelog();
+                            }
+
+                            if (!_usageDataDisabled &&
+                                (DateTime.UtcNow - _LastUsageStatsUpdate).TotalHours > 1 &&
+                                (_threadsReady || (DateTime.UtcNow - _proconStartTime).TotalSeconds > 30))
+                            {
+                                PostUsageStatsUpdate();
+                            }
+
+                            //Check for keep alive every 30 seconds
+                            if ((DateTime.UtcNow - lastKeepAliveCheck).TotalSeconds > 30)
+                            {
+                                lastKeepAliveCheck = DateTime.UtcNow;
+
+                                //Enable if auto-enable wanted
+                                if (_useKeepAlive && !_pluginEnabled)
+                                {
+                                    Enable();
                                 }
-                                else {
-                                    afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key)).ToList();
+
+                                if (_aliveThreads.Count() >= 20)
+                                {
+                                    String aliveThreads = "";
+                                    lock (_aliveThreads)
+                                    {
+                                        foreach (Thread value in _aliveThreads.Values)
+                                            aliveThreads = aliveThreads + (value.Name + "[" + value.ManagedThreadId + "] ");
+                                    }
+                                    ConsoleWarn("Thread warning: " + aliveThreads);
                                 }
-                                foreach (AdKatsPlayer aPlayer in afkPlayers) {
-                                    string afkTime = FormatTimeString(DateTime.UtcNow - aPlayer.lastAction, 2);
-                                    DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
+
+                                if ((DateTime.UtcNow - _lastSuccessfulPlayerList).TotalSeconds > 120 && _isTestingAuthorized && _firstPlayerListComplete)
+                                {
+                                    //Create the report record
                                     var record = new AdKatsRecord
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverID,
-                                        command_type = _CommandKeyDictionary["player_kick"],
+                                        command_type = _CommandKeyDictionary["player_calladmin"],
                                         command_numeric = 0,
-                                        target_name = aPlayer.player_name,
-                                        target_player = aPlayer,
-                                        source_name = "AFKManager",
-                                        record_message = "AFK time exceeded [" + afkTime + "/" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
+                                        target_name = "AdKats",
+                                        target_player = null,
+                                        source_name = "AdKats",
+                                        record_message = "Player Listing Offline"
                                     };
+                                    //Process the record
                                     QueueRecordForProcessing(record);
                                 }
+
+                                //Perform AFK processing
+                                if (_AFKSystemEnable && _AFKAutoKickEnable && (_PlayerDictionary.Count > _AFKTriggerMinimumPlayers))
+                                {
+                                    List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
+                                        aPlayer =>
+                                            (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes &&
+                                            _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
+                                            !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
+                                    if (_AFKIgnoreUserList)
+                                    {
+                                        IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
+                                        afkPlayers = afkPlayers.Where(aPlayer => !userSoldierGuids.Contains(aPlayer.player_guid)).ToList();
+                                    }
+                                    else
+                                    {
+                                        afkPlayers = afkPlayers.Where(aPlayer => !_AFKIgnoreRoles.Contains(aPlayer.player_role.role_key)).ToList();
+                                    }
+                                    foreach(var aPlayer in afkPlayers)
+                                    {
+                                        string afkTime = FormatTimeString(DateTime.UtcNow - aPlayer.lastAction, 2);
+                                        DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
+                                        var record = new AdKatsRecord
+                                        {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverID,
+                                            command_type = _CommandKeyDictionary["player_kick"],
+                                            command_numeric = 0,
+                                            target_name = aPlayer.player_name,
+                                            target_player = aPlayer,
+                                            source_name = "AFKManager",
+                                            record_message = "AFK time exceeded [" + afkTime + "/" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
+                                        };
+                                        QueueRecordForProcessing(record);
+                                        //Only take one
+                                        break;
+                                    }
+                                }
                             }
+                            //Check for possible connection interuption every 10 seconds
+                            if (_threadsReady && (DateTime.UtcNow - lastServerInfoRequest).TotalSeconds > 10)
+                            {
+                                ExecuteCommand("procon.protected.send", "serverInfo");
+                                lastServerInfoRequest = DateTime.UtcNow;
+                            }
+                            //Sleep 1 second between loops
+                            _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
                         }
-                        //Check for possible connection interuption every 10 seconds
-                        if (_threadsReady && (DateTime.UtcNow - lastServerInfoRequest).TotalSeconds > 10)
+                        catch (Exception e)
                         {
-                            ExecuteCommand("procon.protected.send", "serverInfo");
-                            lastServerInfoRequest = DateTime.UtcNow;
+                            HandleException(new AdKatsException("Error in keep-alive. Skipping current loop.", e));
                         }
-                        //Sleep 1 second between loops
-                        _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
                     }
                 }
                 catch (Exception e) {
@@ -3451,7 +3585,8 @@ namespace PRoConEvents {
                                         }
                                         Double ping = aPlayer.frostbitePlayerInfo.Ping;
                                         Boolean proconFetched = false;
-                                        if (_isTestingAuthorized && ping < 0 && !String.IsNullOrEmpty(aPlayer.player_ip)) {
+                                        if (_attemptManualPingWhenMissing && ping < 0 && !String.IsNullOrEmpty(aPlayer.player_ip))
+                                        {
                                             PingReply reply = null;
                                             try {
                                                 reply = _pingProcessor.Send(aPlayer.player_ip);
@@ -3471,15 +3606,21 @@ namespace PRoConEvents {
                                         }
                                         if (_currentRoundState == RoundState.Playing) {
                                             aPlayer.AddPingEntry(ping);
-                                            //Automatic ping kick for ADK
-                                            if (_isTestingAuthorized && _gameVersion == GameVersion.BF4 && aPlayer.player_type == PlayerType.Player && !PlayerIsAdmin(aPlayer) && !FetchMatchingSpecialPlayers("whitelist_ping", aPlayer).Any())
+                                            //Automatic ping kick
+                                            if (_pingEnforcerSystemEnable && 
+                                                aPlayer.player_type == PlayerType.Player && 
+                                                !PlayerIsAdmin(aPlayer) && 
+                                                !FetchMatchingSpecialPlayers("whitelist_ping", aPlayer).Any() &&
+                                                !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) &&
+                                                !(_pingEnforcerIgnoreUserList && FetchAllUserSoldiers().Any(sPlayer => sPlayer.player_guid == aPlayer.player_guid)))
                                             {
                                                 var playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
-                                                if (playerCount > 50) {
+                                                if (playerCount > _pingEnforcerTriggerMinimumPlayers)
+                                                {
                                                     //Warn players of limit and spikes
-                                                    if (ping > 300) {
-                                                        if (aPlayer.player_pings_full && 
-                                                            aPlayer.player_ping_avg < 300 && 
+                                                    if (ping > _pingEnforcerTriggerMS) {
+                                                        if (aPlayer.player_pings_full &&
+                                                            aPlayer.player_ping_avg < _pingEnforcerTriggerMS && 
                                                             ping > (aPlayer.player_ping_avg * 1.5))
                                                         {
                                                             PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")));
@@ -3489,9 +3630,9 @@ namespace PRoConEvents {
                                                         }
                                                     }
                                                     //Are they over the limit, or missing
-                                                    if (((aPlayer.player_ping_avg > 300 && aPlayer.player_ping > aPlayer.player_ping_avg) || aPlayer.player_ping_avg < 0) && aPlayer.player_pings_full)
+                                                    if (((aPlayer.player_ping_avg > _pingEnforcerTriggerMS && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0)) && aPlayer.player_pings_full)
                                                     {
-                                                        //Are they higher ping than the current picked player
+                                                        //Are they worse than the current picked player
                                                         if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0)) {
                                                             pingPickedPlayer = aPlayer;
                                                         }
@@ -4159,27 +4300,42 @@ namespace PRoConEvents {
                                         baserapingTeam = team1;
                                     }
                                 }
-                                if (baserapingTeam != null) 
+                                if (baserapingTeam != null)
                                 {
                                     _endingRound = true;
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                    _threadMasterWaitHandle.WaitOne(8000);
-                                    var repRecord = new AdKatsRecord
+                                    var roundEndDelayThread = new Thread(new ThreadStart(delegate
                                     {
-                                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        server_id = _serverID,
-                                        command_type = _CommandKeyDictionary["round_end"],
-                                        command_numeric = baserapingTeam.TeamID,
-                                        target_name = baserapingTeam.TeamName,
-                                        source_name = "RoundManager",
-                                        record_message = "End Baserape Round (" + baserapingTeam.TeamKey + " Win)(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + ")"
-                                    };
-                                    QueueRecordForProcessing(repRecord);
+                                        DebugWrite("Starting a round end delay thread.", 5);
+                                        try
+                                        {
+                                            Thread.CurrentThread.Name = "roundenddelay";
+                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
+                                            _threadMasterWaitHandle.WaitOne(8000);
+                                            var repRecord = new AdKatsRecord
+                                            {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverID,
+                                                command_type = _CommandKeyDictionary["round_end"],
+                                                command_numeric = baserapingTeam.TeamID,
+                                                target_name = baserapingTeam.TeamName,
+                                                source_name = "RoundManager",
+                                                record_message = "End Baserape Round (" + baserapingTeam.TeamKey + " Win)(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + ")"
+                                            };
+                                            QueueRecordForProcessing(repRecord);
+                                        }
+                                        catch (Exception)
+                                        {
+                                            HandleException(new AdKatsException("Error while running round end delay."));
+                                        }
+                                        DebugWrite("Exiting a round end delay thread.", 5);
+                                        LogThreadExit();
+                                    }));
+                                    StartAndLogThread(roundEndDelayThread);
                                 }
                             }
 
@@ -10961,7 +11117,13 @@ namespace PRoConEvents {
                     if (record.target_name != record.source_name && record.source_name != "AFKManager") {
                         AdminSayMessage("Player " + record.target_name + " was KICKED by " + ((_ShowAdminNameInAnnouncement) ? (record.source_name) : ("admin")) + " for " + record.record_message);
                     }
-                    SendMessageToSource(record, "You KICKED " + record.target_name + " from " + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + " team for " + record.record_message + ".");
+                    if (record.target_player.frostbitePlayerInfo != null) {
+                        SendMessageToSource(record, "You KICKED " + record.target_name + " from " + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamName + " for " + record.record_message);
+                    }
+                    else
+                    {
+                        SendMessageToSource(record, "You KICKED " + record.target_name + " for " + record.record_message);
+                    }
                 }
                 record.record_action_executed = true;
             }
@@ -12733,18 +12895,15 @@ namespace PRoConEvents {
                         }
                         SendMessageToSource(record, "Last Rules Request: " + rulesRequestsText);
                         _threadMasterWaitHandle.WaitOne(2000);
-                        if (_isTestingAuthorized)
+                        //Ping Kicks
+                        String pingKicksText = "Player never kicked for ping.";
+                        var pingKicks = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_kick"].command_id, 1000, 50, true, false).Where(innerRecord => innerRecord.source_name == "PingEnforcer");
+                        if (pingKicks.Any())
                         {
-                            //Ping Kicks
-                            String pingKicksText = "Player never kicked for ping.";
-                            var pingKicks = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_kick"].command_id, 1000, 50, true, false).Where(innerRecord => innerRecord.source_name == "PingEnforcer");
-                            if (pingKicks.Any())
-                            {
-                                pingKicksText = "Kicked " + pingKicks.Count() + " time(s) for high ping.";
-                            }
-                            SendMessageToSource(record, "Ping Kicks: " + pingKicksText + " Current Ping [" + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping_avg, 2) + "") : ("Missing")) + "].");
-                            _threadMasterWaitHandle.WaitOne(2000);
+                            pingKicksText = "Kicked " + pingKicks.Count() + " time(s) for high ping.";
                         }
+                        SendMessageToSource(record, "Ping Kicks: " + pingKicksText + " Current Ping [" + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping_avg, 2) + "") : ("Missing")) + "].");
+                        _threadMasterWaitHandle.WaitOne(2000);
                         //Reputation
                         SendMessageToSource(record, "Reputation: " + ((!PlayerIsAdmin(record.target_player)) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)));
                         _threadMasterWaitHandle.WaitOne(2000);
@@ -14586,7 +14745,15 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"AFK Trigger Minutes", typeof(Double), _AFKTriggerDurationMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Minimum Players", typeof(Int32), _AFKTriggerMinimumPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore User List", typeof(Boolean), _AFKIgnoreUserList));
-                QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_AFKIgnoreRoles)));
+                QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_AFKIgnoreRoles))); 
+                QueueSettingForUpload(new CPluginVariable(@"Ping Enforcer Enable", typeof(Boolean), _pingEnforcerSystemEnable));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Trigger ms", typeof(Double), _pingEnforcerTriggerMS));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
+                QueueSettingForUpload(new CPluginVariable(@"Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
+                QueueSettingForUpload(new CPluginVariable(@"Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore User List", typeof(Boolean), _pingEnforcerIgnoreUserList));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerIgnoreRoles)));
                 DebugWrite("uploadAllSettings finished!", 6);
             }
             catch (Exception e) {
@@ -18113,7 +18280,7 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 70", "REPLACE INTO `adkats_commands` VALUES(70, 'Active', 'player_log', 'Log', 'Log Player Information', 'log', FALSE)", true);
                                     changed = true;
                                 }
-                                if (!_CommandIDDictionary.ContainsKey(71) && _isTestingAuthorized)
+                                if (!_CommandIDDictionary.ContainsKey(71))
                                 {
                                     SendNonQuery("Adding command 71", "REPLACE INTO `adkats_commands` VALUES(71, 'Active', 'player_whitelistping', 'Log', 'Ping Whitelist Player', 'pwhitelist', TRUE)", true);
                                     changed = true;
@@ -21455,7 +21622,7 @@ namespace PRoConEvents {
                 do
                 {
                     removed = false;
-                    if (player_pings.Any() && (DateTime.UtcNow - player_pings.Peek().Value).TotalSeconds > 180)
+                    if (player_pings.Any() && (DateTime.UtcNow - player_pings.Peek().Value).TotalSeconds > Plugin._pingMovingAverageDurationSeconds)
                     {
                         player_pings.Dequeue();
                         player_pings_full = true;
