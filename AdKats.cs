@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.4.2
+ * Version 5.1.4.3
  * 10-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.4.2";
+        private const String PluginVersion = "5.1.4.3";
 
         public enum ConsoleMessageType {
             Info,
@@ -3474,7 +3474,7 @@ namespace PRoConEvents {
                             inboundPlayerRemoval = new Queue<CPlayerInfo>();
                         }
 
-                        if (!inboundPlayerList.Any() && !inboundPlayerRemoval.Any() && !_PlayerRoleRefetch) {
+                        if (!inboundPlayerList.Any() && !inboundPlayerRemoval.Any() && !_PlayerRoleRefetch && !playerListFetched) {
                             DebugWrite("PLIST: No inbound player lists or removals found. Waiting for Input.", 5);
                             //Wait for input
                             if (!_firstPlayerListComplete) {
