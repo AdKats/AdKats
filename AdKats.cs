@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.4.1
- * 9-OCT-2014
+ * Version 5.1.4.2
+ * 10-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.4.1";
+        private const String PluginVersion = "5.1.4.2";
 
         public enum ConsoleMessageType {
             Info,
@@ -107,7 +107,7 @@ namespace PRoConEvents {
         private volatile String _latestPluginVersion;
         private volatile String _pluginVersionStatusString;
         private VersionStatus _pluginVersionStatus = VersionStatus.UnfetchedBuild;
-        private Boolean _pluginUpdatePatched = false;
+        private Boolean _pluginUpdatePatched;
         private volatile Boolean _useKeepAlive;
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
         private RoundState _currentRoundState = RoundState.Loaded;
@@ -139,8 +139,8 @@ namespace PRoConEvents {
         private Int32 _pingKicksThisRound = 0;
         private Int32 _pingKicksTotal = 0;
         private Int32 _currentRoundID = 0;
-        private Boolean _usageDataDisabled = false;
-        private Boolean _automaticUpdatesDisabled = false;
+        private Boolean _usageDataDisabled;
+        private Boolean _automaticUpdatesDisabled;
 
         //Debug
         private volatile Int32 _debugLevel;
@@ -5281,26 +5281,29 @@ namespace PRoConEvents {
                                 List<AdKatsBan> aBanList = FetchPlayerBans(aPlayer);
                                 if (aBanList.Count > 0) {
                                     foreach (AdKatsBan aBan in aBanList) {
-                                        DebugWrite("BANENF: BAN ENFORCED on " + aPlayer.player_name, 3);
-
-                                        //Create the new record
-                                        var aRecord = new AdKatsRecord {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            source_name = "BanEnforcer",
-                                            isIRO = false,
-                                            server_id = _serverID,
-                                            target_name = aPlayer.player_name,
-                                            target_player = aPlayer,
-                                            command_type = _CommandKeyDictionary["banenforcer_enforce"],
-                                            command_numeric = (int) aBan.ban_id,
-                                            record_message = aBan.ban_record.record_message + ((aBan.ban_record.target_player.player_id != aPlayer.player_id) ? (" [LINKED ACCOUNT " + aBan.ban_record.target_player.player_id + "]") : (""))
-                                        };
-                                        //Queue record for upload
-                                        QueueRecordForProcessing(aRecord);
-                                        //Ensure the ban record has correct player information
-                                        aBan.ban_record.target_player = aPlayer;
-                                        //Enforce the ban
-                                        EnforceBan(aBan, true);
+                                        if (aBan.ban_record.target_player.player_id == aPlayer.player_id || aBanList.Count <= 5)
+                                        {
+                                            DebugWrite("BANENF: BAN ENFORCED on " + aPlayer.player_name, 3);
+                                            //Create the new record
+                                            var aRecord = new AdKatsRecord
+                                            {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                source_name = "BanEnforcer",
+                                                isIRO = false,
+                                                server_id = _serverID,
+                                                target_name = aPlayer.player_name,
+                                                target_player = aPlayer,
+                                                command_type = _CommandKeyDictionary["banenforcer_enforce"],
+                                                command_numeric = (int)aBan.ban_id,
+                                                record_message = aBan.ban_record.record_message + ((aBan.ban_record.target_player.player_id != aPlayer.player_id) ? (" [LINKED ACCOUNT " + aBan.ban_record.target_player.player_id + "]") : (""))
+                                            };
+                                            //Queue record for upload
+                                            QueueRecordForProcessing(aRecord);
+                                            //Ensure the ban record has correct player information
+                                            aBan.ban_record.target_player = aPlayer;
+                                            //Enforce the ban
+                                            EnforceBan(aBan, true);
+                                        }
                                     }
                                 }
                                 else {
