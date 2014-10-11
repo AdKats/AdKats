@@ -1005,8 +1005,6 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Override Timing Confirmation").Success) {
                     Boolean dbTimingValidOverride = Boolean.Parse(strValue);
                     if (dbTimingValidOverride != _dbTimingValidOverride) {
-                        if (dbTimingValidOverride)
-                            Enable();
                         _dbTimingValidOverride = dbTimingValidOverride;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Override Timing Confirmation", typeof (Boolean), _dbTimingValidOverride));
@@ -14127,6 +14125,7 @@ namespace PRoConEvents {
                         if (!_dbTimingValidOverride)
                         {
                             Disable();
+                            return false;
                         }
                     }
                     else if (diffUTC.TotalSeconds > 300) {
@@ -14134,6 +14133,7 @@ namespace PRoConEvents {
                         _dbTimingValid = false;
                         if (!_dbTimingValidOverride) {
                             Disable();
+                            return false;
                         }
                     }
                     else {
