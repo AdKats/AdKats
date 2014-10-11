@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.4.3
+ * Version 5.1.4.4
  * 10-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.4.3";
+        private const String PluginVersion = "5.1.4.4";
 
         public enum ConsoleMessageType {
             Info,
@@ -195,6 +195,9 @@ namespace PRoConEvents {
         private Int32 _databaseSuccess;
         private Int32 _databaseTimeouts;
         private volatile Boolean _dbSettingsChanged = true;
+        private Boolean _dbTimingChecked = false;
+        private Boolean _dbTimingValid = false;
+        private Boolean _dbTimingValidOverride = false;
         private Hashtable _lastStatLoggerStatusUpdate;
         private String _statLoggerVersion = "BF3";
 
@@ -587,7 +590,12 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Password", typeof (String), _mySqlPassword));
                     }
                     //Debugging Settings
-                    lstReturn.Add(new CPluginVariable("2. Debugging|Debug level", typeof (Int32), _debugLevel));
+                    lstReturn.Add(new CPluginVariable("2. Debugging|Debug level", typeof(Int32), _debugLevel));
+                    //Database Timing
+                    if (_dbTimingChecked && !_dbTimingValid)
+                    {
+                        lstReturn.Add(new CPluginVariable("3. Database Timing Mismatch|Override Timing Confirmation", typeof(Boolean), _dbTimingValidOverride));
+                    }
                 }
                 else {
                     if (_settingsLocked) {
@@ -971,6 +979,8 @@ namespace PRoConEvents {
             lstReturn.Add(new CPluginVariable("3. Debugging|Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
             lstReturn.Add(new CPluginVariable("3. Debugging|Disable Usage Data Posting", typeof(Boolean), _usageDataDisabled));
 
+            lstReturn.Add(new CPluginVariable("4. Database Timing Mismatch|Override Timing Confirmation", typeof(Boolean), _dbTimingValidOverride));
+
             return lstReturn;
         }
 
@@ -990,6 +1000,16 @@ namespace PRoConEvents {
                         _useKeepAlive = autoEnable;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof (Boolean), _useKeepAlive));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Override Timing Confirmation").Success) {
+                    Boolean dbTimingValidOverride = Boolean.Parse(strValue);
+                    if (dbTimingValidOverride != _dbTimingValidOverride) {
+                        if (dbTimingValidOverride)
+                            Enable();
+                        _dbTimingValidOverride = dbTimingValidOverride;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Override Timing Confirmation", typeof (Boolean), _dbTimingValidOverride));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Unlock Settings").Success) {
@@ -7141,7 +7161,7 @@ namespace PRoConEvents {
 
                 //GATE 1: Add Command
                 AdKatsCommand commandType = null;
-                if (_CommandTextDictionary.TryGetValue(commandString, out commandType)) {
+                if (_CommandTextDictionary.TryGetValue(commandString, out commandType) && commandType.command_active == AdKatsCommand.CommandActive.Active) {
                     record.command_type = commandType;
                     record.command_action = commandType;
                     DebugWrite("Command parsed. Command is " + commandType.command_key + ".", 5);
@@ -7191,7 +7211,7 @@ namespace PRoConEvents {
                     if (!HasAccess(record.source_player, record.command_type)) {
                         DebugWrite("No rights to call command", 6);
                         //Only tell the user they dont have access if the command is active
-                        if (record.command_type.command_active != AdKatsCommand.CommandActive.Disabled) {
+                        if (record.command_type.command_active == AdKatsCommand.CommandActive.Active) {
                             SendMessageToSource(record, "Your user role " + record.source_player.player_role.role_name + " does not have access to " + record.command_type.command_name + ".");
                         }
                         FinalizeRecord(record);
@@ -7206,7 +7226,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -7242,7 +7262,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -7279,7 +7299,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -7300,7 +7320,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -7409,7 +7429,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -7431,7 +7451,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -7491,7 +7511,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -7551,7 +7571,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -7611,7 +7631,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -7732,7 +7752,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -7909,7 +7929,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -8116,7 +8136,14 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+
+                        if (!_dbTimingValid)
+                        {
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed when database timing is mismatched.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -8230,7 +8257,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -8292,7 +8319,7 @@ namespace PRoConEvents {
 
                             if (_serverType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -8327,7 +8354,7 @@ namespace PRoConEvents {
 
                             if (_serverType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -8366,7 +8393,7 @@ namespace PRoConEvents {
                         return;
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -8861,7 +8888,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -8939,7 +8966,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -8952,7 +8979,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -8973,7 +9000,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -9047,7 +9074,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -9060,7 +9087,7 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         if (_serverType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -14079,6 +14106,46 @@ namespace PRoConEvents {
                     ConsoleError("Database connection FAILED with EXCEPTION. Bad credentials, invalid hostname, or invalid port.");
                     Disable();
                 }
+                else
+                {
+                    //Confirm database UTC timestamp matches procon UTC timestamp
+                    var dbUTC = GetDatabaseUTCTimestamp();
+                    var curUTC = DateTime.UtcNow;
+                    TimeSpan diffUTC;
+                    if (dbUTC > curUTC) 
+                    {
+                        diffUTC = dbUTC - curUTC;
+                    }
+                    else
+                    {
+                        diffUTC = curUTC - dbUTC;
+                    }
+                    _dbTimingChecked = true;
+                    if (dbUTC == DateTime.MinValue) {
+                        ConsoleError("Unable to confirm timing controls. Database UTC Timestamp could not be fetched.");
+                        _dbTimingValid = false;
+                        if (!_dbTimingValidOverride)
+                        {
+                            Disable();
+                        }
+                    }
+                    else if (diffUTC.TotalSeconds > 300) {
+                        ConsoleError("Your PRoCon layer and database have a " + FormatTimeString(diffUTC, 3) + " UTC timestamp mismatch. UTC-Database:(" + dbUTC.ToShortDateString() + " " + dbUTC.ToLongTimeString() + ") UTC-Procon:(" + curUTC.ToShortDateString() + " " + curUTC.ToLongTimeString() + ")");
+                        _dbTimingValid = false;
+                        if (!_dbTimingValidOverride) {
+                            Disable();
+                        }
+                    }
+                    else {
+                        _dbTimingValid = true;
+                        if (diffUTC.TotalSeconds > 15) {
+                            ConsoleWarn("Database timing confirmed, but there is a " + FormatTimeString(diffUTC, 3) + " UTC timestamp mismatch between your layer and database.");
+                        }
+                        else {
+                            ConsoleSuccess("Database timing confirmed.");
+                        }
+                    }
+                }
             }
             else {
                 ConsoleError("Not DB connection capable yet, complete SQL connection variables.");
@@ -14659,7 +14726,8 @@ namespace PRoConEvents {
             }
             try {
                 DebugWrite("uploadAllSettings starting!", 6);
-                QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof (Boolean), _useKeepAlive));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
+                QueueSettingForUpload(new CPluginVariable(@"Override Timing Confirmation", typeof(Boolean), _dbTimingValidOverride));
                 QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (int), _debugLevel));
                 QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof (String), _debugSoldierName));
                 QueueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof (String), _ServerVoipAddress));
@@ -15784,7 +15852,7 @@ namespace PRoConEvents {
                         sql += @" 
                         AND
                         (
-	                        DATE_ADD(`record_time`, INTERVAL @limit_days DAY) > NOW()
+	                        DATE_ADD(`record_time`, INTERVAL @limit_days DAY) > UTC_TIMESTAMP()
                         )
                         ORDER BY
 	                        `record_id` DESC
@@ -17217,11 +17285,6 @@ namespace PRoConEvents {
                         command.CommandText = @"
                         SELECT
 	                        `ban_id`
-	                        -- `player_id`,
-	                        -- `SoldierName` AS `player_name`,
-	                        -- `source_name`,
-	                        -- `target_name`,
-	                        -- `record_message`
                         FROM
 	                        `tbl_playerdata`
                         INNER JOIN
@@ -17818,7 +17881,7 @@ namespace PRoConEvents {
                         AND
 	                        `tbl_chatlog`.`ServerID` = @server_id
                         AND 
-	                        DATE_ADD(`tbl_chatlog`.`logDate`, INTERVAL @limit_days DAY) > NOW()
+	                        DATE_ADD(`tbl_chatlog`.`logDate`, INTERVAL @limit_days DAY) > UTC_TIMESTAMP()
                         ORDER BY 
 	                        `ID` DESC
                         LIMIT
@@ -17868,7 +17931,7 @@ namespace PRoConEvents {
                         AND
 	                        `tbl_chatlog`.`ServerID` = @server_id
                         AND 
-	                        DATE_ADD(`tbl_chatlog`.`logDate`, INTERVAL @limit_days DAY) > NOW()
+	                        DATE_ADD(`tbl_chatlog`.`logDate`, INTERVAL @limit_days DAY) > UTC_TIMESTAMP()
                         ORDER BY 
 	                        `ID` DESC
                         LIMIT
@@ -19220,6 +19283,32 @@ namespace PRoConEvents {
             }
             DebugWrite("databaseConnectionActive finished!", 8);
             return active;
+        }
+
+        private DateTime GetDatabaseUTCTimestamp()
+        {
+            try
+            {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT UTC_TIMESTAMP() AS `current_time`";
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read()) {
+                                return reader.GetDateTime("current_time");
+                            }
+
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                ConsoleError("Unable to fetch database UTC Timestamp.");
+            }
+            return DateTime.MinValue;
         }
 
         private void UpdateMULTIBalancerWhitelist() {
