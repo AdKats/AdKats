@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.4.4
- * 10-OCT-2014
+ * Version 5.1.4.5
+ * 11-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.4.4";
+        private const String PluginVersion = "5.1.4.5";
 
         public enum ConsoleMessageType {
             Info,
@@ -319,7 +319,20 @@ namespace PRoConEvents {
         private Boolean _IROOverridesLowPop;
         private Int32 _IROTimeout = 10;
         private Boolean _OnlyKillOnLowPop = true;
-        private String[] _PunishmentHierarchy = { "warn", "kill", "kick", "tban60", "tban120", "tbanday", "tbanweek", "tban2weeks", "tbanmonth", "ban" };
+        private String[] _PunishmentHierarchy = {
+            "warn", 
+            "kill", 
+            "kick", 
+            "tban60", 
+            "tban120", 
+            "tbanday",
+            "tban2days",
+            "tban3days", 
+            "tbanweek", 
+            "tban2weeks", 
+            "tbanmonth", 
+            "ban"
+        };
 
         //Teamswap
         private Int32 _TeamSwapTicketWindowHigh = 500000;
@@ -331,7 +344,7 @@ namespace PRoConEvents {
         private readonly Dictionary<String, CPlayerInfo> _TeamswapOnDeathMoveDic = new Dictionary<String, CPlayerInfo>();
 
         //AFK manager
-        private Boolean _AFKSystemEnable;
+        private Boolean _AFKManagerEnable;
         private Boolean _AFKAutoKickEnable;
         private Double _AFKTriggerDurationMinutes = 5;
         private Int32 _AFKTriggerMinimumPlayers = 20;
@@ -344,10 +357,14 @@ namespace PRoConEvents {
         private Int32 _pingEnforcerTriggerMinimumPlayers = 50;
         private Double _pingEnforcerTriggerMS = 300;
         private Double _pingMovingAverageDurationSeconds = 180;
-        private Boolean _pingEnforcerKickMissingPings;
+        private Boolean _pingEnforcerKickMissingPings = true;
         private Boolean _pingEnforcerIgnoreUserList = true;
         private String[] _pingEnforcerIgnoreRoles = { };
         private Boolean _attemptManualPingWhenMissing = true;
+
+        //AFK manager
+        private Boolean _CMDRManagerEnable;
+        private Int32 _CMDRMinimumPlayers = 40;
 
         //Ban enforcer
         private Boolean _UseBanAppend;
@@ -488,6 +505,8 @@ namespace PRoConEvents {
                 "tban60",
                 "tban120",
                 "tbanday",
+                "tban2days",
+                "tban3days",
                 "tbanweek",
                 "tban2weeks",
                 "tbanmonth",
@@ -767,8 +786,8 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
 
                     //AFK manager settings
-                    lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK System Enable", typeof(Boolean), _AFKSystemEnable));
-                    if (_AFKSystemEnable)
+                    lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK System Enable", typeof(Boolean), _AFKManagerEnable));
+                    if (_AFKManagerEnable)
                     {
                         lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
                         lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
@@ -795,6 +814,13 @@ namespace PRoConEvents {
                         {
                             lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Ignore Roles", typeof(String[]), _pingEnforcerIgnoreRoles));
                         }
+                    }
+
+                    //Commander manager settings
+                    lstReturn.Add(new CPluginVariable("B22. Commander Manager Settings|Commander Manager Enable", typeof(Boolean), _CMDRManagerEnable));
+                    if (_CMDRManagerEnable)
+                    {
+                        lstReturn.Add(new CPluginVariable("B22. Commander Manager Settings|Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
                     }
 
                     //Debug settings
@@ -1280,11 +1306,11 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"AFK System Enable").Success)
                 {
                     Boolean afkSystemEnable = Boolean.Parse(strValue);
-                    if (afkSystemEnable != _AFKSystemEnable)
+                    if (afkSystemEnable != _AFKManagerEnable)
                     {
-                        _AFKSystemEnable = afkSystemEnable;
+                        _AFKManagerEnable = afkSystemEnable;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKSystemEnable));
+                        QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKManagerEnable));
                     }
                 }
                 else if (Regex.Match(strVariable, @"AFK Ignore Chat").Success)
@@ -1360,6 +1386,9 @@ namespace PRoConEvents {
                     {
                         _pingEnforcerSystemEnable = PingSystemEnable;
                         //Once setting has been changed, upload the change to database
+                        if (_isTestingAuthorized) {
+                            _pingEnforcerSystemEnable = true;
+                        }
                         QueueSettingForUpload(new CPluginVariable(@"Ping Enforcer Enable", typeof(Boolean), _pingEnforcerSystemEnable));
                     }
                 }
@@ -1414,6 +1443,10 @@ namespace PRoConEvents {
                     if (pingEnforcerKickMissingPings != _pingEnforcerKickMissingPings)
                     {
                         _pingEnforcerKickMissingPings = pingEnforcerKickMissingPings;
+                        if (_isTestingAuthorized)
+                        {
+                            _pingEnforcerKickMissingPings = true;
+                        }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
                     }
@@ -1443,6 +1476,42 @@ namespace PRoConEvents {
                     _pingEnforcerIgnoreRoles = CPluginVariable.DecodeStringArray(strValue);
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerIgnoreRoles)));
+                }
+                else if (Regex.Match(strVariable, @"Commander Manager Enable").Success)
+                {
+                    Boolean CMDRManagerEnable = Boolean.Parse(strValue);
+                    if (CMDRManagerEnable != _CMDRManagerEnable)
+                    {
+                        if (_gameVersion == GameVersion.BF3 && CMDRManagerEnable)
+                        {
+                            ConsoleError("Commander manager cannot be enabled in BF3");
+                        }
+                        else
+                        {
+                            _CMDRManagerEnable = CMDRManagerEnable;
+                            //Once setting has been changed, upload the change to database
+                            if (_isTestingAuthorized)
+                            {
+                                _CMDRManagerEnable = true;
+                            }
+                            QueueSettingForUpload(new CPluginVariable(@"Commander Manager Enable", typeof(Boolean), _CMDRManagerEnable));
+                        }
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Minimum Players to Allow Commanders").Success)
+                {
+                    Int32 CMDRMinimumPlayers = Int32.Parse(strValue);
+                    if (_CMDRMinimumPlayers != CMDRMinimumPlayers)
+                    {
+                        if (CMDRMinimumPlayers < 0)
+                        {
+                            ConsoleError("Minimum players cannot be negative.");
+                            return;
+                        }
+                        _CMDRMinimumPlayers = CMDRMinimumPlayers;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
+                    }
                 }
                 else if (Regex.Match(strVariable, @"Feed MULTIBalancer Whitelist").Success) {
                     Boolean feedMTBWhite = Boolean.Parse(strValue);
@@ -3008,7 +3077,7 @@ namespace PRoConEvents {
                                 }
 
                                 //Perform AFK processing
-                                if (_AFKSystemEnable && _AFKAutoKickEnable && (_PlayerDictionary.Count > _AFKTriggerMinimumPlayers))
+                                if (_AFKManagerEnable && _AFKAutoKickEnable && (_PlayerDictionary.Count > _AFKTriggerMinimumPlayers))
                                 {
                                     List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
                                         aPlayer =>
@@ -3714,10 +3783,10 @@ namespace PRoConEvents {
                                                 QueueRecordForProcessing(record);
                                             }
                                         }
-                                        if (_isTestingAuthorized &&
+                                        if (_CMDRManagerEnable &&
                                             _firstPlayerListComplete &&
                                             (aPlayer.player_type == PlayerType.CommanderPC || aPlayer.player_type == PlayerType.CommanderMobile) &&
-                                            _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) < 30)
+                                            _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) < (0.75 * _CMDRMinimumPlayers))
                                         {
                                             var record = new AdKatsRecord
                                             {
@@ -3728,7 +3797,7 @@ namespace PRoConEvents {
                                                 target_name = aPlayer.player_name,
                                                 target_player = aPlayer,
                                                 source_name = "CMDRManager",
-                                                record_message = "Commanders not allowed until 40 active players"
+                                                record_message = "Commanders not allowed until " + _CMDRMinimumPlayers + " active players"
                                             };
                                             QueueRecordForProcessing(record);
                                         }
@@ -3845,10 +3914,10 @@ namespace PRoConEvents {
                                                 break;
                                         }
                                     }
-                                    if (_isTestingAuthorized && 
+                                    if (_CMDRManagerEnable && 
                                         _firstPlayerListComplete &&
                                         (aPlayer.player_type == PlayerType.CommanderPC || aPlayer.player_type == PlayerType.CommanderMobile) &&
-                                        _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) < 40) {
+                                        _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) < _CMDRMinimumPlayers) {
                                         var record = new AdKatsRecord
                                         {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -3858,7 +3927,7 @@ namespace PRoConEvents {
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
                                             source_name = "CMDRManager",
-                                            record_message = "Commanders not allowed until 40 active players"
+                                            record_message = "Commanders not allowed until " + _CMDRMinimumPlayers + " active players"
                                         };
                                         QueueRecordForProcessing(record);
                                     }
@@ -4369,6 +4438,12 @@ namespace PRoConEvents {
                             _isTestingAuthorized = serverInfo.ServerName.Contains("=ADK=");
                             if (!wasADK && _isTestingAuthorized) {
                                 ConsoleSuccess("Server is testing authorized.");
+                                if (_gameVersion != GameVersion.BF3)
+                                {
+                                    _pingEnforcerSystemEnable = true;
+                                    _pingEnforcerKickMissingPings = true;
+                                    _CMDRManagerEnable = true;
+                                }
                                 UpdateSettingPage();
                             }
                         }
@@ -4391,6 +4466,7 @@ namespace PRoConEvents {
                 if (_pluginEnabled) {
                     _currentRoundState = RoundState.Loaded;
                     //Completely clear all round-specific data
+                    _endingRound = false;
                     _RoundReports.Clear();
                     _RoundMutedPlayers.Clear();
                     _ActionConfirmDic.Clear();
@@ -4420,13 +4496,11 @@ namespace PRoConEvents {
         {
             _currentRoundState = RoundState.Ended;
             _pingKicksThisRound = 0;
-            _endingRound = false;
         }
 
         public override void OnRunNextLevel() {
             _currentRoundState = RoundState.Ended;
             _pingKicksThisRound = 0;
-            _endingRound = false;
         }
 
         //Move delayed players when they are killed
@@ -6940,6 +7014,18 @@ namespace PRoConEvents {
                             break;
                         case "player_report":
                             {
+                                if (record.target_player != null && 
+                                    !record.target_player.player_online &&
+                                    record.target_player.TargetedRecords.Any(
+                                        aRecord => 
+                                            (aRecord.command_action.command_key == "player_kick" ||
+                                            aRecord.command_action.command_key == "player_ban_temp" ||
+                                            aRecord.command_action.command_key == "player_ban_perm") &&
+                                            (DateTime.UtcNow - aRecord.record_time).TotalSeconds < 300)) {
+                                    SendMessageToSource(record, record.target_player.player_name + " has already been removed from the server by admin.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 if (_isTestingAuthorized)
                                 {
                                     var lowerM = " " + record.record_message.ToLower() + " ";
@@ -8470,7 +8556,7 @@ namespace PRoConEvents {
 
                                 //Only 1 character reasons are required for reports and admin calls
                                 if (record.record_message.Length >= 1) {
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, true, false, false);
                                 }
                                 else {
                                     DebugWrite("reason too short", 6);
@@ -11473,8 +11559,21 @@ namespace PRoConEvents {
                         record.command_action = _CommandKeyDictionary["player_ban_temp"];
                         TempBanTarget(record);
                     }
-                    else if (action == "tbanday") {
+                    else if (action == "tbanday")
+                    {
                         record.command_numeric = 1440;
+                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        TempBanTarget(record);
+                    }
+                    else if (action == "tban2days")
+                    {
+                        record.command_numeric = 2880;
+                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        TempBanTarget(record);
+                    }
+                    else if (action == "tban3days")
+                    {
+                        record.command_numeric = 4320;
                         record.command_action = _CommandKeyDictionary["player_ban_temp"];
                         TempBanTarget(record);
                     }
@@ -14810,7 +14909,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Usage Data Posting", typeof(Boolean), _usageDataDisabled));
-                QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKSystemEnable));
+                QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKManagerEnable));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Trigger Minutes", typeof(Double), _AFKTriggerDurationMinutes));
@@ -14825,6 +14924,8 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore User List", typeof(Boolean), _pingEnforcerIgnoreUserList));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerIgnoreRoles)));
+                QueueSettingForUpload(new CPluginVariable(@"Commander Manager Enable", typeof(Boolean), _CMDRManagerEnable));
+                QueueSettingForUpload(new CPluginVariable(@"Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
                 DebugWrite("uploadAllSettings finished!", 6);
             }
             catch (Exception e) {
