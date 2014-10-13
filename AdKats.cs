@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.4.5
- * 11-OCT-2014
+ * Version 5.1.4.6
+ * 13-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.4.5";
+        private const String PluginVersion = "5.1.4.6";
 
         public enum ConsoleMessageType {
             Info,
@@ -115,6 +115,7 @@ namespace PRoConEvents {
         private Int32 _lowestTicketCount = 500000;
         private volatile Boolean _fetchedPluginInformation;
         private Boolean _firstUserListComplete;
+        private Boolean _firstPlayerListStarted;
         private Boolean _firstPlayerListComplete;
         private Int32 _gameID = -1;
         private Boolean _commanderEnabled;
@@ -403,6 +404,26 @@ namespace PRoConEvents {
         private String _MutedPlayerKillMessage = "Do not talk while muted. You can speak again next round.";
         private String _MutedPlayerMuteMessage = "You have been muted by an admin, talking will cause punishment. You can speak again next round.";
         private Boolean _MutedPlayerIgnoreCommands = true;
+
+        //Surrender
+        private Boolean _surrenderVoteEnable;
+        private Double _surrenderVoteMinimumPlayerPercentage = 30;
+        private Int32 _surrenderVoteMinimumPlayerCount = 16;
+        private Double _surrenderVoteMinimumTicketGap = 300;
+        private Boolean _surrenderVoteTicketRateGapEnable;
+        private Double _surrenderVoteMinimumTicketRateGap;
+        private Boolean _surrenderVoteActive;
+        private Boolean _surrenderVoteTimeoutEnable;
+        private Double _surrenderVoteTimeoutMinutes = 5;
+        private DateTime _surrenderVoteStartTime = DateTime.UtcNow;
+        private HashSet<String> _surrenderVoteList = new HashSet<String>();
+        
+
+        double percent = 30; // CUSTOMIZE: of losing team that has to vote
+        double timeout = 5.0; // CUSTOMIZE: number of minutes before vote times out
+        int minPlayers = 16; // CUSTOMIZE: minimum players to enable vote
+        double minTicketPercent = 10; // CUSTOMIZE: minimum ticket percentage remaining in the round
+        double minTicketGap = 300; // CUSTOMIZE: minimum ticket gap between winning and losing teams
 
         //EmailHandler
         private EmailHandler _EmailHandler;
@@ -2695,7 +2716,55 @@ namespace PRoConEvents {
                 //Set the server IP
                 _serverIP = strHostName + ":" + strPort;
                 //Register all events
-                RegisterEvents(GetType().Name, "OnVersion", "OnServerInfo", "OnListPlayers", "OnPunkbusterPlayerInfo", "OnReservedSlotsList", "OnPlayerKilled", "OnPlayerIsAlive", "OnPlayerSpawned", "OnPlayerTeamChange", "OnPlayerSquadChange", "OnPlayerJoin", "OnPlayerLeft", "OnGlobalChat", "OnTeamChat", "OnSquadChat", "OnLevelLoaded", "OnBanAdded", "OnBanRemoved", "OnBanListClear", "OnBanListSave", "OnBanListLoad", "OnBanList", "OnRoundOverTeamScores", "OnSpectatorListLoad", "OnSpectatorListSave", "OnSpectatorListPlayerAdded", "OnSpectatorListPlayerRemoved", "OnSpectatorListCleared", "OnSpectatorListList", "OnGameAdminLoad", "OnGameAdminSave", "OnGameAdminPlayerAdded", "OnGameAdminPlayerRemoved", "OnGameAdminCleared", "OnGameAdminList", "OnFairFight", "OnIsHitIndicator", "OnCommander", "OnForceReloadWholeMags", "OnServerType", "OnMaxSpectators", "OnTeamFactionOverride");
+                RegisterEvents(GetType().Name, 
+                    "OnVersion", 
+                    "OnServerInfo", 
+                    "OnListPlayers", 
+                    "OnPunkbusterPlayerInfo", 
+                    "OnReservedSlotsList", 
+                    "OnPlayerKilled", 
+                    "OnPlayerIsAlive", 
+                    "OnPlayerSpawned", 
+                    "OnPlayerTeamChange", 
+                    "OnPlayerSquadChange", 
+                    "OnPlayerJoin", 
+                    "OnPlayerLeft", 
+                    "OnGlobalChat", 
+                    "OnTeamChat", 
+                    "OnSquadChat", 
+                    "OnLevelLoaded", 
+                    "OnBanAdded", 
+                    "OnBanRemoved", 
+                    "OnBanListClear", 
+                    "OnBanListSave", 
+                    "OnBanListLoad", 
+                    "OnBanList", 
+                    "OnRoundOverTeamScores", 
+                    "OnSpectatorListLoad", 
+                    "OnSpectatorListSave", 
+                    "OnSpectatorListPlayerAdded", 
+                    "OnSpectatorListPlayerRemoved", 
+                    "OnSpectatorListCleared", 
+                    "OnSpectatorListList", 
+                    "OnGameAdminLoad", 
+                    "OnGameAdminSave", 
+                    "OnGameAdminPlayerAdded", 
+                    "OnGameAdminPlayerRemoved", 
+                    "OnGameAdminCleared", 
+                    "OnGameAdminList", 
+                    "OnFairFight", 
+                    "OnIsHitIndicator", 
+                    "OnCommander", 
+                    "OnForceReloadWholeMags", 
+                    "OnServerType", 
+                    "OnMaxSpectators", 
+                    "OnTeamFactionOverride",
+                    "OnGameAdminLoad",
+                    "OnGameAdminSave",
+                    "OnGameAdminPlayerAdded",
+                    "OnGameAdminPlayerRemoved",
+                    "OnGameAdminCleared",
+                    "OnGameAdminList");
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("FATAL ERROR on plugin load.", e));
@@ -2872,6 +2941,7 @@ namespace PRoConEvents {
                             _PlayerLeftDictionary.Clear();
                         _firstPlayerListComplete = false;
                         _firstUserListComplete = false;
+                        _firstPlayerListStarted = false;
                         if (_userCache != null)
                             _userCache.Clear();
                         if (FrostbitePlayerInfoList != null)
@@ -3359,26 +3429,42 @@ namespace PRoConEvents {
             _serverType = value;
         }
 
+        //procon.public.accounts.create
+        //procon.public.accounts.delete
+        //procon.public.accounts.setPassword
         public override void OnGameAdminLoad() {
+            ConsoleInfo("OnGameAdminLoad");
         }
 
-        public override void OnGameAdminSave() {
+        public override void OnGameAdminSave()
+        {
+            ConsoleInfo("OnGameAdminSave");
         }
 
-        public override void OnGameAdminPlayerAdded(String soldierName) {
+        public override void OnGameAdminPlayerAdded(String soldierName)
+        {
+            ConsoleInfo("OnGameAdminPlayerAdded " + soldierName);
         }
 
-        public override void OnGameAdminPlayerRemoved(String soldierName) {
+        public override void OnGameAdminPlayerRemoved(String soldierName)
+        {
+            ConsoleInfo("OnGameAdminPlayerRemoved " + soldierName);
         }
 
-        public override void OnGameAdminCleared() {
+        public override void OnGameAdminCleared()
+        {
+            ConsoleInfo("OnGameAdminCleared");
         }
 
-        public override void OnGameAdminList(List<String> soldierNames) {
+        public override void OnGameAdminList(List<String> soldierNames)
+        {
+            foreach (var soldierName in soldierNames)
+            {
+                ConsoleInfo("OnGameAdminList " + soldierName);
+            }
         }
 
         //DONE
-
         public void UpdateFactions() {
             if (_gameVersion == GameVersion.BF3) {
                 OnTeamFactionOverride(1, 0);
@@ -3394,7 +3480,6 @@ namespace PRoConEvents {
         }
 
         //DONE
-
         public override void OnPlayerTeamChange(String soldierName, Int32 teamId, Int32 squadId) {
             DebugWrite("Entering OnPlayerTeamChange", 7);
             try {
@@ -3533,6 +3618,7 @@ namespace PRoConEvents {
                                 while (_PlayerListProcessingQueue.Any()) {
                                     inboundPlayerList = _PlayerListProcessingQueue.Dequeue();
                                     playerListFetched = true;
+                                    _firstPlayerListStarted = true;
                                 }
                                 //Clear the queue for next run
                                 _PlayerListProcessingQueue.Clear();
@@ -3564,7 +3650,8 @@ namespace PRoConEvents {
                         if (!inboundPlayerList.Any() && !inboundPlayerRemoval.Any() && !_PlayerRoleRefetch && !playerListFetched) {
                             DebugWrite("PLIST: No inbound player lists or removals found. Waiting for Input.", 5);
                             //Wait for input
-                            if (!_firstPlayerListComplete) {
+                            if (!_firstPlayerListStarted)
+                            {
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
                             if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
@@ -9248,7 +9335,6 @@ namespace PRoConEvents {
                                             FinalizeRecord(record);
                                             return;
                                         }
-                                        OnlineAdminSayMessage(record.source_name + " requested server rules.");
                                     }
                                     else
                                     {
@@ -9263,6 +9349,74 @@ namespace PRoConEvents {
                                     {
                                         CompleteTargetInformation(record, false, false, false);
                                     }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "self_surrender":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 0);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    record.target_name = record.source_name;
+                                    record.record_message = "Player Voted for Surrender";
+                                    if (record.record_source == AdKatsRecord.Sources.InGame)
+                                    {
+                                        if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
+                                        {
+                                            SendMessageToSource(record, "Source player not found, unable to submit.");
+                                            FinalizeRecord(record);
+                                            return;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        record.target_name = "ExternalSource";
+                                    }
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "self_votenext":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 0);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    record.target_name = record.source_name;
+                                    record.record_message = "Player Voted for Next Round";
+                                    if (record.record_source == AdKatsRecord.Sources.InGame)
+                                    {
+                                        if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
+                                        {
+                                            SendMessageToSource(record, "Source player not found, unable to submit.");
+                                            FinalizeRecord(record);
+                                            return;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        record.target_name = "ExternalSource";
+                                    }
+                                    QueueRecordForProcessing(record);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -10915,6 +11069,12 @@ namespace PRoConEvents {
                         break;
                     case "self_rules":
                         SendServerRules(record);
+                        break;
+                    case "self_surrender":
+                        SourceVoteSurrender(record);
+                        break;
+                    case "self_votenext":
+                        SourceVoteNextRound(record);
                         break;
                     case "self_help":
                         SendServerCommands(record);
@@ -12704,8 +12864,21 @@ namespace PRoConEvents {
                 if (_ServerRulesList.Length > 0)
                 {
                     //If requesting rules on yourself as an admin, rules should be sent to the whole server.
-                    Boolean allPlayers = (record.source_player == null || PlayerIsAdmin(record.source_player)) && 
+                    Boolean sourceIsAdmin = ((record.source_player != null && !PlayerIsAdmin(record.source_player) || record.source_player == null));
+                    Boolean allPlayers = (sourceIsAdmin) &&
                                          (record.target_player == null || record.target_name == record.source_name);
+                    if (record.source_name != record.target_name) {
+                        if (!sourceIsAdmin)
+                        {
+                            SendMessageToSource(record, "Telling server rules to " + record.target_name);
+                        }
+                        OnlineAdminSayMessage(((sourceIsAdmin) ? ("Admin ") : ("")) + record.source_name + " told server rules to " + record.target_name + ".");
+                    }
+                    else
+                    {
+                        OnlineAdminSayMessage(((sourceIsAdmin) ? ("Admin ") : ("")) + record.source_name + " requested server rules.");
+                    }
+
                     var rulePrinter = new Thread(new ThreadStart(delegate
                     {
                         DebugWrite("Starting a rule printer thread.", 5);
@@ -12746,10 +12919,6 @@ namespace PRoConEvents {
 
                     //Start the thread
                     StartAndLogThread(rulePrinter);
-
-                    if (record.source_name != record.target_name && !allPlayers) {
-                        SendMessageToSource(record, "Telling server rules to " + record.target_name);
-                    }
                 }
                 //Set the executed bool
                 record.record_action_executed = true;
@@ -12761,6 +12930,40 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting sendServerRules", 6);
+        }
+
+        public void SourceVoteSurrender(AdKatsRecord record)
+        {
+            DebugWrite("Entering SourceVoteSurrender", 6);
+            try
+            {
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while voting surrender.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SourceVoteSurrender", 6);
+        }
+
+        public void SourceVoteNextRound(AdKatsRecord record)
+        {
+            DebugWrite("Entering SourceVoteNextRound", 6);
+            try
+            {
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while voting next round.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SourceVoteNextRound", 6);
         }
 
         public void SendServerCommands(AdKatsRecord record)
@@ -14143,6 +14346,42 @@ namespace PRoConEvents {
             return null;
         }
 
+        private void UpdateMySqlConnectionStringBuilder() {
+            if (_isTestingAuthorized)
+                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
+            lock (_dbCommStringBuilder) {
+                UInt32 uintport = 3306;
+                UInt32.TryParse(_mySqlPort, out uintport);
+                //Add connection variables
+                _dbCommStringBuilder.Port = uintport;
+                _dbCommStringBuilder.Server = _mySqlHostname;
+                _dbCommStringBuilder.UserID = _mySqlUsername;
+                _dbCommStringBuilder.Password = _mySqlPassword;
+                _dbCommStringBuilder.Database = _mySqlDatabaseName;
+                //Set up connection pooling
+                if (UseConnectionPooling) {
+                    _dbCommStringBuilder.Pooling = true;
+                    _dbCommStringBuilder.MinimumPoolSize = Convert.ToUInt32(MinConnectionPoolSize);
+                    _dbCommStringBuilder.MaximumPoolSize = Convert.ToUInt32(MaxConnectionPoolSize);
+                    _dbCommStringBuilder.ConnectionLifeTime = 600;
+                }
+                else {
+                    _dbCommStringBuilder.Pooling = false;
+                }
+                //Set Compression
+                _dbCommStringBuilder.UseCompression = UseCompressedConnection;
+                //Allow User Settings
+                _dbCommStringBuilder.AllowUserVariables = true;
+                //Set Timeout Settings
+                _dbCommStringBuilder.DefaultCommandTimeout = 3600;
+                _dbCommStringBuilder.ConnectionTimeout = 50;
+            }
+        }
+
+        private String PrepareMySqlConnectionString() {
+            return _dbCommStringBuilder.ConnectionString;
+        }
+
         private Boolean TestDatabaseConnection() {
             Boolean databaseValid = false;
             DebugWrite("testDatabaseConnection starting!", 6);
@@ -14777,42 +15016,6 @@ namespace PRoConEvents {
                 ConsoleError("ERROR in ConfirmTable: " + e);
                 return false;
             }
-        }
-
-        private void UpdateMySqlConnectionStringBuilder() {
-            if (_isTestingAuthorized)
-                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
-            lock (_dbCommStringBuilder) {
-                UInt32 uintport = 3306;
-                UInt32.TryParse(_mySqlPort, out uintport);
-                //Add connection variables
-                _dbCommStringBuilder.Port = uintport;
-                _dbCommStringBuilder.Server = _mySqlHostname;
-                _dbCommStringBuilder.UserID = _mySqlUsername;
-                _dbCommStringBuilder.Password = _mySqlPassword;
-                _dbCommStringBuilder.Database = _mySqlDatabaseName;
-                //Set up connection pooling
-                if (UseConnectionPooling) {
-                    _dbCommStringBuilder.Pooling = true;
-                    _dbCommStringBuilder.MinimumPoolSize = Convert.ToUInt32(MinConnectionPoolSize);
-                    _dbCommStringBuilder.MaximumPoolSize = Convert.ToUInt32(MaxConnectionPoolSize);
-                    _dbCommStringBuilder.ConnectionLifeTime = 600;
-                }
-                else {
-                    _dbCommStringBuilder.Pooling = false;
-                }
-                //Set Compression
-                _dbCommStringBuilder.UseCompression = UseCompressedConnection;
-                //Allow User Settings
-                _dbCommStringBuilder.AllowUserVariables = true;
-                //Set Timeout Settings
-                _dbCommStringBuilder.DefaultCommandTimeout = 3600;
-                _dbCommStringBuilder.ConnectionTimeout = 50;
-            }
-        }
-
-        private String PrepareMySqlConnectionString() {
-            return _dbCommStringBuilder.ConnectionString;
         }
 
         private void UploadAllSettings() {
@@ -18482,6 +18685,16 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 77", "REPLACE INTO `adkats_commands` VALUES(77, 'Active', 'player_whitelistaa', 'Log', 'AA Whitelist Player', 'aawhitelist', TRUE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(78))
+                                {
+                                    SendNonQuery("Adding command 78", "REPLACE INTO `adkats_commands` VALUES(78, 'Active', 'self_surrender', 'Log', 'Vote Surrender', 'surrender', FALSE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(79))
+                                {
+                                    SendNonQuery("Adding command 79", "REPLACE INTO `adkats_commands` VALUES(79, 'Active', 'self_votenext', 'Log', 'Vote Next Round', 'votenext', FALSE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -18581,6 +18794,8 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["player_pm_reply"] = "Replies to the current private message.";
             _CommandDescriptionDictionary["admin_pm_send"] = "Sends a private message to all online admins.";
             _CommandDescriptionDictionary["player_whitelistaa"] = "Whitelists a player for Admin Assistant status.";
+            _CommandDescriptionDictionary["self_surrender"] = "Votes to end the round with current winning team as winner, then start the next.";
+            _CommandDescriptionDictionary["self_votenext"] = "Votes to end the round with current winning team as winner, then start the next.";
         }
 
         private void UpdateCommandTimeouts() {
