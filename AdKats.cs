@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.4.6
+ * Version 5.1.4.7
  * 13-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.4.6";
+        private const String PluginVersion = "5.1.4.7";
 
         public enum ConsoleMessageType {
             Info,
@@ -927,12 +927,8 @@ namespace PRoConEvents {
                         const string roleListPrefix = "4. Role Settings|";
                         lstReturn.Add(new CPluginVariable(roleListPrefix + "Add Role", typeof (String), ""));
                         if (_RoleKeyDictionary.Count > 0) {
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_RoleIDDictionary) {
                                 foreach (AdKatsRole aRole in _RoleKeyDictionary.Values) {
-                                    if (_isTestingAuthorized)
-                                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                     lock (_CommandNameDictionary) {
                                         String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
                                         foreach (AdKatsCommand aCommand in _CommandNameDictionary.Values) {
@@ -967,8 +963,6 @@ namespace PRoConEvents {
                         //Command Settings
                         const string commandListPrefix = "6. Command List|";
                         if (_CommandNameDictionary.Count > 0) {
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_CommandIDDictionary) {
                                 foreach (AdKatsCommand command in _CommandIDDictionary.Values) {
                                     if (command.command_active != AdKatsCommand.CommandActive.Invisible) {
@@ -1928,8 +1922,6 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Ban Search").Success)
                 {
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     if (String.IsNullOrEmpty(strValue) || strValue.Length < 3)
                     {
                         ConsoleError("Search query must be 3 or more characters.");
@@ -2159,8 +2151,6 @@ namespace PRoConEvents {
                                 }
                             }
                             //Assign the command text
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_CommandTextDictionary) {
                                 _CommandTextDictionary.Remove(command.command_text);
                                 command.command_text = strValue;
@@ -2199,8 +2189,6 @@ namespace PRoConEvents {
                             if (_CommandIDDictionary.TryGetValue(commandID, out aCommand)) {
                                 switch (strValue.ToLower()) {
                                     case "allow":
-                                        if (_isTestingAuthorized)
-                                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                         lock (aRole.RoleAllowedCommands) {
                                             if (!aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key)) {
                                                 aRole.RoleAllowedCommands.Add(aCommand.command_key, aCommand);
@@ -2209,8 +2197,6 @@ namespace PRoConEvents {
                                         QueueRoleForUpload(aRole);
                                         break;
                                     case "deny":
-                                        if (_isTestingAuthorized)
-                                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                         lock (aRole.RoleAllowedCommands) {
                                             aRole.RoleAllowedCommands.Remove(aCommand.command_key);
                                         }
@@ -2653,8 +2639,6 @@ namespace PRoConEvents {
                             user_notes = "No Notes"
                         };
                         Boolean valid = true;
-                        if (_isTestingAuthorized)
-                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                         lock (_userCache) {
                             valid = _userCache.Values.All(iUser => aUser.user_name != iUser.user_name);
                         }
@@ -2687,8 +2671,6 @@ namespace PRoConEvents {
                                 role_name = roleName
                             };
                             //By default we should include all commands as allowed
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_CommandNameDictionary) {
                                 foreach (AdKatsCommand aCommand in _CommandNameDictionary.Values) {
                                     aRole.RoleAllowedCommands.Add(aCommand.command_key, aCommand);
@@ -3346,8 +3328,6 @@ namespace PRoConEvents {
         public override void OnTeamFactionOverride(Int32 targetTeamID, Int32 overrideTeamId) {
             try
             {
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_teamDictionary)
                 {
                     switch (overrideTeamId)
@@ -3548,8 +3528,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue player list for processing", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_PlayerListProcessingQueue) {
                         _PlayerListProcessingQueue.Enqueue(players);
                         DebugWrite("Player list queued for processing", 6);
@@ -3568,8 +3546,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled && _firstPlayerListComplete) {
                     DebugWrite("Preparing to queue player list for processing", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_PlayerRemovalProcessingQueue) {
                         _PlayerRemovalProcessingQueue.Enqueue(player);
                         DebugWrite("Player removal queued for processing", 6);
@@ -3604,8 +3580,6 @@ namespace PRoConEvents {
                         List<CPlayerInfo> inboundPlayerList = null;
                         if (_PlayerListProcessingQueue.Count > 0 && _firstUserListComplete) {
                             DebugWrite("PLIST: Preparing to lock player list queues to retrive new player lists", 7);
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_PlayerListProcessingQueue) {
                                 DebugWrite("PLIST: Inbound player lists found. Grabbing.", 6);
                                 while (_PlayerListProcessingQueue.Any()) {
@@ -3625,8 +3599,6 @@ namespace PRoConEvents {
                         Queue<CPlayerInfo> inboundPlayerRemoval = null;
                         if (_PlayerRemovalProcessingQueue.Count > 0) {
                             DebugWrite("PLIST: Preparing to lock player removal queue to retrive new player removals", 7);
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_PlayerRemovalProcessingQueue) {
                                 DebugWrite("PLIST: Inbound player removals found. Grabbing.", 6);
                                 if (_PlayerRemovalProcessingQueue.Any()) {
@@ -3659,8 +3631,6 @@ namespace PRoConEvents {
                             continue;
                         }
 
-                        if (_isTestingAuthorized)
-                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                         var removedPlayers = new List<string>();
                         lock (_PlayerDictionary)
                         {
@@ -4190,8 +4160,6 @@ namespace PRoConEvents {
                 _AccessFetchWaitHandle.Set();
             }
             else if (_threadsReady) {
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_userCache) {
                     DateTime start = DateTime.UtcNow;
                     FetchCommands();
@@ -4629,8 +4597,6 @@ namespace PRoConEvents {
                                         DebugWrite(aRecord.target_player.player_name + " is dead. Queueing them for kill on-spawn.", 3);
                                         SendMessageToSource(aRecord, aRecord.target_player.player_name + " is dead. Queueing them for kill on-spawn.");
                                         ExecuteCommand("procon.protected.send", "admin.killPlayer", aRecord.target_player.player_name);
-                                        if (_isTestingAuthorized)
-                                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                         lock (_ActOnSpawnDictionary) {
                                             aRecord.command_action = _CommandKeyDictionary["player_kill_repeat"];
                                             _ActOnSpawnDictionary.Add(aRecord.target_player.player_name, aRecord);
@@ -4667,8 +4633,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue kill for processing", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_KillProcessingQueue) {
                         _KillProcessingQueue.Enqueue(kKillerVictimDetails);
                         DebugWrite("Kill queued for processing", 6);
@@ -4700,8 +4664,6 @@ namespace PRoConEvents {
                         Queue<Kill> inboundPlayerKills;
                         if (_KillProcessingQueue.Count > 0) {
                             DebugWrite("KILLPROC: Preparing to lock inbound kill queue to retrive new player kills", 7);
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_KillProcessingQueue) {
                                 DebugWrite("KILLPROC: Inbound kills found. Grabbing.", 6);
                                 //Grab all kills in the queue
@@ -4768,8 +4730,6 @@ namespace PRoConEvents {
                 killer.lastAction = DateTime.UtcNow;
                 //Used for delayed player moving
                 if (_TeamswapOnDeathMoveDic.Count > 0) {
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_TeamswapOnDeathCheckingQueue) {
                         _TeamswapOnDeathCheckingQueue.Enqueue(kKillerVictimDetails.Victim);
                         _TeamswapWaitHandle.Set();
@@ -5234,8 +5194,6 @@ namespace PRoConEvents {
                     }
 
                     if (_ActOnSpawnDictionary.Count > 0) {
-                        if (_isTestingAuthorized)
-                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                         lock (_ActOnSpawnDictionary) {
                             AdKatsRecord record;
                             if (_ActOnSpawnDictionary.TryGetValue(soldierName, out record)) {
@@ -5291,8 +5249,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue setting " + setting.Name + " for upload", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_SettingUploadQueue) {
                         _SettingUploadQueue.Enqueue(setting);
                         _DbCommunicationWaitHandle.Set();
@@ -5310,8 +5266,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue command " + command.command_key + " for upload", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_CommandUploadQueue) {
                         _CommandUploadQueue.Enqueue(command);
                         _DbCommunicationWaitHandle.Set();
@@ -5329,8 +5283,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue role " + aRole.role_key + " for upload", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_RoleUploadQueue) {
                         _RoleUploadQueue.Enqueue(aRole);
                         _DbCommunicationWaitHandle.Set();
@@ -5348,8 +5300,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue role " + aRole.role_key + " for removal", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_RoleRemovalQueue) {
                         _RoleRemovalQueue.Enqueue(aRole);
                         _DbCommunicationWaitHandle.Set();
@@ -5367,8 +5317,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue player for ban check", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_BanEnforcerCheckingQueue) {
                         _BanEnforcerCheckingQueue.Enqueue(player);
                         DebugWrite("Player queued for checking", 6);
@@ -5387,8 +5335,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue ban for processing", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_BanEnforcerProcessingQueue) {
                         _BanEnforcerProcessingQueue.Enqueue(aBan);
                         DebugWrite("Ban queued for processing", 6);
@@ -5419,8 +5365,6 @@ namespace PRoConEvents {
                         Queue<AdKatsPlayer> playerCheckingQueue;
                         if (_BanEnforcerCheckingQueue.Count > 0 && _UseBanEnforcer) {
                             DebugWrite("BANENF: Preparing to lock banEnforcerMutex to retrive new players", 6);
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_BanEnforcerCheckingQueue) {
                                 DebugWrite("BANENF: Inbound players found. Grabbing.", 5);
                                 //Grab all players in the queue
@@ -5538,8 +5482,6 @@ namespace PRoConEvents {
                 if (_UseBanEnforcer) {
                     if (banList.Count > 0) {
                         DebugWrite("Bans found", 3);
-                        if (_isTestingAuthorized)
-                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                         lock (_CBanProcessingQueue) {
                             //Only allow queueing of new bans if the processing queue is currently empty
                             if (_CBanProcessingQueue.Count == 0) {
@@ -5583,8 +5525,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue player for hacker check", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_HackerCheckerQueue) {
                         _HackerCheckerQueue.Enqueue(player);
                         DebugWrite("Player queued for checking", 6);
@@ -5625,8 +5565,6 @@ namespace PRoConEvents {
 
         public Boolean PlayerProtected(AdKatsPlayer aPlayer) {
             //Pull players from special player cache
-            if (_isTestingAuthorized)
-                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_specialPlayerCache) {
                 List<AdKatsSpecialPlayer> protectedList = getASPlayersOfGroup("whitelist_hackerchecker");
                 if (protectedList.Any()) {
@@ -5679,8 +5617,6 @@ namespace PRoConEvents {
                             //Get all unchecked players
                             if (_HackerCheckerQueue.Count > 0) {
                                 DebugWrite("HCKCHK: Preparing to lock hackerCheckerMutex to retrive new players", 6);
-                                if (_isTestingAuthorized)
-                                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                 lock (_HackerCheckerQueue) {
                                     DebugWrite("HCKCHK: Inbound players found. Grabbing.", 5);
                                     //Grab all players in the queue
@@ -6493,8 +6429,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue message for parsing", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_UnparsedMessageQueue) {
                         _UnparsedMessageQueue.Enqueue(new KeyValuePair<String, String>(speaker, message));
                         DebugWrite("Message queued for parsing.", 6);
@@ -6513,8 +6447,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue command for parsing", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_UnparsedCommandQueue) {
                         _UnparsedCommandQueue.Enqueue(new KeyValuePair<String, String>(speaker, command));
                         DebugWrite("Command sent to unparsed commands.", 6);
@@ -6545,8 +6477,6 @@ namespace PRoConEvents {
                         Queue<KeyValuePair<String, String>> inboundMessages;
                         if (_UnparsedMessageQueue.Count > 0) {
                             DebugWrite("MESSAGE: Preparing to lock messaging to retrive new messages", 7);
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_UnparsedMessageQueue) {
                                 DebugWrite("MESSAGE: Inbound messages found. Grabbing.", 6);
                                 //Grab all messages in the queue
@@ -6607,8 +6537,6 @@ namespace PRoConEvents {
                             //check for player mute case
                             //ignore if it's a server call
                             if (speaker != "Server") {
-                                if (_isTestingAuthorized)
-                                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                 lock (_RoundMutedPlayers) {
                                     //Check if the player is muted
                                     DebugWrite("MESSAGE: Checking for mute case.", 7);
@@ -6691,8 +6619,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue player for TeamSwap ", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_TeamswapForceMoveQueue) {
                         _TeamswapForceMoveQueue.Enqueue(player);
                         _TeamswapWaitHandle.Set();
@@ -6711,8 +6637,6 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to add player to 'on-death' move dictionary.", 6);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_TeamswapOnDeathCheckingQueue) {
                         if (!_TeamswapOnDeathMoveDic.ContainsKey(player.SoldierName)) {
                             _TeamswapOnDeathMoveDic.Add(player.SoldierName, player);
@@ -6748,8 +6672,6 @@ namespace PRoConEvents {
                         }
                         AdKatsTeam team1;
                         AdKatsTeam team2;
-                        if (_isTestingAuthorized)
-                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                         lock (_teamDictionary) {
                             if (!_teamDictionary.TryGetValue(1, out team1)) {
                                 DebugWrite("Team 1 description was not found. Unable to continue.", 1);
@@ -6782,14 +6704,10 @@ namespace PRoConEvents {
 
                             Queue<CPlayerInfo> movingQueue;
                             Queue<CPlayerInfo> checkingQueue;
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_TeamswapForceMoveQueue) {
                                 movingQueue = new Queue<CPlayerInfo>(_TeamswapForceMoveQueue.ToArray());
                                 _TeamswapForceMoveQueue.Clear();
                             }
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_TeamswapOnDeathCheckingQueue) {
                                 checkingQueue = new Queue<CPlayerInfo>(_TeamswapOnDeathCheckingQueue.ToArray());
                                 _TeamswapOnDeathCheckingQueue.Clear();
@@ -7205,8 +7123,6 @@ namespace PRoConEvents {
                     }
                 }
                 DebugWrite("Preparing to queue " + record.command_type.command_key + " record for processing", 6);
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_UnprocessedRecordQueue) {
                     //Queue the record for processing
                     _UnprocessedRecordQueue.Enqueue(record);
@@ -7241,8 +7157,6 @@ namespace PRoConEvents {
                         if (_UnparsedCommandQueue.Count > 0) {
                             DebugWrite("COMMAND: Preparing to lock command queue to retrive new commands", 7);
                             Queue<KeyValuePair<String, String>> unparsedCommands;
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_UnparsedCommandQueue) {
                                 DebugWrite("COMMAND: Inbound commands found. Grabbing.", 6);
                                 //Grab all messages in the queue
@@ -10202,8 +10116,6 @@ namespace PRoConEvents {
         }
 
         private AdKatsTeam GetTeamByKey(String teamKey) {
-            if (_isTestingAuthorized)
-                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_teamDictionary) {
                 foreach (AdKatsTeam curTeam in _teamDictionary.Values) {
                     if (String.Equals(curTeam.TeamKey, teamKey, StringComparison.CurrentCultureIgnoreCase)) {
@@ -10583,8 +10495,6 @@ namespace PRoConEvents {
         public void ConfirmActionWithSource(AdKatsRecord record) {
             DebugWrite("Entering confirmActionWithSource", 7);
             try {
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 if (_bypassCommandConfirmation) {
                     QueueRecordForProcessing(record);
                     return;
@@ -10619,8 +10529,6 @@ namespace PRoConEvents {
             DebugWrite("Entering cancelSourcePendingAction", 7);
             try {
                 DebugWrite("attempting to cancel command", 6);
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_ActionConfirmDic) {
                     if (_ActionConfirmDic.Remove(record.source_name)) {
                         SendMessageToSource(record, "Previous command Canceled.");
@@ -10636,8 +10544,6 @@ namespace PRoConEvents {
         public AdKatsRecord FetchRoundReport(String reportID, Boolean remove) {
             AdKatsRecord reportedRecord = null;
             try {
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_RoundReports) {
                     if (_RoundReports.TryGetValue(reportID, out reportedRecord) && remove) {
                         if (_RoundReports.Remove(reportID)) {
@@ -10807,8 +10713,6 @@ namespace PRoConEvents {
             DebugWrite("Entering queueRecordForActionHandling", 6);
             try {
                 DebugWrite("Preparing to queue record for action handling", 6);
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_UnprocessedActionQueue) {
                     _UnprocessedActionQueue.Enqueue(record);
                     DebugWrite("Record queued for action handling", 6);
@@ -10840,8 +10744,6 @@ namespace PRoConEvents {
                         //Handle Inbound Actions
                         if (_UnprocessedActionQueue.Count > 0) {
                             Queue<AdKatsRecord> unprocessedActions;
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_UnprocessedActionQueue) {
                                 DebugWrite("ACTION: Inbound actions found. Grabbing.", 6);
                                 //Grab all messages in the queue
@@ -11126,8 +11028,6 @@ namespace PRoConEvents {
                 {
                     if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
                     {
-                        if (_isTestingAuthorized)
-                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                         lock (_ActOnIsAliveDictionary)
                         {
                             _ActOnIsAliveDictionary.Add(record.target_player.player_name, record);
@@ -11215,8 +11115,6 @@ namespace PRoConEvents {
                             if (seconds < 6 && record.command_action.command_key != "player_kill_repeat") {
                                 DebugWrite("Queueing player for kill on spawn. (" + seconds + ")&(" + record.command_action + ")", 3);
                                 if (!_ActOnSpawnDictionary.ContainsKey(record.target_player.player_name)) {
-                                    if (_isTestingAuthorized)
-                                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                     lock (_ActOnSpawnDictionary) {
                                         record.command_action = _CommandKeyDictionary["player_kill_repeat"];
                                         _ActOnSpawnDictionary.Add(record.target_player.player_name, record);
@@ -11239,8 +11137,6 @@ namespace PRoConEvents {
                                     }
                                 }
                                 if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name)) {
-                                    if (_isTestingAuthorized)
-                                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                     lock (_ActOnIsAliveDictionary) {
                                         _ActOnIsAliveDictionary.Add(record.target_player.player_name, record);
                                     }
@@ -12599,8 +12495,6 @@ namespace PRoConEvents {
         public void NukeTarget(AdKatsRecord record) {
             DebugWrite("Entering nukeTarget", 6);
             try {
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_PlayerDictionary) {
                     foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"))) {
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
@@ -12621,8 +12515,6 @@ namespace PRoConEvents {
         public void SwapNukeServer(AdKatsRecord record) {
             DebugWrite("Entering SwapNukeServer", 6);
             try {
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_PlayerDictionary) {
                     foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(aPlayer => aPlayer.player_type == PlayerType.Player)) {
                         QueuePlayerForForceMove(player.frostbitePlayerInfo);
@@ -12642,8 +12534,6 @@ namespace PRoConEvents {
         public void KickAllPlayers(AdKatsRecord record) {
             DebugWrite("Entering kickAllPlayers", 6);
             try {
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_PlayerDictionary) {
                     foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => player.player_role.role_key == "guest_default")) {
                         _threadMasterWaitHandle.WaitOne(50);
@@ -13569,8 +13459,6 @@ namespace PRoConEvents {
         private void QueueUserForUpload(AdKatsUser user) {
             try {
                 DebugWrite("Preparing to queue user for access upload.", 6);
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_UserUploadQueue) {
                     _UserUploadQueue.Enqueue(user);
                     DebugWrite("User queued for access upload", 6);
@@ -13585,8 +13473,6 @@ namespace PRoConEvents {
         private void QueueUserForRemoval(AdKatsUser user) {
             try {
                 DebugWrite("Preparing to queue user for access removal", 6);
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_UserRemovalQueue) {
                     _UserRemovalQueue.Enqueue(user);
                     DebugWrite("User queued for access removal", 6);
@@ -13612,11 +13498,7 @@ namespace PRoConEvents {
                     ConsoleError("Command was null in hasAccess.");
                     return false;
                 }
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (aPlayer.player_role) {
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (aPlayer.player_role.RoleAllowedCommands) {
                         if (aPlayer.player_role.RoleAllowedCommands.ContainsKey(command.command_key)) {
                             return true;
@@ -13793,8 +13675,6 @@ namespace PRoConEvents {
                             DebugWrite("DBCOMM: Unprocessed: " + _UnprocessedRecordQueue.Count + " Current: 0", 4);
                             DebugWrite("DBCOMM: Preparing to lock inbound record queue to retrive new records", 7);
                             Queue<AdKatsRecord> inboundRecords;
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_UnprocessedRecordQueue) {
                                 DebugWrite("DBCOMM: Inbound records found. Grabbing.", 6);
                                 //Grab all messages in the queue
@@ -13932,8 +13812,6 @@ namespace PRoConEvents {
             if (_SettingUploadQueue.Count > 0) {
                 DebugWrite("DBCOMM: Preparing to lock inbound setting queue to get new settings", 7);
                 Queue<CPluginVariable> inboundSettingUpload;
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_SettingUploadQueue) {
                     DebugWrite("DBCOMM: Inbound settings found. Grabbing.", 6);
                     //Grab all settings in the queue
@@ -13955,8 +13833,6 @@ namespace PRoConEvents {
             if (_CommandUploadQueue.Count > 0) {
                 DebugWrite("DBCOMM: Preparing to lock inbound command queue to get new commands", 7);
                 Queue<AdKatsCommand> inboundCommandUpload;
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_CommandUploadQueue) {
                     DebugWrite("DBCOMM: Inbound commands found. Grabbing.", 6);
                     //Grab all commands in the queue
@@ -13979,8 +13855,6 @@ namespace PRoConEvents {
             if (_RoleUploadQueue.Count > 0) {
                 DebugWrite("DBCOMM: Preparing to lock inbound role queue to get new roles", 7);
                 Queue<AdKatsRole> inboundRoleUpload;
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_RoleUploadQueue) {
                     DebugWrite("DBCOMM: Inbound roles found. Grabbing.", 6);
                     //Grab all roles in the queue
@@ -13992,8 +13866,6 @@ namespace PRoConEvents {
                 while (inboundRoleUpload.Count > 0) {
                     AdKatsRole aRole = inboundRoleUpload.Dequeue();
                     UploadRole(aRole);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_RoleIDDictionary) {
                         if (_RoleIDDictionary.ContainsKey(aRole.role_id)) {
                             _RoleIDDictionary[aRole.role_id] = aRole;
@@ -14024,8 +13896,6 @@ namespace PRoConEvents {
             if (_RoleRemovalQueue.Count > 0) {
                 DebugWrite("DBCOMM: Preparing to lock removal role queue to get new roles", 7);
                 Queue<AdKatsRole> inboundRoleRemoval;
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_RoleRemovalQueue) {
                     DebugWrite("DBCOMM: Inbound roles found. Grabbing.", 6);
                     //Grab all roles in the queue
@@ -14037,8 +13907,6 @@ namespace PRoConEvents {
                 while (inboundRoleRemoval.Count > 0) {
                     AdKatsRole aRole = inboundRoleRemoval.Dequeue();
                     RemoveRole(aRole);
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_RoleIDDictionary) {
                         if (_RoleIDDictionary.ContainsKey(aRole.role_id)) {
                             _RoleIDDictionary.Remove(aRole.role_id);
@@ -14060,15 +13928,11 @@ namespace PRoConEvents {
             if (_UserUploadQueue.Count > 0 || _UserRemovalQueue.Count > 0) {
                 DebugWrite("DBCOMM: Inbound access changes found. Grabbing.", 6);
                 Queue<AdKatsUser> inboundUserUploads;
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_UserUploadQueue) {
                     inboundUserUploads = new Queue<AdKatsUser>(_UserUploadQueue.ToArray());
                     _UserUploadQueue.Clear();
                 }
                 Queue<AdKatsUser> inboundUserRemoval;
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_UserRemovalQueue) {
                     inboundUserRemoval = new Queue<AdKatsUser>(_UserRemovalQueue.ToArray());
                     _UserRemovalQueue.Clear();
@@ -14129,8 +13993,6 @@ namespace PRoConEvents {
             if (_BanEnforcerProcessingQueue.Count > 0) {
                 DebugWrite("DBCOMM: Preparing to lock inbound ban enforcer queue to retrive new bans", 7);
                 Queue<AdKatsBan> inboundBans;
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_BanEnforcerProcessingQueue) {
                     DebugWrite("DBCOMM: Inbound bans found. Grabbing.", 6);
                     //Grab all messages in the queue
@@ -14179,8 +14041,6 @@ namespace PRoConEvents {
                 Boolean earlyExit = false;
                 DateTime startTime = DateTime.UtcNow;
                 Queue<CBanInfo> inboundCBans;
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_CBanProcessingQueue) {
                     DebugWrite("DBCOMM: Inbound cBans found. Grabbing.", 6);
                     //Grab all cBans in the queue
@@ -14344,8 +14204,6 @@ namespace PRoConEvents {
         }
 
         private void UpdateMySqlConnectionStringBuilder() {
-            if (_isTestingAuthorized)
-                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_dbCommStringBuilder) {
                 UInt32 uintport = 3306;
                 UInt32.TryParse(_mySqlPort, out uintport);
@@ -14622,7 +14480,18 @@ namespace PRoConEvents {
                 SendNonQuery("Adding special player expiration.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_expiration` DATETIME NOT NULL AFTER `player_effective`", true);
                 SendNonQuery("Adding initial special player expiration values.", "UPDATE `adkats_specialplayers` SET `player_expiration` = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)", true);
             }
-            return ConfirmTable("adkats_bans") && ConfirmTable("adkats_commands") && ConfirmTable("adkats_infractions_global") && ConfirmTable("adkats_infractions_server") && ConfirmTable("adkats_records_debug") && ConfirmTable("adkats_records_main") && ConfirmTable("adkats_rolecommands") && ConfirmTable("adkats_roles") && ConfirmTable("adkats_settings") && ConfirmTable("adkats_users") && ConfirmTable("adkats_usersoldiers") && ConfirmTable("adkats_specialplayers");
+            return  ConfirmTable("adkats_bans") && 
+                    ConfirmTable("adkats_commands") && 
+                    ConfirmTable("adkats_infractions_global") && 
+                    ConfirmTable("adkats_infractions_server") && 
+                    ConfirmTable("adkats_records_debug") && 
+                    ConfirmTable("adkats_records_main") && 
+                    ConfirmTable("adkats_rolecommands") && 
+                    ConfirmTable("adkats_roles") && 
+                    ConfirmTable("adkats_settings") && 
+                    ConfirmTable("adkats_users") && 
+                    ConfirmTable("adkats_usersoldiers") && 
+                    ConfirmTable("adkats_specialplayers");
         }
 
         private Boolean ConfirmStatLoggerTables() {
@@ -14643,9 +14512,8 @@ namespace PRoConEvents {
                             FROM 
                                 `tbl_games`";
                             using (MySqlDataReader reader = command.ExecuteReader()) {
-                                if (_isTestingAuthorized)
-                                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                 lock (_gameIDDictionary) {
+                                    _gameIDDictionary.Clear();
                                     while (reader.Read()) {
                                         String gameName = reader.GetString("game_name");
                                         Int32 gameID = reader.GetInt32("game_id");
@@ -14998,11 +14866,11 @@ namespace PRoConEvents {
             }
         }
 
-        private Boolean ConfirmTable(String tablename) {
+        private Boolean ConfirmTable(String tableName) {
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        command.CommandText = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME= '" + tablename + "'";
+                        command.CommandText = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME= '" + tableName + "'";
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             return reader.Read();
                         }
@@ -15010,7 +14878,7 @@ namespace PRoConEvents {
                 }
             }
             catch (Exception e) {
-                ConsoleError("ERROR in ConfirmTable: " + e);
+                HandleException(new AdKatsException("Error while confirming table '" + tableName + "'", e));
                 return false;
             }
         }
@@ -15306,8 +15174,6 @@ namespace PRoConEvents {
         private List<AdKatsPlayer> FetchAdminSoldiers() {
             var adminSoldiers = new List<AdKatsPlayer>();
             //Loop over the user list
-            if (_isTestingAuthorized)
-                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_userCache) {
                 foreach (AdKatsUser user in _userCache.Values.Where(user => UserIsAdmin(user)))
                 {
@@ -15333,8 +15199,6 @@ namespace PRoConEvents {
         private List<AdKatsPlayer> FetchElevatedSoldiers() {
             var elevatedSoldiers = new List<AdKatsPlayer>();
             //Loop over the user list
-            if (_isTestingAuthorized)
-                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_userCache) {
                 foreach (AdKatsUser aUser in _userCache.Values.Where(user => !UserIsAdmin(user) && user.user_role.role_key != "guest_default"))
                 {
@@ -15347,8 +15211,6 @@ namespace PRoConEvents {
         private List<AdKatsPlayer> FetchSoldiersOfRole(AdKatsRole aRole) {
             var roleSoldiers = new List<AdKatsPlayer>();
             //Loop over the user list
-            if (_isTestingAuthorized)
-                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_userCache) {
                 foreach (AdKatsUser user in _userCache.Values.Where(user => user.user_role.role_key == aRole.role_key)) {
                     roleSoldiers.AddRange(user.soldierDictionary.Values);
@@ -15360,8 +15222,6 @@ namespace PRoConEvents {
         private List<AdKatsPlayer> FetchAllUserSoldiers() {
             var userSoldiers = new List<AdKatsPlayer>();
             //Loop over the user list
-            if (_isTestingAuthorized)
-                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (_userCache) {
                 foreach (AdKatsUser user in _userCache.Values.Where(aUser => aUser.user_role.role_key != "guest_default"))
                 {
@@ -16676,8 +16536,6 @@ namespace PRoConEvents {
                             foreach (AdKatsPlayer matchingPlayer in matchingPlayers) {
                                 bool playerDuplicate = false;
                                 //Make sure the player is not already assigned to another user
-                                if (_isTestingAuthorized)
-                                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                 lock (_userCache) {
                                     if (_userCache.Values.Any(innerUser => innerUser.soldierDictionary.ContainsKey(matchingPlayer.player_id))) {
                                         playerDuplicate = true;
@@ -16715,11 +16573,7 @@ namespace PRoConEvents {
                 return;
             }
             try {
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (aRole) {
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (aRole.RoleAllowedCommands) {
                         DebugWrite("Uploading role: " + aRole.role_name, 5);
 
@@ -18263,8 +18117,6 @@ namespace PRoConEvents {
                 return;
             }
             try {
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_CommandIDDictionary) {
                     using (MySqlConnection connection = GetDatabaseConnection()) {
                         using (MySqlCommand sqlcommand = connection.CreateCommand()) {
@@ -18811,8 +18663,6 @@ namespace PRoConEvents {
                 return;
             }
             try {
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_RoleIDDictionary) {
                     using (MySqlConnection connection = GetDatabaseConnection()) {
                         using (MySqlCommand sqlcommand = connection.CreateCommand()) {
@@ -19020,8 +18870,6 @@ namespace PRoConEvents {
 	                        `adkats_users`";
                         var validIDs = new List<Int64>();
                         using (MySqlDataReader reader = command.ExecuteReader()) {
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_userCache) {
                                 while (reader.Read())
                                 {
@@ -19120,8 +18968,6 @@ namespace PRoConEvents {
                             `user_id`
                         ASC";
                         using (MySqlDataReader reader = command.ExecuteReader()) {
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_userCache) {
                                 foreach (AdKatsPlayer aPlayer in _userCache.Values.SelectMany(aUser => aUser.soldierDictionary.Values))
                                 {
@@ -19629,8 +19475,6 @@ namespace PRoConEvents {
                 if (_FeedMultiBalancerWhitelist) {
                     var autobalanceWhitelistedPlayers = new List<String>();
                     //Pull players from special player cache
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_specialPlayerCache) {
                         List<AdKatsSpecialPlayer> whitelistedPlayers = getASPlayersOfGroup("whitelist_multibalancer");
                         if (whitelistedPlayers.Any()) {
@@ -19655,18 +19499,10 @@ namespace PRoConEvents {
                     }
                     //Pull players from user list
                     if (_userCache.Count > 0 && _FeedMultiBalancerWhitelist_UserCache) {
-                        if (_isTestingAuthorized)
-                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                         lock (_userCache) {
                             foreach (AdKatsUser user in _userCache.Values) {
-                                if (_isTestingAuthorized)
-                                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                 lock (user) {
-                                    if (_isTestingAuthorized)
-                                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                     lock (user.user_role) {
-                                        if (_isTestingAuthorized)
-                                            PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                         lock (user.user_role.RoleAllowedCommands) {
                                             //Check each user's allowed commands
                                             foreach (AdKatsCommand command in user.user_role.RoleAllowedCommands.Values) {
@@ -19699,8 +19535,6 @@ namespace PRoConEvents {
                 if (_FeedMultiBalancerDisperseList) {
                     var evenDispersionList = new List<String>();
                     //Pull players from special player cache
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_specialPlayerCache) {
                         List<AdKatsSpecialPlayer> evenDispersedPlayers = getASPlayersOfGroup("blacklist_dispersion");
                         if (evenDispersedPlayers.Any()) {
@@ -19749,8 +19583,6 @@ namespace PRoConEvents {
                 DebugWrite("Checking validity of reserved slotted players.", 6);
                 var allowedReservedSlotPlayers = new List<string>();
                 //Pull players from special player cache
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_specialPlayerCache) {
                     List<AdKatsSpecialPlayer> reservedPlayers = getASPlayersOfGroup("slot_reserved");
                     if (reservedPlayers.Any()) {
@@ -19779,8 +19611,6 @@ namespace PRoConEvents {
                 }
                 //Pull players from user list
                 if (_userCache.Count > 0 && _FeedServerReservedSlots_UserCache) {
-                    if (_isTestingAuthorized)
-                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (_userCache) {
                         foreach (AdKatsPlayer soldier in FetchAllUserSoldiers()) {
                             //Only add soldiers for the current game
@@ -19837,8 +19667,6 @@ namespace PRoConEvents {
                 DebugWrite("Updating spectator list players.", 6);
                 var allowedSpectatorSlotPlayers = new List<string>();
                 //Pull players from special player cache
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (_specialPlayerCache) {
                     List<AdKatsSpecialPlayer> spectators = getASPlayersOfGroup("slot_spectator");
                     if (spectators.Any()) {
@@ -20877,11 +20705,7 @@ namespace PRoConEvents {
                 ConsoleError("role null in RoleIsAdmin");
                 return false;
             }
-            if (_isTestingAuthorized)
-                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
             lock (aRole) {
-                if (_isTestingAuthorized)
-                    PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                 lock (aRole.RoleAllowedCommands) {
                     if (aRole.RoleAllowedCommands.Values.Any(command => command.command_playerInteraction)) {
                         return true;
@@ -21021,8 +20845,6 @@ namespace PRoConEvents {
                     if (_PlayerDictionary.ContainsKey(playerName)) {
                         DebugWrite("Removing " + playerName + " from current player list.", 4);
                         if (lockDictionary) {
-                            if (_isTestingAuthorized)
-                                PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                             lock (_PlayerDictionary) {
                                 _PlayerDictionary.Remove(playerName);
                             }
@@ -21705,8 +21527,6 @@ namespace PRoConEvents {
                                     ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLogger", "True");
 
                                     //Clear the player dinctionary, causing all players to be fetched from the database again
-                                    if (_isTestingAuthorized)
-                                        PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                     lock (_PlayerDictionary) {
                                         _PlayerDictionary.Clear();
                                     }
@@ -22545,8 +22365,6 @@ namespace PRoConEvents {
                     email.From = new MailAddress(SenderEmail, "AdKats Report System");
 
                     Boolean someAdded = false;
-                    if (Plugin._isTestingAuthorized)
-                        Plugin.PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                     lock (Plugin._userCache) {
                         foreach (AdKatsUser aUser in Plugin._userCache.Values) {
                             //Check for not null and default values
@@ -22596,8 +22414,6 @@ namespace PRoConEvents {
                 try {
                     if (Plugin._pluginEnabled) {
                         Plugin.DebugWrite("Preparing to queue email for processing", 6);
-                        if (Plugin._isTestingAuthorized)
-                            Plugin.PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                         lock (_EmailProcessingQueue) {
                             _EmailProcessingQueue.Enqueue(email);
                             Plugin.DebugWrite("Email queued for processing", 6);
@@ -22635,8 +22451,6 @@ namespace PRoConEvents {
                             var inboundEmailMessages = new Queue<MailMessage>();
                             if (_EmailProcessingQueue.Any()) {
                                 Plugin.DebugWrite("EMAIL: Preparing to lock inbound mail queue to retrive new mail", 7);
-                                if (Plugin._isTestingAuthorized)
-                                    Plugin.PushThreadDebug(DateTime.Now.Ticks, (String.IsNullOrEmpty(Thread.CurrentThread.Name) ? ("mainthread") : (Thread.CurrentThread.Name)), Thread.CurrentThread.ManagedThreadId, new System.Diagnostics.StackTrace(true).GetFrame(0).GetFileLineNumber(), "");
                                 lock (_EmailProcessingQueue) {
                                     Plugin.DebugWrite("EMAIL: Inbound mail found. Grabbing.", 6);
                                     //Grab all mail in the queue
