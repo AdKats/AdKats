@@ -2758,13 +2758,7 @@ namespace PRoConEvents {
                     "OnForceReloadWholeMags", 
                     "OnServerType", 
                     "OnMaxSpectators", 
-                    "OnTeamFactionOverride",
-                    "OnGameAdminLoad",
-                    "OnGameAdminSave",
-                    "OnGameAdminPlayerAdded",
-                    "OnGameAdminPlayerRemoved",
-                    "OnGameAdminCleared",
-                    "OnGameAdminList");
+                    "OnTeamFactionOverride");
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("FATAL ERROR on plugin load.", e));
