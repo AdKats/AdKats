@@ -107,6 +107,7 @@ namespace PRoConEvents {
         private volatile String _latestPluginVersion;
         private volatile String _pluginVersionStatusString;
         private VersionStatus _pluginVersionStatus = VersionStatus.UnfetchedBuild;
+        private Boolean _pluginUpdateServerInfoChecked;
         private Boolean _pluginUpdatePatched;
         private volatile Boolean _useKeepAlive;
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
@@ -2835,8 +2836,6 @@ namespace PRoConEvents {
                         OpenAllHandles();
                         InitThreads();
                         StartThreads();
-
-                        CheckForPluginUpdates();
                     }
                     catch (Exception e) {
                         HandleException(new AdKatsException("Error while enabling AdKats.", e));
@@ -4526,6 +4525,10 @@ namespace PRoConEvents {
                                     _CMDRManagerEnable = true;
                                 }
                                 UpdateSettingPage();
+                            }
+                            if (!_pluginUpdateServerInfoChecked) {
+                                _pluginUpdateServerInfoChecked = true;
+                                CheckForPluginUpdates();
                             }
                         }
                         else {
