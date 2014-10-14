@@ -30,7 +30,7 @@
 			"update_checks":[
 				"SHOW INDEX FROM `tbl_chatlog` WHERE `Key_name` = 'logDate'"
 			],
-			"update_execute_requiresModRows":true,
+			"update_execute_requiresModRows":false,
 			"update_execute":[
 				"ALTER TABLE `tbl_chatlog` ADD INDEX (logDate);"
 			],
