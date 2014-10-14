@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.4.8
+ * Version 5.1.4.9
  * 13-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.4.8";
+        private const String PluginVersion = "5.1.4.9";
 
         public enum ConsoleMessageType {
             Info,
@@ -418,14 +418,14 @@ namespace PRoConEvents {
         private Double _surrenderVoteTimeoutMinutes = 5;
         private DateTime _surrenderVoteStartTime = DateTime.UtcNow;
         private HashSet<String> _surrenderVoteList = new HashSet<String>();
-        
-
-        double percent = 30; // CUSTOMIZE: of losing team that has to vote
-        double timeout = 5.0; // CUSTOMIZE: number of minutes before vote times out
-        int minPlayers = 16; // CUSTOMIZE: minimum players to enable vote
-        double minTicketPercent = 10; // CUSTOMIZE: minimum ticket percentage remaining in the round
-        double minTicketGap = 300; // CUSTOMIZE: minimum ticket gap between winning and losing teams
-
+        //Auto-Surrender
+        private Boolean _surrenderAutoEnable;
+        private Double _surrenderAutoLosingRateMax = 999;
+        private Double _surrenderAutoLosingRateMin = 999;
+        private Double _surrenderAutoWinningRateMax = 999;
+        private Double _surrenderAutoWinningRateMin = 999;
+        private String _surrenderAutoMessage = "Ending/Scrambling Baserape Round. %WinnerName% Wins!";
+            
         //EmailHandler
         private EmailHandler _EmailHandler;
 
@@ -458,7 +458,7 @@ namespace PRoConEvents {
         private String _ExternalCommandAccessKey = "NoPasswordSet";
 
         //Admin assistants
-        public Boolean _EnableAdminAssistantPerk = true;
+        public Boolean _EnableAdminAssistantPerk = false;
         public Boolean _EnableAdminAssistants = false;
         public Int32 _MinimumRequiredMonthlyReports = 10;
         public Boolean _UseAAReportAutoHandler = false;
@@ -472,6 +472,7 @@ namespace PRoConEvents {
         private Int32 _YellDuration = 5;
         private Boolean _UseFirstSpawnMessage = false;
         private String _FirstSpawnMessage = "FIRST SPAWN MESSAGE";
+        private Boolean _DisplayTicketRatesInProconChat;
 
         //Rules
         private Double _ServerRulesDelay = 0.5;
@@ -719,6 +720,7 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Ticket Rates in Procon Chat", typeof(Boolean), _DisplayTicketRatesInProconChat));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Inform players of reports against them", typeof (Boolean), _InformReportedPlayers));
                     if (_InformReportedPlayers) {
                         lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Player Inform Exclusion Strings", typeof (String[]), _PlayerInformExclusionStrings));
@@ -2672,6 +2674,16 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Display Ticket Rates in Procon Chat").Success)
+                {
+                    Boolean display = Boolean.Parse(strValue);
+                    if (display != _DisplayTicketRatesInProconChat)
+                    {
+                        _DisplayTicketRatesInProconChat = display;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Display Ticket Rates in Procon Chat", typeof(Boolean), _DisplayTicketRatesInProconChat));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Inform players of reports against them").Success) {
                     Boolean inform = Boolean.Parse(strValue);
                     if (inform != _InformReportedPlayers) {
@@ -4401,7 +4413,7 @@ namespace PRoConEvents {
                                         if (command.ExecuteNonQuery() > 0)
                                         {
                                             DebugWrite("round stat pushed to database", 5);
-                                            if (_isTestingAuthorized)
+                                            if (_DisplayTicketRatesInProconChat)
                                             {
                                                 ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + "t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + "t/m"));
                                             }
@@ -4546,6 +4558,7 @@ namespace PRoConEvents {
                                     _pingEnforcerKickMissingPings = true;
                                     _CMDRManagerEnable = true;
                                 }
+                                _DisplayTicketRatesInProconChat = true;
                                 UpdateSettingPage();
                             }
                             if (!_pluginUpdateServerInfoChecked) {
@@ -15076,6 +15089,10 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerIgnoreRoles)));
                 QueueSettingForUpload(new CPluginVariable(@"Commander Manager Enable", typeof(Boolean), _CMDRManagerEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
+                QueueSettingForUpload(new CPluginVariable(@"Player Lock Manual Duration Minutes", typeof(Double), _playerLockingManualDuration));
+                QueueSettingForUpload(new CPluginVariable(@"Automatically Lock Players on Admin Action", typeof(Boolean), _playerLockingAutomaticLock));
+                QueueSettingForUpload(new CPluginVariable(@"Player Lock Automatic Duration Minutes", typeof(Double), _playerLockingAutomaticDuration));
+                QueueSettingForUpload(new CPluginVariable(@"Display Ticket Rates in Procon Chat", typeof(Boolean), _DisplayTicketRatesInProconChat));
                 DebugWrite("uploadAllSettings finished!", 6);
             }
             catch (Exception e) {
@@ -20568,14 +20585,23 @@ namespace PRoConEvents {
                         //Check for valid initial conditions
                         Boolean invalid = false;
                         foreach (String checkSQL in update.update_checks) {
-                            if (!SendQuery(checkSQL, false))
-                            {
-                                invalid = true;
-                                break;
+                            if (SendQuery(checkSQL, false)) {
+                                if (!update.update_checks_hasResults) {
+                                    //Has results, when it shouldn't
+                                    invalid = true;
+                                    break;
+                                }
+                            }
+                            else {
+                                if (update.update_checks_hasResults) {
+                                    //Doesn't have results, when it should
+                                    invalid = true;
+                                    break;
+                                }
                             }
                         }
                         if (invalid) {
-                            DebugWrite("Cancelling SQL update '" + update.update_id + "'. Update failed initial conditions.", 5);
+                            DebugWrite("Cancelling SQL update '" + update.update_id + "', it does not apply to this database.", 5);
                             continue;
                         }
                         //Run the updates
@@ -20669,6 +20695,15 @@ namespace PRoConEvents {
                                 continue;
                             }
                             DebugWrite("SQL update '" + update.update_id + "' message_failure: " + update.message_failure, 5);
+                            //update_checks_hasResults
+                            Object update_checks_hasResults = updateHash["update_checks_hasResults"];
+                            if (update_checks_hasResults == null)
+                            {
+                                ConsoleError("SQL update '" + update.update_id + "' update_checks_hasResults was not found.");
+                                continue;
+                            }
+                            update.update_checks_hasResults = (Boolean)update_checks_hasResults;
+                            DebugWrite("SQL update '" + update.update_id + "' update_checks_hasResults: " + update.update_checks_hasResults, 5);
                             //update_checks
                             var update_checks = (ArrayList)updateHash["update_checks"];
                             if (update_checks == null) {
@@ -22330,6 +22365,7 @@ namespace PRoConEvents {
             public String message_name;
             public String message_success;
             public String message_failure;
+            public Boolean update_checks_hasResults = true;
             public List<String> update_checks;
             public Boolean update_execute_requiresModRows;
             public List<String> update_execute;
