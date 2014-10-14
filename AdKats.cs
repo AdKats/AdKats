@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.4.7
+ * Version 5.1.4.8
  * 13-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.4.7";
+        private const String PluginVersion = "5.1.4.8";
 
         public enum ConsoleMessageType {
             Info,
@@ -364,7 +364,7 @@ namespace PRoConEvents {
         private String[] _pingEnforcerIgnoreRoles = { };
         private Boolean _attemptManualPingWhenMissing = true;
 
-        //AFK manager
+        //Commander manager
         private Boolean _CMDRManagerEnable;
         private Int32 _CMDRMinimumPlayers = 40;
 
@@ -478,6 +478,11 @@ namespace PRoConEvents {
         private Double _ServerRulesInterval = 5;
         private String[] _ServerRulesList = { "This server has not set rules yet." };
         private Boolean _ServerRulesNumbers = true;
+
+        //Locking
+        private Double _playerLockingManualDuration = 10;
+        private Boolean _playerLockingAutomaticLock = false;
+        private Double _playerLockingAutomaticDuration = 2.5;
 
         //Round monitor
         private Boolean _useRoundTimer;
@@ -843,6 +848,14 @@ namespace PRoConEvents {
                     if (_CMDRManagerEnable)
                     {
                         lstReturn.Add(new CPluginVariable("B22. Commander Manager Settings|Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
+                    }
+
+                    //Player locking settings
+                    lstReturn.Add(new CPluginVariable("B23. Player Locking Settings|Player Lock Manual Duration Minutes", typeof(Double), _playerLockingManualDuration));
+                    lstReturn.Add(new CPluginVariable("B23. Player Locking Settings|Automatically Lock Players on Admin Action", typeof(Boolean), _playerLockingAutomaticLock));
+                    if (_playerLockingAutomaticLock) 
+                    {
+                        lstReturn.Add(new CPluginVariable("B23. Player Locking Settings|Player Lock Automatic Duration Minutes", typeof(Double), _playerLockingAutomaticDuration));
                     }
 
                     //Debug settings
@@ -1501,6 +1514,7 @@ namespace PRoConEvents {
                         if (_gameVersion == GameVersion.BF3 && CMDRManagerEnable)
                         {
                             ConsoleError("Commander manager cannot be enabled in BF3");
+                            _CMDRManagerEnable = false;
                         }
                         else
                         {
@@ -1527,6 +1541,46 @@ namespace PRoConEvents {
                         _CMDRMinimumPlayers = CMDRMinimumPlayers;
                         //Once setting has been changed, upload the change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Player Lock Manual Duration Minutes").Success)
+                {
+                    Double playerLockingManualDuration = Double.Parse(strValue);
+                    if (_playerLockingManualDuration != playerLockingManualDuration)
+                    {
+                        if (playerLockingManualDuration < 0)
+                        {
+                            ConsoleError("Duration cannot be negative.");
+                            return;
+                        }
+                        _playerLockingManualDuration = playerLockingManualDuration;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Player Lock Manual Duration Minutes", typeof(Double), _playerLockingManualDuration));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Automatically Lock Players on Admin Action").Success)
+                {
+                    Boolean playerLockingAutomaticLock = Boolean.Parse(strValue);
+                    if (playerLockingAutomaticLock != _CMDRManagerEnable)
+                    {
+                        _playerLockingAutomaticLock = playerLockingAutomaticLock;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Automatically Lock Players on Admin Action", typeof(Boolean), _playerLockingAutomaticLock));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Player Lock Automatic Duration Minutes").Success)
+                {
+                    Double playerLockingAutomaticDuration = Double.Parse(strValue);
+                    if (_playerLockingAutomaticDuration != playerLockingAutomaticDuration)
+                    {
+                        if (playerLockingAutomaticDuration < 0)
+                        {
+                            ConsoleError("Duration cannot be negative.");
+                            return;
+                        }
+                        _playerLockingAutomaticDuration = playerLockingAutomaticDuration;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Player Lock Automatic Duration Minutes", typeof(Double), _playerLockingAutomaticDuration));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Feed MULTIBalancer Whitelist").Success) {
@@ -6899,19 +6953,11 @@ namespace PRoConEvents {
                 }
                 if (!record.record_action_executed) {
                     //Check for command lock
-                    if (record.target_player != null && record.target_player.player_locked)
+                    if (record.target_player != null && record.target_player.IsLocked())
                     {
-                        if (record.target_player.player_locked_start + record.target_player.player_locked_duration < DateTime.UtcNow)
-                        {
-                            //Unlock the player
-                            record.target_player.player_locked = false;
-                        }
-                        else if (record.source_name != record.target_player.player_locked_source)
-                        {
-                            SendMessageToSource(record, record.target_player.player_name + " is currently command locked by " + record.target_player.player_locked_source + ". Please wait for unlock.");
-                            FinalizeRecord(record);
-                            return;
-                        }
+                        SendMessageToSource(record, record.target_player.player_name + " is command locked by " + record.target_player.GetLockSource() + ". Please wait for unlock [" + FormatTimeString(record.target_player.GetLockRemaining(), 3) + "].");
+                        FinalizeRecord(record);
+                        return;
                     }
                     if (record.command_action != null && _commandTimeoutDictionary.ContainsKey(record.command_action.command_key) && !record.record_action_executed)
                     {
@@ -7075,6 +7121,30 @@ namespace PRoConEvents {
                                 }
                                 else {
                                     SendMessageToSource(record, "Invalid players when trying to start conversation.");
+                                }
+                            }
+                            break;
+                        case "player_lock":
+                            {
+                                //Check if already locked
+                                if (record.target_player != null && record.target_player.IsLocked())
+                                {
+                                    SendMessageToSource(record, record.target_player.player_name + " is already locked by " + record.target_player.GetLockSource() + " for " + FormatTimeString(record.target_player.GetLockRemaining(), 3) + ".");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                            }
+                            break;
+                        case "player_unlock":
+                            {
+                                //Check if already locked
+                                if (record.target_player != null && 
+                                    record.target_player.IsLocked() && 
+                                    record.target_player.GetLockSource() != record.source_name)
+                                {
+                                    SendMessageToSource(record, record.target_player.player_name + " is locked by " + record.target_player.GetLockSource() + ", either they can unlock them, or after " + FormatTimeString(record.target_player.GetLockRemaining(), 3) + " the player will be automatically unlocked.");
+                                    FinalizeRecord(record);
+                                    return;
                                 }
                             }
                             break;
@@ -10761,7 +10831,6 @@ namespace PRoConEvents {
                                 DebugWrite("ACTION: Preparing to Run Actions for record", 6);
                                 //Dequeue the record
                                 AdKatsRecord record = unprocessedActions.Dequeue();
-
                                 //Run the appropriate action
                                 RunAction(record);
                                 //If more processing is needed, then perform it
@@ -10807,6 +10876,13 @@ namespace PRoConEvents {
                 //Make sure record has an action
                 if (record.command_action == null) {
                     record.command_action = record.command_type;
+                }
+                //Automatic player locking
+                if (!record.record_action_executed && 
+                    record.target_player != null && 
+                    _playerLockingAutomaticLock && 
+                    !record.target_player.IsLocked()) {
+                    record.target_player.AddLock(record.source_name, TimeSpan.FromMinutes(_playerLockingAutomaticDuration));
                 }
                 //Perform Actions
                 switch (record.command_action.command_key) {
@@ -13275,22 +13351,28 @@ namespace PRoConEvents {
                 if (record.target_player == null)
                 {
                     ConsoleError("Player null when locking player.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                if (String.IsNullOrEmpty(record.source_name) && record.source_player == null)
+                {
+                    SendMessageToSource(record, "No source provided to lock player. Unable to lock.");
+                    FinalizeRecord(record);
                     return;
                 }
                 //Set the executed bool
                 record.record_action_executed = true;
                 //Check if already locked
-                if (record.target_player.player_locked) {
-                    SendMessageToSource(record, record.target_player.player_name + " is already locked.");
+                if (record.target_player.IsLocked())
+                {
+                    SendMessageToSource(record, record.target_player.player_name + " is already locked by " + record.target_player.GetLockSource() + " for " + FormatTimeString(record.target_player.GetLockRemaining(), 3) + ".");
                     FinalizeRecord(record);
                     return;
                 }
-                //Player not locked, assign the new lock
-                record.target_player.player_locked = true;
-                record.target_player.player_locked_duration = TimeSpan.FromMinutes(10);
-                record.target_player.player_locked_start = DateTime.UtcNow;
-                record.target_player.player_locked_source = record.source_name;
-                SendMessageToSource(record, record.target_player.player_name + " is now locked for 10 minutes, or until unlock.");
+                //Assign the new lock
+                TimeSpan duration = TimeSpan.FromMinutes(_playerLockingManualDuration);
+                record.target_player.AddLock(record.source_name, duration);
+                SendMessageToSource(record, record.target_player.player_name + " is now locked for " + FormatTimeString(duration, 3) + ", or until you unlock them.");
             }
             catch (Exception e)
             {
@@ -13314,13 +13396,13 @@ namespace PRoConEvents {
                 //Set the executed bool
                 record.record_action_executed = true;
                 //Check if already locked
-                if (!record.target_player.player_locked)
+                if (!record.target_player.IsLocked())
                 {
                     SendMessageToSource(record, record.target_player.player_name + " is not locked.");
                     FinalizeRecord(record);
                     return;
                 }
-                record.target_player.player_locked = false;
+                record.target_player.ClearLock();
                 SendMessageToSource(record, record.target_player.player_name + " is now unlocked.");
             }
             catch (Exception e)
@@ -15445,7 +15527,12 @@ namespace PRoConEvents {
                         messageIRO = messageIRO.Length <= 500 ? messageIRO : messageIRO.Substring(0, 500);
                         command.Parameters.AddWithValue("@record_message", messageIRO);
 
-                        command.Parameters.AddWithValue("@record_time", record.record_time);
+                        if (record.record_held) {
+                            command.Parameters.AddWithValue("@record_time", record.record_time);
+                        }
+                        else {
+                            command.Parameters.AddWithValue("@record_time", "UTC_TIMESTAMP()");
+                        }
 
                         //Get reference to the command in case of error
                         //Attempt to execute the query
@@ -21778,10 +21865,10 @@ namespace PRoConEvents {
             public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
             public Boolean player_spawnedOnce = false;
             public PlayerType player_type = PlayerType.Player;
-            public Boolean player_locked = false;
-            public DateTime player_locked_start = DateTime.UtcNow;
-            public TimeSpan player_locked_duration = TimeSpan.Zero;
-            public String player_locked_source = null;
+            private Boolean player_locked = false;
+            private DateTime player_locked_start = DateTime.UtcNow;
+            private TimeSpan player_locked_duration = TimeSpan.Zero;
+            private String player_locked_source = null;
             public AdKatsTeam RequiredTeam = null;
             public readonly Queue<KeyValuePair<Double, DateTime>> player_pings;
             public Boolean player_pings_full { get; private set; }
@@ -21859,6 +21946,52 @@ namespace PRoConEvents {
                 player_ping = newPingValue;
                 player_ping_time = newPingTime;
                 player_ping_avg = player_pings.Sum(pingEntry => pingEntry.Key) / ((double)player_pings.Count);
+            }
+
+            public Boolean IsLocked() {
+                if (player_locked && player_locked_start + player_locked_duration < DateTime.UtcNow)
+                {
+                    //Unlock the player
+                    player_locked = false;
+                }
+                return player_locked;
+            }
+
+            public Boolean AddLock(String locker, TimeSpan duration) {
+                if (IsLocked()) {
+                    return false;
+                }
+                if (String.IsNullOrEmpty(locker)) {
+                    Plugin.ConsoleError("Attempted to lock player with empty locker.");
+                    return false;
+                }
+                if (duration == null || duration == TimeSpan.Zero) {
+                    Plugin.ConsoleError("Attempted to lock player with invalid duration.");
+                    return false;
+                }
+                player_locked = true;
+                player_locked_duration = duration;
+                player_locked_start = DateTime.UtcNow;
+                player_locked_source = locker;
+                return true;
+            }
+
+            public void ClearLock() {
+                player_locked = false;
+            }
+
+            public TimeSpan GetLockRemaining() {
+                if (IsLocked()) {
+                    return (player_locked_start + player_locked_duration) - DateTime.UtcNow;
+                }
+                return TimeSpan.Zero;
+            }
+
+            public String GetLockSource() {
+                if (IsLocked()) {
+                    return player_locked_source;
+                }
+                return null;
             }
         }
 
@@ -21953,6 +22086,7 @@ namespace PRoConEvents {
 
             //Multiple targets if needed
             //Not pushed to database
+            public Boolean record_held = false;
             public List<String> TargetNamesLocal; 
             public List<AdKatsPlayer> TargetPlayersLocal;
             public List<AdKatsRecord> TargetInnerRecords;
