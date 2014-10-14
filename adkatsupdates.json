@@ -18,6 +18,24 @@
 			],
 			"update_success":[],
 			"update_failure":[]
+		},
+		{
+			"update_id":"addChatlogDateIndex",
+			"version_minimum":"5.1.4.9",
+			"version_maximum":null,
+			"message_name":"Indexing tbl_chatlog.logDate for performance",
+			"message_success":"tbl_chatlog.logDate index succesfully added",
+			"message_failure":"Failed to added tbl_chatlog.logDate index",
+			"update_checks_hasResults":true,
+			"update_checks":[
+				"SHOW INDEX FROM `tbl_chatlog` WHERE `Key_name` = 'logDate'"
+			],
+			"update_execute_requiresModRows":true,
+			"update_execute":[
+				"ALTER TABLE `tbl_chatlog` ADD INDEX (logDate);"
+			],
+			"update_success":[],
+			"update_failure":[]
 		}
 	]
 }
