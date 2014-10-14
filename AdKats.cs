@@ -172,6 +172,7 @@ namespace PRoConEvents {
         private DateTime _LastPlayerMoveIssued = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastPluginDescFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastUsageStatsUpdate = DateTime.UtcNow - TimeSpan.FromHours(1);
+        private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
 
         //Server
         private Boolean _populationStatusLow = true;
@@ -4413,10 +4414,6 @@ namespace PRoConEvents {
                                         if (command.ExecuteNonQuery() > 0)
                                         {
                                             DebugWrite("round stat pushed to database", 5);
-                                            if (_DisplayTicketRatesInProconChat)
-                                            {
-                                                ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + "t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + "t/m"));
-                                            }
                                         }
                                     }
                                 }
@@ -4480,6 +4477,10 @@ namespace PRoConEvents {
 
                             AdKatsTeam team1 = _teamDictionary[1];
                             AdKatsTeam team2 = _teamDictionary[2];
+                            if (_DisplayTicketRatesInProconChat && (DateTime.UtcNow - _LastTicketRateDisplay).TotalSeconds > 25) {
+                                _LastTicketRateDisplay = DateTime.UtcNow;
+                                ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " t/m"));
+                            }
                             if (team1.TeamTicketCount >= 0 && team2.TeamTicketCount >= 0) {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                                 _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
