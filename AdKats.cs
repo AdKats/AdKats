@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.4.9
- * 13-OCT-2014
+ * Version 5.1.5.0
+ * 15-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.4.9";
+        private const String PluginVersion = "5.1.5.0";
 
         public enum ConsoleMessageType {
             Info,
@@ -411,9 +411,9 @@ namespace PRoConEvents {
         private Boolean _surrenderVoteEnable;
         private Double _surrenderVoteMinimumPlayerPercentage = 30;
         private Int32 _surrenderVoteMinimumPlayerCount = 16;
-        private Double _surrenderVoteMinimumTicketGap = 300;
+        private Int32 _surrenderVoteMinimumTicketGap = 300;
         private Boolean _surrenderVoteTicketRateGapEnable;
-        private Double _surrenderVoteMinimumTicketRateGap;
+        private Double _surrenderVoteMinimumTicketRateGap = 10;
         private Boolean _surrenderVoteActive;
         private Boolean _surrenderVoteTimeoutEnable;
         private Double _surrenderVoteTimeoutMinutes = 5;
@@ -425,6 +425,7 @@ namespace PRoConEvents {
         private Double _surrenderAutoLosingRateMin = 999;
         private Double _surrenderAutoWinningRateMax = 999;
         private Double _surrenderAutoWinningRateMin = 999;
+        private Double _surrenderAutoVoteGapReduction = 0;
         private String _surrenderAutoMessage = "Ending/Scrambling Baserape Round. %WinnerName% Wins!";
             
         //EmailHandler
@@ -856,10 +857,28 @@ namespace PRoConEvents {
                     //Player locking settings
                     lstReturn.Add(new CPluginVariable("B23. Player Locking Settings|Player Lock Manual Duration Minutes", typeof(Double), _playerLockingManualDuration));
                     lstReturn.Add(new CPluginVariable("B23. Player Locking Settings|Automatically Lock Players on Admin Action", typeof(Boolean), _playerLockingAutomaticLock));
-                    if (_playerLockingAutomaticLock) 
+                    if (_playerLockingAutomaticLock)
                     {
                         lstReturn.Add(new CPluginVariable("B23. Player Locking Settings|Player Lock Automatic Duration Minutes", typeof(Double), _playerLockingAutomaticDuration));
                     }
+
+                    //Surrender settings
+                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
+                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Player Percentage for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
+                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Player Count for Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
+                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Ticket Gap to Surrender", typeof(Int32), _surrenderVoteMinimumTicketGap));
+                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Enable Required Ticket Rate Gap to Surrender", typeof(Boolean), _surrenderVoteTicketRateGapEnable));
+                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Ticket Rate Gap to Surrender", typeof(Double), _surrenderVoteMinimumTicketRateGap));
+                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
+                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Surrender Vote Timeout Minutes", typeof(Double), _surrenderVoteTimeoutMinutes));
+
+                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
+                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
+                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
+                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
+                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
+                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Int32), _surrenderAutoVoteGapReduction));
+                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Message", typeof(Double), _surrenderAutoMessage));
 
                     //Debug settings
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
@@ -1546,6 +1565,144 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
                     }
                 }
+
+
+
+
+                else if (Regex.Match(strVariable, @"Surrender Vote Enable").Success)
+                {
+                    Boolean surrenderVoteEnable = Boolean.Parse(strValue);
+                    if (surrenderVoteEnable != _surrenderVoteEnable)
+                    {
+                        _surrenderVoteEnable = surrenderVoteEnable;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Minimum Player Percentage for Surrender").Success)
+                {
+                    Double surrenderVoteMinimumPlayerPercentage = Double.Parse(strValue);
+                    if (_surrenderVoteMinimumPlayerPercentage != surrenderVoteMinimumPlayerPercentage)
+                    {
+                        if (surrenderVoteMinimumPlayerPercentage < 0)
+                        {
+                            ConsoleError("Minimum player percentage cannot be negative.");
+                            return;
+                        }
+                        if (surrenderVoteMinimumPlayerPercentage > 100)
+                        {
+                            ConsoleError("Minimum player percentage cannot be greater than 100.");
+                            return;
+                        }
+                        _surrenderVoteMinimumPlayerPercentage = surrenderVoteMinimumPlayerPercentage;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Minimum Player Percentage for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Minimum Player Count for Surrender").Success)
+                {
+                    Int32 surrenderVoteMinimumPlayerCount = Int32.Parse(strValue);
+                    if (_surrenderVoteMinimumPlayerCount != surrenderVoteMinimumPlayerCount)
+                    {
+                        if (surrenderVoteMinimumPlayerCount < 0)
+                        {
+                            ConsoleError("Minimum player count cannot be negative.");
+                            return;
+                        }
+                        _surrenderVoteMinimumPlayerCount = surrenderVoteMinimumPlayerCount;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Minimum Player Count for Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Minimum Ticket Gap to Surrender").Success)
+                {
+                    Int32 surrenderVoteMinimumTicketGap = Int32.Parse(strValue);
+                    if (_surrenderVoteMinimumTicketGap != surrenderVoteMinimumTicketGap)
+                    {
+                        if (surrenderVoteMinimumTicketGap < 0)
+                        {
+                            ConsoleError("Minimum ticket gap cannot be negative.");
+                            return;
+                        }
+                        _surrenderVoteMinimumTicketGap = surrenderVoteMinimumTicketGap;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Minimum Ticket Gap to Surrender", typeof(Int32), _surrenderVoteMinimumTicketGap));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Enable Required Ticket Rate Gap to Surrender").Success)
+                {
+                    Boolean surrenderVoteTicketRateGapEnable = Boolean.Parse(strValue);
+                    if (surrenderVoteTicketRateGapEnable != _surrenderVoteTicketRateGapEnable)
+                    {
+                        _surrenderVoteTicketRateGapEnable = surrenderVoteTicketRateGapEnable;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Enable Required Ticket Rate Gap to Surrender", typeof(Boolean), _surrenderVoteTicketRateGapEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Minimum Ticket Rate Gap to Surrender").Success)
+                {
+                    Double surrenderVoteMinimumTicketRateGap = Double.Parse(strValue);
+                    if (_surrenderVoteMinimumTicketRateGap != surrenderVoteMinimumTicketRateGap)
+                    {
+                        if (surrenderVoteMinimumTicketRateGap < 0)
+                        {
+                            ConsoleError("Minimum ticket rate gap cannot be negative.");
+                            return;
+                        }
+                        _surrenderVoteMinimumTicketRateGap = surrenderVoteMinimumTicketRateGap;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Minimum Ticket Rate Gap to Surrender", typeof(Double), _surrenderVoteMinimumTicketRateGap));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Surrender Vote Timeout Enable").Success)
+                {
+                    Boolean surrenderVoteTimeoutEnable = Boolean.Parse(strValue);
+                    if (surrenderVoteTimeoutEnable != _surrenderVoteTimeoutEnable)
+                    {
+                        _surrenderVoteTimeoutEnable = surrenderVoteTimeoutEnable;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Surrender Vote Timeout Minutes").Success)
+                {
+                    Int32 surrenderVoteTimeoutMinutes = Int32.Parse(strValue);
+                    if (_surrenderVoteTimeoutMinutes != surrenderVoteTimeoutMinutes)
+                    {
+                        if (surrenderVoteTimeoutMinutes < 0)
+                        {
+                            ConsoleError("Timeout cannot be negative.");
+                            return;
+                        }
+                        _surrenderVoteTimeoutMinutes = surrenderVoteTimeoutMinutes;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Minutes", typeof(Int32), _surrenderVoteTimeoutMinutes));
+                    }
+                }
+
+                //TODO: FInish this after emergency is done
+
+
+
+                else if (Regex.Match(strVariable, @"Auto-Surrender Enable").Success)
+                {
+                    Boolean surrenderAutoEnable = Boolean.Parse(strValue);
+                    if (surrenderAutoEnable != _surrenderAutoEnable)
+                    {
+                        _surrenderAutoEnable = surrenderAutoEnable;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
+                    }
+                }
+                    
+                    
+
+
+
+
+
+
+
                 else if (Regex.Match(strVariable, @"Player Lock Manual Duration Minutes").Success)
                 {
                     Double playerLockingManualDuration = Double.Parse(strValue);
@@ -3017,6 +3174,11 @@ namespace PRoConEvents {
         }
 
         private void FetchPluginDescAndChangelog() {
+            if (_aliveThreads.Values.Any(aThread => aThread.Name == "descfetching")) {
+                if(_isTestingAuthorized)
+                    ConsoleWarn("Attempted to start a desc fetch before a previous one was able to finish");
+                return;
+            }
             _PluginDescriptionWaitHandle.Reset();
             //Create a new thread to fetch the plugin description and changelog
             var descFetcher = new Thread(new ThreadStart(delegate {
