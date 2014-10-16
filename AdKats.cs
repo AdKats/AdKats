@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.5.1
- * 15-OCT-2014
+ * Version 5.1.5.2
+ * 16-OCT-2014
  */
 
 using System;
@@ -49,17 +49,17 @@ using MySql.Data.MySqlClient;
 
 
 namespace PRoConEvents {
-    public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
-    {
-        private const String PluginVersion = "5.1.5.1";
+    public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
+        //Current Plugin Version
+        private const String PluginVersion = "5.1.5.2";
 
         public enum ConsoleMessageType {
+            Normal,
             Info,
+            Success,
             Warning,
             Error,
-            Exception,
-            Normal,
-            Success
+            Exception
         };
 
         public enum GameVersion {
@@ -5219,7 +5219,7 @@ namespace PRoConEvents {
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverID,
-                                command_type = _CommandKeyDictionary["player_kill"],
+                                command_type = _CommandKeyDictionary["player_kill_force"],
                                 command_numeric = 0,
                                 target_name = killer.player_name,
                                 target_player = killer,
@@ -7431,6 +7431,36 @@ namespace PRoConEvents {
                                         return;
                                     }
                                 }
+                                //Replace type if needed
+                                var surrenderCommand = GetCommandByKey("self_surrender");
+                                var votenextCommand = GetCommandByKey("self_votenext");
+                                if (record.source_player == null) {
+                                    //Record is external, votenext must me used
+                                    if (record.command_type.command_key == surrenderCommand.command_key) {
+                                        record.command_type = votenextCommand;
+                                        record.command_action = votenextCommand;
+                                        record.record_message = "Player Voted for Next Round";
+                                    }
+                                }
+                                else if (PlayerIsWinning(record.source_player)) {
+                                    //Player is winning, votenext must me used
+                                    if (record.command_type.command_key == surrenderCommand.command_key)
+                                    {
+                                        record.command_type = votenextCommand;
+                                        record.command_action = votenextCommand;
+                                        record.record_message = "Player Voted for Next Round";
+                                    }
+                                }
+                                else
+                                {
+                                    //Player is losing, surrender must me used
+                                    if (record.command_type.command_key == votenextCommand.command_key)
+                                    {
+                                        record.command_type = surrenderCommand;
+                                        record.command_action = surrenderCommand;
+                                        record.record_message = "Player Voted for Surrender";
+                                    }
+                                }
                             }
                             break;
                     }
@@ -7790,7 +7820,6 @@ namespace PRoConEvents {
                         AdKatsTeam team1 = _teamDictionary[1];
                         AdKatsTeam team2 = _teamDictionary[2];
                         AdKatsTeam winningTeam, losingTeam;
-                        Boolean biggerTicketsWinning;
                         if (team1.TeamTicketCount > team2.TeamTicketCount) {
                             winningTeam = team1;
                             losingTeam = team2;
@@ -13132,7 +13161,7 @@ namespace PRoConEvents {
                 if (_ServerRulesList.Length > 0)
                 {
                     //If requesting rules on yourself as an admin, rules should be sent to the whole server.
-                    Boolean sourceIsAdmin = ((record.source_player != null && !PlayerIsAdmin(record.source_player) || record.source_player == null));
+                    Boolean sourceIsAdmin = ((record.source_player != null && PlayerIsAdmin(record.source_player) || record.source_player == null));
                     Boolean allPlayers = (sourceIsAdmin) &&
                                          (record.target_player == null || record.target_name == record.source_name);
                     if (record.source_name != record.target_name) {
@@ -21237,6 +21266,28 @@ namespace PRoConEvents {
                 }
             }
             return false;
+        }
+
+        public Boolean PlayerIsWinning(AdKatsPlayer aPlayer)
+        {
+            if (aPlayer.frostbitePlayerInfo == null) {
+                return false;
+            }
+            //Team Info Check
+            AdKatsTeam team1 = _teamDictionary[1];
+            AdKatsTeam team2 = _teamDictionary[2];
+            AdKatsTeam winningTeam, losingTeam;
+            if (team1.TeamTicketCount > team2.TeamTicketCount)
+            {
+                winningTeam = team1;
+                losingTeam = team2;
+            }
+            else
+            {
+                winningTeam = team2;
+                losingTeam = team1;
+            }
+            return aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID;
         }
 
         public AdKatsCommand GetCommandByKey(String commandKey) {
