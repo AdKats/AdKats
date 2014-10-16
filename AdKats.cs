@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.5.3
+ * Version 5.1.5.4
  * 16-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.5.3";
+        private const String PluginVersion = "5.1.5.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -897,7 +897,7 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof(String), _debugSoldierName));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
-                    lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Usage Data Posting", typeof(Boolean), _usageDataDisabled));
+                    lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Usage Data Posting - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Command Entry", typeof (String), ""));
                     
                     //Experimental tools
@@ -1067,7 +1067,7 @@ namespace PRoConEvents {
 
             lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof(Int32), _debugLevel));
             lstReturn.Add(new CPluginVariable("3. Debugging|Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
-            lstReturn.Add(new CPluginVariable("3. Debugging|Disable Usage Data Posting", typeof(Boolean), _usageDataDisabled));
+            lstReturn.Add(new CPluginVariable("3. Debugging|Disable Usage Data Posting - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
 
             lstReturn.Add(new CPluginVariable("4. Database Timing Mismatch|Override Timing Confirmation", typeof(Boolean), _dbTimingValidOverride));
 
@@ -1346,7 +1346,7 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Disable Usage Data Posting").Success)
+                else if (Regex.Match(strVariable, @"Disable Usage Data Posting - Required For TEST Builds").Success)
                 {
                     Boolean disableUpdatePosts = Boolean.Parse(strValue);
                     if (disableUpdatePosts != _usageDataDisabled)
@@ -1364,7 +1364,7 @@ namespace PRoConEvents {
                             PostUsageStatsUpdate();
                         }
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Disable Usage Data Posting", typeof(Boolean), _usageDataDisabled));
+                        QueueSettingForUpload(new CPluginVariable(@"Disable Usage Data Posting - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
                     }
                 }
                 else if (Regex.Match(strVariable, @"AFK System Enable").Success)
@@ -3355,7 +3355,7 @@ namespace PRoConEvents {
                                 FetchPluginDescAndChangelog();
                             }
 
-                            if (!_usageDataDisabled &&
+                            if ((!_usageDataDisabled || _pluginVersionStatus == VersionStatus.TestBuild || _isTestingAuthorized) &&
                                 (DateTime.UtcNow - _LastUsageStatsUpdate).TotalHours > 1 &&
                                 (_threadsReady || (DateTime.UtcNow - _proconStartTime).TotalSeconds > 30))
                             {
@@ -3382,24 +3382,6 @@ namespace PRoConEvents {
                                             aliveThreads = aliveThreads + (value.Name + "[" + value.ManagedThreadId + "] ");
                                     }
                                     ConsoleWarn("Thread warning: " + aliveThreads);
-                                }
-
-                                if ((DateTime.UtcNow - _lastSuccessfulPlayerList).TotalSeconds > 120 && _isTestingAuthorized && _firstPlayerListComplete)
-                                {
-                                    //Create the report record
-                                    var record = new AdKatsRecord
-                                    {
-                                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        server_id = _serverID,
-                                        command_type = _CommandKeyDictionary["player_calladmin"],
-                                        command_numeric = 0,
-                                        target_name = "AdKats",
-                                        target_player = null,
-                                        source_name = "AdKats",
-                                        record_message = "Player Listing Offline"
-                                    };
-                                    //Process the record
-                                    QueueRecordForProcessing(record);
                                 }
 
                                 //Perform AFK processing
@@ -4703,16 +4685,19 @@ namespace PRoConEvents {
                             if (_isTestingAuthorized && _serverInfo.ServerName.Contains("#7") && !_endingRound)
                             {
                                 AdKatsTeam baserapingTeam = null;
+                                AdKatsTeam baserapedTeam = null;
                                 if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > 100)
                                 {
                                     if ((Math.Abs(team1.TeamTicketDifferenceRate) > 60 && Math.Abs(team2.TeamTicketDifferenceRate) < 10 && team2.TeamTicketCount > team1.TeamTicketCount) ||
                                         (Math.Abs(team1.TeamTicketDifferenceRate) > 70 && Math.Abs(team2.TeamTicketDifferenceRate) < 15 && team2.TeamTicketCount > team1.TeamTicketCount))
                                     {
+                                        baserapedTeam = team1;
                                         baserapingTeam = team2;
                                     }
                                     else if ((Math.Abs(team2.TeamTicketDifferenceRate) > 60 && Math.Abs(team1.TeamTicketDifferenceRate) < 10 && team1.TeamTicketCount > team2.TeamTicketCount) ||
                                              (Math.Abs(team2.TeamTicketDifferenceRate) > 70 && Math.Abs(team1.TeamTicketDifferenceRate) < 15 && team1.TeamTicketCount > team2.TeamTicketCount))
                                     {
+                                        baserapedTeam = team2;
                                         baserapingTeam = team1;
                                     }
                                 }
@@ -4740,7 +4725,7 @@ namespace PRoConEvents {
                                                 command_numeric = baserapingTeam.TeamID,
                                                 target_name = baserapingTeam.TeamName,
                                                 source_name = "RoundManager",
-                                                record_message = "End Baserape Round (" + baserapingTeam.TeamKey + " Win)(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + ")"
+                                                record_message = "End Baserape Round (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + ")"
                                             };
                                             QueueRecordForProcessing(repRecord);
                                         }
@@ -7845,7 +7830,7 @@ namespace PRoConEvents {
                         }
                         String debug = (PlayerIsAdmin(record.source_player)) ? ("[" + friendlyTeam.TeamKey + ":" + friendlyTeam.TeamTicketCount + ":" + (int)friendlyTeam.TeamTicketDifferenceRate + "][" + enemyTeam.TeamKey + ":" + enemyTeam.TeamTicketCount + ":" + (int)enemyTeam.TeamTicketDifferenceRate + "]") : ("");
 
-                        record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + _serverInfo.RoundTime + "]";
+                        record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 3) + "]";
                         Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
                         Boolean enemyStrong = true;
                         if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID)
@@ -13494,7 +13479,7 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "Procon: " + FormatTimeString(DateTime.UtcNow - _proconStartTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "AdKats: " + FormatTimeString(DateTime.UtcNow - _AdKatsRunningTime, 10));
+                        SendMessageToSource(record, "AdKats " + PluginVersion + ": " + FormatTimeString(DateTime.UtcNow - _AdKatsRunningTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "Last Player List: " + FormatTimeString(DateTime.UtcNow - _lastSuccessfulPlayerList, 10) + " ago");
                         _threadMasterWaitHandle.WaitOne(3000);
@@ -15519,7 +15504,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
-                QueueSettingForUpload(new CPluginVariable(@"Disable Usage Data Posting", typeof(Boolean), _usageDataDisabled));
+                QueueSettingForUpload(new CPluginVariable(@"Disable Usage Data Posting - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
                 QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKManagerEnable));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
