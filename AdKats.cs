@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.5.2
+ * Version 5.1.5.3
  * 16-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.5.2";
+        private const String PluginVersion = "5.1.5.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -9941,6 +9941,38 @@ namespace PRoConEvents {
                         }
                     }
                         break;
+                    case "self_reportlist":
+                        {
+                        //Remove previous commands awaiting confirmationf
+                        CancelSourcePendingAction(record);
+
+                        //Parse parameters using max param count
+                        String[] parameters = ParseParameters(remainingMessage, 1);
+                        switch (parameters.Length) {
+                            case 0:
+                                if (record.record_source != AdKatsRecord.Sources.InGame) {
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                record.target_name = record.source_name;
+                                record.record_message = "Player Taking Squad Lead";
+                                CompleteTargetInformation(record, false, false);
+                                break;
+                            case 1:
+                                record.target_name = parameters[0];
+                                record.record_message = "Giving Player Squad Lead";
+                                if (!HandleRoundReport(record)) {
+                                    CompleteTargetInformation(record, false, false);
+                                }
+                                break;
+                            default:
+                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                FinalizeRecord(record);
+                                return;
+                        }
+                    }
+                        break;
                     case "admin_accept": {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
@@ -15900,34 +15932,71 @@ namespace PRoConEvents {
                         //Decide which table the record should be added to
                         String tablename = (record.isDebug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
                         //Set the insert command structure
-                        command.CommandText = @"INSERT INTO " + tablename + @"
-                        (
-                            `server_id`, 
-                            `command_type`, 
-                            `command_action`, 
-                            `command_numeric`, 
-                            `target_name`, 
-                            `target_id`, 
-                            `source_name`, 
-                            `source_id`, 
-                            `record_message`, 
-                            `record_time`, 
-                            `adkats_read`
-                        ) 
-                        VALUES 
-                        ( 
-                            @server_id, 
-                            @command_type, 
-                            @command_action,
-                            @command_numeric,
-                            @target_name, 
-                            @target_id, 
-                            @source_name, 
-                            @source_id, 
-                            @record_message, 
-                            @record_time, 
-                            'Y'
-                        )";
+                        if (record.record_held)
+                        {
+                            command.CommandText = @"
+                            INSERT INTO " + tablename + @"
+                            (
+                                `server_id`, 
+                                `command_type`, 
+                                `command_action`, 
+                                `command_numeric`, 
+                                `target_name`, 
+                                `target_id`, 
+                                `source_name`, 
+                                `source_id`, 
+                                `record_message`, 
+                                `record_time`, 
+                                `adkats_read`
+                            ) 
+                            VALUES 
+                            ( 
+                                @server_id, 
+                                @command_type, 
+                                @command_action,
+                                @command_numeric,
+                                @target_name, 
+                                @target_id, 
+                                @source_name, 
+                                @source_id, 
+                                @record_message, 
+                                @record_time, 
+                                'Y'
+                            )";
+                            command.Parameters.AddWithValue("@record_time", record.record_time);
+                        }
+                        else
+                        {
+                            command.CommandText = @"
+                            INSERT INTO " + tablename + @"
+                            (
+                                `server_id`, 
+                                `command_type`, 
+                                `command_action`, 
+                                `command_numeric`, 
+                                `target_name`, 
+                                `target_id`, 
+                                `source_name`, 
+                                `source_id`, 
+                                `record_message`, 
+                                `record_time`, 
+                                `adkats_read`
+                            ) 
+                            VALUES 
+                            ( 
+                                @server_id, 
+                                @command_type, 
+                                @command_action,
+                                @command_numeric,
+                                @target_name, 
+                                @target_id, 
+                                @source_name, 
+                                @source_id, 
+                                @record_message, 
+                                UTC_TIMESTAMP(), 
+                                'Y'
+                            )";
+                        }
 
                         //Fill the command
                         command.Parameters.AddWithValue("@server_id", record.server_id);
@@ -15974,13 +16043,6 @@ namespace PRoConEvents {
                         //Trim to 500 characters (Should only hit this limit when processing error messages)
                         messageIRO = messageIRO.Length <= 500 ? messageIRO : messageIRO.Substring(0, 500);
                         command.Parameters.AddWithValue("@record_message", messageIRO);
-
-                        if (record.record_held) {
-                            command.Parameters.AddWithValue("@record_time", record.record_time);
-                        }
-                        else {
-                            command.Parameters.AddWithValue("@record_time", "UTC_TIMESTAMP()");
-                        }
 
                         //Get reference to the command in case of error
                         //Attempt to execute the query
@@ -19079,6 +19141,11 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 79", "REPLACE INTO `adkats_commands` VALUES(79, 'Active', 'self_votenext', 'Log', 'Vote Next Round', 'votenext', FALSE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(80))
+                                {
+                                    SendNonQuery("Adding command 80", "REPLACE INTO `adkats_commands` VALUES(80, 'Active', 'self_reportlist', 'Log', 'List Round Reports', 'reportlist', FALSE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -19180,6 +19247,7 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["player_whitelistaa"] = "Whitelists a player for Admin Assistant status.";
             _CommandDescriptionDictionary["self_surrender"] = "Votes to end the round with current winning team as winner, then start the next.";
             _CommandDescriptionDictionary["self_votenext"] = "Votes to end the round with current winning team as winner, then start the next.";
+            _CommandDescriptionDictionary["self_reportlist"] = "Lists the latest unused round reports.";
         }
 
         private void UpdateCommandTimeouts() {
