@@ -4801,6 +4801,9 @@ namespace PRoConEvents {
                     _roundState = RoundState.Loaded;
                     //Completely clear all round-specific data
                     _endingRound = false;
+                    _surrenderVoteList.Clear();
+                    _surrenderVoteActive = false;
+                    _surrenderVoteSucceeded = false;
                     _RoundReports.Clear();
                     _RoundMutedPlayers.Clear();
                     _ActionConfirmDic.Clear();
