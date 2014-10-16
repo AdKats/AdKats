@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.5.0
+ * Version 5.1.5.1
  * 15-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
-        private const String PluginVersion = "5.1.5.0";
+        private const String PluginVersion = "5.1.5.1";
 
         public enum ConsoleMessageType {
             Info,
@@ -111,7 +111,7 @@ namespace PRoConEvents {
         private Boolean _pluginUpdatePatched;
         private volatile Boolean _useKeepAlive;
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
-        private RoundState _currentRoundState = RoundState.Loaded;
+        private RoundState _roundState = RoundState.Loaded;
         private Int32 _highestTicketCount;
         private Int32 _lowestTicketCount = 500000;
         private volatile Boolean _fetchedPluginInformation;
@@ -414,9 +414,10 @@ namespace PRoConEvents {
         private Int32 _surrenderVoteMinimumTicketGap = 300;
         private Boolean _surrenderVoteTicketRateGapEnable;
         private Double _surrenderVoteMinimumTicketRateGap = 10;
-        private Boolean _surrenderVoteActive;
         private Boolean _surrenderVoteTimeoutEnable;
         private Double _surrenderVoteTimeoutMinutes = 5;
+        private Boolean _surrenderVoteActive;
+        private Boolean _surrenderVoteSucceeded;
         private DateTime _surrenderVoteStartTime = DateTime.UtcNow;
         private HashSet<String> _surrenderVoteList = new HashSet<String>();
         //Auto-Surrender
@@ -862,23 +863,35 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("B23. Player Locking Settings|Player Lock Automatic Duration Minutes", typeof(Double), _playerLockingAutomaticDuration));
                     }
 
-                    //Surrender settings
+                    //Surrender Vote settings
                     lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
-                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Player Percentage for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
-                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Player Count for Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
-                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Ticket Gap to Surrender", typeof(Int32), _surrenderVoteMinimumTicketGap));
-                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Enable Required Ticket Rate Gap to Surrender", typeof(Boolean), _surrenderVoteTicketRateGapEnable));
-                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Ticket Rate Gap to Surrender", typeof(Double), _surrenderVoteMinimumTicketRateGap));
-                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
-                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Surrender Vote Timeout Minutes", typeof(Double), _surrenderVoteTimeoutMinutes));
+                    if (_surrenderVoteEnable)
+                    {
+                        lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Percentage Votes Needed for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
+                        lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Player Count to Enable Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
+                        lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Ticket Gap to Surrender", typeof(Int32), _surrenderVoteMinimumTicketGap));
+                        lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Enable Required Ticket Rate Gap to Surrender", typeof(Boolean), _surrenderVoteTicketRateGapEnable));
+                        if (_surrenderVoteTicketRateGapEnable)
+                        {
+                            lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Ticket Rate Gap to Surrender", typeof(Double), _surrenderVoteMinimumTicketRateGap));
+                        }
+                        lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
+                        if (_surrenderVoteTimeoutEnable)
+                        {
+                            lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Surrender Vote Timeout Minutes", typeof(Double), _surrenderVoteTimeoutMinutes));
+                        }
+                    }
 
                     lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
-                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
-                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
-                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
-                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
-                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Int32), _surrenderAutoVoteGapReduction));
-                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Message", typeof(Double), _surrenderAutoMessage));
+                    if (_surrenderAutoEnable)
+                    {
+                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
+                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
+                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
+                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
+                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
+                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
+                    }
 
                     //Debug settings
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
@@ -1565,10 +1578,6 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
                     }
                 }
-
-
-
-
                 else if (Regex.Match(strVariable, @"Surrender Vote Enable").Success)
                 {
                     Boolean surrenderVoteEnable = Boolean.Parse(strValue);
@@ -1579,7 +1588,7 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Minimum Player Percentage for Surrender").Success)
+                else if (Regex.Match(strVariable, @"Percentage Votes Needed for Surrender").Success)
                 {
                     Double surrenderVoteMinimumPlayerPercentage = Double.Parse(strValue);
                     if (_surrenderVoteMinimumPlayerPercentage != surrenderVoteMinimumPlayerPercentage)
@@ -1596,10 +1605,10 @@ namespace PRoConEvents {
                         }
                         _surrenderVoteMinimumPlayerPercentage = surrenderVoteMinimumPlayerPercentage;
                         //Once setting has been changed, upload the change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Minimum Player Percentage for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
+                        QueueSettingForUpload(new CPluginVariable(@"Percentage Votes Needed for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Minimum Player Count for Surrender").Success)
+                else if (Regex.Match(strVariable, @"Minimum Player Count to Enable Surrender").Success)
                 {
                     Int32 surrenderVoteMinimumPlayerCount = Int32.Parse(strValue);
                     if (_surrenderVoteMinimumPlayerCount != surrenderVoteMinimumPlayerCount)
@@ -1611,7 +1620,7 @@ namespace PRoConEvents {
                         }
                         _surrenderVoteMinimumPlayerCount = surrenderVoteMinimumPlayerCount;
                         //Once setting has been changed, upload the change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Minimum Player Count for Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
+                        QueueSettingForUpload(new CPluginVariable(@"Minimum Player Count to Enable Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Minimum Ticket Gap to Surrender").Success)
@@ -1679,11 +1688,6 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Minutes", typeof(Int32), _surrenderVoteTimeoutMinutes));
                     }
                 }
-
-                //TODO: FInish this after emergency is done
-
-
-
                 else if (Regex.Match(strVariable, @"Auto-Surrender Enable").Success)
                 {
                     Boolean surrenderAutoEnable = Boolean.Parse(strValue);
@@ -1694,15 +1698,63 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                     }
                 }
-                    
-                    
-
-
-
-
-
-
-
+                else if (Regex.Match(strVariable, @"Auto-Surrender Losing Team Rate Window Max").Success)
+                {
+                    Double surrenderAutoLosingRateMax = Double.Parse(strValue);
+                    if (_surrenderAutoLosingRateMax != surrenderAutoLosingRateMax)
+                    {
+                        _surrenderAutoLosingRateMax = surrenderAutoLosingRateMax;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Losing Team Rate Window Min").Success)
+                {
+                    Double surrenderAutoLosingRateMin = Double.Parse(strValue);
+                    if (_surrenderAutoLosingRateMin != surrenderAutoLosingRateMin)
+                    {
+                        _surrenderAutoLosingRateMin = surrenderAutoLosingRateMin;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Winning Team Rate Window Max").Success)
+                {
+                    Double surrenderAutoWinningRateMax = Double.Parse(strValue);
+                    if (_surrenderAutoWinningRateMax != surrenderAutoWinningRateMax)
+                    {
+                        _surrenderAutoWinningRateMax = surrenderAutoWinningRateMax;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Winning Team Rate Window Min").Success)
+                {
+                    Double surrenderAutoWinningRateMin = Double.Parse(strValue);
+                    if (_surrenderAutoWinningRateMin != surrenderAutoWinningRateMin)
+                    {
+                        _surrenderAutoWinningRateMin = surrenderAutoWinningRateMin;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Vote Gap Reduction Value").Success)
+                {
+                    Double surrenderAutoVoteGapReduction = Double.Parse(strValue);
+                    if (_surrenderAutoVoteGapReduction != surrenderAutoVoteGapReduction)
+                    {
+                        _surrenderAutoVoteGapReduction = surrenderAutoVoteGapReduction;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Message").Success) {
+                    if (strValue != _surrenderAutoMessage) {
+                        _surrenderAutoMessage = strValue;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Message", typeof (String), _surrenderAutoMessage));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Player Lock Manual Duration Minutes").Success)
                 {
                     Double playerLockingManualDuration = Double.Parse(strValue);
@@ -3566,7 +3618,7 @@ namespace PRoConEvents {
                             if (_serverInfo.RoundTime > 20 && 
                                 _teamDictionary.ContainsKey(targetTeamID) && 
                                 _teamDictionary[targetTeamID].TeamKey == "US" &&
-                                _currentRoundState == RoundState.Playing)
+                                _roundState == RoundState.Playing)
                             {
                                 DebugWrite("Team US already set for team " + targetTeamID + ", cancelling override.", 4);
                                 break;
@@ -3579,7 +3631,7 @@ namespace PRoConEvents {
                             if (_serverInfo.RoundTime > 20 && 
                                 _teamDictionary.ContainsKey(targetTeamID) &&
                                 _teamDictionary[targetTeamID].TeamKey == "RU" &&
-                                _currentRoundState == RoundState.Playing)
+                                _roundState == RoundState.Playing)
                             {
                                 DebugWrite("Team RU already set for team " + targetTeamID + ", cancelling override.", 4);
                                 break;
@@ -3592,7 +3644,7 @@ namespace PRoConEvents {
                             if (_serverInfo.RoundTime > 20 
                                 && _teamDictionary.ContainsKey(targetTeamID) &&
                                 _teamDictionary[targetTeamID].TeamKey == "CN" &&
-                                _currentRoundState == RoundState.Playing)
+                                _roundState == RoundState.Playing)
                             {
                                 DebugWrite("Team CN already set for team " + targetTeamID + ", cancelling override.", 4);
                                 break;
@@ -3690,7 +3742,7 @@ namespace PRoConEvents {
                     if (aPlayer.RequiredTeam != null && 
                         aPlayer.RequiredTeam.TeamID != teamId &&
                         !PlayerIsAdmin(aPlayer) && 
-                        _currentRoundState == RoundState.Playing)
+                        _roundState == RoundState.Playing)
                     {
                         OnlineAdminSayMessage(soldierName + " attempted to team switch after being admin moved.");
                         PlayerTellMessage(soldierName, "You were moved to " + aPlayer.RequiredTeam.TeamKey + " team, please remain on that team.");
@@ -3970,7 +4022,7 @@ namespace PRoConEvents {
                                                 ping = -1;
                                             }
                                         }
-                                        if (_currentRoundState == RoundState.Playing) {
+                                        if (_roundState == RoundState.Playing) {
                                             aPlayer.AddPingEntry(ping);
                                             //Automatic ping kick
                                             if (_pingEnforcerSystemEnable && 
@@ -4239,7 +4291,7 @@ namespace PRoConEvents {
                                     QueueRecordForProcessing(record);
                                     ConsoleError(record.record_message);
                                     //Set round ended
-                                    _currentRoundState = RoundState.Ended;
+                                    _roundState = RoundState.Ended;
                                 }
                                 if (_PlayerDictionary.Count >= _lowPopulationPlayerCount) {
                                     if (_populationStatusLow) {
@@ -4503,12 +4555,12 @@ namespace PRoConEvents {
                             AdKatsTeam team2 = _teamDictionary[2];
                             watch.Reset();
                             watch.Start();
-                            if (_currentRoundState == RoundState.Loaded)
+                            if (_roundState == RoundState.Loaded)
                             {
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(2));
                                 continue;
                             }
-                            if (_currentRoundState == RoundState.Ended ||
+                            if (_roundState == RoundState.Ended ||
                                 !_pluginEnabled ||
                                 (team1.TeamPlayerCount <= 1 && team1.Populated) ||
                                 (team2.TeamPlayerCount <= 1 && team1.Populated))
@@ -4746,7 +4798,7 @@ namespace PRoConEvents {
             DebugWrite("Entering OnLevelLoaded", 7);
             try {
                 if (_pluginEnabled) {
-                    _currentRoundState = RoundState.Loaded;
+                    _roundState = RoundState.Loaded;
                     //Completely clear all round-specific data
                     _endingRound = false;
                     _RoundReports.Clear();
@@ -4776,12 +4828,12 @@ namespace PRoConEvents {
         //Round ended stuff
         public override void OnRoundOverTeamScores(List<TeamScore> teamScores)
         {
-            _currentRoundState = RoundState.Ended;
+            _roundState = RoundState.Ended;
             _pingKicksThisRound = 0;
         }
 
         public override void OnRunNextLevel() {
-            _currentRoundState = RoundState.Ended;
+            _roundState = RoundState.Ended;
             _pingKicksThisRound = 0;
         }
 
@@ -5326,8 +5378,8 @@ namespace PRoConEvents {
             {
                 AdKatsPlayer aPlayer = null;
                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete) {
-                    if (_currentRoundState == RoundState.Loaded) {
-                        _currentRoundState = RoundState.Playing;
+                    if (_roundState == RoundState.Loaded) {
+                        _roundState = RoundState.Playing;
                     }
                     if (_CommandNameDictionary.Count > 0) {
                         //Handle TeamSwap notifications
@@ -7314,13 +7366,67 @@ namespace PRoConEvents {
                         case "player_unlock":
                             {
                                 //Check if already locked
-                                if (record.target_player != null && 
-                                    record.target_player.IsLocked() && 
+                                if (record.target_player != null &&
+                                    record.target_player.IsLocked() &&
                                     record.target_player.GetLockSource() != record.source_name)
                                 {
                                     SendMessageToSource(record, record.target_player.player_name + " is locked by " + record.target_player.GetLockSource() + ", either they can unlock them, or after " + FormatTimeString(record.target_player.GetLockRemaining(), 3) + " the player will be automatically unlocked.");
                                     FinalizeRecord(record);
                                     return;
+                                }
+                            }
+                            break;
+                        case "self_surrender":
+                        case "self_votenext":
+                            {
+                                if (!_surrenderVoteEnable)
+                                {
+                                    SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (_roundState != RoundState.Playing)
+                                {
+                                    SendMessageToSource(record, "Round state must be playing to use surrender. Current: " + _roundState);
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (_surrenderVoteSucceeded) {
+                                    SendMessageToSource(record, "Surrender already succeeded.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (_surrenderVoteList.Contains(record.source_name))
+                                {
+                                    SendMessageToSource(record, "You already voted! You can cancel your vote with @" + GetCommandByKey("command_cancel").command_text);
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (!_surrenderVoteActive)
+                                {
+                                    Int32 playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
+                                    if (_surrenderVoteMinimumPlayerCount < playerCount)
+                                    {
+                                        SendMessageToSource(record, _surrenderVoteMinimumPlayerCount + " players needed to start Surrender Vote. Current: " + playerCount);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    AdKatsTeam team1 = _teamDictionary[1];
+                                    AdKatsTeam team2 = _teamDictionary[2];
+                                    Int32 ticketGap = Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount);
+                                    if (ticketGap < _surrenderVoteMinimumTicketGap)
+                                    {
+                                        SendMessageToSource(record, _surrenderVoteMinimumTicketGap + " ticket gap needed to start Surrender Vote. Current: " + ticketGap);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    Double ticketRateGap = Math.Abs(team1.TeamTicketDifferenceRate - team2.TeamTicketDifferenceRate);
+                                    if (_surrenderVoteTicketRateGapEnable && _surrenderVoteMinimumTicketRateGap < ticketRateGap)
+                                    {
+                                        SendMessageToSource(record, _surrenderVoteMinimumTicketRateGap + " ticket rate gap needed to start Surrender Vote. Current: " + Math.Round(ticketRateGap, 2));
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
                                 }
                             }
                             break;
@@ -7681,6 +7787,7 @@ namespace PRoConEvents {
                         AdKatsTeam team1 = _teamDictionary[1];
                         AdKatsTeam team2 = _teamDictionary[2];
                         AdKatsTeam winningTeam, losingTeam;
+                        Boolean biggerTicketsWinning;
                         if (team1.TeamTicketCount > team2.TeamTicketCount) {
                             winningTeam = team1;
                             losingTeam = team2;
@@ -8928,7 +9035,6 @@ namespace PRoConEvents {
                                     record.record_message = "Fetching own chat history";
                                     record.target_name = record.source_name;
                                     record.command_numeric = 5;
-                                    //TODO: SendMessageToSource(record, "Fetching last " + record.command_numeric + " records of own chat history.");
                                     CompleteTargetInformation(record, false, false);
                                     break;
                                 case 1:
@@ -9519,6 +9625,13 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            if (!_surrenderVoteEnable)
+                            {
+                                SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 0);
                             switch (parameters.Length)
@@ -9552,6 +9665,13 @@ namespace PRoConEvents {
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
+
+                            if (!_surrenderVoteEnable)
+                            {
+                                SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
 
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 0);
@@ -10342,6 +10462,12 @@ namespace PRoConEvents {
                         DebugWrite("attempting to cancel command", 6);
                         if (_ActionConfirmDic.Remove(record.source_name)) {
                             SendMessageToSource(record, "Previous command cancelled.");
+                        }
+                        else if (!_surrenderVoteSucceeded && _surrenderVoteList.Contains(record.source_name)) {
+                            if (_surrenderVoteList.Remove(record.source_name))
+                            {
+                                SendMessageToSource(record, "Your surrender vote has been removed.");
+                            }
                         }
                         else {
                             DebugWrite("no command to cancel", 6);
@@ -11225,7 +11351,7 @@ namespace PRoConEvents {
                         SourceVoteSurrender(record);
                         break;
                     case "self_votenext":
-                        SourceVoteNextRound(record);
+                        SourceVoteSurrender(record);
                         break;
                     case "self_help":
                         SendServerCommands(record);
@@ -13078,6 +13204,118 @@ namespace PRoConEvents {
             {
                 //Set the executed bool
                 record.record_action_executed = true;
+
+                //Case for database added records 
+                if (!_surrenderVoteEnable)
+                {
+                    SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                if (_roundState != RoundState.Playing)
+                {
+                    SendMessageToSource(record, "Round state must be playing to use surrender. Current: " + _roundState);
+                    FinalizeRecord(record);
+                    return;
+                }
+                if (_surrenderVoteSucceeded)
+                {
+                    SendMessageToSource(record, "Surrender already succeeded.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                if (_surrenderVoteList.Contains(record.source_name))
+                {
+                    SendMessageToSource(record, "You already voted! You can cancel your vote with @" + GetCommandByKey("command_cancel").command_text);
+                    FinalizeRecord(record);
+                    return;
+                }
+                var voteEnabled = false;
+                AdKatsTeam team1 = _teamDictionary[1];
+                AdKatsTeam team2 = _teamDictionary[2];
+                AdKatsTeam winningTeam, losingTeam;
+                if (team1.TeamTicketCount > team2.TeamTicketCount) {
+                    winningTeam = team1;
+                    losingTeam = team2;
+                }
+                else {
+                    winningTeam = team2;
+                    losingTeam = team1;
+                }
+                if (!_surrenderVoteActive)
+                {
+                    Int32 playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
+                    if (_surrenderVoteMinimumPlayerCount < playerCount)
+                    {
+                        SendMessageToSource(record, _surrenderVoteMinimumPlayerCount + " players needed to start Surrender Vote. Current: " + playerCount);
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    Int32 ticketGap = Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount);
+                    if (ticketGap < _surrenderVoteMinimumTicketGap)
+                    {
+                        SendMessageToSource(record, _surrenderVoteMinimumTicketGap + " ticket gap needed to start Surrender Vote. Current: " + ticketGap);
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    Double ticketRateGap = Math.Abs(team1.TeamTicketDifferenceRate - team2.TeamTicketDifferenceRate);
+                    if (_surrenderVoteTicketRateGapEnable && _surrenderVoteMinimumTicketRateGap < ticketRateGap)
+                    {
+                        SendMessageToSource(record, _surrenderVoteMinimumTicketRateGap + " ticket rate gap needed to start Surrender Vote. Current: " + Math.Round(ticketRateGap, 2));
+                        FinalizeRecord(record);
+                        return;
+                    }
+
+                    _surrenderVoteActive = true;
+                    voteEnabled = true;
+                    _surrenderVoteStartTime = DateTime.UtcNow;
+                }
+                //Add the vote
+                _surrenderVoteList.Add(record.source_name);
+                //Use @" + GetCommandByKey("self_surrender").command_text + " or @" + GetCommandByKey("self_votenext").command_text
+                Int32 requiredVotes = (Int32)((_serverInfo.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                Int32 voteCount = _surrenderVoteList.Count;
+                if (voteCount >= requiredVotes) {
+                    //Vote succeeded, trigger winning team
+                    _endingRound = true;
+                    var roundEndDelayThread = new Thread(new ThreadStart(delegate {
+                        DebugWrite("Starting a round end delay thread.", 5);
+                        try {
+                            Thread.CurrentThread.Name = "roundenddelay";
+                            for (int i = 0; i < 6; i++) {
+                                AdminTellMessage("Surrender Vote Succeeded. " + winningTeam.TeamName + " wins!");
+                                Thread.Sleep(50);
+                            }
+                            _threadMasterWaitHandle.WaitOne(7000);
+                            var repRecord = new AdKatsRecord {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverID,
+                                command_type = _CommandKeyDictionary["round_end"],
+                                command_numeric = winningTeam.TeamID,
+                                target_name = winningTeam.TeamName,
+                                source_name = "RoundManager",
+                                record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 3) + ")"
+                            };
+                            QueueRecordForProcessing(repRecord);
+                        }
+                        catch (Exception) {
+                            HandleException(new AdKatsException("Error while running round end delay."));
+                        }
+                        DebugWrite("Exiting a round end delay thread.", 5);
+                        LogThreadExit();
+                    }));
+                    StartAndLogThread(roundEndDelayThread);
+                }
+                else
+                {
+                    if (voteEnabled) {
+                        AdminTellMessage("Surrender Vote started! Use @" + GetCommandByKey("self_surrender").command_text + " or @" + GetCommandByKey("self_votenext").command_text + " to vote for surrender/scramble.");
+                    }
+                    else {
+                        AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + " or @" + GetCommandByKey("self_votenext").command_text + " to vote.");
+                    }
+                    OnlineAdminSayMessage(record.source_name + " voted for round surrender.");
+                }
             }
             catch (Exception e)
             {
@@ -13086,23 +13324,6 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting SourceVoteSurrender", 6);
-        }
-
-        public void SourceVoteNextRound(AdKatsRecord record)
-        {
-            DebugWrite("Entering SourceVoteNextRound", 6);
-            try
-            {
-                //Set the executed bool
-                record.record_action_executed = true;
-            }
-            catch (Exception e)
-            {
-                record.record_exception = new AdKatsException("Error while voting next round.", e);
-                HandleException(record.record_exception);
-                FinalizeRecord(record);
-            }
-            DebugWrite("Exiting SourceVoteNextRound", 6);
         }
 
         public void SendServerCommands(AdKatsRecord record)
@@ -15256,6 +15477,21 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Automatically Lock Players on Admin Action", typeof(Boolean), _playerLockingAutomaticLock));
                 QueueSettingForUpload(new CPluginVariable(@"Player Lock Automatic Duration Minutes", typeof(Double), _playerLockingAutomaticDuration));
                 QueueSettingForUpload(new CPluginVariable(@"Display Ticket Rates in Procon Chat", typeof(Boolean), _DisplayTicketRatesInProconChat));
+                QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
+                QueueSettingForUpload(new CPluginVariable(@"Percentage Votes Needed for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
+                QueueSettingForUpload(new CPluginVariable(@"Minimum Player Count to Enable Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
+                QueueSettingForUpload(new CPluginVariable(@"Minimum Ticket Gap to Surrender", typeof(Int32), _surrenderVoteMinimumTicketGap));
+                QueueSettingForUpload(new CPluginVariable(@"Enable Required Ticket Rate Gap to Surrender", typeof(Boolean), _surrenderVoteTicketRateGapEnable));
+                QueueSettingForUpload(new CPluginVariable(@"Minimum Ticket Rate Gap to Surrender", typeof(Double), _surrenderVoteMinimumTicketRateGap));
+                QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
+                QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Minutes", typeof(Int32), _surrenderVoteTimeoutMinutes));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
                 DebugWrite("uploadAllSettings finished!", 6);
             }
             catch (Exception e) {
@@ -21872,7 +22108,7 @@ namespace PRoConEvents {
                             _threadMasterWaitHandle.WaitOne(3000);
                             var roundTimeSeconds = (Int32) (_maxRoundTimeMinutes * 60);
                             for (Int32 secondsRemaining = roundTimeSeconds; secondsRemaining > 0; secondsRemaining--) {
-                                if (_currentRoundState == RoundState.Ended || !_pluginEnabled || !_threadsReady) {
+                                if (_roundState == RoundState.Ended || !_pluginEnabled || !_threadsReady) {
                                     return;
                                 }
                                 if (secondsRemaining == roundTimeSeconds - 60 && secondsRemaining > 60) {
