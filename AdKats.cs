@@ -3547,41 +3547,51 @@ namespace PRoConEvents {
                             //Run SpamBot
                             if (_spamBotEnable)
                             {
+                                ConsoleInfo("Entering SpamBot");
                                 if ((DateTime.UtcNow - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds)
                                 {
+                                    ConsoleInfo("Entering Spam Say");
                                     if (_spamBotExcludeAdmins)
                                     {
-                                        OnlineNonAdminSayMessage(_spamBotSayQueue.Peek());
+                                        if (!String.IsNullOrEmpty(_spamBotSayQueue.Peek()))
+                                            OnlineNonAdminSayMessage(_spamBotSayQueue.Peek());
                                     }
                                     else
                                     {
-                                        AdminSayMessage(_spamBotSayQueue.Peek());
+                                        if (!String.IsNullOrEmpty(_spamBotSayQueue.Peek()))
+                                            AdminSayMessage(_spamBotSayQueue.Peek());
                                     }
-                                    _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
                                     _spamBotSayLastPost = DateTime.UtcNow;
+                                    _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
                                 }
                                 if ((DateTime.UtcNow - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds)
                                 {
+                                    ConsoleInfo("Entering Spam Yell");
                                     if (_spamBotExcludeAdmins)
                                     {
-                                        OnlineNonAdminYellMessage(_spamBotYellQueue.Peek());
+                                        if (!String.IsNullOrEmpty(_spamBotYellQueue.Peek()))
+                                            OnlineNonAdminYellMessage(_spamBotYellQueue.Peek());
                                     }
                                     else
                                     {
-                                        AdminYellMessage(_spamBotYellQueue.Peek());
+                                        if (!String.IsNullOrEmpty(_spamBotYellQueue.Peek()))
+                                            AdminYellMessage(_spamBotYellQueue.Peek());
                                     }
                                     _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
                                     _spamBotYellLastPost = DateTime.UtcNow;
                                 }
                                 if ((DateTime.UtcNow - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds)
                                 {
+                                    ConsoleInfo("Entering Spam Tell");
                                     if (_spamBotExcludeAdmins)
                                     {
-                                        OnlineNonAdminTellMessage(_spamBotTellQueue.Peek());
+                                        if (!String.IsNullOrEmpty(_spamBotTellQueue.Peek()))
+                                            OnlineNonAdminTellMessage(_spamBotTellQueue.Peek());
                                     }
                                     else
                                     {
-                                        AdminTellMessage(_spamBotTellQueue.Peek());
+                                        if (!String.IsNullOrEmpty(_spamBotTellQueue.Peek()))
+                                            AdminTellMessage(_spamBotTellQueue.Peek());
                                     }
                                     _spamBotTellQueue.Enqueue(_spamBotTellQueue.Dequeue());
                                     _spamBotTellLastPost = DateTime.UtcNow;
