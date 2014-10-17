@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.5.8
+ * Version 5.1.5.9
  * 17-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.5.8";
+        private const String PluginVersion = "5.1.5.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7781,7 +7781,7 @@ namespace PRoConEvents {
                                 if (!_surrenderVoteActive)
                                 {
                                     Int32 playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
-                                    if (_surrenderVoteMinimumPlayerCount > playerCount)
+                                    if (playerCount < _surrenderVoteMinimumPlayerCount)
                                     {
                                         SendMessageToSource(record, _surrenderVoteMinimumPlayerCount + " players needed to start Surrender Vote. Current: " + playerCount);
                                         FinalizeRecord(record);
@@ -7797,7 +7797,7 @@ namespace PRoConEvents {
                                         return;
                                     }
                                     Double ticketRateGap = Math.Abs(team1.TeamTicketDifferenceRate - team2.TeamTicketDifferenceRate);
-                                    if (_surrenderVoteTicketRateGapEnable && _surrenderVoteMinimumTicketRateGap < ticketRateGap)
+                                    if (_surrenderVoteTicketRateGapEnable && ticketRateGap < _surrenderVoteMinimumTicketRateGap)
                                     {
                                         SendMessageToSource(record, _surrenderVoteMinimumTicketRateGap + " ticket rate gap needed to start Surrender Vote. Current: " + Math.Round(ticketRateGap, 2));
                                         FinalizeRecord(record);
@@ -13682,7 +13682,7 @@ namespace PRoConEvents {
                 if (!_surrenderVoteActive)
                 {
                     Int32 playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
-                    if (_surrenderVoteMinimumPlayerCount < playerCount)
+                    if (playerCount < _surrenderVoteMinimumPlayerCount)
                     {
                         SendMessageToSource(record, _surrenderVoteMinimumPlayerCount + " players needed to start Surrender Vote. Current: " + playerCount);
                         FinalizeRecord(record);
@@ -13696,7 +13696,7 @@ namespace PRoConEvents {
                         return;
                     }
                     Double ticketRateGap = Math.Abs(team1.TeamTicketDifferenceRate - team2.TeamTicketDifferenceRate);
-                    if (_surrenderVoteTicketRateGapEnable && _surrenderVoteMinimumTicketRateGap < ticketRateGap)
+                    if (_surrenderVoteTicketRateGapEnable && ticketRateGap < _surrenderVoteMinimumTicketRateGap)
                     {
                         SendMessageToSource(record, _surrenderVoteMinimumTicketRateGap + " ticket rate gap needed to start Surrender Vote. Current: " + Math.Round(ticketRateGap, 2));
                         FinalizeRecord(record);
