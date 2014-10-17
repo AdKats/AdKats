@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.5.4
+ * Version 5.1.5.5
  * 16-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.5.4";
+        private const String PluginVersion = "5.1.5.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -411,7 +411,7 @@ namespace PRoConEvents {
         private Boolean _surrenderVoteEnable;
         private Double _surrenderVoteMinimumPlayerPercentage = 30;
         private Int32 _surrenderVoteMinimumPlayerCount = 16;
-        private Int32 _surrenderVoteMinimumTicketGap = 300;
+        private Int32 _surrenderVoteMinimumTicketGap = 250;
         private Boolean _surrenderVoteTicketRateGapEnable;
         private Double _surrenderVoteMinimumTicketRateGap = 10;
         private Boolean _surrenderVoteTimeoutEnable;
@@ -422,6 +422,8 @@ namespace PRoConEvents {
         private HashSet<String> _surrenderVoteList = new HashSet<String>();
         //Auto-Surrender
         private Boolean _surrenderAutoEnable;
+        private Boolean _surrenderAutoUseMetroValues;
+        private Int32 _surrenderAutoMinimumTicketGap = 100;
         private Double _surrenderAutoLosingRateMax = 999;
         private Double _surrenderAutoLosingRateMin = 999;
         private Double _surrenderAutoWinningRateMax = 999;
@@ -885,11 +887,16 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                     if (_surrenderAutoEnable)
                     {
-                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
-                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
-                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
-                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
-                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
+                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
+                        if (!_surrenderAutoUseMetroValues)
+                        {
+                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
+                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
+                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
+                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
+                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
+                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
+                        }
                         lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
                     }
 
@@ -1696,6 +1703,16 @@ namespace PRoConEvents {
                         _surrenderAutoEnable = surrenderAutoEnable;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Minimum Ticket Gap").Success)
+                {
+                    Int32 surrenderAutoMinimumTicketGap = Int32.Parse(strValue);
+                    if (_surrenderAutoMinimumTicketGap != surrenderAutoMinimumTicketGap)
+                    {
+                        _surrenderAutoMinimumTicketGap = surrenderAutoMinimumTicketGap;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Auto-Surrender Losing Team Rate Window Max").Success)
@@ -3420,6 +3437,8 @@ namespace PRoConEvents {
                                         //Only take one
                                         break;
                                     }
+
+                                    //TODO: Once MULTIBalancer adds registered commands, check for availability
                                 }
                             }
                             //Check for possible connection interuption every 10 seconds
@@ -4673,6 +4692,20 @@ namespace PRoConEvents {
 
                             AdKatsTeam team1 = _teamDictionary[1];
                             AdKatsTeam team2 = _teamDictionary[2];
+                            AdKatsTeam winningTeam = null;
+                            AdKatsTeam losingTeam = null;
+                            AdKatsTeam baserapingTeam = null;
+                            AdKatsTeam baserapedTeam = null;
+                            if (team1.TeamTicketCount > team2.TeamTicketCount)
+                            {
+                                winningTeam = team1;
+                                losingTeam = team2;
+                            }
+                            else
+                            {
+                                winningTeam = team2;
+                                losingTeam = team1;
+                            }
                             if (_DisplayTicketRatesInProconChat && (DateTime.UtcNow - _LastTicketRateDisplay).TotalSeconds > 25) {
                                 _LastTicketRateDisplay = DateTime.UtcNow;
                                 ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " t/m"));
@@ -4681,25 +4714,29 @@ namespace PRoConEvents {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                                 _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
-
-                            if (_isTestingAuthorized && _serverInfo.ServerName.Contains("#7") && !_endingRound)
+                            if (_surrenderAutoEnable && !_endingRound)
                             {
-                                AdKatsTeam baserapingTeam = null;
-                                AdKatsTeam baserapedTeam = null;
-                                if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > 100)
-                                {
-                                    if ((Math.Abs(team1.TeamTicketDifferenceRate) > 60 && Math.Abs(team2.TeamTicketDifferenceRate) < 10 && team2.TeamTicketCount > team1.TeamTicketCount) ||
-                                        (Math.Abs(team1.TeamTicketDifferenceRate) > 70 && Math.Abs(team2.TeamTicketDifferenceRate) < 15 && team2.TeamTicketCount > team1.TeamTicketCount))
+                                if (_surrenderAutoUseMetroValues && 
+                                    Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
+                                    winningTeam.TeamTicketDifferenceRate < 0 &&
+                                    losingTeam.TeamTicketDifferenceRate < 0) {
+                                        if ((losingTeam.TeamTicketDifferenceRate < -70 && winningTeam.TeamTicketDifferenceRate > -15) ||
+                                            (losingTeam.TeamTicketDifferenceRate < -60 && winningTeam.TeamTicketDifferenceRate > -10))
+                                        {
+                                            baserapingTeam = winningTeam;
+                                            baserapedTeam = losingTeam;
+                                        }
+                                }
+                                else {
+                                    if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > _surrenderAutoMinimumTicketGap)
                                     {
-                                        baserapedTeam = team1;
-                                        baserapingTeam = team2;
+                                        if (winningTeam.TeamTicketDifferenceRate < _surrenderAutoWinningRateMax && 
+                                            winningTeam.TeamTicketDifferenceRate > _surrenderAutoWinningRateMin && 
+                                            losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax && 
+                                            losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin) {
+                                        }
                                     }
-                                    else if ((Math.Abs(team2.TeamTicketDifferenceRate) > 60 && Math.Abs(team1.TeamTicketDifferenceRate) < 10 && team1.TeamTicketCount > team2.TeamTicketCount) ||
-                                             (Math.Abs(team2.TeamTicketDifferenceRate) > 70 && Math.Abs(team1.TeamTicketDifferenceRate) < 15 && team1.TeamTicketCount > team2.TeamTicketCount))
-                                    {
-                                        baserapedTeam = team2;
-                                        baserapingTeam = team1;
-                                    }
+                                    
                                 }
                                 if (baserapingTeam != null)
                                 {
@@ -4710,13 +4747,13 @@ namespace PRoConEvents {
                                         try
                                         {
                                             Thread.CurrentThread.Name = "roundenddelay";
-                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                            AdminTellMessage("Ending/scrambling baserape round. " + baserapingTeam.TeamName + " wins!");
-                                            _threadMasterWaitHandle.WaitOne(8000);
+                                            var autoSurrenderMessage = _surrenderAutoMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
+                                            for (int i = 0; i < 6; i++)
+                                            {
+                                                AdminTellMessage(autoSurrenderMessage);
+                                                Thread.Sleep(50);
+                                            }
+                                            _threadMasterWaitHandle.WaitOne(1000 * _YellDuration);
                                             var repRecord = new AdKatsRecord
                                             {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -4725,7 +4762,7 @@ namespace PRoConEvents {
                                                 command_numeric = baserapingTeam.TeamID,
                                                 target_name = baserapingTeam.TeamName,
                                                 source_name = "RoundManager",
-                                                record_message = "End Baserape Round (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + ")"
+                                                record_message = "Auto-Surrender Round (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + ")"
                                             };
                                             QueueRecordForProcessing(repRecord);
                                         }
@@ -4757,6 +4794,12 @@ namespace PRoConEvents {
                                     _pingEnforcerSystemEnable = true;
                                     _pingEnforcerKickMissingPings = true;
                                     _CMDRManagerEnable = true;
+                                    _surrenderVoteEnable = true;
+                                    _surrenderVoteMinimumTicketGap = 250;
+                                    if (_serverInfo.ServerName.Contains("#7")) {
+                                        _surrenderAutoEnable = true;
+                                        _surrenderAutoUseMetroValues = true;
+                                    }
                                 }
                                 _DisplayTicketRatesInProconChat = true;
                                 UpdateSettingPage();
@@ -13318,6 +13361,31 @@ namespace PRoConEvents {
                     _surrenderVoteActive = true;
                     voteEnabled = true;
                     _surrenderVoteStartTime = DateTime.UtcNow;
+                    var surrenderTimingThread = new Thread(new ThreadStart(delegate
+                    {
+                        DebugWrite("Starting a surrender timing thread.", 5);
+                        try
+                        {
+                            while (_pluginEnabled && 
+                                   (DateTime.UtcNow - _surrenderVoteStartTime).TotalMinutes < _surrenderVoteTimeoutMinutes && 
+                                   !_surrenderVoteSucceeded && 
+                                   _surrenderVoteActive) {
+                                _threadMasterWaitHandle.WaitOne(500);
+                            }
+                            if (!_surrenderVoteSucceeded && _pluginEnabled) {
+                                _surrenderVoteActive = false;
+                                _surrenderVoteList.Clear();
+                                AdminTellMessage("Surrender Vote Timed Out. Votes removed.");
+                            }
+                        }
+                        catch (Exception)
+                        {
+                            HandleException(new AdKatsException("Error while running surrender timing."));
+                        }
+                        DebugWrite("Exiting a surrender timing thread.", 5);
+                        LogThreadExit();
+                    }));
+                    StartAndLogThread(surrenderTimingThread);
                 }
                 //Add the vote
                 _surrenderVoteList.Add(record.source_name);
@@ -15535,6 +15603,8 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Minutes", typeof(Int32), _surrenderVoteTimeoutMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
