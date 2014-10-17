@@ -580,8 +580,8 @@ namespace PRoConEvents {
             //Init the spam message lists
             _spamBotSayList = new List<String> {
                 "AdminSay1",
-                "AdminSay1",
-                "AdminSay1"
+                "AdminSay2",
+                "AdminSay3"
             };
             foreach (String line in _spamBotSayList)
             {
@@ -2971,6 +2971,10 @@ namespace PRoConEvents {
                     Int32 spamBotSayDelaySeconds = Int32.Parse(strValue);
                     if (_spamBotSayDelaySeconds != spamBotSayDelaySeconds)
                     {
+                        if (spamBotSayDelaySeconds < 60) {
+                            ConsoleError("SpamBot Say Delay cannot be less than 60 seconds.");
+                            spamBotSayDelaySeconds = 60;
+                        }
                         _spamBotSayDelaySeconds = spamBotSayDelaySeconds;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
@@ -2996,6 +3000,11 @@ namespace PRoConEvents {
                     Int32 spamBotYellDelaySeconds = Int32.Parse(strValue);
                     if (_spamBotYellDelaySeconds != spamBotYellDelaySeconds)
                     {
+                        if (spamBotYellDelaySeconds < 60)
+                        {
+                            ConsoleError("SpamBot Yell Delay cannot be less than 60 seconds.");
+                            spamBotYellDelaySeconds = 60;
+                        }
                         _spamBotYellDelaySeconds = spamBotYellDelaySeconds;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"SpamBot Yell Delay Seconds", typeof(Int32), _spamBotYellDelaySeconds));
@@ -3021,6 +3030,11 @@ namespace PRoConEvents {
                     Int32 spamBotTellDelaySeconds = Int32.Parse(strValue);
                     if (_spamBotTellDelaySeconds != spamBotTellDelaySeconds)
                     {
+                        if (spamBotTellDelaySeconds < 60)
+                        {
+                            ConsoleError("SpamBot Tell Delay cannot be less than 60 seconds.");
+                            spamBotTellDelaySeconds = 60;
+                        }
                         _spamBotTellDelaySeconds = spamBotTellDelaySeconds;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"SpamBot Tell Delay Seconds", typeof(Int32), _spamBotTellDelaySeconds));
