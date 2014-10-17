@@ -3561,10 +3561,8 @@ namespace PRoConEvents {
                             //Run SpamBot
                             if (_spamBotEnable)
                             {
-                                ConsoleInfo("Entering SpamBot");
                                 if ((DateTime.UtcNow - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds)
                                 {
-                                    ConsoleInfo("Entering Spam Say");
                                     if (_spamBotExcludeAdmins)
                                     {
                                         if (!String.IsNullOrEmpty(_spamBotSayQueue.Peek()))
@@ -3580,7 +3578,6 @@ namespace PRoConEvents {
                                 }
                                 if ((DateTime.UtcNow - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds)
                                 {
-                                    ConsoleInfo("Entering Spam Yell");
                                     if (_spamBotExcludeAdmins)
                                     {
                                         if (!String.IsNullOrEmpty(_spamBotYellQueue.Peek()))
@@ -3596,7 +3593,6 @@ namespace PRoConEvents {
                                 }
                                 if ((DateTime.UtcNow - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds)
                                 {
-                                    ConsoleInfo("Entering Spam Tell");
                                     if (_spamBotExcludeAdmins)
                                     {
                                         if (!String.IsNullOrEmpty(_spamBotTellQueue.Peek()))
