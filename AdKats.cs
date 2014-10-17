@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.5.6
+ * Version 5.1.5.7
  * 17-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.5.6";
+        private const String PluginVersion = "5.1.5.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1459,6 +1459,10 @@ namespace PRoConEvents {
                         //Once setting has been changed, upload the change to database
                         if (_isTestingAuthorized) {
                             _pingEnforcerSystemEnable = true;
+                        }
+                        if (_pingEnforcerSystemEnable) {
+                            //Disable latency manager
+                            ExecuteCommand("procon.protected.plugins.enable", "CLatencyManager", "False");
                         }
                         QueueSettingForUpload(new CPluginVariable(@"Ping Enforcer Enable", typeof(Boolean), _pingEnforcerSystemEnable));
                     }
@@ -7439,7 +7443,7 @@ namespace PRoConEvents {
                                 if (!_surrenderVoteActive)
                                 {
                                     Int32 playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
-                                    if (_surrenderVoteMinimumPlayerCount < playerCount)
+                                    if (_surrenderVoteMinimumPlayerCount > playerCount)
                                     {
                                         SendMessageToSource(record, _surrenderVoteMinimumPlayerCount + " players needed to start Surrender Vote. Current: " + playerCount);
                                         FinalizeRecord(record);
