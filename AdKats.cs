@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.5.5
- * 16-OCT-2014
+ * Version 5.1.5.6
+ * 17-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.5.5";
+        private const String PluginVersion = "5.1.5.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -895,7 +895,7 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
                             lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
                             lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
-                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
+                            //lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
                         }
                         lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
                     }
@@ -4732,8 +4732,11 @@ namespace PRoConEvents {
                                     {
                                         if (winningTeam.TeamTicketDifferenceRate < _surrenderAutoWinningRateMax && 
                                             winningTeam.TeamTicketDifferenceRate > _surrenderAutoWinningRateMin && 
-                                            losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax && 
-                                            losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin) {
+                                            losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax &&
+                                            losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin)
+                                        {
+                                            baserapingTeam = winningTeam;
+                                            baserapedTeam = losingTeam;
                                         }
                                     }
                                     
@@ -13361,31 +13364,36 @@ namespace PRoConEvents {
                     _surrenderVoteActive = true;
                     voteEnabled = true;
                     _surrenderVoteStartTime = DateTime.UtcNow;
-                    var surrenderTimingThread = new Thread(new ThreadStart(delegate
+                    if (_surrenderVoteTimeoutEnable)
                     {
-                        DebugWrite("Starting a surrender timing thread.", 5);
-                        try
+                        var surrenderTimingThread = new Thread(new ThreadStart(delegate
                         {
-                            while (_pluginEnabled && 
-                                   (DateTime.UtcNow - _surrenderVoteStartTime).TotalMinutes < _surrenderVoteTimeoutMinutes && 
-                                   !_surrenderVoteSucceeded && 
-                                   _surrenderVoteActive) {
-                                _threadMasterWaitHandle.WaitOne(500);
+                            DebugWrite("Starting a surrender timing thread.", 5);
+                            try
+                            {
+                                while (_pluginEnabled &&
+                                       (DateTime.UtcNow - _surrenderVoteStartTime).TotalMinutes < _surrenderVoteTimeoutMinutes &&
+                                       !_surrenderVoteSucceeded &&
+                                       _surrenderVoteActive)
+                                {
+                                    _threadMasterWaitHandle.WaitOne(500);
+                                }
+                                if (!_surrenderVoteSucceeded && _pluginEnabled)
+                                {
+                                    _surrenderVoteActive = false;
+                                    _surrenderVoteList.Clear();
+                                    AdminTellMessage("Surrender Vote Timed Out. Votes removed.");
+                                }
                             }
-                            if (!_surrenderVoteSucceeded && _pluginEnabled) {
-                                _surrenderVoteActive = false;
-                                _surrenderVoteList.Clear();
-                                AdminTellMessage("Surrender Vote Timed Out. Votes removed.");
+                            catch (Exception)
+                            {
+                                HandleException(new AdKatsException("Error while running surrender timing."));
                             }
-                        }
-                        catch (Exception)
-                        {
-                            HandleException(new AdKatsException("Error while running surrender timing."));
-                        }
-                        DebugWrite("Exiting a surrender timing thread.", 5);
-                        LogThreadExit();
-                    }));
-                    StartAndLogThread(surrenderTimingThread);
+                            DebugWrite("Exiting a surrender timing thread.", 5);
+                            LogThreadExit();
+                        }));
+                        StartAndLogThread(surrenderTimingThread);
+                    }
                 }
                 //Add the vote
                 _surrenderVoteList.Add(record.source_name);
