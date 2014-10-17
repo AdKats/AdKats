@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.5.7
+ * Version 5.1.5.8
  * 17-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.5.7";
+        private const String PluginVersion = "5.1.5.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -93,6 +93,12 @@ namespace PRoConEvents {
             TestBuild,
             UnknownBuild,
             UnfetchedBuild
+        }
+
+        public enum MessageType {
+            Say,
+            Yell,
+            Tell
         }
         
         //State
@@ -479,6 +485,21 @@ namespace PRoConEvents {
         private String _FirstSpawnMessage = "FIRST SPAWN MESSAGE";
         private Boolean _DisplayTicketRatesInProconChat;
 
+        //SpamBot
+        private Boolean _spamBotEnable;
+        private List<String> _spamBotSayList;
+        private readonly Queue<String> _spamBotSayQueue = new Queue<String>();
+        private Int32 _spamBotSayDelaySeconds = 300;
+        private DateTime _spamBotSayLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(300);
+        private List<String> _spamBotYellList;
+        private readonly Queue<String> _spamBotYellQueue = new Queue<String>();
+        private Int32 _spamBotYellDelaySeconds = 600;
+        private DateTime _spamBotYellLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(600);
+        private List<String> _spamBotTellList;
+        private readonly Queue<String> _spamBotTellQueue = new Queue<String>();
+        private Int32 _spamBotTellDelaySeconds = 900;
+        private DateTime _spamBotTellLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(900);
+        private Boolean _spamBotExcludeAdmins;
         //Rules
         private Double _ServerRulesDelay = 0.5;
         private Double _ServerRulesInterval = 5;
@@ -556,6 +577,35 @@ namespace PRoConEvents {
                 "JOIN OUR TEAMSPEAK AT TS.ADKGAMERS.COM:3796"
             };
 
+            //Init the spam message lists
+            _spamBotSayList = new List<String> {
+                "AdminSay1",
+                "AdminSay1",
+                "AdminSay1"
+            };
+            foreach (String line in _spamBotSayList)
+            {
+                _spamBotSayQueue.Enqueue(line);
+            }
+            _spamBotYellList = new List<String> {
+                "AdminYell1",
+                "AdminYell2",
+                "AdminYell3"
+            };
+            foreach (String line in _spamBotYellList)
+            {
+                _spamBotYellQueue.Enqueue(line);
+            }
+            _spamBotTellList = new List<String> {
+                "AdminTell1",
+                "AdminTell2",
+                "AdminTell3"
+            };
+            foreach (String line in _spamBotTellList)
+            {
+                _spamBotTellQueue.Enqueue(line);
+            }
+
             //Fetch the plugin description and changelog
             FetchPluginDescAndChangelog();
 
@@ -563,7 +613,7 @@ namespace PRoConEvents {
             FillCommandDescDictionary();
 
             //Prepare the keep-alive
-            SetupKeepAlive();
+            SetupStatusMonitor();
         }
 
         public String GetPluginName() {
@@ -738,6 +788,15 @@ namespace PRoConEvents {
                     {
                         lstReturn.Add(new CPluginVariable("A12. Messaging Settings|First spawn message text", typeof(String), _FirstSpawnMessage));
                     }
+
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Enable", typeof(Boolean), _spamBotEnable));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Say List", typeof(String[]), _spamBotSayList.ToArray()));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Say Delay Seconds", typeof(int), _spamBotSayDelaySeconds));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Yell List", typeof(String[]), _spamBotYellList.ToArray()));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Yell Delay Seconds", typeof(int), _spamBotYellDelaySeconds));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Tell List", typeof(String[]), _spamBotTellList.ToArray()));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Tell Delay Seconds", typeof(int), _spamBotTellDelaySeconds));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Exclude Admins from Spam", typeof(Boolean), _spamBotExcludeAdmins));
 
                     //Ban Settings
                     lstReturn.Add(new CPluginVariable("A13. Banning Settings|Use Additional Ban Message", typeof (Boolean), _UseBanAppend));
@@ -2877,6 +2936,106 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"First spawn message text", typeof(String), _FirstSpawnMessage));
                     }
                 }
+                else if (Regex.Match(strVariable, @"SpamBot Enable").Success)
+                {
+                    Boolean spamBotEnable = Boolean.Parse(strValue);
+                    if (spamBotEnable != _spamBotEnable)
+                    {
+                        if (spamBotEnable) {
+                            _spamBotSayLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(10);
+                            _spamBotYellLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(10);
+                            _spamBotTellLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(10);
+                        }
+                        _spamBotEnable = spamBotEnable;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"SpamBot Enable", typeof(Boolean), _spamBotEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"SpamBot Say List").Success)
+                {
+                    List<String> spamBotSayList = new List<String>(CPluginVariable.DecodeStringArray(strValue));
+                    if (!_spamBotSayList.SequenceEqual(spamBotSayList)) 
+                    {
+                        _spamBotSayQueue.Clear();
+                        foreach (String line in spamBotSayList) 
+                        {
+                            _spamBotSayQueue.Enqueue(line);
+                        }
+                    }
+                    _spamBotSayList = spamBotSayList;
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"SpamBot Say List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotSayList.ToArray())));
+                }
+                else if (Regex.Match(strVariable, @"SpamBot Say Delay Seconds").Success)
+                {
+                    Int32 spamBotSayDelaySeconds = Int32.Parse(strValue);
+                    if (_spamBotSayDelaySeconds != spamBotSayDelaySeconds)
+                    {
+                        _spamBotSayDelaySeconds = spamBotSayDelaySeconds;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"SpamBot Yell List").Success)
+                {
+                    List<String> spamBotYellList = new List<String>(CPluginVariable.DecodeStringArray(strValue));
+                    if (!_spamBotYellList.SequenceEqual(spamBotYellList))
+                    {
+                        _spamBotYellQueue.Clear();
+                        foreach (String line in spamBotYellList)
+                        {
+                            _spamBotYellQueue.Enqueue(line);
+                        }
+                    }
+                    _spamBotYellList = spamBotYellList;
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"SpamBot Yell List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotYellList.ToArray())));
+                }
+                else if (Regex.Match(strVariable, @"SpamBot Yell Delay Seconds").Success)
+                {
+                    Int32 spamBotYellDelaySeconds = Int32.Parse(strValue);
+                    if (_spamBotYellDelaySeconds != spamBotYellDelaySeconds)
+                    {
+                        _spamBotYellDelaySeconds = spamBotYellDelaySeconds;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"SpamBot Yell Delay Seconds", typeof(Int32), _spamBotYellDelaySeconds));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"SpamBot Tell List").Success)
+                {
+                    List<String> spamBotTellList = new List<String>(CPluginVariable.DecodeStringArray(strValue));
+                    if (!_spamBotYellList.SequenceEqual(spamBotTellList))
+                    {
+                        _spamBotTellQueue.Clear();
+                        foreach (String line in spamBotTellList)
+                        {
+                            _spamBotTellQueue.Enqueue(line);
+                        }
+                    }
+                    _spamBotTellList = spamBotTellList;
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"SpamBot Tell List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotTellList.ToArray())));
+                }
+                else if (Regex.Match(strVariable, @"SpamBot Tell Delay Seconds").Success)
+                {
+                    Int32 spamBotTellDelaySeconds = Int32.Parse(strValue);
+                    if (_spamBotTellDelaySeconds != spamBotTellDelaySeconds)
+                    {
+                        _spamBotTellDelaySeconds = spamBotTellDelaySeconds;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"SpamBot Tell Delay Seconds", typeof(Int32), _spamBotTellDelaySeconds));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"SpamBot Exclude Admins from Spam").Success)
+                {
+                    Boolean spamBotExcludeAdmins = Boolean.Parse(strValue);
+                    if (spamBotExcludeAdmins != _spamBotExcludeAdmins)
+                    {
+                        _spamBotExcludeAdmins = spamBotExcludeAdmins;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"SpamBot Exclude Admins from Spam", typeof(Boolean), _spamBotExcludeAdmins));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Display Admin Name in Kick and Ban Announcement").Success) {
                     Boolean display = Boolean.Parse(strValue);
                     if (display != _ShowAdminNameInAnnouncement) {
@@ -3349,12 +3508,12 @@ namespace PRoConEvents {
             StartAndLogThread(descFetcher);
         }
 
-        private void SetupKeepAlive() {
+        private void SetupStatusMonitor() {
             //Create a new thread to handle keep-alive
             //This thread will remain running for the duration the layer is online
-            var keepAliveThread = new Thread(new ThreadStart(delegate {
+            var statusMonitorThread = new Thread(new ThreadStart(delegate {
                 try {
-                    Thread.CurrentThread.Name = "keepalive";
+                    Thread.CurrentThread.Name = "StatusMonitor";
                     DateTime lastKeepAliveCheck = DateTime.UtcNow;
                     ExecuteCommand("procon.protected.send", "serverInfo");
                     DateTime lastServerInfoRequest = DateTime.UtcNow;
@@ -3370,17 +3529,63 @@ namespace PRoConEvents {
                                 _MULTIBalancerUnswitcherDisabled = false;
                             }
 
+                            //Check for plugin updates at interval
                             if ((DateTime.UtcNow - _LastPluginDescFetch).TotalHours > 1 ||
                                 (_isTestingAuthorized && (DateTime.UtcNow - _LastPluginDescFetch).TotalMinutes > 20))
                             {
                                 FetchPluginDescAndChangelog();
                             }
 
+                            //Post usage stats at interval
                             if ((!_usageDataDisabled || _pluginVersionStatus == VersionStatus.TestBuild || _isTestingAuthorized) &&
                                 (DateTime.UtcNow - _LastUsageStatsUpdate).TotalHours > 1 &&
                                 (_threadsReady || (DateTime.UtcNow - _proconStartTime).TotalSeconds > 30))
                             {
                                 PostUsageStatsUpdate();
+                            }
+
+                            //Run SpamBot
+                            if (_spamBotEnable)
+                            {
+                                if ((DateTime.UtcNow - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds)
+                                {
+                                    if (_spamBotExcludeAdmins)
+                                    {
+                                        OnlineNonAdminSayMessage(_spamBotSayQueue.Peek());
+                                    }
+                                    else
+                                    {
+                                        AdminSayMessage(_spamBotSayQueue.Peek());
+                                    }
+                                    _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
+                                    _spamBotSayLastPost = DateTime.UtcNow;
+                                }
+                                if ((DateTime.UtcNow - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds)
+                                {
+                                    if (_spamBotExcludeAdmins)
+                                    {
+                                        OnlineNonAdminYellMessage(_spamBotYellQueue.Peek());
+                                    }
+                                    else
+                                    {
+                                        AdminYellMessage(_spamBotYellQueue.Peek());
+                                    }
+                                    _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
+                                    _spamBotYellLastPost = DateTime.UtcNow;
+                                }
+                                if ((DateTime.UtcNow - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds)
+                                {
+                                    if (_spamBotExcludeAdmins)
+                                    {
+                                        OnlineNonAdminTellMessage(_spamBotTellQueue.Peek());
+                                    }
+                                    else
+                                    {
+                                        AdminTellMessage(_spamBotTellQueue.Peek());
+                                    }
+                                    _spamBotTellQueue.Enqueue(_spamBotTellQueue.Dequeue());
+                                    _spamBotTellLastPost = DateTime.UtcNow;
+                                }
                             }
 
                             //Check for keep alive every 30 seconds
@@ -3465,7 +3670,7 @@ namespace PRoConEvents {
                 }
             }));
             //Start the thread
-            keepAliveThread.Start();
+            statusMonitorThread.Start();
         }
 
         public void InitWaitHandles() {
@@ -4807,6 +5012,7 @@ namespace PRoConEvents {
                                         _surrenderAutoEnable = true;
                                         _surrenderAutoUseMetroValues = true;
                                     }
+                                    _spamBotExcludeAdmins = true;
                                 }
                                 _DisplayTicketRatesInProconChat = true;
                                 UpdateSettingPage();
@@ -6558,6 +6764,138 @@ namespace PRoConEvents {
                 HandleException(record.record_exception);
             }
             DebugWrite("Exiting sendMessageToSource", 7);
+        }
+
+        public Boolean OnlineNonAdminSayMessage(String message)
+        {
+            return OnlineNonAdminSayMessage(message, true);
+        }
+
+        public Boolean OnlineNonAdminSayMessage(String message, Boolean displayProconChat)
+        {
+            Boolean nonAdminsTold = false;
+            if (FetchOnlineAdminSoldiers().Any())
+            {
+                var nonAdminSayThread = new Thread(new ThreadStart(delegate
+                {
+                    DebugWrite("Starting an online non-admin say thread.", 8);
+                    try
+                    {
+                        Thread.CurrentThread.Name = "onlineNonAdminSay";
+                        if (displayProconChat)
+                        {
+                            ProconChatWrite("Say -Admins > " + message);
+                        }
+                        //Process will take ~2 seconds for a full server
+                        foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
+                        {
+                            nonAdminsTold = true;
+                            PlayerSayMessage(aPlayer.player_name, message, false, 1);
+                            Thread.Sleep(30);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        HandleException(new AdKatsException("Error while running online non-admin say."));
+                    }
+                    DebugWrite("Exiting an online non-admin say thread.", 8);
+                    LogThreadExit();
+                }));
+                StartAndLogThread(nonAdminSayThread);
+            }
+            else
+            {
+                AdminSayMessage(message, displayProconChat);
+            }
+            return nonAdminsTold;
+        }
+
+        public Boolean OnlineNonAdminYellMessage(String message)
+        {
+            return OnlineNonAdminYellMessage(message, true);
+        }
+
+        public Boolean OnlineNonAdminYellMessage(String message, Boolean displayProconChat)
+        {
+            Boolean nonAdminsTold = false;
+            if (FetchOnlineAdminSoldiers().Any())
+            {
+                var nonAdminSayThread = new Thread(new ThreadStart(delegate
+                {
+                    DebugWrite("Starting an online non-admin yell thread.", 8);
+                    try
+                    {
+                        Thread.CurrentThread.Name = "onlineNonAdminYell";
+                        if (displayProconChat)
+                        {
+                            ProconChatWrite("Yell[" + _YellDuration + "s] -Admins > " + message);
+                        }
+                        //Process will take ~2 seconds for a full server
+                        foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
+                        {
+                            nonAdminsTold = true;
+                            PlayerYellMessage(aPlayer.player_name, message, false, 1);
+                            Thread.Sleep(30);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        HandleException(new AdKatsException("Error while running online non-admin yell."));
+                    }
+                    DebugWrite("Exiting an online non-admin yell thread.", 8);
+                    LogThreadExit();
+                }));
+                StartAndLogThread(nonAdminSayThread);
+            }
+            else
+            {
+                AdminYellMessage(message, displayProconChat);
+            }
+            return nonAdminsTold;
+        }
+
+        public Boolean OnlineNonAdminTellMessage(String message)
+        {
+            return OnlineNonAdminTellMessage(message, true);
+        }
+
+        public Boolean OnlineNonAdminTellMessage(String message, Boolean displayProconChat)
+        {
+            Boolean nonAdminsTold = false;
+            if (FetchOnlineAdminSoldiers().Any())
+            {
+                var nonAdminSayThread = new Thread(new ThreadStart(delegate
+                {
+                    DebugWrite("Starting an online non-admin tell thread.", 8);
+                    try
+                    {
+                        Thread.CurrentThread.Name = "onlineNonAdminTell";
+                        if (displayProconChat)
+                        {
+                            ProconChatWrite("Tell[" + _YellDuration + "s] -Admins > " + message);
+                        }
+                        //Process will take ~2 seconds for a full server
+                        foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
+                        {
+                            nonAdminsTold = true;
+                            PlayerTellMessage(aPlayer.player_name, message, false, 1);
+                            Thread.Sleep(30);
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        HandleException(new AdKatsException("Error while running online non-admin tell."));
+                    }
+                    DebugWrite("Exiting an online non-admin tell thread.", 8);
+                    LogThreadExit();
+                }));
+                StartAndLogThread(nonAdminSayThread);
+            }
+            else
+            {
+                AdminTellMessage(message, displayProconChat);
+            }
+            return nonAdminsTold;
         }
 
         public Boolean OnlineAdminSayMessage(String message)
@@ -10613,7 +10951,7 @@ namespace PRoConEvents {
                 SendMessageToSource(record, "Duration: " + ((int) DateTime.UtcNow.Subtract(_commandStartTime).TotalMilliseconds) + "ms");
             }
             if (record.record_source == AdKatsRecord.Sources.InGame || record.record_source == AdKatsRecord.Sources.InternalAutomated) {
-                DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + (DateTime.UtcNow - record.record_time).TotalMilliseconds + "ms to complete.", 3);
+                DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + Math.Round((DateTime.UtcNow - record.record_time).TotalMilliseconds) + "ms to complete.", 3);
             } 
             //Add event log
             if (String.IsNullOrEmpty(record.target_name)) {
@@ -15578,6 +15916,14 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
                 QueueSettingForUpload(new CPluginVariable(@"Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
                 QueueSettingForUpload(new CPluginVariable(@"First spawn message text", typeof(String), _FirstSpawnMessage));
+                QueueSettingForUpload(new CPluginVariable(@"SpamBot Enable", typeof(Boolean), _spamBotEnable));
+                QueueSettingForUpload(new CPluginVariable(@"SpamBot Say List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotSayList.ToArray())));
+                QueueSettingForUpload(new CPluginVariable(@"SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
+                QueueSettingForUpload(new CPluginVariable(@"SpamBot Yell List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotYellList.ToArray())));
+                QueueSettingForUpload(new CPluginVariable(@"SpamBot Yell Delay Seconds", typeof(Int32), _spamBotYellDelaySeconds));
+                QueueSettingForUpload(new CPluginVariable(@"SpamBot Tell List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotTellList.ToArray())));
+                QueueSettingForUpload(new CPluginVariable(@"SpamBot Tell Delay Seconds", typeof(Int32), _spamBotTellDelaySeconds));
+                QueueSettingForUpload(new CPluginVariable(@"SpamBot Exclude Admins from Spam", typeof(Boolean), _spamBotExcludeAdmins));
                 QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
@@ -15824,6 +16170,18 @@ namespace PRoConEvents {
             }
             return onlineAdminSoldiers.Values.ToList();
         }
+
+        private List<AdKatsPlayer> FetchOnlineNonAdminSoldiers() {
+            List<AdKatsPlayer> nonAdminSoldiers = new List<AdKatsPlayer>();
+            try {
+                nonAdminSoldiers.AddRange(_PlayerDictionary.Values.Where(aPlayer => !PlayerIsAdmin(aPlayer)));
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while fetching online non-admin soldiers", e));
+            }
+
+            return nonAdminSoldiers;
+        } 
 
         private List<AdKatsPlayer> FetchElevatedSoldiers() {
             var elevatedSoldiers = new List<AdKatsPlayer>();
