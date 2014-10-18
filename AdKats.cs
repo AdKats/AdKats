@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.6.2
- * 17-OCT-2014
+ * Version 5.1.6.3
+ * 18-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.6.2";
+        private const String PluginVersion = "5.1.6.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -223,6 +223,7 @@ namespace PRoConEvents {
         private readonly Dictionary<String, AdKatsRecord> _ActionConfirmDic = new Dictionary<String, AdKatsRecord>();
         private readonly Dictionary<String, Int32> _RoundMutedPlayers = new Dictionary<String, Int32>();
         private readonly Dictionary<String, AdKatsRecord> _RoundReports = new Dictionary<String, AdKatsRecord>();
+        private readonly HashSet<String>  _RoundReportHistory = new HashSet<String>();
         private readonly HashSet<String> _PlayersRequestingCommands = new HashSet<String>(); 
 
         //Threads
@@ -3389,6 +3390,8 @@ namespace PRoConEvents {
                             _RoundCookers.Clear();
                         if (_RoundReports != null)
                             _RoundReports.Clear();
+                        if (_RoundReportHistory != null)
+                            _RoundReportHistory.Clear();
                         if (_RoundMutedPlayers != null)
                             _RoundMutedPlayers.Clear();
                         if (_PlayerDictionary != null)
@@ -3412,6 +3415,11 @@ namespace PRoConEvents {
                             _ActOnIsAliveDictionary.Clear();
                         if (_ActionConfirmDic != null)
                             _ActionConfirmDic.Clear();
+                        _endingRound = false;
+                        _surrenderVoteList.Clear();
+                        _nosurrenderVoteList.Clear();
+                        _surrenderVoteActive = false;
+                        _surrenderVoteSucceeded = false;
                         _slowmo = false;
                         //Now that plugin is disabled, update the settings page to reflect
                         UpdateSettingPage();
@@ -5103,6 +5111,7 @@ namespace PRoConEvents {
                     _surrenderVoteActive = false;
                     _surrenderVoteSucceeded = false;
                     _RoundReports.Clear();
+                    _RoundReportHistory.Clear();
                     _RoundMutedPlayers.Clear();
                     _ActionConfirmDic.Clear();
                     _ActOnSpawnDictionary.Clear();
@@ -10452,9 +10461,15 @@ namespace PRoConEvents {
                         String[] parameters = ParseParameters(remainingMessage, 1);
                         switch (parameters.Length) {
                             case 0:
-                                record.target_name = record.source_name;
                                 record.record_message = "Listing Round Reports";
-                                CompleteTargetInformation(record, false, false);
+                                if (record.record_source == AdKatsRecord.Sources.InGame) {
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false);
+                                }
+                                else {
+                                    record.target_name = "ExternalSource";
+                                    QueueRecordForProcessing(record);
+                                }
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11518,6 +11533,7 @@ namespace PRoConEvents {
                     if (_RoundReports.TryGetValue(reportID, out reportedRecord) && remove) {
                         if (_RoundReports.Remove(reportID)) {
                             DebugWrite("Round report [" + reportID + "] removed.", 3);
+                            _RoundReportHistory.Add(reportID);
                         }
                     }
                 }
@@ -11619,7 +11635,7 @@ namespace PRoConEvents {
                         return false;
                     }
                     if ((DateTime.UtcNow - reportedRecord.record_time).TotalSeconds < _MinimumReportHandleSeconds) {
-                        SendMessageToSource(record, "Report " + record.target_name + " cannot be acted on. " + FormatTimeString(TimeSpan.FromSeconds(_MinimumReportHandleSeconds - (DateTime.UtcNow - reportedRecord.record_time).TotalSeconds), 2) + " remaining.");
+                        SendMessageToSource(record, "Report [" + record.target_name + "] cannot be acted on. " + FormatTimeString(TimeSpan.FromSeconds(_MinimumReportHandleSeconds - (DateTime.UtcNow - reportedRecord.record_time).TotalSeconds), 2) + " remaining.");
                         return true;
                     }
                     if (_RoundReports.Remove(record.target_name))
@@ -11645,6 +11661,10 @@ namespace PRoConEvents {
                         record.record_message = reportedRecord.record_message;
                     }
                     QueueRecordForProcessing(record);
+                    return true;
+                }
+                if (_RoundReportHistory.Contains(record.target_name)) {
+                    SendMessageToSource(record, "Report [" + record.target_name + "] has already been acted on.");
                     return true;
                 }
             }
@@ -14166,6 +14186,7 @@ namespace PRoConEvents {
             try
             {
                 List<AdKatsRecord> lastMissedReports = _RoundReports.Values.OrderByDescending(aRecord => aRecord.record_time).Take(6).ToList();
+                Boolean listed;
                 foreach (var rRecord in lastMissedReports) {
                     String location;
                     if (rRecord.target_player.player_online)
@@ -14179,6 +14200,10 @@ namespace PRoConEvents {
                     }
                     SendMessageToSource(record, "(" + rRecord.command_numeric + ")(" + rRecord.target_name + ")(" + location + "):" + rRecord.record_message);
                     Thread.Sleep(30);
+                    listed = true;
+                }
+                if (!listed) {
+                    SendMessageToSource(record, "No missed round reports were found.");
                 }
                 //Set the executed bool
                 record.record_action_executed = true;
@@ -21680,7 +21705,7 @@ namespace PRoConEvents {
                         {"server_name", _serverName},
                         {"adkats_version_current", PluginVersion},
                         {"adkats_enabled", _pluginEnabled.ToString().ToLower()},
-                        {"adkats_uptime", (_threadsReady)?((DateTime.UtcNow - _AdKatsStartTime).TotalSeconds.ToString()):("0")},
+                        {"adkats_uptime", (_threadsReady)?(Math.Round((DateTime.UtcNow - _AdKatsStartTime).TotalSeconds).ToString()):("0")},
                         {"updates_disabled", _usageDataDisabled.ToString().ToLower()}
                     };
                     byte[] response = client.UploadValues("http://api.gamerethos.net/adkats/usage", data);
