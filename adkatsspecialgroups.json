@@ -34,6 +34,13 @@
 			"group_id":6,
 			"group_key":"whitelist_adminassistant",
 			"group_name":"Admin Assistant Whitelist"
+		},
+		{
+			"group_id":7,
+			"group_key":"whitelist_spambot",
+			"group_name":"SpamBot Whitelist"
 		}
+		
+		 
 	]
 }
