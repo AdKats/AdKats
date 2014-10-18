@@ -14186,7 +14186,7 @@ namespace PRoConEvents {
             try
             {
                 List<AdKatsRecord> lastMissedReports = _RoundReports.Values.OrderByDescending(aRecord => aRecord.record_time).Take(6).ToList();
-                Boolean listed;
+                Boolean listed = false;
                 foreach (var rRecord in lastMissedReports) {
                     String location;
                     if (rRecord.target_player.player_online)
