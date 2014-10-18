@@ -6923,7 +6923,6 @@ namespace PRoConEvents {
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
                         {
                             if (whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
-                                ConsoleInfo("Cancelling player say to " + aPlayer.player_name + " due to whitelist.");
                                 continue;
                             }
                             nonAdminsTold = true;
@@ -6973,7 +6972,6 @@ namespace PRoConEvents {
                         {
                             if (whitelistedPlayers.ContainsKey(aPlayer.player_name))
                             {
-                                ConsoleInfo("Cancelling player yell to " + aPlayer.player_name + " due to whitelist.");
                                 continue;
                             }
                             nonAdminsTold = true;
@@ -7023,7 +7021,6 @@ namespace PRoConEvents {
                         {
                             if (whitelistedPlayers.ContainsKey(aPlayer.player_name))
                             {
-                                ConsoleInfo("Cancelling player tell to " + aPlayer.player_name + " due to whitelist.");
                                 continue;
                             }
                             nonAdminsTold = true;
