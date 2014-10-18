@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.6.1
+ * Version 5.1.6.2
  * 17-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.6.1";
+        private const String PluginVersion = "5.1.6.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -427,7 +427,8 @@ namespace PRoConEvents {
         private Boolean _surrenderVoteActive;
         private Boolean _surrenderVoteSucceeded;
         private DateTime _surrenderVoteStartTime = DateTime.UtcNow;
-        private HashSet<String> _surrenderVoteList = new HashSet<String>();
+        private readonly HashSet<String> _surrenderVoteList = new HashSet<String>();
+        private readonly HashSet<String> _nosurrenderVoteList = new HashSet<String>(); 
         //Auto-Surrender
         private Boolean _surrenderAutoEnable;
         private Boolean _surrenderAutoUseMetroValues;
@@ -5098,6 +5099,7 @@ namespace PRoConEvents {
                     //Completely clear all round-specific data
                     _endingRound = false;
                     _surrenderVoteList.Clear();
+                    _nosurrenderVoteList.Clear();
                     _surrenderVoteActive = false;
                     _surrenderVoteSucceeded = false;
                     _RoundReports.Clear();
@@ -7888,6 +7890,40 @@ namespace PRoConEvents {
                                 }
                             }
                             break;
+                        case "self_nosurrender":
+                            {
+                                if (!_surrenderVoteEnable)
+                                {
+                                    SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (_roundState != RoundState.Playing)
+                                {
+                                    SendMessageToSource(record, "Round state must be playing to vote against surrender. Current: " + _roundState);
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (_surrenderVoteSucceeded)
+                                {
+                                    SendMessageToSource(record, "Surrender already succeeded.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (_nosurrenderVoteList.Contains(record.source_name))
+                                {
+                                    SendMessageToSource(record, "You already voted against surrender!");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (!_surrenderVoteActive)
+                                {
+                                    SendMessageToSource(record, "A surrender vote must be active to vote against it.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                            }
+                            break;
                     }
                     //Conditional command replacement (single target only)
                     if (_isTestingAuthorized &&
@@ -10159,6 +10195,47 @@ namespace PRoConEvents {
                             }
                         }
                         break;
+                    case "self_nosurrender":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_surrenderVoteEnable)
+                            {
+                                SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 0);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    record.target_name = record.source_name;
+                                    record.record_message = "Player Voted for Against Surrender";
+                                    if (record.record_source == AdKatsRecord.Sources.InGame)
+                                    {
+                                        if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
+                                        {
+                                            SendMessageToSource(record, "Source player not found, unable to submit.");
+                                            FinalizeRecord(record);
+                                            return;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        record.target_name = "ExternalSource";
+                                    }
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "self_help":
                         {
                             //Remove previous commands awaiting confirmation
@@ -10930,9 +11007,29 @@ namespace PRoConEvents {
                         String[] parameters = ParseParameters(remainingMessage, 1);
                         switch (parameters.Length) {
                             case 0:
-                                record.target_name = record.source_name;
-                                record.record_message = "Rebooting AdKats";
-                                CompleteTargetInformation(record, false, false);
+                                record.target_name = "AdKats";
+                                record.record_message = "Restart AdKats";
+                                ConfirmActionWithSource(record);
+                                break;
+                            default:
+                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                FinalizeRecord(record);
+                                return;
+                        }
+                    }
+                        break;
+                    case "server_shutdown":
+                        {
+                        //Remove previous commands awaiting confirmationf
+                        CancelSourcePendingAction(record);
+
+                        //Parse parameters using max param count
+                        String[] parameters = ParseParameters(remainingMessage, 1);
+                        switch (parameters.Length) {
+                            case 0:
+                                record.target_name = "Server";
+                                record.record_message = "Shutdown Server";
+                                ConfirmActionWithSource(record);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -10964,6 +11061,10 @@ namespace PRoConEvents {
                             if (_surrenderVoteList.Remove(record.source_name))
                             {
                                 SendMessageToSource(record, "Your surrender vote has been removed.");
+                                Int32 requiredVotes = (Int32)((_serverInfo.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                                Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
+                                OnlineAdminSayMessage(record.source_name + " removed their surrender vote.");
+                                AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                             }
                         }
                         else {
@@ -11847,6 +11948,9 @@ namespace PRoConEvents {
                     case "self_surrender":
                         SourceVoteSurrender(record);
                         break;
+                    case "self_nosurrender":
+                        SourceVoteNoSurrender(record);
+                        break;
                     case "self_votenext":
                         SourceVoteSurrender(record);
                         break;
@@ -11870,6 +11974,9 @@ namespace PRoConEvents {
                         break;
                     case "plugin_restart":
                         RebootPlugin(record);
+                        break;
+                    case "server_shutdown":
+                        ShutdownServer(record);
                         break;
                     case "adkats_exception":
                         record.record_action_executed = true;
@@ -13786,7 +13893,7 @@ namespace PRoConEvents {
                                 {
                                     _threadMasterWaitHandle.WaitOne(500);
                                 }
-                                if (!_surrenderVoteSucceeded && _pluginEnabled)
+                                if (!_surrenderVoteSucceeded && _roundState == RoundState.Playing && _pluginEnabled)
                                 {
                                     _surrenderVoteActive = false;
                                     _surrenderVoteList.Clear();
@@ -13807,7 +13914,7 @@ namespace PRoConEvents {
                 _surrenderVoteList.Add(record.source_name);
                 //Use @" + GetCommandByKey("self_surrender").command_text + " or @" + GetCommandByKey("self_votenext").command_text
                 Int32 requiredVotes = (Int32)((_serverInfo.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
-                Int32 voteCount = _surrenderVoteList.Count;
+                Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 if (voteCount >= requiredVotes) {
                     //Vote succeeded, trigger winning team
                     _endingRound = true;
@@ -13842,10 +13949,11 @@ namespace PRoConEvents {
                 else
                 {
                     if (voteEnabled) {
-                        AdminTellMessage("Surrender Vote started! Use @" + GetCommandByKey("self_surrender").command_text + " or @" + GetCommandByKey("self_votenext").command_text + " to vote for surrender/scramble.");
+                        AdminTellMessage("Surrender Vote started! Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                     }
-                    else {
-                        AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + " or @" + GetCommandByKey("self_votenext").command_text + " to vote.");
+                    else
+                    {
+                        AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                     }
                     OnlineAdminSayMessage(record.source_name + " voted for round surrender.");
                 }
@@ -13857,6 +13965,62 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting SourceVoteSurrender", 6);
+        }
+
+        public void SourceVoteNoSurrender(AdKatsRecord record)
+        {
+            DebugWrite("Entering SourceVoteNoSurrender", 6);
+            try
+            {
+                //Set the executed bool
+                record.record_action_executed = true;
+
+                //Case for database added records 
+                if (!_surrenderVoteEnable)
+                {
+                    SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                if (_roundState != RoundState.Playing)
+                {
+                    SendMessageToSource(record, "Round state must be playing to vote against surrender. Current: " + _roundState);
+                    FinalizeRecord(record);
+                    return;
+                }
+                if (_surrenderVoteSucceeded)
+                {
+                    SendMessageToSource(record, "Surrender already succeeded.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                if (_nosurrenderVoteList.Contains(record.source_name))
+                {
+                    SendMessageToSource(record, "You already voted against surrender!");
+                    FinalizeRecord(record);
+                    return;
+                }
+                if (!_surrenderVoteActive)
+                {
+                    SendMessageToSource(record, "A surrender vote must be active to vote against it.");
+                    FinalizeRecord(record);
+                    return;
+                }
+
+                //Add the vote
+                _nosurrenderVoteList.Add(record.source_name);
+                Int32 requiredVotes = (Int32)((_serverInfo.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
+                AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                OnlineAdminSayMessage(record.source_name + " voted against round surrender.");
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while voting against surrender.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SourceVoteNoSurrender", 6);
         }
 
         public void SendServerCommands(AdKatsRecord record)
@@ -14048,6 +14212,24 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting RebootPlugin", 6);
+        }
+
+        public void ShutdownServer(AdKatsRecord record)
+        {
+            DebugWrite("Entering ShutdownServer", 6);
+            try
+            {
+                ExecuteCommand("procon.protected.send", "admin.shutDown");
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while shutting down server.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting ShutdownServer", 6);
         }
 
         public void SendTargetInfo(AdKatsRecord record)
@@ -19696,6 +19878,16 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 81", "REPLACE INTO `adkats_commands` VALUES(81, 'Active', 'plugin_restart', 'Log', 'Restart AdKats', 'prestart', TRUE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(82))
+                                {
+                                    SendNonQuery("Adding command 82", "REPLACE INTO `adkats_commands` VALUES(82, 'Active', 'server_shutdown', 'Log', 'Shutdown Server', 'shutdown', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(83))
+                                {
+                                    SendNonQuery("Adding command 83", "REPLACE INTO `adkats_commands` VALUES(83, 'Active', 'self_nosurrender', 'Log', 'Vote Against Surrender', 'nosurrender', FALSE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -19799,6 +19991,7 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["self_votenext"] = "Votes to end the round with current winning team as winner, then start the next.";
             _CommandDescriptionDictionary["self_reportlist"] = "Lists the latest unused round reports.";
             _CommandDescriptionDictionary["plugin_restart"] = "Reboots AdKats.";
+            _CommandDescriptionDictionary["self_nosurrender"] = "Votes against ending the round with surrender.";
         }
 
         private void UpdateCommandTimeouts() {
