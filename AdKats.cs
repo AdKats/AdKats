@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.5.9
+ * Version 5.1.6.0
  * 17-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.5.9";
+        private const String PluginVersion = "5.1.6.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6804,7 +6804,7 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "onlineNonAdminSay";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Say -Admins > " + message);
+                            ProconChatWrite("Say (-Admins) > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -6848,7 +6848,7 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "onlineNonAdminYell";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Yell[" + _YellDuration + "s] -Admins > " + message);
+                            ProconChatWrite("Yell[" + _YellDuration + "s] (-Admins) > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -6892,7 +6892,7 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "onlineNonAdminTell";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Tell[" + _YellDuration + "s] -Admins > " + message);
+                            ProconChatWrite("Tell[" + _YellDuration + "s] (-Admins) > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -6924,9 +6924,6 @@ namespace PRoConEvents {
             Boolean adminsTold = false;
             foreach (AdKatsPlayer player in FetchOnlineAdminSoldiers())
             {
-                if (_isTestingAuthorized && message.ToLower().Contains("spectat") && player.player_name.ToLower().Contains("surdaw")) {
-                    continue;
-                }
                 adminsTold = true;
                 PlayerSayMessage(player.player_name, message, true, 1);
             }
@@ -10343,21 +10340,9 @@ namespace PRoConEvents {
                         String[] parameters = ParseParameters(remainingMessage, 1);
                         switch (parameters.Length) {
                             case 0:
-                                if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
-                                    FinalizeRecord(record);
-                                    return;
-                                }
                                 record.target_name = record.source_name;
-                                record.record_message = "Player Taking Squad Lead";
+                                record.record_message = "Listing Round Reports";
                                 CompleteTargetInformation(record, false, false);
-                                break;
-                            case 1:
-                                record.target_name = parameters[0];
-                                record.record_message = "Giving Player Squad Lead";
-                                if (!HandleRoundReport(record)) {
-                                    CompleteTargetInformation(record, false, false);
-                                }
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11824,6 +11809,9 @@ namespace PRoConEvents {
                         break;
                     case "self_lead":
                         LeadCurrentSquad(record);
+                        break;
+                    case "self_reportlist":
+                        SendRoundReports(record);
                         break;
                     case "adkats_exception":
                         record.record_action_executed = true;
@@ -13948,6 +13936,38 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting SendUptime", 6);
+        }
+
+        public void SendRoundReports(AdKatsRecord record)
+        {
+            DebugWrite("Entering SendRoundReports", 6);
+            try
+            {
+                List<AdKatsRecord> lastMissedReports = _RoundReports.Values.OrderByDescending(aRecord => aRecord.record_time).Take(6).ToList();
+                foreach (var rRecord in lastMissedReports) {
+                    String location;
+                    if (rRecord.target_player.player_online)
+                    {
+                        location = _teamDictionary[rRecord.target_player.frostbitePlayerInfo.TeamID].TeamName + "/" +
+                            (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == rRecord.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(rRecord.target_player) + 1);
+                    }
+                    else
+                    {
+                        location = "OFFLINE";
+                    }
+                    SendMessageToSource(record, "(" + rRecord.command_numeric + ")(" + rRecord.target_name + ")(" + location + "):" + rRecord.record_message);
+                    Thread.Sleep(30);
+                }
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while sending round reports.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SendRoundReports", 6);
         }
 
         public void SendTargetInfo(AdKatsRecord record)
