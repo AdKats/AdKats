@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.6.3
+ * Version 5.1.6.4
  * 18-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.6.3";
+        private const String PluginVersion = "5.1.6.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -3589,7 +3589,7 @@ namespace PRoConEvents {
                                     if (_spamBotExcludeAdmins)
                                     {
                                         if (!String.IsNullOrEmpty(_spamBotSayQueue.Peek()))
-                                            OnlineNonAdminSayMessage(_spamBotSayQueue.Peek());
+                                            OnlineNonWhitelistSayMessage(_spamBotSayQueue.Peek());
                                     }
                                     else
                                     {
@@ -3604,7 +3604,7 @@ namespace PRoConEvents {
                                     if (_spamBotExcludeAdmins)
                                     {
                                         if (!String.IsNullOrEmpty(_spamBotYellQueue.Peek()))
-                                            OnlineNonAdminYellMessage(_spamBotYellQueue.Peek());
+                                            OnlineNonWhitelistYellMessage(_spamBotYellQueue.Peek());
                                     }
                                     else
                                     {
@@ -3619,7 +3619,7 @@ namespace PRoConEvents {
                                     if (_spamBotExcludeAdmins)
                                     {
                                         if (!String.IsNullOrEmpty(_spamBotTellQueue.Peek()))
-                                            OnlineNonAdminTellMessage(_spamBotTellQueue.Peek());
+                                            OnlineNonWhitelistTellMessage(_spamBotTellQueue.Peek());
                                     }
                                     else
                                     {
@@ -4302,7 +4302,7 @@ namespace PRoConEvents {
                                             if (_pingEnforcerSystemEnable && 
                                                 aPlayer.player_type == PlayerType.Player && 
                                                 !PlayerIsAdmin(aPlayer) && 
-                                                !FetchMatchingSpecialPlayers("whitelist_ping", aPlayer).Any() &&
+                                                !GetMatchingASPlayersOfGroup("whitelist_ping", aPlayer).Any() &&
                                                 !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) &&
                                                 !(_pingEnforcerIgnoreUserList && FetchAllUserSoldiers().Any(sPlayer => sPlayer.player_guid == aPlayer.player_guid)))
                                             {
@@ -4338,7 +4338,7 @@ namespace PRoConEvents {
                                         //Automatic Dispersion for 6 and 7
                                         if (_isTestingAuthorized &&
                                             (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6") || _serverInfo.ServerName.Contains("EU #5")) && 
-                                            !FetchMatchingSpecialPlayers("blacklist_dispersion", aPlayer).Any()) {
+                                            !GetMatchingASPlayersOfGroup("blacklist_dispersion", aPlayer).Any()) {
                                             Boolean addDispersion = false;
                                             if (
                                                 (aPlayer.frostbitePlayerInfo.Kdr > 2 && aPlayer.frostbitePlayerInfo.Kills > 45) || 
@@ -4463,7 +4463,6 @@ namespace PRoConEvents {
                                                 aPlayer.player_type = PlayerType.Player;
                                                 break;
                                             case 1:
-                                                OnlineAdminSayMessage(aPlayer.player_name + " is now spectating the server.");
                                                 aPlayer.player_type = PlayerType.Spectator;
                                                 break;
                                             case 2:
@@ -4475,6 +4474,25 @@ namespace PRoConEvents {
                                             default:
                                                 ConsoleError("Player type " + aPlayer.frostbitePlayerInfo.Type + " is not valid.");
                                                 break;
+                                        }
+                                        //Notify reputable players
+                                        if (_firstPlayerListComplete)
+                                        {
+                                            var isAdmin = PlayerIsAdmin(aPlayer);
+                                            if (isAdmin || aPlayer.player_aa)
+                                            {
+                                                List<AdKatsPlayer> reputablePlayers = _PlayerDictionary.Values.Where(iPlayer => iPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(iPlayer)).ToList();
+                                                String message = ((isAdmin) ? ("Admin ") : ("Admin Assistant ")) + aPlayer.player_name + " joined the server as " + aPlayer.player_type + ".";
+                                                foreach (var reputablePlayer in reputablePlayers)
+                                                {
+                                                    PlayerSayMessage(reputablePlayer.player_name, message);
+                                                }
+                                                OnlineAdminSayMessage(message);
+                                            }
+                                            else if (aPlayer.player_type == PlayerType.Spectator)
+                                            {
+                                                OnlineAdminSayMessage(aPlayer.player_name + " is now spectating the server.");
+                                            }
                                         }
                                         //Set their last death/spawn times
                                         aPlayer.lastDeath = DateTime.UtcNow;
@@ -6130,17 +6148,17 @@ namespace PRoConEvents {
             DebugWrite("Exiting queuePlayerForHackerCheck", 7);
         }
 
-        public List<AdKatsSpecialPlayer> getASPlayersOfGroup(String specialPlayerGroup) {
+        public List<AdKatsSpecialPlayer> GetASPlayersOfGroup(String specialPlayerGroup) {
             return _specialPlayerCache.Values.Where(asPlayer => asPlayer.player_group.group_key == specialPlayerGroup).ToList();
         }
 
-        public List<AdKatsSpecialPlayer> FetchMatchingSpecialPlayers(String group, AdKatsPlayer aPlayer)
+        public List<AdKatsSpecialPlayer> GetMatchingASPlayersOfGroup(String specialPlayerGroup, AdKatsPlayer aPlayer)
         {
             DebugWrite("Entering FetchMatchingSpecialPlayers", 6);
             try
             {
                 List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
-                matchingSpecialPlayers.AddRange(getASPlayersOfGroup(group).Where(asPlayer => asPlayer.player_object != null &&
+                matchingSpecialPlayers.AddRange(GetASPlayersOfGroup(specialPlayerGroup).Where(asPlayer => asPlayer.player_object != null &&
                     (asPlayer.player_object.player_id == aPlayer.player_id ||
                      asPlayer.player_identifier == aPlayer.player_name ||
                      asPlayer.player_identifier == aPlayer.player_guid ||
@@ -6155,10 +6173,58 @@ namespace PRoConEvents {
             return null;
         }
 
+        public Dictionary<String, AdKatsPlayer> GetOnlinePlayerDictionaryOfGroup(String specialPlayerGroup)
+        {
+            Dictionary<String, AdKatsPlayer> onlinePlayersOfGroup = new Dictionary<String, AdKatsPlayer>();
+            DebugWrite("Entering GetOnlinePlayerDictionaryOfGroup", 6);
+            try
+            {
+                List<AdKatsPlayer> onlinePlayerObjects = _PlayerDictionary.Values.ToList();
+                List<AdKatsSpecialPlayer> asPlayerObjects = GetASPlayersOfGroup(specialPlayerGroup);
+                foreach (AdKatsSpecialPlayer asPlayer in asPlayerObjects)
+                {
+                    foreach (AdKatsPlayer aPlayer in onlinePlayerObjects)
+                    {
+                        if (asPlayer.player_object != null && asPlayer.player_object.player_id == aPlayer.player_id)
+                        {
+                            onlinePlayersOfGroup[aPlayer.player_name] = aPlayer;
+                        }
+                        else if (asPlayer.player_identifier == aPlayer.player_name ||
+                                asPlayer.player_identifier == aPlayer.player_guid ||
+                                asPlayer.player_identifier == aPlayer.player_ip)
+                        {
+                            onlinePlayersOfGroup[aPlayer.player_name] = aPlayer;
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching matching special players.", e));
+            }
+            DebugWrite("Exiting GetOnlinePlayerDictionaryOfGroup", 6);
+            return onlinePlayersOfGroup;
+        }
+
+        public List<AdKatsPlayer> GetOnlinePlayersOfGroup(String specialPlayerGroup)
+        {
+            DebugWrite("Entering GetOnlinePlayersOfGroup", 6);
+            try
+            {
+                return GetOnlinePlayerDictionaryOfGroup(specialPlayerGroup).Values.ToList();
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching matching special players.", e));
+            }
+            DebugWrite("Exiting GetOnlinePlayersOfGroup", 6);
+            return null;
+        }
+
         public Boolean PlayerProtected(AdKatsPlayer aPlayer) {
             //Pull players from special player cache
             lock (_specialPlayerCache) {
-                List<AdKatsSpecialPlayer> protectedList = getASPlayersOfGroup("whitelist_hackerchecker");
+                List<AdKatsSpecialPlayer> protectedList = GetASPlayersOfGroup("whitelist_hackerchecker");
                 if (protectedList.Any()) {
                     foreach (AdKatsSpecialPlayer asPlayer in protectedList) {
                         if (asPlayer.player_object != null && asPlayer.player_object.player_id == aPlayer.player_id) {
@@ -6832,15 +6898,16 @@ namespace PRoConEvents {
             DebugWrite("Exiting sendMessageToSource", 7);
         }
 
-        public Boolean OnlineNonAdminSayMessage(String message)
+        public Boolean OnlineNonWhitelistSayMessage(String message)
         {
-            return OnlineNonAdminSayMessage(message, true);
+            return OnlineNonWhitelistSayMessage(message, true);
         }
 
-        public Boolean OnlineNonAdminSayMessage(String message, Boolean displayProconChat)
+        public Boolean OnlineNonWhitelistSayMessage(String message, Boolean displayProconChat)
         {
             Boolean nonAdminsTold = false;
-            if (FetchOnlineAdminSoldiers().Any())
+            Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
+            if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
             {
                 var nonAdminSayThread = new Thread(new ThreadStart(delegate
                 {
@@ -6850,11 +6917,15 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "onlineNonAdminSay";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Say (-Admins) > " + message);
+                            ProconChatWrite("Say (-Admins" + ((whitelistedPlayers.Any())?(whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.player_name)):("")) + ") > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
                         {
+                            if (whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                                ConsoleInfo("Cancelling player say to " + aPlayer.player_name + " due to whitelist.");
+                                continue;
+                            }
                             nonAdminsTold = true;
                             PlayerSayMessage(aPlayer.player_name, message, false, 1);
                             Thread.Sleep(30);
@@ -6876,15 +6947,16 @@ namespace PRoConEvents {
             return nonAdminsTold;
         }
 
-        public Boolean OnlineNonAdminYellMessage(String message)
+        public Boolean OnlineNonWhitelistYellMessage(String message)
         {
-            return OnlineNonAdminYellMessage(message, true);
+            return OnlineNonWhitelistYellMessage(message, true);
         }
 
-        public Boolean OnlineNonAdminYellMessage(String message, Boolean displayProconChat)
+        public Boolean OnlineNonWhitelistYellMessage(String message, Boolean displayProconChat)
         {
             Boolean nonAdminsTold = false;
-            if (FetchOnlineAdminSoldiers().Any())
+            Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
+            if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
             {
                 var nonAdminSayThread = new Thread(new ThreadStart(delegate
                 {
@@ -6894,11 +6966,16 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "onlineNonAdminYell";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Yell[" + _YellDuration + "s] (-Admins) > " + message);
+                            ProconChatWrite("Yell[" + _YellDuration + "s] (-Admins" + ((whitelistedPlayers.Any()) ? (whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.player_name)) : ("")) + ") > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
                         {
+                            if (whitelistedPlayers.ContainsKey(aPlayer.player_name))
+                            {
+                                ConsoleInfo("Cancelling player yell to " + aPlayer.player_name + " due to whitelist.");
+                                continue;
+                            }
                             nonAdminsTold = true;
                             PlayerYellMessage(aPlayer.player_name, message, false, 1);
                             Thread.Sleep(30);
@@ -6920,15 +6997,16 @@ namespace PRoConEvents {
             return nonAdminsTold;
         }
 
-        public Boolean OnlineNonAdminTellMessage(String message)
+        public Boolean OnlineNonWhitelistTellMessage(String message)
         {
-            return OnlineNonAdminTellMessage(message, true);
+            return OnlineNonWhitelistTellMessage(message, true);
         }
 
-        public Boolean OnlineNonAdminTellMessage(String message, Boolean displayProconChat)
+        public Boolean OnlineNonWhitelistTellMessage(String message, Boolean displayProconChat)
         {
             Boolean nonAdminsTold = false;
-            if (FetchOnlineAdminSoldiers().Any())
+            Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
+            if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
             {
                 var nonAdminSayThread = new Thread(new ThreadStart(delegate
                 {
@@ -6938,11 +7016,16 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "onlineNonAdminTell";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Tell[" + _YellDuration + "s] (-Admins) > " + message);
+                            ProconChatWrite("Tell[" + _YellDuration + "s] (-Admins" + ((whitelistedPlayers.Any()) ? (whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.player_name)) : ("")) + ") > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
                         {
+                            if (whitelistedPlayers.ContainsKey(aPlayer.player_name))
+                            {
+                                ConsoleInfo("Cancelling player tell to " + aPlayer.player_name + " due to whitelist.");
+                                continue;
+                            }
                             nonAdminsTold = true;
                             PlayerTellMessage(aPlayer.player_name, message, false, 1);
                             Thread.Sleep(30);
@@ -7684,7 +7767,7 @@ namespace PRoConEvents {
                     {
                         case "player_blacklistdisperse":
                             {
-                                List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("blacklist_dispersion", record.target_player);
+                                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player);
                                 if (matchingPlayers.Any())
                                 {
                                     SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already under dispersion for this server.");
@@ -8952,12 +9035,10 @@ namespace PRoConEvents {
                             switch (parameters.Length)
                             {
                                 case 1:
-                                    //Unban the target player
                                     record.target_name = parameters[0];
                                     record.record_message = "Hacker-Checker Whitelist Player";
                                     break;
                                 case 2:
-                                    //Unban the target player
                                     record.target_name = parameters[0];
 
                                     //attempt to handle via pre-message ID
@@ -8994,12 +9075,10 @@ namespace PRoConEvents {
                             switch (parameters.Length)
                             {
                                 case 1:
-                                    //Unban the target player
                                     record.target_name = parameters[0];
                                     record.record_message = "Ping Whitelist Player";
                                     break;
                                 case 2:
-                                    //Unban the target player
                                     record.target_name = parameters[0];
 
                                     //attempt to handle via pre-message ID
@@ -9036,12 +9115,50 @@ namespace PRoConEvents {
                             switch (parameters.Length)
                             {
                                 case 1:
-                                    //Unban the target player
                                     record.target_name = parameters[0];
                                     record.record_message = "Admin Assistant Whitelist Player";
                                     break;
                                 case 2:
-                                    //Unban the target player
+                                    record.target_name = parameters[0];
+
+                                    //attempt to handle via pre-message ID
+                                    record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+
+                            if (String.IsNullOrEmpty(record.target_name) || record.target_name.Length < 3)
+                            {
+                                SendMessageToSource(record, "Name search must be at least 3 characters.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            CompleteTargetInformation(record, false, true);
+                        }
+                        break;
+                    case "player_whitelistspambot":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "SpamBot Whitelist Player";
+                                    break;
+                                case 2:
                                     record.target_name = parameters[0];
 
                                     //attempt to handle via pre-message ID
@@ -11959,6 +12076,9 @@ namespace PRoConEvents {
                     case "player_whitelistaa":
                         AAWhitelistTarget(record);
                         break;
+                    case "player_whitelistspambot":
+                        SpamBotWhitelistTarget(record);
+                        break;
                     case "player_log":
                         SendMessageToSource(record, "Log saved for " + record.target_name);
                         break;
@@ -12752,7 +12872,7 @@ namespace PRoConEvents {
             DebugWrite("Entering BalanceWhitelistTarget", 6);
             try {
                 record.record_action_executed = true;
-                List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("whitelist_multibalancer", record.target_player);
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player);
                 if (matchingPlayers.Count > 0) {
                     SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already under autobalance whitelist for this server.");
                     return;
@@ -12804,7 +12924,7 @@ namespace PRoConEvents {
             DebugWrite("Entering ReservedSlotTarget", 6);
             try {
                 record.record_action_executed = true;
-                List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("slot_reserved", record.target_player);
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("slot_reserved", record.target_player);
                 if (matchingPlayers.Count > 0) {
                     SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in reserved slot list for this server.");
                     return;
@@ -12858,7 +12978,7 @@ namespace PRoConEvents {
             try
             {
                 record.record_action_executed = true;
-                List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("slot_spectator", record.target_player);
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("slot_spectator", record.target_player);
                 if (matchingPlayers.Count > 0)
                 {
                     SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in spectator slot list for this server.");
@@ -12924,7 +13044,7 @@ namespace PRoConEvents {
                     return;
                 }
                 record.record_action_executed = true;
-                List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("whitelist_hackerchecker", record.target_player);
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_hackerchecker", record.target_player);
                 if (matchingPlayers.Count > 0)
                 {
                     SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in hacker checker whitelist.");
@@ -12995,7 +13115,7 @@ namespace PRoConEvents {
                     return;
                 }
                 record.record_action_executed = true;
-                List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("whitelist_ping", record.target_player);
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player);
                 if (matchingPlayers.Count > 0)
                 {
                     SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the ping whitelist.");
@@ -13057,14 +13177,15 @@ namespace PRoConEvents {
             try
             {
                 //Case for multiple targets
-                if (record.target_player == null) {
+                if (record.target_player == null)
+                {
                     SendMessageToSource(record, "AAWhitelistTarget not available for multiple targets.");
                     ConsoleError("AAWhitelistTarget not available for multiple targets.");
                     FinalizeRecord(record);
                     return;
                 }
                 record.record_action_executed = true;
-                List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("whitelist_adminassistant", record.target_player);
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player);
                 if (matchingPlayers.Count > 0)
                 {
                     SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the Admin Assistant whitelist.");
@@ -13118,6 +13239,76 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting AAWhitelistTarget", 6);
+        }
+
+        public void SpamBotWhitelistTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering SpamBotWhitelistTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "SpamBotWhitelistTarget not available for multiple targets.");
+                    ConsoleError("SpamBotWhitelistTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_spambot", record.target_player);
+                if (matchingPlayers.Count > 0)
+                {
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the SpamBot whitelist.");
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'whitelist_spambot',
+	                        @player_id,
+	                        @player_name,
+	                        UTC_TIMESTAMP(),
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
+                        )";
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+
+                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        if (rowsAffected > 0)
+                        {
+                            SendMessageToSource(record, "Player " + record.target_player.player_name + " added to SpamBot whitelist for all servers.");
+                            DebugWrite("Player " + record.target_player.player_name + " added to SpamBot whitelist for all servers.", 3);
+                            FetchAllAccess(true);
+                        }
+                        else
+                        {
+                            ConsoleError("Unable to add player to SpamBot whitelist. Error uploading.");
+                        }
+                    }
+                }
+                //Fetch the special player cache
+                FetchAllAccess(true);
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for SpamBot Whitelist record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SpamBotWhitelistTarget", 6);
         }
 
         public void MuteTarget(AdKatsRecord record) {
@@ -14191,7 +14382,7 @@ namespace PRoConEvents {
                     String location;
                     if (rRecord.target_player.player_online)
                     {
-                        location = _teamDictionary[rRecord.target_player.frostbitePlayerInfo.TeamID].TeamName + "/" +
+                        location = _teamDictionary[rRecord.target_player.frostbitePlayerInfo.TeamID].TeamKey + "/" +
                             (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == rRecord.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(rRecord.target_player) + 1);
                     }
                     else
@@ -19913,6 +20104,11 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 83", "REPLACE INTO `adkats_commands` VALUES(83, 'Active', 'self_nosurrender', 'Log', 'Vote Against Surrender', 'nosurrender', FALSE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(84))
+                                {
+                                    SendNonQuery("Adding command 84", "REPLACE INTO `adkats_commands` VALUES(84, 'Active', 'player_whitelistspambot', 'Log', 'SpamBot Whitelist Player', 'spamwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -20017,6 +20213,7 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["self_reportlist"] = "Lists the latest unused round reports.";
             _CommandDescriptionDictionary["plugin_restart"] = "Reboots AdKats.";
             _CommandDescriptionDictionary["self_nosurrender"] = "Votes against ending the round with surrender.";
+            _CommandDescriptionDictionary["player_whitelistspambot"] = "Whitelists a player for SpamBot avoidance. They will not get any messages from the SpamBot.";
         }
 
         private void UpdateCommandTimeouts() {
@@ -20635,7 +20832,7 @@ namespace PRoConEvents {
                 aPlayer.player_aa = false;
                 return;
             }
-            List<AdKatsSpecialPlayer> matchingPlayers = FetchMatchingSpecialPlayers("whitelist_adminassistant", aPlayer);
+            List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_adminassistant", aPlayer);
             if (matchingPlayers.Count > 0)
             {
                 aPlayer.player_aa_fetched = true;
@@ -20848,7 +21045,7 @@ namespace PRoConEvents {
                     var autobalanceWhitelistedPlayers = new List<String>();
                     //Pull players from special player cache
                     lock (_specialPlayerCache) {
-                        List<AdKatsSpecialPlayer> whitelistedPlayers = getASPlayersOfGroup("whitelist_multibalancer");
+                        List<AdKatsSpecialPlayer> whitelistedPlayers = GetASPlayersOfGroup("whitelist_multibalancer");
                         if (whitelistedPlayers.Any()) {
                             foreach (AdKatsSpecialPlayer asPlayer in whitelistedPlayers) {
                                 String playerIdentifier = null;
@@ -20908,7 +21105,7 @@ namespace PRoConEvents {
                     var evenDispersionList = new List<String>();
                     //Pull players from special player cache
                     lock (_specialPlayerCache) {
-                        List<AdKatsSpecialPlayer> evenDispersedPlayers = getASPlayersOfGroup("blacklist_dispersion");
+                        List<AdKatsSpecialPlayer> evenDispersedPlayers = GetASPlayersOfGroup("blacklist_dispersion");
                         if (evenDispersedPlayers.Any()) {
                             foreach (AdKatsSpecialPlayer asPlayer in evenDispersedPlayers) {
                                 String playerIdentifier = null;
@@ -20956,7 +21153,7 @@ namespace PRoConEvents {
                 var allowedReservedSlotPlayers = new List<string>();
                 //Pull players from special player cache
                 lock (_specialPlayerCache) {
-                    List<AdKatsSpecialPlayer> reservedPlayers = getASPlayersOfGroup("slot_reserved");
+                    List<AdKatsSpecialPlayer> reservedPlayers = GetASPlayersOfGroup("slot_reserved");
                     if (reservedPlayers.Any()) {
                         foreach (AdKatsSpecialPlayer asPlayer in reservedPlayers) {
                             String playerIdentifier = null;
@@ -21040,7 +21237,7 @@ namespace PRoConEvents {
                 var allowedSpectatorSlotPlayers = new List<string>();
                 //Pull players from special player cache
                 lock (_specialPlayerCache) {
-                    List<AdKatsSpecialPlayer> spectators = getASPlayersOfGroup("slot_spectator");
+                    List<AdKatsSpecialPlayer> spectators = GetASPlayersOfGroup("slot_spectator");
                     if (spectators.Any()) {
                         foreach (AdKatsSpecialPlayer asPlayer in spectators) {
                             String playerIdentifier = null;
