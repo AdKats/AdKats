@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.6.0
+ * Version 5.1.6.1
  * 17-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.6.0";
+        private const String PluginVersion = "5.1.6.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -109,6 +109,8 @@ namespace PRoConEvents {
         private volatile String _pluginDescription;
         private volatile String _pluginLinks;
         private volatile Boolean _pluginEnabled;
+        private volatile Boolean _pluginRebootOnDisable;
+        private volatile String _pluginRebootOnDisableSource;
         private volatile Boolean _threadsReady;
         private volatile String _latestPluginVersion;
         private volatile String _pluginVersionStatusString;
@@ -3234,6 +3236,14 @@ namespace PRoConEvents {
                     try {
                         Thread.CurrentThread.Name = "enabler";
 
+                        if (_pluginRebootOnDisable) {
+                            if (!String.IsNullOrEmpty(_pluginRebootOnDisableSource)) {
+                                PlayerTellMessage(_pluginRebootOnDisableSource, "AdKats is Rebooting");
+                            }
+                            _pluginRebootOnDisable = false;
+                            _pluginRebootOnDisableSource = null;
+                        }
+
                         if ((DateTime.UtcNow - _proconStartTime).TotalSeconds < 10) {
                             ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
                             //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
@@ -3405,6 +3415,10 @@ namespace PRoConEvents {
                         //Now that plugin is disabled, update the settings page to reflect
                         UpdateSettingPage();
                         ConsoleWrite("^b^1AdKats " + GetPluginVersion() + " Disabled! =(^n^0");
+                        //Automatic Enable
+                        if (_pluginRebootOnDisable && !_useKeepAlive) {
+                            Enable();
+                        }
                     }
                     catch (Exception e) {
                         HandleException(new AdKatsException("Error occured while disabling Adkats.", e));
@@ -3804,8 +3818,29 @@ namespace PRoConEvents {
         }
 
         private void Enable() {
-            //Call Enable
-            ExecuteCommand("procon.protected.plugins.enable", "AdKats", "True");
+            if (Thread.CurrentThread.Name == "finalizer")
+            {
+                var pluginRebootThread = new Thread(new ThreadStart(delegate {
+                    DebugWrite("Starting a reboot thread.", 5);
+                    try {
+                        Thread.CurrentThread.Name = "RebootThread";
+                        Thread.Sleep(1000);
+                        //Call Enable
+                        ExecuteCommand("procon.protected.plugins.enable", "AdKats", "True");
+                    }
+                    catch (Exception) {
+                        HandleException(new AdKatsException("Error while running reboot."));
+                    }
+                    DebugWrite("Exiting a reboot thread.", 5);
+                    LogThreadExit();
+                }));
+                StartAndLogThread(pluginRebootThread);
+            }
+            else
+            {
+                //Call Enable
+                ExecuteCommand("procon.protected.plugins.enable", "AdKats", "True");
+            }
         }
 
         public void OnPluginLoadingEnv(List<String> lstPluginEnv) {
@@ -10886,6 +10921,26 @@ namespace PRoConEvents {
                         }
                     }
                         break;
+                    case "plugin_restart":
+                        {
+                        //Remove previous commands awaiting confirmationf
+                        CancelSourcePendingAction(record);
+
+                        //Parse parameters using max param count
+                        String[] parameters = ParseParameters(remainingMessage, 1);
+                        switch (parameters.Length) {
+                            case 0:
+                                record.target_name = record.source_name;
+                                record.record_message = "Rebooting AdKats";
+                                CompleteTargetInformation(record, false, false);
+                                break;
+                            default:
+                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                FinalizeRecord(record);
+                                return;
+                        }
+                    }
+                        break;
                     case "command_confirm":
                         DebugWrite("attempting to confirm command", 6);
                         AdKatsRecord recordAttempt = null;
@@ -11812,6 +11867,9 @@ namespace PRoConEvents {
                         break;
                     case "self_reportlist":
                         SendRoundReports(record);
+                        break;
+                    case "plugin_restart":
+                        RebootPlugin(record);
                         break;
                     case "adkats_exception":
                         record.record_action_executed = true;
@@ -13968,6 +14026,28 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting SendRoundReports", 6);
+        }
+
+        public void RebootPlugin(AdKatsRecord record)
+        {
+            DebugWrite("Entering RebootPlugin", 6);
+            try {
+                _pluginRebootOnDisable = true;
+                if (record.record_source == AdKatsRecord.Sources.InGame) {
+                    _pluginRebootOnDisableSource = record.source_name;
+                }
+                SendMessageToSource(record, "Rebooting AdKats.");
+                Disable();
+                //Set the executed bool
+                record.record_action_executed = true;
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while rebooting plugin.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting RebootPlugin", 6);
         }
 
         public void SendTargetInfo(AdKatsRecord record)
@@ -19611,6 +19691,11 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 80", "REPLACE INTO `adkats_commands` VALUES(80, 'Active', 'self_reportlist', 'Log', 'List Round Reports', 'reportlist', FALSE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(81))
+                                {
+                                    SendNonQuery("Adding command 81", "REPLACE INTO `adkats_commands` VALUES(81, 'Active', 'plugin_restart', 'Log', 'Restart AdKats', 'prestart', TRUE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -19713,6 +19798,7 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["self_surrender"] = "Votes to end the round with current winning team as winner, then start the next.";
             _CommandDescriptionDictionary["self_votenext"] = "Votes to end the round with current winning team as winner, then start the next.";
             _CommandDescriptionDictionary["self_reportlist"] = "Lists the latest unused round reports.";
+            _CommandDescriptionDictionary["plugin_restart"] = "Reboots AdKats.";
         }
 
         private void UpdateCommandTimeouts() {
