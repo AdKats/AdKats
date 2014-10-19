@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.6.5
- * 18-OCT-2014
+ * Version 5.1.6.6
+ * 19-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.6.5";
+        private const String PluginVersion = "5.1.6.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4248,6 +4248,13 @@ namespace PRoConEvents {
                                     if (!_pluginEnabled) {
                                         break;
                                     }
+                                    //Add check for glitched players
+                                    if (String.IsNullOrEmpty(playerInfo.GUID))
+                                    {
+                                        ProconChatWrite(BoldMessage(playerInfo.SoldierName + " is glitched in the server. Their soldier is invalid."));
+                                        ConsoleWarn(playerInfo.SoldierName + " is glitched in the server. Their soldier is invalid.");
+                                        continue;
+                                    }
                                     validPlayers.Add(playerInfo.SoldierName);
                                     //Check if the player is already in the player dictionary
                                     AdKatsPlayer aPlayer = null;
@@ -4964,7 +4971,7 @@ namespace PRoConEvents {
                             if (serverInfo.TeamScores != null) {
                                 List<TeamScore> listCurrTeamScore = serverInfo.TeamScores;
                                 //During round change, teams don't exist
-                                if (listCurrTeamScore.Count > 0) {
+                                if (listCurrTeamScore.Count > 0 && _roundState == RoundState.Playing) {
                                     foreach (TeamScore score in listCurrTeamScore) {
                                         AdKatsTeam currentTeam;
                                         if (_teamDictionary.TryGetValue(score.TeamID, out currentTeam)) {
@@ -4997,7 +5004,7 @@ namespace PRoConEvents {
                                 winningTeam = team2;
                                 losingTeam = team1;
                             }
-                            if (_DisplayTicketRatesInProconChat && (DateTime.UtcNow - _LastTicketRateDisplay).TotalSeconds > 25) {
+                            if (_DisplayTicketRatesInProconChat && (DateTime.UtcNow - _LastTicketRateDisplay).TotalSeconds > 25 && _roundState == RoundState.Playing) {
                                 _LastTicketRateDisplay = DateTime.UtcNow;
                                 ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " t/m"));
                             }
@@ -6869,7 +6876,7 @@ namespace PRoConEvents {
                         PlayerSayMessage(record.source_name, message);
                         break;
                     case AdKatsRecord.Sources.ServerCommand:
-                        ProconChatWrite(message);
+                        ProconChatWrite(BoldMessage(message));
                         break;
                     case AdKatsRecord.Sources.Settings:
                         ConsoleWrite(message);
