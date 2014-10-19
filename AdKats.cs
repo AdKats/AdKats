@@ -492,7 +492,7 @@ namespace PRoConEvents {
         private Boolean _DisplayTicketRatesInProconChat;
 
         //SpamBot
-        private Boolean _spamBotEnable;
+        private Boolean _spamBotEnabled;
         private List<String> _spamBotSayList;
         private readonly Queue<String> _spamBotSayQueue = new Queue<String>();
         private Int32 _spamBotSayDelaySeconds = 300;
@@ -795,7 +795,7 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("A12. Messaging Settings|First spawn message text", typeof(String), _FirstSpawnMessage));
                     }
 
-                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Enable", typeof(Boolean), _spamBotEnable));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Enable", typeof(Boolean), _spamBotEnabled));
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Say List", typeof(String[]), _spamBotSayList.ToArray()));
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Say Delay Seconds", typeof(int), _spamBotSayDelaySeconds));
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Yell List", typeof(String[]), _spamBotYellList.ToArray()));
@@ -2945,16 +2945,16 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"SpamBot Enable").Success)
                 {
                     Boolean spamBotEnable = Boolean.Parse(strValue);
-                    if (spamBotEnable != _spamBotEnable)
+                    if (spamBotEnable != _spamBotEnabled)
                     {
                         if (spamBotEnable) {
                             _spamBotSayLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(10);
                             _spamBotYellLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(10);
                             _spamBotTellLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(10);
                         }
-                        _spamBotEnable = spamBotEnable;
+                        _spamBotEnabled = spamBotEnable;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"SpamBot Enable", typeof(Boolean), _spamBotEnable));
+                        QueueSettingForUpload(new CPluginVariable(@"SpamBot Enable", typeof(Boolean), _spamBotEnabled));
                     }
                 }
                 else if (Regex.Match(strVariable, @"SpamBot Say List").Success)
@@ -3591,7 +3591,7 @@ namespace PRoConEvents {
                             }
 
                             //Run SpamBot
-                            if (_spamBotEnable)
+                            if (_pluginEnabled && _spamBotEnabled)
                             {
                                 if ((DateTime.UtcNow - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds)
                                 {
@@ -16471,7 +16471,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
                 QueueSettingForUpload(new CPluginVariable(@"Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
                 QueueSettingForUpload(new CPluginVariable(@"First spawn message text", typeof(String), _FirstSpawnMessage));
-                QueueSettingForUpload(new CPluginVariable(@"SpamBot Enable", typeof(Boolean), _spamBotEnable));
+                QueueSettingForUpload(new CPluginVariable(@"SpamBot Enable", typeof(Boolean), _spamBotEnabled));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Say List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotSayList.ToArray())));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Yell List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotYellList.ToArray())));
