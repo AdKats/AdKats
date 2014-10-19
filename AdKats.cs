@@ -118,6 +118,7 @@ namespace PRoConEvents {
         private Boolean _pluginUpdateServerInfoChecked;
         private Boolean _pluginUpdatePatched;
         private String _pluginUpdateProgress = "NotStarted";
+        private String _pluginDescFetchProgress = "NotStarted";
         private volatile Boolean _useKeepAlive;
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
         private RoundState _roundState = RoundState.Loaded;
@@ -3446,7 +3447,7 @@ namespace PRoConEvents {
         private void FetchPluginDescAndChangelog() {
             if (_aliveThreads.Values.Any(aThread => aThread.Name == "descfetching")) {
                 if(_isTestingAuthorized)
-                    ConsoleWarn("Attempted to start a desc fetch before a previous one was able to finish");
+                    ConsoleWarn("Attempted to start a desc fetch thread before a previous one was able to finish. Previous status: " + _pluginDescFetchProgress);
                 return;
             }
             _PluginDescriptionWaitHandle.Reset();
@@ -3454,6 +3455,7 @@ namespace PRoConEvents {
             var descFetcher = new Thread(new ThreadStart(delegate {
                 try {
                     Thread.CurrentThread.Name = "descfetching";
+                    _pluginDescFetchProgress = "Started";
                     //Create web client
                     var client = new WebClient();
                     //Download the readme and changelog
@@ -3467,6 +3469,7 @@ namespace PRoConEvents {
                     {
                         ConsoleError("Failed to fetch plugin links.");
                     }
+                    _pluginDescFetchProgress = "LinksFetched";
                     DebugWrite("Fetching plugin readme...", 2);
                     try
                     {
@@ -3477,6 +3480,7 @@ namespace PRoConEvents {
                     {
                         ConsoleError("Failed to fetch plugin description.");
                     }
+                    _pluginDescFetchProgress = "DescFetched";
                     DebugWrite("Fetching plugin changelog...", 2);
                     try {
                         _pluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
@@ -3485,6 +3489,7 @@ namespace PRoConEvents {
                     catch (Exception) {
                         ConsoleError("Failed to fetch plugin changelog.");
                     }
+                    _pluginDescFetchProgress = "ChangeFetched";
                     if (_pluginDescription != "DESCRIPTION FETCH FAILED|") {
                         //Extract the latest stable version
                         String latestStableVersion = ExtractString(_pluginDescription, "latest_stable_release");
@@ -3528,14 +3533,17 @@ namespace PRoConEvents {
                             }
                             //Prepend the message
                             _pluginVersionStatusString = versionStatus;
+                            _pluginDescFetchProgress = "VersionStatusSet";
                             //Check for plugin updates
                             CheckForPluginUpdates();
+                            _pluginDescFetchProgress = "UpdateChecked";
                         }
                     }
                     DebugWrite("Setting desc fetch handle.", 1);
                     _fetchedPluginInformation = true;
                     _LastPluginDescFetch = DateTime.UtcNow;
                     _PluginDescriptionWaitHandle.Set();
+                    _pluginDescFetchProgress = "Completed";
                 }
                 catch (Exception e) {
                     HandleException(new AdKatsException("Error while fetching plugin description and changelog.", e));
