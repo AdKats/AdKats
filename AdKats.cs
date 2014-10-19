@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.6.4
+ * Version 5.1.6.5
  * 18-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.6.4";
+        private const String PluginVersion = "5.1.6.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -14294,7 +14294,7 @@ namespace PRoConEvents {
                             foreach (String cur in curCommands) {
                                 curCommandsStr += cur + ", ";
                             }
-                            PlayerSayMessage(record.target_name, curCommandsStr);
+                            SendMessageToSource(record, curCommandsStr);
                             _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(2));
                         }
                     }
@@ -22905,107 +22905,126 @@ namespace PRoConEvents {
             return fullMessage;
         }
 
-        public Boolean CheckForPluginUpdates() {
+        public void CheckForPluginUpdates() {
             try
             {
                 if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled && !_pluginUpdatePatched) || (_isTestingAuthorized))
                 {
-                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                        ConsoleInfo("Preparing to download plugin update to version " + _latestPluginVersion);
-                    String pluginSource = null;
-                    using (var client = new WebClient()) {
+                    if (_aliveThreads.Values.Any(aThread => aThread.Name == "PluginUpdater"))
+                    {
+                        if (_isTestingAuthorized)
+                            ConsoleWarn("Attempted to start a plugin update thread before a previous one was able to finish");
+                        return;
+                    }
+                    var pluginUpdater = new Thread(new ThreadStart(delegate
+                    {
                         try
                         {
-                            const string stableURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/AdKats.cs";
-                            const string testURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/test/AdKats.cs";
-                            if (!_isTestingAuthorized) {
-                                pluginSource = client.DownloadString(stableURL);
-                            }
-                            else {
-                                pluginSource = client.DownloadString(testURL);
-                            }
-                        }
-                        catch (Exception e)
-                        {
+                            Thread.CurrentThread.Name = "PluginUpdater";
+
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                ConsoleError("Unable to download plugin update to version " + _latestPluginVersion);
-                            return false;
-                        }
-                    }
-                    if (String.IsNullOrEmpty(pluginSource))
-                    {
-                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                            ConsoleError("Downloaded plugin source was empty. Unable update to version " + _latestPluginVersion);
-                        return false;
-                    }
-                    else
-                    {
-                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                            ConsoleSuccess("Updated plugin source downloaded.");
-                    }
-                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                        ConsoleInfo("Preparing test compile on updated plugin source.");
-                    String pluginFileName = "AdKats.cs";
-                    String dllPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
-                    String pluginPath = Path.Combine(dllPath.Trim(new char[] {Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar}), pluginFileName);
-                    String procon_path = Directory.GetParent(Application.ExecutablePath).FullName;
-                    String pluginDirectory = Path.Combine(procon_path, Path.Combine("Plugins", "BF4"));
-                    var providerOptions = new Dictionary<String, String>();
-                    providerOptions.Add("CompilerVersion", "v3.5");
-                    var cSharpCodeProvider = new CSharpCodeProvider(providerOptions);
-                    var compilerParameters = new CompilerParameters();
-                    compilerParameters.ReferencedAssemblies.Add("System.dll");
-                    compilerParameters.ReferencedAssemblies.Add("System.Core.dll");
-                    compilerParameters.ReferencedAssemblies.Add("System.Data.dll");
-                    compilerParameters.ReferencedAssemblies.Add("System.Windows.Forms.dll");
-                    compilerParameters.ReferencedAssemblies.Add("System.Xml.dll");
-                    compilerParameters.ReferencedAssemblies.Add("MySql.Data.dll");
-                    compilerParameters.ReferencedAssemblies.Add("PRoCon.Core.dll");
-                    compilerParameters.GenerateInMemory = true;
-                    compilerParameters.IncludeDebugInformation = false;
-                    compilerParameters.TempFiles = new TempFileCollection(pluginDirectory);
-                    var compileResults = cSharpCodeProvider.CompileAssemblyFromSource(compilerParameters, pluginSource);
-                    if (compileResults.Errors.HasErrors) {
-                        foreach (CompilerError errComp in compileResults.Errors) {
-                            if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false)
+                                ConsoleInfo("Preparing to download plugin update to version " + _latestPluginVersion);
+                            String pluginSource = null;
+                            using (var client = new WebClient())
+                            {
+                                try
+                                {
+                                    const string stableURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/AdKats.cs";
+                                    const string testURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/test/AdKats.cs";
+                                    if (!_isTestingAuthorized)
+                                    {
+                                        pluginSource = client.DownloadString(stableURL);
+                                    }
+                                    else
+                                    {
+                                        pluginSource = client.DownloadString(testURL);
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+                                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                        ConsoleError("Unable to download plugin update to version " + _latestPluginVersion);
+                                    return;
+                                }
+                            }
+                            if (String.IsNullOrEmpty(pluginSource))
                             {
                                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                    ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] {pluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText}));
+                                    ConsoleError("Downloaded plugin source was empty. Unable update to version " + _latestPluginVersion);
+                                return;
                             }
-                        }
-                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                            ConsoleError("Updated plugin source could not compile. Unable to update to version " + _latestPluginVersion);
-                        return false;
-                    }
-                    else
-                    {
-                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                            ConsoleSuccess("Plugin update compiled successfully.");
-                    }
-                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                        ConsoleInfo("Preparing to update source file on disk.");
-                    using (FileStream stream = File.Open(pluginPath, FileMode.Create)) {
-                        if (!stream.CanWrite)
-                        {
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                ConsoleError("Cannot write updates to source file. Unable to update to version " + _latestPluginVersion);
+                            {
+                                ConsoleSuccess("Updated plugin source downloaded.");
+                                ConsoleInfo("Preparing test compile on updated plugin source.");
+                            }
+                            String pluginFileName = "AdKats.cs";
+                            String dllPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
+                            String pluginPath = Path.Combine(dllPath.Trim(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName);
+                            String procon_path = Directory.GetParent(Application.ExecutablePath).FullName;
+                            String pluginDirectory = Path.Combine(procon_path, Path.Combine("Plugins", "BF4"));
+                            var providerOptions = new Dictionary<String, String>();
+                            providerOptions.Add("CompilerVersion", "v3.5");
+                            var cSharpCodeProvider = new CSharpCodeProvider(providerOptions);
+                            var compilerParameters = new CompilerParameters();
+                            compilerParameters.ReferencedAssemblies.Add("System.dll");
+                            compilerParameters.ReferencedAssemblies.Add("System.Core.dll");
+                            compilerParameters.ReferencedAssemblies.Add("System.Data.dll");
+                            compilerParameters.ReferencedAssemblies.Add("System.Windows.Forms.dll");
+                            compilerParameters.ReferencedAssemblies.Add("System.Xml.dll");
+                            compilerParameters.ReferencedAssemblies.Add("MySql.Data.dll");
+                            compilerParameters.ReferencedAssemblies.Add("PRoCon.Core.dll");
+                            compilerParameters.GenerateInMemory = true;
+                            compilerParameters.IncludeDebugInformation = false;
+                            compilerParameters.TempFiles = new TempFileCollection(pluginDirectory);
+                            var compileResults = cSharpCodeProvider.CompileAssemblyFromSource(compilerParameters, pluginSource);
+                            if (compileResults.Errors.HasErrors)
+                            {
+                                foreach (CompilerError errComp in compileResults.Errors)
+                                {
+                                    if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false)
+                                    {
+                                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                            ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { pluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
+                                    }
+                                }
+                                if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                    ConsoleError("Updated plugin source could not compile. Unable to update to version " + _latestPluginVersion);
+                                return;
+                            }
+                            else
+                            {
+                                if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                    ConsoleSuccess("Plugin update compiled successfully.");
+                            }
+                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                ConsoleInfo("Preparing to update source file on disk.");
+                            using (FileStream stream = File.Open(pluginPath, FileMode.Create))
+                            {
+                                if (!stream.CanWrite)
+                                {
+                                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                        ConsoleError("Cannot write updates to source file. Unable to update to version " + _latestPluginVersion);
+                                }
+                                Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
+                                stream.Write(info, 0, info.Length);
+                            }
+                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
+                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                ConsoleSuccess("Updated plugin file located at: " + pluginPath);
+                            _pluginUpdatePatched = true;
                         }
-                        Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
-                        stream.Write(info, 0, info.Length);
-                    }
-                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                        ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
-                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                        ConsoleSuccess("Updated plugin file located at: " + pluginPath);
-                    _pluginUpdatePatched = true;
-                    return true;
+                        catch (Exception e) {
+                            HandleException(new AdKatsException("Error while running update thread."));
+                        }
+                    }));
+                    StartAndLogThread(pluginUpdater);
                 }
-                return false;
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while updating plugin source to latest version", e));
             }
-            return false;
         }
 
         public void ProconChatWrite(String msg) {
