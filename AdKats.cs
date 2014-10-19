@@ -4498,12 +4498,12 @@ namespace PRoConEvents {
                                             if (isAdmin || aPlayer.player_aa)
                                             {
                                                 List<AdKatsPlayer> reputablePlayers = _PlayerDictionary.Values.Where(iPlayer => iPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(iPlayer)).ToList();
-                                                String message = ((isAdmin) ? ("Admin ") : ("Admin Assistant ")) + aPlayer.player_name + " joined the server as " + aPlayer.player_type + ".";
+                                                String message = ((isAdmin) ? ("Admin ") : ("Admin assistant ")) + aPlayer.player_name + " joined the server as " + aPlayer.player_type.ToString().ToLower() + ".";
+                                                OnlineAdminSayMessage(message);
                                                 foreach (var reputablePlayer in reputablePlayers)
                                                 {
                                                     PlayerSayMessage(reputablePlayer.player_name, message);
                                                 }
-                                                OnlineAdminSayMessage(message);
                                             }
                                             else if (aPlayer.player_type == PlayerType.Spectator)
                                             {
@@ -23037,6 +23037,7 @@ namespace PRoConEvents {
                         catch (Exception e) {
                             HandleException(new AdKatsException("Error while running update thread."));
                         }
+                        LogThreadExit();
                     }));
                     StartAndLogThread(pluginUpdater);
                 }
