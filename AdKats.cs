@@ -8343,8 +8343,25 @@ namespace PRoConEvents {
                         }
 
                         //May only call this command from in-game
-                        if (record.record_source != AdKatsRecord.Sources.InGame) {
+                        if (record.record_source != AdKatsRecord.Sources.InGame)
+                        {
                             SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+
+                        //Cannot call this command when game not active
+                        if (_roundState != RoundState.Playing)
+                        {
+                            SendMessageToSource(record, "You can't use assist unless a round is active.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+
+                        //Cannot call this command during surrender
+                        if (_surrenderVoteActive || _endingRound)
+                        {
+                            SendMessageToSource(record, "You can't use assist while a surrender action is active.");
                             FinalizeRecord(record);
                             return;
                         }
