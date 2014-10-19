@@ -503,7 +503,7 @@ namespace PRoConEvents {
         private readonly Queue<String> _spamBotTellQueue = new Queue<String>();
         private Int32 _spamBotTellDelaySeconds = 900;
         private DateTime _spamBotTellLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(900);
-        private Boolean _spamBotExcludeAdmins;
+        private Boolean _spamBotExcludeAdminsAndWhitelist;
         //Rules
         private Double _ServerRulesDelay = 0.5;
         private Double _ServerRulesInterval = 5;
@@ -800,7 +800,7 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Yell Delay Seconds", typeof(int), _spamBotYellDelaySeconds));
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Tell List", typeof(String[]), _spamBotTellList.ToArray()));
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Tell Delay Seconds", typeof(int), _spamBotTellDelaySeconds));
-                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdmins));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
 
                     //Ban Settings
                     lstReturn.Add(new CPluginVariable("A13. Banning Settings|Use Additional Ban Message", typeof (Boolean), _UseBanAppend));
@@ -3047,11 +3047,11 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Exclude Admins and Whitelist from Spam").Success)
                 {
                     Boolean spamBotExcludeAdmins = Boolean.Parse(strValue);
-                    if (spamBotExcludeAdmins != _spamBotExcludeAdmins)
+                    if (spamBotExcludeAdmins != _spamBotExcludeAdminsAndWhitelist)
                     {
-                        _spamBotExcludeAdmins = spamBotExcludeAdmins;
+                        _spamBotExcludeAdminsAndWhitelist = spamBotExcludeAdmins;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdmins));
+                        QueueSettingForUpload(new CPluginVariable(@"Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Display Admin Name in Kick and Ban Announcement").Success) {
@@ -3586,7 +3586,7 @@ namespace PRoConEvents {
                             {
                                 if ((DateTime.UtcNow - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds)
                                 {
-                                    if (_spamBotExcludeAdmins)
+                                    if (_spamBotExcludeAdminsAndWhitelist)
                                     {
                                         if (!String.IsNullOrEmpty(_spamBotSayQueue.Peek()))
                                             OnlineNonWhitelistSayMessage(_spamBotSayQueue.Peek());
@@ -3601,7 +3601,7 @@ namespace PRoConEvents {
                                 }
                                 if ((DateTime.UtcNow - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds)
                                 {
-                                    if (_spamBotExcludeAdmins)
+                                    if (_spamBotExcludeAdminsAndWhitelist)
                                     {
                                         if (!String.IsNullOrEmpty(_spamBotYellQueue.Peek()))
                                             OnlineNonWhitelistYellMessage(_spamBotYellQueue.Peek());
@@ -3616,7 +3616,7 @@ namespace PRoConEvents {
                                 }
                                 if ((DateTime.UtcNow - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds)
                                 {
-                                    if (_spamBotExcludeAdmins)
+                                    if (_spamBotExcludeAdminsAndWhitelist)
                                     {
                                         if (!String.IsNullOrEmpty(_spamBotTellQueue.Peek()))
                                             OnlineNonWhitelistTellMessage(_spamBotTellQueue.Peek());
@@ -5094,7 +5094,7 @@ namespace PRoConEvents {
                                         _surrenderAutoEnable = true;
                                         _surrenderAutoUseMetroValues = true;
                                     }
-                                    _spamBotExcludeAdmins = true;
+                                    _spamBotExcludeAdminsAndWhitelist = true;
                                 }
                                 _DisplayTicketRatesInProconChat = true;
                                 UpdateSettingPage();
@@ -9146,6 +9146,13 @@ namespace PRoConEvents {
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
+
+                            if (!_spamBotExcludeAdminsAndWhitelist)
+                            {
+                                SendMessageToSource(record, "'Exclude Admins and Whitelist from Spam' must be enabled to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
 
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 2);
@@ -16438,7 +16445,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Yell Delay Seconds", typeof(Int32), _spamBotYellDelaySeconds));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Tell List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotTellList.ToArray())));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Tell Delay Seconds", typeof(Int32), _spamBotTellDelaySeconds));
-                QueueSettingForUpload(new CPluginVariable(@"Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdmins));
+                QueueSettingForUpload(new CPluginVariable(@"Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
