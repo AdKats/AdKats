@@ -117,6 +117,7 @@ namespace PRoConEvents {
         private VersionStatus _pluginVersionStatus = VersionStatus.UnfetchedBuild;
         private Boolean _pluginUpdateServerInfoChecked;
         private Boolean _pluginUpdatePatched;
+        private String _pluginUpdateProgress = "NotStarted";
         private volatile Boolean _useKeepAlive;
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
         private RoundState _roundState = RoundState.Loaded;
@@ -22920,7 +22921,7 @@ namespace PRoConEvents {
                     if (_aliveThreads.Values.Any(aThread => aThread.Name == "PluginUpdater"))
                     {
                         if (_isTestingAuthorized)
-                            ConsoleWarn("Attempted to start a plugin update thread before a previous one was able to finish");
+                            ConsoleWarn("Attempted to start a plugin update thread before a previous one was able to finish. Previous status: " + _pluginUpdateProgress);
                         return;
                     }
                     var pluginUpdater = new Thread(new ThreadStart(delegate
@@ -22928,7 +22929,7 @@ namespace PRoConEvents {
                         try
                         {
                             Thread.CurrentThread.Name = "PluginUpdater";
-
+                            _pluginUpdateProgress = "Started";
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                 ConsoleInfo("Preparing to download plugin update to version " + _latestPluginVersion);
                             String pluginSource = null;
@@ -22960,6 +22961,7 @@ namespace PRoConEvents {
                                     ConsoleError("Downloaded plugin source was empty. Unable update to version " + _latestPluginVersion);
                                 return;
                             }
+                            _pluginUpdateProgress = "Downloaded";
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                             {
                                 ConsoleSuccess("Updated plugin source downloaded.");
@@ -23004,6 +23006,7 @@ namespace PRoConEvents {
                                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     ConsoleSuccess("Plugin update compiled successfully.");
                             }
+                            _pluginUpdateProgress = "Compiled";
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                 ConsoleInfo("Preparing to update source file on disk.");
                             using (FileStream stream = File.Open(pluginPath, FileMode.Create))
@@ -23020,6 +23023,7 @@ namespace PRoConEvents {
                                 ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                 ConsoleSuccess("Updated plugin file located at: " + pluginPath);
+                            _pluginUpdateProgress = "Patched";
                             _pluginUpdatePatched = true;
                         }
                         catch (Exception e) {
