@@ -13505,7 +13505,7 @@ namespace PRoConEvents {
                     }
                 }
                 if (_UseEmail) {
-                    ConsoleInfo("Preparing to send report email.");
+                    DebugWrite("Preparing to send report email.", 3);
                     _EmailHandler.SendReport(record);
                 }
                 if (record.source_player != null &&  
