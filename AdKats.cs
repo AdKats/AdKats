@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.6.6
- * 19-OCT-2014
+ * Version 5.1.6.7
+ * 20-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.6.6";
+        private const String PluginVersion = "5.1.6.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -440,6 +440,8 @@ namespace PRoConEvents {
         private Double _surrenderAutoLosingRateMin = 999;
         private Double _surrenderAutoWinningRateMax = 999;
         private Double _surrenderAutoWinningRateMin = 999;
+        private Int32 _surrenderAutoTriggerCountToSurrender = 1;
+        private Int32 _surrenderAutoTriggerCountCurrent = 0;
         private Double _surrenderAutoVoteGapReduction = 0;
         private String _surrenderAutoMessage = "Ending/Scrambling Baserape Round. %WinnerName% Wins!";
             
@@ -960,6 +962,7 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
                             lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
                             lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
+                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
                             //lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
                         }
                         lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
@@ -1839,6 +1842,16 @@ namespace PRoConEvents {
                         _surrenderAutoMessage = strValue;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Message", typeof (String), _surrenderAutoMessage));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Trigger Count to Surrender").Success)
+                {
+                    Int32 surrenderAutoTriggerCountToSurrender = Int32.Parse(strValue);
+                    if (_surrenderAutoTriggerCountToSurrender != surrenderAutoTriggerCountToSurrender)
+                    {
+                        _surrenderAutoTriggerCountToSurrender = surrenderAutoTriggerCountToSurrender;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Player Lock Manual Duration Minutes").Success)
@@ -5021,7 +5034,7 @@ namespace PRoConEvents {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                                 _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
-                            if (_surrenderAutoEnable && !_endingRound)
+                            if (_surrenderAutoEnable && !_endingRound && _serverInfo.RoundTime > 60)
                             {
                                 if (_surrenderAutoUseMetroValues && 
                                     Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
@@ -5035,18 +5048,24 @@ namespace PRoConEvents {
                                         }
                                 }
                                 else {
-                                    if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > _surrenderAutoMinimumTicketGap)
-                                    {
+                                    if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > _surrenderAutoMinimumTicketGap) {
                                         if (winningTeam.TeamTicketDifferenceRate < _surrenderAutoWinningRateMax && 
                                             winningTeam.TeamTicketDifferenceRate > _surrenderAutoWinningRateMin && 
-                                            losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax &&
-                                            losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin)
+                                            losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax && 
+                                            losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin) 
                                         {
-                                            baserapingTeam = winningTeam;
-                                            baserapedTeam = losingTeam;
+                                            if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender) {
+                                                baserapingTeam = winningTeam;
+                                                baserapedTeam = losingTeam;
+                                            }
+                                        }
+                                        else {
+                                            _surrenderAutoTriggerCountCurrent = 0;
                                         }
                                     }
-                                    
+                                    else {
+                                        _surrenderAutoTriggerCountCurrent = 0;
+                                    }
                                 }
                                 if (baserapingTeam != null)
                                 {
