@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.6.7
- * 20-OCT-2014
+ * Version 5.1.6.8
+ * 21-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.6.7";
+        private const String PluginVersion = "5.1.6.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -169,7 +169,7 @@ namespace PRoConEvents {
         private DateTime _lastGUIDBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastIPBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastNameBanCountFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private DateTime _lastStatLoggerStatusUpdateTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastStatLoggerStatusUpdateTime = DateTime.UtcNow - TimeSpan.FromMinutes(60);
         private DateTime _lastSuccessfulBanList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _populationTransitionTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _populationUpdateTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
@@ -257,8 +257,8 @@ namespace PRoConEvents {
         private readonly Queue<AdKatsRole> _RoleRemovalQueue = new Queue<AdKatsRole>();
         private readonly Queue<AdKatsRole> _RoleUploadQueue = new Queue<AdKatsRole>();
         private readonly Queue<CPluginVariable> _SettingUploadQueue = new Queue<CPluginVariable>();
-        private readonly Queue<KeyValuePair<String, String>> _UnparsedCommandQueue = new Queue<KeyValuePair<String, String>>();
-        private readonly Queue<KeyValuePair<String, String>> _UnparsedMessageQueue = new Queue<KeyValuePair<String, String>>();
+        private readonly Queue<AdKatsChatMessage> _UnparsedCommandQueue = new Queue<AdKatsChatMessage>();
+        private readonly Queue<AdKatsChatMessage> _UnparsedMessageQueue = new Queue<AdKatsChatMessage>();
         private readonly Queue<AdKatsRecord> _UnprocessedActionQueue = new Queue<AdKatsRecord>();
         private readonly Queue<AdKatsRecord> _UnprocessedRecordQueue = new Queue<AdKatsRecord>();
         private readonly Queue<AdKatsUser> _UserRemovalQueue = new Queue<AdKatsUser>();
@@ -447,6 +447,7 @@ namespace PRoConEvents {
             
         //EmailHandler
         private EmailHandler _EmailHandler;
+        private Boolean _emailReportsOnlyWhenAdminless;
 
         //Orchestration
         private List<String> _CurrentReservedSlotPlayers;
@@ -459,6 +460,7 @@ namespace PRoConEvents {
         private Boolean _FeedServerSpectatorList;
         private Boolean _FeedServerSpectatorList_UserCache;
         private Boolean _FeedStatLoggerSettings;
+        private Boolean _PostStatLoggerChatManually;
         private Boolean _MULTIBalancerUnswitcherDisabled = false;
 
         //Hacker-checker
@@ -490,6 +492,7 @@ namespace PRoConEvents {
         private Boolean _ShowPlayerNameChangeAnnouncement = true;
         private Int32 _YellDuration = 5;
         private Boolean _UseFirstSpawnMessage = false;
+        private Boolean _useFirstSpawnRepMessage = false;
         private String _FirstSpawnMessage = "FIRST SPAWN MESSAGE";
         private Boolean _DisplayTicketRatesInProconChat;
 
@@ -745,7 +748,7 @@ namespace PRoConEvents {
                     }
 
                     //Email Settings
-                    lstReturn.Add(new CPluginVariable("8. Email Settings|Send Emails", typeof (bool), _UseEmail));
+                    lstReturn.Add(new CPluginVariable("8. Email Settings|Send Emails", typeof(Boolean), _UseEmail));
                     if (_UseEmail) {
                         lstReturn.Add(new CPluginVariable("8. Email Settings|Use SSL?", typeof (Boolean), _EmailHandler.UseSSL));
                         lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server address", typeof (String), _EmailHandler.SMTPServer));
@@ -755,6 +758,7 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("8. Email Settings|SMTP-Server password", typeof (String), _EmailHandler.SMTPPassword));
                         lstReturn.Add(new CPluginVariable("8. Email Settings|Custom HTML Addition", typeof (String), _EmailHandler.CustomHTMLAddition));
                         lstReturn.Add(new CPluginVariable("8. Email Settings|Extra Recipient Email Addresses", typeof (String[]), _EmailHandler.RecipientEmails.ToArray()));
+                        lstReturn.Add(new CPluginVariable("8. Email Settings|Only Send Report Emails When Admins Offline", typeof(Boolean), _emailReportsOnlyWhenAdminless));
                     }
 
                     //TeamSwap Settings
@@ -795,6 +799,7 @@ namespace PRoConEvents {
                     if (_UseFirstSpawnMessage)
                     {
                         lstReturn.Add(new CPluginVariable("A12. Messaging Settings|First spawn message text", typeof(String), _FirstSpawnMessage));
+                        lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Use First Spawn Reputation and Infraction Message", typeof(String), _useFirstSpawnRepMessage));
                     }
 
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Enable", typeof(Boolean), _spamBotEnabled));
@@ -850,7 +855,8 @@ namespace PRoConEvents {
                     if (_FeedServerSpectatorList) {
                         lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Spectator Slot for User Cache", typeof (Boolean), _FeedServerReservedSlots_UserCache));
                     }
-                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Stat Logger Settings", typeof (Boolean), _FeedStatLoggerSettings));
+                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
+                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
 
                     lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                     if (_useRoundTimer) {
@@ -1961,12 +1967,31 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Automatic Spectator Slot for User Cache", typeof (Boolean), _FeedServerSpectatorList_UserCache));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Feed Stat Logger Settings").Success) {
+                else if (Regex.Match(strVariable, @"Feed Stat Logger Settings").Success)
+                {
                     Boolean feedSLS = Boolean.Parse(strValue);
-                    if (feedSLS != _FeedStatLoggerSettings) {
+                    if (feedSLS != _FeedStatLoggerSettings)
+                    {
                         _FeedStatLoggerSettings = feedSLS;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof (Boolean), _FeedStatLoggerSettings));
+                        QueueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Post Stat Logger Chat Manually").Success)
+                {
+                    Boolean PostStatLoggerChatManually = Boolean.Parse(strValue);
+                    if (PostStatLoggerChatManually != _PostStatLoggerChatManually)
+                    {
+                        _PostStatLoggerChatManually = PostStatLoggerChatManually;
+                        if (_PostStatLoggerChatManually)
+                        {
+                            SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Chatlogging?", "No");
+                            SetExternalPluginSetting("CChatGUIDStatsLogger", "Instant Logging of Chat Messages?", "No");
+                            SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "No");
+                            SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "No");
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Experimental Tools").Success) {
@@ -2779,6 +2804,16 @@ namespace PRoConEvents {
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable(@"Extra Recipient Email Addresses", typeof (String), strValue));
                 }
+                else if (Regex.Match(strVariable, @"Only Send Report Emails When Admins Offline").Success)
+                {
+                    Boolean emailReportsOnlyWhenAdminless = Boolean.Parse(strValue);
+                    if (emailReportsOnlyWhenAdminless != _emailReportsOnlyWhenAdminless)
+                    {
+                        _emailReportsOnlyWhenAdminless = emailReportsOnlyWhenAdminless;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Only Send Report Emails When Admins Offline", typeof(Boolean), _emailReportsOnlyWhenAdminless));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Use Metabans?").Success) {
                     _useMetabans = Boolean.Parse(strValue);
                     //Once setting has been changed, upload the change to database
@@ -2920,6 +2955,14 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Yell display time seconds").Success) {
                     Int32 yellTime = Int32.Parse(strValue);
                     if (_YellDuration != yellTime) {
+                        if (yellTime < 0) {
+                            ConsoleError("Yell duration cannot be negative.");
+                            return;
+                        }
+                        if (yellTime > 10) {
+                            ConsoleError("Yell duration cannot be greater than 10 seconds.");
+                            return;
+                        }
                         _YellDuration = yellTime;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Yell display time seconds", typeof (Int32), _YellDuration));
@@ -2953,6 +2996,16 @@ namespace PRoConEvents {
                         _FirstSpawnMessage = strValue;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"First spawn message text", typeof(String), _FirstSpawnMessage));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Use First Spawn Reputation and Infraction Message").Success)
+                {
+                    Boolean UseFirstSpawnRepMessage = Boolean.Parse(strValue);
+                    if (UseFirstSpawnRepMessage != _useFirstSpawnRepMessage)
+                    {
+                        _useFirstSpawnRepMessage = UseFirstSpawnRepMessage;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
                     }
                 }
                 else if (Regex.Match(strVariable, @"SpamBot Enable").Success)
@@ -5120,6 +5173,8 @@ namespace PRoConEvents {
                                 ConsoleSuccess("Server is testing authorized.");
                                 if (_gameVersion != GameVersion.BF3)
                                 {
+                                    _FeedStatLoggerSettings = true;
+                                    _PostStatLoggerChatManually = true;
                                     _pingEnforcerSystemEnable = true;
                                     _pingEnforcerKickMissingPings = true;
                                     _CMDRManagerEnable = true;
@@ -5138,6 +5193,7 @@ namespace PRoConEvents {
                                 _pluginUpdateServerInfoChecked = true;
                                 CheckForPluginUpdates();
                             }
+                            FeedStatLoggerSettings();
                         }
                         else {
                             HandleException(new AdKatsException("Server info was null"));
@@ -5789,18 +5845,18 @@ namespace PRoConEvents {
                                     _threadMasterWaitHandle.WaitOne(2000);
                                     PlayerTellMessage(aPlayer.player_name, _FirstSpawnMessage);
                                     var points = FetchPoints(aPlayer, false);
-                                    if (_isTestingAuthorized && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")))
+                                    if ((_isTestingAuthorized && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6"))) || _useFirstSpawnRepMessage)
                                     {
                                         Boolean isAdmin = PlayerIsAdmin(aPlayer);
-                                        _threadMasterWaitHandle.WaitOne(6000);
-                                        String repMessage = "Your server reputation is " + ((!isAdmin)?(Math.Round(aPlayer.player_reputation, 2) + ""):(aPlayer.player_role.role_name)) + ", with ";
+                                        _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(_YellDuration));
+                                        String repMessage = "Your server reputation is " + ((!isAdmin || !_isTestingAuthorized)?(Math.Round(aPlayer.player_reputation, 2) + ""):(aPlayer.player_role.role_name)) + ", with ";
                                         if (points > 0) {
                                             repMessage += points + " infraction point(s). ";
                                         }
                                         else {
                                             repMessage += "a clean infraction record. ";
                                         }
-                                        if (!isAdmin)
+                                        if (!isAdmin && _isTestingAuthorized)
                                         {
                                             repMessage += System.Environment.NewLine;
                                             if (aPlayer.player_reputation < _reputationThresholdGood)
@@ -5814,7 +5870,7 @@ namespace PRoConEvents {
                                                 }
                                                 else
                                                 {
-                                                    repMessage += "@report rule breakers to increase reputation.";
+                                                    repMessage += "!" + GetCommandByKey("player_report").command_text + " rule breakers to increase reputation.";
                                                 }
                                             }
                                             else
@@ -6857,33 +6913,70 @@ namespace PRoConEvents {
 
         //all messaging is redirected to global chat for analysis
         public override void OnGlobalChat(String speaker, String message) {
-            //uploadChatLog(speaker, "Global", message);
-            HandleChat(speaker, message);
+            AdKatsChatMessage chatMessage = new AdKatsChatMessage() {
+                Speaker = speaker,
+                Message = message,
+                Subset = AdKatsChatMessage.ChatSubset.Global,
+                SubsetTeamID = -1,
+                SubsetSquadID = -1
+            };
+            AdKatsPlayer aPlayer;
+            if (_PlayerDictionary.TryGetValue(speaker, out aPlayer)) {
+                if (aPlayer.frostbitePlayerInfo != null) {
+                    chatMessage.SubsetTeamID = aPlayer.frostbitePlayerInfo.TeamID;
+                    chatMessage.SubsetSquadID = aPlayer.frostbitePlayerInfo.SquadID;
+                }
+            }
+            HandleChat(chatMessage);
         }
 
-        public override void OnTeamChat(String speaker, String message, Int32 teamId) {
-            //uploadChatLog(speaker, "Team", message);
-            HandleChat(speaker, message);
+        public override void OnTeamChat(String speaker, String message, Int32 teamId)
+        {
+            AdKatsChatMessage chatMessage = new AdKatsChatMessage()
+            {
+                Speaker = speaker,
+                Message = message,
+                Subset = AdKatsChatMessage.ChatSubset.Team,
+                SubsetTeamID = teamId,
+                SubsetSquadID = -1
+            };
+            AdKatsPlayer aPlayer;
+            if (_PlayerDictionary.TryGetValue(speaker, out aPlayer))
+            {
+                if (aPlayer.frostbitePlayerInfo != null)
+                {
+                    chatMessage.SubsetSquadID = aPlayer.frostbitePlayerInfo.SquadID;
+                }
+            }
+            HandleChat(chatMessage);
         }
 
-        public override void OnSquadChat(String speaker, String message, Int32 teamId, Int32 squadId) {
-            //uploadChatLog(speaker, "Squad", message);
-            HandleChat(speaker, message);
+        public override void OnSquadChat(String speaker, String message, Int32 teamId, Int32 squadId)
+        {
+            AdKatsChatMessage chatMessage = new AdKatsChatMessage()
+            {
+                Speaker = speaker,
+                Message = message,
+                Subset = AdKatsChatMessage.ChatSubset.Global,
+                SubsetTeamID = teamId,
+                SubsetSquadID = squadId
+            };
+            HandleChat(chatMessage);
         }
 
-        private void HandleChat(String speaker, String message) {
+        private void HandleChat(AdKatsChatMessage messageObject) {
             DebugWrite("Entering handleChat", 7);
             try {
                 if (_pluginEnabled) {
                     //Performance testing area
-                    if (speaker == _debugSoldierName) {
+                    if (messageObject.Speaker == _debugSoldierName) {
                         _commandStartTime = DateTime.UtcNow;
                     }
                     //If message contains comorose just return and ignore
-                    if (message.Contains("ComoRose:")) {
+                    if (messageObject.Message.Contains("ComoRose:")) {
                         return;
                     }
-                    QueueMessageForParsing(speaker, message.Trim());
+                    QueueMessageForParsing(messageObject);
                 }
             }
             catch (Exception e) {
@@ -7260,13 +7353,13 @@ namespace PRoConEvents {
             PlayerYellMessage(target, message, false, spamCount);
         }
 
-        private void QueueMessageForParsing(String speaker, String message) {
+        private void QueueMessageForParsing(AdKatsChatMessage messageObject) {
             DebugWrite("Entering queueMessageForParsing", 7);
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue message for parsing", 6);
                     lock (_UnparsedMessageQueue) {
-                        _UnparsedMessageQueue.Enqueue(new KeyValuePair<String, String>(speaker, message));
+                        _UnparsedMessageQueue.Enqueue(messageObject);
                         DebugWrite("Message queued for parsing.", 6);
                         _MessageParsingWaitHandle.Set();
                     }
@@ -7278,13 +7371,14 @@ namespace PRoConEvents {
             DebugWrite("Exiting queueMessageForParsing", 7);
         }
 
-        private void QueueCommandForParsing(String speaker, String command) {
+        private void QueueCommandForParsing(AdKatsChatMessage chatMessage)
+        {
             DebugWrite("Entering queueCommandForParsing", 7);
             try {
                 if (_pluginEnabled) {
                     DebugWrite("Preparing to queue command for parsing", 6);
                     lock (_UnparsedCommandQueue) {
-                        _UnparsedCommandQueue.Enqueue(new KeyValuePair<String, String>(speaker, command));
+                        _UnparsedCommandQueue.Enqueue(chatMessage);
                         DebugWrite("Command sent to unparsed commands.", 6);
                         _CommandParsingWaitHandle.Set();
                     }
@@ -7310,13 +7404,13 @@ namespace PRoConEvents {
                         }
 
                         //Get all unparsed inbound messages
-                        Queue<KeyValuePair<String, String>> inboundMessages;
+                        Queue<AdKatsChatMessage> inboundMessages;
                         if (_UnparsedMessageQueue.Count > 0) {
                             DebugWrite("MESSAGE: Preparing to lock messaging to retrive new messages", 7);
                             lock (_UnparsedMessageQueue) {
                                 DebugWrite("MESSAGE: Inbound messages found. Grabbing.", 6);
                                 //Grab all messages in the queue
-                                inboundMessages = new Queue<KeyValuePair<String, String>>(_UnparsedMessageQueue.ToArray());
+                                inboundMessages = new Queue<AdKatsChatMessage>(_UnparsedMessageQueue.ToArray());
                                 //Clear the queue for next run
                                 _UnparsedMessageQueue.Clear();
                             }
@@ -7341,9 +7435,16 @@ namespace PRoConEvents {
                             }
                             DebugWrite("MESSAGE: begin reading message", 6);
                             //Dequeue the first/next message
-                            KeyValuePair<String, String> messagePair = inboundMessages.Dequeue();
-                            String speaker = messagePair.Key;
-                            String message = messagePair.Value;
+                            AdKatsChatMessage messageObject = inboundMessages.Dequeue();
+
+                            if (_PostStatLoggerChatManually)
+                            {
+                                //Upload the chat message
+                                UploadChatLog(messageObject);
+                            }
+
+                            String speaker = messageObject.Speaker;
+                            String message = messageObject.Message;
 
                             if (!_AFKIgnoreChat)
                             {
@@ -7426,7 +7527,7 @@ namespace PRoConEvents {
                             }
                             if (isCommand)
                             {
-                                QueueCommandForParsing(speaker, message.Trim());
+                                QueueCommandForParsing(messageObject);
                             }
                             else
                             {
@@ -8126,11 +8227,11 @@ namespace PRoConEvents {
                         //Get all unparsed inbound messages
                         if (_UnparsedCommandQueue.Count > 0) {
                             DebugWrite("COMMAND: Preparing to lock command queue to retrive new commands", 7);
-                            Queue<KeyValuePair<String, String>> unparsedCommands;
+                            Queue<AdKatsChatMessage> unparsedCommands;
                             lock (_UnparsedCommandQueue) {
                                 DebugWrite("COMMAND: Inbound commands found. Grabbing.", 6);
                                 //Grab all messages in the queue
-                                unparsedCommands = new Queue<KeyValuePair<String, String>>(_UnparsedCommandQueue.ToArray());
+                                unparsedCommands = new Queue<AdKatsChatMessage>(_UnparsedCommandQueue.ToArray());
                                 //Clear the queue for next run
                                 _UnparsedCommandQueue.Clear();
                             }
@@ -8144,9 +8245,9 @@ namespace PRoConEvents {
                                 }
                                 DebugWrite("COMMAND: begin reading command", 6);
                                 //Dequeue the first/next command
-                                KeyValuePair<String, String> commandPair = unparsedCommands.Dequeue();
-                                String speaker = commandPair.Key;
-                                String command = commandPair.Value;
+                                AdKatsChatMessage commandPair = unparsedCommands.Dequeue();
+                                String speaker = commandPair.Speaker;
+                                String command = commandPair.Message;
 
                                 AdKatsRecord record;
                                 if (speaker == "Server") {
@@ -13533,8 +13634,15 @@ namespace PRoConEvents {
                     }
                 }
                 if (_UseEmail) {
-                    DebugWrite("Preparing to send report email.", 3);
-                    _EmailHandler.SendReport(record);
+                    if (_emailReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any()) 
+                    {
+                        DebugWrite("Email cancelled, admins online.", 3);
+                    }
+                    else
+                    {
+                        DebugWrite("Preparing to send report email.", 3);
+                        _EmailHandler.SendReport(record);
+                    }
                 }
                 if (record.source_player != null &&  
                     record.source_player.player_type == PlayerType.Spectator)
@@ -13618,8 +13726,17 @@ namespace PRoConEvents {
                         PlayerTellMessage(record.target_name, record.source_name + " reported you for " + record.record_message, true, 6);
                     }
                 }
-                if (_UseEmail) {
-                    _EmailHandler.SendReport(record);
+                if (_UseEmail)
+                {
+                    if (_emailReportsOnlyWhenAdminless && FetchOnlineAdminSoldiers().Any())
+                    {
+                        DebugWrite("Email cancelled, admins online.", 3);
+                    }
+                    else
+                    {
+                        DebugWrite("Preparing to send report email.", 3);
+                        _EmailHandler.SendReport(record);
+                    }
                 }
                 record.record_action_executed = true;
             }
@@ -15076,7 +15193,7 @@ namespace PRoConEvents {
                         }
                         counter.Reset();
                         counter.Start();
-                        FeedStatLoggerSettings();
+                        //FeedStatLoggerSettings();
                         if (FullDebug)
                             ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
 
@@ -15278,53 +15395,97 @@ namespace PRoConEvents {
         }
 
         private void FeedStatLoggerSettings() {
-            //Every 30 minutes feed stat logger settings
-            if (_lastStatLoggerStatusUpdateTime.AddMinutes(60) < DateTime.UtcNow) {
-                _lastStatLoggerStatusUpdateTime = DateTime.UtcNow;
-                if (_statLoggerVersion == "BF3") {
-                    SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Livescoreboard in DB?", "Yes");
-                    if (_isTestingAuthorized) {
-                        _FeedStatLoggerSettings = true;
-                    }
-                    if (_FeedStatLoggerSettings) {
-                        SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Statslogging?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Weaponstats?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable KDR correction?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "MapStats ON?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Session ON?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Save Sessiondata to DB?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Log playerdata only (no playerstats)?", "No");
-                        Double slOffset = DateTime.UtcNow.Subtract(DateTime.Now).TotalHours;
-                        SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Servertime Offset", slOffset + "");
-                    }
+            DebugWrite("FeedStatLoggerSettings starting!", 6);
+            //Every 60 minutes feed stat logger settings
+            if (_lastStatLoggerStatusUpdateTime.AddMinutes(60) < DateTime.UtcNow)
+            {
+                if (_aliveThreads.Values.Any(aThread => aThread.Name == "StatLoggerSettingsFeeder"))
+                {
+                    if (_isTestingAuthorized)
+                        ConsoleError("Attempted to start a stat logger setting feeder thread before a previous one was able to finish.");
+                    return;
                 }
-                else if (_statLoggerVersion == "UNIVERSAL") {
-                    SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Livescoreboard in DB?", "Yes");
-                    if (_isTestingAuthorized) {
-                        _FeedStatLoggerSettings = true;
+                var statLoggerFeedingThread = new Thread(new ThreadStart(delegate
+                {
+                    try
+                    {
+                        Thread.CurrentThread.Name = "StatLoggerSettingsFeeder";
+                        DebugWrite("Starting a stat logger setting feeder thread.", 5);
+                        _lastStatLoggerStatusUpdateTime = DateTime.UtcNow;
+                        if (_isTestingAuthorized)
+                        {
+                            _FeedStatLoggerSettings = true;
+                            _PostStatLoggerChatManually = true;
+                        }
+                        if (_statLoggerVersion == "BF3")
+                        {
+                            SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Livescoreboard in DB?", "Yes");
+                            if (_FeedStatLoggerSettings)
+                            {
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Statslogging?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Weaponstats?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable KDR correction?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "MapStats ON?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Session ON?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Save Sessiondata to DB?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Log playerdata only (no playerstats)?", "No");
+                                Double slOffset = DateTime.UtcNow.Subtract(DateTime.Now).TotalHours;
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Servertime Offset", slOffset + "");
+                            }
+                            if (_FeedStatLoggerSettings || _PostStatLoggerChatManually)
+                            {
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "No");
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "No");
+                            }
+                            else
+                            {
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "Yes");
+                            }
+                        }
+                        else if (_statLoggerVersion == "UNIVERSAL")
+                        {
+                            SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Livescoreboard in DB?", "Yes");
+                            if (_FeedStatLoggerSettings)
+                            {
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Statslogging?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Weaponstats?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable KDR correction?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "MapStats ON?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Session ON?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Save Sessiondata to DB?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Log playerdata only (no playerstats)?", "No");
+                                Double slOffset = DateTime.UtcNow.Subtract(DateTime.Now).TotalHours;
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Servertime Offset", slOffset + "");
+                            }
+                            if (_FeedStatLoggerSettings || _PostStatLoggerChatManually)
+                            {
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Chatlogging?", "No");
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Instant Logging of Chat Messages?", "No");
+                            }
+                            else
+                            {
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Chatlogging?", "Yes");
+                                SetExternalPluginSetting("CChatGUIDStatsLogger", "Instant Logging of Chat Messages?", "Yes");
+                            }
+                        }
+                        else
+                        {
+                            ConsoleError("Stat logger version is unknown, unable to feed stat logger settings.");
+                        }
+                        //TODO put back in the future
+                        //confirmStatLoggerSetup();
+                        DebugWrite("Exiting a stat logger setting feeder thread.", 5);
                     }
-                    if (_FeedStatLoggerSettings) {
-                        SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Chatlogging?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLogger", "Instant Logging of Chat Messages?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Statslogging?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Weaponstats?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable KDR correction?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLogger", "MapStats ON?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLogger", "Session ON?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLogger", "Save Sessiondata to DB?", "Yes");
-                        SetExternalPluginSetting("CChatGUIDStatsLogger", "Log playerdata only (no playerstats)?", "No");
-                        Double slOffset = DateTime.UtcNow.Subtract(DateTime.Now).TotalHours;
-                        SetExternalPluginSetting("CChatGUIDStatsLogger", "Servertime Offset", slOffset + "");
+                    catch (Exception e)
+                    {
+                        HandleException(new AdKatsException("Error while feeding stat logger settings."));
                     }
-                }
-                else {
-                    ConsoleError("Stat logger version is unknown, unable to feed stat logger settings.");
-                }
-                //TODO put back in the future
-                //confirmStatLoggerSetup();
+                    LogThreadExit();
+                }));
+                StartAndLogThread(statLoggerFeedingThread);
             }
+            DebugWrite("FeedStatLoggerSettings finished!", 6);
         }
 
         private void HandleSettingUploads() {
@@ -16425,7 +16586,8 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Even Dispersion List", typeof (Boolean), _FeedMultiBalancerDisperseList));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof (Boolean), _FeedServerReservedSlots));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof (Boolean), _FeedServerSpectatorList));
-                QueueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof (Boolean), _FeedStatLoggerSettings));
+                QueueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
+                QueueSettingForUpload(new CPluginVariable(@"Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _maxRoundTimeMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof (Boolean), _UseWeaponLimiter));
@@ -16471,7 +16633,8 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"SMTP-Server username", typeof (String), _EmailHandler.SMTPUser));
                 QueueSettingForUpload(new CPluginVariable(@"SMTP-Server password", typeof (String), _EmailHandler.SMTPPassword));
                 QueueSettingForUpload(new CPluginVariable(@"Custom HTML Addition", typeof (String), _EmailHandler.CustomHTMLAddition));
-                QueueSettingForUpload(new CPluginVariable(@"Extra Recipient Email Addresses", typeof (String[]), _EmailHandler.RecipientEmails.ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Extra Recipient Email Addresses", typeof(String[]), _EmailHandler.RecipientEmails.ToArray()));
+                QueueSettingForUpload(new CPluginVariable(@"Only Send Report Emails When Admins Offline", typeof(Boolean), _emailReportsOnlyWhenAdminless));
                 QueueSettingForUpload(new CPluginVariable(@"Use Metabans?", typeof (Boolean), _useMetabans));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof (String), _metabansAPIKey));
                 QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof (String), _metabansUsername));
@@ -16490,6 +16653,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
                 QueueSettingForUpload(new CPluginVariable(@"Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
                 QueueSettingForUpload(new CPluginVariable(@"First spawn message text", typeof(String), _FirstSpawnMessage));
+                QueueSettingForUpload(new CPluginVariable(@"Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Enable", typeof(Boolean), _spamBotEnabled));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Say List", typeof(String), CPluginVariable.EncodeStringArray(_spamBotSayList.ToArray())));
                 QueueSettingForUpload(new CPluginVariable(@"SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
@@ -17067,6 +17231,104 @@ namespace PRoConEvents {
                 record.record_exception = new AdKatsException("Unexpected error uploading Record.", e);
                 HandleException(record.record_exception);
                 return false;
+            }
+        }
+
+        private Boolean UploadChatLog(AdKatsChatMessage messageObject)
+        {
+            this.DebugWrite("UploadChatLog starting!", 6);
+            Boolean success = false;
+            if (!_threadsReady)
+            {
+                return success;
+            }
+            //comorose BF4 chat handle
+            if (messageObject.Message.Contains("ID_CHAT"))
+            {
+                success = true;
+                return success;
+            }
+            //Make sure database connection active
+            if (HandlePossibleDisconnect())
+            {
+                this.HandleException(new AdKatsException("Database not connected on chat upload."));
+                return success;
+            }
+            MySqlCommand commandAttempt = null;
+            try
+            {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        //Set the insert command structure
+                        command.CommandText = @"INSERT INTO `tbl_chatlog` 
+                        (
+                            `logDate`, 
+                            `ServerID`, 
+                            `logSubset`, 
+                            `logPlayerID`, 
+                            `logSoldierName`, 
+                            `logMessage`
+                        ) 
+                        VALUES 
+                        (
+                            UTC_TIMESTAMP(), 
+                            @server_id, 
+                            @log_subset, 
+                            @log_player_id, 
+                            @log_player_name, 
+                            @log_message
+                        )";
+
+                        //Fetch the player from player dictionary
+                        AdKatsPlayer player = null;
+                        if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out player))
+                        {
+                            this.DebugWrite("Player found for chat log upload.", 5);
+                        }
+
+                        //Fill the log
+                        command.Parameters.AddWithValue("@server_id", _serverID);
+                        command.Parameters.AddWithValue("@log_subset", messageObject.Subset.ToString());
+                        if (player != null && player.player_id > 0)
+                        {
+                            command.Parameters.AddWithValue("@log_player_id", player.player_id);
+                        }
+                        else
+                        {
+                            command.Parameters.AddWithValue("@log_player_id", null);
+                        }
+                        command.Parameters.AddWithValue("@log_player_name", messageObject.Speaker);
+                        //Trim to 255 characters
+                        String logMessage = messageObject.Message.Length <= 255 ? messageObject.Message : messageObject.Message.Substring(0, 255);
+                        command.Parameters.AddWithValue("@log_message", logMessage);
+
+                        //Get reference to the command in case of error
+                        commandAttempt = command;
+                        //Attempt to execute the query
+                        if (command.ExecuteNonQuery() > 0)
+                        {
+                            success = true;
+                        }
+                    }
+                }
+                if (success)
+                {
+                    DebugWrite("Chat upload for " + messageObject.Speaker + " SUCCESSFUL!", 5);
+                }
+                else
+                {
+                    this.HandleException(new AdKatsException("Error uploading chat log. Success not reached."));
+                    return success;
+                }
+                DebugWrite("UploadChatLog finished!", 6);
+                return success;
+            }
+            catch (Exception e)
+            {
+                this.HandleException(new AdKatsException("Unexpected error uploading chat log.", e));
+                return success;
             }
         }
 
@@ -23699,6 +23961,20 @@ namespace PRoConEvents {
                 TargetPlayersLocal = new List<AdKatsPlayer>();
                 TargetInnerRecords = new List<AdKatsRecord>();
             }
+        }
+
+        public class AdKatsChatMessage {
+            public enum ChatSubset {
+                Global,
+                Team,
+                Squad
+            }
+
+            public String Speaker;
+            public String Message;
+            public ChatSubset Subset;
+            public Int32 SubsetTeamID;
+            public Int32 SubsetSquadID;
         }
 
         public class AdKatsRole {
