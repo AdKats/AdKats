@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.7.1
+ * Version 5.1.7.2
  * 21-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.7.1";
+        private const String PluginVersion = "5.1.7.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -491,6 +491,7 @@ namespace PRoConEvents {
         private Boolean _ShowAdminNameInAnnouncement;
         private Boolean _ShowNewPlayerAnnouncement = true;
         private Boolean _ShowPlayerNameChangeAnnouncement = true;
+        private Boolean _ShowTargetedPlayerLeftNotification = true;
         private Int32 _YellDuration = 5;
         private Boolean _UseFirstSpawnMessage = false;
         private Boolean _useFirstSpawnRepMessage = false;
@@ -788,6 +789,7 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Targeted Player Left Notification", typeof(Boolean), _ShowTargetedPlayerLeftNotification));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Display Ticket Rates in Procon Chat", typeof(Boolean), _DisplayTicketRatesInProconChat));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Inform players of reports against them", typeof (Boolean), _InformReportedPlayers));
                     if (_InformReportedPlayers) {
@@ -3165,6 +3167,16 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Display Targeted Player Left Notification").Success)
+                {
+                    Boolean ShowTargetedPlayerLeftNotification = Boolean.Parse(strValue);
+                    if (ShowTargetedPlayerLeftNotification != _ShowTargetedPlayerLeftNotification)
+                    {
+                        _ShowTargetedPlayerLeftNotification = ShowTargetedPlayerLeftNotification;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Display Targeted Player Left Notification", typeof(Boolean), _ShowTargetedPlayerLeftNotification));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Display Ticket Rates in Procon Chat").Success)
                 {
                     Boolean display = Boolean.Parse(strValue);
@@ -4290,20 +4302,26 @@ namespace PRoConEvents {
                                 CPlayerInfo playerInfo = inboundPlayerRemoval.Dequeue();
                                 AdKatsPlayer aPlayer;
                                 if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
-                                    if (aPlayer.TargetedRecords.Count > 0 && 
-                                        !aPlayer.TargetedRecords.Any(aRecord => 
-                                            aRecord.command_action.command_key == "player_kick" || 
-                                            aRecord.command_action.command_key == "player_ban_temp" || 
-                                            aRecord.command_action.command_key == "player_ban_perm" || 
-                                            aRecord.command_action.command_key == "banenforcer_enforce" || 
-                                            aRecord.command_action.command_key == "player_changeip" || 
-                                            aRecord.command_action.command_key == "player_changename" || 
-                                            aRecord.command_action.command_key == "player_repboost" ||
-                                            aRecord.command_action.command_key.Contains("self_"))) {
-                                        List<String> types = (from record in aPlayer.TargetedRecords select record.command_action.command_name).Distinct().ToList();
+                                    List<AdKatsRecord> meaningfulRecords = aPlayer.TargetedRecords.Where(
+                                        aRecord => 
+                                            aRecord.command_action.command_key != "player_kick" && 
+                                            aRecord.command_action.command_key != "player_ban_temp" && 
+                                            aRecord.command_action.command_key != "player_ban_perm" && 
+                                            aRecord.command_action.command_key != "banenforcer_enforce" &&
+                                            aRecord.command_action.command_key != "player_changeip" &&
+                                            aRecord.command_action.command_key != "player_changename" &&
+                                            aRecord.command_action.command_key != "player_repboost" &&
+                                            aRecord.command_action.command_key != "player_pm_send" &&
+                                            aRecord.command_action.command_key != "player_pm_reply" &&
+                                            !aRecord.command_action.command_key.Contains("self_")).ToList();
+                                    if (meaningfulRecords.Any()) {
+                                        List<String> types = (from record in meaningfulRecords select record.command_action.command_name).Distinct().ToList();
                                         String typeString = types.Aggregate("[", (current, type) => current + (type + ", "));
                                         typeString = typeString.Trim().TrimEnd(',') + "]";
-                                        OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server from " + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " team. " + typeString);
+                                        if (_ShowTargetedPlayerLeftNotification)
+                                        {
+                                            OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server from " + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " team. " + typeString);
+                                        }
                                         List<AdKatsRecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
                                         var reporters = new Dictionary<string, AdKatsPlayer>();
                                         foreach (AdKatsRecord report in reports.Where(report => report.source_player != null)) {
@@ -16707,6 +16725,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
+                QueueSettingForUpload(new CPluginVariable(@"Display Targeted Player Left Notification", typeof(Boolean), _ShowTargetedPlayerLeftNotification));
                 QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
