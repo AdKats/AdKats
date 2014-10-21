@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.6.8
+ * Version 5.1.6.9
  * 21-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.6.8";
+        private const String PluginVersion = "5.1.6.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6913,55 +6913,78 @@ namespace PRoConEvents {
 
         //all messaging is redirected to global chat for analysis
         public override void OnGlobalChat(String speaker, String message) {
-            AdKatsChatMessage chatMessage = new AdKatsChatMessage() {
-                Speaker = speaker,
-                Message = message,
-                Subset = AdKatsChatMessage.ChatSubset.Global,
-                SubsetTeamID = -1,
-                SubsetSquadID = -1
-            };
-            AdKatsPlayer aPlayer;
-            if (_PlayerDictionary.TryGetValue(speaker, out aPlayer)) {
-                if (aPlayer.frostbitePlayerInfo != null) {
-                    chatMessage.SubsetTeamID = aPlayer.frostbitePlayerInfo.TeamID;
-                    chatMessage.SubsetSquadID = aPlayer.frostbitePlayerInfo.SquadID;
+            try
+            {
+                AdKatsChatMessage chatMessage = new AdKatsChatMessage()
+                {
+                    Speaker = speaker,
+                    Message = message,
+                    Subset = AdKatsChatMessage.ChatSubset.Global,
+                    SubsetTeamID = -1,
+                    SubsetSquadID = -1
+                };
+                AdKatsPlayer aPlayer;
+                if (_PlayerDictionary.TryGetValue(speaker, out aPlayer))
+                {
+                    if (aPlayer.frostbitePlayerInfo != null)
+                    {
+                        chatMessage.SubsetTeamID = aPlayer.frostbitePlayerInfo.TeamID;
+                        chatMessage.SubsetSquadID = aPlayer.frostbitePlayerInfo.SquadID;
+                    }
                 }
+                HandleChat(chatMessage);
             }
-            HandleChat(chatMessage);
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error when handling OnGlobalChat", e));
+            }
         }
 
         public override void OnTeamChat(String speaker, String message, Int32 teamId)
         {
-            AdKatsChatMessage chatMessage = new AdKatsChatMessage()
+            try
             {
-                Speaker = speaker,
-                Message = message,
-                Subset = AdKatsChatMessage.ChatSubset.Team,
-                SubsetTeamID = teamId,
-                SubsetSquadID = -1
-            };
-            AdKatsPlayer aPlayer;
-            if (_PlayerDictionary.TryGetValue(speaker, out aPlayer))
-            {
-                if (aPlayer.frostbitePlayerInfo != null)
+                AdKatsChatMessage chatMessage = new AdKatsChatMessage()
                 {
-                    chatMessage.SubsetSquadID = aPlayer.frostbitePlayerInfo.SquadID;
+                    Speaker = speaker,
+                    Message = message,
+                    Subset = AdKatsChatMessage.ChatSubset.Team,
+                    SubsetTeamID = teamId,
+                    SubsetSquadID = -1
+                };
+                AdKatsPlayer aPlayer;
+                if (_PlayerDictionary.TryGetValue(speaker, out aPlayer))
+                {
+                    if (aPlayer.frostbitePlayerInfo != null)
+                    {
+                        chatMessage.SubsetSquadID = aPlayer.frostbitePlayerInfo.SquadID;
+                    }
                 }
+                HandleChat(chatMessage);
             }
-            HandleChat(chatMessage);
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error when handling OnTeamChat", e));
+            }
         }
 
         public override void OnSquadChat(String speaker, String message, Int32 teamId, Int32 squadId)
         {
-            AdKatsChatMessage chatMessage = new AdKatsChatMessage()
+            try
             {
-                Speaker = speaker,
-                Message = message,
-                Subset = AdKatsChatMessage.ChatSubset.Global,
-                SubsetTeamID = teamId,
-                SubsetSquadID = squadId
-            };
-            HandleChat(chatMessage);
+                AdKatsChatMessage chatMessage = new AdKatsChatMessage()
+                {
+                    Speaker = speaker,
+                    Message = message,
+                    Subset = AdKatsChatMessage.ChatSubset.Global,
+                    SubsetTeamID = teamId,
+                    SubsetSquadID = squadId
+                };
+                HandleChat(chatMessage);
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error when handling OnSquadChat", e));
+            }
         }
 
         private void HandleChat(AdKatsChatMessage messageObject) {
@@ -6974,6 +6997,8 @@ namespace PRoConEvents {
                     }
                     //If message contains comorose just return and ignore
                     if (messageObject.Message.Contains("ComoRose:")) {
+                        if(_isTestingAuthorized)
+                            ConsoleWarn("Message is comarose, returning.");
                         return;
                     }
                     QueueMessageForParsing(messageObject);
