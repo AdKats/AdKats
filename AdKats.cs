@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.7.0
+ * Version 5.1.7.1
  * 21-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.7.0";
+        private const String PluginVersion = "5.1.7.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -461,6 +461,7 @@ namespace PRoConEvents {
         private Boolean _FeedServerSpectatorList_UserCache;
         private Boolean _FeedStatLoggerSettings;
         private Boolean _PostStatLoggerChatManually;
+        private Boolean _PostServerChatSpam = true;
         private Boolean _MULTIBalancerUnswitcherDisabled = false;
 
         //Hacker-checker
@@ -857,6 +858,10 @@ namespace PRoConEvents {
                     }
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
+                    if (_PostStatLoggerChatManually)
+                    {
+                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Post Server Chat Spam", typeof(Boolean), _PostServerChatSpam));
+                    }
 
                     lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                     if (_useRoundTimer) {
@@ -1992,6 +1997,16 @@ namespace PRoConEvents {
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Post Server Chat Spam").Success)
+                {
+                    Boolean PostServerChatSpam = Boolean.Parse(strValue);
+                    if (PostServerChatSpam != _PostServerChatSpam)
+                    {
+                        _PostServerChatSpam = PostServerChatSpam;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Post Server Chat Spam", typeof(Boolean), _PostServerChatSpam));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Experimental Tools").Success) {
@@ -14576,7 +14591,7 @@ namespace PRoConEvents {
             DebugWrite("Entering SendRoundReports", 6);
             try
             {
-                List<AdKatsRecord> lastMissedReports = _RoundReports.Values.OrderByDescending(aRecord => aRecord.record_time).Take(6).ToList();
+                List<AdKatsRecord> lastMissedReports = _RoundReports.Values.OrderByDescending(aRecord => aRecord.record_time).Take(6).Reverse().ToList();
                 Boolean listed = false;
                 foreach (var rRecord in lastMissedReports) {
                     String location;
@@ -14589,7 +14604,7 @@ namespace PRoConEvents {
                     {
                         location = "OFFLINE";
                     }
-                    SendMessageToSource(record, "(" + rRecord.command_numeric + ")(" + rRecord.target_name + ")(" + location + "):" + rRecord.record_message);
+                    SendMessageToSource(record, "(" + rRecord.command_numeric + ")(" + FormatTimeString(DateTime.UtcNow - rRecord.record_time, 2) + ")(" + rRecord.target_name + "/" + location + "):" + rRecord.record_message);
                     Thread.Sleep(30);
                     listed = true;
                 }
@@ -17279,6 +17294,11 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect())
             {
                 this.HandleException(new AdKatsException("Database not connected on chat upload."));
+                return success;
+            }
+            //Server spam check
+            if (!_PostServerChatSpam && messageObject.Speaker == "Server") {
+                success = true;
                 return success;
             }
             MySqlCommand commandAttempt = null;
