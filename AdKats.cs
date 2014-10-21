@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.6.9
+ * Version 5.1.7.0
  * 21-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.6.9";
+        private const String PluginVersion = "5.1.7.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -3489,6 +3489,7 @@ namespace PRoConEvents {
                         _surrenderVoteActive = false;
                         _surrenderVoteSucceeded = false;
                         _slowmo = false;
+                        _pluginUpdateServerInfoChecked = false;
                         //Now that plugin is disabled, update the settings page to reflect
                         UpdateSettingPage();
                         ConsoleWrite("^b^1AdKats " + GetPluginVersion() + " Disabled! =(^n^0");
@@ -7468,14 +7469,11 @@ namespace PRoConEvents {
                                 UploadChatLog(messageObject);
                             }
 
-                            String speaker = messageObject.Speaker;
-                            String message = messageObject.Message;
-
                             if (!_AFKIgnoreChat)
                             {
                                 //Update player last action
                                 AdKatsPlayer aPlayer;
-                                if (_PlayerDictionary.TryGetValue(speaker, out aPlayer))
+                                if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer))
                                 {
                                     aPlayer.lastAction = DateTime.UtcNow;
                                 }
@@ -7483,26 +7481,31 @@ namespace PRoConEvents {
 
                             Boolean isCommand = false;
                             //Check if the message is a command
-                            if (message.StartsWith("@") || message.StartsWith("!") || message.StartsWith(".")) {
-                                message = message.Substring(1);
+                            if (messageObject.Message.StartsWith("@") || messageObject.Message.StartsWith("!") || messageObject.Message.StartsWith("."))
+                            {
+                                messageObject.Message = messageObject.Message.Substring(1);
                                 isCommand = true;
                             }
-                            else if (message.StartsWith("/@") || message.StartsWith("/!") || message.StartsWith("/.")) {
-                                message = message.Substring(2);
+                            else if (messageObject.Message.StartsWith("/@") || messageObject.Message.StartsWith("/!") || messageObject.Message.StartsWith("/."))
+                            {
+                                messageObject.Message = messageObject.Message.Substring(2);
                                 isCommand = true;
                             }
-                            else if (message.StartsWith("/")) {
-                                message = message.Substring(1);
+                            else if (messageObject.Message.StartsWith("/"))
+                            {
+                                messageObject.Message = messageObject.Message.Substring(1);
                                 isCommand = true;
                             }
                             
                             //check for player mute case
                             //ignore if it's a server call
-                            if (speaker != "Server") {
+                            if (messageObject.Speaker != "Server")
+                            {
                                 lock (_RoundMutedPlayers) {
                                     //Check if the player is muted
                                     DebugWrite("MESSAGE: Checking for mute case.", 7);
-                                    if (_RoundMutedPlayers.ContainsKey(speaker)) {
+                                    if (_RoundMutedPlayers.ContainsKey(messageObject.Speaker))
+                                    {
                                         if (_MutedPlayerIgnoreCommands && isCommand) {
                                             DebugWrite("Player muted, but ignoring since message is command.", 3);
                                         }
@@ -7510,15 +7513,15 @@ namespace PRoConEvents {
                                         {
                                             DebugWrite("MESSAGE: Player is muted and valid. Acting.", 7);
                                             //Increment the muted chat count
-                                            _RoundMutedPlayers[speaker] = _RoundMutedPlayers[speaker] + 1;
+                                            _RoundMutedPlayers[messageObject.Speaker] = _RoundMutedPlayers[messageObject.Speaker] + 1;
                                             //Create record
                                             var record = new AdKatsRecord();
                                             record.record_source = AdKatsRecord.Sources.InternalAutomated;
                                             record.server_id = _serverID;
                                             record.source_name = "PlayerMuteSystem";
-                                            _PlayerDictionary.TryGetValue(speaker, out record.target_player);
-                                            record.target_name = speaker;
-                                            if (_RoundMutedPlayers[speaker] > _MutedPlayerChances)
+                                            _PlayerDictionary.TryGetValue(messageObject.Speaker, out record.target_player);
+                                            record.target_name = messageObject.Speaker;
+                                            if (_RoundMutedPlayers[messageObject.Speaker] > _MutedPlayerChances)
                                             {
                                                 record.record_message = _MutedPlayerKickMessage;
                                                 record.command_type = _CommandKeyDictionary["player_kick"];
@@ -7538,13 +7541,13 @@ namespace PRoConEvents {
                                 }
                                 if (_isTestingAuthorized && _gameVersion == GameVersion.BF4)
                                 {
-                                    var lowerM = " " + message.ToLower() + " ";
+                                    var lowerM = " " + messageObject.Message.ToLower() + " ";
                                     if (lowerM.Contains(" ping") || lowerM.Contains(" pings ") || lowerM.Contains(" ping.") || lowerM.Contains(" ping,"))
                                     {
                                         AdKatsPlayer aPlayer;
-                                        if (_PlayerDictionary.TryGetValue(speaker, out aPlayer) && !PlayerIsAdmin(aPlayer))
+                                        if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer) && !PlayerIsAdmin(aPlayer))
                                         {
-                                            PlayerTellMessage(speaker, "Ping limit is 300 when over 50 players. Missing pings are kicked. ADK members are whitelisted.");
+                                            PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 when over 50 players. Missing pings are kicked. ADK members are whitelisted.");
                                             continue;
                                         }
                                     }
@@ -8270,12 +8273,11 @@ namespace PRoConEvents {
                                 }
                                 DebugWrite("COMMAND: begin reading command", 6);
                                 //Dequeue the first/next command
-                                AdKatsChatMessage commandPair = unparsedCommands.Dequeue();
-                                String speaker = commandPair.Speaker;
-                                String command = commandPair.Message;
+                                AdKatsChatMessage commandMessage = unparsedCommands.Dequeue();
 
                                 AdKatsRecord record;
-                                if (speaker == "Server") {
+                                if (commandMessage.Speaker == "Server")
+                                {
                                     record = new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.ServerCommand,
                                         source_name = "ProconAdmin"
@@ -8284,12 +8286,12 @@ namespace PRoConEvents {
                                 else {
                                     record = new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.InGame,
-                                        source_name = speaker
+                                        source_name = commandMessage.Speaker
                                     };
                                 }
 
                                 //Complete the record creation
-                                CompleteRecordInformation(record, command);
+                                CompleteRecordInformation(record, commandMessage.Message);
                             }
                         }
                         else {
