@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.7.2
+ * Version 5.1.7.3
  * 21-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.7.2";
+        private const String PluginVersion = "5.1.7.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -2659,6 +2659,31 @@ namespace PRoConEvents {
                             default:
                                 ConsoleError("Unknown setting when assigning ban status.");
                                 return;
+                        }
+                        if (aBan.ban_status == "Disabled")
+                        {
+                            if (aBan.ban_record.command_action.command_key == "player_ban_perm" ||
+                                aBan.ban_record.command_action.command_key == "player_ban_perm_future")
+                            {
+                                aBan.ban_record.command_action = GetCommandByKey("player_ban_perm_old");
+                            }
+                            else if (aBan.ban_record.command_action.command_key == "player_ban_temp")
+                            {
+                                aBan.ban_record.command_action = GetCommandByKey("player_ban_temp_old");
+                            }
+                            UpdateRecord(aBan.ban_record);
+                        }
+                        else if (aBan.ban_status == "Active")
+                        {
+                            if (aBan.ban_record.command_action.command_key == "player_ban_perm_old")
+                            {
+                                aBan.ban_record.command_action = GetCommandByKey("player_ban_perm");
+                            }
+                            else if (aBan.ban_record.command_action.command_key == "player_ban_temp_old")
+                            {
+                                aBan.ban_record.command_action = GetCommandByKey("player_ban_temp");
+                            }
+                            UpdateRecord(aBan.ban_record);
                         }
                         UpdateBanStatus(aBan);
                         ConsoleSuccess("Ban " + aBan.ban_id + " is now " + strValue);
@@ -11975,6 +12000,7 @@ namespace PRoConEvents {
                     if (_RoundReports.Remove(record.target_name))
                     {
                         DebugWrite("Round report [" + record.target_name + "] removed.", 3);
+                        _RoundReportHistory.Add(record.target_name);
                     }
                     if (reportedRecord.isContested) {  
                         SendMessageToSource(record, "Report [" + reportedRecord.command_numeric + "] is contested. Please investigate.");
@@ -12839,6 +12865,16 @@ namespace PRoConEvents {
                 foreach (AdKatsBan aBan in banList) {
                     aBan.ban_status = "Disabled";
                     UpdateBanStatus(aBan);
+                    if (aBan.ban_record.command_action.command_key == "player_ban_perm" ||
+                        aBan.ban_record.command_action.command_key == "player_ban_perm_future")
+                    {
+                        aBan.ban_record.command_action = GetCommandByKey("player_ban_perm_old");
+                    }
+                    else if (aBan.ban_record.command_action.command_key == "player_ban_temp")
+                    {
+                        aBan.ban_record.command_action = GetCommandByKey("player_ban_temp_old");
+                    }
+                    UpdateRecord(aBan.ban_record);
 
                     //Submit ban removal to metabans
                     if (_useMetabans && !String.IsNullOrEmpty(_metabansUsername) && !String.IsNullOrEmpty(_metabansAPIKey))
@@ -14354,6 +14390,9 @@ namespace PRoConEvents {
                         StartAndLogThread(surrenderTimingThread);
                     }
                 }
+
+                //Remove nosurrender vote if any
+                _nosurrenderVoteList.Remove(record.source_name);
                 //Add the vote
                 _surrenderVoteList.Add(record.source_name);
                 //Use @" + GetCommandByKey("self_surrender").command_text + " or @" + GetCommandByKey("self_votenext").command_text
@@ -14451,6 +14490,8 @@ namespace PRoConEvents {
                     return;
                 }
 
+                //Remove surrender vote if any
+                _surrenderVoteList.Remove(record.source_name);
                 //Add the vote
                 _nosurrenderVoteList.Add(record.source_name);
                 Int32 requiredVotes = (Int32)((_serverInfo.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
