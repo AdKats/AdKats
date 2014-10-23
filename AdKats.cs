@@ -102,8 +102,8 @@ namespace PRoConEvents {
         }
         
         //State
-        private const Boolean FullDebug = false;
-        private const Boolean SlowMoOnException = false;
+        private const Boolean FullDebug = true;
+        private const Boolean SlowMoOnException = true;
         private Boolean _slowmo;
         private volatile String _pluginChangelog;
         private volatile String _pluginDescription;
