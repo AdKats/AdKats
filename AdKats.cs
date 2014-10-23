@@ -17595,6 +17595,12 @@ namespace PRoConEvents {
                         }
 
                         //Fill the command
+                        ConsoleInfo("ServerID: '" + record.server_id + "'");
+                        if (record.server_id == 0)
+                        {
+                            ConsoleInfo("Overriding server id post with " + _serverInfo.ServerID);
+                            record.server_id = _serverInfo.ServerID;
+                        }
                         command.Parameters.AddWithValue("@server_id", record.server_id);
                         if (record.command_type == null) {
                             ConsoleError("Command type was null in uploadRecord, unable to continue.");
