@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.7.6
+ * Version 5.1.7.7
  * 23-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.7.6";
+        private const String PluginVersion = "5.1.7.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -15630,10 +15630,10 @@ namespace PRoConEvents {
                             ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
 
                         //Update server ID
-                        if (_serverInfo.ServerID < 0) {
+                        if (_serverInfo.ServerID <= 0) {
                             //Checking for database server info
                             if (FetchDBServerInfo()) {
-                                if (_serverInfo.ServerID < 0) {
+                                if (_serverInfo.ServerID <= 0) {
                                     //Inform the user
                                     ConsoleError("Database Server info could not be fetched! Make sure XpKiller's Stat Logger is running on this server!");
                                     //Disable the plugin
@@ -21861,6 +21861,7 @@ namespace PRoConEvents {
                         WHERE 
                             IP_Address = @IP_Address";
                         command.Parameters.AddWithValue("@IP_Address", _serverInfo.ServerIP);
+                        PrintPreparedCommand(command);
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             if (reader.Read()) {
                                 Int64 serverID = reader.GetInt64("server_id");
