@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.7.8
- * 23-OCT-2014
+ * Version 5.1.7.3
+ * 21-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.7.8";
+        private const String PluginVersion = "5.1.7.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -102,8 +102,8 @@ namespace PRoConEvents {
         }
         
         //State
-        private const Boolean FullDebug = true;
-        private const Boolean SlowMoOnException = true;
+        private const Boolean FullDebug = false;
+        private const Boolean SlowMoOnException = false;
         private Boolean _slowmo;
         private volatile String _pluginChangelog;
         private volatile String _pluginDescription;
@@ -128,10 +128,22 @@ namespace PRoConEvents {
         private Boolean _firstUserListComplete;
         private Boolean _firstPlayerListStarted;
         private Boolean _firstPlayerListComplete;
+        private Int32 _gameID = -1;
+        private Boolean _commanderEnabled;
+        private Boolean _fairFightEnabled;
+        private Boolean _forceReloadWholeMags;
+        private Boolean _hitIndicatorEnabled;
+        private String _gamePatchVersion = "UNKNOWN";
+        private Int32 _maxSpectators = -1;
         private GameVersion _gameVersion = GameVersion.BF3;
         private Boolean _isTestingAuthorized;
         private Boolean _endingRound;
-        private readonly AdKatsServer _serverInfo = new AdKatsServer();
+        private Int64 _serverGroup = -1;
+        private Int64 _serverID = -1;
+        private String _serverIP;
+        private CServerInfo _serverInfo = new CServerInfo();
+        private String _serverName;
+        private String _serverType = "UNKNOWN";
         private Int64 _settingImportID = -1;
         private Boolean _settingsFetched;
         private Boolean _settingsLocked;
@@ -702,8 +714,8 @@ namespace PRoConEvents {
                 }
                 else {
                     if (_settingsLocked) {
-                        lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof (int), _serverInfo.ServerID));
-                        lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof (String), _serverInfo.ServerIP));
+                        lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof (int), _serverID));
+                        lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof (String), _serverIP));
                         if (_UseBanEnforcer) {
                             const string banManagementPrefix = "A13-3. Mini Ban Management|";
                             lstReturn.Add(new CPluginVariable(banManagementPrefix + "NAME Ban Count", typeof (int), _NameBanCount));
@@ -992,9 +1004,9 @@ namespace PRoConEvents {
                     }
 
                     //Server Settings
-                    lstReturn.Add(new CPluginVariable("1. Server Settings|Setting Import", typeof (String), _serverInfo.ServerID));
-                    lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof (int), _serverInfo.ServerID));
-                    lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof (String), _serverInfo.ServerIP));
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Setting Import", typeof (String), _serverID));
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof (int), _serverID));
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof (String), _serverIP));
                     lstReturn.Add(new CPluginVariable("1. Server Settings|Low Population Value", typeof (int), _lowPopulationPlayerCount));
                     if (!_UsingAwa) {
                         const string userSettingsPrefix = "3. User Settings|";
@@ -3279,7 +3291,7 @@ namespace PRoConEvents {
             DebugWrite("Entering OnPluginLoaded", 7);
             try {
                 //Set the server IP
-                _serverInfo.ServerIP = strHostName + ":" + strPort;
+                _serverIP = strHostName + ":" + strPort;
                 //Register all events
                 RegisterEvents(GetType().Name, 
                     "OnVersion", 
@@ -3397,7 +3409,7 @@ namespace PRoConEvents {
                         }*/
 
                         //Inform of IP
-                        ConsoleSuccess("Server IP is " + _serverInfo.ServerIP + "");
+                        ConsoleSuccess("Server IP is " + _serverIP + "");
 
                         //Set the enabled variable
                         _pluginEnabled = true;
@@ -3793,7 +3805,7 @@ namespace PRoConEvents {
                                         var record = new AdKatsRecord
                                         {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
+                                            server_id = _serverID,
                                             command_type = _CommandKeyDictionary["player_kick"],
                                             command_numeric = 0,
                                             target_name = aPlayer.player_name,
@@ -3993,7 +4005,7 @@ namespace PRoConEvents {
         }
 
         public override void OnVersion(String serverType, String version) {
-            _serverInfo.GamePatchVersion = version;
+            _gamePatchVersion = version;
         }
 
         public override void OnTeamFactionOverride(Int32 targetTeamID, Int32 overrideTeamId) {
@@ -4005,7 +4017,7 @@ namespace PRoConEvents {
                     {
                         case 0:
                             //Check for already existing US team
-                            if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && 
+                            if (_serverInfo.RoundTime > 20 && 
                                 _teamDictionary.ContainsKey(targetTeamID) && 
                                 _teamDictionary[targetTeamID].TeamKey == "US" &&
                                 _roundState == RoundState.Playing)
@@ -4018,7 +4030,7 @@ namespace PRoConEvents {
                             break;
                         case 1:
                             //Check for already existing US team
-                            if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && 
+                            if (_serverInfo.RoundTime > 20 && 
                                 _teamDictionary.ContainsKey(targetTeamID) &&
                                 _teamDictionary[targetTeamID].TeamKey == "RU" &&
                                 _roundState == RoundState.Playing)
@@ -4031,7 +4043,7 @@ namespace PRoConEvents {
                             break;
                         case 2:
                             //Check for already existing US team
-                            if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 
+                            if (_serverInfo.RoundTime > 20 
                                 && _teamDictionary.ContainsKey(targetTeamID) &&
                                 _teamDictionary[targetTeamID].TeamKey == "CN" &&
                                 _roundState == RoundState.Playing)
@@ -4054,23 +4066,23 @@ namespace PRoConEvents {
         }
 
         public override void OnFairFight(bool isEnabled) {
-            _serverInfo.FairFightEnabled = isEnabled;
+            _fairFightEnabled = isEnabled;
         }
 
         public override void OnIsHitIndicator(bool isEnabled) {
-            _serverInfo.HitIndicatorEnabled = isEnabled;
+            _hitIndicatorEnabled = isEnabled;
         }
 
         public override void OnCommander(bool isEnabled) {
-            _serverInfo.CommanderEnabled = isEnabled;
+            _commanderEnabled = isEnabled;
         }
 
         public override void OnForceReloadWholeMags(bool isEnabled) {
-            _serverInfo.ForceReloadWholeMags = isEnabled;
+            _forceReloadWholeMags = isEnabled;
         }
 
-        public override void OnServerType(String serverType) {
-            _serverInfo.ServerType = serverType;
+        public override void OnServerType(String value) {
+            _serverType = value;
         }
 
         //procon.public.accounts.create
@@ -4108,7 +4120,7 @@ namespace PRoConEvents {
             }
         }
 
-        
+        //DONE
         public void UpdateFactions() {
             if (_gameVersion == GameVersion.BF3) {
                 OnTeamFactionOverride(1, 0);
@@ -4123,7 +4135,7 @@ namespace PRoConEvents {
             }
         }
 
-        
+        //DONE
         public override void OnPlayerTeamChange(String soldierName, Int32 teamId, Int32 squadId) {
             DebugWrite("Entering OnPlayerTeamChange", 7);
             try {
@@ -4346,7 +4358,6 @@ namespace PRoConEvents {
                                     }
                                     //Add player to the left dictionary
                                     aPlayer.player_online = false;
-                                    aPlayer.player_server = null;
                                     aPlayer.player_spawnedOnce = false;
                                     aPlayer.ClearPingEntries();
                                     aPlayer.RequiredTeam = null;
@@ -4371,9 +4382,10 @@ namespace PRoConEvents {
                                     if (!_pluginEnabled) {
                                         break;
                                     }
-                                    //Check for glitched players
-                                    if (String.IsNullOrEmpty(playerInfo.GUID)) {
-                                        OnlineAdminSayMessage(playerInfo.SoldierName + " is glitched in the server. Their soldier is invalid.");
+                                    //Add check for glitched players
+                                    if (String.IsNullOrEmpty(playerInfo.GUID))
+                                    {
+                                        ProconChatWrite(BoldMessage(playerInfo.SoldierName + " is glitched in the server. Their soldier is invalid."));
                                         ConsoleWarn(playerInfo.SoldierName + " is glitched in the server. Their soldier is invalid.");
                                         continue;
                                     }
@@ -4476,13 +4488,13 @@ namespace PRoConEvents {
                                             {
                                                 if (_currentRoundID != 0)
                                                 {
-                                                    IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(aPlayer.player_id, _CommandKeyDictionary["player_log"].command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message == "Dispersion Trigger" && aRecord.server_id == _serverInfo.ServerID);
+                                                    IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(aPlayer.player_id, _CommandKeyDictionary["player_log"].command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message == "Dispersion Trigger" && aRecord.server_id == _serverID);
                                                     if (!locRecords.Any(aRecord => aRecord.command_numeric == _currentRoundID))
                                                     {
                                                         var triggerRecord = new AdKatsRecord
                                                         {
                                                             record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                            server_id = _serverInfo.ServerID,
+                                                            server_id = _serverID,
                                                             command_type = _CommandKeyDictionary["player_log"],
                                                             command_numeric = _currentRoundID,
                                                             target_name = aPlayer.player_name,
@@ -4506,7 +4518,7 @@ namespace PRoConEvents {
                                                 var record = new AdKatsRecord
                                                 {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
+                                                    server_id = _serverID,
                                                     command_type = _CommandKeyDictionary["player_blacklistdisperse"],
                                                     command_numeric = 0,
                                                     target_name = aPlayer.player_name,
@@ -4525,7 +4537,7 @@ namespace PRoConEvents {
                                             var record = new AdKatsRecord
                                             {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
+                                                server_id = _serverID,
                                                 command_type = _CommandKeyDictionary["player_kick"],
                                                 command_numeric = 0,
                                                 target_name = aPlayer.player_name,
@@ -4542,6 +4554,7 @@ namespace PRoConEvents {
                                         aPlayer = _PlayerLeftDictionary.Values.FirstOrDefault(oPlayer => oPlayer.player_guid == playerInfo.GUID);
                                         if (aPlayer != null) {
                                             DebugWrite("Player " + playerInfo.SoldierName + " rejoined the server.", 3);
+                                            aPlayer.player_online = true;
                                             //Remove them from the left dictionary
                                             _PlayerLeftDictionary.Remove(playerInfo.SoldierName);
                                             //check for name changes
@@ -4552,7 +4565,7 @@ namespace PRoConEvents {
                                                 var record = new AdKatsRecord
                                                 {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
+                                                    server_id = _serverID,
                                                     command_type = _CommandKeyDictionary["player_changename"],
                                                     command_numeric = 0,
                                                     target_name = aPlayer.player_name,
@@ -4583,38 +4596,21 @@ namespace PRoConEvents {
                                                 continue;
                                             }
                                         }
-                                        aPlayer.player_online = true;
-                                        aPlayer.player_server = _serverInfo;
                                         //Add the frostbite player info
                                         aPlayer.frostbitePlayerInfo = playerInfo;
-                                        String joinLocation = String.Empty;
-                                        AdKatsTeam playerTeam = null;
-                                        if (aPlayer.frostbitePlayerInfo != null) {
-                                            _teamDictionary.TryGetValue(aPlayer.frostbitePlayerInfo.TeamID, out playerTeam);
-                                        }
                                         switch (aPlayer.frostbitePlayerInfo.Type)
                                         {
                                             case 0:
                                                 aPlayer.player_type = PlayerType.Player;
-                                                if (playerTeam != null) {
-                                                    joinLocation += playerTeam.TeamKey + " ";
-                                                }
-                                                joinLocation += "player";
                                                 break;
                                             case 1:
                                                 aPlayer.player_type = PlayerType.Spectator;
-                                                joinLocation += "spectator";
                                                 break;
                                             case 2:
                                                 aPlayer.player_type = PlayerType.CommanderPC;
-                                                joinLocation += "commander";
                                                 break;
                                             case 3:
                                                 aPlayer.player_type = PlayerType.CommanderMobile;
-                                                if (playerTeam != null) {
-                                                    joinLocation += playerTeam.TeamKey + " ";
-                                                }
-                                                joinLocation += "tablet commander";
                                                 break;
                                             default:
                                                 ConsoleError("Player type " + aPlayer.frostbitePlayerInfo.Type + " is not valid.");
@@ -4627,7 +4623,7 @@ namespace PRoConEvents {
                                             if (isAdmin || aPlayer.player_aa)
                                             {
                                                 List<AdKatsPlayer> reputablePlayers = _PlayerDictionary.Values.Where(iPlayer => iPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(iPlayer)).ToList();
-                                                String message = ((isAdmin) ? ("Admin ") : ("Admin assistant ")) + aPlayer.player_name + " joined the server as a " + joinLocation + ".";
+                                                String message = ((isAdmin) ? ("Admin ") : ("Admin assistant ")) + aPlayer.player_name + " joined the server as " + aPlayer.player_type.ToString().ToLower() + ".";
                                                 OnlineAdminSayMessage(message);
                                                 foreach (var reputablePlayer in reputablePlayers)
                                                 {
@@ -4689,7 +4685,7 @@ namespace PRoConEvents {
                                         var record = new AdKatsRecord
                                         {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
+                                            server_id = _serverID,
                                             command_type = _CommandKeyDictionary["player_kick"],
                                             command_numeric = 0,
                                             target_name = aPlayer.player_name,
@@ -4710,25 +4706,13 @@ namespace PRoConEvents {
                                 foreach (string playerName in _PlayerDictionary.Keys.Where(playerName => !validPlayers.Contains(playerName)).ToList()) {
                                     straglerCount++;
                                     DebugWrite("PLIST: Removing " + playerName + " from current player list (VIA CLEANUP).", 4);
-                                    AdKatsPlayer aPlayer;
-                                    if (_PlayerDictionary.TryGetValue(playerName, out aPlayer))
-                                    {
-                                        //Add player to the left dictionary
-                                        aPlayer.player_online = false;
-                                        aPlayer.player_server = null;
-                                        aPlayer.player_spawnedOnce = false;
-                                        aPlayer.ClearPingEntries();
-                                        aPlayer.RequiredTeam = null;
-                                        DequeuePlayer(aPlayer);
-                                        _PlayerLeftDictionary.Add(aPlayer.player_name, aPlayer);
-                                    }
                                     _PlayerDictionary.Remove(playerName);
                                 }
                                 if (straglerCount > 1 && straglerCount > (dicCount / 2)) {
                                     var record = new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         isDebug = true,
-                                        server_id = _serverInfo.ServerID,
+                                        server_id = _serverID,
                                         command_type = _CommandKeyDictionary["player_calladmin"],
                                         command_numeric = 0,
                                         target_name = "Server",
@@ -4780,7 +4764,7 @@ namespace PRoConEvents {
                             var record = new AdKatsRecord
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
+                                server_id = _serverID,
                                 command_type = _CommandKeyDictionary["player_kick"],
                                 command_numeric = 0,
                                 target_name = pingPickedPlayer.player_name,
@@ -4856,7 +4840,7 @@ namespace PRoConEvents {
                             DebugWrite(aPlayer.player_name + " changed their IP from " + aPlayer.player_ip + " to " + player_ip + ". Updating the database.", 2);
                             var record = new AdKatsRecord {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
+                                server_id = _serverID,
                                 command_type = _CommandKeyDictionary["player_changeip"],
                                 command_numeric = 0,
                                 target_name = aPlayer.player_name,
@@ -4975,7 +4959,7 @@ namespace PRoConEvents {
 	                                `tbl_extendedroundstats`
                                 WHERE 
                                     `server_id` = @server_id";
-                                command.Parameters.AddWithValue("server_id", _serverInfo.ServerID);
+                                command.Parameters.AddWithValue("server_id", _serverID);
                                 using (MySqlDataReader reader = command.ExecuteReader())
                                 {
                                     if (reader.Read())
@@ -5058,7 +5042,7 @@ namespace PRoConEvents {
                                         @team2_tpm,
                                         UTC_TIMESTAMP()
                                     )";
-                                    command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+                                    command.Parameters.AddWithValue("@server_id", _serverID);
                                     command.Parameters.AddWithValue("@round_id", _currentRoundID);
                                     command.Parameters.AddWithValue("@round_elapsedTimeSec", roundTimeSeconds);
                                     command.Parameters.AddWithValue("@team1_count", team1.TeamPlayerCount);
@@ -5117,7 +5101,7 @@ namespace PRoConEvents {
                     lock (_serverInfo) {
                         if (serverInfo != null) {
                             //Get the server info
-                            _serverInfo.SetInfoObject(serverInfo);
+                            _serverInfo = serverInfo;
                             if (serverInfo.TeamScores != null) {
                                 List<TeamScore> listCurrTeamScore = serverInfo.TeamScores;
                                 //During round change, teams don't exist
@@ -5162,7 +5146,7 @@ namespace PRoConEvents {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                                 _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
-                            if (_surrenderAutoEnable && !_endingRound && _serverInfo.GetRoundElapsedTime().TotalSeconds > 60)
+                            if (_surrenderAutoEnable && !_endingRound && _serverInfo.RoundTime > 60)
                             {
                                 if (_surrenderAutoUseMetroValues && 
                                     Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
@@ -5214,12 +5198,12 @@ namespace PRoConEvents {
                                             var repRecord = new AdKatsRecord
                                             {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
+                                                server_id = _serverID,
                                                 command_type = _CommandKeyDictionary["round_end"],
                                                 command_numeric = baserapingTeam.TeamID,
                                                 target_name = baserapingTeam.TeamName,
                                                 source_name = "RoundManager",
-                                                record_message = "Auto-Surrender Round (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")"
+                                                record_message = "Auto-Surrender Round (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + ")"
                                             };
                                             QueueRecordForProcessing(repRecord);
                                         }
@@ -5234,9 +5218,9 @@ namespace PRoConEvents {
                                 }
                             }
 
-                            Boolean hadServerName = !String.IsNullOrEmpty(_serverInfo.ServerName);
-                            _serverInfo.ServerName = serverInfo.ServerName;
-                            Boolean haveServerName = !String.IsNullOrEmpty(_serverInfo.ServerName);
+                            Boolean hadServerName = !String.IsNullOrEmpty(_serverName);
+                            _serverName = serverInfo.ServerName;
+                            Boolean haveServerName = !String.IsNullOrEmpty(_serverName);
                             if (!_usageDataDisabled && haveServerName && !hadServerName) {
                                 PostUsageStatsUpdate();
                             }
@@ -5597,7 +5581,7 @@ namespace PRoConEvents {
                                                     //Create the ban record
                                                     var record = new AdKatsRecord {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                        server_id = _serverInfo.ServerID,
+                                                        server_id = _serverID,
                                                         command_type = _CommandKeyDictionary["player_punish"],
                                                         command_numeric = 0,
                                                         target_name = cooker.Key.player_name,
@@ -5634,7 +5618,7 @@ namespace PRoConEvents {
                                             //Create the ban record
                                             var record = new AdKatsRecord {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
+                                                server_id = _serverID,
                                                 command_type = _CommandKeyDictionary["player_punish"],
                                                 command_numeric = 0,
                                                 target_name = player.player_name,
@@ -5656,7 +5640,7 @@ namespace PRoConEvents {
                                                 //Create the report record
                                                 var record = new AdKatsRecord {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
+                                                    server_id = _serverID,
                                                     command_type = _CommandKeyDictionary["player_report"],
                                                     command_numeric = 0,
                                                     target_name = player.player_name,
@@ -5674,7 +5658,7 @@ namespace PRoConEvents {
                                                 //Create the report record
                                                 var record = new AdKatsRecord {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
+                                                    server_id = _serverID,
                                                     command_type = _CommandKeyDictionary["player_report"],
                                                     command_numeric = 0,
                                                     target_name = player.player_name,
@@ -5699,7 +5683,7 @@ namespace PRoConEvents {
 
                 try {
                     if(_isTestingAuthorized && 
-                       _serverInfo.ServerName.Contains("#7") && 
+                       _serverName.Contains("#7") && 
                        kKillerVictimDetails.Killer.TeamID == kKillerVictimDetails.Victim.TeamID &&
                        !kKillerVictimDetails.IsSuicide)
                     {
@@ -5709,7 +5693,7 @@ namespace PRoConEvents {
                             var aRecord = new AdKatsRecord
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
+                                server_id = _serverID,
                                 command_type = _CommandKeyDictionary["player_kill_force"],
                                 command_numeric = 0,
                                 target_name = killer.player_name,
@@ -5741,7 +5725,7 @@ namespace PRoConEvents {
                                             //Create the punish record
                                             var record = new AdKatsRecord {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
+                                                server_id = _serverID,
                                                 command_type = _CommandKeyDictionary["player_punish"],
                                                 command_numeric = 0,
                                                 target_name = killer.player_name,
@@ -5777,7 +5761,7 @@ namespace PRoConEvents {
                                             //Custom record to boost rep for victim
                                             var repRecord = new AdKatsRecord {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
+                                                server_id = _serverID,
                                                 command_type = _CommandKeyDictionary["player_repboost"],
                                                 command_numeric = 0,
                                                 target_name = victim.player_name,
@@ -5990,7 +5974,7 @@ namespace PRoConEvents {
             DebugWrite("Exiting OnPlayerSpawned", 7);
         }
 
-        
+        //DONE
         public override void OnPlayerLeft(CPlayerInfo playerInfo) {
             DebugWrite("Entering OnPlayerLeft", 7);
             try {
@@ -6186,7 +6170,7 @@ namespace PRoConEvents {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 source_name = "BanEnforcer",
                                                 isIRO = false,
-                                                server_id = _serverInfo.ServerID,
+                                                server_id = _serverID,
                                                 target_name = aPlayer.player_name,
                                                 target_player = aPlayer,
                                                 command_type = _CommandKeyDictionary["banenforcer_enforce"],
@@ -6694,7 +6678,7 @@ namespace PRoConEvents {
                                     var record = new AdKatsRecord
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        server_id = _serverInfo.ServerID,
+                                        server_id = _serverID,
                                         command_type = _CommandKeyDictionary["player_ban_perm"],
                                         command_numeric = 0,
                                         target_name = aPlayer.player_name,
@@ -6725,7 +6709,7 @@ namespace PRoConEvents {
                             var record = new AdKatsRecord
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
+                                server_id = _serverID,
                                 command_type = _CommandKeyDictionary["player_ban_perm"],
                                 command_numeric = 0,
                                 target_name = aPlayer.player_name,
@@ -6844,7 +6828,7 @@ namespace PRoConEvents {
                                     var record = new AdKatsRecord
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        server_id = _serverInfo.ServerID,
+                                        server_id = _serverID,
                                         command_type = _CommandKeyDictionary["player_ban_perm"],
                                         command_numeric = 0,
                                         target_name = aPlayer.player_name,
@@ -6876,7 +6860,7 @@ namespace PRoConEvents {
                             var record = new AdKatsRecord
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
+                                server_id = _serverID,
                                 command_type = _CommandKeyDictionary["player_ban_perm"],
                                 command_numeric = 0,
                                 target_name = aPlayer.player_name,
@@ -6967,7 +6951,7 @@ namespace PRoConEvents {
                         //Create the ban record
                         var record = new AdKatsRecord {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
-                            server_id = _serverInfo.ServerID,
+                            server_id = _serverID,
                             command_type = _CommandKeyDictionary["player_ban_perm"],
                             command_numeric = 0,
                             target_name = aPlayer.player_name,
@@ -7591,7 +7575,7 @@ namespace PRoConEvents {
                                             //Create record
                                             var record = new AdKatsRecord();
                                             record.record_source = AdKatsRecord.Sources.InternalAutomated;
-                                            record.server_id = _serverInfo.ServerID;
+                                            record.server_id = _serverID;
                                             record.source_name = "PlayerMuteSystem";
                                             _PlayerDictionary.TryGetValue(messageObject.Speaker, out record.target_player);
                                             record.target_name = messageObject.Speaker;
@@ -7725,8 +7709,8 @@ namespace PRoConEvents {
                         }
 
                         //Refresh Max Player Count, needed for responsive server size
-                        if (_serverInfo != null && _serverInfo.InfoObject.MaxPlayerCount != maxTeamPlayerCount) {
-                            maxTeamPlayerCount = _serverInfo.InfoObject.MaxPlayerCount / 2;
+                        if (_serverInfo != null && _serverInfo.MaxPlayerCount != maxTeamPlayerCount) {
+                            maxTeamPlayerCount = _serverInfo.MaxPlayerCount / 2;
                         }
 
                         //Get players who died that need moving
@@ -8410,7 +8394,7 @@ namespace PRoConEvents {
                 DebugWrite("Raw Command: " + commandString, 6);
                 String remainingMessage = message.TrimStart(splitMessage[0].ToCharArray()).Trim();
 
-                record.server_id = _serverInfo.ServerID;
+                record.server_id = _serverID;
                 record.record_time = DateTime.UtcNow;
 
                 //GATE 1: Add Command
@@ -8479,7 +8463,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -8495,14 +8479,14 @@ namespace PRoConEvents {
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true, false, false);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.record_message = "MovePlayer";
                                 record.target_name = parameters[0];
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                 }
                                 break;
                             default:
@@ -8515,7 +8499,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -8532,14 +8516,14 @@ namespace PRoConEvents {
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true, false, false);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.record_message = "ForceMovePlayer";
                                 record.target_name = parameters[0];
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                 }
                                 break;
                             default:
@@ -8552,7 +8536,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -8566,14 +8550,14 @@ namespace PRoConEvents {
                         }
                         record.record_message = "TeamSwap";
                         record.target_name = record.source_name;
-                        CompleteTargetInformation(record, false, false, false);
+                        CompleteTargetInformation(record, false, false);
                     }
                         break;
                     case "self_assist": {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -8649,7 +8633,7 @@ namespace PRoConEvents {
                         }
                         String debug = (PlayerIsAdmin(record.source_player)) ? ("[" + friendlyTeam.TeamKey + ":" + friendlyTeam.TeamTicketCount + ":" + (int)friendlyTeam.TeamTicketDifferenceRate + "][" + enemyTeam.TeamKey + ":" + enemyTeam.TeamTicketCount + ":" + (int)enemyTeam.TeamTicketDifferenceRate + "]") : ("");
 
-                        record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
+                        record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 3) + "]";
                         Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
                         Boolean enemyStrong = true;
                         if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID)
@@ -8660,8 +8644,8 @@ namespace PRoConEvents {
                         {
                             enemyStrong = Math.Abs(team1.TeamTicketDifferenceRate) < Math.Abs(team2.TeamTicketDifferenceRate);
                         }
-                        if (_isTestingAuthorized && _serverInfo.GetRoundElapsedTime().TotalSeconds < 120) {
-                            SendMessageToSource(record, "Please wait at least 2 minutes into the round to use assist. [" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "]");
+                        if (_isTestingAuthorized && _serverInfo.RoundTime < 120) {
+                            SendMessageToSource(record, "Please wait at least 2 minutes into the round to use assist. [" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 2) + "]");
                             FinalizeRecord(record);
                             return;
                         }
@@ -8699,7 +8683,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -8714,14 +8698,14 @@ namespace PRoConEvents {
 
                         record.record_message = "Self-Inflicted";
                         record.target_name = record.source_name;
-                        CompleteTargetInformation(record, false, false, false);
+                        CompleteTargetInformation(record, false, false);
                     }
                         break;
                     case "player_kill": {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -8738,7 +8722,7 @@ namespace PRoConEvents {
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -8762,7 +8746,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -8781,7 +8765,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -8798,7 +8782,7 @@ namespace PRoConEvents {
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -8822,7 +8806,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -8841,7 +8825,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -8858,7 +8842,7 @@ namespace PRoConEvents {
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true, false, false);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -8882,7 +8866,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -8901,7 +8885,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -8970,7 +8954,7 @@ namespace PRoConEvents {
                                 //Target is source
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true, false, false);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 2:
                                 record.command_numeric = (int) (recordDuration * durationMultiplier);
@@ -9003,7 +8987,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -9022,7 +9006,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -9039,7 +9023,7 @@ namespace PRoConEvents {
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true, false, false);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -9063,7 +9047,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -9082,7 +9066,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -9147,7 +9131,7 @@ namespace PRoConEvents {
                                 //Target is source
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true, false, false);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 2:
                                 record.command_numeric = (int) (recordDuration * durationMultiplier);
@@ -9180,7 +9164,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -9199,7 +9183,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -9313,7 +9297,7 @@ namespace PRoConEvents {
                                 FinalizeRecord(record);
                                 return;
                             }
-                            CompleteTargetInformation(record, false, true, false);
+                            CompleteTargetInformation(record, false, true);
                         }
                         break;
                     case "player_whitelistping":
@@ -9353,7 +9337,7 @@ namespace PRoConEvents {
                                 FinalizeRecord(record);
                                 return;
                             }
-                            CompleteTargetInformation(record, false, true, false);
+                            CompleteTargetInformation(record, false, true);
                         }
                         break;
                     case "player_whitelistaa":
@@ -9393,7 +9377,7 @@ namespace PRoConEvents {
                                 FinalizeRecord(record);
                                 return;
                             }
-                            CompleteTargetInformation(record, false, true, false);
+                            CompleteTargetInformation(record, false, true);
                         }
                         break;
                     case "player_whitelistspambot":
@@ -9440,14 +9424,14 @@ namespace PRoConEvents {
                                 FinalizeRecord(record);
                                 return;
                             }
-                            CompleteTargetInformation(record, false, true, false);
+                            CompleteTargetInformation(record, false, true);
                         }
                         break;
                     case "player_punish": {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -9471,7 +9455,7 @@ namespace PRoConEvents {
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true, false, false);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -9495,7 +9479,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -9525,7 +9509,7 @@ namespace PRoConEvents {
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true, false, false);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -9549,7 +9533,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -9568,7 +9552,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -9585,7 +9569,7 @@ namespace PRoConEvents {
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true, false, false);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -9609,7 +9593,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -9629,7 +9613,7 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
-                            if (_serverInfo.ServerType == "OFFICIAL")
+                            if (_serverType == "OFFICIAL")
                             {
                                 SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
@@ -9649,7 +9633,7 @@ namespace PRoConEvents {
                                     record.record_message = "Joining Player";
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     break;
                                 default:
@@ -9664,7 +9648,7 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
-                            if (_serverInfo.ServerType == "OFFICIAL")
+                            if (_serverType == "OFFICIAL")
                             {
                                 SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
@@ -9688,7 +9672,7 @@ namespace PRoConEvents {
                                     }
                                     record.target_name = parameters[0];
                                     record.record_message = "Pulling Player";
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -9704,7 +9688,7 @@ namespace PRoConEvents {
                         SendMessageToSource(record, "This command has been permanently disabled. - ColColonCleaner");
                         return;
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -9721,7 +9705,7 @@ namespace PRoConEvents {
                                 }
                                 record.record_message = "Self-Inflicted";
                                 record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true, false, false);
+                                CompleteTargetInformation(record, true, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
@@ -9740,7 +9724,7 @@ namespace PRoConEvents {
                                 //Handle based on report ID if possible
                                 if (!HandleRoundReport(record)) {
                                     if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else {
                                         SendMessageToSource(record, "Reason too short, unable to submit.");
@@ -9861,12 +9845,12 @@ namespace PRoConEvents {
                                     }
                                     record.record_message = "Fetching Own Info";
                                     record.target_name = record.source_name;
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Fetching Player Info";
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -9912,7 +9896,7 @@ namespace PRoConEvents {
                                     record.record_message = "Fetching own chat history";
                                     record.target_name = record.source_name;
                                     record.command_numeric = 5;
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 case 1:
                                     //Two cases
@@ -9921,7 +9905,7 @@ namespace PRoConEvents {
                                         record.record_message = "Fetching own chat history";
                                         record.target_name = record.source_name;
                                         record.command_numeric = numeric;
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else
                                     {
@@ -9929,7 +9913,7 @@ namespace PRoConEvents {
                                         record.record_message = "Fetching player chat history";
                                         record.target_name = parameters[0];
                                         record.command_numeric = 5;
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     return;
                                 case 2:
@@ -9940,7 +9924,7 @@ namespace PRoConEvents {
                                         record.record_message = "Fetching player chat history";
                                         record.target_name = parameters[1];
                                         record.command_numeric = numeric;
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     else
                                     {
@@ -9953,7 +9937,7 @@ namespace PRoConEvents {
                                             record.TargetNamesLocal.Add(record.source_name);
                                             record.TargetNamesLocal.Add(parameters[0]);
                                             record.command_numeric = 5;
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, false);
                                         }
                                         else
                                         {
@@ -9962,7 +9946,7 @@ namespace PRoConEvents {
                                             record.TargetNamesLocal.Add(parameters[0]);
                                             record.TargetNamesLocal.Add(parameters[1]);
                                             record.command_numeric = 5;
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, false);
                                         }
                                     }
                                     break;
@@ -9978,7 +9962,7 @@ namespace PRoConEvents {
                                             record.TargetNamesLocal.Add(record.source_name);
                                             record.TargetNamesLocal.Add(parameters[2]);
                                             record.command_numeric = numeric;
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, false);
                                         }
                                         else
                                         {
@@ -9987,7 +9971,7 @@ namespace PRoConEvents {
                                             record.TargetNamesLocal.Add(parameters[1]);
                                             record.TargetNamesLocal.Add(parameters[2]);
                                             record.command_numeric = numeric;
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, false);
                                         }
                                     }
                                     else
@@ -10021,12 +10005,12 @@ namespace PRoConEvents {
                                     }
                                     record.record_message = "Finding Self";
                                     record.target_name = record.source_name;
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Finding Player";
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -10051,7 +10035,7 @@ namespace PRoConEvents {
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Locking Player";
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -10076,7 +10060,7 @@ namespace PRoConEvents {
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Unlocking Player";
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -10103,12 +10087,12 @@ namespace PRoConEvents {
                                     }
                                     record.record_message = "Marking Self";
                                     record.target_name = record.source_name;
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Marking Player";
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -10152,7 +10136,7 @@ namespace PRoConEvents {
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, false);
                                         }
                                         else
                                         {
@@ -10198,7 +10182,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -10276,7 +10260,7 @@ namespace PRoConEvents {
                     case "server_kickall":
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -10289,7 +10273,7 @@ namespace PRoConEvents {
                     case "server_swapnuke":
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -10310,7 +10294,7 @@ namespace PRoConEvents {
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -10384,7 +10368,7 @@ namespace PRoConEvents {
                     case "round_restart":
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -10397,7 +10381,7 @@ namespace PRoConEvents {
                     case "round_next":
                         CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
+                        if (_serverType == "OFFICIAL") {
                             SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
@@ -10652,7 +10636,7 @@ namespace PRoConEvents {
                                     record.record_message = "Telling Player Commands";
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     break;
                                 default:
@@ -10702,7 +10686,7 @@ namespace PRoConEvents {
                                     record.record_message = "Requesting Player Reputation";
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false);
                                     }
                                     break;
                                 default:
@@ -10788,7 +10772,7 @@ namespace PRoConEvents {
                         record.record_message = "Player Requested Online Admins";
                         if (record.record_source == AdKatsRecord.Sources.InGame) {
                             record.target_name = record.source_name;
-                            CompleteTargetInformation(record, false, false, false);
+                            CompleteTargetInformation(record, false, false);
                         }
                         else {
                             record.target_name = "ExternalSource";
@@ -10811,13 +10795,13 @@ namespace PRoConEvents {
                                 }
                                 record.target_name = record.source_name;
                                 record.record_message = "Player Taking Squad Lead";
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             case 1:
                                 record.target_name = parameters[0];
                                 record.record_message = "Giving Player Squad Lead";
                                 if (!HandleRoundReport(record)) {
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                 }
                                 break;
                             default:
@@ -10839,7 +10823,7 @@ namespace PRoConEvents {
                                 record.record_message = "Listing Round Reports";
                                 if (record.record_source == AdKatsRecord.Sources.InGame) {
                                     record.target_name = record.source_name;
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                 }
                                 else {
                                     record.target_name = "ExternalSource";
@@ -10986,7 +10970,7 @@ namespace PRoConEvents {
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11041,7 +11025,7 @@ namespace PRoConEvents {
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11098,7 +11082,7 @@ namespace PRoConEvents {
                                     record.record_message = GetPreMessage(parameters[1], false);
                                     DebugWrite("message: " + record.record_message, 6);
 
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11137,7 +11121,7 @@ namespace PRoConEvents {
                                     record.record_message = GetPreMessage(parameters[1], false);
                                     DebugWrite("message: " + record.record_message, 6);
 
-                                    CompleteTargetInformation(record, false, false, true);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11226,13 +11210,13 @@ namespace PRoConEvents {
                                     }
                                     record.record_message = "Dequeueing Self";
                                     record.target_name = record.source_name;
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Dequeueing Player";
                                     DebugWrite("target: " + record.target_name, 6);
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11261,14 +11245,14 @@ namespace PRoConEvents {
                             case 1:
                                 record.target_name = parameters[0];
                                 record.record_message = "Server Balance";
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             case 2:
                                 record.target_name = parameters[0];
                                 DebugWrite("target: " + record.target_name, 6);
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11305,7 +11289,7 @@ namespace PRoConEvents {
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11342,7 +11326,7 @@ namespace PRoConEvents {
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11379,7 +11363,7 @@ namespace PRoConEvents {
                                 record.record_message = GetPreMessage(parameters[1], false);
                                 DebugWrite("message: " + record.record_message, 6);
 
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11451,7 +11435,7 @@ namespace PRoConEvents {
                             if (_surrenderVoteList.Remove(record.source_name))
                             {
                                 SendMessageToSource(record, "Your surrender vote has been removed.");
-                                Int32 requiredVotes = (Int32)((_serverInfo.InfoObject.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                                Int32 requiredVotes = (Int32)((_serverInfo.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                                 OnlineAdminSayMessage(record.source_name + " removed their surrender vote.");
                                 AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
@@ -11541,12 +11525,11 @@ namespace PRoConEvents {
             this.ExecuteCommand("procon.protected.events.write", "Plugins", "PluginAction", message, record.source_name);
         }
 
-        public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm, Boolean externalFetchOverFuzzy, Boolean externalOnlineFetchOverFuzzy)
-        {
-            CompleteTargetInformation(record, true, requireConfirm, externalFetchOverFuzzy, externalOnlineFetchOverFuzzy);
+        public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm, Boolean externalFetchOverFuzzy) {
+            CompleteTargetInformation(record, true, requireConfirm, externalFetchOverFuzzy);
         }
 
-        public void CompleteTargetInformation(AdKatsRecord record, Boolean includeLeftPlayers, Boolean requireConfirm, Boolean externalFetchOverFuzzy, Boolean externalOnlineFetchOverFuzzy)
+        public void CompleteTargetInformation(AdKatsRecord record, Boolean includeLeftPlayers, Boolean requireConfirm, Boolean externalFetchOverFuzzy)
         {
             try
             {
@@ -11559,7 +11542,7 @@ namespace PRoConEvents {
                         AdKatsPlayer aPlayer;
                         String resultMessage;
                         Boolean curConfirm;
-                        if (FetchPlayerFromName(targetName, includeLeftPlayers, externalFetchOverFuzzy, externalOnlineFetchOverFuzzy, out aPlayer, out curConfirm, out resultMessage))
+                        if (FetchPlayerFromName(targetName, includeLeftPlayers, externalFetchOverFuzzy, out aPlayer, out curConfirm, out resultMessage))
                         {
                             record.TargetPlayersLocal.Add(aPlayer);
                             if (curConfirm)
@@ -11581,7 +11564,7 @@ namespace PRoConEvents {
                     AdKatsPlayer aPlayer;
                     String resultMessage;
                     Boolean curConfirm;
-                    if (FetchPlayerFromName(record.target_name, includeLeftPlayers, externalFetchOverFuzzy, externalOnlineFetchOverFuzzy, out aPlayer, out curConfirm, out resultMessage))
+                    if (FetchPlayerFromName(record.target_name, includeLeftPlayers, externalFetchOverFuzzy, out aPlayer, out curConfirm, out resultMessage))
                     {
                         record.target_name = aPlayer.player_name;
                         record.target_player = aPlayer;
@@ -11610,7 +11593,7 @@ namespace PRoConEvents {
             }
         }
 
-        public Boolean FetchPlayerFromName(String playerNameInput, Boolean includeLeftPlayers, Boolean externalFetchOverFuzzy, Boolean externalOnlineFetchOverFuzzy, out AdKatsPlayer aPlayer, out Boolean confirmNeeded, out String resultMessage)
+        public Boolean FetchPlayerFromName(String playerNameInput, Boolean includeLeftPlayers, Boolean externalFetchOverFuzzy, out AdKatsPlayer aPlayer, out Boolean confirmNeeded, out String resultMessage)
         {
             //Set default return values
             resultMessage = "Error finding player for '" + playerNameInput + "'";
@@ -11622,9 +11605,6 @@ namespace PRoConEvents {
                 {
                     resultMessage = "'" + playerNameInput + "' was an invalid player name.";
                     return false;
-                }
-                if (externalFetchOverFuzzy && externalOnlineFetchOverFuzzy) {
-                    ConsoleError("Cannot use both external fetches at the same time.");
                 }
                 //Check for an exact match
                 if (_PlayerDictionary.TryGetValue(playerNameInput, out aPlayer)) {
@@ -11776,97 +11756,78 @@ namespace PRoConEvents {
                         return false;
                     }
                 }
-                if (externalFetchOverFuzzy)
+                if (!externalFetchOverFuzzy)
                 {
-                    //No online or left player found, run external fetch over checking for fuzzy match
-                    aPlayer = FetchPlayer(false, true, true, null, -1, playerNameInput, null, null);
-                    if (aPlayer == null)
+                    if (currentPlayerNames.Count > 0)
                     {
-                        return false;
-                    }
-                    resultMessage = "Offline player found.";
-                    aPlayer.player_online = false;
-                    aPlayer.player_server = null;
-                    confirmNeeded = true;
-                    return true;
-                }
-                if (externalOnlineFetchOverFuzzy) {
-                    //No online or left player found, run external online player fetch over checking for fuzzy match
-                    var timer = new Stopwatch();
-                    timer.Start();
-                    var externalOnlinePlayers = FetchExternalOnlinePlayers();
-                    timer.Stop();
-                    ConsoleWarn("External Online Player Fetch took " + FormatTimeString(timer.Elapsed, 3) + " to complete.");
-                    aPlayer = externalOnlinePlayers.Where(iPlayer => Regex.Match(iPlayer.player_name, playerNameInput, RegexOptions.IgnoreCase).Success).FirstOrDefault();
-                    if (aPlayer == null) {
-                        return false;
-                    }
-                    resultMessage = "Online player found in '" + aPlayer.player_server.ServerName.Substring(0, 20) + "'.";
-                    confirmNeeded = true;
-                    return true;
-                }
-                //No other option, run fuzzy match
-                if (currentPlayerNames.Count > 0)
-                {
-                    //Player not found in either dictionary, run a fuzzy search using Levenshtein Distance on all players in server
-                    String fuzzyMatch = null;
-                    Int32 bestFuzzyDistance = Int32.MaxValue;
-                    foreach (String playerName in currentPlayerNames)
-                    {
-                        Int32 distance = LevenshteinDistance(playerNameInput, playerName);
-                        if (distance < bestFuzzyDistance)
+                        //Player not found in either dictionary, run a fuzzy search using Levenshtein Distance on all players in server
+                        String fuzzyMatch = null;
+                        Int32 bestFuzzyDistance = Int32.MaxValue;
+                        foreach (String playerName in currentPlayerNames)
                         {
-                            bestFuzzyDistance = distance;
-                            fuzzyMatch = playerName;
+                            Int32 distance = LevenshteinDistance(playerNameInput, playerName);
+                            if (distance < bestFuzzyDistance)
+                            {
+                                bestFuzzyDistance = distance;
+                                fuzzyMatch = playerName;
+                            }
                         }
-                    }
-                    //If the suggestion is still null, something has failed
-                    if (fuzzyMatch == null)
-                    {
-                        ConsoleError("Name suggestion system failed fuzzy match");
+                        //If the suggestion is still null, something has failed
+                        if (fuzzyMatch == null)
+                        {
+                            ConsoleError("Name suggestion system failed fuzzy match");
+                            return false;
+                        }
+                        if (_PlayerDictionary.TryGetValue(fuzzyMatch, out aPlayer))
+                        {
+                            resultMessage = "Fuzzy player match found for " + playerNameInput;
+                            confirmNeeded = true;
+                            return true;
+                        }
+                        ConsoleError("Player suggestion found matching player, but it could not be fetched.");
                         return false;
                     }
-                    if (_PlayerDictionary.TryGetValue(fuzzyMatch, out aPlayer))
+                    if (includeLeftPlayers && leftPlayerNames.Count > 0)
                     {
-                        resultMessage = "Fuzzy player match found for " + playerNameInput;
-                        confirmNeeded = true;
-                        return true;
+                        //No players in the online dictionary, but there are players in the offline dictionary,
+                        //run a fuzzy search using Levenshtein Distance on all players who have left
+                        String fuzzyMatch = null;
+                        Int32 bestFuzzyDistance = Int32.MaxValue;
+                        foreach (String playerName in leftPlayerNames)
+                        {
+                            Int32 distance = LevenshteinDistance(playerNameInput, playerName);
+                            if (distance < bestFuzzyDistance)
+                            {
+                                bestFuzzyDistance = distance;
+                                fuzzyMatch = playerName;
+                            }
+                        }
+                        //If the suggestion is still null, something has failed
+                        if (fuzzyMatch == null)
+                        {
+                            ConsoleError("Name suggestion system failed fuzzy match");
+                            return false;
+                        }
+                        if (_PlayerLeftDictionary.TryGetValue(fuzzyMatch, out aPlayer))
+                        {
+                            resultMessage = "Fuzzy player match found for " + playerNameInput;
+                            confirmNeeded = true;
+                            return true;
+                        }
+                        ConsoleError("Player suggestion found matching player, but it could not be fetched.");
+                        return false;
                     }
-                    ConsoleError("Player suggestion found matching player, but it could not be fetched.");
+                    ConsoleError("Unable to find a matching player.");
                     return false;
                 }
-                if (includeLeftPlayers && leftPlayerNames.Count > 0)
-                {
-                    //No players in the online dictionary, but there are players in the offline dictionary,
-                    //run a fuzzy search using Levenshtein Distance on all players who have left
-                    String fuzzyMatch = null;
-                    Int32 bestFuzzyDistance = Int32.MaxValue;
-                    foreach (String playerName in leftPlayerNames)
-                    {
-                        Int32 distance = LevenshteinDistance(playerNameInput, playerName);
-                        if (distance < bestFuzzyDistance)
-                        {
-                            bestFuzzyDistance = distance;
-                            fuzzyMatch = playerName;
-                        }
-                    }
-                    //If the suggestion is still null, something has failed
-                    if (fuzzyMatch == null)
-                    {
-                        ConsoleError("Name suggestion system failed fuzzy match");
-                        return false;
-                    }
-                    if (_PlayerLeftDictionary.TryGetValue(fuzzyMatch, out aPlayer))
-                    {
-                        resultMessage = "Fuzzy player match found for " + playerNameInput;
-                        confirmNeeded = true;
-                        return true;
-                    }
-                    ConsoleError("Player suggestion found matching player, but it could not be fetched.");
+                aPlayer = FetchPlayer(false, true, true, null, -1, playerNameInput, null, null);
+                if (aPlayer == null) {
                     return false;
                 }
-                ConsoleError("Unable to find a matching player.");
-                return false;
+                resultMessage = "Offline player found.";
+                aPlayer.player_online = false;
+                confirmNeeded = true;
+                return true;
             }
             catch (Exception e)
             {
@@ -12170,6 +12131,7 @@ namespace PRoConEvents {
                             _ActionHandlingWaitHandle.Reset();
                             _ActionHandlingWaitHandle.WaitOne(Timeout.Infinite);
                             loopStart = DateTime.UtcNow;
+                            continue;
                         }
                     }
                     catch (Exception e) {
@@ -12329,15 +12291,6 @@ namespace PRoConEvents {
                         break;
                     case "player_pm_reply":
                         PMReplyTarget(record);
-                        break;
-                    case "player_pm_start":
-                        PMStartTarget(record);
-                        break;
-                    case "player_pm_cancel":
-                        PMCancelTarget(record);
-                        break;
-                    case "player_pm_transmit":
-                        PMTransmitTarget(record);
                         break;
                     case "admin_pm_send":
                         PMOnlineAdmins(record);
@@ -13145,7 +13098,7 @@ namespace PRoConEvents {
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
-                        command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@player_server", _serverID);
                         command.Parameters.AddWithValue("@player_identifier", record.target_player.player_name);
 
                         Int32 rowsAffected = command.ExecuteNonQuery();
@@ -13198,7 +13151,7 @@ namespace PRoConEvents {
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
-                        command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@player_server", _serverID);
 
                         Int32 rowsAffected = command.ExecuteNonQuery();
                         if (rowsAffected > 0) {
@@ -13250,7 +13203,7 @@ namespace PRoConEvents {
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
-                        command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@player_server", _serverID);
 
                         Int32 rowsAffected = command.ExecuteNonQuery();
                         if (rowsAffected > 0) {
@@ -13307,7 +13260,7 @@ namespace PRoConEvents {
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
-                        command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@player_server", _serverID);
 
                         Int32 rowsAffected = command.ExecuteNonQuery();
                         if (rowsAffected > 0)
@@ -13794,7 +13747,7 @@ namespace PRoConEvents {
                     var repRecord = new AdKatsRecord
                     {
                         record_source = AdKatsRecord.Sources.InternalAutomated,
-                        server_id = _serverInfo.ServerID,
+                        server_id = _serverID,
                         command_type = _CommandKeyDictionary["player_repboost"],
                         command_numeric = 0,
                         target_name = record.source_player.player_name,
@@ -13934,7 +13887,7 @@ namespace PRoConEvents {
                             //Get target information
                             var aRecord = new AdKatsRecord {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
+                                server_id = _serverID,
                                 command_type = _CommandKeyDictionary["player_punish"],
                                 command_numeric = 0,
                                 target_name = reportedRecord.target_player.player_name,
@@ -14104,149 +14057,47 @@ namespace PRoConEvents {
             DebugWrite("Entering PMSendTarget", 6);
             try
             {
-                AdKatsPlayer sender = record.source_player;
-                AdKatsPlayer partner = record.target_player;
-                Boolean adminInformedChange = false;
-
-                //Check sender conditions
-                if (sender.conversationPartner == null) {
-                    //No conversation partner exists. Inform of the new one.
-                    if (PlayerIsAdmin(sender) && !PlayerIsAdmin(partner) && !adminInformedChange)
-                    {
-                        OnlineAdminSayMessage("Admin " + sender.player_name + " is now in a private conversation with " + partner.player_name);
-                        adminInformedChange = true;
-                    }
-                    else {
-                        PlayerSayMessage(sender.player_name, "You are now in a private conversation with " + partner.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
-                    }
-                }
-                else
+                //Check the source
+                if (record.source_player.conversationPartner == null)
                 {
-                    //Conversation partner exists. Cancel that conversation.
-                    AdKatsPlayer oldPartner = sender.conversationPartner;
-
-                    if (oldPartner.player_guid != partner.player_guid) {
-                        if (PlayerIsAdmin(sender) && !PlayerIsAdmin(partner) && !adminInformedChange)
-                        {
-                            OnlineAdminSayMessage("Admin " + sender.player_name + " is now in a private conversation with " + partner.player_name);
-                            adminInformedChange = true;
-                        }
-                        else {
-                            PlayerSayMessage(sender.player_name, "Private conversation partner changed from " + oldPartner.player_name + " to " + partner.player_name);
-                        }
+                    if (PlayerIsAdmin(record.source_player) && !PlayerIsAdmin(record.target_player)) {
+                        OnlineAdminSayMessage("Admin " + record.source_player.player_name + " now in a private conversation with " + record.target_player.player_name);
                     }
                     else
                     {
-                        PlayerSayMessage(sender.player_name, "You are already in a conversation with " + oldPartner.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
-                        return;
+                        PlayerSayMessage(record.source_player.player_name, "You are now in a private conversation with " + record.target_player.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
                     }
-
-                    if (PlayerIsExternal(sender.conversationPartner))
-                    {
-                        QueueRecordForProcessing(new AdKatsRecord {
-                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                            server_id = oldPartner.player_server.ServerID,
-                            record_orchestrate = true,
-                            command_type = _CommandKeyDictionary["player_pm_cancel"],
-                            command_numeric = 0,
-                            target_name = oldPartner.player_name,
-                            target_player = oldPartner,
-                            source_name = sender.player_name,
-                            source_player = sender,
-                            record_message = sender.player_name + " has left the private conversation."
-                        });
-                    }
-                    else
-                    {
-                        PlayerSayMessage(oldPartner.player_name, sender.player_name + " has left the private conversation.");
-                        oldPartner.conversationPartner = null;
-                    }
+                    record.source_player.conversationPartner = record.target_player;
                 }
-                //Assign local conversation partner
-                sender.conversationPartner = partner;
-
-                //Check for external case on new conversation partner
-                if (PlayerIsExternal(partner)) {
-                    //Player is external, have that instance handle the needed actions
-                    QueueRecordForProcessing(new AdKatsRecord {
-                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                        server_id = partner.player_server.ServerID,
-                        record_orchestrate = true,
-                        command_type = _CommandKeyDictionary["player_pm_start"],
-                        command_numeric = 0,
-                        target_name = partner.player_name,
-                        target_player = partner,
-                        source_name = sender.player_name,
-                        source_player = sender,
-                        record_message = record.record_message
-                    });
-                }
-                else {
-                    //Player is local, inform them of the conversation start/change.
-                    if (partner.conversationPartner == null)
-                    {
-                        //No conversation partner exists. Inform of the new one.
-                        if (PlayerIsAdmin(partner) && !PlayerIsAdmin(sender) && !adminInformedChange)
-                        {
-                            OnlineAdminSayMessage("Admin " + sender.player_name + " is now in a private conversation with " + partner.player_name);
-                            adminInformedChange = true;
-                        }
-                        else
-                        {
-                            PlayerSayMessage(partner.player_name, "You are now in a private conversation with " + sender.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
-                        }
-                        partner.conversationPartner = sender;
-                    }
-                    else
-                    {
-                        //Conversation partner exists. Cancel that conversation. Inform all parties.
-                        AdKatsPlayer oldPartner = partner.conversationPartner;
-
-                        if (oldPartner.player_guid != sender.player_guid)
-                        {
-                            //Inform partner of change
-                            PlayerSayMessage(partner.player_name, "Private conversation partner changed from " + oldPartner.player_name + " to " + sender.player_name);
-
-                            //Cancel oldPartner conversation
-                            if (PlayerIsExternal(oldPartner))
-                            {
-                                QueueRecordForProcessing(new AdKatsRecord
-                                {
-                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                    server_id = oldPartner.player_server.ServerID,
-                                    record_orchestrate = true,
-                                    command_type = _CommandKeyDictionary["player_pm_cancel"],
-                                    command_numeric = 0,
-                                    target_name = oldPartner.player_name,
-                                    target_player = oldPartner,
-                                    source_name = sender.player_name,
-                                    source_player = sender,
-                                    record_message = partner.player_name + " has left the private conversation."
-                                });
-                            }
-                            else
-                            {
-                                PlayerSayMessage(oldPartner.player_name, partner.player_name + " has left the private conversation.");
-                                oldPartner.conversationPartner = null;
-                            }
-                        }
-                        else
-                        {
-                            ConsoleError("Code 14211: Inform ColColonCleaner");
-                            return;
-                        }
-                    }
-                    partner.conversationPartner = sender;
-                }
-
-                //Post the first message to the sender
-                PlayerSayMessage(sender.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
-                //Post the first message to the partner
-                if (!PlayerIsExternal(partner))
+                else if (record.source_player.conversationPartner.player_guid != record.target_player.player_guid)
                 {
-                    PlayerSayMessage(partner.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
+                    if (PlayerIsAdmin(record.source_player) && !PlayerIsAdmin(record.target_player))
+                    {
+                        OnlineAdminSayMessage("Admin " + record.source_player.player_name + " now in a private conversation with " + record.target_player.player_name);
+                    }
+                    else
+                    {
+                        PlayerSayMessage(record.source_player.player_name, "Private conversation partner changed from " + record.source_player.conversationPartner.player_name + " to " + record.target_player.player_name);
+                    }
+                    PlayerSayMessage(record.source_player.conversationPartner.player_name, record.source_player.player_name + " has left the private conversation.");
+                    record.source_player.conversationPartner.conversationPartner = null;
+                    record.source_player.conversationPartner = record.target_player;
                 }
-
+                //Check the target
+                if (record.target_player.conversationPartner == null)
+                {
+                    PlayerSayMessage(record.target_player.player_name, "You are now in a private conversation with " + record.source_player.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
+                    record.target_player.conversationPartner = record.source_player;
+                }
+                else if (record.target_player.conversationPartner.player_guid != record.source_player.player_guid)
+                {
+                    PlayerSayMessage(record.target_player.player_name, "Private conversation partner changed from " + record.target_player.conversationPartner.player_name + " to " + record.source_player.player_name);
+                    PlayerSayMessage(record.target_player.conversationPartner.player_name, record.target_player.player_name + " has left the private conversation.");
+                    record.target_player.conversationPartner.conversationPartner = null;
+                    record.target_player.conversationPartner = record.source_player;
+                }
+                PlayerSayMessage(record.source_player.player_name, "(MSG)(" + record.source_player.player_name + "): " + record.record_message);
+                PlayerSayMessage(record.target_player.player_name, "(MSG)(" + record.source_player.player_name + "): " + record.record_message);
                 record.record_action_executed = true;
             }
             catch (Exception e)
@@ -14263,29 +14114,8 @@ namespace PRoConEvents {
             DebugWrite("Entering PMReplyTarget", 6);
             try
             {
-                AdKatsPlayer sender = record.source_player;
-                AdKatsPlayer partner = record.target_player;
-                if (PlayerIsExternal(partner))
-                {
-                    QueueRecordForProcessing(new AdKatsRecord
-                    {
-                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                        server_id = partner.player_server.ServerID,
-                        record_orchestrate = true,
-                        command_type = _CommandKeyDictionary["player_pm_transmit"],
-                        command_numeric = 0,
-                        target_name = partner.player_name,
-                        target_player = partner,
-                        source_name = sender.player_name,
-                        source_player = sender,
-                        record_message = record.record_message
-                    });
-                }
-                else
-                {
-                    PlayerSayMessage(partner.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
-                }
-                PlayerSayMessage(sender.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
+                PlayerSayMessage(record.source_player.player_name, "(MSG)(" + record.source_player.player_name + "): " + record.record_message);
+                PlayerSayMessage(record.target_player.player_name, "(MSG)(" + record.source_player.player_name + "): " + record.record_message);
                 record.record_action_executed = true;
             }
             catch (Exception e)
@@ -14295,167 +14125,6 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting PMReplyTarget", 6);
-        }
-
-        public void PMStartTarget(AdKatsRecord record)
-        {
-            DebugWrite("Entering PMStartTarget", 6);
-            try {
-                record.record_action_executed = true;
-
-                AdKatsPlayer sender = record.source_player;
-                AdKatsPlayer partner = record.target_player;
-                Boolean adminInformedChange = false;
-
-                //Sender may not be in this server
-                sender = FetchMatchingExternalOnlinePlayer(sender);
-
-                if (sender == null) {
-                    return;
-                }
-
-                //Inform partner of the conversation start/change.
-                if (partner.conversationPartner == null)
-                {
-                    //No conversation partner exists. Inform of the new one.
-                    if (PlayerIsAdmin(partner) && !PlayerIsAdmin(sender) && !adminInformedChange)
-                    {
-                        OnlineAdminSayMessage("Admin " + sender.player_name + " is now in a private conversation with " + partner.player_name);
-                        adminInformedChange = true;
-                    }
-                    else
-                    {
-                        PlayerSayMessage(partner.player_name, "You are now in a private conversation with " + sender.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
-                    }
-                    partner.conversationPartner = sender;
-                }
-                else
-                {
-                    //Conversation partner exists. Cancel that conversation. Inform all parties.
-                    AdKatsPlayer oldPartner = partner.conversationPartner;
-
-                    if (oldPartner.player_guid != sender.player_guid)
-                    {
-                        //Inform partner of change
-                        PlayerSayMessage(partner.player_name, "Private conversation partner changed from " + oldPartner.player_name + " to " + sender.player_name);
-
-                        //Cancel oldPartner conversation
-                        if (PlayerIsExternal(oldPartner))
-                        {
-                            QueueRecordForProcessing(new AdKatsRecord
-                            {
-                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = oldPartner.player_server.ServerID,
-                                record_orchestrate = true,
-                                command_type = _CommandKeyDictionary["player_pm_cancel"],
-                                command_numeric = 0,
-                                target_name = oldPartner.player_name,
-                                target_player = oldPartner,
-                                source_name = sender.player_name,
-                                source_player = sender,
-                                record_message = partner.player_name + " has left the private conversation."
-                            });
-                        }
-                        else
-                        {
-                            PlayerSayMessage(oldPartner.player_name, partner.player_name + " has left the private conversation.");
-                            oldPartner.conversationPartner = null;
-                        }
-                    }
-                    else
-                    {
-                        ConsoleError("Code 14368: Inform ColColonCleaner");
-                        return;
-                    }
-                }
-                partner.conversationPartner = sender;
-
-                PlayerSayMessage(partner.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
-            }
-            catch (Exception e)
-            {
-                record.record_exception = new AdKatsException("Error while taking action for Private Message Start record.", e);
-                HandleException(record.record_exception);
-                FinalizeRecord(record);
-            }
-            DebugWrite("Exiting PMStartTarget", 6);
-        }
-
-        public void PMCancelTarget(AdKatsRecord record)
-        {
-            DebugWrite("Entering PMCancelTarget", 6);
-            try
-            {
-                record.record_action_executed = true;
-
-                AdKatsPlayer sender = record.source_player;
-                AdKatsPlayer partner = record.target_player;
-
-                if (partner.conversationPartner != null)
-                {
-                    PlayerSayMessage(partner.player_name, record.record_message);
-                    partner.conversationPartner = null;
-                }
-            }
-            catch (Exception e)
-            {
-                record.record_exception = new AdKatsException("Error while taking action for Private Message Cancel record.", e);
-                HandleException(record.record_exception);
-                FinalizeRecord(record);
-            }
-            DebugWrite("Exiting PMCancelTarget", 6);
-        }
-
-        public void PMTransmitTarget(AdKatsRecord record)
-        {
-            DebugWrite("Entering PMTransmitTarget", 6);
-            try
-            {
-                AdKatsPlayer sender = record.source_player;
-                AdKatsPlayer partner = record.target_player;
-                Boolean adminInformedChange = false;
-
-                //Sender may not be in this server
-                sender = FetchMatchingExternalOnlinePlayer(sender);
-
-                if (sender == null)
-                {
-                    return;
-                }
-
-                if (partner.conversationPartner == null || partner.conversationPartner.player_guid != sender.player_guid) {
-                    //Cancel oldPartner conversation
-                    if (PlayerIsExternal(sender)) {
-                        QueueRecordForProcessing(new AdKatsRecord {
-                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                            server_id = sender.player_server.ServerID,
-                            record_orchestrate = true,
-                            command_type = _CommandKeyDictionary["player_pm_cancel"],
-                            command_numeric = 0,
-                            target_name = sender.player_name,
-                            target_player = sender,
-                            source_name = partner.player_name,
-                            source_player = partner,
-                            record_message = partner.player_name + " is not in a private conversation with you."
-                        });
-                    }
-                    else {
-                        PlayerSayMessage(partner.player_name, partner.player_name + " is not in a private conversation with you.");
-                        sender.conversationPartner = null;
-                    }
-                }
-                else
-                {
-                    PlayerSayMessage(partner.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
-                }
-            }
-            catch (Exception e)
-            {
-                record.record_exception = new AdKatsException("Error while taking action for Private Message Transmit record.", e);
-                HandleException(record.record_exception);
-                FinalizeRecord(record);
-            }
-            DebugWrite("Exiting PMTransmitTarget", 6);
         }
 
         public void PMOnlineAdmins(AdKatsRecord record)
@@ -14727,7 +14396,7 @@ namespace PRoConEvents {
                 //Add the vote
                 _surrenderVoteList.Add(record.source_name);
                 //Use @" + GetCommandByKey("self_surrender").command_text + " or @" + GetCommandByKey("self_votenext").command_text
-                Int32 requiredVotes = (Int32)((_serverInfo.InfoObject.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                Int32 requiredVotes = (Int32)((_serverInfo.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 if (voteCount >= requiredVotes) {
                     //Vote succeeded, trigger winning team
@@ -14743,12 +14412,12 @@ namespace PRoConEvents {
                             _threadMasterWaitHandle.WaitOne(7000);
                             var repRecord = new AdKatsRecord {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
+                                server_id = _serverID,
                                 command_type = _CommandKeyDictionary["round_end"],
                                 command_numeric = winningTeam.TeamID,
                                 target_name = winningTeam.TeamName,
                                 source_name = "RoundManager",
-                                record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")"
+                                record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.RoundTime), 3) + ")"
                             };
                             QueueRecordForProcessing(repRecord);
                         }
@@ -14825,7 +14494,7 @@ namespace PRoConEvents {
                 _surrenderVoteList.Remove(record.source_name);
                 //Add the vote
                 _nosurrenderVoteList.Add(record.source_name);
-                Int32 requiredVotes = (Int32)((_serverInfo.InfoObject.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                Int32 requiredVotes = (Int32)((_serverInfo.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                 OnlineAdminSayMessage(record.source_name + " voted against round surrender.");
@@ -14939,7 +14608,7 @@ namespace PRoConEvents {
                     DebugWrite("Starting a uptime printer thread.", 5);
                     try {
                         Thread.CurrentThread.Name = "uptimeprinter";
-                        SendMessageToSource(record, "Server: " + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.InfoObject.ServerUptime), 10));
+                        SendMessageToSource(record, "Server: " + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.ServerUptime), 10));
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "Procon: " + FormatTimeString(DateTime.UtcNow - _proconStartTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
@@ -15453,7 +15122,7 @@ namespace PRoConEvents {
                         var kickRecord = new AdKatsRecord
                         {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
-                            server_id = _serverInfo.ServerID,
+                            server_id = _serverID,
                             command_type = _CommandKeyDictionary["player_kick"],
                             command_numeric = 0,
                             target_name = aPlayer.player_name,
@@ -15630,22 +15299,12 @@ namespace PRoConEvents {
                             ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
 
                         //Update server ID
-                        if (_serverInfo.ServerID <= 0) {
+                        if (_serverID < 0) {
                             //Checking for database server info
                             if (FetchDBServerInfo()) {
-                                if (_serverInfo.ServerID <= 0) {
-                                    //Inform the user
-                                    ConsoleError("Database Server info could not be fetched! Make sure XpKiller's Stat Logger is running on this server!");
-                                    //Disable the plugin
-                                    Disable();
-                                    break;
-                                }
-                                else
-                                {
-                                    ConsoleSuccess("Database server info fetched. Server ID is " + _serverInfo.ServerID + ".");
-                                    //Push all settings for this instance to the database
-                                    UploadAllSettings();
-                                }
+                                ConsoleSuccess("Database server info fetched. Server ID is " + _serverID + ".");
+                                //Push all settings for this instance to the database
+                                UploadAllSettings();
                             }
                             else {
                                 //Inform the user
@@ -15656,14 +15315,14 @@ namespace PRoConEvents {
                             }
                         }
                         else {
-                            DebugWrite("Skipping server ID fetch. Server ID: " + _serverInfo.ServerID, 7);
+                            DebugWrite("Skipping server ID fetch. Server ID: " + _serverID, 7);
                         }
 
                         //Check if settings need sync
-                        if (firstRun || _settingImportID != _serverInfo.ServerID || _lastDbSettingFetch.AddSeconds(DbSettingFetchFrequency) < DateTime.UtcNow) {
-                            DebugWrite("Preparing to fetch settings from server " + _serverInfo.ServerID, 6);
+                        if (firstRun || _settingImportID != _serverID || _lastDbSettingFetch.AddSeconds(DbSettingFetchFrequency) < DateTime.UtcNow) {
+                            DebugWrite("Preparing to fetch settings from server " + _serverID, 6);
                             //Fetch new settings from the database
-                            FetchSettings(_settingImportID, _settingImportID != _serverInfo.ServerID);
+                            FetchSettings(_settingImportID, _settingImportID != _serverID);
                             RunPluginOrchestration();
                             //Run any available SQL Updates
                             RunSQLUpdates();
@@ -16212,7 +15871,7 @@ namespace PRoConEvents {
                             continue;
                     }
                     record.source_name = _CBanAdminName;
-                    record.server_id = _serverInfo.ServerID;
+                    record.server_id = _serverID;
                     record.target_player = FetchPlayer(true, false, false, null, -1, cBan.SoldierName, (!String.IsNullOrEmpty(cBan.Guid)) ? (cBan.Guid.ToUpper()) : (null), cBan.IpAddress);
                     if (!String.IsNullOrEmpty(record.target_player.player_name)) {
                         record.target_name = record.target_player.player_name;
@@ -16642,7 +16301,7 @@ namespace PRoConEvents {
                                         Int32 gameID = reader.GetInt32("game_id");
                                         if (!_gameIDDictionary.ContainsKey(gameID)) {
                                             if (_gameVersion.ToString() == gameName) {
-                                                _serverInfo.GameID = gameID;
+                                                _gameID = gameID;
                                                 gameIDFound = true;
                                             }
                                             switch (gameName) {
@@ -17191,8 +16850,8 @@ namespace PRoConEvents {
                         ON DUPLICATE KEY 
                         UPDATE 
                             `setting_value` = @setting_value";
-                        ConsoleInfo("Uploading setting with server id = " + _serverInfo.ServerID);
-                        command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+
+                        command.Parameters.AddWithValue("@server_id", _serverID);
                         command.Parameters.AddWithValue("@setting_name", var.Name);
                         command.Parameters.AddWithValue("@setting_type", var.Type);
                         command.Parameters.AddWithValue("@setting_value", var.Value);
@@ -17244,7 +16903,7 @@ namespace PRoConEvents {
                                 UpdateSettingPage();
                             }
                             else {
-                                if (serverID == _serverInfo.ServerID) {
+                                if (serverID == _serverID) {
                                     UploadAllSettings();
                                 }
                                 else if (verbose) {
@@ -17252,7 +16911,7 @@ namespace PRoConEvents {
                                 }
                             }
                             _settingsFetched = true;
-                            _settingImportID = _serverInfo.ServerID;
+                            _settingImportID = _serverID;
                         }
                     }
                 }
@@ -17567,7 +17226,7 @@ namespace PRoConEvents {
                                 @source_id, 
                                 @record_message, 
                                 @record_time, 
-                                @record_orchestrate
+                                'Y'
                             )";
                             command.Parameters.AddWithValue("@record_time", record.record_time);
                         }
@@ -17600,17 +17259,11 @@ namespace PRoConEvents {
                                 @source_id, 
                                 @record_message, 
                                 UTC_TIMESTAMP(), 
-                                @adkats_read
+                                'Y'
                             )";
                         }
 
                         //Fill the command
-                        ConsoleInfo("ServerID: '" + record.server_id + "'");
-                        if (record.server_id == 0)
-                        {
-                            ConsoleInfo("Overriding server id post with " + _serverInfo.ServerID);
-                            record.server_id = _serverInfo.ServerID;
-                        }
                         command.Parameters.AddWithValue("@server_id", record.server_id);
                         if (record.command_type == null) {
                             ConsoleError("Command type was null in uploadRecord, unable to continue.");
@@ -17655,16 +17308,6 @@ namespace PRoConEvents {
                         //Trim to 500 characters (Should only hit this limit when processing error messages)
                         messageIRO = messageIRO.Length <= 500 ? messageIRO : messageIRO.Substring(0, 500);
                         command.Parameters.AddWithValue("@record_message", messageIRO);
-
-                        //Orchestration of other AdKats instances
-                        if (record.record_orchestrate)
-                        {
-                            command.Parameters.AddWithValue("@adkats_read", "N");
-                        }
-                        else
-                        {
-                            command.Parameters.AddWithValue("@adkats_read", "Y");
-                        }
 
                         //Get reference to the command in case of error
                         //Attempt to execute the query
@@ -17753,7 +17396,7 @@ namespace PRoConEvents {
                         }
 
                         //Fill the log
-                        command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@server_id", _serverID);
                         command.Parameters.AddWithValue("@log_subset", messageObject.Subset.ToString());
                         if (player != null && player.player_id > 0)
                         {
@@ -17970,7 +17613,7 @@ namespace PRoConEvents {
 
                         command.Parameters.AddWithValue("player_id", aPlayer.player_id);
                         if (aPlayer.game_id <= 0) {
-                            aPlayer.game_id = _serverInfo.GameID;
+                            aPlayer.game_id = _gameID;
                         }
                         command.Parameters.AddWithValue("game_id", aPlayer.game_id);
                         command.Parameters.AddWithValue("target_rep", targetReputation);
@@ -18076,7 +17719,7 @@ namespace PRoConEvents {
             }
         }
 
-        
+        //DONE
         private void UpdateRecord(AdKatsRecord record) {
             //If record has multiple inner records, update those instead
             if (record.TargetInnerRecords.Any())
@@ -18097,7 +17740,7 @@ namespace PRoConEvents {
             }
         }
 
-        
+        //DONE
         private void UpdateInnerRecord(AdKatsRecord record) {
             DebugWrite("UpdateInnerRecord starting!", 6);
 
@@ -18160,7 +17803,7 @@ namespace PRoConEvents {
             }
         }
 
-        
+        //DONE
         private AdKatsRecord FetchRecordByID(Int64 recordID, Boolean debug)
         {
             DebugWrite("fetchRecordByID starting!", 6);
@@ -18277,7 +17920,7 @@ namespace PRoConEvents {
             return record;
         }
 
-        
+        //DONE
         private List<AdKatsRecord> FetchRecentRecords(Int64? player_id, Int64? command_id, Int64 limit_days, Int64 limit_records, Boolean target_only, Boolean debug)
         {
             DebugWrite("FetchRecentRecords starting!", 6);
@@ -18411,23 +18054,18 @@ namespace PRoConEvents {
             return records;
         }
 
-        
-        private List<AdKatsRecord> FetchUnreadRecords()
-        {
+        //DONE
+        private List<AdKatsRecord> FetchUnreadRecords() {
             DebugWrite("fetchUnreadRecords starting!", 6);
             //Create return list
             var records = new List<AdKatsRecord>();
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
-            {
+            if (HandlePossibleDisconnect()) {
                 return records;
             }
-            try
-            {
-                using (MySqlConnection connection = GetDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
+            try {
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
                         String sql = @"
                         SELECT 
                             `record_id`, 
@@ -18445,25 +18083,21 @@ namespace PRoConEvents {
                         WHERE 
                             `adkats_read` = 'N' 
                         AND 
-                            `server_id` = " + _serverInfo.ServerID;
+                            `server_id` = " + _serverID;
                         command.CommandText = sql;
-                        using (MySqlDataReader reader = command.ExecuteReader())
-                        {
+                        using (MySqlDataReader reader = command.ExecuteReader()) {
                             //Grab the record
-                            while (reader.Read())
-                            {
+                            while (reader.Read()) {
                                 var record = new AdKatsRecord();
                                 record.record_source = AdKatsRecord.Sources.Database;
                                 record.record_id = reader.GetInt64("record_id");
                                 record.server_id = reader.GetInt64("server_id");
                                 Int32 commandTypeInt = reader.GetInt32("command_type");
-                                if (!_CommandIDDictionary.TryGetValue(commandTypeInt, out record.command_type))
-                                {
+                                if (!_CommandIDDictionary.TryGetValue(commandTypeInt, out record.command_type)) {
                                     ConsoleError("Unable to parse command type " + commandTypeInt + " when fetching record by ID.");
                                 }
                                 Int32 commandActionInt = reader.GetInt32("command_action");
-                                if (!_CommandIDDictionary.TryGetValue(commandActionInt, out record.command_action))
-                                {
+                                if (!_CommandIDDictionary.TryGetValue(commandActionInt, out record.command_action)) {
                                     ConsoleError("Unable to parse command action " + commandActionInt + " when fetching record by ID.");
                                 }
                                 record.command_numeric = reader.GetInt32("command_numeric");
@@ -18471,30 +18105,25 @@ namespace PRoConEvents {
                                 object value = reader.GetValue(6);
                                 Int64 targetIDParse = -1;
                                 DebugWrite("id fetched!", 6);
-                                if (Int64.TryParse(value.ToString(), out targetIDParse))
-                                {
+                                if (Int64.TryParse(value.ToString(), out targetIDParse)) {
                                     DebugWrite("id parsed! " + targetIDParse, 6);
                                     //Check if the player needs to be imported, or if they are already in the server
                                     AdKatsPlayer importedPlayer = FetchPlayer(false, true, false, null, targetIDParse, null, null, null);
-                                    if (importedPlayer == null)
-                                    {
+                                    if (importedPlayer == null) {
                                         continue;
                                     }
                                     AdKatsPlayer currentPlayer = null;
-                                    if (!String.IsNullOrEmpty(importedPlayer.player_name) && _PlayerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer))
-                                    {
+                                    if (!String.IsNullOrEmpty(importedPlayer.player_name) && _PlayerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer)) {
                                         DebugWrite("External player is currently in the server, using existing data.", 5);
                                         record.target_player = currentPlayer;
                                     }
-                                    else
-                                    {
+                                    else {
                                         DebugWrite("External player is not in the server, fetching from database.", 5);
                                         record.target_player = importedPlayer;
                                     }
                                     record.target_name = record.target_player.player_name;
                                 }
-                                else
-                                {
+                                else {
                                     DebugWrite("id parse failed!", 6);
                                 }
                                 record.source_name = reader.GetString("source_name");
@@ -18507,8 +18136,7 @@ namespace PRoConEvents {
                     }
                 }
             }
-            catch (Exception e)
-            {
+            catch (Exception e) {
                 HandleException(new AdKatsException("Error while fetching unread records from database.", e));
             }
 
@@ -18516,147 +18144,7 @@ namespace PRoConEvents {
             return records;
         }
 
-
-        private List<AdKatsPlayer> FetchExternalOnlinePlayers()
-        {
-            DebugWrite("FetchExternalOnlinePlayers starting!", 6);
-            //Create return list
-            var onlinePlayers = new List<AdKatsPlayer>();
-            //Make sure database connection active
-            if (HandlePossibleDisconnect())
-            {
-                return onlinePlayers;
-            }
-            try
-            {
-                using (MySqlConnection connection = GetDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        String sql = @"
-                        SELECT 
-	                        `tbl_server`.`ServerID` AS `server_id`,
-	                        `tbl_server`.`ServerName` AS `server_name`,
-	                        `tbl_playerdata`.`PlayerID` AS `player_id`,
-	                        `tbl_playerdata`.`SoldierName` AS `player_name`,
-	                        `tbl_playerdata`.`EAGUID` AS `player_guid`
-                        FROM 
-	                        `tbl_currentplayers`
-                        INNER JOIN
-	                        `tbl_server`
-                        ON
-	                        `tbl_server`.`ServerID` = `tbl_currentplayers`.`ServerID`
-                        INNER JOIN
-	                        `tbl_playerdata`
-                        ON
-	                        `tbl_currentplayers`.`EA_GUID` = `tbl_playerdata`.`EAGUID`
-	                        AND
-	                        `tbl_server`.`GameID` = `tbl_playerdata`.`GameID`
-                        WHERE
-	                        `tbl_currentplayers`.`ServerID` != @current_server_id 
-                        GROUP BY
-	                        `tbl_playerdata`.`PlayerID`";
-                        command.CommandText = sql;
-                        command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
-                        using (MySqlDataReader reader = command.ExecuteReader())
-                        {
-                            //Grab the record
-                            while (reader.Read())
-                            {
-                                var ePlayer = FetchPlayer(false, false, false, null, reader.GetInt64("player_id"), null, null, null);
-                                if (ePlayer != null)
-                                {
-                                    ePlayer.player_server = new AdKatsServer()
-                                    {
-                                        ServerID = reader.GetInt64("server_id"),
-                                        ServerName = reader.GetString("server_name")
-                                    };
-                                    onlinePlayers.Add(ePlayer);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                HandleException(new AdKatsException("Error while fetching external online players.", e));
-            }
-            DebugWrite("FetchExternalOnlinePlayers finished!", 6);
-            return onlinePlayers;
-        }
-
-
-        private AdKatsPlayer FetchMatchingExternalOnlinePlayer(AdKatsPlayer aPlayer)
-        {
-            DebugWrite("FetchMatchingExternalOnlinePlayer starting!", 6);
-            if (aPlayer.player_server != null && !PlayerIsExternal(aPlayer)) {
-                return aPlayer;
-            }
-            //Make sure database connection active
-            if (HandlePossibleDisconnect())
-            {
-                return null;
-            }
-            try
-            {
-                using (MySqlConnection connection = GetDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        String sql = @"
-                        SELECT 
-	                        `tbl_server`.`ServerID` AS `server_id`,
-	                        `tbl_server`.`ServerName` AS `server_name`,
-	                        `tbl_playerdata`.`PlayerID` AS `player_id`,
-	                        `tbl_playerdata`.`SoldierName` AS `player_name`,
-	                        `tbl_playerdata`.`EAGUID` AS `player_guid`
-                        FROM 
-	                        `tbl_currentplayers`
-                        INNER JOIN
-	                        `tbl_server`
-                        ON
-	                        `tbl_server`.`ServerID` = `tbl_currentplayers`.`ServerID`
-                        INNER JOIN
-	                        `tbl_playerdata`
-                        ON
-	                        `tbl_currentplayers`.`EA_GUID` = `tbl_playerdata`.`EAGUID`
-	                        AND
-	                        `tbl_server`.`GameID` = `tbl_playerdata`.`GameID`
-                        WHERE
-	                        `tbl_currentplayers`.`ServerID` != @current_server_id 
-                        AND 
-                            `tbl_playerdata`.`PlayerID` == @player_id 
-                        GROUP BY
-	                        `tbl_playerdata`.`PlayerID`";
-                        command.CommandText = sql;
-                        command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
-                        command.Parameters.AddWithValue("@player_id", aPlayer);
-                        using (MySqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read()) {
-                                aPlayer.player_server = new AdKatsServer()
-                                {
-                                    ServerID = reader.GetInt64("server_id"),
-                                    ServerName = reader.GetString("server_name")
-                                };
-                            }
-                            else {
-                                return null;
-                            }
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                HandleException(new AdKatsException("Error while fetching matching external online from database.", e));
-            }
-            DebugWrite("FetchMatchingExternalOnlinePlayer finished!", 6);
-            return aPlayer;
-        }
-
-        
+        //DONE
         private void RunPluginOrchestration() {
             DebugWrite("RunPluginOrchestration starting!", 6);
             //Make sure database connection active
@@ -18676,7 +18164,7 @@ namespace PRoConEvents {
 	                        `adkats_orchestration`
                         WHERE
 	                        `setting_server` = @server_id";
-                        command.Parameters.AddWithValue("server_id", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("server_id", _serverID);
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             while (reader.Read()) {
                                 SetExternalPluginSetting(reader.GetString("setting_plugin"), reader.GetString("setting_name"), reader.GetString("setting_value"));
@@ -18693,7 +18181,7 @@ namespace PRoConEvents {
             DebugWrite("RunPluginOrchestration finished!", 6);
         }
 
-        
+        //DONE
         private Int64 FetchNameBanCount() {
             DebugWrite("fetchNameBanCount starting!", 7);
             //Make sure database connection active
@@ -18734,7 +18222,7 @@ namespace PRoConEvents {
             return -1;
         }
 
-        
+        //DONE
         private Int64 FetchGUIDBanCount() {
             DebugWrite("fetchGUIDBanCount starting!", 7);
             //Make sure database connection active
@@ -18775,7 +18263,7 @@ namespace PRoConEvents {
             return -1;
         }
 
-        
+        //DONE
         private Int64 FetchIPBanCount() {
             DebugWrite("fetchIPBanCount starting!", 7);
             //Make sure database connection active
@@ -19042,7 +18530,7 @@ namespace PRoConEvents {
             }
         }
 
-        
+        //DONE
         private void UploadRole(AdKatsRole aRole) {
             DebugWrite("uploadRole starting!", 6);
             //Make sure database connection active
@@ -19146,7 +18634,7 @@ namespace PRoConEvents {
             DebugWrite("uploadRole finished!", 6);
         }
 
-        
+        //DONE
         private void UploadBan(AdKatsBan aBan) {
             DebugWrite("uploadBan starting!", 6);
 
@@ -19228,7 +18716,7 @@ namespace PRoConEvents {
                             command.Parameters.AddWithValue("@ban_enforceName", aBan.ban_enforceName ? ('Y') : ('N'));
                             command.Parameters.AddWithValue("@ban_enforceGUID", aBan.ban_enforceGUID ? ('Y') : ('N'));
                             command.Parameters.AddWithValue("@ban_enforceIP", aBan.ban_enforceIP ? ('Y') : ('N'));
-                            command.Parameters.AddWithValue("@ban_sync", "*" + _serverInfo.ServerID + "*");
+                            command.Parameters.AddWithValue("@ban_sync", "*" + _serverID + "*");
                             //Handle permaban case
                             if (aBan.ban_record.command_action.command_key.Contains("player_ban_perm")) {
                                 command.Parameters.AddWithValue("@ban_durationMinutes", (Int32) _PermaBanEndTime.Subtract(DateTime.UtcNow).TotalMinutes);
@@ -19341,7 +18829,7 @@ namespace PRoConEvents {
             return true;
         }
 
-        
+        //DONE
         private AdKatsPlayer FetchPlayer(Boolean allowUpdate, Boolean allowOtherGames, Boolean allowNameSubstringSearch, Int32? gameID, Int64 playerID, String playerName, String playerGUID, String playerIP) {
             DebugWrite("fetchPlayer starting!", 6);
             //Create return list
@@ -19350,7 +18838,7 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 //If AdKats is disconnected from the database, return the player as-is
                 aPlayer = new AdKatsPlayer(this) {
-                    game_id = _serverInfo.GameID,
+                    game_id = _gameID,
                     player_name = playerName,
                     player_guid = playerGUID,
                     player_ip = playerIP
@@ -19382,7 +18870,7 @@ namespace PRoConEvents {
                                 `EAGUID` as `player_guid`, 
                                 `PBGUID` as `player_pbguid`, 
                                 `IP_Address` as `player_ip`";
-                            if (_serverInfo.GameID > 0)
+                            if (_gameID > 0)
                             {
                                 sql += ",`GameID` as `game_id` ";
                             }
@@ -19437,7 +18925,7 @@ namespace PRoConEvents {
                             {
                                 sql += " ) ";
                             }
-                            if ((_serverInfo.GameID > 0 && !allowOtherGames) || gameID != null)
+                            if ((_gameID > 0 && !allowOtherGames) || gameID != null)
                             {
                                 if (gameID != null)
                                 {
@@ -19445,7 +18933,7 @@ namespace PRoConEvents {
                                 }
                                 else
                                 {
-                                    sql += " AND `GameID` = " + _serverInfo.GameID + " ";
+                                    sql += " AND `GameID` = " + _gameID + " ";
                                 }
                             }
                             sql += @"
@@ -19489,13 +18977,12 @@ namespace PRoConEvents {
                                     if (gameID != null) {
                                         useableGameID = gameID;
                                     }
-                                    else if (_serverInfo.GameID > 0)
-                                    {
-                                        useableGameID = (Int32?)_serverInfo.GameID;
+                                    else if (_gameID > 0) {
+                                        useableGameID = _gameID;
                                     }
                                     //Set the insert command structure
                                     //The on duplicate key clause should never be hit, but is placed there to avoid exceptions in rare edge cases
-                                    Boolean hasPrevious = (_serverInfo.GameID > 0) || !String.IsNullOrEmpty(playerName) || !String.IsNullOrEmpty(playerGUID) || !String.IsNullOrEmpty(playerIP);
+                                    Boolean hasPrevious = (_gameID > 0) || !String.IsNullOrEmpty(playerName) || !String.IsNullOrEmpty(playerGUID) || !String.IsNullOrEmpty(playerIP);
                                     command.CommandText = @"
                                     INSERT INTO `" + _mySqlDatabaseName + @"`.`tbl_playerdata` 
                                     (
@@ -19530,7 +19017,7 @@ namespace PRoConEvents {
                                             aPlayer.game_id = (long) useableGameID;
                                         }
                                         else {
-                                            aPlayer.game_id = _serverInfo.GameID;
+                                            aPlayer.game_id = _gameID;
                                         }
                                         if (_ShowNewPlayerAnnouncement)
                                         {
@@ -19549,7 +19036,7 @@ namespace PRoConEvents {
                                 aPlayer.player_name = playerName;
                                 var record = new AdKatsRecord {
                                     record_source = AdKatsRecord.Sources.InternalAutomated,
-                                    server_id = _serverInfo.ServerID,
+                                    server_id = _serverID,
                                     command_type = _CommandKeyDictionary["player_changename"],
                                     command_numeric = 0,
                                     target_name = aPlayer.player_name,
@@ -19622,7 +19109,7 @@ namespace PRoConEvents {
                                 ORDER BY
 	                                Serverid ASC";
                                 command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
-                                command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+                                command.Parameters.AddWithValue("@server_id", _serverID);
                                 using (MySqlDataReader reader = command.ExecuteReader())
                                 {
                                     if (reader.Read())
@@ -19755,7 +19242,7 @@ namespace PRoConEvents {
             return aBan;
         }
 
-        
+        //DONE
         private List<AdKatsBan> FetchPlayerBans(AdKatsPlayer player)
         {
             DebugWrite("FetchPlayerBans starting!", 6);
@@ -19793,9 +19280,9 @@ namespace PRoConEvents {
                             `tbl_playerdata`.`PlayerID` = `adkats_bans`.`player_id` 
                         WHERE 
                             `adkats_bans`.`ban_status` = 'Active' ";
-                        if (_serverInfo.GameID > 0 && player.game_id < 0)
+                        if (_gameID > 0 && player.game_id < 0)
                         {
-                            query += " AND `tbl_playerdata`.`GameID` = " + _serverInfo.GameID;
+                            query += " AND `tbl_playerdata`.`GameID` = " + _gameID;
                         }
                         else if (player.game_id > 0) {
                             query += " AND `tbl_playerdata`.`GameID` = " + player.game_id;
@@ -19867,7 +19354,7 @@ namespace PRoConEvents {
                                     var record = new AdKatsRecord
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        server_id = _serverInfo.ServerID,
+                                        server_id = _serverID,
                                         command_type = _CommandKeyDictionary["player_unban"],
                                         command_numeric = 0,
                                         target_name = player.player_name,
@@ -19877,7 +19364,7 @@ namespace PRoConEvents {
                                     };
                                     QueueRecordForProcessing(record);
                                 }
-                                else if (_serverInfo.ServerGroup == FetchServerGroup(aBan.ban_record.server_id) && aBan.ban_startTime < DateTime.UtcNow)
+                                else if (_serverGroup == FetchServerGroup(aBan.ban_record.server_id) && aBan.ban_startTime < DateTime.UtcNow)
                                 {
                                     aBanList.Add(aBan);
                                 }
@@ -19898,7 +19385,7 @@ namespace PRoConEvents {
             return aBanList;
         }
 
-        
+        //DONE
         private List<AdKatsBan> FetchMatchingBans(String playerSubstring, Int64 searchLimit)
         {
             DebugWrite("FetchMatchingBans starting!", 6);
@@ -19960,7 +19447,7 @@ namespace PRoConEvents {
             return aBanList;
         }
 
-        
+        //DONE
         private void RepopulateProconBanList() {
             DebugWrite("repopulateProconBanList starting!", 6);
             ConsoleInfo("Downloading bans from database, please wait. This might take several minutes depending on your ban count!");
@@ -20122,7 +19609,7 @@ namespace PRoConEvents {
             }
         }
 
-        
+        //DONE
         private Boolean UpdateBanStatus(AdKatsBan aBan) {
             DebugWrite("updateBanStatus starting!", 6);
             //Make sure database connection active
@@ -20137,8 +19624,8 @@ namespace PRoConEvents {
             else {
                 try {
                     //Conditionally modify the ban_sync for this server
-                    if (!aBan.ban_sync.Contains("*" + _serverInfo.ServerID + "*")) {
-                        aBan.ban_sync += ("*" + _serverInfo.ServerID + "*");
+                    if (!aBan.ban_sync.Contains("*" + _serverID + "*")) {
+                        aBan.ban_sync += ("*" + _serverID + "*");
                     }
 
                     using (MySqlConnection connection = GetDatabaseConnection()) {
@@ -20168,7 +19655,7 @@ namespace PRoConEvents {
             return success;
         }
 
-        
+        //DONE
         private void ImportBansFromBBM5108() {
             //Check if tables exist from BF3 Ban Manager
             if (!ConfirmTable("bm_banlist")) {
@@ -20286,7 +19773,7 @@ namespace PRoConEvents {
                     }
 
                     record.source_name = "BanEnforcer";
-                    record.server_id = _serverInfo.ServerID;
+                    record.server_id = _serverID;
                     if (!String.IsNullOrEmpty(record.target_player.player_name)) {
                         record.target_name = record.target_player.player_name;
                     }
@@ -20329,7 +19816,7 @@ namespace PRoConEvents {
             }
         }
 
-        
+        //Done
         private Boolean CanPunish(AdKatsRecord record, Int32 duration) {
             DebugWrite("canPunish starting!", 6);
             if (duration < 1) {
@@ -20384,7 +19871,7 @@ namespace PRoConEvents {
             }
         }
 
-        
+        //DONE
         private Boolean FetchIROStatus(AdKatsRecord record) {
             DebugWrite("FetchIROStatus starting!", 6);
             //Make sure database connection active
@@ -20431,7 +19918,7 @@ namespace PRoConEvents {
             }
         }
 
-        
+        //DONE
         private void RunActionsFromDB() {
             DebugWrite("runActionsFromDB starting!", 7);
             //Make sure database connection active
@@ -20450,7 +19937,7 @@ namespace PRoConEvents {
             }
         }
 
-        
+        //DONE
         private Int32 FetchPoints(AdKatsPlayer player, Boolean combineOverride) {
             DebugWrite("fetchPoints starting!", 6);
 
@@ -20470,7 +19957,7 @@ namespace PRoConEvents {
                         else {
                             command.CommandText = @"SELECT `total_points` FROM `" + _mySqlDatabaseName + @"`.`adkats_infractions_server` WHERE `player_id` = @player_id and `server_id` = @server_id";
                             command.Parameters.AddWithValue("@player_id", player.player_id);
-                            command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+                            command.Parameters.AddWithValue("@server_id", _serverID);
                         }
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             returnVal = reader.Read() ? reader.GetInt32("total_points") : 0;
@@ -20485,7 +19972,7 @@ namespace PRoConEvents {
             return (returnVal > 0) ? (returnVal) : (0);
         }
 
-        
+        //DONE
         private List<KeyValuePair<DateTime, KeyValuePair<String, String>>> FetchConversation(Int64 player1_id, Int64 player2_id, Int64 limit_lines, Int64 limit_days) {
             DebugWrite("FetchConversation starting!", 6);
 
@@ -20524,7 +20011,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@player2_id", player2_id);
                         command.Parameters.AddWithValue("@limit_lines", limit_lines);
                         command.Parameters.AddWithValue("@limit_days", limit_days);
-                        command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@server_id", _serverID);
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             while (reader.Read()) {
                                 pchat.Add(new KeyValuePair<DateTime, KeyValuePair<string, string>>(reader.GetDateTime("chat_time"), new KeyValuePair<String, String>(reader.GetString("chat_player"), reader.GetString("chat_message"))));
@@ -20540,7 +20027,7 @@ namespace PRoConEvents {
             return pchat;
         }
 
-        
+        //DONE
         private List<KeyValuePair<DateTime, String>> FetchChat(Int64 player_id, Int64 limit_lines, Int64 limit_days) {
             DebugWrite("FetchChat starting!", 6);
 
@@ -20573,7 +20060,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@player_id", player_id);
                         command.Parameters.AddWithValue("@limit_lines", limit_lines);
                         command.Parameters.AddWithValue("@limit_days", limit_days);
-                        command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@server_id", _serverID);
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             while (reader.Read()) {
                                 pchat.Add(new KeyValuePair<DateTime, String>(reader.GetDateTime("chat_time"), reader.GetString("chat_message")));
@@ -21045,21 +20532,6 @@ namespace PRoConEvents {
                                 if (!_CommandIDDictionary.ContainsKey(84))
                                 {
                                     SendNonQuery("Adding command 84", "REPLACE INTO `adkats_commands` VALUES(84, 'Active', 'player_whitelistspambot', 'Log', 'SpamBot Whitelist Player', 'spamwhitelist', TRUE)", true);
-                                    changed = true;
-                                }
-                                if (!_CommandIDDictionary.ContainsKey(85))
-                                {
-                                    SendNonQuery("Adding command 85", "REPLACE INTO `adkats_commands` VALUES(85, 'Invisible', 'player_pm_start', 'Log', 'Player Private Message Start', 'pmstart', FALSE)", true);
-                                    changed = true;
-                                }
-                                if (!_CommandIDDictionary.ContainsKey(86))
-                                {
-                                    SendNonQuery("Adding command 86", "REPLACE INTO `adkats_commands` VALUES(86, 'Invisible', 'player_pm_transmit', 'Log', 'Player Private Message Transmit', 'pmtransmit', FALSE)", true);
-                                    changed = true;
-                                }
-                                if (!_CommandIDDictionary.ContainsKey(87))
-                                {
-                                    SendNonQuery("Adding command 87", "REPLACE INTO `adkats_commands` VALUES(87, 'Invisible', 'player_pm_cancel', 'Log', 'Player Private Message Cancel', 'pmcancel', FALSE)", true);
                                     changed = true;
                                 }
                                 if (changed) {
@@ -21594,8 +21066,8 @@ namespace PRoConEvents {
                             ORDER BY 
 	                            `player_group`
                             DESC";
-                            command.Parameters.AddWithValue("@playerGame", _serverInfo.GameID);
-                            command.Parameters.AddWithValue("@playerServer", _serverInfo.ServerID);
+                            command.Parameters.AddWithValue("@playerGame", _gameID);
+                            command.Parameters.AddWithValue("@playerServer", _serverID);
                             using (MySqlDataReader reader = command.ExecuteReader()) {
                                 List<Int64> validIDs = new List<Int64>();
                                 while (reader.Read())
@@ -21839,7 +21311,7 @@ namespace PRoConEvents {
             DebugWrite("PlayerIsAdminAssistant finished!", 7);
         }
 
-        
+        //DONE
         private Boolean FetchDBServerInfo() {
             DebugWrite("FetchDBServerInfo starting!", 6);
 
@@ -21854,22 +21326,25 @@ namespace PRoConEvents {
                         command.CommandText = @"
                         SELECT 
                             `ServerID` as `server_id`,
-                            `ServerGroup` as `server_group`,
-                            `ServerName` as `server_name`
+                            `ServerGroup` as `server_group`
                         FROM 
                             `tbl_server` 
                         WHERE 
                             IP_Address = @IP_Address";
-                        command.Parameters.AddWithValue("@IP_Address", _serverInfo.ServerIP);
-                        PrintPreparedCommand(command);
+                        command.Parameters.AddWithValue("@IP_Address", _serverIP);
                         using (MySqlDataReader reader = command.ExecuteReader()) {
-                            if (reader.Read())
-                            {
-                                _serverInfo.ServerID = reader.GetInt64("server_id");
-                                _serverInfo.ServerGroup = reader.GetInt64("server_group");
-                                _serverInfo.ServerName = reader.GetString("server_name");
-                                _settingImportID = _serverInfo.ServerID;
-                                DebugWrite("Server ID fetched: " + _serverInfo.ServerID, 1);
+                            if (reader.Read()) {
+                                Int64 serverID = reader.GetInt64("server_id");
+                                Int64 serverGroup = reader.GetInt64("server_group");
+                                if (_serverID != -1 && _serverGroup != -1) {
+                                    DebugWrite("Attempted server ID and group update after valuse already chosen.", 5);
+                                }
+                                else {
+                                    _serverID = serverID;
+                                    _serverGroup = serverGroup;
+                                    _settingImportID = _serverID;
+                                    DebugWrite("Server ID fetched: " + _serverID, 1);
+                                }
                                 return true;
                             }
                         }
@@ -22133,7 +21608,7 @@ namespace PRoConEvents {
                     lock (_userCache) {
                         foreach (AdKatsPlayer soldier in FetchAllUserSoldiers()) {
                             //Only add soldiers for the current game
-                            if (soldier.game_id == _serverInfo.GameID) {
+                            if (soldier.game_id == _gameID) {
                                 if (!allowedReservedSlotPlayers.Contains(soldier.player_name)) {
                                     allowedReservedSlotPlayers.Add(soldier.player_name);
                                 }
@@ -22218,7 +21693,7 @@ namespace PRoConEvents {
                     foreach (AdKatsPlayer soldier in FetchAllUserSoldiers())
                     {
                         //Only add soldiers for the current game
-                        if (soldier.game_id == _serverInfo.GameID) {
+                        if (soldier.game_id == _gameID) {
                             //Only add if players are admins
                             if (PlayerIsAdmin(soldier))
                             {
@@ -22267,8 +21742,8 @@ namespace PRoConEvents {
             }
         }
 
-        public override void OnMaxSpectators(Int32 spectatorLimit) {
-            _serverInfo.MaxSpectators = spectatorLimit;
+        public override void OnMaxSpectators(Int32 limit) {
+            _maxSpectators = limit;
         }
 
         public override void OnSpectatorListLoad() {
@@ -22313,7 +21788,7 @@ namespace PRoConEvents {
                 //Create the new record
                 var record = new AdKatsRecord {
                     record_source = AdKatsRecord.Sources.ExternalPlugin,
-                    server_id = _serverInfo.ServerID,
+                    server_id = _serverID,
                     record_time = DateTime.UtcNow
                 };
 
@@ -22591,7 +22066,7 @@ namespace PRoConEvents {
                     return;
                 }
 
-                String[] soldierNames = (from aPlayer in soldierList where (!String.IsNullOrEmpty(aPlayer.player_name) && aPlayer.game_id == _serverInfo.GameID) select aPlayer.player_name).ToArray();
+                String[] soldierNames = (from aPlayer in soldierList where (!String.IsNullOrEmpty(aPlayer.player_name) && aPlayer.game_id == _gameID) select aPlayer.player_name).ToArray();
 
                 var responseHashtable = new Hashtable();
                 responseHashtable.Add("caller_identity", "AdKats");
@@ -22840,7 +22315,7 @@ namespace PRoConEvents {
         }
         
         private void PostUsageStatsUpdate() {
-            if (String.IsNullOrEmpty(_serverInfo.ServerIP)) {
+            if (String.IsNullOrEmpty(_serverIP)) {
                 return;
             }
             try
@@ -22848,8 +22323,8 @@ namespace PRoConEvents {
                 using (var client = new WebClient())
                 {
                     var data = new NameValueCollection {
-                        {"server_ip", _serverInfo.ServerIP},
-                        {"server_name", _serverInfo.ServerName},
+                        {"server_ip", _serverIP},
+                        {"server_name", _serverName},
                         {"adkats_version_current", PluginVersion},
                         {"adkats_enabled", _pluginEnabled.ToString().ToLower()},
                         {"adkats_uptime", (_threadsReady)?(Math.Round((DateTime.UtcNow - _AdKatsStartTime).TotalSeconds).ToString()):("0")},
@@ -23235,10 +22710,6 @@ namespace PRoConEvents {
 
         public Boolean PlayerIsAdmin(AdKatsPlayer aPlayer) {
             return aPlayer != null && RoleIsAdmin(aPlayer.player_role);
-        }
-
-        public Boolean PlayerIsExternal(AdKatsPlayer aPlayer) {
-            return aPlayer.player_server.ServerID != _serverInfo.ServerID;
         }
 
         public Boolean RoleIsAdmin(AdKatsRole aRole) {
@@ -24035,7 +23506,7 @@ namespace PRoConEvents {
                 var record = new AdKatsRecord {
                     record_source = AdKatsRecord.Sources.InternalAutomated,
                     isDebug = true,
-                    server_id = _serverInfo.ServerID,
+                    server_id = _serverID,
                     command_type = _CommandKeyDictionary["adkats_exception"],
                     command_numeric = 0,
                     target_name = "AdKats",
@@ -24121,13 +23592,13 @@ namespace PRoConEvents {
                                     var record = new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         isDebug = true,
-                                        server_id = _serverInfo.ServerID,
+                                        server_id = _serverID,
                                         command_type = _CommandKeyDictionary["adkats_exception"],
                                         command_numeric = 0,
                                         target_name = "Database",
                                         target_player = null,
                                         source_name = "AdKats",
-                                        record_message = "Critical Database Disconnect Handled (" + String.Format("{0:0.00}", disconnectTimer.Elapsed.TotalMinutes) + " minutes). AdKats on server " + _serverInfo.ServerID + " functioning normally again."
+                                        record_message = "Critical Database Disconnect Handled (" + String.Format("{0:0.00}", disconnectTimer.Elapsed.TotalMinutes) + " minutes). AdKats on server " + _serverID + " functioning normally again."
                                     };
                                     //Process the record
                                     QueueRecordForProcessing(record);
@@ -24335,7 +23806,7 @@ namespace PRoConEvents {
             }
         }
 
-        public class  AdKatsPlayer {
+        public class AdKatsPlayer {
             public CPunkbusterInfo PBPlayerInfo = null;
             public Queue<KeyValuePair<AdKatsPlayer, DateTime>> RecentKills = null;
             //All records issued on this player during their current session
@@ -24361,7 +23832,6 @@ namespace PRoConEvents {
             public String player_slot = null;
             public Double player_reputation = 0;
             public DateTime player_firstseen = DateTime.UtcNow;
-            public AdKatsServer player_server = null;
             public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
             public Boolean player_spawnedOnce = false;
             public PlayerType player_type = PlayerType.Player;
@@ -24495,34 +23965,6 @@ namespace PRoConEvents {
             }
         }
 
-        public class AdKatsServer {
-            public Int64 ServerID;
-            public Int64 ServerGroup;
-            public String ServerIP;
-            public String ServerName;
-            public String ServerType = "UNKNOWN";
-            public Int64 GameID = -1;
-            public String ConnectionState;
-            public Boolean CommanderEnabled;
-            public Boolean FairFightEnabled;
-            public Boolean ForceReloadWholeMags;
-            public Boolean HitIndicatorEnabled;
-            public String GamePatchVersion = "UNKNOWN";
-            public Int32 MaxSpectators = -1;
-            public CServerInfo InfoObject { get; private set; }
-            private DateTime infoObjectTime = DateTime.UtcNow;
-
-            public void SetInfoObject(CServerInfo infoObject) {
-                InfoObject = infoObject;
-                ServerName = infoObject.ServerName;
-                infoObjectTime = DateTime.UtcNow;
-            }
-
-            public TimeSpan GetRoundElapsedTime() {
-                return TimeSpan.FromSeconds(InfoObject.RoundTime) + (DateTime.UtcNow - infoObjectTime);
-            }
-        }
-
         public class AdKatsPlayerStats {
             public Double Assists = -1;
             public String ClanTag = null;
@@ -24592,14 +24034,14 @@ namespace PRoConEvents {
             public String external_callerIdentity = null;
             public String external_responseClass = null;
             public String external_responseMethod = null;
-            public Boolean external_responseRequested;
+            public Boolean external_responseRequested = false;
 
-            public Boolean isConfirmed;
-            public Boolean isAliveChecked;
-            public Boolean isContested;
-            public Boolean isDebug;
-            public Boolean isIRO;
-            public Boolean record_action_executed;
+            public Boolean isConfirmed = false;
+            public Boolean isAliveChecked = false;
+            public Boolean isContested = false;
+            public Boolean isDebug = false;
+            public Boolean isIRO = false;
+            public Boolean record_action_executed = false;
             public AdKatsException record_exception = null;
             public Int64 record_id = -1;
             public String record_message = null;
@@ -24614,8 +24056,7 @@ namespace PRoConEvents {
 
             //Multiple targets if needed
             //Not pushed to database
-            public Boolean record_held;
-            public Boolean record_orchestrate;
+            public Boolean record_held = false;
             public List<String> TargetNamesLocal; 
             public List<AdKatsPlayer> TargetPlayersLocal;
             public List<AdKatsRecord> TargetInnerRecords;
@@ -24959,13 +24400,13 @@ namespace PRoConEvents {
                             String body = String.Empty;
 
                             var sb = new StringBuilder();
-                            if (String.IsNullOrEmpty(Plugin._serverInfo.ServerName)) {
+                            if (String.IsNullOrEmpty(Plugin._serverName)) {
                                 //Unable to send report email, server id unknown
                                 return;
                             }
-                            subject = record.target_player.player_name + " reported in [" + Plugin._gameVersion + "] " + Plugin._serverInfo.ServerName;
+                            subject = record.target_player.player_name + " reported in [" + Plugin._gameVersion + "] " + Plugin._serverName;
                             sb.Append("<h1>AdKats " + Plugin._gameVersion + " Player Report [" + record.command_numeric + "]</h1>");
-                            sb.Append("<h2>" + Plugin._serverInfo.ServerName + "</h2>");
+                            sb.Append("<h2>" + Plugin._serverName + "</h2>");
                             sb.Append("<h3>" + DateTime.Now + " ProCon Time</h3>");
                             sb.Append("<h3>" + record.source_name + " has reported " + record.target_player.player_name + " for " + record.record_message + "</h3>");
                             sb.Append("<p>");
