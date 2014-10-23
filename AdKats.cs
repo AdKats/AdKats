@@ -15630,12 +15630,22 @@ namespace PRoConEvents {
                             ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
 
                         //Update server ID
-                        if (_serverInfo.ServerID <= 0) {
+                        if (_serverInfo.ServerID < 0) {
                             //Checking for database server info
                             if (FetchDBServerInfo()) {
-                                ConsoleSuccess("Database server info fetched. Server ID is " + _serverInfo.ServerID + ".");
-                                //Push all settings for this instance to the database
-                                UploadAllSettings();
+                                if (_serverInfo.ServerID < 0) {
+                                    //Inform the user
+                                    ConsoleError("Database Server info could not be fetched! Make sure XpKiller's Stat Logger is running on this server!");
+                                    //Disable the plugin
+                                    Disable();
+                                    break;
+                                }
+                                else
+                                {
+                                    ConsoleSuccess("Database server info fetched. Server ID is " + _serverInfo.ServerID + ".");
+                                    //Push all settings for this instance to the database
+                                    UploadAllSettings();
+                                }
                             }
                             else {
                                 //Inform the user
