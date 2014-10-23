@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.7.9
+ * Version 5.1.8.0
  * 23-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.7.9";
+        private const String PluginVersion = "5.1.8.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -14313,7 +14313,7 @@ namespace PRoConEvents {
                 Boolean adminInformedChange = false;
 
                 //Sender may not be in this server
-                sender = FetchMatchingExternalOnlinePlayer(sender);
+                sender = FetchMatchingExternalOnlinePlayer(sender.player_name);
 
                 if (sender == null) {
                     return;
@@ -14421,7 +14421,7 @@ namespace PRoConEvents {
                 Boolean adminInformedChange = false;
 
                 //Sender may not be in this server
-                sender = FetchMatchingExternalOnlinePlayer(sender);
+                sender = FetchMatchingExternalOnlinePlayer(sender.player_name);
 
                 if (sender == null)
                 {
@@ -17671,6 +17671,10 @@ namespace PRoConEvents {
 
                         //Get reference to the command in case of error
                         //Attempt to execute the query
+                        if (_isTestingAuthorized)
+                        {
+                            PrintPreparedCommand(command);
+                        }
                         if (command.ExecuteNonQuery() > 0) {
                             success = true;
                             record.record_id = command.LastInsertedId;
@@ -18590,12 +18594,10 @@ namespace PRoConEvents {
         }
 
 
-        private AdKatsPlayer FetchMatchingExternalOnlinePlayer(AdKatsPlayer aPlayer)
+        private AdKatsPlayer FetchMatchingExternalOnlinePlayer(String searchName)
         {
             DebugWrite("FetchMatchingExternalOnlinePlayer starting!", 6);
-            if (aPlayer.player_server != null && !PlayerIsExternal(aPlayer)) {
-                return aPlayer;
-            }
+            AdKatsPlayer aPlayer = null;
             //Make sure database connection active
             if (HandlePossibleDisconnect())
             {
@@ -18629,15 +18631,19 @@ namespace PRoConEvents {
                         WHERE
 	                        `tbl_currentplayers`.`ServerID` != @current_server_id 
                         AND 
-                            `tbl_playerdata`.`PlayerID` == @player_id 
+                            `tbl_playerdata`.`SoldierName` LIKE '%@search_name%' 
                         GROUP BY
 	                        `tbl_playerdata`.`PlayerID`";
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
-                        command.Parameters.AddWithValue("@player_id", aPlayer);
+                        command.Parameters.AddWithValue("@search_name", searchName);
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             if (reader.Read()) {
+                                aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
+                                if (aPlayer == null) {
+                                    return null;
+                                }
                                 aPlayer.player_server = new AdKatsServer()
                                 {
                                     ServerID = reader.GetInt64("server_id"),
