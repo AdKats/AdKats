@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.8.0
+ * Version 5.1.8.1
  * 23-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.8.0";
+        private const String PluginVersion = "5.1.8.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -11797,12 +11797,7 @@ namespace PRoConEvents {
                 }
                 if (externalOnlineFetchOverFuzzy) {
                     //No online or left player found, run external online player fetch over checking for fuzzy match
-                    var timer = new Stopwatch();
-                    timer.Start();
-                    var externalOnlinePlayers = FetchExternalOnlinePlayers();
-                    timer.Stop();
-                    ConsoleWarn("External Online Player Fetch took " + FormatTimeString(timer.Elapsed, 3) + " to complete.");
-                    aPlayer = externalOnlinePlayers.Where(iPlayer => Regex.Match(iPlayer.player_name, playerNameInput, RegexOptions.IgnoreCase).Success).FirstOrDefault();
+                    aPlayer = FetchMatchingExternalOnlinePlayer(playerNameInput);
                     if (aPlayer == null) {
                         return false;
                     }
@@ -18445,6 +18440,7 @@ namespace PRoConEvents {
                             `target_name`, 
                             `target_id`, 
                             `source_name`, 
+                            `source_id`,
                             `record_message`, 
                             `record_time` 
                         FROM 
@@ -18505,6 +18501,30 @@ namespace PRoConEvents {
                                     DebugWrite("id parse failed!", 6);
                                 }
                                 record.source_name = reader.GetString("source_name");
+                                object sourceIDObj = reader.GetValue(8);
+                                Int64 sourceIDParse = -1;
+                                if (Int64.TryParse(sourceIDObj.ToString(), out sourceIDParse))
+                                {
+                                    DebugWrite("source id parsed! " + sourceIDParse, 6);
+                                    //Check if the player needs to be imported, or if they are already in the server
+                                    AdKatsPlayer importedPlayer = FetchPlayer(false, true, false, null, sourceIDParse, null, null, null);
+                                    if (importedPlayer == null)
+                                    {
+                                        continue;
+                                    }
+                                    AdKatsPlayer currentPlayer = null;
+                                    if (!String.IsNullOrEmpty(importedPlayer.player_name) && _PlayerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer))
+                                    {
+                                        DebugWrite("External player is currently in the server, using existing data.", 5);
+                                        record.source_player = currentPlayer;
+                                    }
+                                    else
+                                    {
+                                        DebugWrite("External player is not in the server, fetching from database.", 5);
+                                        record.source_player = importedPlayer;
+                                    }
+                                    record.target_name = record.target_player.player_name;
+                                }
                                 record.record_message = reader.GetString("record_message");
                                 record.record_time = reader.GetDateTime("record_time");
 
