@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.7.7
+ * Version 5.1.7.8
  * 23-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.7.7";
+        private const String PluginVersion = "5.1.7.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -21863,21 +21863,13 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@IP_Address", _serverInfo.ServerIP);
                         PrintPreparedCommand(command);
                         using (MySqlDataReader reader = command.ExecuteReader()) {
-                            if (reader.Read()) {
-                                Int64 serverID = reader.GetInt64("server_id");
-                                Int64 serverGroup = reader.GetInt64("server_group");
-                                String serverName = reader.GetString("server_name");
-                                if (_serverInfo.ServerID != -1 && _serverInfo.ServerGroup != -1)
-                                {
-                                    DebugWrite("Attempted server ID and group update after values already chosen.", 5);
-                                }
-                                else {
-                                    _serverInfo.ServerID = serverID;
-                                    _serverInfo.ServerGroup = serverGroup;
-                                    _serverInfo.ServerName = serverName;
-                                    _settingImportID = _serverInfo.ServerID;
-                                    DebugWrite("Server ID fetched: " + _serverInfo.ServerID, 1);
-                                }
+                            if (reader.Read())
+                            {
+                                _serverInfo.ServerID = reader.GetInt64("server_id");
+                                _serverInfo.ServerGroup = reader.GetInt64("server_group");
+                                _serverInfo.ServerName = reader.GetString("server_name");
+                                _settingImportID = _serverInfo.ServerID;
+                                DebugWrite("Server ID fetched: " + _serverInfo.ServerID, 1);
                                 return true;
                             }
                         }
