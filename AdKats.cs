@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.7.4
+ * Version 5.1.7.5
  * 23-OCT-2014
  */
 
@@ -33,7 +33,6 @@ using System.Text.RegularExpressions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
-using System.Web.UI.WebControls.WebParts;
 using System.Windows.Forms;
 using System.CodeDom.Compiler;
 using System.Linq;
@@ -52,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.7.4";
+        private const String PluginVersion = "5.1.7.5";
 
         public enum ConsoleMessageType {
             Normal,
