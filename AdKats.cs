@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.7.5
+ * Version 5.1.7.6
  * 23-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.7.5";
+        private const String PluginVersion = "5.1.7.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -15630,7 +15630,7 @@ namespace PRoConEvents {
                             ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
 
                         //Update server ID
-                        if (_serverInfo.ServerID < 0) {
+                        if (_serverInfo.ServerID <= 0) {
                             //Checking for database server info
                             if (FetchDBServerInfo()) {
                                 ConsoleSuccess("Database server info fetched. Server ID is " + _serverInfo.ServerID + ".");
@@ -17181,7 +17181,7 @@ namespace PRoConEvents {
                         ON DUPLICATE KEY 
                         UPDATE 
                             `setting_value` = @setting_value";
-
+                        ConsoleInfo("Uploading setting with server id = " + _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@setting_name", var.Name);
                         command.Parameters.AddWithValue("@setting_type", var.Type);
