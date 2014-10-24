@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.8.1
+ * Version 5.1.8.2
  * 23-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.8.1";
+        private const String PluginVersion = "5.1.8.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -18613,7 +18613,6 @@ namespace PRoConEvents {
             return onlinePlayers;
         }
 
-
         private AdKatsPlayer FetchMatchingExternalOnlinePlayer(String searchName)
         {
             DebugWrite("FetchMatchingExternalOnlinePlayer starting!", 6);
@@ -18660,8 +18659,10 @@ namespace PRoConEvents {
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             if (reader.Read()) {
+                                ConsoleSuccess(reader.GetString("player_name") + " found! Attempting a fetch for their ID " + reader.GetInt64("player_id"));
                                 aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
                                 if (aPlayer == null) {
+                                    ConsoleError("Fetch failed.");
                                     return null;
                                 }
                                 aPlayer.player_server = new AdKatsServer()
@@ -18669,10 +18670,10 @@ namespace PRoConEvents {
                                     ServerID = reader.GetInt64("server_id"),
                                     ServerName = reader.GetString("server_name")
                                 };
+                                ConsoleSuccess("Fetch success.");
+                                return aPlayer;
                             }
-                            else {
-                                return null;
-                            }
+                            return null;
                         }
                     }
                 }
