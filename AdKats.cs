@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.8.3
- * 23-OCT-2014
+ * Version 5.1.8.4
+ * 24-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.8.3";
+        private const String PluginVersion = "5.1.8.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -14110,6 +14110,8 @@ namespace PRoConEvents {
             DebugWrite("Entering PMSendTarget", 6);
             try
             {
+                record.record_action_executed = true;
+
                 AdKatsPlayer sender = record.source_player;
                 AdKatsPlayer partner = record.target_player;
                 Boolean adminInformedChange = false;
@@ -14252,8 +14254,6 @@ namespace PRoConEvents {
                 {
                     PlayerSayMessage(partner.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
                 }
-
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -15786,7 +15786,9 @@ namespace PRoConEvents {
                                     record.target_player.TargetedRecords.Add(record);
                                 }
                                 //Check for action handling needs
-                                if (!record.record_action_executed && success) {
+                                if (success &&
+                                    !record.record_action_executed && 
+                                    !record.record_orchestrate) {
                                     //Action is only called after initial upload, not after update
                                     DebugWrite("DBCOMM: Upload success. Attempting to add to action queue.", 6);
 
@@ -15796,7 +15798,7 @@ namespace PRoConEvents {
                                     }
                                 }
                                 else {
-                                    DebugWrite("DBCOMM: Update success. Record does not need action handling.", 6);
+                                    DebugWrite("DBCOMM: Record does not need action handling by this server.", 6);
                                     //finalize the record
                                     FinalizeRecord(record);
                                 }
@@ -17415,7 +17417,8 @@ namespace PRoConEvents {
                 if (record.record_id != -1 || record.record_action_executed) {
                     //Record already has a record ID, or action has already been taken, it can only be updated
                     if (record.command_type.command_logging != AdKatsCommand.CommandLogging.Ignore &&
-                        record.command_type.command_logging != AdKatsCommand.CommandLogging.Unable)
+                        record.command_type.command_logging != AdKatsCommand.CommandLogging.Unable && 
+                        !record.record_orchestrate)
                     {
                         if (record.record_exception == null) {
                             //Only call update if the record contained no errors
