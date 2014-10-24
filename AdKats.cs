@@ -18656,6 +18656,8 @@ namespace PRoConEvents {
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@search_name", searchName);
+                        if(_isTestingAuthorized)
+                            PrintPreparedCommand(command);
                         using (MySqlDataReader reader = command.ExecuteReader())
                         {
                             if (reader.Read()) {
