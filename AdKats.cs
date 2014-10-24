@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.8.2
+ * Version 5.1.8.3
  * 23-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.8.2";
+        private const String PluginVersion = "5.1.8.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -8251,6 +8251,12 @@ namespace PRoConEvents {
                                 if (!_surrenderVoteActive)
                                 {
                                     SendMessageToSource(record, "A surrender vote must be active to vote against it.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (record.source_player != null && PlayerIsWinning(record.source_player))
+                                {
+                                    SendMessageToSource(record, "You cannot use !" + GetCommandByKey("self_nosurrender").command_text + " from the winning team.");
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -18649,31 +18655,35 @@ namespace PRoConEvents {
 	                        `tbl_server`.`GameID` = `tbl_playerdata`.`GameID`
                         WHERE
 	                        `tbl_currentplayers`.`ServerID` != @current_server_id 
-                        AND 
-                            `tbl_playerdata`.`SoldierName` LIKE '%@search_name%' 
                         GROUP BY
 	                        `tbl_playerdata`.`PlayerID`";
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
-                        command.Parameters.AddWithValue("@search_name", searchName);
                         if(_isTestingAuthorized)
                             PrintPreparedCommand(command);
-                        using (MySqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read()) {
-                                ConsoleSuccess(reader.GetString("player_name") + " found! Attempting a fetch for their ID " + reader.GetInt64("player_id"));
-                                aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
-                                if (aPlayer == null) {
-                                    ConsoleError("Fetch failed.");
-                                    return null;
+                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                            Boolean found = false;
+                            while (reader.Read()) {
+                                if (Regex.Match(reader.GetString("player_name"), searchName, RegexOptions.IgnoreCase).Success) {
+                                    found = true;
+                                    ConsoleSuccess(reader.GetString("player_name") + " found! Attempting a fetch for their ID " + reader.GetInt64("player_id"));
+                                    aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
+                                    if (aPlayer == null)
+                                    {
+                                        ConsoleError("Fetch failed.");
+                                        return null;
+                                    }
+                                    aPlayer.player_server = new AdKatsServer()
+                                    {
+                                        ServerID = reader.GetInt64("server_id"),
+                                        ServerName = reader.GetString("server_name")
+                                    };
+                                    ConsoleSuccess("Fetch success.");
+                                    return aPlayer;
                                 }
-                                aPlayer.player_server = new AdKatsServer()
-                                {
-                                    ServerID = reader.GetInt64("server_id"),
-                                    ServerName = reader.GetString("server_name")
-                                };
-                                ConsoleSuccess("Fetch success.");
-                                return aPlayer;
+                            }
+                            if (!found) {
+                                ConsoleError("Failed to find matching online player for " + searchName);
                             }
                             return null;
                         }
