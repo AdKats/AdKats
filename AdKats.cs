@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.8.5
+ * Version 5.1.8.6
  * 24-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.8.5";
+        private const String PluginVersion = "5.1.8.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -12451,6 +12451,7 @@ namespace PRoConEvents {
             DebugWrite("Entering moveTarget", 6);
             try
             {
+                record.record_action_executed = true;
                 if (_gameVersion == GameVersion.BF4 && !record.isAliveChecked)
                 {
                     if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
@@ -12467,7 +12468,6 @@ namespace PRoConEvents {
                 QueuePlayerForMove(record.target_player.frostbitePlayerInfo);
                 PlayerSayMessage(record.target_name, "On your next death you will be moved to the opposing team.");
                 SendMessageToSource(record, record.target_name + " will be sent to TeamSwap on their next death.");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for move record.", e);
@@ -12480,7 +12480,9 @@ namespace PRoConEvents {
         public void ForceMoveTarget(AdKatsRecord record) {
             DebugWrite("Entering forceMoveTarget", 6);
             String message = null;
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 if (record.command_type == _CommandKeyDictionary["self_teamswap"]) {
                     if ((record.source_player != null && HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"])) || ((_TeamSwapTicketWindowHigh >= _highestTicketCount) && (_TeamSwapTicketWindowLow <= _lowestTicketCount))) {
                         message = "Calling Teamswap on self";
@@ -12499,7 +12501,6 @@ namespace PRoConEvents {
                     SendMessageToSource(record, "" + record.target_name + " sent to TeamSwap.");
                     QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for force-move/teamswap record.", e);
@@ -12511,9 +12512,10 @@ namespace PRoConEvents {
 
         public void AssistWeakTeam(AdKatsRecord record) {
             DebugWrite("Entering AssistLosingTeam", 6);
-            try {
-                QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
+            try
+            {
                 record.record_action_executed = true;
+                QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for assist record.", e);
@@ -12526,7 +12528,9 @@ namespace PRoConEvents {
         public void KillTarget(AdKatsRecord record) {
             DebugWrite("Entering killTarget", 6);
             String message = null;
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 if (record.source_name != record.target_name) {
                     switch (_gameVersion) {
                         case GameVersion.BF3:
@@ -12592,7 +12596,6 @@ namespace PRoConEvents {
                         PlayerTellMessage(record.target_name, "You killed yourself");
                     }
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for kill record.", e);
@@ -12608,6 +12611,7 @@ namespace PRoConEvents {
             String message = null;
             try
             {
+                record.record_action_executed = true;
                 //Perform actions
                 if (String.IsNullOrEmpty(record.target_player.player_name))
                 {
@@ -12626,7 +12630,6 @@ namespace PRoConEvents {
                         PlayerTellMessage(record.target_name, "You killed yourself");
                     }
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -12642,12 +12645,12 @@ namespace PRoConEvents {
             DebugWrite("Entering DequeueTarget", 6);
             try
             {
+                record.record_action_executed = true;
                 if (record.target_player != null) {
                     DequeuePlayer(record.target_player);
                     PlayerSayMessage(record.target_name, "All queued actions canceled.");
                     SendMessageToSource(record, "All queued actions for " + record.target_name + " canceled.");
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -12699,7 +12702,9 @@ namespace PRoConEvents {
 
         public void KickTarget(AdKatsRecord record) {
             DebugWrite("Entering kickTarget", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 String kickReason = GenerateKickReason(record);
                 //Perform Actions
                 DebugWrite("Kick Message: '" + kickReason + "'", 3);
@@ -12719,7 +12724,6 @@ namespace PRoConEvents {
                         SendMessageToSource(record, "You KICKED " + record.target_name + " for " + record.record_message);
                     }
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for kick record.", e);
@@ -12731,7 +12735,9 @@ namespace PRoConEvents {
 
         public void TempBanTarget(AdKatsRecord record) {
             DebugWrite("Entering tempBanTarget", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 //Subtract 1 second for visual effect
                 Int32 seconds = (record.command_numeric * 60) - 1;
 
@@ -12789,7 +12795,6 @@ namespace PRoConEvents {
                     AdminSayMessage("Player " + record.target_player.player_name + " was BANNED by " + ((_ShowAdminNameInAnnouncement) ? (record.source_name) : ("admin")) + " for " + record.record_message);
                 }
                 SendMessageToSource(record, "You TEMP BANNED " + record.target_name + " for " + FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 3) + ".");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for TempBan record.", e);
@@ -12801,7 +12806,9 @@ namespace PRoConEvents {
 
         public void PermaBanTarget(AdKatsRecord record) {
             DebugWrite("Entering permaBanTarget", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 //Perform Actions
                 //Only post to ban enforcer if there are no exceptions
                 if (_UseBanEnforcer && record.record_exception == null) {
@@ -12856,7 +12863,6 @@ namespace PRoConEvents {
                     AdminSayMessage("Player " + record.target_player.player_name + " was BANNED by " + ((_ShowAdminNameInAnnouncement) ? (record.source_name) : ("admin")) + " for " + record.record_message);
                 }
                 SendMessageToSource(record, "You PERMA BANNED " + record.target_player.player_name + ".");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for PermaBan record.", e);
@@ -12902,12 +12908,12 @@ namespace PRoConEvents {
             DebugWrite("Entering UnBanTarget", 6);
             try
             {
+                record.record_action_executed = true;
                 //Cancel call if not using ban enforcer
                 if (!_UseBanEnforcer || !_UseBanEnforcerPreviousState)
                 {
                     return;
                 }
-                record.record_action_executed = true;
                 if (record.target_player == null) {
                     ConsoleError("Player was null when attempting to unban.");
                     FinalizeRecord(record);
@@ -12982,7 +12988,9 @@ namespace PRoConEvents {
 
         public void PunishTarget(AdKatsRecord record) {
             DebugWrite("Entering punishTarget", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 //If the record has any exceptions, skip everything else and just kill the player
                 if (record.record_exception == null) {
                     //Get number of points the player from server
@@ -13098,7 +13106,6 @@ namespace PRoConEvents {
                     record.command_action = _CommandKeyDictionary["player_kill"];
                     KillTarget(record);
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for Punish record.", e);
@@ -13110,14 +13117,15 @@ namespace PRoConEvents {
 
         public void ForgiveTarget(AdKatsRecord record) {
             DebugWrite("Entering forgiveTarget", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 //If the record has any exceptions, skip everything
                 if (record.record_exception == null) {
                     Int32 points = FetchPoints(record.target_player, false);
                     PlayerSayMessage(record.target_player.player_name, "Forgiven 1 infraction point. You now have " + points + " point(s) against you.");
                     SendMessageToSource(record, "Forgive Logged for " + record.target_player.player_name + ". They now have " + points + " infraction points.");
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for Forgive record.", e);
@@ -13622,7 +13630,9 @@ namespace PRoConEvents {
 
         public void MuteTarget(AdKatsRecord record) {
             DebugWrite("Entering muteTarget", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 if (!HasAccess(record.target_player, _CommandKeyDictionary["player_mute"])) {
                     if (!_RoundMutedPlayers.ContainsKey(record.target_player.player_name)) {
                         _RoundMutedPlayers.Add(record.target_player.player_name, 0);
@@ -13636,7 +13646,6 @@ namespace PRoConEvents {
                 else {
                     SendMessageToSource(record, "You can't mute an admin.");
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for Mute record.", e);
@@ -13651,6 +13660,7 @@ namespace PRoConEvents {
             DebugWrite("Entering joinTarget", 6);
             try
             {
+                record.record_action_executed = true;
                 //Get source player
                 AdKatsPlayer sourcePlayer = null;
                 if (_PlayerDictionary.TryGetValue(record.source_name, out sourcePlayer))
@@ -13684,7 +13694,6 @@ namespace PRoConEvents {
                 {
                     SendMessageToSource(record, "Unable to find you in the player list, please try again.");
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -13700,6 +13709,7 @@ namespace PRoConEvents {
             DebugWrite("Entering PullTarget", 6);
             try
             {
+                record.record_action_executed = true;
                 //Unlock squad
                 SendMessageToSource(record, "Unlocking source squad for player entry.");
                 ExecuteCommand("procon.protected.send", "squad.private", record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "false");
@@ -13711,7 +13721,6 @@ namespace PRoConEvents {
                 ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "true");
                 _LastPlayerMoveIssued = DateTime.UtcNow;
                 SendMessageToSource(record, "Attempting to pull " + record.target_player.player_name);
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -13832,6 +13841,7 @@ namespace PRoConEvents {
                 } while (_RoundReports.ContainsKey(reportID + ""));
                 record.command_numeric = reportID;
                 _RoundReports.Add(reportID + "", record);
+                record.record_action_executed = true;
                 AttemptReportAutoAction(record, reportID + "");
                 String sourceAAIdentifier = (record.source_player != null && record.source_player.player_aa) ? ("[AA]") : ("");
                 String targetAAIdentifier = (record.target_player != null && record.target_player.player_aa) ? ("[AA]") : ("");
@@ -13890,7 +13900,6 @@ namespace PRoConEvents {
                         _EmailHandler.SendReport(record);
                     }
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for CallAdmin record.", e);
@@ -13973,10 +13982,11 @@ namespace PRoConEvents {
 
         public void RestartLevel(AdKatsRecord record) {
             DebugWrite("Entering restartLevel", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 ExecuteCommand("procon.protected.send", "mapList.restartRound");
                 SendMessageToSource(record, "Round Restarted.");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for RestartLevel record.", e);
@@ -13988,10 +13998,11 @@ namespace PRoConEvents {
 
         public void NextLevel(AdKatsRecord record) {
             DebugWrite("Entering nextLevel", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 ExecuteCommand("procon.protected.send", "mapList.runNextRound");
                 SendMessageToSource(record, "Next round has been run.");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for NextLevel record.", e);
@@ -14003,10 +14014,11 @@ namespace PRoConEvents {
 
         public void EndLevel(AdKatsRecord record) {
             DebugWrite("Entering forgiveTarget", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 ExecuteCommand("procon.protected.send", "mapList.endRound", record.command_numeric + "");
                 SendMessageToSource(record, "Ended round with " + record.target_name + " as winner.");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for EndLevel record.", e);
@@ -14018,7 +14030,9 @@ namespace PRoConEvents {
 
         public void NukeTarget(AdKatsRecord record) {
             DebugWrite("Entering nukeTarget", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 lock (_PlayerDictionary) {
                     foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"))) {
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
@@ -14026,7 +14040,6 @@ namespace PRoConEvents {
                     }
                 }
                 SendMessageToSource(record, "You NUKED " + record.target_name + " for " + record.record_message + ".");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for NukeServer record.", e);
@@ -14038,14 +14051,15 @@ namespace PRoConEvents {
 
         public void SwapNukeServer(AdKatsRecord record) {
             DebugWrite("Entering SwapNukeServer", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 lock (_PlayerDictionary) {
                     foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(aPlayer => aPlayer.player_type == PlayerType.Player)) {
                         QueuePlayerForForceMove(player.frostbitePlayerInfo);
                     }
                 }
                 SendMessageToSource(record, "You SwapNuked the server.");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for SwapNuke record.", e);
@@ -14057,7 +14071,9 @@ namespace PRoConEvents {
 
         public void KickAllPlayers(AdKatsRecord record) {
             DebugWrite("Entering kickAllPlayers", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 lock (_PlayerDictionary) {
                     foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => player.player_role.role_key == "guest_default")) {
                         _threadMasterWaitHandle.WaitOne(50);
@@ -14066,7 +14082,6 @@ namespace PRoConEvents {
                 }
                 AdminSayMessage("All guest players have been kicked.");
                 SendMessageToSource(record, "You KICKED EVERYONE for '" + record.record_message + "'");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for KickAll record.", e);
@@ -14078,12 +14093,13 @@ namespace PRoConEvents {
 
         public void AdminSay(AdKatsRecord record) {
             DebugWrite("Entering adminSay", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 AdminSayMessage(record.record_message);
                 if (record.record_source != AdKatsRecord.Sources.InGame && record.record_source != AdKatsRecord.Sources.ServerCommand) {
                     SendMessageToSource(record, "Server has been told '" + record.record_message + "' by SAY");
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for AdminSay record.", e);
@@ -14095,10 +14111,11 @@ namespace PRoConEvents {
 
         public void PlayerSay(AdKatsRecord record) {
             DebugWrite("Entering playerSay", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 PlayerSayMessage(record.target_player.player_name, record.record_message);
                 SendMessageToSource(record, record.target_player.player_name + " has been told '" + record.record_message + "' by SAY");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for playerSay record.", e);
@@ -14272,6 +14289,7 @@ namespace PRoConEvents {
             DebugWrite("Entering PMReplyTarget", 6);
             try
             {
+                record.record_action_executed = true;
                 AdKatsPlayer sender = record.source_player;
                 AdKatsPlayer partner = record.target_player;
                 if (PlayerIsExternal(partner))
@@ -14295,7 +14313,6 @@ namespace PRoConEvents {
                     PlayerSayMessage(partner.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
                 }
                 PlayerSayMessage(sender.player_name, "(MSG)(" + sender.player_name + "): " + record.record_message);
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -14420,6 +14437,8 @@ namespace PRoConEvents {
             DebugWrite("Entering PMTransmitTarget", 6);
             try
             {
+                record.record_action_executed = true;
+
                 AdKatsPlayer sender = record.source_player;
                 AdKatsPlayer partner = record.target_player;
                 Boolean adminInformedChange = false;
@@ -14470,10 +14489,10 @@ namespace PRoConEvents {
         public void PMOnlineAdmins(AdKatsRecord record)
         {
             DebugWrite("Entering PMAdmin", 6);
-            try 
+            try
             {
-                OnlineAdminSayMessage("(MSG)(" + record.source_name + "): " + record.record_message);
                 record.record_action_executed = true;
+                OnlineAdminSayMessage("(MSG)(" + record.source_name + "): " + record.record_message);
             }
             catch (Exception e)
             {
@@ -14486,13 +14505,14 @@ namespace PRoConEvents {
 
         public void AdminYell(AdKatsRecord record) {
             DebugWrite("Entering adminYell", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 AdminYellMessage(record.record_message);
                 if (record.record_source != AdKatsRecord.Sources.InGame && record.record_source != AdKatsRecord.Sources.ServerCommand)
                 {
                     SendMessageToSource(record, "Server has been told '" + record.record_message + "' by YELL");
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for AdminYell record.", e);
@@ -14504,10 +14524,11 @@ namespace PRoConEvents {
 
         public void PlayerYell(AdKatsRecord record) {
             DebugWrite("Entering playerYell", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 PlayerYellMessage(record.target_player.player_name, record.record_message);
                 SendMessageToSource(record, record.target_player.player_name + " has been told '" + record.record_message + "' by YELL");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for playerYell record.", e);
@@ -14519,13 +14540,14 @@ namespace PRoConEvents {
 
         public void AdminTell(AdKatsRecord record) {
             DebugWrite("Entering adminTell", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 AdminTellMessage(record.record_message);
                 if (record.record_source != AdKatsRecord.Sources.InGame && record.record_source != AdKatsRecord.Sources.ServerCommand)
                 {
                     SendMessageToSource(record, "Server has been told '" + record.record_message + "' by TELL");
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for AdminYell record.", e);
@@ -14537,10 +14559,11 @@ namespace PRoConEvents {
 
         public void PlayerTell(AdKatsRecord record) {
             DebugWrite("Entering playerTell", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 PlayerTellMessage(record.target_player.player_name, record.record_message);
                 SendMessageToSource(record, record.target_player.player_name + " has been told '" + record.record_message + "' by TELL");
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while taking action for playerTell record.", e);
@@ -14555,6 +14578,7 @@ namespace PRoConEvents {
             DebugWrite("Entering sendServerRules", 6);
             try
             {
+                record.record_action_executed = true;
                 //If server has rules
                 if (_ServerRulesList.Length > 0)
                 {
@@ -14615,8 +14639,6 @@ namespace PRoConEvents {
                     //Start the thread
                     StartAndLogThread(rulePrinter);
                 }
-                //Set the executed bool
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -14632,7 +14654,6 @@ namespace PRoConEvents {
             DebugWrite("Entering SourceVoteSurrender", 6);
             try
             {
-                //Set the executed bool
                 record.record_action_executed = true;
 
                 //Case for database added records 
@@ -14795,7 +14816,6 @@ namespace PRoConEvents {
             DebugWrite("Entering SourceVoteNoSurrender", 6);
             try
             {
-                //Set the executed bool
                 record.record_action_executed = true;
 
                 //Case for database added records 
@@ -14851,7 +14871,9 @@ namespace PRoConEvents {
         public void SendServerCommands(AdKatsRecord record)
         {
             DebugWrite("Entering SendServerCommands", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 var commandPrinter = new Thread(new ThreadStart(delegate
                 {
                     DebugWrite("Starting a command printer thread.", 5);
@@ -14906,8 +14928,6 @@ namespace PRoConEvents {
                 {
                     SendMessageToSource(record, "Telling server commands to " + record.target_name);
                 }
-                //Set the executed bool
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -14921,7 +14941,9 @@ namespace PRoConEvents {
         public void SendTargetRep(AdKatsRecord record)
         {
             DebugWrite("Entering SendTargetRep", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 var isAdmin = PlayerIsAdmin(record.target_player);
                 if (record.source_name == record.target_name) {
                     SendMessageToSource(record, "Your server reputation is " + ((!isAdmin) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)) + ((record.target_player.player_reputation > _reputationThresholdBad && (!isAdmin)) ? (", thank you for helping the admins!") : ("")));
@@ -14929,8 +14951,6 @@ namespace PRoConEvents {
                 else {
                     SendMessageToSource(record, record.target_player.player_name + "'s server reputation is " + ((!isAdmin) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)));
                 }
-                //Set the executed bool
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -14943,7 +14963,9 @@ namespace PRoConEvents {
         
         public void SendUptime(AdKatsRecord record) {
             DebugWrite("Entering SendUptime", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 var uptimePrinter = new Thread(new ThreadStart(delegate {
                     DebugWrite("Starting a uptime printer thread.", 5);
                     try {
@@ -14974,8 +14996,6 @@ namespace PRoConEvents {
 
                 //Start the thread
                 StartAndLogThread(uptimePrinter);
-                //Set the executed bool
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while sending uptime.", e);
@@ -14990,6 +15010,7 @@ namespace PRoConEvents {
             DebugWrite("Entering SendRoundReports", 6);
             try
             {
+                record.record_action_executed = true;
                 List<AdKatsRecord> lastMissedReports = _RoundReports.Values.OrderByDescending(aRecord => aRecord.record_time).Take(6).Reverse().ToList();
                 Boolean listed = false;
                 foreach (var rRecord in lastMissedReports) {
@@ -15010,8 +15031,6 @@ namespace PRoConEvents {
                 if (!listed) {
                     SendMessageToSource(record, "No missed round reports were found.");
                 }
-                //Set the executed bool
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -15025,15 +15044,15 @@ namespace PRoConEvents {
         public void RebootPlugin(AdKatsRecord record)
         {
             DebugWrite("Entering RebootPlugin", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 _pluginRebootOnDisable = true;
                 if (record.record_source == AdKatsRecord.Sources.InGame) {
                     _pluginRebootOnDisableSource = record.source_name;
                 }
                 SendMessageToSource(record, "Rebooting AdKats.");
                 Disable();
-                //Set the executed bool
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -15049,9 +15068,8 @@ namespace PRoConEvents {
             DebugWrite("Entering ShutdownServer", 6);
             try
             {
-                ExecuteCommand("procon.protected.send", "admin.shutDown");
-                //Set the executed bool
                 record.record_action_executed = true;
+                ExecuteCommand("procon.protected.send", "admin.shutDown");
             }
             catch (Exception e)
             {
@@ -15067,6 +15085,7 @@ namespace PRoConEvents {
             DebugWrite("Entering SendTargetInfo", 6);
             try
             {
+                record.record_action_executed = true;
                 var infoPrinter = new Thread(new ThreadStart(delegate
                 {
                     DebugWrite("Starting a player info printer thread.", 5);
@@ -15219,8 +15238,6 @@ namespace PRoConEvents {
 
                 //Start the thread
                 StartAndLogThread(infoPrinter);
-                //Set the executed bool
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -15236,6 +15253,7 @@ namespace PRoConEvents {
             DebugWrite("Entering SendTargetChat", 6);
             try
             {
+                record.record_action_executed = true;
                 var chatPrinter = new Thread(new ThreadStart(delegate
                 {
                     DebugWrite("Starting a player chat printer thread.", 5);
@@ -15292,8 +15310,6 @@ namespace PRoConEvents {
 
                 //Start the thread
                 StartAndLogThread(chatPrinter);
-                //Set the executed bool
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -15309,6 +15325,7 @@ namespace PRoConEvents {
             DebugWrite("Entering FindTarget", 6);
             try
             {
+                record.record_action_executed = true;
                 if (record.target_player == null)
                 {
                     ConsoleError("Player null when finding player.");
@@ -15327,8 +15344,6 @@ namespace PRoConEvents {
                     playerInfo += "OFFLINE";
                 }
                 SendMessageToSource(record, playerInfo);
-                //Set the executed bool
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -15420,9 +15435,8 @@ namespace PRoConEvents {
                     ConsoleError("Player null when marking player.");
                     return;
                 }
-                SendMessageToSource(record, record.target_name + " marked for leave notification.");
-                //Set the executed bool
                 record.record_action_executed = true;
+                SendMessageToSource(record, record.target_name + " marked for leave notification.");
             }
             catch (Exception e)
             {
@@ -15438,6 +15452,7 @@ namespace PRoConEvents {
             DebugWrite("Entering ManageAFKPlayers", 6);
             try
             {
+                record.record_action_executed = true;
                 if(_PlayerDictionary.Count < _AFKTriggerMinimumPlayers)
                 {
                     SendMessageToSource(record, "Server contains less than " + _AFKTriggerMinimumPlayers + ", unable to kick AFK players.");
@@ -15477,8 +15492,6 @@ namespace PRoConEvents {
                 else {
                     SendMessageToSource(record, "No AFK players found or kickable.");
                 }
-                //Set the executed bool
-                record.record_action_executed = true;
             }
             catch (Exception e)
             {
@@ -15491,7 +15504,9 @@ namespace PRoConEvents {
 
         public void SendOnlineAdmins(AdKatsRecord record) {
             DebugWrite("Entering SendOnlineAdmins", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 var onlineAdminList = FetchOnlineAdminSoldiers();
                 String onlineAdmins = "Admins: [" + onlineAdminList.Count + " Online] ";
                 onlineAdmins = onlineAdminList.Aggregate(onlineAdmins, (current, aPlayer) => current + (
@@ -15505,8 +15520,6 @@ namespace PRoConEvents {
                     "), "));
                 //Send online admins
                 SendMessageToSource(record, onlineAdmins.Trim().TrimEnd(','));
-                //Set the executed bool
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while sending online admins.", e);
@@ -15518,13 +15531,14 @@ namespace PRoConEvents {
 
         public void LeadCurrentSquad(AdKatsRecord record) {
             DebugWrite("Entering LeadCurrentSquad", 6);
-            try {
+            try
+            {
+                record.record_action_executed = true;
                 ExecuteCommand("procon.protected.send", "squad.leader", record.target_player.frostbitePlayerInfo.TeamID.ToString(), record.target_player.frostbitePlayerInfo.SquadID.ToString(), record.target_player.player_name);
                 PlayerSayMessage(record.target_player.player_name, "You are now the leader of your current squad.");
                 if (record.source_name != record.target_name) {
                     SendMessageToSource(record, record.target_player.player_name + " is now the leader of their current squad.");
                 }
-                record.record_action_executed = true;
             }
             catch (Exception e) {
                 record.record_exception = new AdKatsException("Error while leading curring squad.", e);
