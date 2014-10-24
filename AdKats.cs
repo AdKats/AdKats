@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.8.4
+ * Version 5.1.8.5
  * 24-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.8.4";
+        private const String PluginVersion = "5.1.8.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4323,6 +4323,9 @@ namespace PRoConEvents {
                                             aRecord.command_action.command_key != "player_repboost" &&
                                             aRecord.command_action.command_key != "player_pm_send" &&
                                             aRecord.command_action.command_key != "player_pm_reply" &&
+                                            aRecord.command_action.command_key != "player_pm_start" &&
+                                            aRecord.command_action.command_key != "player_pm_transmit" &&
+                                            aRecord.command_action.command_key != "player_pm_cancel" &&
                                             !aRecord.command_action.command_key.Contains("self_")).ToList();
                                     if (meaningfulRecords.Any()) {
                                         List<String> types = (from record in meaningfulRecords select record.command_action.command_name).Distinct().ToList();
@@ -17675,10 +17678,6 @@ namespace PRoConEvents {
 
                         //Get reference to the command in case of error
                         //Attempt to execute the query
-                        if (_isTestingAuthorized)
-                        {
-                            PrintPreparedCommand(command);
-                        }
                         if (command.ExecuteNonQuery() > 0) {
                             success = true;
                             record.record_id = command.LastInsertedId;
@@ -18662,18 +18661,12 @@ namespace PRoConEvents {
 	                        `tbl_playerdata`.`PlayerID`";
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
-                        if(_isTestingAuthorized)
-                            PrintPreparedCommand(command);
                         using (MySqlDataReader reader = command.ExecuteReader()) {
-                            Boolean found = false;
                             while (reader.Read()) {
                                 if (Regex.Match(reader.GetString("player_name"), searchName, RegexOptions.IgnoreCase).Success) {
-                                    found = true;
-                                    ConsoleSuccess(reader.GetString("player_name") + " found! Attempting a fetch for their ID " + reader.GetInt64("player_id"));
                                     aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
                                     if (aPlayer == null)
                                     {
-                                        ConsoleError("Fetch failed.");
                                         return null;
                                     }
                                     aPlayer.player_server = new AdKatsServer()
@@ -18681,12 +18674,8 @@ namespace PRoConEvents {
                                         ServerID = reader.GetInt64("server_id"),
                                         ServerName = reader.GetString("server_name")
                                     };
-                                    ConsoleSuccess("Fetch success.");
                                     return aPlayer;
                                 }
-                            }
-                            if (!found) {
-                                ConsoleError("Failed to find matching online player for " + searchName);
                             }
                             return null;
                         }
@@ -18700,7 +18689,6 @@ namespace PRoConEvents {
             DebugWrite("FetchMatchingExternalOnlinePlayer finished!", 6);
             return aPlayer;
         }
-
         
         private void RunPluginOrchestration() {
             DebugWrite("RunPluginOrchestration starting!", 6);
