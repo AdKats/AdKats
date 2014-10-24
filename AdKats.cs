@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.8.6
+ * Version 5.1.8.7
  * 24-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.8.6";
+        private const String PluginVersion = "5.1.8.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -11151,7 +11151,7 @@ namespace PRoConEvents {
                                     record.record_message = GetPreMessage(parameters[1], false);
                                     DebugWrite("message: " + record.record_message, 6);
 
-                                    CompleteTargetInformation(record, false, false, true);
+                                    CompleteTargetInformation(record, false, false, false, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -11627,7 +11627,7 @@ namespace PRoConEvents {
         public Boolean FetchPlayerFromName(String playerNameInput, Boolean includeLeftPlayers, Boolean externalFetchOverFuzzy, Boolean externalOnlineFetchOverFuzzy, out AdKatsPlayer aPlayer, out Boolean confirmNeeded, out String resultMessage)
         {
             //Set default return values
-            resultMessage = "Error finding player for '" + playerNameInput + "'";
+            resultMessage = "No valid player found for '" + playerNameInput + "'";
             confirmNeeded = false;
             aPlayer = null;
             try
