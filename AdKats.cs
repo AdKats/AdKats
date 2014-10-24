@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.8.7
+ * Version 5.1.8.8
  * 24-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.8.7";
+        private const String PluginVersion = "5.1.8.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4312,36 +4312,41 @@ namespace PRoConEvents {
                                 CPlayerInfo playerInfo = inboundPlayerRemoval.Dequeue();
                                 AdKatsPlayer aPlayer;
                                 if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
-                                    List<AdKatsRecord> meaningfulRecords = aPlayer.TargetedRecords.Where(
-                                        aRecord => 
-                                            aRecord.command_action.command_key != "player_kick" && 
-                                            aRecord.command_action.command_key != "player_ban_temp" && 
-                                            aRecord.command_action.command_key != "player_ban_perm" && 
-                                            aRecord.command_action.command_key != "banenforcer_enforce" &&
-                                            aRecord.command_action.command_key != "player_changeip" &&
-                                            aRecord.command_action.command_key != "player_changename" &&
-                                            aRecord.command_action.command_key != "player_repboost" &&
-                                            aRecord.command_action.command_key != "player_pm_send" &&
-                                            aRecord.command_action.command_key != "player_pm_reply" &&
-                                            aRecord.command_action.command_key != "player_pm_start" &&
-                                            aRecord.command_action.command_key != "player_pm_transmit" &&
-                                            aRecord.command_action.command_key != "player_pm_cancel" &&
-                                            !aRecord.command_action.command_key.Contains("self_")).ToList();
-                                    if (meaningfulRecords.Any()) {
-                                        List<String> types = (from record in meaningfulRecords select record.command_action.command_name).Distinct().ToList();
-                                        String typeString = types.Aggregate("[", (current, type) => current + (type + ", "));
-                                        typeString = typeString.Trim().TrimEnd(',') + "]";
-                                        if (_ShowTargetedPlayerLeftNotification)
+                                    if (!aPlayer.TargetedRecords.Any(aRecord => 
+                                        aRecord.command_action.command_key != "player_kick" && 
+                                        aRecord.command_action.command_key != "player_ban_temp" && 
+                                        aRecord.command_action.command_key != "player_ban_perm")) {
+                                        List<AdKatsRecord> meaningfulRecords = aPlayer.TargetedRecords.Where(
+                                            aRecord =>
+                                                aRecord.command_action.command_key != "banenforcer_enforce" &&
+                                                aRecord.command_action.command_key != "player_changeip" &&
+                                                aRecord.command_action.command_key != "player_changename" &&
+                                                aRecord.command_action.command_key != "player_repboost" &&
+                                                aRecord.command_action.command_key != "player_pm_send" &&
+                                                aRecord.command_action.command_key != "player_pm_reply" &&
+                                                aRecord.command_action.command_key != "player_pm_start" &&
+                                                aRecord.command_action.command_key != "player_pm_transmit" &&
+                                                aRecord.command_action.command_key != "player_pm_cancel" &&
+                                                !aRecord.command_action.command_key.Contains("self_")).ToList();
+                                        if (meaningfulRecords.Any())
                                         {
-                                            OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server from " + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " team. " + typeString);
-                                        }
-                                        List<AdKatsRecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
-                                        var reporters = new Dictionary<string, AdKatsPlayer>();
-                                        foreach (AdKatsRecord report in reports.Where(report => report.source_player != null)) {
-                                            reporters[report.source_player.player_name] = report.source_player;
-                                        }
-                                        foreach (AdKatsPlayer player in reporters.Values) {
-                                            PlayerSayMessage(player.player_name, "Player " + aPlayer.player_name + " you reported has left the server.");
+                                            List<String> types = (from record in meaningfulRecords select record.command_action.command_name).Distinct().ToList();
+                                            String typeString = types.Aggregate("[", (current, type) => current + (type + ", "));
+                                            typeString = typeString.Trim().TrimEnd(',') + "]";
+                                            if (_ShowTargetedPlayerLeftNotification)
+                                            {
+                                                OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server from " + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " team. " + typeString);
+                                            }
+                                            List<AdKatsRecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
+                                            var reporters = new Dictionary<string, AdKatsPlayer>();
+                                            foreach (AdKatsRecord report in reports.Where(report => report.source_player != null))
+                                            {
+                                                reporters[report.source_player.player_name] = report.source_player;
+                                            }
+                                            foreach (AdKatsPlayer player in reporters.Values)
+                                            {
+                                                PlayerSayMessage(player.player_name, "Player " + aPlayer.player_name + " you reported has left the server.");
+                                            }
                                         }
                                     }
                                     //Add player to the left dictionary
@@ -21219,6 +21224,7 @@ namespace PRoConEvents {
         private void UpdateCommandTimeouts() {
             //Add rules timeout
             _commandTimeoutDictionary["self_rules"] = (plugin => (plugin._ServerRulesList.Count() * plugin._ServerRulesInterval));
+            _commandTimeoutDictionary["player_punish"] = (plugin => (20));
             _commandTimeoutDictionary["player_kick"] = (plugin => (30));
             _commandTimeoutDictionary["player_blacklistdisperse"] = (plugin => (30));
             _commandTimeoutDictionary["player_ban_temp"] = (plugin => (30));
