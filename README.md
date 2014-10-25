@@ -21,11 +21,7 @@
     </li>
     <li>
         <b>Editable Ranks and Roles.</b>
-        Custom ranks and roles can be created for users, with each role given access to only the commands you want them
-        to use.
-        Default guest role is given to all players, and can be edited to your desired specs.
-        All roles and powers are automatically synced between servers, so you only need to change user information once.
-        Soldiers assigned to users will also keep their powers even if they change their in-game names.
+        Custom ranks and roles can be created for users, with each role given access to only the commands you want them to use. Default guest role is given to all players, and can be edited to your desired specs. Roles and powers are automatically synced between servers, so you only need to change user information once. Soldiers assigned to users will also keep their powers even if they change their in-game names.
     </li>
     <li>
         <b>Setting sync between servers.</b>
@@ -57,10 +53,7 @@
     </li>
     <li>
         <b>AdKats Ban Enforcer.</b>
-        AdKats can enforce bans across all of your servers, and can enforce on all metrics at the same time.
-        System can automatically import all Procon bans from all your servers and
-        consolidate them, and will import any existing bans from the BF3 Ban Manager plugin's tables.
-        Full documentation below.
+        AdKats can enforce bans across all of your servers, and can enforce on all metrics at the same time. System will automatically import bans from your servers and consolidate them, and can import existing bans from the BF3 Ban Manager plugin's tables. Full documentation below.
     </li>
     <li>
         <b>BF3/BF4 "Hacker-Checker" with Whitelist.</b>
@@ -162,7 +155,7 @@
     </li>
     <li>
         <b>Editable In-Game Commands.</b>
-        All command text, logging options, and enable options can be edited to suit your needs.
+        Command text, logging options, and enable options can be edited to suit your needs.
     </li>
     <li>
         <b>Full Logging.</b>
@@ -173,8 +166,7 @@
     </li>
     <li>
         <b>Setting Lock.</b>
-        All settings in AdKats can be locked with a password.
-        This means even admins with access to plugin settings can be blocked from changes using the password.
+        The settings page in AdKats can be locked with a password. This means even admins with access to plugin settings can be blocked from changes using the password.
     </li>
     <li>
         <b>Performance.</b>
@@ -330,7 +322,7 @@
     The default role is "Default Guest" and the allowed commands for that role are shown to you in the role section.
     The default guest role cannot be deleted, but can be edited to your heart's content.
     You can add more roles by typing a new role name in the "add role" field.
-    All roles that are added default to allow all commands, so you will need to edit the allowed commands for new roles.
+    Any newly added roles default to allow all commands, so you will need to edit the allowed commands for new roles.
     When you change a user's role and they are currently in-game they will be told that their role has changed, and what
     it was changed to.
 </p>
@@ -354,7 +346,7 @@
 <h3>Full Logging</h3>
 <p>
     All commands, their usage, who used them, who they were targeted on, why, when they were used, and where from, are
-    all logged in the database.
+    logged in the database.
     All plugin actions are additionally stored in Procon's event log for review without connecting to the database.
     Player's name/IP changes are logged and the records connected to their player ID, so tracking players is easier.
 </p>
@@ -487,7 +479,7 @@
 <h3>Ban Enforcer</h3>
 <p>
     AdKats can enforce bans across all of your servers.
-    The Ban Enforcer will import and consolidate all bans from every Procon instance you run.
+    The Ban Enforcer will import and consolidate bans from every Procon instance you run.
     Bans can be made by name, GUID, IP, any combination, or all at once.
     The default ban is by EA GUID only, this default can be edited but is not recommended.
     Banned players are told how long their ban will last, and when a banned player attempts to re-join they are told the
@@ -495,7 +487,7 @@
     Using ban enforcer also gives access to the unban and future-ban commands.
 </p>
 <p>
-    The Enforcer works properly with all existing auto-admins, and any bans added manually through Procon will be
+    The Enforcer works properly with existing auto-admins, and any bans added manually through Procon will be
     automatically imported by the system.
     A mini-ban-management section is added to the plugin settings when you enable this, however, for full fledged ban
     management it helps to run the BFAdminCP 2.0+ by Prophet731.
@@ -525,16 +517,16 @@
 <h3>Report/CallAdmin System w/Email Support</h3>
 <p>
     When a player puts in a proper @report or @admin all in-game admins are notified.
-    All reports are logged in the database with full player names for reporter/target, and the full reason for
+    Reports are logged in the database with full player names for reporter/target, and the full reason for
     reporting.
-    All uses of @report and @admin with this plugin require players to enter a reason, and will tell them if they
+    Uses of @report and @admin with this plugin require players to enter a reason, and will tell them if they
     haven't entered one.
     It will not send the report to admins unless reports are complete, which cleans up what admins end up seeing for
     reports.
 </p>
 <h4>Using Report IDs</h4>
 <p>
-    All reports and calls are issued a random three digit ID which expires either at the end of each round, or when it
+    Reports and calls are issued a random three digit ID which expires either at the end of each round, or when it
     is used.
     These ID's can be used in any other action command, simply use that ID instead of a player-name and reason
     (e.g. waffleman73 baserapes, another player reports them and gets report ID 582, admins just use @punish 582 instead
@@ -679,7 +671,7 @@
 </p>
 <h3>Requiring Reasons</h3>
 <p>
-    All commands which might lead to actions against players are required to have a reason entered, and will cancel if
+    Any ommand which might lead to actions against players are required to have a reason entered, and will cancel if
     no reason is given.
     Players (even the most atrocious in some cases) should know what they were acted on for, and it's also a good way to
     hold admins accountable for their actions.
@@ -690,10 +682,10 @@
 <h3>Setting Sync</h3>
 <p>
     Plugin settings are automatically synced to layers every 5 minutes from their particular server IDs.
-    All settings for each plugin instance are stored in the database by server ID.
+    Settings for each plugin instance are stored in the database by server ID.
     Enter an existing server ID in the setting import field and all settings from that instance will be imported to this
     instance.
-    All settings on the current instance will be overwritten by the synced settings.
+    Settings on the current instance will be overwritten by the synced settings.
     Whenever a setting is changed, that change is persisted to the database.
 </p>
 <h3>Special Player Lists</h3>
