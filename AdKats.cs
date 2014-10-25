@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.9.1
+ * Version 5.1.9.2
  * 25-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.9.1";
+        private const String PluginVersion = "5.1.9.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4366,8 +4366,8 @@ namespace PRoConEvents {
                                 if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
                                     //Show leaving messages
                                     if (!aPlayer.TargetedRecords.Any(aRecord => 
-                                        aRecord.command_action.command_key == "player_kick" && 
-                                        aRecord.command_action.command_key == "player_ban_temp" && 
+                                        aRecord.command_action.command_key == "player_kick" || 
+                                        aRecord.command_action.command_key == "player_ban_temp" || 
                                         aRecord.command_action.command_key == "player_ban_perm")) {
                                         List<AdKatsRecord> meaningfulRecords = aPlayer.TargetedRecords.Where(
                                             aRecord =>
@@ -16037,12 +16037,12 @@ namespace PRoConEvents {
                                 Double slOffset = DateTime.UtcNow.Subtract(DateTime.Now).TotalHours;
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Servertime Offset", slOffset + "");
                             }
-                            if (_FeedStatLoggerSettings || _PostStatLoggerChatManually)
+                            if (_PostStatLoggerChatManually)
                             {
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "No");
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "No");
                             }
-                            else
+                            else if (_FeedStatLoggerSettings)
                             {
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Enable Chatlogging?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Instant Logging of Chat Messages?", "Yes");
@@ -16063,12 +16063,12 @@ namespace PRoConEvents {
                                 Double slOffset = DateTime.UtcNow.Subtract(DateTime.Now).TotalHours;
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Servertime Offset", slOffset + "");
                             }
-                            if (_FeedStatLoggerSettings || _PostStatLoggerChatManually)
+                            if (_PostStatLoggerChatManually)
                             {
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Chatlogging?", "No");
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Instant Logging of Chat Messages?", "No");
                             }
-                            else
+                            else if (_FeedStatLoggerSettings)
                             {
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Enable Chatlogging?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Instant Logging of Chat Messages?", "Yes");
