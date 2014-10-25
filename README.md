@@ -206,6 +206,7 @@
     <a name=manual />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_UserManual.jpg" alt="AdKats User Manual">
 </p>
+<HR>
 <p>
     <a name=dependencies />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Dependencies.jpg" alt="AdKats User Manual">
@@ -594,7 +595,7 @@
     @accept, @ignore, and @deny commands.
     @accept will confirm the report but take no action against the target player.
     @ignore is used for bad or invalid reports, the report is removed from the list and no action is taken.
-    @deny is for malicious reports and abuse of the report system, this command will destroy a reporter's reputation and 
+    @deny is for malicious reports and abuse of the report system, this command will destroy a reporter's reputation and
     hurt their AA status.<br/><br/>
 
     Exceptions and Security Measures:
