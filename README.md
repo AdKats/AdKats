@@ -17,10 +17,7 @@
 <ul>
     <li>
         <b>Extensive In-Game Commands.</b>
-        Commands for player killing, kicking, punishing, banning, unbanning, moving, joining, whitelisting, messaging,
-        etc, etc... ~70 available in-game commands.
-        Commands can be accessed from almost anywhere: In-game, Procon's chat window, database, HTTP server, other
-        plugins, etc, etc...
+        Commands for player killing, kicking, punishing, banning, unbanning, moving, joining, whitelisting, messaging, etc, etc... ~70 available in-game commands. Commands can be accessed from in-game, Procon's chat window, database, HTTP server, and from other plugins.
     </li>
     <li>
         <b>Editable Ranks and Roles.</b>
