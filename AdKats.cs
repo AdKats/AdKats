@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.9.0
+ * Version 5.1.9.1
  * 25-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.9.0";
+        private const String PluginVersion = "5.1.9.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4366,9 +4366,9 @@ namespace PRoConEvents {
                                 if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
                                     //Show leaving messages
                                     if (!aPlayer.TargetedRecords.Any(aRecord => 
-                                        aRecord.command_action.command_key != "player_kick" && 
-                                        aRecord.command_action.command_key != "player_ban_temp" && 
-                                        aRecord.command_action.command_key != "player_ban_perm")) {
+                                        aRecord.command_action.command_key == "player_kick" && 
+                                        aRecord.command_action.command_key == "player_ban_temp" && 
+                                        aRecord.command_action.command_key == "player_ban_perm")) {
                                         List<AdKatsRecord> meaningfulRecords = aPlayer.TargetedRecords.Where(
                                             aRecord =>
                                                 aRecord.command_action.command_key != "banenforcer_enforce" &&
@@ -5286,12 +5286,16 @@ namespace PRoConEvents {
                                     Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0) {
-                                        if ((losingTeam.TeamTicketDifferenceRate < -70 && winningTeam.TeamTicketDifferenceRate > -15) ||
-                                            (losingTeam.TeamTicketDifferenceRate < -60 && winningTeam.TeamTicketDifferenceRate > -10))
-                                        {
+                                    if ((losingTeam.TeamTicketDifferenceRate < -70 && winningTeam.TeamTicketDifferenceRate > -15) || 
+                                        (losingTeam.TeamTicketDifferenceRate < -60 && winningTeam.TeamTicketDifferenceRate > -10)) {
+                                        if (++_surrenderAutoTriggerCountCurrent > 3) {
                                             baserapingTeam = winningTeam;
                                             baserapedTeam = losingTeam;
                                         }
+                                    }
+                                    else {
+                                        _surrenderAutoTriggerCountCurrent = 0;
+                                    }
                                 }
                                 else {
                                     if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > _surrenderAutoMinimumTicketGap) {
