@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.8.8
- * 24-OCT-2014
+ * Version 5.1.9.0
+ * 25-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.8.8";
+        private const String PluginVersion = "5.1.9.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -361,6 +361,7 @@ namespace PRoConEvents {
         private Double _pingMovingAverageDurationSeconds = 180;
         private Boolean _pingEnforcerKickMissingPings = true;
         private Boolean _pingEnforcerIgnoreUserList = true;
+        private String _pingEnforcerMessagePrefix = "Please fix your ping and join us again.";
         private String[] _pingEnforcerIgnoreRoles = { };
         private Boolean _attemptManualPingWhenMissing = true;
 
@@ -430,8 +431,9 @@ namespace PRoConEvents {
         private Double _surrenderAutoWinningRateMin = 999;
         private Int32 _surrenderAutoTriggerCountToSurrender = 1;
         private Int32 _surrenderAutoTriggerCountCurrent = 0;
-        private Double _surrenderAutoVoteGapReduction = 0;
         private String _surrenderAutoMessage = "Ending/Scrambling Baserape Round. %WinnerName% Wins!";
+        private Boolean _surrenderAutoNukeWinning;
+        private String _surrenderAutoNukeMessage = "Nuking %WinnerName% for baserape!";
             
         //EmailHandler
         private EmailHandler _EmailHandler;
@@ -481,10 +483,11 @@ namespace PRoConEvents {
         private Boolean _ShowPlayerNameChangeAnnouncement = true;
         private Boolean _ShowTargetedPlayerLeftNotification = true;
         private Int32 _YellDuration = 5;
-        private Boolean _UseFirstSpawnMessage = false;
-        private Boolean _useFirstSpawnRepMessage = false;
+        private Boolean _UseFirstSpawnMessage;
+        private Boolean _useFirstSpawnRepMessage;
         private String _FirstSpawnMessage = "FIRST SPAWN MESSAGE";
         private Boolean _DisplayTicketRatesInProconChat;
+        private Boolean _InformReputablePlayersOfAdminJoins = true;
 
         //SpamBot
         private Boolean _spamBotEnabled;
@@ -783,6 +786,7 @@ namespace PRoConEvents {
                     if (_InformReportedPlayers) {
                         lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Player Inform Exclusion Strings", typeof (String[]), _PlayerInformExclusionStrings));
                     }
+                    lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Inform reputable players and admins of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Yell display time seconds", typeof (int), _YellDuration));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Pre-Message List", typeof(String[]), _PreMessageList.ToArray()));
                     lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
@@ -916,6 +920,7 @@ namespace PRoConEvents {
                         {
                             lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Ignore Roles", typeof(String[]), _pingEnforcerIgnoreRoles));
                         }
+                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Message Prefix", typeof(String), _pingEnforcerMessagePrefix));
                     }
 
                     //Commander manager settings
@@ -966,7 +971,14 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
                             //lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
                         }
-                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
+                        if (!_surrenderAutoNukeWinning) {
+                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
+                        }
+                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
+                        if (_surrenderAutoNukeWinning)
+                        {
+                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
+                        }
                     }
 
                     //Debug settings
@@ -1621,6 +1633,15 @@ namespace PRoConEvents {
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerIgnoreRoles)));
                 }
+                else if (Regex.Match(strVariable, @"Ping Kick Message Prefix").Success)
+                {
+                    if (strValue != _pingEnforcerMessagePrefix)
+                    {
+                        _pingEnforcerMessagePrefix = strValue;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Ping Kick Message Prefix", typeof(String), _pingEnforcerMessagePrefix));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Commander Manager Enable").Success)
                 {
                     Boolean CMDRManagerEnable = Boolean.Parse(strValue);
@@ -1778,6 +1799,26 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                     }
                 }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Use Optimal Values for Metro").Success)
+                {
+                    Boolean surrenderAutoUseMetroValues = Boolean.Parse(strValue);
+                    if (surrenderAutoUseMetroValues != _surrenderAutoUseMetroValues)
+                    {
+                        _surrenderAutoUseMetroValues = surrenderAutoUseMetroValues;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Nuke Winning Team Instead of Surrendering Losing Team").Success)
+                {
+                    Boolean surrenderAutoNukeWinning = Boolean.Parse(strValue);
+                    if (surrenderAutoNukeWinning != _surrenderAutoNukeWinning)
+                    {
+                        _surrenderAutoNukeWinning = surrenderAutoNukeWinning;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Auto-Surrender Minimum Ticket Gap").Success)
                 {
                     Int32 surrenderAutoMinimumTicketGap = Int32.Parse(strValue);
@@ -1828,21 +1869,22 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Auto-Surrender Vote Gap Reduction Value").Success)
+                else if (Regex.Match(strVariable, @"Auto-Surrender Message").Success)
                 {
-                    Double surrenderAutoVoteGapReduction = Double.Parse(strValue);
-                    if (_surrenderAutoVoteGapReduction != surrenderAutoVoteGapReduction)
+                    if (strValue != _surrenderAutoMessage)
                     {
-                        _surrenderAutoVoteGapReduction = surrenderAutoVoteGapReduction;
-                        //Once setting has been changed, upload the change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Auto-Surrender Message").Success) {
-                    if (strValue != _surrenderAutoMessage) {
                         _surrenderAutoMessage = strValue;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Message", typeof (String), _surrenderAutoMessage));
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Nuke Message").Success)
+                {
+                    if (strValue != _surrenderAutoNukeMessage)
+                    {
+                        _surrenderAutoNukeMessage = strValue;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Auto-Surrender Trigger Count to Surrender").Success)
@@ -1873,7 +1915,7 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Automatically Lock Players on Admin Action").Success)
                 {
                     Boolean playerLockingAutomaticLock = Boolean.Parse(strValue);
-                    if (playerLockingAutomaticLock != _CMDRManagerEnable)
+                    if (playerLockingAutomaticLock != _playerLockingAutomaticLock)
                     {
                         _playerLockingAutomaticLock = playerLockingAutomaticLock;
                         //Once setting has been changed, upload the change to database
@@ -3213,6 +3255,16 @@ namespace PRoConEvents {
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof (String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 }
+                else if (Regex.Match(strVariable, @"Inform reputable players and admins of admin joins").Success)
+                {
+                    Boolean InformReputablePlayersOfAdminJoins = Boolean.Parse(strValue);
+                    if (InformReputablePlayersOfAdminJoins != _InformReputablePlayersOfAdminJoins)
+                    {
+                        _InformReputablePlayersOfAdminJoins = InformReputablePlayersOfAdminJoins;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Inform reputable players and admins of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
+                    }
+                }
                 else if (Regex.Match(strVariable, @"Add User").Success) {
                     if (SoldierNameValid(strValue)) {
                         var aUser = new AdKatsUser {
@@ -4312,6 +4364,7 @@ namespace PRoConEvents {
                                 CPlayerInfo playerInfo = inboundPlayerRemoval.Dequeue();
                                 AdKatsPlayer aPlayer;
                                 if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
+                                    //Show leaving messages
                                     if (!aPlayer.TargetedRecords.Any(aRecord => 
                                         aRecord.command_action.command_key != "player_kick" && 
                                         aRecord.command_action.command_key != "player_ban_temp" && 
@@ -4348,6 +4401,32 @@ namespace PRoConEvents {
                                                 PlayerSayMessage(player.player_name, "Player " + aPlayer.player_name + " you reported has left the server.");
                                             }
                                         }
+                                    }
+                                    //Shut down any running conversations
+                                    if (aPlayer.conversationPartner != null) {
+                                        var partner = aPlayer.conversationPartner;
+                                        if (PlayerIsExternal(aPlayer.conversationPartner))
+                                        {
+                                            QueueRecordForProcessing(new AdKatsRecord
+                                            {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = partner.player_server.ServerID,
+                                                record_orchestrate = true,
+                                                command_type = _CommandKeyDictionary["player_pm_cancel"],
+                                                command_numeric = 0,
+                                                target_name = partner.player_name,
+                                                target_player = partner,
+                                                source_name = aPlayer.player_name,
+                                                source_player = aPlayer,
+                                                record_message = aPlayer.player_name + " has left their server. Private conversation closed."
+                                            });
+                                        }
+                                        else
+                                        {
+                                            PlayerSayMessage(partner.player_name, aPlayer.player_name + " has left the server. Private conversation closed.");
+                                            partner.conversationPartner = null;
+                                        }
+                                        aPlayer.conversationPartner = null;
                                     }
                                     //Add player to the left dictionary
                                     aPlayer.player_online = false;
@@ -4633,7 +4712,7 @@ namespace PRoConEvents {
                                         if (_firstPlayerListComplete)
                                         {
                                             var isAdmin = PlayerIsAdmin(aPlayer);
-                                            if (isAdmin || aPlayer.player_aa)
+                                            if ((isAdmin || aPlayer.player_aa) && _InformReputablePlayersOfAdminJoins)
                                             {
                                                 List<AdKatsPlayer> reputablePlayers = _PlayerDictionary.Values.Where(iPlayer => iPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(iPlayer)).ToList();
                                                 String message = ((isAdmin) ? ("Admin ") : ("Admin assistant ")) + aPlayer.player_name + " joined the server as a " + joinLocation + ".";
@@ -4722,6 +4801,33 @@ namespace PRoConEvents {
                                     AdKatsPlayer aPlayer;
                                     if (_PlayerDictionary.TryGetValue(playerName, out aPlayer))
                                     {
+                                        //Shut down any running conversations
+                                        if (aPlayer.conversationPartner != null)
+                                        {
+                                            var partner = aPlayer.conversationPartner;
+                                            if (PlayerIsExternal(aPlayer.conversationPartner))
+                                            {
+                                                QueueRecordForProcessing(new AdKatsRecord
+                                                {
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    server_id = partner.player_server.ServerID,
+                                                    record_orchestrate = true,
+                                                    command_type = _CommandKeyDictionary["player_pm_cancel"],
+                                                    command_numeric = 0,
+                                                    target_name = partner.player_name,
+                                                    target_player = partner,
+                                                    source_name = aPlayer.player_name,
+                                                    source_player = aPlayer,
+                                                    record_message = aPlayer.player_name + " has left their server. Private conversation closed."
+                                                });
+                                            }
+                                            else
+                                            {
+                                                PlayerSayMessage(partner.player_name, aPlayer.player_name + " has left the server. Private conversation closed.");
+                                                partner.conversationPartner = null;
+                                            }
+                                            aPlayer.conversationPartner = null;
+                                        }
                                         //Add player to the left dictionary
                                         aPlayer.player_online = false;
                                         aPlayer.player_server = null;
@@ -4795,7 +4901,7 @@ namespace PRoConEvents {
                                 target_name = pingPickedPlayer.player_name,
                                 target_player = pingPickedPlayer,
                                 source_name = "PingEnforcer",
-                                record_message = "Please fix your ping and join us again. " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]"))
+                                record_message = _pingEnforcerMessagePrefix + " " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]"))
                             };
                             QueueRecordForProcessing(record);
                             OnlineAdminSayMessage((++_pingKicksThisRound) + " players kicked for ping during this round. " + Math.Round(++_pingKicksTotal / (DateTime.UtcNow - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
@@ -5209,40 +5315,55 @@ namespace PRoConEvents {
                                 }
                                 if (baserapingTeam != null)
                                 {
-                                    _endingRound = true;
-                                    var roundEndDelayThread = new Thread(new ThreadStart(delegate
+                                    if (_surrenderAutoNukeWinning) {
+                                        var autoNukeMessage = _surrenderAutoNukeMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = _CommandKeyDictionary["server_nuke"],
+                                            command_numeric = baserapingTeam.TeamID,
+                                            target_name = baserapingTeam.TeamName,
+                                            source_name = "RoundManager",
+                                            record_message = autoNukeMessage
+                                        });
+                                    }
+                                    else
                                     {
-                                        DebugWrite("Starting a round end delay thread.", 5);
-                                        try
+                                        _endingRound = true;
+                                        var roundEndDelayThread = new Thread(new ThreadStart(delegate
                                         {
-                                            Thread.CurrentThread.Name = "roundenddelay";
-                                            var autoSurrenderMessage = _surrenderAutoMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
-                                            for (int i = 0; i < 6; i++)
+                                            DebugWrite("Starting a round end delay thread.", 5);
+                                            try
                                             {
-                                                AdminTellMessage(autoSurrenderMessage);
-                                                Thread.Sleep(50);
+                                                Thread.CurrentThread.Name = "roundenddelay";
+                                                var autoSurrenderMessage = _surrenderAutoMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
+                                                for (int i = 0; i < 6; i++)
+                                                {
+                                                    AdminTellMessage(autoSurrenderMessage);
+                                                    Thread.Sleep(50);
+                                                }
+                                                _threadMasterWaitHandle.WaitOne(1000 * _YellDuration);
+                                                var repRecord = new AdKatsRecord
+                                                {
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = _CommandKeyDictionary["round_end"],
+                                                    command_numeric = baserapingTeam.TeamID,
+                                                    target_name = baserapingTeam.TeamName,
+                                                    source_name = "RoundManager",
+                                                    record_message = "Auto-Surrender Round (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")"
+                                                };
+                                                QueueRecordForProcessing(repRecord);
                                             }
-                                            _threadMasterWaitHandle.WaitOne(1000 * _YellDuration);
-                                            var repRecord = new AdKatsRecord
+                                            catch (Exception)
                                             {
-                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = _CommandKeyDictionary["round_end"],
-                                                command_numeric = baserapingTeam.TeamID,
-                                                target_name = baserapingTeam.TeamName,
-                                                source_name = "RoundManager",
-                                                record_message = "Auto-Surrender Round (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")"
-                                            };
-                                            QueueRecordForProcessing(repRecord);
-                                        }
-                                        catch (Exception)
-                                        {
-                                            HandleException(new AdKatsException("Error while running round end delay."));
-                                        }
-                                        DebugWrite("Exiting a round end delay thread.", 5);
-                                        LogThreadExit();
-                                    }));
-                                    StartAndLogThread(roundEndDelayThread);
+                                                HandleException(new AdKatsException("Error while running round end delay."));
+                                            }
+                                            DebugWrite("Exiting a round end delay thread.", 5);
+                                            LogThreadExit();
+                                        }));
+                                        StartAndLogThread(roundEndDelayThread);
+                                    }
                                 }
                             }
 
@@ -7749,9 +7870,9 @@ namespace PRoConEvents {
                             //Call List Players
                             _PlayerListUpdateWaitHandle.Reset();
                             ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
-                            //Wait for listPlayers to finish, max 5 seconds
+                            //Wait for listPlayers to finish, max 10 seconds
                             if (!_PlayerListUpdateWaitHandle.WaitOne(TimeSpan.FromSeconds(10))) {
-                                DebugWrite("ListPlayers ran out of time for TeamSwap. 5 sec.", 4);
+                                DebugWrite("ListPlayers ran out of time for TeamSwap. 10 sec.", 4);
                             }
 
                             Queue<CPlayerInfo> movingQueue;
@@ -14018,7 +14139,7 @@ namespace PRoConEvents {
         }
 
         public void EndLevel(AdKatsRecord record) {
-            DebugWrite("Entering forgiveTarget", 6);
+            DebugWrite("Entering EndLevel", 6);
             try
             {
                 record.record_action_executed = true;
@@ -14030,7 +14151,7 @@ namespace PRoConEvents {
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            DebugWrite("Exiting forgiveTarget", 6);
+            DebugWrite("Exiting EndLevel", 6);
         }
 
         public void NukeTarget(AdKatsRecord record) {
@@ -14038,10 +14159,18 @@ namespace PRoConEvents {
             try
             {
                 record.record_action_executed = true;
-                lock (_PlayerDictionary) {
+                lock (_PlayerDictionary)
+                {
+                    if (record.source_name == "RoundManager")
+                    {
+                        AdminTellMessage(record.record_message);
+                    }
                     foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"))) {
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
-                        PlayerSayMessage(record.source_name, "Admin Nuke Issued On " + record.target_name);
+                        if (record.source_name != "RoundManager")
+                        {
+                            PlayerSayMessage(record.source_name, "Admin Nuke Issued On " + record.target_name);
+                        }
                     }
                 }
                 SendMessageToSource(record, "You NUKED " + record.target_name + " for " + record.record_message + ".");
@@ -17139,6 +17268,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
                 QueueSettingForUpload(new CPluginVariable(@"Display Targeted Player Left Notification", typeof(Boolean), _ShowTargetedPlayerLeftNotification));
                 QueueSettingForUpload(new CPluginVariable(@"Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
+                QueueSettingForUpload(new CPluginVariable(@"Inform reputable players and admins of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Usage Data Posting - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
@@ -17157,6 +17287,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore User List", typeof(Boolean), _pingEnforcerIgnoreUserList));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerIgnoreRoles)));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Message Prefix", typeof(String), _pingEnforcerMessagePrefix));
                 QueueSettingForUpload(new CPluginVariable(@"Commander Manager Enable", typeof(Boolean), _CMDRManagerEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Player Lock Manual Duration Minutes", typeof(Double), _playerLockingManualDuration));
@@ -17173,13 +17304,14 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Minutes", typeof(Int32), _surrenderVoteTimeoutMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
+                QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
-                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
                 DebugWrite("uploadAllSettings finished!", 6);
             }
             catch (Exception e) {
