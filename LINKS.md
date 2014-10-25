@@ -39,6 +39,11 @@
     </a>
 </p>
 <p>
+    <a href="https://github.com/ColColonCleaner/AdKats#servercommands" name=settings>
+        <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Server.jpg" alt="AdKats Settings">
+    </a>
+</p>
+<p>
     <a href="https://forum.myrcon.com/showthread.php?6045" name=thread>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Thread.jpg" alt="AdKats Thread">
     </a>
