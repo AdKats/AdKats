@@ -94,6 +94,10 @@
         commanders in those cases.
     </li>
     <li>
+        <b>Cross-Server Player Messaging.</b>
+        Private conversations between players can operate not only within the same server, but will work between any online         server in the database, and even between BF3 and BF4.
+    </li>
+    <li>
         <b>Admin Assistants.</b>
         When fully used this can turn your regular playerbase into a human autoadmin. Trusted players can fill the gaps
         normal autoadmins don't see, utilizing the report system, and keeping your server under control even when admins
