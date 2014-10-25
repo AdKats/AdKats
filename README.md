@@ -10,43 +10,45 @@
 </p>
 <h2>Overview</h2>
 <p>
-    Admin Toolset with a plethora of features, over 50 available in-game commands, and many
-    customization options.
+    Admin Toolset with a plethora of features, ~70 available in-game commands, and many customization options.
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any
     setup.
-    Includes a cross-server ban enforcer with advanced enforcement features, metabans support, and the BFAdminCP 2.0+
-    for external control has been released.
+    Includes a cross-server ban enforcer with advanced enforcement features, metabans support, global admin management,
+    cross-server player messaging, and the BFAdminCP 2.0+ for web-based control has been released.
     Designed for groups with high-traffic servers and many admins, but will function just as well for small servers.
 </p>
 <ul>
     <li>
         <b>Extensive In-Game Commands.</b>
-        Standard commands for player killing, kicking, punishing, banning, unbanning, moving, etc...Over 50 available
-        in-game commands.
+        Commands for player killing, kicking, punishing, banning, unbanning, moving, joining, whitelisting, messaging,
+        etc, etc... ~70 available in-game commands.
         Commands can be accessed from almost anywhere: In-game, Procon's chat window, database, HTTP server, other
         plugins, etc, etc...
     </li>
     <li>
         <b>Editable Ranks and Roles.</b>
         Custom ranks and roles can be created for users, with each role given access to only the commands you want them
-        to access.
+        to use.
         Default guest role is given to all players, and can be edited to your desired specs.
         All roles and powers are automatically synced between servers, so you only need to change user information once.
         Soldiers assigned to users will also keep their powers even if they change their in-game names.
     </li>
     <li>
-        <b>Admin and setting sync between servers.</b>
+        <b>Setting sync between servers.</b>
         All changes to plugin settings are stored in the database, and can be automatically synced between your Procon
-        layers.
+        layers. Setting up new layers or switching layers is a breeze, as the settings for existing servers are
+        automatically imported on startup.
     </li>
     <li>
         <b>Infraction Tracking System.</b>
-        Punish/Forgive players for infractions against your server. Everything is tracked, so the more infractions they
-        commit, the worse their punishment gets. Made so all players are treated equally. Heavily customizable.
+        Punish/Forgive players for breaking rules on your servers. Everything is tracked, so the more infractions they
+        commit, the worse their punishment automatically gets. Created so all players can be treated equally based on
+        their history, regardless of who is issuing punishments against them. Heavily customizable.
     </li>
     <li>
         <b>Player reputation tracking.</b>
-        System based on issued commands from/against players, forming a reputation of the server. Documentation below.
+        System based on issued commands from and against players, forming a reputation of the server.
+        Documentation below. Local leaderboard for reputation given in the BFAdminCP 2.0+.
     </li>
     <li>
         <b>Quick Player Report and Admin Call Handling, with email support.</b>
@@ -55,19 +57,20 @@
     </li>
     <li>
         <b>Orchestration and Server List Management.</b>
-        Server reserved slots, server spectator slots, and autobalancer whitelising through MULTIBalancer can all be
-        automatically done through the AdKats user list.
+        Server reserved slots, server spectator slots, autobalancer whitelising through MULTIBalancer,
+        ping kick whitelists, and several others can all be automatically handled through the AdKats user list and
+        orchestration commands.
     </li>
     <li>
         <b>Admin Assistants.</b>
-        When fully used this can turn your regular playerbase into a human autoadmin. Trusted players based on admin
-        interaction can fill the gaps normal autoadmins cannot, utilizing the report system, and keeping your server
-        under control even when admins are offline.
+        When fully used this can turn your regular playerbase into a human autoadmin. Trusted players can fill the gaps
+        normal autoadmins don't see, utilizing the report system, and keeping your server under control even when admins
+        are offline.
     </li>
     <li>
         <b>BF3/BF4 "Hacker-Checker" with Whitelist.</b>
-        BF3Stats and BF4Stats are internally used to pull player information, and can be enabled for hacker-checking
-        with a couple clicks.
+        BF3Stats and BF4Stats are internally used to pull player information, and can be enabled for for automatic
+        cheat/hack detection with a couple clicks.
         Please read documentation before enabling.
     </li>
     <li>
@@ -79,12 +82,13 @@
     </li>
     <li>
         <b>Fuzzy Player Name Completion.</b>
-        Fully completes partial or misspelled player names. I've been consistently able to find almost any player with
-        3-4 characters from their name.
+        Fully completes partial or misspelled player names.
+        I've been consistently able to find almost any player only a few characters from their name.
     </li>
     <li>
         <b>Player Muting.</b>
-        Players can be muted if necessary.
+        Players can be muted if necessary, giving warnings and kicks if they talk. Automatic mute for language can be
+        orchestrated using Insane limits.
     </li>
     <li>
         <b>Player Joining.</b>
@@ -99,7 +103,7 @@
     <li>
         <b>Player Assist.</b>
         Player's want to play with their friends, but you don't want to imbalance the teams? The assist command lets
-        all players join the weak team together to help them out and squad up without hurting the server.
+        any player join the weak team to help them out and squad up with friends without hurting the server.
     </li>
     <li>
         <b>Yell/Say Pre-Recording.</b>
@@ -113,21 +117,18 @@
     <li>
         <b>External Controller API.</b>
         AdKats can be controlled from outside the game through systems like BFAdminCP 2.0+, and through other plugins
-        like insane limits. For example, you can issue AdKats punish commands from insane limits or proconrulz and have
-        them
-        be logged like any other admin command.
+        like Insane Limits. For example, you can issue AdKats punish commands from Insane Limits or ProconRulz and have
+        them logged like any other admin command.
     </li>
     <li>
         <b>Internal Implementation of TeamSwap.</b>
         Queued move system for servers that are consistently full, players can be queued to move to full teams once a
         slot opens.
-        Greatly improved over the default version.
-        Documentation linked below.
     </li>
     <li>
         <b>AdKats Ban Enforcer.</b>
         AdKats can enforce bans across all of your servers, and can enforce on all metrics at the same time.
-        System can automatically interface with metabans, automatically import all Procon bans from all your servers and
+        System can automatically import all Procon bans from all your servers and
         consolidate them, and will import any existing bans from the BF3 Ban Manager plugin's tables.
         Full documentation below.
     </li>
@@ -142,10 +143,10 @@
     </li>
     <li>
         <b>Full Logging.</b>
-        One of the main reasons AdKats was made in the first place.
-        All admin activity is trackable via the database per your custom settings for every command;
-        So holding your admins accountable for their actions is quick and painless.
-        And, if you are using BFAdminCP 2.0+ nobody but your highest admins will need direct Procon access.
+        One of the main reasons AdKats was created in the first place.
+        All admin activity is trackable via the database per your custom settings for every command,
+        so holding your admins accountable for their actions is quick and painless.
+        And, if you are using BFAdminCP 2.0+ nobody but your highest admins will need manual Procon access.
     </li>
     <li>
         <b>Setting Lock.</b>
@@ -289,6 +290,16 @@
     <a name=features />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Features.jpg" alt="AdKats User Manual">
 </p>
+<h3>Automatic Updates</h3>
+<p>
+    AdKats is set up to automatically update itself when stable releases are made, so there is no need to upload newer
+    versions to your layer once you are running it.
+    Once the update is automatically downloaded and patched, all it requires is a Procon reboot to run the updated
+    version.
+    Admins will be informed of available updates when they are published, or if the plugin was able to automatically
+    update, that the Procon instance needs to be rebooted.
+    The automatic update process can be disabled for those who want to manually update, but it is enabled by default.
+</p>
 <h3>User Ranks and Roles</h3>
 <p>
     On first enable you will need to add a user before you can access certain in-game commands.
@@ -322,8 +333,8 @@
 <p>
     All commands, their usage, who used them, who they were targeted on, why, when they were used, and where from, are
     all logged in the database.
-    Player's name changes and IP changes are also logged and the records connected to their player ID. Soon IP bans will
-    work off of previous IP as well as current IP.
+    All plugin actions are additionally stored in Procon's event log for review without connecting to the database.
+    Player's name/IP changes are logged and the records connected to their player ID, so tracking players is easier.
 </p>
 <h3>Infraction Tracking System</h3>
 <p>
@@ -464,7 +475,7 @@
 <p>
     The Enforcer works properly with all existing auto-admins, and any bans added manually through Procon will be
     automatically imported by the system.
-    A mini-ban-management section is added to the plugin settings when you enable this, however, for full fledged ban 
+    A mini-ban-management section is added to the plugin settings when you enable this, however, for full fledged ban
     management it helps to run the BFAdminCP 2.0+ by Prophet731.
     Ban enforcer's options are simply too much for the plugin setting interface to house properly.
     Use of the ban enforcer is optional because of this slight dependency, and is disabled by default.
@@ -576,7 +587,7 @@
     information at round end. AdKats adds a table tbl_extendedroundstats, which shows how matches progress while the
     round is still going, not just at the end. Every 30 seconds, the current round ID, round duration, team counts,
     ticket counts, ticket difference rates, team total scores, score rates, and a timestamp are logged in the table. A
-    display of this information (in part) can be seen in the BFAdminCP 2.0+ server stats page. Logging starts at the 
+    display of this information (in part) can be seen in the BFAdminCP 2.0+ server stats page. Logging starts at the
     beginning of each round, it will not start immediately for the current round when AdKats enables.
 </p>
 <h3>Player Muting</h3>
@@ -764,7 +775,7 @@
 <h3>Commanding AdKats from External Source</h3>
 <h4>BFAdminCP 2.0+ can be used for this.</h4>
 <p>
-    If you have an external system (such as a web-based tool with access to battlefield server information), then there 
+    If you have an external system (such as a web-based tool with access to battlefield server information), then there
     is currently one way to interact with AdKats externally (A second coming soon if possible).
 </p>
 <h4>Adding Database Records</h4>
@@ -893,8 +904,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     Commands can be accessed with '!', '@', '.', '/!', '/@', '/.', or just '/'.
 </p>
 <p>
-    Any action command given with no parameters (e.g. '!kill') will target the speaker. If admins want to kill, kick, or
-    even ban themselves, simply type the command without any parameters.
+    Any action command given with no parameters (e.g. '!kill') will target the speaker.
+    If admins want to kill, kick, or even ban themselves, simply type the command without any parameters.
     Any action command when given a player name (other than moving players) will require a reason.
 </p>
 <table>
@@ -1500,8 +1511,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <td>swapnuke</td>
     <td>none</td>
     <td>
-        The in-game command used for team-switching all players in the server. THIS IS EXPERIMENTAL, AND SHOULD BE USED
-        WITH CAUTION.
+        The in-game command used for team-switching all players in the server.
+        THIS IS EXPERIMENTAL, AND SHOULD BE USED WITH CAUTION.
+        MULTIBalancer unswitcher is automatically disabled when using this command, and re-enabled once complete.
     </td>
 </tr>
 <tr>
@@ -1641,10 +1653,189 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </table>
 </p>
 <p>
+    <b>The following URLS are used for reputation stats, special player groups, database updates, and weapon stats for
+        hacker-checker:</b>
+</p>
+<p>
+<table>
+    <tr>
+        <td><b>Link</b></td>
+        <td><b>Usage</b></td>
+    </tr>
+    <tr>
+        <td><a href="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/adkatsreputationstats.json" target="_blank">adkatsreputationstats.json</a></td>
+        <td>Command Reputation Constants</td>
+    </tr>
+    <tr>
+        <td><a href="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/adkatsspecialgroups.json" target="_blank">adkatsspecialgroups.json</a></td>
+        <td>Special Player Group Definitions</td>
+    </tr>
+    <tr>
+        <td><a href="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/adkatsupdates.json" target="_blank">adkatsupdates.json</a></td>
+        <td>Database Updates</td>
+    </tr>
+    <tr>
+        <td><a href="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/adkatsweaponstats.json" target="_blank">adkatsweaponstats.json</a></td>
+        <td>Battlefield Weapon Stats (Damages)</td>
+    </tr>
+</table>
+</p>
+<p>
     All are either simple GET or POST requests.
 </p>
 <p>
     BF4DB.com might be used in the future to trigger updates on players BF4Stats data.
+</p>
+<p>
+    <a name=servercommands />
+    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Server.jpg" alt="AdKats User Manual">
+</p>
+<p>
+    AdKats issues specific server commands to execute its functions, and run properly. Below are their listings, usages, and intervals of usage.
+</p>
+<p>
+<table>
+    <tr>
+        <td><b>Command</b></td>
+        <td><b>Usage</b></td>
+        <td><b>Interval</b></td>
+    </tr>
+    <tr>
+        <td><b>serverInfo</b></td>
+        <td>Fetching server info</td>
+        <td>Plugin start, 10 second interval.</td>
+    </tr>
+    <tr>
+        <td><b>vars.teamFactionOverride</b></td>
+        <td>Fetching team definitions</td>
+        <td>Plugin start, round start.</td>
+    </tr>
+    <tr>
+        <td><b>punkBuster.pb_sv_command</b></td>
+        <td>Triggering punkbuster screenshots</td>
+        <td>Admin report and calladmin commands.</td>
+    </tr>
+    <tr>
+        <td><b>squad.private</b></td>
+        <td>Setting whether a squad should be private or not</td>
+        <td>Admin join and pull commands.</td>
+    </tr>
+    <tr>
+        <td><b>squad.leader</b></td>
+        <td>Assigning squad leader</td>
+        <td>Admin lead commands.</td>
+    </tr>
+    <tr>
+        <td><b>player.isAlive</b></td>
+        <td>(BF4 only) Checking if a player is alive</td>
+        <td>Kill and move commands.</td>
+    </tr>
+    <tr>
+        <td><b>admin.killPlayer</b></td>
+        <td>Killing players</td>
+        <td>Admin kill and nuke commands, either automatic or manual.</td>
+    </tr>
+    <tr>
+        <td><b>admin.movePlayer</b></td>
+        <td>Moving players between teams</td>
+        <td>Admin move commands, and players attempting to move from locked teams.</td>
+    </tr>
+    <tr>
+        <td><b>admin.kickPlayer</b></td>
+        <td>Kicking players</td>
+        <td>Admin kick commands, either automatic or manual.</td>
+    </tr>
+    <tr>
+        <td><b>admin.say</b></td>
+        <td>Sending say to either server or private player</td>
+        <td>Admin say and tell commands, along with any automated functions that require notification to the user.</td>
+    </tr>
+    <tr>
+        <td><b>admin.yell</b></td>
+        <td>Sending yell to either server or private player</td>
+        <td>Admin yell and tell commands, along with any automated functions that require unavoidable notification to the user.</td>
+    </tr>
+    <tr>
+        <td><b>admin.listPlayers</b></td>
+        <td>Listing current server players</td>
+        <td>Plugin start, 10 second interval when TeamSwap queues are not empty.</td>
+    </tr>
+    <tr>
+        <td><b>admin.shutDown</b></td>
+        <td>Shutting down/rebooting the battlefield server</td>
+        <td>Admin shutdown commands.</td>
+    </tr>
+    <tr>
+        <td><b>banList.list</b></td>
+        <td>Listing current server banlist</td>
+        <td>If Ban Enforcer is enabled, when new ban(s) are added to the server, if not, after adding new bans to the server.</td>
+    </tr>
+    <tr>
+        <td><b>banList.add</b></td>
+        <td>Adding entries to the server ban list</td>
+        <td>Admin ban commands, either automatic or manual, when ban enforcer is disabled, or when importing bans from ban enforcer back into the server.</td>
+    </tr>
+    <tr>
+        <td><b>banList.save</b></td>
+        <td>Saving the server ban list</td>
+        <td>After adding new bans to the server, or, if ban enforcer is enabled, after clearing the server ban list.</td>
+    </tr>
+    <tr>
+        <td><b>mapList.restartRound</b></td>
+        <td>Restarting the current level, removing scores.</td>
+        <td>Admin restartLevel commands.</td>
+    </tr>
+    <tr>
+        <td><b>mapList.runNextRound</b></td>
+        <td>Running the next map in the list, keeping scores.</td>
+        <td>Admin nextLevel commands.</td>
+    </tr>
+    <tr>
+        <td><b>mapList.endRound</b></td>
+        <td>Ending the current round with a winner.</td>
+        <td>Admin endLevel commands, round timer, surrender vote, and auto-surrender.</td>
+    </tr>
+    <tr>
+        <td><b>reservedSlotsList.remove</b></td>
+        <td>Removing entries from the reserved slot list.</td>
+        <td>Reserved slot orchestration.</td>
+    </tr>
+    <tr>
+        <td><b>reservedSlotsList.add</b></td>
+        <td>Adding entries to the reserved slot list.</td>
+        <td>Reserved slot orchestration.</td>
+    </tr>
+    <tr>
+        <td><b>reservedSlotsList.save</b></td>
+        <td>Saving the server reserved slot list</td>
+        <td>Reserved slot orchestration.</td>
+    </tr>
+    <tr>
+        <td><b>reservedSlotsList.list</b></td>
+        <td>Fetching updated server reserved slot list</td>
+        <td>Reserved slot orchestration.</td>
+    </tr>
+    <tr>
+        <td><b>spectatorList.remove</b></td>
+        <td>(BF4 only) Removing entries from the allowed spectator list.</td>
+        <td>Allowed spectator orchestration.</td>
+    </tr>
+    <tr>
+        <td><b>spectatorList.add</b></td>
+        <td>(BF4 only) Adding entries to the allowed spectator list.</td>
+        <td>Allowed spectator orchestration.</td>
+    </tr>
+    <tr>
+        <td><b>spectatorList.save</b></td>
+        <td>(BF4 only) Saving the server allowed spectator list</td>
+        <td>Allowed spectator orchestration.</td>
+    </tr>
+    <tr>
+        <td><b>spectatorList.list</b></td>
+        <td>(BF4 only) Fetching updated server allowed spectator list</td>
+        <td>Allowed spectator orchestration.</td>
+    </tr>
+</table>
 </p>
 <p>
     <a name=settings />
