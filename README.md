@@ -837,8 +837,7 @@
 <h3>Commanding AdKats from External Source</h3>
 <h4>BFAdminCP 2.0+ can be used for this.</h4>
 <p>
-    If you have an external system (such as a web-based tool with access to battlefield server information), then there
-    is currently one way to interact with AdKats externally (A second coming soon if possible).
+    There are currently two ways to interact with AdKats externally. (A third coming soon if possible).
 </p>
 <h4>Adding Database Records</h4>
 <p>
