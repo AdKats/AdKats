@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.9.2
+ * Version 5.1.9.3
  * 25-OCT-2014
  */
 
@@ -8286,6 +8286,12 @@ namespace PRoConEvents {
                                     FinalizeRecord(record);
                                     return;
                                 }
+                                if (record.source_player != null && record.source_player.player_type == PlayerType.Spectator && !PlayerIsAdmin(record.source_player))
+                                {
+                                    SendMessageToSource(record, "You cannot use !" + GetCommandByKey("self_surrender").command_text + " or !" + GetCommandByKey("self_votenext").command_text + " as a spectator.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 if (_surrenderVoteSucceeded) {
                                     SendMessageToSource(record, "Surrender already succeeded.");
                                     FinalizeRecord(record);
@@ -8390,6 +8396,12 @@ namespace PRoConEvents {
                                 if (record.source_player != null && PlayerIsWinning(record.source_player))
                                 {
                                     SendMessageToSource(record, "You cannot use !" + GetCommandByKey("self_nosurrender").command_text + " from the winning team.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (record.source_player != null && record.source_player.player_type == PlayerType.Spectator && !PlayerIsAdmin(record.source_player))
+                                {
+                                    SendMessageToSource(record, "You cannot use !" + GetCommandByKey("self_nosurrender").command_text + " as a spectator.");
                                     FinalizeRecord(record);
                                     return;
                                 }
