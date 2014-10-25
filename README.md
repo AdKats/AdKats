@@ -4,10 +4,6 @@
 <p>
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
 </p>
-<p>
-    <a name=manual />
-    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_UserManual.jpg" alt="AdKats User Manual">
-</p>
 <h2>Overview</h2>
 <p>
     Admin Toolset with a plethora of features, ~70 available in-game commands, and many customization options.
@@ -201,6 +197,11 @@
 </p>
 <p>
     <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=danielgradinjan%40gmail%2ecom&lc=US&item_name=AdKats%20-%20Advanced%20In-Game%20Admin%20for%20Procon%20Frostbite%20-%20Donation&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted" target="_blank"><img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Donate.jpg"></a>
+</p>
+<HR width="80%">
+<p>
+    <a name=manual />
+    <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_UserManual.jpg" alt="AdKats User Manual">
 </p>
 <p>
     <a name=dependencies />
