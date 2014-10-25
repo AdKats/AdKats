@@ -2,6 +2,7 @@
     //<latest_stable_release>5.1.0.0</latest_stable_release>
 </script>
 <p>
+    <a name=adkats />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
 </p>
 <h2>Overview</h2>
