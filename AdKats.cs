@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.9.3
+ * Version 5.1.9.4
  * 25-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.9.2";
+        private const String PluginVersion = "5.1.9.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -19658,7 +19658,10 @@ namespace PRoConEvents {
                                     aPlayer = new AdKatsPlayer(this);
                                     //Player ID will never be null
                                     aPlayer.player_id = reader.GetInt64("player_id");
-                                    aPlayer.game_id = reader.GetInt32("game_id");
+                                    if (_serverInfo.GameID > 0)
+                                    {
+                                        aPlayer.game_id = reader.GetInt32("game_id");
+                                    }
                                     if (!reader.IsDBNull(1))
                                         aPlayer.player_name = reader.GetString("player_name");
                                     if (!reader.IsDBNull(2))
@@ -19865,7 +19868,7 @@ namespace PRoConEvents {
                         using (MySqlCommand command = connection.CreateCommand()) {
                             //Set the insert command structure
                             command.CommandText = @"
-                            UPDATE `" + _mySqlDatabaseName + @"`.`tbl_playerdata` SET 
+                            UPDATE IGNORE `" + _mySqlDatabaseName + @"`.`tbl_playerdata` SET 
                                 `SoldierName` = '" + player.player_name + @"',
                                 `EAGUID` = '" + player.player_guid + @"',
                                 `IP_Address` = '" + player.player_ip + @"'
@@ -21668,28 +21671,54 @@ namespace PRoConEvents {
                     DebugWrite("User fetch (Users) took " + (DateTime.UtcNow - start).TotalMilliseconds + "ms.", 4);
                     start = DateTime.UtcNow;
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        command.CommandText = @"
-                        SELECT 
-	                        `adkats_users`.`user_id`,
-	                        `adkats_usersoldiers`.`player_id`,
-	                        `tbl_playerdata`.`GameID` AS `game_id`,
-	                        `tbl_playerdata`.`ClanTag` AS `clan_tag`,
-	                        `tbl_playerdata`.`SoldierName` AS `player_name`,
-	                        `tbl_playerdata`.`EAGUID` AS `player_guid`,
-	                        `tbl_playerdata`.`IP_Address` AS `player_ip`
-                        FROM 
-	                        `adkats_users`
-                        INNER JOIN
-	                        `adkats_usersoldiers`
-                        ON 
-	                        `adkats_users`.`user_id` = `adkats_usersoldiers`.`user_id`
-                        INNER JOIN
-	                        `tbl_playerdata`
-                        ON
-	                        `adkats_usersoldiers`.`player_id` = `tbl_playerdata`.`PlayerID`
-                        ORDER BY 
-                            `user_id`
-                        ASC";
+                        if (_serverInfo.GameID > 0) {
+                            command.CommandText = @"
+                            SELECT 
+	                            `adkats_users`.`user_id`,
+	                            `adkats_usersoldiers`.`player_id`,
+	                            `tbl_playerdata`.`GameID` AS `game_id`,
+	                            `tbl_playerdata`.`ClanTag` AS `clan_tag`,
+	                            `tbl_playerdata`.`SoldierName` AS `player_name`,
+	                            `tbl_playerdata`.`EAGUID` AS `player_guid`,
+	                            `tbl_playerdata`.`IP_Address` AS `player_ip`
+                            FROM 
+	                            `adkats_users`
+                            INNER JOIN
+	                            `adkats_usersoldiers`
+                            ON 
+	                            `adkats_users`.`user_id` = `adkats_usersoldiers`.`user_id`
+                            INNER JOIN
+	                            `tbl_playerdata`
+                            ON
+	                            `adkats_usersoldiers`.`player_id` = `tbl_playerdata`.`PlayerID`
+                            ORDER BY 
+                                `user_id`
+                            ASC";
+                        }
+                        else {
+
+                            command.CommandText = @"
+                            SELECT 
+	                            `adkats_users`.`user_id`,
+	                            `adkats_usersoldiers`.`player_id`,
+	                            `tbl_playerdata`.`ClanTag` AS `clan_tag`,
+	                            `tbl_playerdata`.`SoldierName` AS `player_name`,
+	                            `tbl_playerdata`.`EAGUID` AS `player_guid`,
+	                            `tbl_playerdata`.`IP_Address` AS `player_ip`
+                            FROM 
+	                            `adkats_users`
+                            INNER JOIN
+	                            `adkats_usersoldiers`
+                            ON 
+	                            `adkats_users`.`user_id` = `adkats_usersoldiers`.`user_id`
+                            INNER JOIN
+	                            `tbl_playerdata`
+                            ON
+	                            `adkats_usersoldiers`.`player_id` = `tbl_playerdata`.`PlayerID`
+                            ORDER BY 
+                                `user_id`
+                            ASC";
+                        }
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             lock (_userCache) {
                                 foreach (AdKatsPlayer aPlayer in _userCache.Values.SelectMany(aUser => aUser.soldierDictionary.Values))
@@ -21708,7 +21737,7 @@ namespace PRoConEvents {
                                     }
                                     int userID = reader.GetInt32("user_id"); //0
                                     int playerID = reader.GetInt32("player_id"); //1
-                                    int gameID = reader.GetInt32("game_id"); //2
+                                    long gameID = (_serverInfo.GameID > 0)?(reader.GetInt32("game_id")):(_serverInfo.GameID); //2
                                     String clanTag = null;
                                     if (!reader.IsDBNull(3))
                                         clanTag = reader.GetString("clan_tag"); //3
