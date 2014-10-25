@@ -46,7 +46,7 @@
         their history, regardless of who is issuing punishments against them. Heavily customizable.
     </li>
     <li>
-        <b>Player reputation tracking.</b>
+        <b>Player Reputation System.</b>
         System based on issued commands from and against players, forming a reputation of the server.
         Documentation below. Local leaderboard for reputation given in the BFAdminCP 2.0+.
     </li>
@@ -62,16 +62,48 @@
         orchestration commands.
     </li>
     <li>
-        <b>Admin Assistants.</b>
-        When fully used this can turn your regular playerbase into a human autoadmin. Trusted players can fill the gaps
-        normal autoadmins don't see, utilizing the report system, and keeping your server under control even when admins
-        are offline.
+        <b>AdKats Ban Enforcer.</b>
+        AdKats can enforce bans across all of your servers, and can enforce on all metrics at the same time.
+        System can automatically import all Procon bans from all your servers and
+        consolidate them, and will import any existing bans from the BF3 Ban Manager plugin's tables.
+        Full documentation below.
     </li>
     <li>
         <b>BF3/BF4 "Hacker-Checker" with Whitelist.</b>
         BF3Stats and BF4Stats are internally used to pull player information, and can be enabled for for automatic
         cheat/hack detection with a couple clicks.
         Please read documentation before enabling.
+    </li>
+    <li>
+        <b>Automatic Updates.</b>
+        AdKats can automatically update itself when stable releases are made, all it requires is a Procon instance
+        reboot to run updated versions. This can be disabled, but is recommended to keep enabled.
+    </li>
+    <li>
+        <b>Ping Enforcer.</b>
+        Automatic kick system based on ping, with moving average calculation, customizable messages, logged kicks, and
+        manual ping options.
+    </li>
+    <li>
+        <b>AFK Manager.</b>
+        Automatic kick system based on player AFK time, with manual kick command. Customizable durations, and option to
+        ignore chat messages counting toward active time.
+    </li>
+    <li>
+        <b>Internal SpamBot with Whitelist.</b>
+        SpamBot with options for simultaneous say, yell, and tell. Customizable interval between each type of message,
+        and ability to whitelist players/admins from seeing spam messages.
+    </li>
+    <li>
+        <b>Commander Manager.</b>
+        Commanders can cause team imbalance when the server is in low population. This manager allows control of
+        commanders in those cases.
+    </li>
+    <li>
+        <b>Admin Assistants.</b>
+        When fully used this can turn your regular playerbase into a human autoadmin. Trusted players can fill the gaps
+        normal autoadmins don't see, utilizing the report system, and keeping your server under control even when admins
+        are offline.
     </li>
     <li>
         <b>Email Notification System.</b>
@@ -124,13 +156,6 @@
         <b>Internal Implementation of TeamSwap.</b>
         Queued move system for servers that are consistently full, players can be queued to move to full teams once a
         slot opens.
-    </li>
-    <li>
-        <b>AdKats Ban Enforcer.</b>
-        AdKats can enforce bans across all of your servers, and can enforce on all metrics at the same time.
-        System can automatically import all Procon bans from all your servers and
-        consolidate them, and will import any existing bans from the BF3 Ban Manager plugin's tables.
-        Full documentation below.
     </li>
     <li>
         <b>Metabans Support.</b>
@@ -243,8 +268,7 @@
     <li>
         <b>Download AdKats Source.</b>
         Download the latest stable version of AdKats from here:
-        <a href="https://sourceforge.net/projects/adkats/files/latest/download" target="_blank">Version
-            5.1.0.0</a>
+        <a href="https://sourceforge.net/projects/adkats/files/latest/download" target="_blank">AdKats SourceForge</a>
     </li>
     <li>
         <b>Add plugin file to Procon.</b>
@@ -290,19 +314,9 @@
     <a name=features />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Features.jpg" alt="AdKats User Manual">
 </p>
-<h3>Automatic Updates</h3>
-<p>
-    AdKats is set up to automatically update itself when stable releases are made, so there is no need to upload newer
-    versions to your layer once you are running it.
-    Once the update is automatically downloaded and patched, all it requires is a Procon reboot to run the updated
-    version.
-    Admins will be informed of available updates when they are published, or if the plugin was able to automatically
-    update, that the Procon instance needs to be rebooted.
-    The automatic update process can be disabled for those who want to manually update, but it is enabled by default.
-</p>
 <h3>User Ranks and Roles</h3>
 <p>
-    On first enable you will need to add a user before you can access certain in-game commands.
+    On first enable you will need to add a user before you can access a majority of the in-game commands.
     You can have as many users as you want.
     When a user is added you need to assign them a role.
     The default role is "Default Guest" and the allowed commands for that role are shown to you in the role section.
@@ -327,7 +341,7 @@
 </p>
 <p>
     The user list is sorted by role ID, then by user name.
-    Any item that says "Delete?" you need to type the word delete in the line and hit enter.
+    Any item that says "Delete?" you need to type the word delete in the line and press enter.
 </p>
 <h3>Full Logging</h3>
 <p>
@@ -612,13 +626,6 @@
     NOTE: For cross-team joining, TeamSwap queues are not used, so if there is no room on the target team you will need
     to retry the command once room is available.
 </p>
-<h3>AFK Player Management</h3>
-<p>
-    AFK players can be managed automatically, and logs made of when, where, and how long they were AFK.
-    Limits can be placed on AFK kicking, including minimum player count, minimum AFK time before kick, admin/role
-    whitelisting, and chat ignore.
-    If automatic management is not desired, you can use the AFK command to kick AFK players manually.
-</p>
 <h3>Pre-Messaging</h3>
 <p>
     A list of editable pre-defined messages can be added in settings, then admins can use the message ID instead of
@@ -771,6 +778,57 @@
     adkats_specialplayers table using the group "whitelist_hackerchecker".
     If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes while
     they are in the server, stopping if they leave.
+</p>
+<h3>Automatic Updates</h3>
+<p>
+    AdKats is set up to automatically update itself when stable releases are made, so there is no need to upload newer
+    versions to your layer once you are running it.
+    Once the update is automatically downloaded and patched, all it requires is a Procon reboot to run the updated
+    version.
+    Admins will be informed of available updates when they are published, or if the plugin was able to automatically
+    update, that the Procon instance needs to be rebooted.
+    The automatic update process can be disabled for those who want to manually update, but it is enabled by default.
+</p>
+<h3>Ping Enforcer</h3>
+<p>
+    Ping enforcer allows control of players over a certain average ping, with several key options.
+    A linearly interpolated moving average is used to monitor ping of all players in the server, kicking
+    players after a minimum monitor time is reached, and a minimum number of players are in the server.
+    The system can kick for missing ping, and attempt to manually ping players whose pings are not given by
+    the server.
+    Players who join the server and are over the limit are warned about it in chat.
+    Players whose ping is normal, but spikes over your limit, are warned about the spike.
+    Admins are automatically whitelisted, but the entire user list can be optionally whitelisted, or a given
+    subset of role keys.
+    Individual players can be whitelisted with the pwhitelist command.
+</p>
+<h3>AFK Manager</h3>
+<p>
+    AFK Manager allows control over players staying in the server without contributing. Kicking AFK players can be done
+    automatically, or via the AFK command.
+    When automatic kick is enabled it will monitor all players in the server, kicking them after the trigger
+    AFK time is reached, but only if the number of players in the server is over a certain amount.
+    Chat can be optionally ignored, so players just spamming chat without playing can be removed from the server.
+    Admins are automatically whitelisted, but the entire user list can be optionally whitelisted, or a given
+    subset of role keys.
+    Spectators are immune to AFK kicks.
+</p>
+<h3>Internal SpamBot with Whitelist</h3>
+<p>
+    The internal SpamBot is much akin to that found in other plugins, with a few added bells and whistles.
+    Automatic messages can be set in separate lists for say, yell, and tell options.
+    Each list has its own interval that can be customized, the defaults being 300, 600, and 900 seconds, respectively.
+    The key difference is that admins and whitelisted players can be blocked from seeing SpamBot messages.
+    This way your admins' chat are not cluttered with messages meant only for promotion or information they
+    already know.
+    Individual players can be whitelisted from seeing messages using the spamwhitelist command.
+</p>
+<h3>Commander Manager</h3>
+<p>
+    In cases of low population, commanders can mean the difference between a balanced server and baserape.
+    This manager will not allow players to join as commander until a specified minimum number of players are in the
+    server.
+    We found a good value to be 40 players on 64p servers.
 </p>
 <h3>Commanding AdKats from External Source</h3>
 <h4>BFAdminCP 2.0+ can be used for this.</h4>
@@ -1118,6 +1176,42 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </td>
 </tr>
 <tr>
+    <td><b>Ping Whitelist Player</b></td>
+    <td>pwhitelist</td>
+    <td>
+        [player]
+        OR<br/>
+        [player][reason]<br/>
+    </td>
+    <td>
+        The in-game command used for adding a player to the ping kick whitelist for all servers.
+    </td>
+</tr>
+<tr>
+    <td><b>AA Whitelist Player</b></td>
+    <td>aawhitelist</td>
+    <td>
+        [player]
+        OR<br/>
+        [player][reason]<br/>
+    </td>
+    <td>
+        The in-game command used for adding a player to the Admin Assistant whitelist for all servers.
+    </td>
+</tr>
+<tr>
+    <td><b>SpamBot Whitelist Player</b></td>
+    <td>spamwhitelist</td>
+    <td>
+        [player]
+        OR<br/>
+        [player][reason]<br/>
+    </td>
+    <td>
+        The in-game command used for adding a player to the SpamBot whitelist for all servers.
+    </td>
+</tr>
+<tr>
     <td><b>MULTIBalancer Whitelist Player</b></td>
     <td>blwhitelist</td>
     <td>
@@ -1377,6 +1471,38 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </td>
 </tr>
 <tr>
+    <td><b>Player Private Message</b></td>
+    <td>msg</td>
+    <td>
+        [player][message]
+    </td>
+    <td>
+        Opens a conversation with the given player. The player can either be in the current server, or any other
+        BF3/BF4 server on your database.
+    </td>
+</tr>
+<tr>
+    <td><b>Player Private Reply</b></td>
+    <td>r</td>
+    <td>
+        [message]
+    </td>
+    <td>
+        Replies to a currently open conversation with the given message.
+    </td>
+</tr>
+<tr>
+    <td><b>Admin Private Message</b></td>
+    <td>adminmsg</td>
+    <td>
+        [message]
+    </td>
+    <td>
+        Sends a message to all online admins in the server. They can then open a private message with the sender to
+        reply to the admin message.
+    </td>
+</tr>
+<tr>
     <td><b>What Is</b></td>
     <td>whatis</td>
     <td>
@@ -1428,13 +1554,46 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </td>
 </tr>
 <tr>
+    <td><b>Vote Surrender</b></td>
+    <td>surrender</td>
+    <td>
+        none
+    </td>
+    <td>
+        The in-game command used for starting/voting for a round surrender. Losing team specific, but either surrender
+        or votenext can be used.
+    </td>
+</tr>
+<tr>
+    <td><b>Vote Next Round</b></td>
+    <td>votenext</td>
+    <td>
+        none
+    </td>
+    <td>
+        The in-game command used for starting/voting for a round surrender. Losing team specific, but either surrender
+        or votenext can be used.
+    </td>
+</tr>
+<tr>
+    <td><b>Vote Against Surrender</b></td>
+    <td>nosurrender</td>
+    <td>
+        none
+    </td>
+    <td>
+        The in-game command used for voting AGAINST a currently active round surrender. This command may only be
+        used by the losing team.
+    </td>
+</tr>
+<tr>
     <td><b>Assist Losing Team</b></td>
     <td>assist</td>
     <td>
         none
     </td>
     <td>
-        The in-game command used to join the weak/losing team. (Designed for conquest)
+        The in-game command used to join the weak/losing team.
     </td>
 </tr>
 <tr>
@@ -1455,6 +1614,16 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </td>
     <td>
         The in-game command used to get the uptime of the server, procon/layer, AdKats, and several other things.
+    </td>
+</tr>
+<tr>
+    <td><b>List Round Reports</b></td>
+    <td>reportlist</td>
+    <td>
+        none
+    </td>
+    <td>
+        The in-game command used to get the latest 6 unanswered round reports.
     </td>
 </tr>
 <tr>
@@ -1488,6 +1657,22 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <td>
         The in-game command used for running the next map in current rotation, but keep all points and KDRs from this
         round.
+    </td>
+</tr>
+<tr>
+    <td><b>Restart AdKats</b></td>
+    <td>prestart</td>
+    <td>none</td>
+    <td>
+        The in-game command used for rebooting the AdKats instance. Requires confirmation.
+    </td>
+</tr>
+<tr>
+    <td><b>Shutdown Server</b></td>
+    <td>shutdown</td>
+    <td>none</td>
+    <td>
+        The in-game command used for shutting down/rebooting the Battlefield server. Requires confirmation.
     </td>
 </tr>
 <tr>
@@ -1960,6 +2145,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Extra Recipient Email Addresses.'</b> - List of all extra email addresses beside user email addresses that
         you would like to blast.
     </li>
+    <li><b>'Only Send Report Emails When Admins Offline.'</b> - Only send report notification emails when there are no
+        admins in the server.
+    </li>
 </ul>
 <h3>9. TeamSwap Settings:</h3>
 <ul>
@@ -2007,6 +2195,18 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         When players are kicked or banned from the server, the whole server is told.
         This changes whether the message includes the kicking or banning admin name, instead of just "admin".
     </li>
+    <li><b>'Display New Player Announcement'</b> - Whether to inform admins when a player joins the server for the
+        first time.
+    </li>
+    <li><b>'Display Player Name Change Announcement'</b> - Whether to inform admins when a player joins the server with
+        a changed name.
+    </li>
+    <li><b>'Display Targeted Player Left Notification'</b> - Whether to inform admins when a player they acted on
+        leaves the server.
+    </li>
+    <li><b>'Display Ticket Rates in Procon Chat'</b> - Whether to display team ticket loss/gain rates in the Procon
+        chat tab. Useful for setting values in auto-surrender.
+    </li>
     <li><b>'Inform players of reports against them'</b> - Whether to inform targeted players when someone reports them.
     </li>
     <li><b>'Player Inform Exclusion Strings'</b> - List of words or phrases that will cancel informing reported players.
@@ -2020,6 +2220,20 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </li>
     <li><b>'Use first spawn message'</b> - Whether to use the first spawn message for players.</li>
     <li><b>'First spawn message text'</b> - Message to send players when they first spawn in the server. Uses tell.</li>
+    <li><b>'Use First Spawn Reputation and Infraction Message'</b> - Whether to inform players of their current server
+        reputation and infraction count after the first spawn message is shown.</li>
+</ul>
+<h3>A12-2. SpamBot Settings:</h3>
+<ul>
+    <li><b>'SpamBot Enable'</b> - Whether to enable the SpamBot.</li>
+    <li><b>'SpamBot Say List'</b> - List of messages to send to the server as SAY.</li>
+    <li><b>'SpamBot Say Delay Seconds'</b> - The number of seconds between each SAY message is sent.</li>
+    <li><b>'SpamBot Yell List'</b> - List of messages to send to the server as YELL.</li>
+    <li><b>'SpamBot Yell Delay Seconds'</b> - The number of seconds between each YELL message is sent.</li>
+    <li><b>'SpamBot Tell List'</b> - List of messages to send to the server as TELL.</li>
+    <li><b>'SpamBot Tell Delay Seconds'</b> - The number of seconds between each TELL message is sent.</li>
+    <li><b>'Exclude Admins and Whitelist from Spam'</b> - Whether to exclude admins and whitelisted players from seeing
+        any messages sent from the SpamBot.</li>
 </ul>
 <h3>A13. Banning Settings:</h3>
 <ul>
@@ -2106,6 +2320,11 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         "Enable Live Scoreboard in DB" is forced on at all times.
         </p>
     </li>
+    <li><b>'Post Stat Logger Chat Manually'</b> - Sometimes stat logger chat upload glitches and stops, this overrides
+        that posting and uploads all chat to the database manually.
+    </li>
+    <li><b>'Post Server Chat Spam'</b> - Whether to include server spam messages when posting stat logger chat manually.
+    </li>
 </ul>
 <h3>A17. Round Settings:</h3>
 <ul>
@@ -2172,6 +2391,75 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         be ignored.
     </li>
 </ul>
+<h3>B21. Ping Enforcer Settings:</h3>
+<ul>
+    <li><b>'Ping Enforcer Enable'</b> - Whether to enable the Ping Enforcer.</li>
+    <li><b>'Ping Moving Average Duration sec'</b> - The amount of time that should be used to average the player pings.
+        Default is a 3 minute window.</li>
+    <li><b>'Ping Kick Trigger ms '</b> - The minimum ping that will trigger a kick.</li>
+    <li><b>'Ping Kick Minimum Players'</b> - The minimum number of players that must be in the server before ping kicks
+        will happen.</li>
+    <li><b>'Kick Missing Pings'</b> - Whether to kick players for having missing ping.</li>
+    <li><b>'Attempt Manual Ping when Missing'</b> - If the server does not provide the player a ping, attempt to fetch
+        their ping manually from the Procon instance.</li>
+    <li><b>'Ping Kick Ignore User List'</b> - Whether to ignore all users on the user list.</li>
+    <li><b>'Ping Kick Ignore Roles'</b> - List the role keys that will be ignored.</li>
+</ul>
+<h3>B22. Command Manager Settings:</h3>
+<ul>
+    <li><b>'Commander Manager Enable'</b> - Whether to enable the Commander Manager.</li>
+    <li><b>'Automatically Lock Players on Admin Action'</b> - When a player is acted on by an admin, they will be
+        automatically locked from action by other admins.</li>
+</ul>
+<h3>B23. Player Locking Settings:</h3>
+<ul>
+    <li><b>'Player Lock Manual Duration Minutes'</b> - When locking players via command, they will be locked for the
+        given duration in minutes.</li>
+    <li><b>'Minimum Players to Allow Commanders'</b> - The minimum number of players that must be in the server for
+        commanders to join.</li>
+    <li><b>'Player Lock Automatic Duration Minutes'</b> - When automatically locking players, they will be locked for
+        the given duration in minutes.</li>
+</ul>
+<h3>B24. Surrender Vote Settings:</h3>
+<ul>
+    <li><b>'Surrender Vote Enable'</b> - Whether to enable the Surrender Vote System.</li>
+    <li><b>'Percentage Votes Needed for Surrender'</b> - Percentage of a team required for surrender vote to
+        complete.</li>
+    <li><b>'Minimum Player Count to Enable Surrender'</b> - The minimum number of players that must be in the server for
+        a surrender vote to be allowed.</li>
+    <li><b>'Minimum Ticket Gap to Surrender'</b> - The minimum difference in tickets between teams for a surrender vote
+        to be allowed.</li>
+    <li><b>'Enable Required Ticket Rate Gap to Surrender'</b> - Whether to require a minimum ticket loss/gain rate
+        between teams before a surrender vote is allowed. Use 'Display Ticket Rates in Procon Chat' in section A12 to
+        monitor ticket loss/gain rates.</li>
+    <li><b>'Minimum Ticket Rate Gap to Surrender'</b> - The minimum difference in ticket rates between teams for
+        a surrender vote to be allowed.</li>
+    <li><b>'Surrender Vote Timeout Enable'</b> - Whether to enable a timeout on the surrender vote. After this timeout
+        all votes will be removed, and the surrender vote will be stopped.</li>
+    <li><b>'Surrender Vote Timeout Minutes'</b> - The number of minutes after surrender vote start that it will time
+        out and remove all votes.</li>
+</ul>
+<h3>B24. Auto-Surrender Settings:</h3>
+<ul>
+    <li><b>'Auto-Surrender Enable'</b> - Whether to enable the Auto-Surrender System. When enabled, all below values
+        must be contained in a round for it to trigger an automatic round surrender.</li>
+    <li><b>'Auto-Surrender Use Optimal Values for Metro'</b> - If you are running Metro 2014 on Conquest, use this
+        setting, it has been tested for months and will issue auto-surrender when a baserape happens.</li>
+    <li><b>'Auto-Surrender Minimum Ticket Gap'</b> - The minimum difference in ticket counts between teams for
+        auto-surrender to fire.</li>
+    <li><b>'Auto-Surrender Losing Team Rate Window Max'</b> - The losing team's ticket rate must not be greater than
+        this value for auto-surrender to fire.</li>
+    <li><b>'Auto-Surrender Losing Team Rate Window Min'</b> - The losing team's ticket rate must not be less than
+        this value for auto-surrender to fire.</li>
+    <li><b>'Auto-Surrender Winning Team Rate Window Max'</b> - The winning team's ticket rate must not be greater than
+        this value for auto-surrender to fire.</li>
+    <li><b>'Auto-Surrender Winning Team Rate Window Min'</b> - The winning team's ticket rate must not be less than
+        this value for auto-surrender to fire.</li>
+    <li><b>'Auto-Surrender Trigger Count to Surrender'</b> - Triggers happen at maximum every 10 seconds. The above
+        values must be hit this number of times for auto-surrender to fire..</li>
+    <li><b>'Auto-Surrender Message'</b> - The message that will be sent to the server when an auto-surrender is fired.
+        Place %WinnerName% in the string for the name of the winning team.</li>
+</ul>
 <h3>D99. Debug Settings:</h3>
 <ul>
     <li><b>'Debug level'</b> -
@@ -2183,6 +2471,12 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Debug Soldier Name'</b> -
         When this soldier issues commands in your server, the time for any command to complete is told in-game.
         Duration is from the time you entered the message, until all aspects of the command have been completed.
+    </li>
+    <li><b>'Disable Automatic Updates'</b> - Disables automatic updates for the plugin. Should only be disabled if
+        you've modified the plugin code manually.
+    </li>
+    <li><b>'Disable Usage Data Posting - Required For TEST Builds'</b> - Usage data tracks version numbers and counts
+        latest versions for stable and TEST builds. Used to see how many servers are currently running AdKats.
     </li>
     <li><b>'Command Entry'</b> -
         Enter commands here just like in game, mainly for debug purposes. Don't let more than one person use this at any
