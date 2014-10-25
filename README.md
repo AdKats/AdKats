@@ -240,6 +240,7 @@
     AdKats uses web statistics and requests to manage players types, hack detection, user lists, and updates.
     The list of domains/sub-domains AdKats must be able to access for proper function are documented below in the "Web Requests" section.
 </p>
+<HR>
 <p>
     <a name=install />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Install.jpg" alt="AdKats User Manual">
@@ -293,6 +294,7 @@
     If you have any problems installing AdKats please let me know on the MyRCON forums, or on Github as an issue and
     I'll respond promptly.
 </p>
+<HR>
 <p>
     <a name=faq />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_FAQ.jpg" alt="AdKats User Manual">
@@ -314,6 +316,7 @@
         <b>Suggest more for this list if you run across them.</b>
     </li>
 </ul>
+<HR>
 <p>
     <a name=features />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Features.jpg" alt="AdKats User Manual">
@@ -591,7 +594,8 @@
     @accept, @ignore, and @deny commands.
     @accept will confirm the report but take no action against the target player.
     @ignore is used for bad or invalid reports, the report is removed from the list and no action is taken.
-    @deny is for malicious reports and abuse of the report system, this command will destroy a reporter's reputation and hurt their AA status.<br/><br/>
+    @deny is for malicious reports and abuse of the report system, this command will destroy a reporter's reputation and 
+    hurt their AA status.<br/><br/>
 
     Exceptions and Security Measures:
     Automatic handling will not be taken if the target of a report is an admin or another AA, a real admin must act on
@@ -954,6 +958,7 @@ command.Add("target_guid", player.EAGuid);<br/>
 command.Add("record_message", "Using restricted weapon " + kill.Weapon);<br/>
 plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </p>
+<HR>
 <p>
     <a name=commands />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Commands.jpg" alt="AdKats User Manual">
@@ -1790,6 +1795,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </td>
 </tr>
 </table>
+<HR>
 <p>
     <a name=webrequests />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Web.jpg" alt="AdKats User Manual">
@@ -1874,6 +1880,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <p>
     BF4DB.com might be used in the future to trigger updates on players BF4Stats data.
 </p>
+<HR>
 <p>
     <a name=servercommands />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Server.jpg" alt="AdKats User Manual">
@@ -2025,6 +2032,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </tr>
 </table>
 </p>
+<HR>
 <p>
     <a name=settings />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Settings.jpg" alt="AdKats User Manual">
