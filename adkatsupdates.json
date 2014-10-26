@@ -46,7 +46,7 @@
 			"message_failure":"Failed to added adkats_records_main.record_time index",
 			"update_checks_hasResults":false,
 			"update_checks":[
-				"SHOW INDEX FROM `adkats_records_main` WHERE `Key_name` = 'record_time'"
+				"SHOW INDEX FROM `adkats_records_main` WHERE `Key_name` = 'adkats_records_main_fk_record_time'"
 			],
 			"update_execute_requiresModRows":false,
 			"update_execute":[
