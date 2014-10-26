@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.1.9.4
+ * Version 5.2.0.0
  * 25-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.1.9.4";
+        private const String PluginVersion = "5.2.0.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -15665,8 +15665,6 @@ namespace PRoConEvents {
                     _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + 
                     "/" + 
                     (_PlayerDictionary.Values.Where(innerPlayer => innerPlayer.frostbitePlayerInfo.TeamID == aPlayer.frostbitePlayerInfo.TeamID).OrderBy(innerPlayer => innerPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(aPlayer) + 1) + 
-                    "/" +
-                    aPlayer.frostbitePlayerInfo.Score + 
                     "), "));
                 //Send online admins
                 SendMessageToSource(record, onlineAdmins.Trim().TrimEnd(','));
