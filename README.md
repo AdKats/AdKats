@@ -2465,6 +2465,12 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         values must be hit this number of times for auto-surrender to fire..</li>
     <li><b>'Auto-Surrender Message'</b> - The message that will be sent to the server when an auto-surrender is fired.
         Place %WinnerName% in the string for the name of the winning team.</li>
+    <li><b>'Nuke Winning Team Instead of Surrendering Losing Team'</b> - When an auto-surrender would have been triggered 
+    on the losing team due to the settings above, instead, nuke the winning team. It will be common for 1-3 nukes to be 
+    issued within a few seconds of each other, to make sure all players both currently alive and about to spawn are 
+    dead.</li>
+    <li><b>'Auto-Nuke Message'</b> - The message that will be sent to the server when an auto-nuke is fired.
+        Place %WinnerName% in the string for the name of the winning team being nuked.</li>
 </ul>
 <h3>D99. Debug Settings:</h3>
 <ul>
