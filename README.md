@@ -797,8 +797,12 @@
     players after a minimum monitor time is reached, and a minimum number of players are in the server.
     The system can kick for missing ping, and attempt to manually ping players whose pings are not given by
     the server.
+</p>
+<p>
     Players who join the server and are over the limit are warned about it in chat.
     Players whose ping is normal, but spikes over your limit, are warned about the spike.
+</p>
+<p>
     Admins are automatically whitelisted, but the entire user list can be optionally whitelisted, or a given
     subset of role keys.
     Individual players can be whitelisted with the pwhitelist command.
@@ -809,7 +813,11 @@
     automatically, or via the AFK command.
     When automatic kick is enabled it will monitor all players in the server, kicking them after the trigger
     AFK time is reached, but only if the number of players in the server is over a certain amount.
+</p>
+<p>
     Chat can be optionally ignored, so players just spamming chat without playing can be removed from the server.
+</p>
+<p>
     Admins are automatically whitelisted, but the entire user list can be optionally whitelisted, or a given
     subset of role keys.
     Spectators are immune to AFK kicks.
@@ -819,9 +827,13 @@
     The internal SpamBot is much akin to that found in other plugins, with a few added bells and whistles.
     Automatic messages can be set in separate lists for say, yell, and tell options.
     Each list has its own interval that can be customized, the defaults being 300, 600, and 900 seconds, respectively.
+</p>
+<p>
     The key difference is that admins and whitelisted players can be blocked from seeing SpamBot messages.
     This way your admins' chat are not cluttered with messages meant only for promotion or information they
     already know.
+</p>
+<p>
     Individual players can be whitelisted from seeing messages using the spamwhitelist command.
 </p>
 <h3>Commander Manager</h3>
@@ -829,10 +841,64 @@
     In cases of low population, commanders can mean the difference between a balanced server and baserape.
     This manager will not allow players to join as commander until a specified minimum number of players are in the
     server.
+</p>
+<p>
     We found a good value to be 40 players on 64p servers.
 </p>
+<h3>Surrender Vote System</h3>
+<p>
+    Surrender is used when one team is much stronger than another, to the point of it becoming nearly impossible
+    for the losing team to move around the map. With this system players can vote to end the round with the current
+    winning team as winner, having the running autobalancer scramble teams for a more balanced game next match.
+</p>
+<p>
+    There are 3 commands that are used for surrender vote, surrender, votenext, and nosurrender. Access to these three
+    commands, or a subset of them, must be given to your "Guest" role in the role settings section before this system
+    can be used.
+    <ul>
+    <li><b>surrender. </b> This command is usable by both teams, but will be translated to votenext if used by the
+        winning team. Players on the losing team don't want to sit though a baserape, this command lets them vote toward
+        round surrender. It adds one vote toward surrender.</li>
+    <li><b>votenext. </b> This command is usable by both teams, but will be translated to surrender if used by the
+        losing team. Players on the winning team will sometimes find it boring sitting at a baserape, this command
+        lets them place their vote toward ending the round. It adds one vote toward surrender.</li>
+    <li><b>nosurrender. </b> This command is usable only by the losing team. If someone doesn't think the situation
+        is bad enough to warrant a surrender, they can use this command to vote against it. Removes one vote toward
+        surrender.</li>
+    </ul>
+</p>
+<p>
+    Minimum player counts, minimum ticket differences, and minimum ticket difference rates can be added as limits for
+    starting a round surrender. These are important as they prevent players from starting a surrender vote when it's
+    not warranted or necessary.
+</p>
+<p>
+    A timeout can be added to the surrender vote. When enabled and the timeout expires after starting the vote, the
+    vote is canceled and all votes removed.
+</p>
+<h3>Auto-Surrender/Auto-Nuke System</h3>
+<p>
+    Sometimes surrender vote is not enough to help the server. This system uses ticket loss/gain rates to automatically
+    trigger either round surrender on the losing team, or auto-nuke on the winning team. This system should not be used
+    on servers that run mixed mode, as different modes will have drastically different ticket rates.
+</p>
+<p>
+    Do not enable this system until you have analyzed the ticket loss/gain rates that consistently happen during
+    baserape on the particular server you wish to enable this on. Using the 'Display Ticket Rates in Procon Chat'
+    setting in section A12 will display the rates in the Procon chat tab for analysis. Once you have the values you
+    can set the windows for winning/losing team ticket rates, activating auto-surrender or auto-nuke.
+</p>
+<p>
+    Other limits like minimum ticket difference and trigger count help make sure the ticket rates it sees are actually
+    from a baserape and not from any other case.
+</p>
+<p>
+    Once a round matches all of the parameters you set, auto-surrender or auto-nuke is triggered. Auto-surrender will
+    cause the round to end, in favor of the current winning team. Auto-nuke will kill every player on the winning team
+    that is currently alive; It will typically issue 1-3 times, making sure all players are dead.
+</p>
 <h3>Commanding AdKats from External Source</h3>
-<h4>BFAdminCP 2.0+ can be used for this.</h4>
+<h4><u>BFAdminCP 2.0+ can be used for this.</u></h4>
 <p>
     There are currently two ways to interact with AdKats externally. (A third coming soon if possible).
 </p>
@@ -2218,8 +2284,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         message.
     </li>
     <li><b>'Yell display time seconds'</b> - The integer time in seconds that yell messages will be displayed.</li>
-    <li><b>'Pre-Message List'</b> - List of messages, mapped to IDs, that can be used in action commands. 
-    e.g. !kill mustardman 23. The !whatis command can be used to check what each ID references.</li>
+    <li><b>'Pre-Message List'</b> - List of messages, mapped to IDs, that can be used in action commands.
+        e.g. !kill mustardman 23. The !whatis command can be used to check what each ID references.</li>
     <li><b>'Require Use of Pre-Messages'</b> - Whether using pre-messages in commands is required instead of custom
         messages.
     </li>
@@ -2413,9 +2479,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h3>B22. Commander Manager Settings:</h3>
 <ul>
     <li><b>'Commander Manager Enable'</b> - Whether to enable the Commander Manager.</li>
-    <li><b>'Minimum Players to Allow Commanders'</b> - Commanders will be automatically kicked when attempting to join with 
-    active player count less than this value. Existing commanders will be kicked if player count drops below 2/3 of this
-    value.</li>
+    <li><b>'Minimum Players to Allow Commanders'</b> - Commanders will be automatically kicked when attempting to join with
+        active player count less than this value. Existing commanders will be kicked if player count drops below 2/3 of this
+        value.</li>
 </ul>
 <h3>B23. Player Locking Settings:</h3>
 <ul>
@@ -2465,10 +2531,10 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         values must be hit this number of times for auto-surrender to fire..</li>
     <li><b>'Auto-Surrender Message'</b> - The message that will be sent to the server when an auto-surrender is fired.
         Place %WinnerName% in the string for the name of the winning team.</li>
-    <li><b>'Nuke Winning Team Instead of Surrendering Losing Team'</b> - When an auto-surrender would have been triggered 
-    on the losing team due to the settings above, instead, nuke the winning team. It will be common for 1-3 nukes to be 
-    issued within a few seconds of each other, to make sure all players both currently alive and about to spawn are 
-    dead.</li>
+    <li><b>'Nuke Winning Team Instead of Surrendering Losing Team'</b> - When an auto-surrender would have been triggered
+        on the losing team due to the settings above, instead, nuke the winning team. It will be common for 1-3 nukes to be
+        issued within a few seconds of each other, to make sure all players both currently alive and about to spawn are
+        dead.</li>
     <li><b>'Auto-Nuke Message'</b> - The message that will be sent to the server when an auto-nuke is fired.
         Place %WinnerName% in the string for the name of the winning team being nuked.</li>
 </ul>
