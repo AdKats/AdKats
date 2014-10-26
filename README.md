@@ -2421,8 +2421,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <ul>
     <li><b>'Player Lock Manual Duration Minutes'</b> - When locking players via command, they will be locked for the
         given duration in minutes.</li>
-    <li><b>'Minimum Players to Allow Commanders'</b> - The minimum number of players that must be in the server for
-        commanders to join.</li>
+    <li><b>'Automatically Lock Players on Admin Action'</b> - When a player is acted on by an admin, they will be
+        automatically locked from action by other admins.</li>
     <li><b>'Player Lock Automatic Duration Minutes'</b> - When automatically locking players, they will be locked for
         the given duration in minutes.</li>
 </ul>
