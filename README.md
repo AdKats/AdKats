@@ -2486,4 +2486,4 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Enter commands here just like in game, mainly for debug purposes. Don't let more than one person use this at any
         time.
     </li>
-</ul>
+</ul> 

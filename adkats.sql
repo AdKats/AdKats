@@ -1,5 +1,6 @@
--- AdKats Setup Script by ColColonCleaner
--- Version 5.1.0.0
+-- AdKats Setup Script
+-- Version 5.2.0.0
+-- ColColonCleaner
 
 SET FOREIGN_KEY_CHECKS=0;
 SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
@@ -155,6 +156,20 @@ REPLACE INTO `adkats_commands` VALUES(69, 'Invisible', 'player_repboost', 'Log',
 REPLACE INTO `adkats_commands` VALUES(70, 'Active', 'player_log', 'Log', 'Log Player Information', 'log', FALSE);
 REPLACE INTO `adkats_commands` VALUES(72, 'Invisible', 'player_ban_temp_old', 'Log', 'Previous Temp Ban', 'pretban', TRUE);
 REPLACE INTO `adkats_commands` VALUES(73, 'Invisible', 'player_ban_perm_old', 'Log', 'Previous Perm Ban', 'preban', TRUE);
+REPLACE INTO `adkats_commands` VALUES(74, 'Active', 'player_pm_send', 'Unable', 'Player Private Message', 'msg', FALSE);
+REPLACE INTO `adkats_commands` VALUES(75, 'Active', 'player_pm_reply', 'Unable', 'Player Private Reply', 'r', FALSE);
+REPLACE INTO `adkats_commands` VALUES(76, 'Active', 'admin_pm_send', 'Unable', 'Admin Private Message', 'adminmsg', FALSE);
+REPLACE INTO `adkats_commands` VALUES(77, 'Active', 'player_whitelistaa', 'Log', 'AA Whitelist Player', 'aawhitelist', TRUE);
+REPLACE INTO `adkats_commands` VALUES(78, 'Active', 'self_surrender', 'Log', 'Vote Surrender', 'surrender', FALSE);
+REPLACE INTO `adkats_commands` VALUES(79, 'Active', 'self_votenext', 'Log', 'Vote Next Round', 'votenext', FALSE);
+REPLACE INTO `adkats_commands` VALUES(80, 'Active', 'self_reportlist', 'Log', 'List Round Reports', 'reportlist', FALSE);
+REPLACE INTO `adkats_commands` VALUES(81, 'Active', 'plugin_restart', 'Log', 'Restart AdKats', 'prestart', TRUE);
+REPLACE INTO `adkats_commands` VALUES(82, 'Active', 'server_shutdown', 'Log', 'Shutdown Server', 'shutdown', TRUE);
+REPLACE INTO `adkats_commands` VALUES(83, 'Active', 'self_nosurrender', 'Log', 'Vote Against Surrender', 'nosurrender', FALSE);
+REPLACE INTO `adkats_commands` VALUES(84, 'Active', 'player_whitelistspambot', 'Log', 'SpamBot Whitelist Player', 'spamwhitelist', TRUE);
+REPLACE INTO `adkats_commands` VALUES(85, 'Invisible', 'player_pm_start', 'Log', 'Player Private Message Start', 'pmstart', FALSE);
+REPLACE INTO `adkats_commands` VALUES(86, 'Invisible', 'player_pm_transmit', 'Log', 'Player Private Message Transmit', 'pmtransmit', FALSE);
+REPLACE INTO `adkats_commands` VALUES(87, 'Invisible', 'player_pm_cancel', 'Log', 'Player Private Message Cancel', 'pmcancel', FALSE);
 
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
   `player_id` int(11) unsigned NOT NULL,
@@ -326,6 +341,10 @@ INSERT INTO `adkats_rolecommands` VALUES(1, 29);
 INSERT INTO `adkats_rolecommands` VALUES(1, 51);
 INSERT INTO `adkats_rolecommands` VALUES(1, 57);
 INSERT INTO `adkats_rolecommands` VALUES(1, 58);
+INSERT INTO `adkats_rolecommands` VALUES(1, 68);
+INSERT INTO `adkats_rolecommands` VALUES(1, 74);
+INSERT INTO `adkats_rolecommands` VALUES(1, 75);
+INSERT INTO `adkats_rolecommands` VALUES(1, 76);
 INSERT INTO `adkats_rolecommands` VALUES(2, 1);
 INSERT INTO `adkats_rolecommands` VALUES(2, 2);
 INSERT INTO `adkats_rolecommands` VALUES(2, 3);
@@ -388,6 +407,20 @@ INSERT INTO `adkats_rolecommands` VALUES(2, 64);
 INSERT INTO `adkats_rolecommands` VALUES(2, 65);
 INSERT INTO `adkats_rolecommands` VALUES(2, 66);
 INSERT INTO `adkats_rolecommands` VALUES(2, 67);
+INSERT INTO `adkats_rolecommands` VALUES(2, 68);
+INSERT INTO `adkats_rolecommands` VALUES(2, 70);
+INSERT INTO `adkats_rolecommands` VALUES(2, 71);
+INSERT INTO `adkats_rolecommands` VALUES(2, 74);
+INSERT INTO `adkats_rolecommands` VALUES(2, 75);
+INSERT INTO `adkats_rolecommands` VALUES(2, 76);
+INSERT INTO `adkats_rolecommands` VALUES(2, 77);
+INSERT INTO `adkats_rolecommands` VALUES(2, 78);
+INSERT INTO `adkats_rolecommands` VALUES(2, 79);
+INSERT INTO `adkats_rolecommands` VALUES(2, 80);
+INSERT INTO `adkats_rolecommands` VALUES(2, 81);
+INSERT INTO `adkats_rolecommands` VALUES(2, 82);
+INSERT INTO `adkats_rolecommands` VALUES(2, 83);
+INSERT INTO `adkats_rolecommands` VALUES(2, 84);
 
 CREATE TABLE IF NOT EXISTS `adkats_roles` (
   `role_id` int(11) unsigned NOT NULL AUTO_INCREMENT,

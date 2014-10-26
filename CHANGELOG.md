@@ -522,4 +522,70 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
+<h4>5.2.0.0 (25-OCT-2014)</h4>
+<b>Changes</b><br/>
+<ul>
+    <li>Plugin description and changelog are fetched at a 60 minute interval now, instead of only on startup.</li>
+    <li>New line characters are removed from messages posted to Procon's chat window.</li>
+    <li>Server info is now requested at a 10 second interval.</li>
+    <li>Rule list can no longer be sent to offline players.</li>
+    <li>MULTIBalancer unswitcher is now temporarily disabled when a SwapNuke is issued.</li>
+    <li>All records are now posted in database UTC time instead of Procon layer UTC time, unless specific requirements are met.</li>
+    <li>Assist command is nolonger allowed while a surrender vote is active, or if the round is not playing.</li>
+    <li>Yell duration now limited between 0 and 10 seconds.</li>
+</ul>
+<b>Enhancements</b><br/>
+<ul>
+    <li>Added option to disable new player notification.</li>
+    <li>Added option to disable player name change notification.</li>
+    <li>Added messaging commands for private conversations between players, either in the same server, or between any of the servers on the database.</li>
+    <li>Startup process messages are cleaned up in debug and procon chat.</li>
+    <li>Startup progress now shown to players attempting commands during AdKats startup.</li>
+    <li>Players attempting commands during AdKats startup are now be told once commands are fully online, not just admins.</li>
+    <li>Greatly reduced the amount of database overhead required after first fetch of the user list.</li>
+    <li>Added command to send private message to admins. /adminmsg</li>
+    <li>Added player reputation to the admin report notification.</li>
+    <li>Added special player group for Admin Assistants.</li>
+    <li>Added command to add players to the Admin Assistant list.</li>
+    <li>Released Ping Enforcer publicly.</li>
+    <li>Added notification and startup block if the Procon layer and database have significantly different values for UTC time.</li>
+    <li>Added 2 day and 3day ban options to the punishment hierarchy.</li>
+    <li>Released Commander Manager publicly.</li>
+    <li>Added optional automatic player lock on admin action.</li>
+    <li>Added option to modify both manual and automatic player lock duration.</li>
+    <li>Added Internal SpamBot with optional whitelisting for admins and players.</li>
+    <li>Added SpamBot whitelist command.</li>
+    <li>Added surrender/votenext/nosurrender commands, with a full fledged surrender system.</li>
+    <li>Added reportlist command, to list the last 6 missed round reports.</li>
+    <li>Added plugin restart command.</li>
+    <li>Added server shutdown/reboot command.</li>
+    <li>Reputable players are now informed when admins join the server. Disable option provided.</li>
+    <li>Messages sent to procon admin are now bolded for visibility.</li>
+    <li>Notification of glitched players in the server are now sent to admins. The battlefield server must be rebooted in these cases, they cannot be kicked/banned.</li>
+    <li>Released Auto-Surrender/Auto-Nuke publicly.</li>
+    <li>Added option to only send report emails when admins are in the server.</li>
+    <li>Added option to tell players their reputation and infraction count on first-spawn, after the welcome message.</li>
+    <li>Added option to override stat logger chat posting, and post manually.</li>
+    <li>Added option to disable targeted player left notification.</li>
+    <li>Added better response to report ID usage if the report was already acted on.</li>
+    <li>Implemented linear interpolation on moving averages for ticket loss rates, score rates, and ping calculations.</li>
+    <li>Tell messages are no longer shown in procon chat as both say and yell, simply one line as tell to reduce spam.</li>
+    <li>Added commands for previous temp/perm bans, so old bans can be identified, and also will not affect player reputation.</li>
+    <li>Added automatic database updater, so global fixes to database issues can be fixed without requiring plugin updates.</li>
+    <li>Version status is now tracked for running instances, so issues with specific versions can be found and fixed.</li>
+    <li>Added global definition for special player groups, so external tools can access all valid group information.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+    <li>Fixed bug where some threads would not exit quickly when disabling/restarting AdKats.</li>
+    <li>Fixed messages in console marked as warning when they should just be information.</li>
+    <li>Fixed bug where SwapNuke would attempt to move commanders and spectators.</li>
+    <li>Fixed bug where certain commands marked as logging "Unable" were still attempting logging.</li>
+    <li>Fixed bug where, when AdKats started with no players in the server, player listing would be stuck in an endless loop until first player join.</li>
+    <li>Fixed bug where AdKats was unable to detect stat logger tables after changing database connection mid-instance.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
 </blockquote>

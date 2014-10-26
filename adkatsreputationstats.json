@@ -451,27 +451,82 @@
   },
   {
     "command_typeaction": "72|72",
-    "target_weight": 1.9,
+    "target_weight": 0,
     "source_weight": 0
   },
   {
     "command_typeaction": "73|73",
-    "target_weight": 1.9,
+    "target_weight": 0,
     "source_weight": 0
   },
   {
     "command_typeaction": "74|74",
-    "target_weight": 1.9,
+    "target_weight": 0,
     "source_weight": 0
   },
   {
     "command_typeaction": "75|75",
-    "target_weight": 1.9,
+    "target_weight": 0,
     "source_weight": 0
   },
   {
     "command_typeaction": "76|76",
-    "target_weight": 1.9,
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "77|77",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "78|78",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "79|79",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "80|80",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "81|81",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "82|82",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "83|83",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "84|84",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "85|85",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "86|86",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "87|87",
+    "target_weight": 0,
     "source_weight": 0
   }
 ]
