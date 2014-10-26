@@ -2413,8 +2413,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h3>B22. Commander Manager Settings:</h3>
 <ul>
     <li><b>'Commander Manager Enable'</b> - Whether to enable the Commander Manager.</li>
-    <li><b>'Automatically Lock Players on Admin Action'</b> - When a player is acted on by an admin, they will be
-        automatically locked from action by other admins.</li>
+    <li><b>'Minimum Players to Allow Commanders'</b> - Commanders will be automatically kicked when attempting to join with 
+    active player count less than this value. Existing commanders will be kicked if player count drops below 2/3 of this
+    value.</li>
 </ul>
 <h3>B23. Player Locking Settings:</h3>
 <ul>
