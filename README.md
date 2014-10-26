@@ -2358,7 +2358,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         You will get some false positives down near 50 but will catch many more aimbotters, setting near 70 will not
         result in any false positives but also wont catch as many aimbotters.
     </li>
-    <li><b>'HackerChecker: HSK Checker: Ban Message'</b> - Message prefix to use when banning for high KPM.</li>
+    <li><b>'HackerChecker: HSK Checker: Ban Message'</b> - Message prefix to use when banning for high HSK.</li>
     <li><b>'HackerChecker: KPM Checker: Enable'</b> - Whether the KPM portion of the hacker-checker is enabled.</li>
     <li><b>'HackerChecker: KPM Checker: Trigger Level'</b> - Kills-per-minute with any included weapon that will trigger
         the ban.
@@ -2410,7 +2410,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Ping Kick Ignore User List'</b> - Whether to ignore all users on the user list.</li>
     <li><b>'Ping Kick Ignore Roles'</b> - List the role keys that will be ignored.</li>
 </ul>
-<h3>B22. Command Manager Settings:</h3>
+<h3>B22. Commander Manager Settings:</h3>
 <ul>
     <li><b>'Commander Manager Enable'</b> - Whether to enable the Commander Manager.</li>
     <li><b>'Automatically Lock Players on Admin Action'</b> - When a player is acted on by an admin, they will be
