@@ -1840,6 +1840,12 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </table>
 </p>
 <p>
+    All are either simple GET or POST requests.
+</p>
+<p>
+    BF4DB.com might be used in the future to trigger updates on players BF4Stats data.
+</p>
+<p>
     <b>The following URLS are used for reputation stats, special player groups, database updates, and weapon stats for
         hacker-checker:</b>
 </p>
@@ -1866,12 +1872,6 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <td>Battlefield Weapon Stats (Damages)</td>
     </tr>
 </table>
-</p>
-<p>
-    All are either simple GET or POST requests.
-</p>
-<p>
-    BF4DB.com might be used in the future to trigger updates on players BF4Stats data.
 </p>
 <HR>
 <p>
