@@ -2218,7 +2218,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         message.
     </li>
     <li><b>'Yell display time seconds'</b> - The integer time in seconds that yell messages will be displayed.</li>
-    <li><b>'Pre-Message List'</b> - List of messages for use in pre-say and pre-yell commands.</li>
+    <li><b>'Pre-Message List'</b> - List of messages, mapped to IDs, that can be used in action commands. 
+    e.g. !kill mustardman 23. The !whatis command can be used to check what each ID references.</li>
     <li><b>'Require Use of Pre-Messages'</b> - Whether using pre-messages in commands is required instead of custom
         messages.
     </li>
