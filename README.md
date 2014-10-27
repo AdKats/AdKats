@@ -258,10 +258,8 @@
     </li>
     <li>
         <b>Set up the database.</b>
-        Run the contents of the following sql script on your database, the same schema that stat logger is running on. 
+        Run the contents of the <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">AdKats Database Setup Script</a> on your database, on the same schema stat logger uses. 
         The script must be run by an account with permissions to create tables, triggers, and stored procedures.
-        <br/>
-        <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">adkats.sql</a>
     </li>
     <li>
         <b>Download AdKats Source.</b>
