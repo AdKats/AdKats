@@ -276,8 +276,10 @@
     </li>
     <li>
         <b>Enable AdKats.</b>
-        AdKats will confirm all dependencies and show confirmation in the console. If it gives your server an ID then
-        all is well. AdKats will automatically update itself with new patches and releases. Enjoy your new admin tool!
+        AdKats will confirm all dependencies and show confirmation in the console. 
+        If startup completes and provides notification it is running, then all is well. 
+        AdKats will automatically update itself with new patches and releases. 
+        Enjoy your new admin tool!
     </li>
 </ol>
 <p>
