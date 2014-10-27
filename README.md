@@ -2511,7 +2511,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Surrender Vote Timeout Minutes'</b> - The number of minutes after surrender vote start that it will time
         out and remove all votes.</li>
 </ul>
-<h3>B24. Auto-Surrender Settings:</h3>
+<h3>B25. Auto-Surrender Settings:</h3>
 <ul>
     <li><b>'Auto-Surrender Enable'</b> - Whether to enable the Auto-Surrender System. When enabled, all below values
         must be contained in a round for it to trigger an automatic round surrender.</li>
