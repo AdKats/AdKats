@@ -244,14 +244,12 @@
         Download and install the latest universal version of XpKiller's
         <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats
             Logger</a>.
-        Make sure stat logger is installed and running! Do NOT attempt to install AdKats until that plugin is running
-        without issue.
+        Make sure stat logger is running without error for a few minutes after installation.
     </li>
     <li>
         <b style='color:#DF0101;'>GO BACK TO STEP 1 AND INSTALL STAT LOGGER.</b>
-        Not after, not when you try to enable AdKats and it fails, go back and install stat logger and make sure it is
-        running!
-        Current and future functions will be completely broken for you if you do not do this.
+        I cannot emphasize this enough; Far too many people have posted issues because they refuse to follow instructions. 
+        Do NOT attempt to install AdKats until that plugin is running without issue.
     </li>
     <li>
         <b>Set up the database.</b>
