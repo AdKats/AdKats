@@ -18,8 +18,8 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.0.0
- * 25-OCT-2014
+ * Version 5.2.0.2
+ * 26-OCT-2014
  */
 
 using System;
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.0.0";
+        private const String PluginVersion = "5.2.0.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -196,9 +196,11 @@ namespace PRoConEvents {
         private Int32 _databaseSuccess;
         private Int32 _databaseTimeouts;
         private volatile Boolean _dbSettingsChanged = true;
-        private Boolean _dbTimingChecked = false;
-        private Boolean _dbTimingValid = false;
-        private Boolean _dbTimingValidOverride = false;
+        private Boolean _dbTimingChecked;
+        private Boolean _dbTimingValid;
+        private Boolean _dbTimingValidOverride;
+        private Boolean _globalTimingChecked;
+        private Boolean _globalTimingValid;
         private Hashtable _lastStatLoggerStatusUpdate;
         private String _statLoggerVersion = "BF3";
 
@@ -5331,7 +5333,7 @@ namespace PRoConEvents {
                                             record_message = autoNukeMessage
                                         });
                                     }
-                                    else
+                                    else if (!_endingRound)
                                     {
                                         _endingRound = true;
                                         var roundEndDelayThread = new Thread(new ThreadStart(delegate
@@ -14911,34 +14913,43 @@ namespace PRoConEvents {
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 if (voteCount >= requiredVotes) {
                     //Vote succeeded, trigger winning team
-                    _endingRound = true;
-                    var roundEndDelayThread = new Thread(new ThreadStart(delegate {
-                        DebugWrite("Starting a round end delay thread.", 5);
-                        try {
-                            Thread.CurrentThread.Name = "roundenddelay";
-                            for (int i = 0; i < 6; i++) {
-                                AdminTellMessage("Surrender Vote Succeeded. " + winningTeam.TeamName + " wins!");
-                                Thread.Sleep(50);
+                    _surrenderVoteSucceeded = true;
+                    if (!_endingRound)
+                    {
+                        _endingRound = true;
+                        var roundEndDelayThread = new Thread(new ThreadStart(delegate
+                        {
+                            DebugWrite("Starting a round end delay thread.", 5);
+                            try
+                            {
+                                Thread.CurrentThread.Name = "roundenddelay";
+                                for (int i = 0; i < 6; i++)
+                                {
+                                    AdminTellMessage("Surrender Vote Succeeded. " + winningTeam.TeamName + " wins!");
+                                    Thread.Sleep(50);
+                                }
+                                _threadMasterWaitHandle.WaitOne(7000);
+                                var repRecord = new AdKatsRecord
+                                {
+                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                    server_id = _serverInfo.ServerID,
+                                    command_type = _CommandKeyDictionary["round_end"],
+                                    command_numeric = winningTeam.TeamID,
+                                    target_name = winningTeam.TeamName,
+                                    source_name = "RoundManager",
+                                    record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")"
+                                };
+                                QueueRecordForProcessing(repRecord);
                             }
-                            _threadMasterWaitHandle.WaitOne(7000);
-                            var repRecord = new AdKatsRecord {
-                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["round_end"],
-                                command_numeric = winningTeam.TeamID,
-                                target_name = winningTeam.TeamName,
-                                source_name = "RoundManager",
-                                record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")"
-                            };
-                            QueueRecordForProcessing(repRecord);
-                        }
-                        catch (Exception) {
-                            HandleException(new AdKatsException("Error while running round end delay."));
-                        }
-                        DebugWrite("Exiting a round end delay thread.", 5);
-                        LogThreadExit();
-                    }));
-                    StartAndLogThread(roundEndDelayThread);
+                            catch (Exception)
+                            {
+                                HandleException(new AdKatsException("Error while running round end delay."));
+                            }
+                            DebugWrite("Exiting a round end delay thread.", 5);
+                            LogThreadExit();
+                        }));
+                        StartAndLogThread(roundEndDelayThread);
+                    }
                 }
                 else
                 {
@@ -16595,17 +16606,54 @@ namespace PRoConEvents {
                 }
                 else
                 {
-                    //Confirm database UTC timestamp matches procon UTC timestamp
-                    var dbUTC = GetDatabaseUTCTimestamp();
                     var curUTC = DateTime.UtcNow;
-                    TimeSpan diffUTC;
-                    if (dbUTC > curUTC) 
+                    DateTime globalUTC;
+                    TimeSpan diffGlobalUTC;
+                    if (GetGlobalUTCTimestamp(out globalUTC))
                     {
-                        diffUTC = dbUTC - curUTC;
+                        if (globalUTC > curUTC)
+                        {
+                            diffGlobalUTC = globalUTC - curUTC;
+                        }
+                        else
+                        {
+                            diffGlobalUTC = curUTC - globalUTC;
+                        }
+                        _globalTimingChecked = true;
+                        if (diffGlobalUTC.TotalSeconds > 300)
+                        {
+                            ConsoleError("Your PRoCon layer has a " + FormatTimeString(diffGlobalUTC, 3) + " UTC timestamp mismatch vs Global Time. UTC-Global:(" + globalUTC.ToShortDateString() + " " + globalUTC.ToLongTimeString() + ") UTC-Procon:(" + curUTC.ToShortDateString() + " " + curUTC.ToLongTimeString() + ")");
+                            _globalTimingValid = false;
+                            Disable();
+                            return false;
+                        }
+                        _globalTimingValid = true;
+                        if (diffGlobalUTC.TotalSeconds > 15)
+                        {
+                            ConsoleWarn("Global timing confirmed, but there is a " + FormatTimeString(diffGlobalUTC, 3) + " UTC timestamp mismatch between your layer and global time.");
+                        }
+                        else
+                        {
+                            ConsoleSuccess("Global timing confirmed.");
+                        }
                     }
                     else
                     {
-                        diffUTC = curUTC - dbUTC;
+                        ConsoleError("Unable to confirm timing controls. Global UTC Timestamp could not be fetched.");
+                        _globalTimingValid = false;
+                        Disable();
+                        return false;
+                    }
+                    //Confirm database UTC timestamp matches procon UTC timestamp
+                    var dbUTC = GetDatabaseUTCTimestamp();
+                    TimeSpan diffdbUTC;
+                    if (dbUTC > curUTC)
+                    {
+                        diffdbUTC = dbUTC - curUTC;
+                    }
+                    else
+                    {
+                        diffdbUTC = curUTC - dbUTC;
                     }
                     _dbTimingChecked = true;
                     if (dbUTC == DateTime.MinValue) {
@@ -16617,8 +16665,8 @@ namespace PRoConEvents {
                             return false;
                         }
                     }
-                    else if (diffUTC.TotalSeconds > 300) {
-                        ConsoleError("Your PRoCon layer and database have a " + FormatTimeString(diffUTC, 3) + " UTC timestamp mismatch. UTC-Database:(" + dbUTC.ToShortDateString() + " " + dbUTC.ToLongTimeString() + ") UTC-Procon:(" + curUTC.ToShortDateString() + " " + curUTC.ToLongTimeString() + ")");
+                    else if (diffdbUTC.TotalSeconds > 300) {
+                        ConsoleError("Your PRoCon layer and database have a " + FormatTimeString(diffdbUTC, 3) + " UTC timestamp mismatch. UTC-Database:(" + dbUTC.ToShortDateString() + " " + dbUTC.ToLongTimeString() + ") UTC-Procon:(" + curUTC.ToShortDateString() + " " + curUTC.ToLongTimeString() + ")");
                         _dbTimingValid = false;
                         if (!_dbTimingValidOverride) {
                             Disable();
@@ -16627,8 +16675,8 @@ namespace PRoConEvents {
                     }
                     else {
                         _dbTimingValid = true;
-                        if (diffUTC.TotalSeconds > 15) {
-                            ConsoleWarn("Database timing confirmed, but there is a " + FormatTimeString(diffUTC, 3) + " UTC timestamp mismatch between your layer and database.");
+                        if (diffdbUTC.TotalSeconds > 15) {
+                            ConsoleWarn("Database timing confirmed, but there is a " + FormatTimeString(diffdbUTC, 3) + " UTC timestamp mismatch between your layer and database.");
                         }
                         else {
                             ConsoleSuccess("Database timing confirmed.");
@@ -22216,6 +22264,30 @@ namespace PRoConEvents {
             return DateTime.MinValue;
         }
 
+        public Boolean GetGlobalUTCTimestamp(out DateTime UTCTime)
+        {
+            using (var client = new WebClient())
+            {
+                try
+                {
+                    String response = client.DownloadString("http://www.timeanddate.com/clocks/onlyforusebyconfiguration2.php");
+                    String[] elements = response.Split(' ');
+                    Double epochSeconds = 0;
+                    if (Double.TryParse(elements[0], out epochSeconds))
+                    {
+                        UTCTime = DateTimeFromEpochSeconds(epochSeconds);
+                        return true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    HandleException(new AdKatsException("Error while getting global UTC Timestamp", e));
+                }
+            }
+            UTCTime = DateTime.UtcNow;
+            return false;
+        }
+
         private void UpdateMULTIBalancerWhitelist() {
             try {
                 if (_FeedMultiBalancerWhitelist) {
@@ -24236,6 +24308,12 @@ namespace PRoConEvents {
         public void PrintPreparedCommand(MySqlCommand cmd) {
             String query = cmd.Parameters.Cast<MySqlParameter>().Aggregate(cmd.CommandText, (current, p) => current.Replace(p.ParameterName, (p.Value != null)?(p.Value.ToString()):("NULL")));
             ConsoleWrite(query);
+        }
+
+        public DateTime DateTimeFromEpochSeconds(Double epochSeconds)
+        {
+            var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            return epoch.AddSeconds(epochSeconds);
         }
 
         public AdKatsException HandleException(AdKatsException aException) {
