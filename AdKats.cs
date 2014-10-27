@@ -18,7 +18,7 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.0.2
+ * Version 5.2.0.3
  * 26-OCT-2014
  */
 
@@ -51,7 +51,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.0.2";
+        private const String PluginVersion = "5.2.0.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5357,7 +5357,7 @@ namespace PRoConEvents {
                                                     command_numeric = baserapingTeam.TeamID,
                                                     target_name = baserapingTeam.TeamName,
                                                     source_name = "RoundManager",
-                                                    record_message = "Auto-Surrender Round (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")"
+                                                    record_message = "Auto-Surrender (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")"
                                                 };
                                                 QueueRecordForProcessing(repRecord);
                                             }
@@ -14908,7 +14908,6 @@ namespace PRoConEvents {
                 _nosurrenderVoteList.Remove(record.source_name);
                 //Add the vote
                 _surrenderVoteList.Add(record.source_name);
-                //Use @" + GetCommandByKey("self_surrender").command_text + " or @" + GetCommandByKey("self_votenext").command_text
                 Int32 requiredVotes = (Int32)((_serverInfo.InfoObject.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 if (voteCount >= requiredVotes) {
@@ -14937,7 +14936,7 @@ namespace PRoConEvents {
                                     command_numeric = winningTeam.TeamID,
                                     target_name = winningTeam.TeamName,
                                     source_name = "RoundManager",
-                                    record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")"
+                                    record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")"
                                 };
                                 QueueRecordForProcessing(repRecord);
                             }
@@ -16640,9 +16639,6 @@ namespace PRoConEvents {
                     else
                     {
                         ConsoleError("Unable to confirm timing controls. Global UTC Timestamp could not be fetched.");
-                        _globalTimingValid = false;
-                        Disable();
-                        return false;
                     }
                     //Confirm database UTC timestamp matches procon UTC timestamp
                     var dbUTC = GetDatabaseUTCTimestamp();
