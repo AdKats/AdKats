@@ -258,13 +258,10 @@
     </li>
     <li>
         <b>Set up the database.</b>
-        Run the contents of this sql script on your database. It must be run on the same database that Stat Logger is
-        running on.
-        (You can copy/paste the entire page as its shown): <a
-            href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql</a>
+        Run the contents of the following sql script on your database, the same schema that stat logger is running on. 
+        The script must be run by an account with permissions to create tables, triggers, and stored procedures.
         <br/>
-        (I would run this automatically if I could, but I'm limited until Procon updates their MySQL connector to allow
-        delimiters)
+        <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">adkats.sql</a>
     </li>
     <li>
         <b>Download AdKats Source.</b>
