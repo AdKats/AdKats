@@ -262,12 +262,11 @@
         The script must be run by an account with permissions to create tables, triggers, and stored procedures.
     </li>
     <li>
-        <b>Download AdKats.</b>
-        Download the latest stable version of AdKats from here:
-        <a href="https://sourceforge.net/projects/adkats/files/latest/download" target="_blank">AdKats SourceForge</a>
+        <b>Download the plugin.</b>
+        Download the <a href="https://sourceforge.net/projects/adkats/files/latest/download" target="_blank">Latest Stable Release of AdKats</a>
     </li>
     <li>
-        <b>Add plugin file to Procon.</b>
+        <b>Add the plugin to Procon.</b>
         Add the plugin file (AdKats.cs) to Procon as you would any other, in either the plugins/BF3 or plugins/BF4
         folder depending on which game your layer is running on.
     </li>
