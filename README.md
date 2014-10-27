@@ -228,6 +228,9 @@
         href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats
     Logger</a>
 </p>
+<p>
+    The BF3 only version of stat logger can be used with AdKats too, but it limits some of the functionality.
+</p>
 <h4>3. Web Request Access</h4>
 <p>
     AdKats uses web statistics and requests to manage players types, hack detection, user lists, and updates.
@@ -244,7 +247,9 @@
         Download and install the latest universal version of XpKiller's
         <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats
             Logger</a>.
-        Make sure stat logger is running without error for a few minutes after installation.
+        Make sure stat logger is running without error for a few minutes after installation. 
+        If you are already running the BF3 only version of stat logger, that is fine, 
+        but the universal version is preferred for full functionality.
     </li>
     <li>
         <b style='color:#DF0101;'>GO BACK TO STEP 1 AND INSTALL STAT LOGGER.</b>
