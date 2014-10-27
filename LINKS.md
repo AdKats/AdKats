@@ -1,50 +1,50 @@
 <p> 
-    <a href="https://github.com/ColColonCleaner/AdKats#manual" name=manual>
+    <a href="https://github.com/ColColonCleaner/AdKats#manual" target="_blank" name=manual>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_UserManual.jpg" alt="AdKats User Manual">
     </a>
 </p>
 <p>
-    <a href="https://github.com/ColColonCleaner/AdKats#dependencies" name=dependencies>
+    <a href="https://github.com/ColColonCleaner/AdKats#dependencies" target="_blank" name=dependencies>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Dependencies.jpg" alt="AdKats Dependencies">
     </a>
 </p>
 <p>
-    <a href="https://github.com/ColColonCleaner/AdKats#install" name=install>
+    <a href="https://github.com/ColColonCleaner/AdKats#install" target="_blank" name=install>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Install.jpg" alt="AdKats Install">
     </a>
 </p>
 <p>
-    <a href="https://github.com/ColColonCleaner/AdKats#faq" name=faq>
+    <a href="https://github.com/ColColonCleaner/AdKats#faq" target="_blank" name=faq>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_FAQ.jpg" alt="AdKats FAQ">
     </a>
 </p>
 <p>
-    <a href="https://github.com/ColColonCleaner/AdKats#features" name=features>
+    <a href="https://github.com/ColColonCleaner/AdKats#features" target="_blank" name=features>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Features.jpg" alt="AdKats Features">
     </a>
 </p>
 <p>
-    <a href="https://github.com/ColColonCleaner/AdKats#commands" name=commands>
+    <a href="https://github.com/ColColonCleaner/AdKats#commands" target="_blank" name=commands>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Commands.jpg" alt="AdKats Commands">
     </a>
 </p>
 <p>
-    <a href="https://github.com/ColColonCleaner/AdKats#webrequests" name=webrequests>
+    <a href="https://github.com/ColColonCleaner/AdKats#webrequests" target="_blank" name=webrequests>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Web.jpg" alt="AdKats Web">
     </a>
 </p>
 <p>
-    <a href="https://github.com/ColColonCleaner/AdKats#settings" name=settings>
+    <a href="https://github.com/ColColonCleaner/AdKats#settings" target="_blank" name=settings>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Settings.jpg" alt="AdKats Settings">
     </a>
 </p>
 <p>
-    <a href="https://github.com/ColColonCleaner/AdKats#servercommands" name=settings>
+    <a href="https://github.com/ColColonCleaner/AdKats#servercommands" target="_blank" name=settings>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Server.jpg" alt="AdKats Settings">
     </a>
 </p>
 <p>
-    <a href="https://forum.myrcon.com/showthread.php?6045" name=thread>
+    <a href="https://forum.myrcon.com/showthread.php?6045" target="_blank" name=thread>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Thread.jpg" alt="AdKats Thread">
     </a>
 </p>
