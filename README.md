@@ -262,7 +262,7 @@
         The script must be run by an account with permissions to create tables, triggers, and stored procedures.
     </li>
     <li>
-        <b>Download AdKats Source.</b>
+        <b>Download AdKats.</b>
         Download the latest stable version of AdKats from here:
         <a href="https://sourceforge.net/projects/adkats/files/latest/download" target="_blank">AdKats SourceForge</a>
     </li>
@@ -278,7 +278,7 @@
     <li>
         <b>Enable AdKats.</b>
         AdKats will confirm all dependencies and show confirmation in the console. If it gives your server an ID then
-        all is well. Enjoy AdKats!
+        all is well. AdKats will automatically update itself with new patches and releases. Enjoy your new admin tool!
     </li>
 </ol>
 <p>
