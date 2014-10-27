@@ -1,4 +1,4 @@
--- AdKats Setup Script
+-- AdKats Database Setup Script
 -- Version 5.2.0.0
 -- ColColonCleaner
 
