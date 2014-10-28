@@ -24284,7 +24284,7 @@ namespace PRoConEvents {
                             _pluginUpdatePatched = true;
                         }
                         catch (Exception e) {
-                            HandleException(new AdKatsException("Error while running update thread."));
+                            HandleException(new AdKatsException("Error while running update thread.", e));
                         }
                         LogThreadExit();
                     }));
