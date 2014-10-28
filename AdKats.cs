@@ -18,8 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.0.3
- * 26-OCT-2014
+ * Version 5.2.0.4
+ * 27-OCT-2014
+ * 
+ * Automatic Update Information
+ * <version_code>5.2.0.4</version_code>
  */
 
 using System;
@@ -51,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.0.3";
+        private const String PluginVersion = "5.2.0.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -113,12 +116,16 @@ namespace PRoConEvents {
         private volatile String _pluginRebootOnDisableSource;
         private volatile Boolean _threadsReady;
         private volatile String _latestPluginVersion;
+        private volatile Int32 _latestPluginVersionInt;
+        private volatile Int32 _currentPluginVersionInt;
         private volatile String _pluginVersionStatusString;
-        private VersionStatus _pluginVersionStatus = VersionStatus.UnfetchedBuild;
-        private Boolean _pluginUpdateServerInfoChecked;
-        private Boolean _pluginUpdatePatched;
-        private String _pluginUpdateProgress = "NotStarted";
-        private String _pluginDescFetchProgress = "NotStarted";
+        private volatile VersionStatus _pluginVersionStatus = VersionStatus.UnfetchedBuild;
+        private volatile Boolean _pluginUpdateServerInfoChecked;
+        private volatile Boolean _pluginUpdatePatched;
+        private volatile String _pluginPatchedVersion;
+        private volatile Int32 _pluginPatchedVersionInt;
+        private volatile String _pluginUpdateProgress = "NotStarted";
+        private volatile String _pluginDescFetchProgress = "NotStarted";
         private volatile Boolean _useKeepAlive;
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
         private RoundState _roundState = RoundState.Loaded;
@@ -3604,8 +3611,6 @@ namespace PRoConEvents {
 
         private void FetchPluginDescAndChangelog() {
             if (_aliveThreads.Values.Any(aThread => aThread.Name == "descfetching")) {
-                if(_isTestingAuthorized)
-                    ConsoleWarn("Attempted to start a desc fetch thread before a previous one was able to finish. Previous status: " + _pluginDescFetchProgress);
                 return;
             }
             _PluginDescriptionWaitHandle.Reset();
@@ -3655,34 +3660,46 @@ namespace PRoConEvents {
                             //Convert it to an integer
                             String trimmedLatestStableVersion = latestStableVersion.Replace(".", "");
                             _latestPluginVersion = latestStableVersion;
-                            Int32 latestStableVersionInt = Int32.Parse(trimmedLatestStableVersion);
+                            _latestPluginVersionInt = Int32.Parse(trimmedLatestStableVersion);
                             //Get current plugin version
-                            Int32 currentVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
+                            _currentPluginVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
 
                             String versionStatus = String.Empty;
                             //Add the appropriate message to plugin description
-                            if (latestStableVersionInt > currentVersionInt) {
-                                versionStatus = @"
-                                <h2 style='color:#DF0101;'>
-                                    You are running an outdated build! Version " + latestStableVersion + @" is available for download!
-                                </h2>
-                                <a href='https://sourceforge.net/projects/adkats/files/latest/download' target='_blank'>
-                                    Download Version " + latestStableVersion + @"!
-                                </a><br/>
-                                Download link below.";
+                            if (_latestPluginVersionInt > _currentPluginVersionInt)
+                            {
+                                if (_pluginUpdatePatched) {
+                                    versionStatus = @"
+                                    <h2 style='color:#DF0101;'>
+                                        You are running an outdated version! The update has been patched, reboot PRoCon to run version " + latestStableVersion + @"!
+                                    </h2>";
+                                }
+                                else
+                                {
+                                    versionStatus = @"
+                                    <h2 style='color:#DF0101;'>
+                                        You are running an outdated version! Version " + latestStableVersion + @" is available for download!
+                                    </h2>
+                                    <a href='https://sourceforge.net/projects/adkats/files/latest/download' target='_blank'>
+                                        Download Version " + latestStableVersion + @"!
+                                    </a><br/>
+                                    Download link below.";
+                                }
                                 _pluginVersionStatus = VersionStatus.OutdatedBuild;
                             }
-                            else if (latestStableVersionInt == currentVersionInt) {
+                            else if (_latestPluginVersionInt == _currentPluginVersionInt)
+                            {
                                 versionStatus = @"
                                 <h2 style='color:#01DF01;'>
-                                    Congrats! You are running the latest stable build!
+                                    Congrats! You are running the latest stable version!
                                 </h2>";
                                 _pluginVersionStatus = VersionStatus.StableBuild;
                             }
-                            else if (latestStableVersionInt < currentVersionInt) {
+                            else if (_latestPluginVersionInt < _currentPluginVersionInt)
+                            {
                                 versionStatus = @"
                                 <h2 style='color:#FF8000;'>
-                                    CAUTION! You are running a BETA or TEST build! Functionality might be untested.
+                                    CAUTION! You are running a TEST version! Functionality might not be completely tested.
                                 </h2>";
                                 _pluginVersionStatus = VersionStatus.TestBuild;
                             }
@@ -8440,17 +8457,16 @@ namespace PRoConEvents {
                     }
                 }
                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild && 
+                    !record.record_action_executed &&
                     (record.source_player == null || PlayerIsAdmin(record.source_player)))
                 {
                     if (_pluginUpdatePatched)
                     {
-                        ProconChatWrite(BoldMessage("AdKats has been updated to version " + _latestPluginVersion + "! Please reboot PRoCon to activate this patch."));
-                        SendMessageToSource(record, "AdKats has been updated to version " + _latestPluginVersion + "! Please reboot PRoCon to activate this patch.");
+                        SendMessageToSource(record, "AdKats has been updated to version " + _latestPluginVersion + "! Reboot PRoCon to activate this patch.");
                     }
                     else
                     {
-                        ProconChatWrite(BoldMessage("You are running an outdated build of AdKats. Update " + _latestPluginVersion + " is released."));
-                        SendMessageToSource(record, "You are running an outdated build of AdKats. Update " + _latestPluginVersion + " is released.");
+                        SendMessageToSource(record, "You are running an outdated version of AdKats. Update " + _latestPluginVersion + " is released.");
                     }
                 }
                 DebugWrite("Preparing to queue " + record.command_type.command_key + " record for processing", 6);
@@ -24140,8 +24156,6 @@ namespace PRoConEvents {
                 {
                     if (_aliveThreads.Values.Any(aThread => aThread.Name == "PluginUpdater"))
                     {
-                        if (_isTestingAuthorized)
-                            ConsoleWarn("Attempted to start a plugin update thread before a previous one was able to finish. Previous status: " + _pluginUpdateProgress);
                         return;
                     }
                     var pluginUpdater = new Thread(new ThreadStart(delegate
@@ -24159,7 +24173,7 @@ namespace PRoConEvents {
                                 {
                                     const string stableURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/AdKats.cs";
                                     const string testURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/test/AdKats.cs";
-                                    if (!_isTestingAuthorized)
+                                    if (!_isTestingAuthorized || _pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     {
                                         pluginSource = client.DownloadString(stableURL);
                                     }
@@ -24239,10 +24253,33 @@ namespace PRoConEvents {
                                 Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
                                 stream.Write(info, 0, info.Length);
                             }
-                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
-                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                ConsoleSuccess("Updated plugin file located at: " + pluginPath);
+                            String patchedVersion = ExtractString(pluginSource.Substring(0, 1000), "version_code");
+                            if (!String.IsNullOrEmpty(patchedVersion)) {
+                                String trimmedPatchedVersion = patchedVersion.Replace(".", "");
+                                Int32 patchedVersionInt = Int32.Parse(trimmedPatchedVersion);
+                                if (patchedVersionInt >= _currentPluginVersionInt) {
+                                    //Patched version is newer than current version
+                                    if (patchedVersionInt > _pluginPatchedVersionInt && _pluginUpdatePatched)
+                                    {
+                                        //Patched version is newer than an already patched version
+                                        ConsoleSuccess("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ". Restart procon to run this version.");
+                                    }
+                                    else if (!_pluginUpdatePatched) {
+                                        //User not notified of patch yet
+                                        ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
+                                        ConsoleSuccess("Updated plugin file located at: " + pluginPath);
+                                    }
+                                }
+                                else if (!_pluginUpdatePatched) {
+                                    //Patched version is older than current version
+                                    ConsoleWarn("Plugin reverted to previous version " + _latestPluginVersion + ". Restart procon to run this version.");
+                                }
+                                _pluginPatchedVersion = patchedVersion;
+                                _pluginPatchedVersionInt = patchedVersionInt;
+                            }
+                            else {
+                                ConsoleWarn("Plugin update patched, but its version could not be extracted.");
+                            }
                             _pluginUpdateProgress = "Patched";
                             _pluginUpdatePatched = true;
                         }
