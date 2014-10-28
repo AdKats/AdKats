@@ -474,13 +474,13 @@
 </p>
 <p>
     Reputation is a numeric for how helpful a player is to the server.
-    The more they help admins by reporting rule breakers, especially from spectator, or assisting the weak team, 
+    The more they help admins by reporting rule breakers, especially from spectator, or assisting the weak team,
     the more their reputation increases.
     Committing infractions, breaking server rules, getting banned, etc, reduces their server reputation.
 </p>
 <p>
-    Reputation starts at zero, and is capped between -1000 and 1000, so it's easy to get/lose rep early on, but harder 
-    near the top/bottom. 
+    Reputation starts at zero, and is capped between -1000 and 1000, so it's easy to get/lose rep early on, but harder
+    near the top/bottom.
     Players will never reach -1000 or 1000 reputation, but can get close.
     Each command a player issues, and every command issued against them, has a reputation amount; Some good, some bad.
     Every time a player's reputation changes, you are notified of the change in chat.
@@ -503,9 +503,9 @@
     </ul>
 </p>
 <p>
-    If a player has infractions on their record, that causes a reputation reduction, but the negative rep they cause 
-    reduces over time. So if they have infractions on their record, simply not committing them for a while reduces the 
-    rep loss caused. It does not reduce completely however, they will need to report some rule breakers to get it 
+    If a player has infractions on their record, that causes a reputation reduction, but the reduction they cause
+    reduces over time. So if they have infractions on their record, simply not committing them for a while reduces the
+    rep loss caused. It does not reduce completely however, they will need to report some rule breakers to get it
     positive again.
 </p>
 <h3>Ban Enforcer</h3>
