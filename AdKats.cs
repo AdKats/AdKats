@@ -24173,7 +24173,7 @@ namespace PRoConEvents {
                                 {
                                     const string stableURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/AdKats.cs";
                                     const string testURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/test/AdKats.cs";
-                                    if (!_isTestingAuthorized || _pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     {
                                         pluginSource = client.DownloadString(stableURL);
                                     }
