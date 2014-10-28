@@ -247,18 +247,18 @@
         Download and install the latest universal version of XpKiller's
         <a href="https://forum.myrcon.com/showthread.php?6698" target="_blank">Procon Chat, GUID, Stats and Mapstats
             Logger</a>.
-        Make sure stat logger is running without error for a few minutes after installation. 
-        If you are already running the BF3 only version of stat logger, that is fine, 
+        Make sure stat logger is running without error for a few minutes after installation.
+        If you are already running the BF3 only version of stat logger, that is fine,
         but the universal version is preferred for full functionality.
     </li>
     <li>
         <b style='color:#DF0101;'>GO BACK TO STEP 1 AND INSTALL STAT LOGGER.</b>
-        I cannot emphasize this enough; Far too many people have posted issues because they refuse to follow instructions. 
+        I cannot emphasize this enough; Far too many people have posted issues because they refuse to follow instructions.
         Do NOT attempt to install AdKats until that plugin is running without issue.
     </li>
     <li>
         <b>Set up the database.</b>
-        Run the contents of the <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">AdKats Database Setup Script</a> on your database, on the same schema stat logger uses. 
+        Run the contents of the <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">AdKats Database Setup Script</a> on your database, on the same schema stat logger uses.
         The script must be run by an account with permissions to create tables, triggers, and stored procedures.
     </li>
     <li>
@@ -276,9 +276,9 @@
     </li>
     <li>
         <b>Enable AdKats.</b>
-        AdKats will confirm all dependencies and show confirmation in the console. 
-        If startup completes and provides notification it is running, then all is well. 
-        AdKats will automatically update itself with new patches and releases. 
+        AdKats will confirm all dependencies and show confirmation in the console.
+        If startup completes and provides notification it is running, then all is well.
+        AdKats will automatically update itself with new patches and releases.
         Enjoy your new admin tool!
     </li>
 </ol>
@@ -470,10 +470,43 @@
 </p>
 <h3>Player Reputation System</h3>
 <p>
-    Player reputation system is now public. Each command is given a source and target reputation, and based on how
-    players interact in the server they can either gain or lose reputation. Values for target and source rep are global
-    for all instances of AdKats. Reputation is capped between -1000 and 1000, and is available for check using the
-    player info/reputation commands.
+    Player reputation system is now public.
+</p>
+<p>
+    Reputation is a numeric for how helpful a player is to the server.
+    The more they help admins by reporting rule breakers, especially from spectator, or assisting the weak team, 
+    the more their reputation increases.
+    Committing infractions, breaking server rules, getting banned, etc, reduces their server reputation.
+</p>
+<p>
+    Reputation starts at zero, and is capped between -1000 and 1000, so it's easy to get/lose rep early on, but harder 
+    near the top/bottom. 
+    Players will never reach -1000 or 1000 reputation, but can get close.
+    Each command a player issues, and every command issued against them, has a reputation amount; Some good, some bad.
+    Every time a player's reputation changes, you are notified of the change in chat.
+</p>
+<p>
+    The following are ways reputation can be gained:
+    <ul>
+        <li>
+            <b>Issuing good reports on players.</b> Just reporting someone gives rep, but when an admin accepts the
+            report or acts on it it's triple the rep bonus.
+        </li>
+        <li>
+            <b>Reporting from spectator.</b> Reporting from spectator is worth much more than reporting in-game. Players
+            are sacrificing their game time to help a server and should be rewarded.
+        </li>
+        <li>
+            <b>Using @assist.</b> Sometimes teams really need help, and sometimes a player's friends are stuck on the
+            weak team. Helping them and the server out by using this command to switch increases rep greatly.
+        </li>
+    </ul>
+</p>
+<p>
+    If a player has infractions on their record, that causes a reputation reduction, but the negative rep they cause 
+    reduces over time. So if they have infractions on their record, simply not committing them for a while reduces the 
+    rep loss caused. It does not reduce completely however, they will need to report some rule breakers to get it 
+    positive again.
 </p>
 <h3>Ban Enforcer</h3>
 <p>
@@ -854,7 +887,7 @@
     There are 3 commands that are used for surrender vote, surrender, votenext, and nosurrender. Access to these three
     commands, or a subset of them, must be given to your "Guest" role in the role settings section before this system
     can be used.
-    <ul>
+<ul>
     <li><b>surrender. </b> This command is usable by both teams, but will be translated to votenext if used by the
         winning team. Players on the losing team don't want to sit though a baserape, this command lets them vote toward
         round surrender. It adds one vote toward surrender.</li>
@@ -864,7 +897,7 @@
     <li><b>nosurrender. </b> This command is usable only by the losing team. If someone doesn't think the situation
         is bad enough to warrant a surrender, they can use this command to vote against it. Removes one vote toward
         surrender.</li>
-    </ul>
+</ul>
 </p>
 <p>
     Minimum player counts, minimum ticket differences, and minimum ticket difference rates can be added as limits for
