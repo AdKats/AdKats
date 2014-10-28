@@ -57,7 +57,7 @@
     </li>
     <li>
         <b>BF3/BF4 "Hacker-Checker" with Whitelist.</b>
-        BF3Stats and BF4Stats are internally used to pull player information, and can be enabled for for automatic
+        BF3Stats and BF4Stats are internally used to pull player information, and can be enabled for automatic
         cheat/hack detection with a couple clicks.
         Please read documentation before enabling.
     </li>
