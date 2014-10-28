@@ -484,20 +484,20 @@
 </p>
 <p>
     The following are ways reputation can be gained:
-    <ul>
-        <li>
-            <b>Issuing good reports on players.</b> Just reporting someone gives rep, but when an admin accepts the
-            report or acts on it it's triple the rep bonus.
-        </li>
-        <li>
-            <b>Reporting from spectator.</b> Reporting from spectator is worth much more than reporting in-game. Players
-            are sacrificing their game time to help a server and should be rewarded.
-        </li>
-        <li>
-            <b>Using @assist.</b> Sometimes teams really need help, and sometimes a player's friends are stuck on the
-            weak team. Helping them and the server out by using this command to switch increases rep greatly.
-        </li>
-    </ul>
+<ul>
+    <li>
+        <b>Issuing good reports on players.</b> Just reporting someone gives rep, but when an admin accepts the
+        report or acts on it it's triple the rep bonus.
+    </li>
+    <li>
+        <b>Reporting from spectator.</b> Reporting from spectator is worth much more than reporting in-game. Players
+        are sacrificing their game time to help a server and should be rewarded.
+    </li>
+    <li>
+        <b>Using @assist.</b> Sometimes teams really need help, and sometimes a player's friends are stuck on the
+        weak team. Helping them and the server out by using this command to switch increases rep greatly.
+    </li>
+</ul>
 </p>
 <p>
     If a player has infractions on their record, that causes a reputation reduction, but the reduction they cause
@@ -534,16 +534,16 @@
     <b>Reasoning behind creation, for those interested:</b>
     We had tried many other ban management systems and they all appeared to have some significant downfalls.
     Developing this allowed for some nice features not previously available.
-    <ol>
-        <li>I can bypass Procon's banlist completely, this way no data is lost on how/why/who created the ban or on who it's
-            targeted.</li>
-        <li>I can enforce bans by any parameter combination (Name, GUID, IP), not just one at a time.</li>
-        <li>Players can now be told how much time is left on their ban dynamically, every time they attempt to join.</li>
-        <li>Tracking of bans added through in-game commands or autoadmins on any server is a cakewalk now, so clan leaders
-            don't need to go great lengths to look things up.</li>
-    </ol>
-    Several other reasons as well, but overall it was a fantastic move, and thankfully we had the devs available to make
-    it happen.
+<ol>
+    <li>I can bypass Procon's banlist completely, this way no data is lost on how/why/who created the ban or on who it's
+        targeted.</li>
+    <li>I can enforce bans by any parameter combination (Name, GUID, IP), not just one at a time.</li>
+    <li>Players can now be told how much time is left on their ban dynamically, every time they attempt to join.</li>
+    <li>Tracking of bans added through in-game commands or autoadmins on any server is a cakewalk now, so clan leaders
+        don't need to go great lengths to look things up.</li>
+</ol>
+Several other reasons as well, but overall it was a fantastic move, and thankfully we had the devs available to make
+it happen.
 </p>
 <h3>Report/CallAdmin System w/Email Support</h3>
 <p>
@@ -743,18 +743,17 @@
 </p>
 <h3>Internal Hacker-Checker with Whitelist</h3>
 <p>
-    The hacker-checker uses BF3Stats.com and BF4Stats.com for player stats, and is able to catch both aimbots and damage
+    The "Hacker-Checker", however strangely named, is a system for automatically catching and acting on players with
+    suspicious or impossible statistics.
+</p>
+<p>
+    The system uses BF3Stats.com and BF4Stats.com for player stats, and is able to catch both aimbots and damage
     mods.
     To avoid false positives, only weapons that fire bullets (no crossbow, M320, Knife, etc), and deal less than 50%
-    damage per
-    shot are included in the calculations.
-    This removes all equipment, sniper rifles, shotguns, and heavy-hitting pistols like the magnum/rex from
+    damage per shot are included in the calculations.
+    This removes all equipment, sniper rifles, shotguns, and heavy-hitting pistols like the magnum/rex from damage
     calculations.
-    For the remaining weapons there are two checks each one goes through, customizable to your desired trigger levels.
-
-    Info posts:
-    https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-0-0-0&p=90700&viewfull=1#post90700
-    https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-0-0-0&p=92106&viewfull=1#post92106
+    For the remaining weapons there are three checks each one goes through, customizable to your desired trigger levels.
 </p>
 <h4>Damage Mod Checker</h4>
 <p>
@@ -805,11 +804,18 @@
     KPM Automatic Ban [WEAPONNAME-KPM-KILLS-HEADSHOTS]
 </p>
 <p>
-    DPS bans take priority over HSK bans, and HSK over KPM.
-    If you want to whitelist a player from a server, enter their player ID, name, guid, or IP in the
-    adkats_specialplayers table using the group "whitelist_hackerchecker".
-    If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes while
-    they are in the server, stopping if they leave.
+    <ul>
+        <li>DPS bans take priority over HSK bans, and HSK over KPM.</li>
+        <li>Whitelisting can either be done using the hcwhitelist command, or by entering their player ID, name, guid, 
+            or IP in the adkats_specialplayers table using the group "whitelist_hackerchecker"</li>
+        <li>If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes 
+            while they are in the server, stopping if they leave.</li>
+    </ul>
+</p>
+<p>
+    Additional info posts about the calculations:<br/>
+    https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-0-0-0&p=90700&viewfull=1#post90700<br/>
+    https://forum.myrcon.com/showthread.php?6045-AdKats-Advanced-In-Game-Admin-and-Ban-Enforcer-4-0-0-0&p=92106&viewfull=1#post92106
 </p>
 <h3>Automatic Updates</h3>
 <p>
