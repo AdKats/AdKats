@@ -470,9 +470,6 @@
 </p>
 <h3>Player Reputation System</h3>
 <p>
-    Player reputation system is now public.
-</p>
-<p>
     Reputation is a numeric for how helpful a player is to the server.
     The more they help admins by reporting rule breakers, especially from spectator, or assisting the weak team,
     the more their reputation increases.
@@ -537,12 +534,14 @@
     <b>Reasoning behind creation, for those interested:</b>
     We had tried many other ban management systems and they all appeared to have some significant downfalls.
     Developing this allowed for some nice features not previously available.
-    1. I can bypass Procon's banlist completely, this way no data is lost on how/why/who created the ban or on who it's
-    targeted.<br/>
-    2. I can enforce bans by any parameter combination (Name, GUID, IP), not just one at a time. <br/>
-    3. Players can now be told how much time is left on their ban dynamically, every time they attempt to join.<br/>
-    4. Tracking of bans added through in-game commands or autoadmins on any server is a cakewalk now, so clan leaders
-    don't need to go great lengths to look things up.<br/>
+    <ol>
+        <li>I can bypass Procon's banlist completely, this way no data is lost on how/why/who created the ban or on who it's
+            targeted.</li>
+        <li>I can enforce bans by any parameter combination (Name, GUID, IP), not just one at a time.</li>
+        <li>Players can now be told how much time is left on their ban dynamically, every time they attempt to join.</li>
+        <li>Tracking of bans added through in-game commands or autoadmins on any server is a cakewalk now, so clan leaders
+            don't need to go great lengths to look things up.</li>
+    </ol>
     Several other reasons as well, but overall it was a fantastic move, and thankfully we had the devs available to make
     it happen.
 </p>
