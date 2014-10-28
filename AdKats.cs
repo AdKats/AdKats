@@ -24253,7 +24253,7 @@ namespace PRoConEvents {
                                 Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
                                 stream.Write(info, 0, info.Length);
                             }
-                            String patchedVersion = ExtractString(pluginSource.Substring(0, 1000), "version_code");
+                            String patchedVersion = ExtractString(pluginSource, "version_code");
                             if (!String.IsNullOrEmpty(patchedVersion)) {
                                 String trimmedPatchedVersion = patchedVersion.Replace(".", "");
                                 Int32 patchedVersionInt = Int32.Parse(trimmedPatchedVersion);
