@@ -18,8 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.0.0
- * 25-OCT-2014
+ * Version 5.2.0.7
+ * 27-OCT-2014
+ * 
+ * Automatic Update Information
+ * <version_code>5.2.0.7</version_code>
  */
 
 using System;
@@ -51,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.0.0";
+        private const String PluginVersion = "5.2.0.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -103,7 +106,7 @@ namespace PRoConEvents {
         
         //State
         private const Boolean FullDebug = false;
-        private const Boolean SlowMoOnException = true;
+        private const Boolean SlowMoOnException = false;
         private Boolean _slowmo;
         private volatile String _pluginChangelog;
         private volatile String _pluginDescription;
@@ -113,12 +116,16 @@ namespace PRoConEvents {
         private volatile String _pluginRebootOnDisableSource;
         private volatile Boolean _threadsReady;
         private volatile String _latestPluginVersion;
+        private volatile Int32 _latestPluginVersionInt;
+        private volatile Int32 _currentPluginVersionInt;
         private volatile String _pluginVersionStatusString;
-        private VersionStatus _pluginVersionStatus = VersionStatus.UnfetchedBuild;
-        private Boolean _pluginUpdateServerInfoChecked;
-        private Boolean _pluginUpdatePatched;
-        private String _pluginUpdateProgress = "NotStarted";
-        private String _pluginDescFetchProgress = "NotStarted";
+        private volatile VersionStatus _pluginVersionStatus = VersionStatus.UnfetchedBuild;
+        private volatile Boolean _pluginUpdateServerInfoChecked;
+        private volatile Boolean _pluginUpdatePatched;
+        private volatile String _pluginPatchedVersion;
+        private volatile Int32 _pluginPatchedVersionInt;
+        private volatile String _pluginUpdateProgress = "NotStarted";
+        private volatile String _pluginDescFetchProgress = "NotStarted";
         private volatile Boolean _useKeepAlive;
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
         private RoundState _roundState = RoundState.Loaded;
@@ -196,9 +203,11 @@ namespace PRoConEvents {
         private Int32 _databaseSuccess;
         private Int32 _databaseTimeouts;
         private volatile Boolean _dbSettingsChanged = true;
-        private Boolean _dbTimingChecked = false;
-        private Boolean _dbTimingValid = false;
-        private Boolean _dbTimingValidOverride = false;
+        private Boolean _dbTimingChecked;
+        private Boolean _dbTimingValid;
+        private Boolean _dbTimingValidOverride;
+        private Boolean _globalTimingChecked;
+        private Boolean _globalTimingValid;
         private Hashtable _lastStatLoggerStatusUpdate;
         private String _statLoggerVersion = "BF3";
 
@@ -3602,8 +3611,6 @@ namespace PRoConEvents {
 
         private void FetchPluginDescAndChangelog() {
             if (_aliveThreads.Values.Any(aThread => aThread.Name == "descfetching")) {
-                if(_isTestingAuthorized)
-                    ConsoleWarn("Attempted to start a desc fetch thread before a previous one was able to finish. Previous status: " + _pluginDescFetchProgress);
                 return;
             }
             _PluginDescriptionWaitHandle.Reset();
@@ -3653,34 +3660,46 @@ namespace PRoConEvents {
                             //Convert it to an integer
                             String trimmedLatestStableVersion = latestStableVersion.Replace(".", "");
                             _latestPluginVersion = latestStableVersion;
-                            Int32 latestStableVersionInt = Int32.Parse(trimmedLatestStableVersion);
+                            _latestPluginVersionInt = Int32.Parse(trimmedLatestStableVersion);
                             //Get current plugin version
-                            Int32 currentVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
+                            _currentPluginVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
 
                             String versionStatus = String.Empty;
                             //Add the appropriate message to plugin description
-                            if (latestStableVersionInt > currentVersionInt) {
-                                versionStatus = @"
-                                <h2 style='color:#DF0101;'>
-                                    You are running an outdated build! Version " + latestStableVersion + @" is available for download!
-                                </h2>
-                                <a href='https://sourceforge.net/projects/adkats/files/latest/download' target='_blank'>
-                                    Download Version " + latestStableVersion + @"!
-                                </a><br/>
-                                Download link below.";
+                            if (_latestPluginVersionInt > _currentPluginVersionInt)
+                            {
+                                if (_pluginUpdatePatched) {
+                                    versionStatus = @"
+                                    <h2 style='color:#DF0101;'>
+                                        You are running an outdated version! The update has been patched, reboot PRoCon to run version " + latestStableVersion + @"!
+                                    </h2>";
+                                }
+                                else
+                                {
+                                    versionStatus = @"
+                                    <h2 style='color:#DF0101;'>
+                                        You are running an outdated version! Version " + latestStableVersion + @" is available for download!
+                                    </h2>
+                                    <a href='https://sourceforge.net/projects/adkats/files/latest/download' target='_blank'>
+                                        Download Version " + latestStableVersion + @"!
+                                    </a><br/>
+                                    Download link below.";
+                                }
                                 _pluginVersionStatus = VersionStatus.OutdatedBuild;
                             }
-                            else if (latestStableVersionInt == currentVersionInt) {
+                            else if (_latestPluginVersionInt == _currentPluginVersionInt)
+                            {
                                 versionStatus = @"
                                 <h2 style='color:#01DF01;'>
-                                    Congrats! You are running the latest stable build!
+                                    Congrats! You are running the latest stable version!
                                 </h2>";
                                 _pluginVersionStatus = VersionStatus.StableBuild;
                             }
-                            else if (latestStableVersionInt < currentVersionInt) {
+                            else if (_latestPluginVersionInt < _currentPluginVersionInt)
+                            {
                                 versionStatus = @"
                                 <h2 style='color:#FF8000;'>
-                                    CAUTION! You are running a BETA or TEST build! Functionality might be untested.
+                                    CAUTION! You are running a TEST version! Functionality might not be completely tested.
                                 </h2>";
                                 _pluginVersionStatus = VersionStatus.TestBuild;
                             }
@@ -5331,7 +5350,7 @@ namespace PRoConEvents {
                                             record_message = autoNukeMessage
                                         });
                                     }
-                                    else
+                                    else if (!_endingRound)
                                     {
                                         _endingRound = true;
                                         var roundEndDelayThread = new Thread(new ThreadStart(delegate
@@ -5355,7 +5374,7 @@ namespace PRoConEvents {
                                                     command_numeric = baserapingTeam.TeamID,
                                                     target_name = baserapingTeam.TeamName,
                                                     source_name = "RoundManager",
-                                                    record_message = "Auto-Surrender Round (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")"
+                                                    record_message = "Auto-Surrender (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")"
                                                 };
                                                 QueueRecordForProcessing(repRecord);
                                             }
@@ -8438,17 +8457,16 @@ namespace PRoConEvents {
                     }
                 }
                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild && 
+                    !record.record_action_executed &&
                     (record.source_player == null || PlayerIsAdmin(record.source_player)))
                 {
                     if (_pluginUpdatePatched)
                     {
-                        ProconChatWrite(BoldMessage("AdKats has been updated to version " + _latestPluginVersion + "! Please reboot PRoCon to activate this patch."));
-                        SendMessageToSource(record, "AdKats has been updated to version " + _latestPluginVersion + "! Please reboot PRoCon to activate this patch.");
+                        SendMessageToSource(record, "AdKats has been updated to version " + _latestPluginVersion + "! Reboot PRoCon to activate this patch.");
                     }
                     else
                     {
-                        ProconChatWrite(BoldMessage("You are running an outdated build of AdKats. Update " + _latestPluginVersion + " is released."));
-                        SendMessageToSource(record, "You are running an outdated build of AdKats. Update " + _latestPluginVersion + " is released.");
+                        SendMessageToSource(record, "You are running an outdated version of AdKats. Update " + _latestPluginVersion + " is released.");
                     }
                 }
                 DebugWrite("Preparing to queue " + record.command_type.command_key + " record for processing", 6);
@@ -14906,39 +14924,47 @@ namespace PRoConEvents {
                 _nosurrenderVoteList.Remove(record.source_name);
                 //Add the vote
                 _surrenderVoteList.Add(record.source_name);
-                //Use @" + GetCommandByKey("self_surrender").command_text + " or @" + GetCommandByKey("self_votenext").command_text
                 Int32 requiredVotes = (Int32)((_serverInfo.InfoObject.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 if (voteCount >= requiredVotes) {
                     //Vote succeeded, trigger winning team
-                    _endingRound = true;
-                    var roundEndDelayThread = new Thread(new ThreadStart(delegate {
-                        DebugWrite("Starting a round end delay thread.", 5);
-                        try {
-                            Thread.CurrentThread.Name = "roundenddelay";
-                            for (int i = 0; i < 6; i++) {
-                                AdminTellMessage("Surrender Vote Succeeded. " + winningTeam.TeamName + " wins!");
-                                Thread.Sleep(50);
+                    _surrenderVoteSucceeded = true;
+                    if (!_endingRound)
+                    {
+                        _endingRound = true;
+                        var roundEndDelayThread = new Thread(new ThreadStart(delegate
+                        {
+                            DebugWrite("Starting a round end delay thread.", 5);
+                            try
+                            {
+                                Thread.CurrentThread.Name = "roundenddelay";
+                                for (int i = 0; i < 6; i++)
+                                {
+                                    AdminTellMessage("Surrender Vote Succeeded. " + winningTeam.TeamName + " wins!");
+                                    Thread.Sleep(50);
+                                }
+                                _threadMasterWaitHandle.WaitOne(7000);
+                                var repRecord = new AdKatsRecord
+                                {
+                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                    server_id = _serverInfo.ServerID,
+                                    command_type = _CommandKeyDictionary["round_end"],
+                                    command_numeric = winningTeam.TeamID,
+                                    target_name = winningTeam.TeamName,
+                                    source_name = "RoundManager",
+                                    record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")"
+                                };
+                                QueueRecordForProcessing(repRecord);
                             }
-                            _threadMasterWaitHandle.WaitOne(7000);
-                            var repRecord = new AdKatsRecord {
-                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["round_end"],
-                                command_numeric = winningTeam.TeamID,
-                                target_name = winningTeam.TeamName,
-                                source_name = "RoundManager",
-                                record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")"
-                            };
-                            QueueRecordForProcessing(repRecord);
-                        }
-                        catch (Exception) {
-                            HandleException(new AdKatsException("Error while running round end delay."));
-                        }
-                        DebugWrite("Exiting a round end delay thread.", 5);
-                        LogThreadExit();
-                    }));
-                    StartAndLogThread(roundEndDelayThread);
+                            catch (Exception)
+                            {
+                                HandleException(new AdKatsException("Error while running round end delay."));
+                            }
+                            DebugWrite("Exiting a round end delay thread.", 5);
+                            LogThreadExit();
+                        }));
+                        StartAndLogThread(roundEndDelayThread);
+                    }
                 }
                 else
                 {
@@ -16595,17 +16621,51 @@ namespace PRoConEvents {
                 }
                 else
                 {
-                    //Confirm database UTC timestamp matches procon UTC timestamp
-                    var dbUTC = GetDatabaseUTCTimestamp();
                     var curUTC = DateTime.UtcNow;
-                    TimeSpan diffUTC;
-                    if (dbUTC > curUTC) 
+                    DateTime globalUTC;
+                    TimeSpan diffGlobalUTC;
+                    if (GetGlobalUTCTimestamp(out globalUTC))
                     {
-                        diffUTC = dbUTC - curUTC;
+                        if (globalUTC > curUTC)
+                        {
+                            diffGlobalUTC = globalUTC - curUTC;
+                        }
+                        else
+                        {
+                            diffGlobalUTC = curUTC - globalUTC;
+                        }
+                        _globalTimingChecked = true;
+                        if (diffGlobalUTC.TotalSeconds > 300)
+                        {
+                            ConsoleError("Your PRoCon layer has a " + FormatTimeString(diffGlobalUTC, 3) + " UTC timestamp mismatch vs Global Time. UTC-Global:(" + globalUTC.ToShortDateString() + " " + globalUTC.ToLongTimeString() + ") UTC-Procon:(" + curUTC.ToShortDateString() + " " + curUTC.ToLongTimeString() + ")");
+                            _globalTimingValid = false;
+                            Disable();
+                            return false;
+                        }
+                        _globalTimingValid = true;
+                        if (diffGlobalUTC.TotalSeconds > 15)
+                        {
+                            ConsoleWarn("Global timing confirmed, but there is a " + FormatTimeString(diffGlobalUTC, 3) + " UTC timestamp mismatch between your layer and global time.");
+                        }
+                        else
+                        {
+                            ConsoleSuccess("Global timing confirmed.");
+                        }
                     }
                     else
                     {
-                        diffUTC = curUTC - dbUTC;
+                        ConsoleError("Unable to confirm timing controls. Global UTC Timestamp could not be fetched.");
+                    }
+                    //Confirm database UTC timestamp matches procon UTC timestamp
+                    var dbUTC = GetDatabaseUTCTimestamp();
+                    TimeSpan diffdbUTC;
+                    if (dbUTC > curUTC)
+                    {
+                        diffdbUTC = dbUTC - curUTC;
+                    }
+                    else
+                    {
+                        diffdbUTC = curUTC - dbUTC;
                     }
                     _dbTimingChecked = true;
                     if (dbUTC == DateTime.MinValue) {
@@ -16617,8 +16677,8 @@ namespace PRoConEvents {
                             return false;
                         }
                     }
-                    else if (diffUTC.TotalSeconds > 300) {
-                        ConsoleError("Your PRoCon layer and database have a " + FormatTimeString(diffUTC, 3) + " UTC timestamp mismatch. UTC-Database:(" + dbUTC.ToShortDateString() + " " + dbUTC.ToLongTimeString() + ") UTC-Procon:(" + curUTC.ToShortDateString() + " " + curUTC.ToLongTimeString() + ")");
+                    else if (diffdbUTC.TotalSeconds > 300) {
+                        ConsoleError("Your PRoCon layer and database have a " + FormatTimeString(diffdbUTC, 3) + " UTC timestamp mismatch. UTC-Database:(" + dbUTC.ToShortDateString() + " " + dbUTC.ToLongTimeString() + ") UTC-Procon:(" + curUTC.ToShortDateString() + " " + curUTC.ToLongTimeString() + ")");
                         _dbTimingValid = false;
                         if (!_dbTimingValidOverride) {
                             Disable();
@@ -16627,8 +16687,8 @@ namespace PRoConEvents {
                     }
                     else {
                         _dbTimingValid = true;
-                        if (diffUTC.TotalSeconds > 15) {
-                            ConsoleWarn("Database timing confirmed, but there is a " + FormatTimeString(diffUTC, 3) + " UTC timestamp mismatch between your layer and database.");
+                        if (diffdbUTC.TotalSeconds > 15) {
+                            ConsoleWarn("Database timing confirmed, but there is a " + FormatTimeString(diffdbUTC, 3) + " UTC timestamp mismatch between your layer and database.");
                         }
                         else {
                             ConsoleSuccess("Database timing confirmed.");
@@ -22216,6 +22276,30 @@ namespace PRoConEvents {
             return DateTime.MinValue;
         }
 
+        public Boolean GetGlobalUTCTimestamp(out DateTime UTCTime)
+        {
+            using (var client = new WebClient())
+            {
+                try
+                {
+                    String response = client.DownloadString("http://www.timeanddate.com/clocks/onlyforusebyconfiguration2.php");
+                    String[] elements = response.Split(' ');
+                    Double epochSeconds = 0;
+                    if (Double.TryParse(elements[0], out epochSeconds))
+                    {
+                        UTCTime = DateTimeFromEpochSeconds(epochSeconds);
+                        return true;
+                    }
+                }
+                catch (Exception e)
+                {
+                    HandleException(new AdKatsException("Error while getting global UTC Timestamp", e));
+                }
+            }
+            UTCTime = DateTime.UtcNow;
+            return false;
+        }
+
         private void UpdateMULTIBalancerWhitelist() {
             try {
                 if (_FeedMultiBalancerWhitelist) {
@@ -24072,8 +24156,6 @@ namespace PRoConEvents {
                 {
                     if (_aliveThreads.Values.Any(aThread => aThread.Name == "PluginUpdater"))
                     {
-                        if (_isTestingAuthorized)
-                            ConsoleWarn("Attempted to start a plugin update thread before a previous one was able to finish. Previous status: " + _pluginUpdateProgress);
                         return;
                     }
                     var pluginUpdater = new Thread(new ThreadStart(delegate
@@ -24091,7 +24173,7 @@ namespace PRoConEvents {
                                 {
                                     const string stableURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/AdKats.cs";
                                     const string testURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/test/AdKats.cs";
-                                    if (!_isTestingAuthorized)
+                                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     {
                                         pluginSource = client.DownloadString(stableURL);
                                     }
@@ -24171,15 +24253,38 @@ namespace PRoConEvents {
                                 Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
                                 stream.Write(info, 0, info.Length);
                             }
-                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
-                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                ConsoleSuccess("Updated plugin file located at: " + pluginPath);
+                            String patchedVersion = ExtractString(pluginSource, "version_code");
+                            if (!String.IsNullOrEmpty(patchedVersion)) {
+                                String trimmedPatchedVersion = patchedVersion.Replace(".", "");
+                                Int32 patchedVersionInt = Int32.Parse(trimmedPatchedVersion);
+                                if (patchedVersionInt >= _currentPluginVersionInt) {
+                                    //Patched version is newer than current version
+                                    if (patchedVersionInt > _pluginPatchedVersionInt && _pluginUpdatePatched)
+                                    {
+                                        //Patched version is newer than an already patched version
+                                        ConsoleSuccess("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ". Restart procon to run this version.");
+                                    }
+                                    else if (!_pluginUpdatePatched) {
+                                        //User not notified of patch yet
+                                        ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
+                                        ConsoleSuccess("Updated plugin file located at: " + pluginPath);
+                                    }
+                                }
+                                else if (!_pluginUpdatePatched) {
+                                    //Patched version is older than current version
+                                    ConsoleWarn("Plugin reverted to previous version " + _latestPluginVersion + ". Restart procon to run this version.");
+                                }
+                                _pluginPatchedVersion = patchedVersion;
+                                _pluginPatchedVersionInt = patchedVersionInt;
+                            }
+                            else {
+                                ConsoleWarn("Plugin update patched, but its version could not be extracted.");
+                            }
                             _pluginUpdateProgress = "Patched";
                             _pluginUpdatePatched = true;
                         }
                         catch (Exception e) {
-                            HandleException(new AdKatsException("Error while running update thread."));
+                            HandleException(new AdKatsException("Error while running update thread.", e));
                         }
                         LogThreadExit();
                     }));
@@ -24238,6 +24343,12 @@ namespace PRoConEvents {
             ConsoleWrite(query);
         }
 
+        public DateTime DateTimeFromEpochSeconds(Double epochSeconds)
+        {
+            var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            return epoch.AddSeconds(epochSeconds);
+        }
+
         public AdKatsException HandleException(AdKatsException aException) {
             //If it's null or AdKats isn't enabled, just return
             if (aException == null) {
@@ -24265,7 +24376,15 @@ namespace PRoConEvents {
                 prefix += ": ";
             }
             //Check if the exception attributes to the database
-            if (aException.InternalException != null && (aException.InternalException.GetType() == typeof (System.TimeoutException) || aException.InternalException.ToString().Contains("Unable to connect to any of the specified MySQL hosts") || aException.InternalException.ToString().Contains("Reading from the stream has failed.") || aException.InternalException.ToString().Contains("Too many connections") || aException.InternalException.ToString().Contains("Timeout expired") || aException.InternalException.ToString().Contains("An existing connection was forcibly closed by the remote host") || aException.InternalException.ToString().Contains("Unable to read data") || aException.InternalException.ToString().Contains("Lock wait timeout exceeded"))) {
+            if (aException.InternalException != null && 
+                (aException.InternalException.GetType() == typeof (System.TimeoutException) ||
+                aException.InternalException.ToString().Contains("Unable to connect to any of the specified MySQL hosts") || 
+                aException.InternalException.ToString().Contains("Reading from the stream has failed.") || 
+                aException.InternalException.ToString().Contains("Too many connections") || 
+                aException.InternalException.ToString().Contains("Timeout expired") || 
+                aException.InternalException.ToString().Contains("An existing connection was forcibly closed by the remote host") || 
+                aException.InternalException.ToString().Contains("Unable to read data") || 
+                aException.InternalException.ToString().Contains("Lock wait timeout exceeded"))) {
                 HandleDatabaseConnectionInteruption();
             }
             else {
@@ -24280,7 +24399,7 @@ namespace PRoConEvents {
                     target_name = "AdKats",
                     target_player = null,
                     source_name = "AdKats",
-                    record_message = aException.ToString()
+                    record_message = prefix + aException.ToString()
                 };
                 //Process the record
                 QueueRecordForProcessing(record);
