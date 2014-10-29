@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.0.6
+ * Version 5.2.0.7
  * 27-OCT-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.0.6</version_code>
+ * <version_code>5.2.0.7</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.0.6";
+        private const String PluginVersion = "5.2.0.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -24376,7 +24376,15 @@ namespace PRoConEvents {
                 prefix += ": ";
             }
             //Check if the exception attributes to the database
-            if (aException.InternalException != null && (aException.InternalException.GetType() == typeof (System.TimeoutException) || aException.InternalException.ToString().Contains("Unable to connect to any of the specified MySQL hosts") || aException.InternalException.ToString().Contains("Reading from the stream has failed.") || aException.InternalException.ToString().Contains("Too many connections") || aException.InternalException.ToString().Contains("Timeout expired") || aException.InternalException.ToString().Contains("An existing connection was forcibly closed by the remote host") || aException.InternalException.ToString().Contains("Unable to read data") || aException.InternalException.ToString().Contains("Lock wait timeout exceeded"))) {
+            if (aException.InternalException != null && 
+                (aException.InternalException.GetType() == typeof (System.TimeoutException) ||
+                aException.InternalException.ToString().Contains("Unable to connect to any of the specified MySQL hosts") || 
+                aException.InternalException.ToString().Contains("Reading from the stream has failed.") || 
+                aException.InternalException.ToString().Contains("Too many connections") || 
+                aException.InternalException.ToString().Contains("Timeout expired") || 
+                aException.InternalException.ToString().Contains("An existing connection was forcibly closed by the remote host") || 
+                aException.InternalException.ToString().Contains("Unable to read data") || 
+                aException.InternalException.ToString().Contains("Lock wait timeout exceeded"))) {
                 HandleDatabaseConnectionInteruption();
             }
             else {
@@ -24391,7 +24399,7 @@ namespace PRoConEvents {
                     target_name = "AdKats",
                     target_player = null,
                     source_name = "AdKats",
-                    record_message = aException.ToString()
+                    record_message = prefix + aException.ToString()
                 };
                 //Process the record
                 QueueRecordForProcessing(record);
