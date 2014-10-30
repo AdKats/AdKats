@@ -19,7 +19,7 @@
  * 
  * AdKats.cs
  * Version 5.2.0.8
- * 27-OCT-2014
+ * 30-OCT-2014
  * 
  * Automatic Update Information
  * <version_code>5.2.0.8</version_code>
@@ -3415,7 +3415,7 @@ namespace PRoConEvents {
                         if ((DateTime.UtcNow - _proconStartTime).TotalSeconds < 10) {
                             ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
                             //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
-                            for (Int32 index = 5; index > 0; index--) {
+                            for (Int32 index = 7; index > 0; index--) {
                                 DebugWrite(index + "...", 1);
                                 _threadMasterWaitHandle.WaitOne(1000);
                             }
@@ -23186,7 +23186,7 @@ namespace PRoConEvents {
                 foreach (var group in groupList) {
                     _specialPlayerGroupCache[group.group_key] = group;
                 }
-                ConsoleSuccess("Populated group dictionaries.");
+                ConsoleSuccess("Fetched group definitions.");
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Exception while populating special group cache", e));
@@ -23204,7 +23204,7 @@ namespace PRoConEvents {
                 }
                 _commandSourceReputationDictionary = sourceDic;
                 _commandTargetReputationDictionary = targetDic;
-                ConsoleSuccess("Populated reputation dictionaries.");
+                ConsoleSuccess("Fetched reputation definitions.");
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while populating command reputation cache", e));
