@@ -1940,6 +1940,10 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         <td>metabans.com</td>
         <td>Ban enforcer posting.</td>
     </tr>
+    <tr>
+        <td>www.timeanddate.com</td>
+        <td>Global UTC Timestamp</td>
+    </tr>
 </table>
 </p>
 <p>
