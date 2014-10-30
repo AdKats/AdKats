@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.0.7
+ * Version 5.2.0.8
  * 27-OCT-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.0.7</version_code>
+ * <version_code>5.2.0.8</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.0.7";
+        private const String PluginVersion = "5.2.0.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -948,45 +948,45 @@ namespace PRoConEvents {
                     }
 
                     //Surrender Vote settings
-                    lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
+                    lstReturn.Add(new CPluginVariable("B24. Surrender Vote Settings|Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
                     if (_surrenderVoteEnable)
                     {
-                        lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Percentage Votes Needed for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
-                        lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Player Count to Enable Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
-                        lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Ticket Gap to Surrender", typeof(Int32), _surrenderVoteMinimumTicketGap));
-                        lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Enable Required Ticket Rate Gap to Surrender", typeof(Boolean), _surrenderVoteTicketRateGapEnable));
+                        lstReturn.Add(new CPluginVariable("B24. Surrender Vote Settings|Percentage Votes Needed for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
+                        lstReturn.Add(new CPluginVariable("B24. Surrender Vote Settings|Minimum Player Count to Enable Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
+                        lstReturn.Add(new CPluginVariable("B24. Surrender Vote Settings|Minimum Ticket Gap to Surrender", typeof(Int32), _surrenderVoteMinimumTicketGap));
+                        lstReturn.Add(new CPluginVariable("B24. Surrender Vote Settings|Enable Required Ticket Rate Gap to Surrender", typeof(Boolean), _surrenderVoteTicketRateGapEnable));
                         if (_surrenderVoteTicketRateGapEnable)
                         {
-                            lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Minimum Ticket Rate Gap to Surrender", typeof(Double), _surrenderVoteMinimumTicketRateGap));
+                            lstReturn.Add(new CPluginVariable("B24. Surrender Vote Settings|Minimum Ticket Rate Gap to Surrender", typeof(Double), _surrenderVoteMinimumTicketRateGap));
                         }
-                        lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
+                        lstReturn.Add(new CPluginVariable("B24. Surrender Vote Settings|Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
                         if (_surrenderVoteTimeoutEnable)
                         {
-                            lstReturn.Add(new CPluginVariable("B23. Surrender Vote Settings|Surrender Vote Timeout Minutes", typeof(Double), _surrenderVoteTimeoutMinutes));
+                            lstReturn.Add(new CPluginVariable("B24. Surrender Vote Settings|Surrender Vote Timeout Minutes", typeof(Double), _surrenderVoteTimeoutMinutes));
                         }
                     }
 
-                    lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
+                    lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                     if (_surrenderAutoEnable)
                     {
-                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
+                        lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
                         if (!_surrenderAutoUseMetroValues)
                         {
-                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
-                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
-                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
-                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
-                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
-                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
-                            //lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
+                            lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
+                            lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
+                            lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
+                            lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
+                            lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
+                            lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
+                            //lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
                         }
                         if (!_surrenderAutoNukeWinning) {
-                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
+                            lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
                         }
-                        lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
+                        lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
                         if (_surrenderAutoNukeWinning)
                         {
-                            lstReturn.Add(new CPluginVariable("B24. Auto-Surrender Settings|Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
+                            lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
                         }
                     }
 
@@ -16606,7 +16606,7 @@ namespace PRoConEvents {
                     catch (Exception e) {
                         //Only perform retries if the error was a timeout
                         if (e.ToString().Contains("Unable to connect")) {
-                            ConsoleError("Connection failed on attempt " + attempt + ". " + ((attempt <= 5) ? ("Retrying in 5 seconds. ") : ("")));
+                            ConsoleError("Database connection failed. Attempt " + attempt + " of 5. " + ((attempt <= 5) ? ("Retrying in 5 seconds. ") : ("")));
                             _threadMasterWaitHandle.WaitOne(5000);
                         }
                         else {
@@ -22278,6 +22278,7 @@ namespace PRoConEvents {
 
         public Boolean GetGlobalUTCTimestamp(out DateTime UTCTime)
         {
+            UTCTime = DateTime.UtcNow;
             using (var client = new WebClient())
             {
                 try
@@ -22291,12 +22292,11 @@ namespace PRoConEvents {
                         return true;
                     }
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    HandleException(new AdKatsException("Error while getting global UTC Timestamp", e));
+                    ConsoleWarn("Unable to fetch global UTC Timestamp");
                 }
             }
-            UTCTime = DateTime.UtcNow;
             return false;
         }
 
@@ -24389,20 +24389,24 @@ namespace PRoConEvents {
             }
             else {
                 ConsoleWrite(prefix + aException, ConsoleMessageType.Exception);
-                //Create the Exception record
-                var record = new AdKatsRecord {
-                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                    isDebug = true,
-                    server_id = _serverInfo.ServerID,
-                    command_type = _CommandKeyDictionary["adkats_exception"],
-                    command_numeric = 0,
-                    target_name = "AdKats",
-                    target_player = null,
-                    source_name = "AdKats",
-                    record_message = prefix + aException.ToString()
-                };
-                //Process the record
-                QueueRecordForProcessing(record);
+                if (_CommandKeyDictionary.ContainsKey("adkats_exception"))
+                {
+                    //Create the Exception record
+                    var record = new AdKatsRecord
+                    {
+                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                        isDebug = true,
+                        server_id = _serverInfo.ServerID,
+                        command_type = _CommandKeyDictionary["adkats_exception"],
+                        command_numeric = 0,
+                        target_name = "AdKats",
+                        target_player = null,
+                        source_name = "AdKats",
+                        record_message = prefix + aException.ToString()
+                    };
+                    //Process the record
+                    QueueRecordForProcessing(record);
+                }
             }
             return aException;
         }
@@ -24737,7 +24741,6 @@ namespace PRoConEvents {
             public AdKatsPlayer conversationPartner = null;
 
             public AdKatsPlayerStats stats = null;
-
             public Boolean update_playerUpdated = true;
 
             private AdKats Plugin;
@@ -25009,6 +25012,7 @@ namespace PRoConEvents {
         public class AdKatsRole {
             public Dictionary<String, KeyValuePair<Func<AdKats, AdKatsPlayer, Boolean>, AdKatsCommand>> ConditionalAllowedCommands = null;
             public Dictionary<String, AdKatsCommand> RoleAllowedCommands = null;
+            public CPrivileges RoleProconPrivileges = null;
             public Int64 role_id = -1;
             public String role_key = null;
             public String role_name = null;
