@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.0.8
+ * Version 5.2.0.9
  * 30-OCT-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.0.8</version_code>
+ * <version_code>5.2.0.9</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.0.8";
+        private const String PluginVersion = "5.2.0.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -11661,7 +11661,20 @@ namespace PRoConEvents {
             return null;
         }
 
-        public void FinalizeRecord(AdKatsRecord record) {
+        public void FinalizeRecord(AdKatsRecord record)
+        {
+            if (record.command_action == null)
+            {
+                if (record.command_type != null)
+                {
+                    record.command_action = record.command_type;
+                }
+                else
+                {
+                    ConsoleError("Record command not found, unable to finalize record.");
+                    return;
+                }
+            }
             if (record.external_responseRequested) {
                 var responseHashtable = new Hashtable {
                     {"caller_identity", "AdKats"},
@@ -11695,16 +11708,6 @@ namespace PRoConEvents {
                     record.source_name = "UnknownSource";
                 }
             } 
-            if(record.command_action == null) {
-                if (record.command_type != null) {
-                    record.command_action = record.command_type;
-                }
-                else
-                {
-                    ConsoleError("Record command not found, unable to log procon event.");
-                    return;
-                }
-            }
             String message;
             if (record.record_action_executed) {
                 message = record.source_name + " issued " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
@@ -18279,8 +18282,9 @@ namespace PRoConEvents {
                 }
             }
             catch (Exception e) {
-                if (verbose) {
-                    ConsoleError(e.ToString());
+                if (verbose)
+                {
+                    HandleException(new AdKatsException("Verbose. Error while performing query.", e));
                 }
                 return false;
             }
@@ -18374,7 +18378,7 @@ namespace PRoConEvents {
                         }
                     }
                     catch (Exception e) {
-                        ConsoleError(e.ToString());
+                        HandleException(new AdKatsException("Error while updating record.", e));
                         success = false;
                     }
                 } while (!success && attempts++ < 5);
@@ -23091,7 +23095,7 @@ namespace PRoConEvents {
                             }
                         }
                         catch (Exception e) {
-                            ConsoleError(e.ToString());
+                            HandleException(new AdKatsException("Error while parsing BF4Stats player data.", e));
                         }
                     }
                 }
@@ -23222,9 +23226,8 @@ namespace PRoConEvents {
                     String textResponse = client.DownloadString(url);
                     repTable = (ArrayList)JSON.JsonDecode(textResponse);
                 }
-                catch (Exception e)
-                {
-                    ConsoleError(e.ToString());
+                catch (Exception e) {
+                    HandleException(new AdKatsException("Error while fetching reputation definitions.", e));
                 }
             }
             return repTable;
@@ -23277,7 +23280,7 @@ namespace PRoConEvents {
                 }
                 catch (Exception e)
                 {
-                    ConsoleError(e.ToString());
+                    HandleException(new AdKatsException("Error while fetching group definitions.", e));
                 }
             }
             DebugWrite("Exiting FetchAdKatsSpecialGroups", 7);
@@ -23496,7 +23499,12 @@ namespace PRoConEvents {
                 }
                 catch (Exception e)
                 {
-                    HandleException(new AdKatsException("Error while fetching SQL updates.", e));
+                    if (_isTestingAuthorized) {
+                        HandleException(new AdKatsException("Error while fetching SQL updates.", e));
+                    }
+                    else {
+                        ConsoleError("Unable to fetch SQL updates.");
+                    }
                 }
             }
             DebugWrite("Exiting FetchSQLUpdates", 7);
@@ -24618,8 +24626,9 @@ namespace PRoConEvents {
                         return loc;
                     }
                 }
-                catch (Exception e) {
-                    ConsoleError(e.ToString());
+                catch (Exception e)
+                {
+                    HandleException(new AdKatsException("Error while parsing IP response information.", e));
                 }
             }
             loc.status = "fail";
@@ -26636,8 +26645,9 @@ namespace PRoConEvents {
                         String textResponse = client.DownloadString(url);
                         statTable = (Hashtable) JSON.JsonDecode(textResponse);
                     }
-                    catch (Exception e) {
-                        Plugin.ConsoleError(e.ToString());
+                    catch (Exception e)
+                    {
+                        Plugin.HandleException(new AdKatsException("Error while fetching weapon statistic definitions.", e));
                     }
                 }
                 return statTable;
