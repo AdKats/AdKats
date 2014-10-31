@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.0.8
- * 30-OCT-2014
+ * Version 5.2.1.0
+ * 31-OCT-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.0.8</version_code>
+ * <version_code>5.2.1.0</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.0.8";
+        private const String PluginVersion = "5.2.1.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -3843,6 +3843,7 @@ namespace PRoConEvents {
                                     List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
                                         aPlayer =>
                                             (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes &&
+                                            aPlayer.frostbitePlayerInfo != null && 
                                             _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
                                             !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
                                     if (_AFKIgnoreUserList)
@@ -11661,58 +11662,82 @@ namespace PRoConEvents {
             return null;
         }
 
-        public void FinalizeRecord(AdKatsRecord record) {
-            if (record.external_responseRequested) {
-                var responseHashtable = new Hashtable {
+        public void FinalizeRecord(AdKatsRecord record)
+        {
+            DebugWrite("Entering FinalizeRecord", 7);
+            try
+            {
+                //Make sure commands are assigned properly
+                if (record.command_action == null)
+                {
+                    if (record.command_type != null)
+                    {
+                        record.command_action = record.command_type;
+                    }
+                    else
+                    {
+                        HandleException(new AdKatsException("Record command not found, unable to finalize record."));
+                        return;
+                    }
+                }
+                if (record.external_responseRequested)
+                {
+                    var responseHashtable = new Hashtable {
                     {"caller_identity", "AdKats"},
                     {"response_requested", false},
                     {"response_type", "IssueCommand"},
                     {"response_value", CPluginVariable.EncodeStringArray(record.debugMessages.ToArray())}
                 };
-                ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, JSON.JsonEncode(responseHashtable));
-            }
-            //Performance testing area
-            if (record.source_name == _debugSoldierName) {
-                SendMessageToSource(record, "Duration: " + ((int) DateTime.UtcNow.Subtract(_commandStartTime).TotalMilliseconds) + "ms");
-            }
-            if (record.record_source == AdKatsRecord.Sources.InGame || record.record_source == AdKatsRecord.Sources.InternalAutomated) {
-                DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + Math.Round((DateTime.UtcNow - record.record_time).TotalMilliseconds) + "ms to complete.", 3);
-            } 
-            //Add event log
-            if (String.IsNullOrEmpty(record.target_name)) {
-                if (record.target_player != null) {
-                    record.target_name = record.target_player.player_name;
+                    ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, JSON.JsonEncode(responseHashtable));
                 }
-                else {
-                    record.target_name = "UnknownTarget";
+                //Performance testing area
+                if (record.source_name == _debugSoldierName)
+                {
+                    SendMessageToSource(record, "Duration: " + ((int)DateTime.UtcNow.Subtract(_commandStartTime).TotalMilliseconds) + "ms");
                 }
-            } 
-            if (String.IsNullOrEmpty(record.source_name)) {
-                if (record.source_player != null) {
-                    record.source_name = record.source_player.player_name;
+                if (record.record_source == AdKatsRecord.Sources.InGame || record.record_source == AdKatsRecord.Sources.InternalAutomated)
+                {
+                    DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + Math.Round((DateTime.UtcNow - record.record_time).TotalMilliseconds) + "ms to complete.", 3);
                 }
-                else {
-                    record.source_name = "UnknownSource";
+                //Add event log
+                if (String.IsNullOrEmpty(record.target_name))
+                {
+                    if (record.target_player != null)
+                    {
+                        record.target_name = record.target_player.player_name;
+                    }
+                    else
+                    {
+                        record.target_name = "UnknownTarget";
+                    }
                 }
-            } 
-            if(record.command_action == null) {
-                if (record.command_type != null) {
-                    record.command_action = record.command_type;
+                if (String.IsNullOrEmpty(record.source_name))
+                {
+                    if (record.source_player != null)
+                    {
+                        record.source_name = record.source_player.player_name;
+                    }
+                    else
+                    {
+                        record.source_name = "UnknownSource";
+                    }
+                }
+                String message;
+                if (record.record_action_executed)
+                {
+                    message = record.source_name + " issued " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
                 }
                 else
                 {
-                    ConsoleError("Record command not found, unable to log procon event.");
-                    return;
+                    message = record.source_name + " FAILED to issue " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
                 }
+                this.ExecuteCommand("procon.protected.events.write", "Plugins", "PluginAction", message, record.source_name);
             }
-            String message;
-            if (record.record_action_executed) {
-                message = record.source_name + " issued " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while finalizing record.", e));
             }
-            else {
-                message = record.source_name + " FAILED to issue " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
-            }
-            this.ExecuteCommand("procon.protected.events.write", "Plugins", "PluginAction", message, record.source_name);
+            DebugWrite("Exiting FinalizeRecord", 7);
         }
 
         public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm, Boolean externalFetchOverFuzzy, Boolean externalOnlineFetchOverFuzzy)
@@ -18047,6 +18072,10 @@ namespace PRoConEvents {
 
         private void UpdatePlayerReputation(AdKatsPlayer aPlayer, Boolean informPlayer) {
             try {
+                if (aPlayer == null) {
+                    ConsoleError("Attempted to update reputation of invalid player.");
+                    return;
+                }
                 if (_commandSourceReputationDictionary == null || 
                     !_commandSourceReputationDictionary.Any() ||
                     _commandTargetReputationDictionary == null || 
@@ -18279,8 +18308,9 @@ namespace PRoConEvents {
                 }
             }
             catch (Exception e) {
-                if (verbose) {
-                    ConsoleError(e.ToString());
+                if (verbose)
+                {
+                    HandleException(new AdKatsException("Verbose. Error while performing query.", e));
                 }
                 return false;
             }
@@ -18374,7 +18404,7 @@ namespace PRoConEvents {
                         }
                     }
                     catch (Exception e) {
-                        ConsoleError(e.ToString());
+                        HandleException(new AdKatsException("Error while updating record.", e));
                         success = false;
                     }
                 } while (!success && attempts++ < 5);
@@ -23091,7 +23121,7 @@ namespace PRoConEvents {
                             }
                         }
                         catch (Exception e) {
-                            ConsoleError(e.ToString());
+                            HandleException(new AdKatsException("Error while parsing BF4Stats player data.", e));
                         }
                     }
                 }
@@ -23222,9 +23252,8 @@ namespace PRoConEvents {
                     String textResponse = client.DownloadString(url);
                     repTable = (ArrayList)JSON.JsonDecode(textResponse);
                 }
-                catch (Exception e)
-                {
-                    ConsoleError(e.ToString());
+                catch (Exception e) {
+                    HandleException(new AdKatsException("Error while fetching reputation definitions.", e));
                 }
             }
             return repTable;
@@ -23277,7 +23306,7 @@ namespace PRoConEvents {
                 }
                 catch (Exception e)
                 {
-                    ConsoleError(e.ToString());
+                    HandleException(new AdKatsException("Error while fetching group definitions.", e));
                 }
             }
             DebugWrite("Exiting FetchAdKatsSpecialGroups", 7);
@@ -23496,7 +23525,12 @@ namespace PRoConEvents {
                 }
                 catch (Exception e)
                 {
-                    HandleException(new AdKatsException("Error while fetching SQL updates.", e));
+                    if (_isTestingAuthorized) {
+                        HandleException(new AdKatsException("Error while fetching SQL updates.", e));
+                    }
+                    else {
+                        ConsoleError("Unable to fetch SQL updates.");
+                    }
                 }
             }
             DebugWrite("Exiting FetchSQLUpdates", 7);
@@ -24618,8 +24652,9 @@ namespace PRoConEvents {
                         return loc;
                     }
                 }
-                catch (Exception e) {
-                    ConsoleError(e.ToString());
+                catch (Exception e)
+                {
+                    HandleException(new AdKatsException("Error while parsing IP response information.", e));
                 }
             }
             loc.status = "fail";
@@ -26636,8 +26671,9 @@ namespace PRoConEvents {
                         String textResponse = client.DownloadString(url);
                         statTable = (Hashtable) JSON.JsonDecode(textResponse);
                     }
-                    catch (Exception e) {
-                        Plugin.ConsoleError(e.ToString());
+                    catch (Exception e)
+                    {
+                        Plugin.HandleException(new AdKatsException("Error while fetching weapon statistic definitions.", e));
                     }
                 }
                 return statTable;
