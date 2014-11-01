@@ -1,5 +1,5 @@
 -- AdKats Database Setup Script
--- Version 5.2.0.0
+-- Version 5.2.0.7 (11/1/2014)
 -- ColColonCleaner
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -54,6 +54,7 @@ $$
 
 DELIMITER ;
 
+DROP TABLE IF EXISTS `adkats_bans`;
 CREATE TABLE IF NOT EXISTS `adkats_bans` (
   `ban_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `player_id` int(11) unsigned NOT NULL,
@@ -71,6 +72,7 @@ CREATE TABLE IF NOT EXISTS `adkats_bans` (
   KEY `adkats_bans_fk_latest_record_id` (`latest_record_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Ban List';
 
+DROP TABLE IF EXISTS `adkats_commands`;
 CREATE TABLE IF NOT EXISTS `adkats_commands` (
   `command_id` int(11) unsigned NOT NULL,
   `command_active` enum('Active','Disabled','Invisible') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'Active',
@@ -154,6 +156,7 @@ REPLACE INTO `adkats_commands` VALUES(67, 'Active', 'player_unlock', 'Log', 'Unl
 REPLACE INTO `adkats_commands` VALUES(68, 'Active', 'self_rep', 'Log', 'Request Server Reputation', 'rep', FALSE);
 REPLACE INTO `adkats_commands` VALUES(69, 'Invisible', 'player_repboost', 'Log', 'Boost Player Reputation', 'rboost', FALSE);
 REPLACE INTO `adkats_commands` VALUES(70, 'Active', 'player_log', 'Log', 'Log Player Information', 'log', FALSE);
+REPLACE INTO `adkats_commands` VALUES(71, 'Active', 'player_whitelistping', 'Log', 'Ping Whitelist Player', 'pwhitelist', TRUE);
 REPLACE INTO `adkats_commands` VALUES(72, 'Invisible', 'player_ban_temp_old', 'Log', 'Previous Temp Ban', 'pretban', TRUE);
 REPLACE INTO `adkats_commands` VALUES(73, 'Invisible', 'player_ban_perm_old', 'Log', 'Previous Perm Ban', 'preban', TRUE);
 REPLACE INTO `adkats_commands` VALUES(74, 'Active', 'player_pm_send', 'Unable', 'Player Private Message', 'msg', FALSE);
@@ -171,6 +174,7 @@ REPLACE INTO `adkats_commands` VALUES(85, 'Invisible', 'player_pm_start', 'Log',
 REPLACE INTO `adkats_commands` VALUES(86, 'Invisible', 'player_pm_transmit', 'Log', 'Player Private Message Transmit', 'pmtransmit', FALSE);
 REPLACE INTO `adkats_commands` VALUES(87, 'Invisible', 'player_pm_cancel', 'Log', 'Player Private Message Cancel', 'pmcancel', FALSE);
 
+DROP TABLE IF EXISTS `adkats_infractions_global`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
   `player_id` int(11) unsigned NOT NULL,
   `punish_points` int(11) NOT NULL,
@@ -179,6 +183,7 @@ CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
   PRIMARY KEY (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Global Player Infraction Points';
 
+DROP TABLE IF EXISTS `adkats_infractions_server`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_server` (
   `player_id` int(11) unsigned NOT NULL,
   `server_id` smallint(5) unsigned NOT NULL,
@@ -189,6 +194,7 @@ CREATE TABLE IF NOT EXISTS `adkats_infractions_server` (
   KEY `adkats_infractions_server_fk_server_id` (`server_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Server Specific Player Infraction Points';
 
+DROP TABLE IF EXISTS `adkats_records_debug`;
 CREATE TABLE IF NOT EXISTS `adkats_records_debug` (
   `record_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `server_id` smallint(5) unsigned NOT NULL,
@@ -209,6 +215,7 @@ CREATE TABLE IF NOT EXISTS `adkats_records_debug` (
   KEY `adkats_records_debug_fk_command_action` (`command_action`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Debug Records';
 
+DROP TABLE IF EXISTS `adkats_records_main`;
 CREATE TABLE IF NOT EXISTS `adkats_records_main` (
   `record_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `server_id` smallint(5) unsigned NOT NULL,
@@ -321,6 +328,7 @@ CREATE TRIGGER `adkats_infraction_point_insert` BEFORE INSERT ON `adkats_records
 $$
 DELIMITER ;
 
+DROP TABLE IF EXISTS `adkats_rolecommands`;
 CREATE TABLE IF NOT EXISTS `adkats_rolecommands` (
   `role_id` int(11) unsigned NOT NULL,
   `command_id` int(11) unsigned NOT NULL,
@@ -329,99 +337,100 @@ CREATE TABLE IF NOT EXISTS `adkats_rolecommands` (
   KEY `adkats_rolecommands_fk_command` (`command_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of commands to roles';
 
-INSERT INTO `adkats_rolecommands` VALUES(1, 1);
-INSERT INTO `adkats_rolecommands` VALUES(1, 2);
-INSERT INTO `adkats_rolecommands` VALUES(1, 12);
-INSERT INTO `adkats_rolecommands` VALUES(1, 17);
-INSERT INTO `adkats_rolecommands` VALUES(1, 18);
-INSERT INTO `adkats_rolecommands` VALUES(1, 20);
-INSERT INTO `adkats_rolecommands` VALUES(1, 27);
-INSERT INTO `adkats_rolecommands` VALUES(1, 28);
-INSERT INTO `adkats_rolecommands` VALUES(1, 29);
-INSERT INTO `adkats_rolecommands` VALUES(1, 51);
-INSERT INTO `adkats_rolecommands` VALUES(1, 57);
-INSERT INTO `adkats_rolecommands` VALUES(1, 58);
-INSERT INTO `adkats_rolecommands` VALUES(1, 68);
-INSERT INTO `adkats_rolecommands` VALUES(1, 74);
-INSERT INTO `adkats_rolecommands` VALUES(1, 75);
-INSERT INTO `adkats_rolecommands` VALUES(1, 76);
-INSERT INTO `adkats_rolecommands` VALUES(2, 1);
-INSERT INTO `adkats_rolecommands` VALUES(2, 2);
-INSERT INTO `adkats_rolecommands` VALUES(2, 3);
-INSERT INTO `adkats_rolecommands` VALUES(2, 4);
-INSERT INTO `adkats_rolecommands` VALUES(2, 5);
-INSERT INTO `adkats_rolecommands` VALUES(2, 6);
-INSERT INTO `adkats_rolecommands` VALUES(2, 7);
-INSERT INTO `adkats_rolecommands` VALUES(2, 8);
-INSERT INTO `adkats_rolecommands` VALUES(2, 9);
-INSERT INTO `adkats_rolecommands` VALUES(2, 10);
-INSERT INTO `adkats_rolecommands` VALUES(2, 11);
-INSERT INTO `adkats_rolecommands` VALUES(2, 12);
-INSERT INTO `adkats_rolecommands` VALUES(2, 14);
-INSERT INTO `adkats_rolecommands` VALUES(2, 15);
-INSERT INTO `adkats_rolecommands` VALUES(2, 16);
-INSERT INTO `adkats_rolecommands` VALUES(2, 17);
-INSERT INTO `adkats_rolecommands` VALUES(2, 18);
-INSERT INTO `adkats_rolecommands` VALUES(2, 19);
-INSERT INTO `adkats_rolecommands` VALUES(2, 20);
-INSERT INTO `adkats_rolecommands` VALUES(2, 21);
-INSERT INTO `adkats_rolecommands` VALUES(2, 22);
-INSERT INTO `adkats_rolecommands` VALUES(2, 23);
-INSERT INTO `adkats_rolecommands` VALUES(2, 24);
-INSERT INTO `adkats_rolecommands` VALUES(2, 25);
-INSERT INTO `adkats_rolecommands` VALUES(2, 26);
-INSERT INTO `adkats_rolecommands` VALUES(2, 27);
-INSERT INTO `adkats_rolecommands` VALUES(2, 28);
-INSERT INTO `adkats_rolecommands` VALUES(2, 29);
-INSERT INTO `adkats_rolecommands` VALUES(2, 30);
-INSERT INTO `adkats_rolecommands` VALUES(2, 31);
-INSERT INTO `adkats_rolecommands` VALUES(2, 32);
-INSERT INTO `adkats_rolecommands` VALUES(2, 33);
-INSERT INTO `adkats_rolecommands` VALUES(2, 34);
-INSERT INTO `adkats_rolecommands` VALUES(2, 35);
-INSERT INTO `adkats_rolecommands` VALUES(2, 36);
-INSERT INTO `adkats_rolecommands` VALUES(2, 37);
-INSERT INTO `adkats_rolecommands` VALUES(2, 38);
-INSERT INTO `adkats_rolecommands` VALUES(2, 39);
-INSERT INTO `adkats_rolecommands` VALUES(2, 40);
-INSERT INTO `adkats_rolecommands` VALUES(2, 41);
-INSERT INTO `adkats_rolecommands` VALUES(2, 43);
-INSERT INTO `adkats_rolecommands` VALUES(2, 44);
-INSERT INTO `adkats_rolecommands` VALUES(2, 45);
-INSERT INTO `adkats_rolecommands` VALUES(2, 46);
-INSERT INTO `adkats_rolecommands` VALUES(2, 47);
-INSERT INTO `adkats_rolecommands` VALUES(2, 50);
-INSERT INTO `adkats_rolecommands` VALUES(2, 51);
-INSERT INTO `adkats_rolecommands` VALUES(2, 52);
-INSERT INTO `adkats_rolecommands` VALUES(2, 53);
-INSERT INTO `adkats_rolecommands` VALUES(2, 54);
-INSERT INTO `adkats_rolecommands` VALUES(2, 55);
-INSERT INTO `adkats_rolecommands` VALUES(2, 56);
-INSERT INTO `adkats_rolecommands` VALUES(2, 57);
-INSERT INTO `adkats_rolecommands` VALUES(2, 58);
-INSERT INTO `adkats_rolecommands` VALUES(2, 59);
-INSERT INTO `adkats_rolecommands` VALUES(2, 60);
-INSERT INTO `adkats_rolecommands` VALUES(2, 61);
-INSERT INTO `adkats_rolecommands` VALUES(2, 63);
-INSERT INTO `adkats_rolecommands` VALUES(2, 64);
-INSERT INTO `adkats_rolecommands` VALUES(2, 65);
-INSERT INTO `adkats_rolecommands` VALUES(2, 66);
-INSERT INTO `adkats_rolecommands` VALUES(2, 67);
-INSERT INTO `adkats_rolecommands` VALUES(2, 68);
-INSERT INTO `adkats_rolecommands` VALUES(2, 70);
-INSERT INTO `adkats_rolecommands` VALUES(2, 71);
-INSERT INTO `adkats_rolecommands` VALUES(2, 74);
-INSERT INTO `adkats_rolecommands` VALUES(2, 75);
-INSERT INTO `adkats_rolecommands` VALUES(2, 76);
-INSERT INTO `adkats_rolecommands` VALUES(2, 77);
-INSERT INTO `adkats_rolecommands` VALUES(2, 78);
-INSERT INTO `adkats_rolecommands` VALUES(2, 79);
-INSERT INTO `adkats_rolecommands` VALUES(2, 80);
-INSERT INTO `adkats_rolecommands` VALUES(2, 81);
-INSERT INTO `adkats_rolecommands` VALUES(2, 82);
-INSERT INTO `adkats_rolecommands` VALUES(2, 83);
-INSERT INTO `adkats_rolecommands` VALUES(2, 84);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 1);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 2);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 12);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 17);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 18);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 20);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 27);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 28);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 29);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 51);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 57);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 58);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 68);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 74);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 75);
+REPLACE INTO `adkats_rolecommands` VALUES(1, 76);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 1);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 2);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 3);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 4);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 5);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 6);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 7);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 8);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 9);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 10);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 11);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 12);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 14);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 15);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 16);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 17);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 18);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 19);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 20);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 21);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 22);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 23);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 24);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 25);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 26);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 27);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 28);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 29);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 30);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 31);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 32);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 33);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 34);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 35);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 36);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 37);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 38);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 39);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 40);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 41);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 43);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 44);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 45);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 46);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 47);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 50);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 51);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 52);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 53);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 54);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 55);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 56);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 57);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 58);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 59);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 60);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 61);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 63);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 64);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 65);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 66);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 67);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 68);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 70);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 71);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 74);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 75);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 76);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 77);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 78);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 79);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 80);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 81);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 82);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 83);
+REPLACE INTO `adkats_rolecommands` VALUES(2, 84);
 
+DROP TABLE IF EXISTS `adkats_roles`;
 CREATE TABLE IF NOT EXISTS `adkats_roles` (
   `role_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `role_key` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
@@ -430,9 +439,10 @@ CREATE TABLE IF NOT EXISTS `adkats_roles` (
   UNIQUE KEY `role_key_UNIQUE` (`role_key`)
 ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Role List';
 
-INSERT INTO `adkats_roles` VALUES(1, 'guest_default', 'Default Guest');
-INSERT INTO `adkats_roles` VALUES(2, 'admin_full', 'Full Admin');
+REPLACE INTO `adkats_roles` VALUES(1, 'guest_default', 'Default Guest');
+REPLACE INTO `adkats_roles` VALUES(2, 'admin_full', 'Full Admin');
 
+DROP TABLE IF EXISTS `adkats_settings`;
 CREATE TABLE IF NOT EXISTS `adkats_settings` (
   `server_id` smallint(5) unsigned NOT NULL,
   `setting_name` varchar(200) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'SettingName',
@@ -441,6 +451,7 @@ CREATE TABLE IF NOT EXISTS `adkats_settings` (
   PRIMARY KEY (`server_id`,`setting_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Server Setting List';
 
+DROP TABLE IF EXISTS `adkats_users`;
 CREATE TABLE IF NOT EXISTS `adkats_users` (
   `user_id` int(11) unsigned NOT NULL AUTO_INCREMENT,
   `user_name` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
@@ -451,6 +462,7 @@ CREATE TABLE IF NOT EXISTS `adkats_users` (
   KEY `adkats_users_fk_role` (`user_role`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - User List';
 
+DROP TABLE IF EXISTS `adkats_usersoldiers`;
 CREATE TABLE IF NOT EXISTS `adkats_usersoldiers` (
   `user_id` int(11) unsigned NOT NULL,
   `player_id` int(10) unsigned NOT NULL,
@@ -459,6 +471,7 @@ CREATE TABLE IF NOT EXISTS `adkats_usersoldiers` (
   KEY `adkats_usersoldiers_fk_player` (`player_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of users to soldiers';
 
+DROP TABLE IF EXISTS `adkats_specialplayers`;
 CREATE TABLE IF NOT EXISTS `adkats_specialplayers`( 
   `specialplayer_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
   `player_group` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
@@ -466,11 +479,13 @@ CREATE TABLE IF NOT EXISTS `adkats_specialplayers`(
   `player_game` tinyint(4) UNSIGNED DEFAULT NULL,
   `player_server` smallint(5) UNSIGNED DEFAULT NULL,
   `player_identifier` varchar(100) COLLATE utf8_unicode_ci DEFAULT NULL,
+  `player_effective` DATETIME NOT NULL,
   `player_expiration` DATETIME NOT NULL,
   PRIMARY KEY (`specialplayer_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Special Player List';
 
-CREATE TABLE `adkats_player_reputation` (
+DROP TABLE IF EXISTS `adkats_player_reputation`;
+CREATE TABLE IF NOT EXISTS `adkats_player_reputation` (
   `player_id` int(10) unsigned NOT NULL,
   `game_id` tinyint(4) unsigned NOT NULL,
   `target_rep` float NOT NULL,
@@ -481,7 +496,8 @@ CREATE TABLE `adkats_player_reputation` (
   KEY `game_id` (`game_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Player Reputation';
 
-CREATE TABLE `adkats_orchestration` (
+DROP TABLE IF EXISTS `adkats_orchestration`;
+CREATE TABLE IF NOT EXISTS `adkats_orchestration` (
 	`setting_id` int(10) NOT NULL AUTO_INCREMENT,
 	`setting_server` SMALLINT(5) NOT NULL,
 	`setting_plugin` VARCHAR(100) NOT NULL,
@@ -490,6 +506,26 @@ CREATE TABLE `adkats_orchestration` (
 	PRIMARY KEY (`setting_id`),
 	UNIQUE(`setting_server`, `setting_plugin`, `setting_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Plugin Orchestration';
+
+DROP TABLE IF EXISTS `tbl_extendedroundstats`;
+CREATE TABLE `tbl_extendedroundstats` (
+	`roundstat_id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+	`server_id` smallint(5) unsigned NOT NULL,
+	`round_id` int(10) unsigned NOT NULL,
+	`round_elapsedTimeSec` int(10) unsigned NOT NULL,
+	`team1_count` int(10) unsigned NOT NULL,
+	`team2_count` int(10) unsigned NOT NULL,
+	`team1_score` int(10) NOT NULL,
+	`team2_score` int(10) NOT NULL,
+	`team1_spm` double NOT NULL,
+	`team2_spm` double NOT NULL,
+	`team1_tickets` int(10) NOT NULL,
+	`team2_tickets` int(10) NOT NULL,
+	`team1_tpm` double NOT NULL,
+	`team2_tpm` double NOT NULL,
+	`roundstat_time` datetime NOT NULL,
+	PRIMARY KEY (`roundstat_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Extended Round Stats';
 
 SET FOREIGN_KEY_CHECKS=1;
 
