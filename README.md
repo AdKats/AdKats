@@ -259,7 +259,7 @@
     <li>
         <b>Set up the database.</b>
         Run the contents of the <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">AdKats Database Setup Script</a> on your database, on the same schema stat logger uses.
-        <b>WARNING, if you already have AdKats installed, this will completely wipe your existing information.</b>
+        <b><u>WARNING, if you already have AdKats installed, this will completely wipe your existing plugin information.</u></b>
         The script must be run by an account with permissions to create tables, triggers, and stored procedures.
     </li>
     <li>
