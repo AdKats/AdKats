@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.1.7
+ * Version 5.2.1.8
  * 1-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.1.7</version_code>
+ * <version_code>5.2.1.8</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.1.7";
+        private const String PluginVersion = "5.2.1.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -319,6 +319,8 @@ namespace PRoConEvents {
         //Games and teams
         private readonly Dictionary<Int64, GameVersion> _gameIDDictionary = new Dictionary<Int64, GameVersion>();
         private readonly Dictionary<Int32, AdKatsTeam> _teamDictionary = new Dictionary<Int32, AdKatsTeam>();
+        private readonly Dictionary<String, Int32> _unmatchedRoundDeathCounts = new Dictionary<String, Int32>();
+        private readonly HashSet<String> _unmatchedRoundDeaths = new HashSet<String>();  
 
         //Players
         private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
@@ -5400,7 +5402,7 @@ namespace PRoConEvents {
                             }
                             if (_DisplayTicketRatesInProconChat && (UtcDbTime() - _LastTicketRateDisplay).TotalSeconds > 25 && _roundState == RoundState.Playing) {
                                 _LastTicketRateDisplay = UtcDbTime();
-                                ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " t/m"));
+                                ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m"));
                             }
                             if (team1.TeamTicketCount >= 0 && team2.TeamTicketCount >= 0) {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
@@ -5775,188 +5777,229 @@ namespace PRoConEvents {
                     }
                 }
 
+                //Add the unmatched unique round death
+                if (!_unmatchedRoundDeaths.Contains(victim.player_name)) {
+                    _unmatchedRoundDeaths.Add(victim.player_name);
+                }
+                //Add the unmatched round death count
+                if (_unmatchedRoundDeathCounts.ContainsKey(victim.player_name)) {
+                    _unmatchedRoundDeathCounts[victim.player_name] = _unmatchedRoundDeathCounts[victim.player_name] + 1;
+                }
+                else {
+                    _unmatchedRoundDeathCounts[victim.player_name] = 1;
+                }
+
                 Boolean gKillHandled = false;
                 //Update player death information
-                if (_PlayerDictionary.ContainsKey(kKillerVictimDetails.Victim.SoldierName)) {
-                    DebugWrite("Setting " + victim.player_name + " time of death to " + kKillerVictimDetails.TimeOfDeath, 7);
-                    victim.lastDeath = UtcDbTime();
-                    //Only add the last death if it's not a death by admin
-                    if (!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName)) {
-                        try {
-                            //ADK grenade cooking catcher
-                            if (_useExperimentalTools && _UseGrenadeCookCatcher) {
-                                if (_RoundCookers == null) {
-                                    _RoundCookers = new Dictionary<String, AdKatsPlayer>();
-                                }
-                                const double possibleRange = 750.00;
-                                //Update killer information
-                                //Initialize the recent kills queue
-                                if (killer.RecentKills == null) {
-                                    killer.RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
-                                }
-                                //Only keep the last 10 kills in memory
-                                while (killer.RecentKills.Count > 10) {
-                                    killer.RecentKills.Dequeue();
-                                }
-                                //Add the player
-                                killer.RecentKills.Enqueue(new KeyValuePair<AdKatsPlayer, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
-                                //Check for cooked grenade and non-suicide
-                                if (kKillerVictimDetails.DamageType.Contains("M67") || kKillerVictimDetails.DamageType.Contains("V40")) {
-                                    if (true) {
-                                        Double fuseTime = 0;
-                                        if (kKillerVictimDetails.DamageType.Contains("M67")) {
-                                            if (_gameVersion == GameVersion.BF3) {
-                                                fuseTime = 3735.00;
+                DebugWrite("Setting " + victim.player_name + " time of death to " + kKillerVictimDetails.TimeOfDeath, 7);
+                victim.lastDeath = UtcDbTime();
+                //Only add the last death if it's not a death by admin
+                if (!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName))
+                {
+                    try
+                    {
+                        //ADK grenade cooking catcher
+                        if (_useExperimentalTools && _UseGrenadeCookCatcher)
+                        {
+                            if (_RoundCookers == null)
+                            {
+                                _RoundCookers = new Dictionary<String, AdKatsPlayer>();
+                            }
+                            const double possibleRange = 750.00;
+                            //Update killer information
+                            //Initialize the recent kills queue
+                            if (killer.RecentKills == null)
+                            {
+                                killer.RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
+                            }
+                            //Only keep the last 10 kills in memory
+                            while (killer.RecentKills.Count > 10)
+                            {
+                                killer.RecentKills.Dequeue();
+                            }
+                            //Add the player
+                            killer.RecentKills.Enqueue(new KeyValuePair<AdKatsPlayer, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
+                            //Check for cooked grenade and non-suicide
+                            if (kKillerVictimDetails.DamageType.Contains("M67") || kKillerVictimDetails.DamageType.Contains("V40"))
+                            {
+                                if (true)
+                                {
+                                    Double fuseTime = 0;
+                                    if (kKillerVictimDetails.DamageType.Contains("M67"))
+                                    {
+                                        if (_gameVersion == GameVersion.BF3)
+                                        {
+                                            fuseTime = 3735.00;
+                                        }
+                                        else if (_gameVersion == GameVersion.BF4)
+                                        {
+                                            fuseTime = 3132.00;
+                                        }
+                                    }
+                                    else if (kKillerVictimDetails.DamageType.Contains("V40"))
+                                    {
+                                        fuseTime = 2865.00;
+                                    }
+                                    Boolean told = false;
+                                    var possible = new List<KeyValuePair<AdKatsPlayer, String>>();
+                                    var sure = new List<KeyValuePair<AdKatsPlayer, String>>();
+                                    foreach (var cooker in killer.RecentKills)
+                                    {
+                                        //Get the actual time since cooker value
+                                        Double milli = kKillerVictimDetails.TimeOfDeath.Subtract(cooker.Value).TotalMilliseconds;
+
+                                        //Calculate the percentage probability
+                                        Double probability;
+                                        if (Math.Abs(milli - fuseTime) < possibleRange)
+                                        {
+                                            probability = (1 - Math.Abs((milli - fuseTime) / possibleRange)) * 100;
+                                            DebugWrite(cooker.Key.player_name + " cooking probability: " + probability + "%", 2);
+                                        }
+                                        else
+                                        {
+                                            probability = 0.00;
+                                        }
+
+                                        //If probability > 60% report the player and add them to the round cookers list
+                                        if (probability > 60.00)
+                                        {
+                                            DebugWrite(cooker.Key.player_name + " in " + killer.player_name + "'s recent kills has a " + probability + "% cooking probability.", 2);
+                                            gKillHandled = true;
+                                            //Code to avoid spam
+                                            if (killer.lastKill.AddSeconds(2) < UtcDbTime())
+                                            {
+                                                killer.lastKill = UtcDbTime();
                                             }
-                                            else if (_gameVersion == GameVersion.BF4) {
-                                                fuseTime = 3132.00;
+                                            else
+                                            {
+                                                DebugWrite("Skipping additional auto-actions for multi-kill event.", 2);
+                                                continue;
+                                            }
+
+                                            if (!told)
+                                            {
+                                                //Inform the victim player that they will not be punished
+                                                PlayerTellMessage(killer.player_name, "You appear to be a victim of grenade cooking and will NOT be punished.");
+                                                PlayerTellMessage(victim.player_name, killer.player_name + " was a victim of grenade cooking, they did not use explosives.");
+                                                told = true;
+                                            }
+
+                                            //Create the probability String
+                                            String probString = ((int)probability) + "-" + ((int)milli);
+
+                                            //If the player is already on the round cooker list, ban them
+                                            if (_RoundCookers.ContainsKey(cooker.Key.player_name))
+                                            {
+                                                //Create the ban record
+                                                var record = new AdKatsRecord
+                                                {
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("player_punish"),
+                                                    command_numeric = 0,
+                                                    target_name = cooker.Key.player_name,
+                                                    target_player = cooker.Key,
+                                                    source_name = "AutoAdmin",
+                                                    record_message = "Rules: Cooking Grenades [" + probString + "-X] [Victim " + killer.player_name + " Protected]"
+                                                };
+                                                //Process the record
+                                                QueueRecordForProcessing(record);
+                                                //adminSay("Punishing " + killer.player_name + " for " + record.record_message);
+                                                DebugWrite(record.target_player.player_name + " punished for " + record.record_message, 2);
+                                                return;
+                                            }
+                                            //else if probability > 92.5% add them to the SURE list, and round cooker list
+                                            if (probability > 92.5)
+                                            {
+                                                _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
+                                                DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
+                                                //Add to SURE
+                                                sure.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
+                                            }
+                                            //Otherwise add them to the round cooker list, and add to POSSIBLE list
+                                            else
+                                            {
+                                                _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
+                                                DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
+                                                //Add to POSSIBLE
+                                                possible.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
                                             }
                                         }
-                                        else if (kKillerVictimDetails.DamageType.Contains("V40")) {
-                                            fuseTime = 2865.00;
-                                        }
-                                        Boolean told = false;
-                                        var possible = new List<KeyValuePair<AdKatsPlayer, String>>();
-                                        var sure = new List<KeyValuePair<AdKatsPlayer, String>>();
-                                        foreach (var cooker in killer.RecentKills) {
-                                            //Get the actual time since cooker value
-                                            Double milli = kKillerVictimDetails.TimeOfDeath.Subtract(cooker.Value).TotalMilliseconds;
-
-                                            //Calculate the percentage probability
-                                            Double probability;
-                                            if (Math.Abs(milli - fuseTime) < possibleRange) {
-                                                probability = (1 - Math.Abs((milli - fuseTime) / possibleRange)) * 100;
-                                                DebugWrite(cooker.Key.player_name + " cooking probability: " + probability + "%", 2);
-                                            }
-                                            else {
-                                                probability = 0.00;
-                                            }
-
-                                            //If probability > 60% report the player and add them to the round cookers list
-                                            if (probability > 60.00) {
-                                                DebugWrite(cooker.Key.player_name + " in " + killer.player_name + "'s recent kills has a " + probability + "% cooking probability.", 2);
-                                                gKillHandled = true;
-                                                //Code to avoid spam
-                                                if (killer.lastKill.AddSeconds(2) < UtcDbTime()) {
-                                                    killer.lastKill = UtcDbTime();
-                                                }
-                                                else {
-                                                    DebugWrite("Skipping additional auto-actions for multi-kill event.", 2);
-                                                    continue;
-                                                }
-
-                                                if (!told) {
-                                                    //Inform the victim player that they will not be punished
-                                                    PlayerTellMessage(killer.player_name, "You appear to be a victim of grenade cooking and will NOT be punished.");
-                                                    PlayerTellMessage(victim.player_name, killer.player_name + " was a victim of grenade cooking, they did not use explosives.");
-                                                    told = true;
-                                                }
-
-                                                //Create the probability String
-                                                String probString = ((int) probability) + "-" + ((int) milli);
-
-                                                //If the player is already on the round cooker list, ban them
-                                                if (_RoundCookers.ContainsKey(cooker.Key.player_name)) {
-                                                    //Create the ban record
-                                                    var record = new AdKatsRecord {
-                                                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                        server_id = _serverInfo.ServerID,
-                                                        command_type = GetCommandByKey("player_punish"),
-                                                        command_numeric = 0,
-                                                        target_name = cooker.Key.player_name,
-                                                        target_player = cooker.Key,
-                                                        source_name = "AutoAdmin",
-                                                        record_message = "Rules: Cooking Grenades [" + probString + "-X] [Victim " + killer.player_name + " Protected]"
-                                                    };
-                                                    //Process the record
-                                                    QueueRecordForProcessing(record);
-                                                    //adminSay("Punishing " + killer.player_name + " for " + record.record_message);
-                                                    DebugWrite(record.target_player.player_name + " punished for " + record.record_message, 2);
-                                                    return;
-                                                }
-                                                //else if probability > 92.5% add them to the SURE list, and round cooker list
-                                                if (probability > 92.5) {
-                                                    _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
-                                                    DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
-                                                    //Add to SURE
-                                                    sure.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
-                                                }
-                                                    //Otherwise add them to the round cooker list, and add to POSSIBLE list
-                                                else {
-                                                    _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
-                                                    DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
-                                                    //Add to POSSIBLE
-                                                    possible.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
-                                                }
-                                            }
-                                        }
-                                        //This method used for dealing with multiple kills at the same instant i.e twin/triple headshots
-                                        if (sure.Count == 1 && possible.Count == 0) {
-                                            AdKatsPlayer player = sure[0].Key;
-                                            String probString = sure[0].Value;
-                                            //Create the ban record
-                                            var record = new AdKatsRecord {
+                                    }
+                                    //This method used for dealing with multiple kills at the same instant i.e twin/triple headshots
+                                    if (sure.Count == 1 && possible.Count == 0)
+                                    {
+                                        AdKatsPlayer player = sure[0].Key;
+                                        String probString = sure[0].Value;
+                                        //Create the ban record
+                                        var record = new AdKatsRecord
+                                        {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_punish"),
+                                            command_numeric = 0,
+                                            target_name = player.player_name,
+                                            target_player = player,
+                                            source_name = "AutoAdmin",
+                                            record_message = "Rules: Cooking Grenades [" + probString + "] [Victim " + killer.player_name + " Protected]"
+                                        };
+                                        //Process the record
+                                        QueueRecordForProcessing(record);
+                                        //adminSay("Punishing " + killer.player_name + " for " + record.record_message);
+                                        DebugWrite(record.target_player.player_name + " punished for " + record.record_message, 2);
+                                    }
+                                    else
+                                    {
+                                        AdKatsPlayer player;
+                                        String probString;
+                                        foreach (var playerPair in sure)
+                                        {
+                                            player = playerPair.Key;
+                                            probString = playerPair.Value;
+                                            //Create the report record
+                                            var record = new AdKatsRecord
+                                            {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("player_punish"),
+                                                command_type = GetCommandByKey("player_report"),
                                                 command_numeric = 0,
                                                 target_name = player.player_name,
                                                 target_player = player,
                                                 source_name = "AutoAdmin",
-                                                record_message = "Rules: Cooking Grenades [" + probString + "] [Victim " + killer.player_name + " Protected]"
+                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.player_name + " Protected]"
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
-                                            //adminSay("Punishing " + killer.player_name + " for " + record.record_message);
-                                            DebugWrite(record.target_player.player_name + " punished for " + record.record_message, 2);
+                                            DebugWrite(record.target_player.player_name + " reported for " + record.record_message, 2);
                                         }
-                                        else {
-                                            AdKatsPlayer player;
-                                            String probString;
-                                            foreach (var playerPair in sure) {
-                                                player = playerPair.Key;
-                                                probString = playerPair.Value;
-                                                //Create the report record
-                                                var record = new AdKatsRecord {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = GetCommandByKey("player_report"),
-                                                    command_numeric = 0,
-                                                    target_name = player.player_name,
-                                                    target_player = player,
-                                                    source_name = "AutoAdmin",
-                                                    record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.player_name + " Protected]"
-                                                };
-                                                //Process the record
-                                                QueueRecordForProcessing(record);
-                                                DebugWrite(record.target_player.player_name + " reported for " + record.record_message, 2);
-                                            }
-                                            foreach (var playerPair in possible) {
-                                                player = playerPair.Key;
-                                                probString = playerPair.Value;
-                                                //Create the report record
-                                                var record = new AdKatsRecord {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = GetCommandByKey("player_report"),
-                                                    command_numeric = 0,
-                                                    target_name = player.player_name,
-                                                    target_player = player,
-                                                    source_name = "AutoAdmin",
-                                                    record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.player_name + " Protected]"
-                                                };
-                                                //Process the record
-                                                QueueRecordForProcessing(record);
-                                                DebugWrite(record.target_player.player_name + " reported for " + record.record_message, 2);
-                                            }
+                                        foreach (var playerPair in possible)
+                                        {
+                                            player = playerPair.Key;
+                                            probString = playerPair.Value;
+                                            //Create the report record
+                                            var record = new AdKatsRecord
+                                            {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_report"),
+                                                command_numeric = 0,
+                                                target_name = player.player_name,
+                                                target_player = player,
+                                                source_name = "AutoAdmin",
+                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.player_name + " Protected]"
+                                            };
+                                            //Process the record
+                                            QueueRecordForProcessing(record);
+                                            DebugWrite(record.target_player.player_name + " reported for " + record.record_message, 2);
                                         }
                                     }
                                 }
                             }
                         }
-                        catch (Exception e) {
-                            HandleException(new AdKatsException("Error in grenade cook catcher.", e));
-                        }
+                    }
+                    catch (Exception e)
+                    {
+                        HandleException(new AdKatsException("Error in grenade cook catcher.", e));
                     }
                 }
 
@@ -6144,6 +6187,22 @@ namespace PRoConEvents {
                         if (_PlayerDictionary.TryGetValue(soldierName, out aPlayer)) {
                             aPlayer.lastSpawn = UtcDbTime();
                             aPlayer.lastAction = UtcDbTime();
+
+                            //Add matched spawn count
+                            AdKatsTeam aTeam;
+                            if (aPlayer.frostbitePlayerInfo != null &&
+                                _teamDictionary.TryGetValue(aPlayer.frostbitePlayerInfo.TeamID, out aTeam) &&
+                                _unmatchedRoundDeaths.Contains(aPlayer.player_name)) {
+                                aTeam.IncrementTeamTicketAdjustment();
+                                ConsoleInfo(aTeam.TeamKey + " adjustment incremented by " + aPlayer.player_name);
+                            }
+                            //Removed unmatched death if applicable
+                            _unmatchedRoundDeaths.Remove(aPlayer.player_name);
+                            //Decrement unmatched death count if applicable
+                            if (_unmatchedRoundDeathCounts.ContainsKey(aPlayer.player_name)) {
+                                _unmatchedRoundDeathCounts[aPlayer.player_name] = _unmatchedRoundDeathCounts[aPlayer.player_name] - 1;
+                            }
+
                             if (aPlayer.player_aa && !aPlayer.player_aa_told) {
                                 String adminAssistantMessage = "You are now considered an Admin Assistant. ";
                                 if (!_UseAAReportAutoHandler && !_EnableAdminAssistantPerk) {
@@ -25297,12 +25356,20 @@ namespace PRoConEvents {
 
         public class AdKatsTeam {
             private AdKats Plugin;
-            //Final vars
+
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamTicketCounts;
             public Double TeamTicketDifferenceRate { get; private set; }
             public Int32 TeamTicketCount { get; private set; }
             public DateTime TeamTicketsTime { get; private set; }
             public Boolean TeamTicketsAdded { get; private set; }
+
+            //Ticket Adjustments
+            private Int32 TeamTicketAdjustment;
+            private readonly Queue<KeyValuePair<Double, DateTime>> TeamAdjustedTicketCounts;
+            public Double TeamAdjustedTicketDifferenceRate { get; private set; }
+            public Int32 TeamAdjustedTicketCount { get; private set; }
+            public DateTime TeamAdjustedTicketsTime { get; private set; }
+            public Boolean TeamAdjustedTicketsAdded { get; private set; }
 
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamTotalScores;
             public Double TeamScoreDifferenceRate { get; private set; }
@@ -25318,6 +25385,7 @@ namespace PRoConEvents {
                 TeamDesc = teamDesc;
                 TeamTotalScores = new Queue<KeyValuePair<Double, DateTime>>();
                 TeamTicketCounts = new Queue<KeyValuePair<Double, DateTime>>();
+                TeamAdjustedTicketCounts = new Queue<KeyValuePair<Double, DateTime>>();
             }
 
             public Int32 TeamID { get; private set; }
@@ -25334,16 +25402,21 @@ namespace PRoConEvents {
                 TeamPlayerCount = playerCount;
             }
 
+            public void IncrementTeamTicketAdjustment()
+            {
+                Interlocked.Increment(ref TeamTicketAdjustment);
+            }
+
             public void UpdateTicketCount(Double newTicketCount)
             {
                 try
                 {
+                    UpdateAdjustedTicketCount(newTicketCount);
                     //Get rounded time (floor)
                     DateTime newTicketTime = Plugin.UtcDbTime();
                     newTicketTime = newTicketTime.AddTicks(-(newTicketTime.Ticks % TimeSpan.TicksPerSecond));
-                    if (!TeamTicketsAdded)
-                    {
-                        TeamScoreDifferenceRate = 0;
+                    if (!TeamTicketsAdded) {
+                        TeamTicketDifferenceRate = 0;
                         TeamTicketCount = (Int32)newTicketCount;
                         TeamTicketsTime = newTicketTime;
                         TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(newTicketCount, newTicketTime));
@@ -25390,9 +25463,82 @@ namespace PRoConEvents {
                     differences.Sort();
                     //Convert to tickets/min
                     TeamTicketDifferenceRate = (differences.Sum() / differences.Count) * 60;
+                    if (Double.IsNaN(TeamTicketDifferenceRate))
+                    {
+                        TeamTicketDifferenceRate = 0;
+                    }
                 }
                 catch (Exception e) {
                     Plugin.HandleException(new AdKatsException("Error while updating team ticket count.", e));
+                }
+            }
+
+            private void UpdateAdjustedTicketCount(Double newRealTicketCount)
+            {
+                try
+                {
+                    //Calculate adjusted ticket count
+                    Double newAdjustedTicketCount = newRealTicketCount + TeamTicketAdjustment;
+                    //Get rounded time (floor)
+                    DateTime newAdjustedTicketTime = Plugin.UtcDbTime();
+                    newAdjustedTicketTime = newAdjustedTicketTime.AddTicks(-(newAdjustedTicketTime.Ticks % TimeSpan.TicksPerSecond));
+                    if (!TeamTicketsAdded)
+                    {
+                        TeamAdjustedTicketDifferenceRate = 0;
+                        TeamAdjustedTicketCount = (Int32)newAdjustedTicketCount;
+                        TeamAdjustedTicketsTime = newAdjustedTicketTime;
+                        TeamAdjustedTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(newAdjustedTicketCount, newAdjustedTicketTime));
+                        TeamAdjustedTicketsAdded = true;
+                        return;
+                    }
+
+                    //Interpolation
+                    DateTime oldTicketTime = TeamAdjustedTicketsTime;
+                    Double oldTicketValue = TeamAdjustedTicketCount;
+                    Double interTimeOldSeconds = 0;
+                    Double interTimeNewSeconds = (newAdjustedTicketTime - oldTicketTime).TotalSeconds;
+                    Double m = (newAdjustedTicketCount - oldTicketValue) / (interTimeNewSeconds);
+                    Double b = oldTicketValue;
+                    for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
+                    {
+                        DateTime subTicketTime = oldTicketTime.AddSeconds(sec);
+                        Double subTicketValue = (m * sec) + b;
+                        TeamAdjustedTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
+                    }
+
+                    //Remove old values
+                    Boolean removed = false;
+                    do
+                    {
+                        removed = false;
+                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 120)
+                        {
+                            TeamAdjustedTicketCounts.Dequeue();
+                            removed = true;
+                        }
+                    } while (removed);
+
+                    //Set instance vars
+                    TeamAdjustedTicketCount = (Int32)newAdjustedTicketCount;
+                    TeamAdjustedTicketsTime = newAdjustedTicketTime;
+
+                    List<Double> values = TeamAdjustedTicketCounts.Select(pair => pair.Key).ToList();
+                    var differences = new List<Double>();
+                    for (int i = 0; i < values.Count - 1; i++)
+                    {
+                        differences.Add(values[i + 1] - values[i]);
+                    }
+                    differences.Sort();
+                    //Convert to tickets/min
+                    TeamAdjustedTicketDifferenceRate = (differences.Sum() / differences.Count) * 60;
+                    if (Double.IsNaN(TeamAdjustedTicketDifferenceRate))
+                    {
+                        TeamAdjustedTicketDifferenceRate = 0;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Plugin.HandleException(new AdKatsException("Error while updating team adjusted ticket count.", e));
                 }
             }
 
@@ -25452,6 +25598,10 @@ namespace PRoConEvents {
                     differences.Sort();
                     //Convert to tickets/min
                     TeamScoreDifferenceRate = (differences.Sum() / differences.Count) * 60;
+                    if (Double.IsNaN(TeamScoreDifferenceRate))
+                    {
+                        TeamScoreDifferenceRate = 0;
+                    }
                 }
                 catch (Exception e)
                 {
@@ -25463,11 +25613,18 @@ namespace PRoConEvents {
                 try
                 {
                     TeamTicketCount = 0;
+                    TeamAdjustedTicketCount = 0;
+                    TeamTicketCounts.Clear();
+                    TeamAdjustedTicketCounts.Clear();
+                    TeamTicketDifferenceRate = 0;
+                    TeamAdjustedTicketDifferenceRate = 0;
+                    TeamTicketsAdded = false;
+                    TeamAdjustedTicketsAdded = false;
+                    TeamTicketAdjustment = 0;
                     TeamTotalScore = 0;
                     TeamTotalScores.Clear();
                     TeamScoreDifferenceRate = 0;
-                    TeamTicketCounts.Clear();
-                    TeamTicketDifferenceRate = 0;
+                    TeamTotalScoresAdded = false;
                 }
                 catch (Exception e) {
                     Plugin.HandleException(new AdKatsException("Error while resetting team.", e));
