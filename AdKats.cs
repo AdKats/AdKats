@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.1.6
+ * Version 5.2.1.7
  * 1-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.1.6</version_code>
+ * <version_code>5.2.1.7</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.1.6";
+        private const String PluginVersion = "5.2.1.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5292,17 +5292,32 @@ namespace PRoConEvents {
                                             }
                                         }
                                         catch (Exception e) {
-                                            HandleException(new AdKatsException("Invalid round stats when posting. " + 
+                                            HandleException(new AdKatsException("Invalid round stats when posting. " +
+                                                FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "|" +
+
                                                 team1.TeamPlayerCount + "|" + 
+
                                                 team2.TeamPlayerCount + "|" + 
-                                                Math.Round(team1.TeamTotalScore, 2) + "|" + 
-                                                Math.Round(team2.TeamTotalScore, 2) + "|" + 
-                                                Math.Round(team1.TeamScoreDifferenceRate, 2) + "|" + 
-                                                Math.Round(team2.TeamScoreDifferenceRate, 2) + "|" + 
+
+                                                Math.Round(team1.TeamTotalScore, 2) + "|" +
+ 
+                                                Math.Round(team2.TeamTotalScore, 2) + "|" +
+
+                                                Math.Round(team1.TeamScoreDifferenceRate, 2) + "|" +
+                                                team1.TeamScoreDifferenceRate + "|" +
+
+                                                Math.Round(team2.TeamScoreDifferenceRate, 2) + "|" +
+                                                team2.TeamScoreDifferenceRate + "|" + 
+
                                                 team1.TeamTicketCount + "|" + 
-                                                team2.TeamTicketCount + "|" + 
-                                                Math.Round(team1.TeamTicketDifferenceRate, 2) + "|" + 
-                                                Math.Round(team2.TeamTicketDifferenceRate, 2)));
+
+                                                team2.TeamTicketCount + "|" +
+
+                                                Math.Round(team1.TeamTicketDifferenceRate, 2) + "|" +
+                                                team1.TeamTicketDifferenceRate + "|" +
+
+                                                Math.Round(team2.TeamTicketDifferenceRate, 2) + "|" +
+                                                team2.TeamTicketDifferenceRate));
                                         }
                                     }
                                 }
@@ -23582,9 +23597,26 @@ namespace PRoConEvents {
             {
                 try
                 {
-                    const string url = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/adkatsupdates.json";
-                    String textResponse = client.DownloadString(url);
-                    Hashtable updateTable = (Hashtable)JSON.JsonDecode(textResponse);
+                    String updateInfo;
+                    try
+                    {
+                        updateInfo = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsupdates.json");
+                        DebugWrite("SQL updates fetched.", 1);
+                    }
+                    catch (Exception)
+                    {
+                        try
+                        {
+                            updateInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/sqlupdates");
+                            DebugWrite("SQL updates fetched from backup location.", 1);
+                        }
+                        catch (Exception)
+                        {
+                            ConsoleError("Unable to download SQL updates.");
+                            return SQLUpdates;
+                        }
+                    }
+                    Hashtable updateTable = (Hashtable)JSON.JsonDecode(updateInfo);
                     ArrayList SQLUpdateList = (ArrayList) updateTable["SQLUpdates"];
                     if (SQLUpdateList != null && SQLUpdateList.Count > 0) {
                         DebugWrite("SQL updates found. Parsing...", 5);
@@ -23707,7 +23739,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error while fetching SQL updates.", e));
                     }
                     else {
-                        ConsoleError("Unable to fetch SQL updates.");
+                        ConsoleError("Unable to process SQL updates.");
                     }
                 }
             }
