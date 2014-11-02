@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.1.5
+ * Version 5.2.1.6
  * 1-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.1.5</version_code>
+ * <version_code>5.2.1.6</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.1.5";
+        private const String PluginVersion = "5.2.1.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -3930,7 +3930,7 @@ namespace PRoConEvents {
                                         {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                             server_id = _serverInfo.ServerID,
-                                            command_type = _CommandKeyDictionary["player_kick"],
+                                            command_type = GetCommandByKey("player_kick"),
                                             command_numeric = 0,
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
@@ -4507,7 +4507,7 @@ namespace PRoConEvents {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = partner.player_server.ServerID,
                                                 record_orchestrate = true,
-                                                command_type = _CommandKeyDictionary["player_pm_cancel"],
+                                                command_type = GetCommandByKey("player_pm_cancel"),
                                                 command_numeric = 0,
                                                 target_name = partner.player_name,
                                                 target_player = partner,
@@ -4655,14 +4655,14 @@ namespace PRoConEvents {
                                             {
                                                 if (_currentRoundID != 0)
                                                 {
-                                                    IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(aPlayer.player_id, _CommandKeyDictionary["player_log"].command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message == "Dispersion Trigger" && aRecord.server_id == _serverInfo.ServerID);
+                                                    IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_log").command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message == "Dispersion Trigger" && aRecord.server_id == _serverInfo.ServerID);
                                                     if (!locRecords.Any(aRecord => aRecord.command_numeric == _currentRoundID))
                                                     {
                                                         var triggerRecord = new AdKatsRecord
                                                         {
                                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                                             server_id = _serverInfo.ServerID,
-                                                            command_type = _CommandKeyDictionary["player_log"],
+                                                            command_type = GetCommandByKey("player_log"),
                                                             command_numeric = _currentRoundID,
                                                             target_name = aPlayer.player_name,
                                                             target_player = aPlayer,
@@ -4686,7 +4686,7 @@ namespace PRoConEvents {
                                                 {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                                     server_id = _serverInfo.ServerID,
-                                                    command_type = _CommandKeyDictionary["player_blacklistdisperse"],
+                                                    command_type = GetCommandByKey("player_blacklistdisperse"),
                                                     command_numeric = 0,
                                                     target_name = aPlayer.player_name,
                                                     target_player = aPlayer,
@@ -4705,7 +4705,7 @@ namespace PRoConEvents {
                                             {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
-                                                command_type = _CommandKeyDictionary["player_kick"],
+                                                command_type = GetCommandByKey("player_kick"),
                                                 command_numeric = 0,
                                                 target_name = aPlayer.player_name,
                                                 target_player = aPlayer,
@@ -4732,7 +4732,7 @@ namespace PRoConEvents {
                                                 {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                                     server_id = _serverInfo.ServerID,
-                                                    command_type = _CommandKeyDictionary["player_changename"],
+                                                    command_type = GetCommandByKey("player_changename"),
                                                     command_numeric = 0,
                                                     target_name = aPlayer.player_name,
                                                     target_player = aPlayer,
@@ -4873,7 +4873,7 @@ namespace PRoConEvents {
                                         {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                             server_id = _serverInfo.ServerID,
-                                            command_type = _CommandKeyDictionary["player_kick"],
+                                            command_type = GetCommandByKey("player_kick"),
                                             command_numeric = 0,
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
@@ -4907,7 +4907,7 @@ namespace PRoConEvents {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                                     server_id = partner.player_server.ServerID,
                                                     record_orchestrate = true,
-                                                    command_type = _CommandKeyDictionary["player_pm_cancel"],
+                                                    command_type = GetCommandByKey("player_pm_cancel"),
                                                     command_numeric = 0,
                                                     target_name = partner.player_name,
                                                     target_player = partner,
@@ -4939,7 +4939,7 @@ namespace PRoConEvents {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         isDebug = true,
                                         server_id = _serverInfo.ServerID,
-                                        command_type = _CommandKeyDictionary["player_calladmin"],
+                                        command_type = GetCommandByKey("player_calladmin"),
                                         command_numeric = 0,
                                         target_name = "Server",
                                         target_player = null,
@@ -4991,7 +4991,7 @@ namespace PRoConEvents {
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_kick"],
+                                command_type = GetCommandByKey("player_kick"),
                                 command_numeric = 0,
                                 target_name = pingPickedPlayer.player_name,
                                 target_player = pingPickedPlayer,
@@ -5067,7 +5067,7 @@ namespace PRoConEvents {
                             var record = new AdKatsRecord {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_changeip"],
+                                command_type = GetCommandByKey("player_changeip"),
                                 command_numeric = 0,
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
@@ -5435,7 +5435,7 @@ namespace PRoConEvents {
                                         QueueRecordForProcessing(new AdKatsRecord {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                             server_id = _serverInfo.ServerID,
-                                            command_type = _CommandKeyDictionary["server_nuke"],
+                                            command_type = GetCommandByKey("server_nuke"),
                                             command_numeric = baserapingTeam.TeamID,
                                             target_name = baserapingTeam.TeamName,
                                             source_name = "RoundManager",
@@ -5462,7 +5462,7 @@ namespace PRoConEvents {
                                                 {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                                     server_id = _serverInfo.ServerID,
-                                                    command_type = _CommandKeyDictionary["round_end"],
+                                                    command_type = GetCommandByKey("round_end"),
                                                     command_numeric = baserapingTeam.TeamID,
                                                     target_name = baserapingTeam.TeamName,
                                                     source_name = "RoundManager",
@@ -5622,7 +5622,7 @@ namespace PRoConEvents {
                                         SendMessageToSource(aRecord, aRecord.target_player.player_name + " is dead. Queueing them for kill on-spawn.");
                                         ExecuteCommand("procon.protected.send", "admin.killPlayer", aRecord.target_player.player_name);
                                         lock (_ActOnSpawnDictionary) {
-                                            aRecord.command_action = _CommandKeyDictionary["player_kill_repeat"];
+                                            aRecord.command_action = GetCommandByKey("player_kill_repeat");
                                             _ActOnSpawnDictionary.Add(aRecord.target_player.player_name, aRecord);
                                         }
                                     }
@@ -5846,7 +5846,7 @@ namespace PRoConEvents {
                                                     var record = new AdKatsRecord {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                                         server_id = _serverInfo.ServerID,
-                                                        command_type = _CommandKeyDictionary["player_punish"],
+                                                        command_type = GetCommandByKey("player_punish"),
                                                         command_numeric = 0,
                                                         target_name = cooker.Key.player_name,
                                                         target_player = cooker.Key,
@@ -5883,7 +5883,7 @@ namespace PRoConEvents {
                                             var record = new AdKatsRecord {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
-                                                command_type = _CommandKeyDictionary["player_punish"],
+                                                command_type = GetCommandByKey("player_punish"),
                                                 command_numeric = 0,
                                                 target_name = player.player_name,
                                                 target_player = player,
@@ -5905,7 +5905,7 @@ namespace PRoConEvents {
                                                 var record = new AdKatsRecord {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                                     server_id = _serverInfo.ServerID,
-                                                    command_type = _CommandKeyDictionary["player_report"],
+                                                    command_type = GetCommandByKey("player_report"),
                                                     command_numeric = 0,
                                                     target_name = player.player_name,
                                                     target_player = player,
@@ -5923,7 +5923,7 @@ namespace PRoConEvents {
                                                 var record = new AdKatsRecord {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                                     server_id = _serverInfo.ServerID,
-                                                    command_type = _CommandKeyDictionary["player_report"],
+                                                    command_type = GetCommandByKey("player_report"),
                                                     command_numeric = 0,
                                                     target_name = player.player_name,
                                                     target_player = player,
@@ -5958,7 +5958,7 @@ namespace PRoConEvents {
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_kill_force"],
+                                command_type = GetCommandByKey("player_kill_force"),
                                 command_numeric = 0,
                                 target_name = killer.player_name,
                                 target_player = killer,
@@ -5990,7 +5990,7 @@ namespace PRoConEvents {
                                             var record = new AdKatsRecord {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
-                                                command_type = _CommandKeyDictionary["player_punish"],
+                                                command_type = GetCommandByKey("player_punish"),
                                                 command_numeric = 0,
                                                 target_name = killer.player_name,
                                                 target_player = killer,
@@ -6026,7 +6026,7 @@ namespace PRoConEvents {
                                             var repRecord = new AdKatsRecord {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
-                                                command_type = _CommandKeyDictionary["player_repboost"],
+                                                command_type = GetCommandByKey("player_repboost"),
                                                 command_numeric = 0,
                                                 target_name = victim.player_name,
                                                 target_player = victim,
@@ -6125,7 +6125,7 @@ namespace PRoConEvents {
                     }
                     if (_CommandNameDictionary.Count > 0) {
                         //Handle TeamSwap notifications
-                        String command = _CommandKeyDictionary["self_teamswap"].command_text;
+                        String command = GetCommandByKey("self_teamswap").command_text;
                         if (_PlayerDictionary.TryGetValue(soldierName, out aPlayer)) {
                             aPlayer.lastSpawn = UtcDbTime();
                             aPlayer.lastAction = UtcDbTime();
@@ -6437,7 +6437,7 @@ namespace PRoConEvents {
                                                 server_id = _serverInfo.ServerID,
                                                 target_name = aPlayer.player_name,
                                                 target_player = aPlayer,
-                                                command_type = _CommandKeyDictionary["banenforcer_enforce"],
+                                                command_type = GetCommandByKey("banenforcer_enforce"),
                                                 command_numeric = (int)aBan.ban_id,
                                                 record_message = aBan.ban_record.record_message + ((aBan.ban_record.target_player.player_id != aPlayer.player_id) ? (" [LINKED ACCOUNT " + aBan.ban_record.target_player.player_id + "]") : (""))
                                             };
@@ -6943,7 +6943,7 @@ namespace PRoConEvents {
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverInfo.ServerID,
-                                        command_type = _CommandKeyDictionary["player_ban_perm"],
+                                        command_type = GetCommandByKey("player_ban_perm"),
                                         command_numeric = 0,
                                         target_name = aPlayer.player_name,
                                         target_player = aPlayer,
@@ -6974,7 +6974,7 @@ namespace PRoConEvents {
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_ban_perm"],
+                                command_type = GetCommandByKey("player_ban_perm"),
                                 command_numeric = 0,
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
@@ -7093,7 +7093,7 @@ namespace PRoConEvents {
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverInfo.ServerID,
-                                        command_type = _CommandKeyDictionary["player_ban_perm"],
+                                        command_type = GetCommandByKey("player_ban_perm"),
                                         command_numeric = 0,
                                         target_name = aPlayer.player_name,
                                         target_player = aPlayer,
@@ -7125,7 +7125,7 @@ namespace PRoConEvents {
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_ban_perm"],
+                                command_type = GetCommandByKey("player_ban_perm"),
                                 command_numeric = 0,
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
@@ -7216,7 +7216,7 @@ namespace PRoConEvents {
                         var record = new AdKatsRecord {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
                             server_id = _serverInfo.ServerID,
-                            command_type = _CommandKeyDictionary["player_ban_perm"],
+                            command_type = GetCommandByKey("player_ban_perm"),
                             command_numeric = 0,
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
@@ -7846,14 +7846,14 @@ namespace PRoConEvents {
                                             if (_RoundMutedPlayers[messageObject.Speaker] > _MutedPlayerChances)
                                             {
                                                 record.record_message = _MutedPlayerKickMessage;
-                                                record.command_type = _CommandKeyDictionary["player_kick"];
-                                                record.command_action = _CommandKeyDictionary["player_kick"];
+                                                record.command_type = GetCommandByKey("player_kick");
+                                                record.command_action = GetCommandByKey("player_kick");
                                             }
                                             else
                                             {
                                                 record.record_message = _MutedPlayerKillMessage;
-                                                record.command_type = _CommandKeyDictionary["player_kill"];
-                                                record.command_action = _CommandKeyDictionary["player_kill"];
+                                                record.command_type = GetCommandByKey("player_kill");
+                                                record.command_action = GetCommandByKey("player_kill");
                                                 AdminSayMessage(record.target_name + " killed for talking while muted. They can speak again next round.");
                                             }
                                             QueueRecordForProcessing(record);
@@ -8543,13 +8543,13 @@ namespace PRoConEvents {
                             {
                                 AdminSayMessage(record.target_name + " was PUNISHED by " + record.source_name + " for " + record.record_message);
                             }
-                            record.command_type = _CommandKeyDictionary["player_kill"];
-                            record.command_action = _CommandKeyDictionary["player_kill"];
+                            record.command_type = GetCommandByKey("player_kill");
+                            record.command_action = GetCommandByKey("player_kill");
                         }
                         else if (killCount >= 4 && punishCount >= 2)
                         {
-                            record.command_type = _CommandKeyDictionary["player_kick"];
-                            record.command_action = _CommandKeyDictionary["player_kick"];
+                            record.command_type = GetCommandByKey("player_kick");
+                            record.command_action = GetCommandByKey("player_kick");
                         }
                     }
                 }
@@ -10028,7 +10028,7 @@ namespace PRoConEvents {
                         break;
                     case "player_report": {
                         //Get the command text for report
-                        String command = _CommandKeyDictionary["player_report"].command_text;
+                        String command = GetCommandByKey("player_report").command_text;
 
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
@@ -10072,7 +10072,7 @@ namespace PRoConEvents {
                         break;
                     case "player_calladmin": {
                         //Get the command text for call admin
-                        String command = _CommandKeyDictionary["player_calladmin"].command_text;
+                        String command = GetCommandByKey("player_calladmin").command_text;
 
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
@@ -10703,7 +10703,7 @@ namespace PRoConEvents {
                                     }
                                     else
                                     {
-                                        record.record_message = "Invalid PreMessage ID or command name. !" + _CommandKeyDictionary["self_help"].command_text + " for command list. Valid PreMessage IDs are 1-" + _PreMessageList.Count;
+                                        record.record_message = "Invalid PreMessage ID or command name. !" + GetCommandByKey("self_help").command_text + " for command list. Valid PreMessage IDs are 1-" + _PreMessageList.Count;
                                     }
                                 }
                                 SendMessageToSource(record, record.record_message);
@@ -12241,7 +12241,7 @@ namespace PRoConEvents {
                 if (reportedRecord != null)
                 {
                     DebugWrite("Denying round report.", 5);
-                    reportedRecord.command_action = _CommandKeyDictionary["player_report_deny"];
+                    reportedRecord.command_action = GetCommandByKey("player_report_deny");
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been denied.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been denied by " + record.source_name + ".");
@@ -12268,7 +12268,7 @@ namespace PRoConEvents {
                 if (reportedRecord != null)
                 {
                     DebugWrite("Ignoring round report.", 5);
-                    reportedRecord.command_action = _CommandKeyDictionary["player_report_ignore"];
+                    reportedRecord.command_action = GetCommandByKey("player_report_ignore");
                     UpdateRecord(reportedRecord);
                     //Do not inform the player their report was ignored
                     //SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been ignored.");
@@ -12293,7 +12293,7 @@ namespace PRoConEvents {
                 AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, true);
                 if (reportedRecord != null) {
                     DebugWrite("Accepting round report.", 5);
-                    reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
+                    reportedRecord.command_action = GetCommandByKey("player_report_confirm");
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been accepted. Thank you.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been accepted by " + record.source_name + ".");
@@ -12341,7 +12341,7 @@ namespace PRoConEvents {
                     DebugWrite("Handling round report.", 5);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been acted on. Thank you.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been acted on by " + record.source_name + ".");
-                    reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
+                    reportedRecord.command_action = GetCommandByKey("player_report_confirm");
                     UpdateRecord(reportedRecord);
 
                     record.target_name = reportedRecord.target_name;
@@ -12764,8 +12764,8 @@ namespace PRoConEvents {
             try
             {
                 record.record_action_executed = true;
-                if (record.command_type == _CommandKeyDictionary["self_teamswap"]) {
-                    if ((record.source_player != null && HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"])) || ((_TeamSwapTicketWindowHigh >= _highestTicketCount) && (_TeamSwapTicketWindowLow <= _lowestTicketCount))) {
+                if (record.command_type == GetCommandByKey("self_teamswap")) {
+                    if ((record.source_player != null && HasAccess(record.source_player, GetCommandByKey("self_teamswap"))) || ((_TeamSwapTicketWindowHigh >= _highestTicketCount) && (_TeamSwapTicketWindowLow <= _lowestTicketCount))) {
                         message = "Calling Teamswap on self";
                         DebugWrite(message, 6);
                         QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
@@ -12828,7 +12828,7 @@ namespace PRoConEvents {
                                 DebugWrite("Queueing player for kill on spawn. (" + seconds + ")&(" + record.command_action + ")", 3);
                                 if (!_ActOnSpawnDictionary.ContainsKey(record.target_player.player_name)) {
                                     lock (_ActOnSpawnDictionary) {
-                                        record.command_action = _CommandKeyDictionary["player_kill_repeat"];
+                                        record.command_action = GetCommandByKey("player_kill_repeat");
                                         _ActOnSpawnDictionary.Add(record.target_player.player_name, record);
                                     }
                                 }
@@ -13321,62 +13321,62 @@ namespace PRoConEvents {
                         PlayerTellMessage(record.target_name, "Warned by admin for " + record.record_message, true , 3);
                     }
                     else if ((action == "kill" || (isLowPop && !iroOverride)) && !action.Equals("ban")) {
-                        record.command_action = (isLowPop) ? (_CommandKeyDictionary["player_kill_lowpop"]) : (_CommandKeyDictionary["player_kill"]);
+                        record.command_action = (isLowPop) ? (GetCommandByKey("player_kill_lowpop")) : (GetCommandByKey("player_kill"));
                         KillTarget(record);
                     }
                     else if (action == "kick") {
-                        record.command_action = _CommandKeyDictionary["player_kick"];
+                        record.command_action = GetCommandByKey("player_kick");
                         KickTarget(record);
                     }
                     else if (action == "tban60") {
                         record.command_numeric = 60;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tban120") {
                         record.command_numeric = 120;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tbanday")
                     {
                         record.command_numeric = 1440;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tban2days")
                     {
                         record.command_numeric = 2880;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tban3days")
                     {
                         record.command_numeric = 4320;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tbanweek") {
                         record.command_numeric = 10080;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tban2weeks") {
                         record.command_numeric = 20160;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tbanmonth") {
                         record.command_numeric = 43200;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "ban") {
-                        record.command_action = _CommandKeyDictionary["player_ban_perm"];
+                        record.command_action = GetCommandByKey("player_ban_perm");
                         PermaBanTarget(record);
                     }
                     else {
-                        record.command_action = _CommandKeyDictionary["player_kill"];
+                        record.command_action = GetCommandByKey("player_kill");
                         KillTarget(record);
                         record.record_exception = new AdKatsException("Punish options are set incorrectly. '" + action + "' not found. Inform plugin setting manager.");
                         HandleException(record.record_exception);
@@ -13384,7 +13384,7 @@ namespace PRoConEvents {
                 }
                 else {
                     //Exception found, just kill the player
-                    record.command_action = _CommandKeyDictionary["player_kill"];
+                    record.command_action = GetCommandByKey("player_kill");
                     KillTarget(record);
                 }
             }
@@ -13914,7 +13914,7 @@ namespace PRoConEvents {
             try
             {
                 record.record_action_executed = true;
-                if (!HasAccess(record.target_player, _CommandKeyDictionary["player_mute"])) {
+                if (!HasAccess(record.target_player, GetCommandByKey("player_mute"))) {
                     if (!_RoundMutedPlayers.ContainsKey(record.target_player.player_name)) {
                         _RoundMutedPlayers.Add(record.target_player.player_name, 0);
                         PlayerSayMessage(record.target_player.player_name, _MutedPlayerMuteMessage);
@@ -13947,7 +13947,7 @@ namespace PRoConEvents {
                 if (_PlayerDictionary.TryGetValue(record.source_name, out sourcePlayer))
                 {
                     //If the source has access to move players, then the squad will be unlocked for their entry
-                    if (HasAccess(record.source_player, _CommandKeyDictionary["player_move"]))
+                    if (HasAccess(record.source_player, GetCommandByKey("player_move")))
                     {
                         //Unlock target squad
                         SendMessageToSource(record, "Unlocking target squad if needed, please wait.");
@@ -13956,9 +13956,9 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(500);
                     }
                     //Check for player access to change teams
-                    if (record.target_player.frostbitePlayerInfo.TeamID != sourcePlayer.frostbitePlayerInfo.TeamID && !HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"]))
+                    if (record.target_player.frostbitePlayerInfo.TeamID != sourcePlayer.frostbitePlayerInfo.TeamID && !HasAccess(record.source_player, GetCommandByKey("self_teamswap")))
                     {
-                        SendMessageToSource(record, "Target player is not on your team, you need @" + _CommandKeyDictionary["self_teamswap"].command_text + "/TeamSwap access to join them.");
+                        SendMessageToSource(record, "Target player is not on your team, you need @" + GetCommandByKey("self_teamswap").command_text + "/TeamSwap access to join them.");
                     }
                     else
                     {
@@ -14095,7 +14095,7 @@ namespace PRoConEvents {
                     {
                         record_source = AdKatsRecord.Sources.InternalAutomated,
                         server_id = _serverInfo.ServerID,
-                        command_type = _CommandKeyDictionary["player_repboost"],
+                        command_type = GetCommandByKey("player_repboost"),
                         command_numeric = 0,
                         target_name = record.source_player.player_name,
                         target_player = record.source_player,
@@ -14229,13 +14229,13 @@ namespace PRoConEvents {
                             //Remove it from the reports for this round
                             _RoundReports.Remove(reportID);
                             //Update it in the database
-                            reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
+                            reportedRecord.command_action = GetCommandByKey("player_report_confirm");
                             UpdateRecord(reportedRecord);
                             //Get target information
                             var aRecord = new AdKatsRecord {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_punish"],
+                                command_type = GetCommandByKey("player_punish"),
                                 command_numeric = 0,
                                 target_name = reportedRecord.target_player.player_name,
                                 target_player = reportedRecord.target_player,
@@ -14465,7 +14465,7 @@ namespace PRoConEvents {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
                             server_id = oldPartner.player_server.ServerID,
                             record_orchestrate = true,
-                            command_type = _CommandKeyDictionary["player_pm_cancel"],
+                            command_type = GetCommandByKey("player_pm_cancel"),
                             command_numeric = 0,
                             target_name = oldPartner.player_name,
                             target_player = oldPartner,
@@ -14490,7 +14490,7 @@ namespace PRoConEvents {
                         record_source = AdKatsRecord.Sources.InternalAutomated,
                         server_id = partner.player_server.ServerID,
                         record_orchestrate = true,
-                        command_type = _CommandKeyDictionary["player_pm_start"],
+                        command_type = GetCommandByKey("player_pm_start"),
                         command_numeric = 0,
                         target_name = partner.player_name,
                         target_player = partner,
@@ -14533,7 +14533,7 @@ namespace PRoConEvents {
                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                     server_id = oldPartner.player_server.ServerID,
                                     record_orchestrate = true,
-                                    command_type = _CommandKeyDictionary["player_pm_cancel"],
+                                    command_type = GetCommandByKey("player_pm_cancel"),
                                     command_numeric = 0,
                                     target_name = oldPartner.player_name,
                                     target_player = oldPartner,
@@ -14589,7 +14589,7 @@ namespace PRoConEvents {
                         record_source = AdKatsRecord.Sources.InternalAutomated,
                         server_id = partner.player_server.ServerID,
                         record_orchestrate = true,
-                        command_type = _CommandKeyDictionary["player_pm_transmit"],
+                        command_type = GetCommandByKey("player_pm_transmit"),
                         command_numeric = 0,
                         target_name = partner.player_name,
                         target_player = partner,
@@ -14663,7 +14663,7 @@ namespace PRoConEvents {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = oldPartner.player_server.ServerID,
                                 record_orchestrate = true,
-                                command_type = _CommandKeyDictionary["player_pm_cancel"],
+                                command_type = GetCommandByKey("player_pm_cancel"),
                                 command_numeric = 0,
                                 target_name = oldPartner.player_name,
                                 target_player = oldPartner,
@@ -14748,7 +14748,7 @@ namespace PRoConEvents {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
                             server_id = sender.player_server.ServerID,
                             record_orchestrate = true,
-                            command_type = _CommandKeyDictionary["player_pm_cancel"],
+                            command_type = GetCommandByKey("player_pm_cancel"),
                             command_numeric = 0,
                             target_name = sender.player_name,
                             target_player = sender,
@@ -15070,7 +15070,7 @@ namespace PRoConEvents {
                                 {
                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                     server_id = _serverInfo.ServerID,
-                                    command_type = _CommandKeyDictionary["round_end"],
+                                    command_type = GetCommandByKey("round_end"),
                                     command_numeric = winningTeam.TeamID,
                                     target_name = winningTeam.TeamName,
                                     source_name = "RoundManager",
@@ -15428,7 +15428,7 @@ namespace PRoConEvents {
                                     playerLoc += loc.regionName + ", ";
                                 }
                                 playerLoc += loc.country;
-                                IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_changeip"].command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message != "No previous IP on record");
+                                IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changeip").command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message != "No previous IP on record");
                                 if (locRecords.Count() > 0) {
                                     playerLoc += " with " + locRecords.Count() + " IP changes.";
                                 }
@@ -15474,7 +15474,7 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Last Punishment
                         String lastPunishText = "No punishments found.";
-                        var punishments = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_punish"].command_id, 1000, 1, true, false);
+                        var punishments = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_punish").command_id, 1000, 1, true, false);
                         if (punishments.Any()) {
                             var lastPunish = punishments[0];
                             lastPunishText = FormatTimeString(UtcDbTime() - lastPunish.record_time, 2) + " ago by " + lastPunish.source_name + ": " + lastPunish.record_message;
@@ -15483,7 +15483,7 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Last Forgive
                         String lastForgiveText = "No forgives found.";
-                        var forgives = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_forgive"].command_id, 1000, 1, true, false);
+                        var forgives = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_forgive").command_id, 1000, 1, true, false);
                         if (forgives.Any())
                         {
                             var lastForgive = forgives[0];
@@ -15493,7 +15493,7 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Rules requests
                         String rulesRequestsText = "Player has never requested rules.";
-                        var rulesRequests = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["self_rules"].command_id, 1000, 50, true, false);
+                        var rulesRequests = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("self_rules").command_id, 1000, 50, true, false);
                         if (rulesRequests.Any(innerRecord => innerRecord.source_player != null && innerRecord.source_player.player_id == record.target_player.player_id))
                         {
                             var lastRulesRequest = rulesRequests[0];
@@ -15503,19 +15503,19 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Ping Kicks
                         String pingKicksText = "Player never kicked for ping.";
-                        var pingKicks = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_kick"].command_id, 1000, 50, true, false).Where(innerRecord => innerRecord.source_name == "PingEnforcer");
+                        var pingKicks = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_kick").command_id, 1000, 50, true, false).Where(innerRecord => innerRecord.source_name == "PingEnforcer");
                         if (pingKicks.Any())
                         {
                             pingKicksText = "Kicked " + pingKicks.Count() + " time(s) for high ping.";
                         }
-                        SendMessageToSource(record, "Ping Kicks: " + pingKicksText + " Current Ping [" + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping_avg, 2) + "") : ("Missing")) + "].");
+                        SendMessageToSource(record, "Ping Kicks: " + pingKicksText + " Current Ping [" + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping_avg, 2) + "") : ("Missing")) + ").");
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Reputation
                         SendMessageToSource(record, "Reputation: " + ((!PlayerIsAdmin(record.target_player)) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)));
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Previous Names
                         String playerNames = "No previous names.";
-                        List<AdKatsRecord> nameRecords = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_changename"].command_id, 1000, 50, true, false);
+                        List<AdKatsRecord> nameRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changename").command_id, 1000, 50, true, false);
                         if (nameRecords.Count > 0)
                         {
                             playerNames = record.target_name;
@@ -15776,7 +15776,7 @@ namespace PRoConEvents {
                         {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
                             server_id = _serverInfo.ServerID,
-                            command_type = _CommandKeyDictionary["player_kick"],
+                            command_type = GetCommandByKey("player_kick"),
                             command_numeric = 0,
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
@@ -16513,19 +16513,19 @@ namespace PRoConEvents {
                     //Permabans and Temp bans longer than 1 year will be defaulted to permaban
                     switch (cBan.BanLength.Subset) {
                         case TimeoutSubset.TimeoutSubsetType.Seconds:
-                            record.command_type = _CommandKeyDictionary["player_ban_temp"];
-                            record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                            record.command_type = GetCommandByKey("player_ban_temp");
+                            record.command_action = GetCommandByKey("player_ban_temp");
                             record.command_numeric = cBan.BanLength.Seconds / 60;
                             break;
                         case TimeoutSubset.TimeoutSubsetType.Permanent:
-                            record.command_type = _CommandKeyDictionary["player_ban_perm"];
-                            record.command_action = _CommandKeyDictionary["player_ban_perm"];
+                            record.command_type = GetCommandByKey("player_ban_perm");
+                            record.command_action = GetCommandByKey("player_ban_perm");
                             record.command_numeric = 0;
                             break;
                         case TimeoutSubset.TimeoutSubsetType.Round:
                             //Accept round ban as 1 hour timeban
-                            record.command_type = _CommandKeyDictionary["player_ban_temp"];
-                            record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                            record.command_type = GetCommandByKey("player_ban_temp");
+                            record.command_action = GetCommandByKey("player_ban_temp");
                             record.command_numeric = 60;
                             break;
                         default:
@@ -17043,38 +17043,38 @@ namespace PRoConEvents {
                 ConsoleInfo("Updating Records...");
                 //Generate old->new command key dictionary
                 var commandConversionDictionary = new Dictionary<string, AdKatsCommand>();
-                commandConversionDictionary.Add("AdminSay", _CommandKeyDictionary["admin_say"]);
-                commandConversionDictionary.Add("AdminTell", _CommandKeyDictionary["admin_tell"]);
-                commandConversionDictionary.Add("AdminYell", _CommandKeyDictionary["admin_yell"]);
-                commandConversionDictionary.Add("CallAdmin", _CommandKeyDictionary["player_calladmin"]);
-                commandConversionDictionary.Add("ConfirmReport", _CommandKeyDictionary["player_report_confirm"]);
-                commandConversionDictionary.Add("EndLevel", _CommandKeyDictionary["round_end"]);
-                commandConversionDictionary.Add("EnforceBan", _CommandKeyDictionary["banenforcer_enforce"]);
-                commandConversionDictionary.Add("Exception", _CommandKeyDictionary["adkats_exception"]);
-                commandConversionDictionary.Add("ForceMove", _CommandKeyDictionary["player_fmove"]);
-                commandConversionDictionary.Add("Forgive", _CommandKeyDictionary["player_forgive"]);
-                commandConversionDictionary.Add("Join", _CommandKeyDictionary["player_join"]);
-                commandConversionDictionary.Add("Kick", _CommandKeyDictionary["player_kick"]);
-                commandConversionDictionary.Add("Kill", _CommandKeyDictionary["player_kill"]);
-                commandConversionDictionary.Add("KickAll", _CommandKeyDictionary["server_kickall"]);
-                commandConversionDictionary.Add("LowPopKill", _CommandKeyDictionary["player_kill_lowpop"]);
-                commandConversionDictionary.Add("Move", _CommandKeyDictionary["player_move"]);
-                commandConversionDictionary.Add("Mute", _CommandKeyDictionary["player_mute"]);
-                commandConversionDictionary.Add("NextLevel", _CommandKeyDictionary["round_next"]);
-                commandConversionDictionary.Add("Nuke", _CommandKeyDictionary["server_nuke"]);
-                commandConversionDictionary.Add("PermaBan", _CommandKeyDictionary["player_ban_perm"]);
-                commandConversionDictionary.Add("PlayerSay", _CommandKeyDictionary["player_say"]);
-                commandConversionDictionary.Add("PlayerYell", _CommandKeyDictionary["player_yell"]);
-                commandConversionDictionary.Add("PlayerTell", _CommandKeyDictionary["player_tell"]);
-                commandConversionDictionary.Add("Punish", _CommandKeyDictionary["player_punish"]);
-                commandConversionDictionary.Add("RepeatKill", _CommandKeyDictionary["player_kill_repeat"]);
-                commandConversionDictionary.Add("Report", _CommandKeyDictionary["player_report"]);
-                commandConversionDictionary.Add("RestartLevel", _CommandKeyDictionary["round_restart"]);
-                commandConversionDictionary.Add("RequestRules", _CommandKeyDictionary["self_rules"]);
-                commandConversionDictionary.Add("RoundWhitelist", _CommandKeyDictionary["player_roundwhitelist"]);
-                commandConversionDictionary.Add("KillSelf", _CommandKeyDictionary["self_kill"]);
-                commandConversionDictionary.Add("Teamswap", _CommandKeyDictionary["self_teamswap"]);
-                commandConversionDictionary.Add("TempBan", _CommandKeyDictionary["player_ban_temp"]);
+                commandConversionDictionary.Add("AdminSay", GetCommandByKey("admin_say"));
+                commandConversionDictionary.Add("AdminTell", GetCommandByKey("admin_tell"));
+                commandConversionDictionary.Add("AdminYell", GetCommandByKey("admin_yell"));
+                commandConversionDictionary.Add("CallAdmin", GetCommandByKey("player_calladmin"));
+                commandConversionDictionary.Add("ConfirmReport", GetCommandByKey("player_report_confirm"));
+                commandConversionDictionary.Add("EndLevel", GetCommandByKey("round_end"));
+                commandConversionDictionary.Add("EnforceBan", GetCommandByKey("banenforcer_enforce"));
+                commandConversionDictionary.Add("Exception", GetCommandByKey("adkats_exception"));
+                commandConversionDictionary.Add("ForceMove", GetCommandByKey("player_fmove"));
+                commandConversionDictionary.Add("Forgive", GetCommandByKey("player_forgive"));
+                commandConversionDictionary.Add("Join", GetCommandByKey("player_join"));
+                commandConversionDictionary.Add("Kick", GetCommandByKey("player_kick"));
+                commandConversionDictionary.Add("Kill", GetCommandByKey("player_kill"));
+                commandConversionDictionary.Add("KickAll", GetCommandByKey("server_kickall"));
+                commandConversionDictionary.Add("LowPopKill", GetCommandByKey("player_kill_lowpop"));
+                commandConversionDictionary.Add("Move", GetCommandByKey("player_move"));
+                commandConversionDictionary.Add("Mute", GetCommandByKey("player_mute"));
+                commandConversionDictionary.Add("NextLevel", GetCommandByKey("round_next"));
+                commandConversionDictionary.Add("Nuke", GetCommandByKey("server_nuke"));
+                commandConversionDictionary.Add("PermaBan", GetCommandByKey("player_ban_perm"));
+                commandConversionDictionary.Add("PlayerSay", GetCommandByKey("player_say"));
+                commandConversionDictionary.Add("PlayerYell", GetCommandByKey("player_yell"));
+                commandConversionDictionary.Add("PlayerTell", GetCommandByKey("player_tell"));
+                commandConversionDictionary.Add("Punish", GetCommandByKey("player_punish"));
+                commandConversionDictionary.Add("RepeatKill", GetCommandByKey("player_kill_repeat"));
+                commandConversionDictionary.Add("Report", GetCommandByKey("player_report"));
+                commandConversionDictionary.Add("RestartLevel", GetCommandByKey("round_restart"));
+                commandConversionDictionary.Add("RequestRules", GetCommandByKey("self_rules"));
+                commandConversionDictionary.Add("RoundWhitelist", GetCommandByKey("player_roundwhitelist"));
+                commandConversionDictionary.Add("KillSelf", GetCommandByKey("self_kill"));
+                commandConversionDictionary.Add("Teamswap", GetCommandByKey("self_teamswap"));
+                commandConversionDictionary.Add("TempBan", GetCommandByKey("player_ban_temp"));
                 ConsoleWrite("Updating Bans...");
                 //Download all bans
                 Double totalBans = 0;
@@ -18137,14 +18137,14 @@ namespace PRoConEvents {
                 double sourceReputation = 0.0;
                 double targetReputation = 0.0;
                 double pointReputation = 0;
-                var recentPunishments = FetchRecentRecords(aPlayer.player_id, _CommandKeyDictionary["player_punish"].command_id, 1000, 1000, true, false);
+                var recentPunishments = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_punish").command_id, 1000, 1000, true, false);
                 foreach (var punishment in recentPunishments) {
                     var timeSince = UtcDbTime() - punishment.record_time;
                     if (timeSince.TotalDays < 50) {
                         pointReputation -= 20 * ((50 - timeSince.TotalDays) / 50);
                     }
                 }
-                var recentForgives = FetchRecentRecords(aPlayer.player_id, _CommandKeyDictionary["player_forgive"].command_id, 1000, 1000, true, false);
+                var recentForgives = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_forgive").command_id, 1000, 1000, true, false);
                 foreach (var forgive in recentForgives)
                 {
                     var timeSince = UtcDbTime() - forgive.record_time;
@@ -19893,7 +19893,7 @@ namespace PRoConEvents {
                                 var record = new AdKatsRecord {
                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                     server_id = _serverInfo.ServerID,
-                                    command_type = _CommandKeyDictionary["player_changename"],
+                                    command_type = GetCommandByKey("player_changename"),
                                     command_numeric = 0,
                                     target_name = aPlayer.player_name,
                                     target_player = aPlayer,
@@ -20211,7 +20211,7 @@ namespace PRoConEvents {
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverInfo.ServerID,
-                                        command_type = _CommandKeyDictionary["player_unban"],
+                                        command_type = GetCommandByKey("player_unban"),
                                         command_numeric = 0,
                                         target_name = player.player_name,
                                         target_player = player,
@@ -20612,14 +20612,14 @@ namespace PRoConEvents {
                     record.record_source = AdKatsRecord.Sources.InternalAutomated;
                     if (bbmBan.ban_length == "permanent") {
                         DebugWrite("Ban is permanent", 4);
-                        record.command_type = _CommandKeyDictionary["player_ban_perm"];
-                        record.command_action = _CommandKeyDictionary["player_ban_perm"];
+                        record.command_type = GetCommandByKey("player_ban_perm");
+                        record.command_action = GetCommandByKey("player_ban_perm");
                         record.command_numeric = 0;
                     }
                     else if (bbmBan.ban_length == "seconds") {
                         DebugWrite("Ban is temporary", 4);
-                        record.command_type = _CommandKeyDictionary["player_ban_temp"];
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_type = GetCommandByKey("player_ban_temp");
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         record.command_numeric = (Int32) (bbmBan.ban_duration - UtcDbTime()).TotalMinutes;
                     }
                     else {
@@ -24480,9 +24480,9 @@ namespace PRoConEvents {
                                         //Patched version is newer than an already patched version
                                         ConsoleSuccess("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ". Restart procon to run this version.");
                                     }
-                                    else if (!_pluginUpdatePatched) {
+                                    else if (!_pluginUpdatePatched && patchedVersionInt > _currentPluginVersionInt) {
                                         //User not notified of patch yet
-                                        ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
+                                        ConsoleSuccess("Plugin updated to version " + patchedVersion + ". Restart procon to run this version.");
                                         ConsoleSuccess("Updated plugin file located at: " + pluginPath);
                                     }
                                 }
@@ -24613,7 +24613,7 @@ namespace PRoConEvents {
                         record_source = AdKatsRecord.Sources.InternalAutomated,
                         isDebug = true,
                         server_id = _serverInfo.ServerID,
-                        command_type = _CommandKeyDictionary["adkats_exception"],
+                        command_type = GetCommandByKey("adkats_exception"),
                         command_numeric = 0,
                         target_name = "AdKats",
                         target_player = null,
@@ -24700,7 +24700,7 @@ namespace PRoConEvents {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         isDebug = true,
                                         server_id = _serverInfo.ServerID,
-                                        command_type = _CommandKeyDictionary["adkats_exception"],
+                                        command_type = GetCommandByKey("adkats_exception"),
                                         command_numeric = 0,
                                         target_name = "Database",
                                         target_player = null,
@@ -25304,123 +25304,142 @@ namespace PRoConEvents {
 
             public void UpdateTicketCount(Double newTicketCount)
             {
-                //Get rounded time (floor)
-                DateTime newTicketTime = Plugin.UtcDbTime();
-                newTicketTime = newTicketTime.AddTicks(-(newTicketTime.Ticks % TimeSpan.TicksPerSecond));
-                if (!TeamTicketsAdded)
+                try
                 {
-                    TeamScoreDifferenceRate = 0;
+                    //Get rounded time (floor)
+                    DateTime newTicketTime = Plugin.UtcDbTime();
+                    newTicketTime = newTicketTime.AddTicks(-(newTicketTime.Ticks % TimeSpan.TicksPerSecond));
+                    if (!TeamTicketsAdded)
+                    {
+                        TeamScoreDifferenceRate = 0;
+                        TeamTicketCount = (Int32)newTicketCount;
+                        TeamTicketsTime = newTicketTime;
+                        TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(newTicketCount, newTicketTime));
+                        TeamTicketsAdded = true;
+                        return;
+                    }
+
+                    //Interpolation
+                    DateTime oldTicketTime = TeamTicketsTime;
+                    Double oldTicketValue = TeamTicketCount;
+                    Double interTimeOldSeconds = 0;
+                    Double interTimeNewSeconds = (newTicketTime - oldTicketTime).TotalSeconds;
+                    Double m = (newTicketCount - oldTicketValue) / (interTimeNewSeconds);
+                    Double b = oldTicketValue;
+                    for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
+                    {
+                        DateTime subTicketTime = oldTicketTime.AddSeconds(sec);
+                        Double subTicketValue = (m * sec) + b;
+                        TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
+                    }
+
+                    //Remove old values
+                    Boolean removed = false;
+                    do
+                    {
+                        removed = false;
+                        if (TeamTicketCounts.Any() && (Plugin.UtcDbTime() - TeamTicketCounts.Peek().Value).TotalSeconds > 120)
+                        {
+                            TeamTicketCounts.Dequeue();
+                            removed = true;
+                        }
+                    } while (removed);
+
+                    //Set instance vars
                     TeamTicketCount = (Int32)newTicketCount;
                     TeamTicketsTime = newTicketTime;
-                    TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(newTicketCount, newTicketTime));
-                    TeamTicketsAdded = true;
-                    return;
-                }
 
-                //Interpolation
-                DateTime oldTicketTime = TeamTicketsTime;
-                Double oldTicketValue = TeamTicketCount;
-                Double interTimeOldSeconds = 0;
-                Double interTimeNewSeconds = (newTicketTime - oldTicketTime).TotalSeconds;
-                Double m = (newTicketCount - oldTicketValue) / (interTimeNewSeconds);
-                Double b = oldTicketValue;
-                for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
-                {
-                    DateTime subTicketTime = oldTicketTime.AddSeconds(sec);
-                    Double subTicketValue = (m * sec) + b;
-                    TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
-                }
-
-                //Remove old values
-                Boolean removed = false;
-                do
-                {
-                    removed = false;
-                    if (TeamTicketCounts.Any() && (Plugin.UtcDbTime() - TeamTicketCounts.Peek().Value).TotalSeconds > 120)
+                    List<Double> values = TeamTicketCounts.Select(pair => pair.Key).ToList();
+                    var differences = new List<Double>();
+                    for (int i = 0; i < values.Count - 1; i++)
                     {
-                        TeamTicketCounts.Dequeue();
-                        removed = true;
+                        differences.Add(values[i + 1] - values[i]);
                     }
-                } while (removed);
-
-                //Set instance vars
-                TeamTicketCount = (Int32)newTicketCount;
-                TeamTicketsTime = newTicketTime;
-
-                List<Double> values = TeamTicketCounts.Select(pair => pair.Key).ToList();
-                var differences = new List<Double>();
-                for (int i = 0; i < values.Count - 1; i++)
-                {
-                    differences.Add(values[i + 1] - values[i]);
+                    differences.Sort();
+                    //Convert to tickets/min
+                    TeamTicketDifferenceRate = (differences.Sum() / differences.Count) * 60;
                 }
-                differences.Sort();
-                //Convert to tickets/min
-                TeamTicketDifferenceRate = (differences.Sum() / differences.Count) * 60;
+                catch (Exception e) {
+                    Plugin.HandleException(new AdKatsException("Error while updating team ticket count.", e));
+                }
             }
 
             public void UpdateTotalScore(Double newTotalScore)
             {
-                //Get rounded time (floor)
-                DateTime newScoreTime = Plugin.UtcDbTime();
-                newScoreTime = newScoreTime.AddTicks(-(newScoreTime.Ticks % TimeSpan.TicksPerSecond));
-                if (!TeamTotalScoresAdded)
+                try
                 {
-                    TeamScoreDifferenceRate = 0;
+                    //Get rounded time (floor)
+                    DateTime newScoreTime = Plugin.UtcDbTime();
+                    newScoreTime = newScoreTime.AddTicks(-(newScoreTime.Ticks % TimeSpan.TicksPerSecond));
+                    if (!TeamTotalScoresAdded)
+                    {
+                        TeamScoreDifferenceRate = 0;
+                        TeamTotalScore = newTotalScore;
+                        TeamTotalScoresTime = newScoreTime;
+                        TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(newTotalScore, newScoreTime));
+                        TeamTotalScoresAdded = true;
+                        return;
+                    }
+
+                    //Interpolation
+                    DateTime oldScoreTime = TeamTotalScoresTime;
+                    Double oldScoreValue = TeamTotalScore;
+                    Double interTimeOldSeconds = 0;
+                    Double interTimeNewSeconds = (newScoreTime - oldScoreTime).TotalSeconds;
+                    Double m = (newTotalScore - oldScoreValue) / (interTimeNewSeconds);
+                    Double b = oldScoreValue;
+                    for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
+                    {
+                        DateTime subScoreTime = oldScoreTime.AddSeconds(sec);
+                        Double subScoreValue = (m * sec) + b;
+                        TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(subScoreValue, subScoreTime));
+                    }
+
+                    //Remove old values
+                    Boolean removed = false;
+                    do
+                    {
+                        removed = false;
+                        if (TeamTotalScores.Any() && (Plugin.UtcDbTime() - TeamTotalScores.Peek().Value).TotalSeconds > 120)
+                        {
+                            TeamTotalScores.Dequeue();
+                            removed = true;
+                        }
+                    } while (removed);
+
+                    //Set instance vars
                     TeamTotalScore = newTotalScore;
                     TeamTotalScoresTime = newScoreTime;
-                    TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(newTotalScore, newScoreTime));
-                    TeamTotalScoresAdded = true;
-                    return;
-                }
 
-                //Interpolation
-                DateTime oldScoreTime = TeamTotalScoresTime;
-                Double oldScoreValue = TeamTotalScore;
-                Double interTimeOldSeconds = 0;
-                Double interTimeNewSeconds = (newScoreTime - oldScoreTime).TotalSeconds;
-                Double m = (newTotalScore - oldScoreValue) / (interTimeNewSeconds);
-                Double b = oldScoreValue;
-                for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
-                {
-                    DateTime subScoreTime = oldScoreTime.AddSeconds(sec);
-                    Double subScoreValue = (m * sec) + b;
-                    TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(subScoreValue, subScoreTime));
-                }
-
-                //Remove old values
-                Boolean removed = false;
-                do
-                {
-                    removed = false;
-                    if (TeamTotalScores.Any() && (Plugin.UtcDbTime() - TeamTotalScores.Peek().Value).TotalSeconds > 120)
+                    List<Double> values = TeamTotalScores.Select(pair => pair.Key).ToList();
+                    var differences = new List<Double>();
+                    for (int i = 0; i < values.Count - 1; i++)
                     {
-                        TeamTotalScores.Dequeue();
-                        removed = true;
+                        differences.Add(values[i + 1] - values[i]);
                     }
-                } while (removed);
-
-                //Set instance vars
-                TeamTotalScore = newTotalScore;
-                TeamTotalScoresTime = newScoreTime;
-
-                List<Double> values = TeamTotalScores.Select(pair => pair.Key).ToList();
-                var differences = new List<Double>();
-                for (int i = 0; i < values.Count - 1; i++)
-                {
-                    differences.Add(values[i + 1] - values[i]);
+                    differences.Sort();
+                    //Convert to tickets/min
+                    TeamScoreDifferenceRate = (differences.Sum() / differences.Count) * 60;
                 }
-                differences.Sort();
-                //Convert to tickets/min
-                TeamScoreDifferenceRate = (differences.Sum() / differences.Count) * 60;
+                catch (Exception e)
+                {
+                    Plugin.HandleException(new AdKatsException("Error while updating team ticket total score.", e));
+                }
             }
 
             public void Reset() {
-                TeamTicketCount = 0;
-                TeamTotalScore = 0;
-                TeamTotalScores.Clear();
-                TeamScoreDifferenceRate = 0;
-                TeamTicketCounts.Clear();
-                TeamTicketDifferenceRate = 0;
+                try
+                {
+                    TeamTicketCount = 0;
+                    TeamTotalScore = 0;
+                    TeamTotalScores.Clear();
+                    TeamScoreDifferenceRate = 0;
+                    TeamTicketCounts.Clear();
+                    TeamTicketDifferenceRate = 0;
+                }
+                catch (Exception e) {
+                    Plugin.HandleException(new AdKatsException("Error while resetting team.", e));
+                }
             }
         }
 
