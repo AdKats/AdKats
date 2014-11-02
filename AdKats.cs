@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.1.9
+ * Version 5.2.2.0
  * 1-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.1.9</version_code>
+ * <version_code>5.2.2.0</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.1.9";
+        private const String PluginVersion = "5.2.2.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -3623,6 +3623,8 @@ namespace PRoConEvents {
                             _ActOnIsAliveDictionary.Clear();
                         if (_ActionConfirmDic != null)
                             _ActionConfirmDic.Clear();
+                        _unmatchedRoundDeathCounts.Clear();
+                        _unmatchedRoundDeaths.Clear();
                         _endingRound = false;
                         _surrenderVoteList.Clear();
                         _nosurrenderVoteList.Clear();
@@ -5414,9 +5416,8 @@ namespace PRoConEvents {
                                     Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0) {
-                                    if ((losingTeam.TeamTicketDifferenceRate < -70 && winningTeam.TeamTicketDifferenceRate > -15) || 
-                                        (losingTeam.TeamTicketDifferenceRate < -60 && winningTeam.TeamTicketDifferenceRate > -10)) {
-                                        if (++_surrenderAutoTriggerCountCurrent > 3) {
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -1)) {
+                                        if (++_surrenderAutoTriggerCountCurrent > 4) {
                                             baserapingTeam = winningTeam;
                                             baserapedTeam = losingTeam;
                                         }
@@ -5569,6 +5570,8 @@ namespace PRoConEvents {
                     _Team1MoveQueue.Clear();
                     _Team2MoveQueue.Clear();
                     _RoundCookers.Clear();
+                    _unmatchedRoundDeathCounts.Clear();
+                    _unmatchedRoundDeaths.Clear();
                     //Update the factions 
                     UpdateFactions();
                     //Enable round timer
