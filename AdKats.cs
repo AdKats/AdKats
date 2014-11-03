@@ -5498,6 +5498,7 @@ namespace PRoConEvents {
                                         flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by many flags.";
                                     }
                                 }
+                                flagMessage += " " + _serverInfo.InfoObject.GameMode;
                                 ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
                                 if(_isTestingAuthorized)
                                     ProconChatWrite(BoldMessage("Revived Counts: " + _unmatchedRoundDeathCounts.Where(nameCount => nameCount.Value > 1).OrderByDescending(nameCount => nameCount.Value).Take(3).Aggregate("", (current, nameCount) => current + "(" + nameCount.Key + "/" + nameCount.Value + ")")));
