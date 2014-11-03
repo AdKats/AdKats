@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.2.6
+ * Version 5.2.2.7
  * 3-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.2.6</version_code>
+ * <version_code>5.2.2.7</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.2.6";
+        private const String PluginVersion = "5.2.2.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -178,6 +178,7 @@ namespace PRoConEvents {
         private DateTime _LastPluginDescFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastUsageStatsUpdate = DateTime.UtcNow - TimeSpan.FromHours(1);
         private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
+        private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
 
         //Server
         private Boolean _populationStatusLow = true;
@@ -5458,43 +5459,43 @@ namespace PRoConEvents {
                                     }
                                     else if (loseRate <= -28 && loseRate > -32)
                                     {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 1 flag.";
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 1 flag.";
                                     }
                                     else if (loseRate <= -32 && loseRate > -38)
                                     {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 2 flags.";
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 2 flags.";
                                     }
                                     else if (loseRate <= -38 && loseRate > -42)
                                     {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 3 flags.";
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 3 flags.";
                                     }
                                     else if (loseRate <= -42 && loseRate > -48)
                                     {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 4 flags.";
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 4 flags.";
                                     }
                                     else if (loseRate <= -48 && loseRate > -52)
                                     {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 5 flags.";
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 5 flags.";
                                     }
                                     else if (loseRate <= -52 && loseRate > -58)
                                     {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 6 flags.";
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 6 flags.";
                                     }
                                     else if (loseRate <= -58 && loseRate > -62)
                                     {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 7 flags.";
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 7 flags.";
                                     }
                                     else if (loseRate <= -62 && loseRate > -68)
                                     {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 8 flags.";
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 8 flags.";
                                     }
                                     else if (loseRate <= -68 && loseRate > -72)
                                     {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 9 flags.";
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 9 flags.";
                                     }
                                     else if (loseRate < -72)
                                     {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by many flags.";
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by many flags.";
                                     }
                                 }
                                 ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
@@ -5505,7 +5506,7 @@ namespace PRoConEvents {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                                 _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
-                            if (_surrenderAutoEnable && !_endingRound && _serverInfo.GetRoundElapsedTime().TotalSeconds > 60)
+                            if (_surrenderAutoEnable && !_endingRound && (UtcDbTime() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9 && _serverInfo.GetRoundElapsedTime().TotalSeconds > 60)
                             {
                                 if (_surrenderAutoUseMetroValues &&
                                     Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
@@ -5513,8 +5514,9 @@ namespace PRoConEvents {
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0)
                                 {
-                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -1))
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -1)) 
                                     {
+                                        _lastAutoSurrenderTriggerTime = UtcDbTime();
                                         if (++_surrenderAutoTriggerCountCurrent >= 5)
                                         {
                                             baserapingTeam = winningTeam;
@@ -5538,6 +5540,7 @@ namespace PRoConEvents {
                                 {
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < -50 && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
                                     {
+                                        _lastAutoSurrenderTriggerTime = UtcDbTime();
                                         if (++_surrenderAutoTriggerCountCurrent >= 5)
                                         {
                                             baserapingTeam = winningTeam;
@@ -5562,6 +5565,7 @@ namespace PRoConEvents {
                                                 losingTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoLosingRateMax &&
                                                 losingTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoLosingRateMin)
                                             {
+                                                _lastAutoSurrenderTriggerTime = UtcDbTime();
                                                 if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender) 
                                                 {
                                                     baserapingTeam = winningTeam;
@@ -5584,6 +5588,7 @@ namespace PRoConEvents {
                                                 losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax &&
                                                 losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin)
                                             {
+                                                _lastAutoSurrenderTriggerTime = UtcDbTime();
                                                 if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender)
                                                 {
                                                     baserapingTeam = winningTeam;
