@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.2.7
+ * Version 5.2.2.8
  * 3-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.2.7</version_code>
+ * <version_code>5.2.2.8</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.2.7";
+        private const String PluginVersion = "5.2.2.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5454,51 +5454,46 @@ namespace PRoConEvents {
                                     }
                                     Double winRate = flagWinningTeam.TeamAdjustedTicketDifferenceRate;
                                     Double loseRate = flagLosingTeam.TeamAdjustedTicketDifferenceRate;
-                                    if (winRate > -25 && loseRate > -25) {
-                                        flagMessage = " | Flags appear equal for both teams.";
+                                    if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" && _gameVersion == GameVersion.BF4) {
+                                        if (winRate > -25 && loseRate > -25) {
+                                            flagMessage = " | Flags appear equal for both teams.";
+                                        }
+                                        else if (loseRate <= -25 && loseRate > -34) {
+                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 1 flag.";
+                                        }
+                                        else if (loseRate <= -34 && loseRate > -38) {
+                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 1-3 flags.";
+                                        }
+                                        else if (loseRate <= -38 && loseRate > -44) {
+                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 3 flags.";
+                                        }
+                                        else if (loseRate <= -44 && loseRate > -48) {
+                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 3-5 flags.";
+                                        }
+                                        else if (loseRate <= -48 && loseRate > -54) {
+                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 5 flags.";
+                                        }
+                                        else if (loseRate <= -54 && loseRate > -58) {
+                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 5-7 flags.";
+                                        }
+                                        else if (loseRate <= -58 && loseRate > -64) {
+                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 7 flags.";
+                                        }
+                                        else if (loseRate <= -64 && loseRate > -68) {
+                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 7-9 flags.";
+                                        }
+                                        else if (loseRate <= -68 && loseRate > -74) {
+                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 9 flags.";
+                                        }
+                                        else if (loseRate < -74) {
+                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by many flags.";
+                                        }
                                     }
-                                    else if (loseRate <= -25 && loseRate > -32)
+                                    else
                                     {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 1 flag.";
-                                    }
-                                    else if (loseRate <= -32 && loseRate > -38)
-                                    {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 2 flags.";
-                                    }
-                                    else if (loseRate <= -38 && loseRate > -42)
-                                    {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 3 flags.";
-                                    }
-                                    else if (loseRate <= -42 && loseRate > -48)
-                                    {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 4 flags.";
-                                    }
-                                    else if (loseRate <= -48 && loseRate > -52)
-                                    {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 5 flags.";
-                                    }
-                                    else if (loseRate <= -52 && loseRate > -58)
-                                    {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 6 flags.";
-                                    }
-                                    else if (loseRate <= -58 && loseRate > -62)
-                                    {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 7 flags.";
-                                    }
-                                    else if (loseRate <= -62 && loseRate > -68)
-                                    {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 8 flags.";
-                                    }
-                                    else if (loseRate <= -68 && loseRate > -72)
-                                    {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 9 flags.";
-                                    }
-                                    else if (loseRate < -72)
-                                    {
-                                        flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by many flags.";
+                                        flagMessage = " | " + _serverInfo.InfoObject.GameMode;
                                     }
                                 }
-                                flagMessage += " " + _serverInfo.InfoObject.GameMode;
                                 ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
                                 if(_isTestingAuthorized)
                                     ProconChatWrite(BoldMessage("Revived Counts: " + _unmatchedRoundDeathCounts.Where(nameCount => nameCount.Value > 1).OrderByDescending(nameCount => nameCount.Value).Take(3).Aggregate("", (current, nameCount) => current + "(" + nameCount.Key + "/" + nameCount.Value + ")")));
