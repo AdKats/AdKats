@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.2.5
+ * Version 5.2.2.6
  * 3-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.2.5</version_code>
+ * <version_code>5.2.2.6</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.2.5";
+        private const String PluginVersion = "5.2.2.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5433,9 +5433,71 @@ namespace PRoConEvents {
                                 winningTeam = team2;
                                 losingTeam = team1;
                             }
-                            if (_DisplayTicketRatesInProconChat && (UtcDbTime() - _LastTicketRateDisplay).TotalSeconds > 25 && _roundState == RoundState.Playing) {
+                            if (_DisplayTicketRatesInProconChat && (UtcDbTime() - _LastTicketRateDisplay).TotalSeconds > 25 && _roundState == RoundState.Playing) 
+                            {
                                 _LastTicketRateDisplay = UtcDbTime();
-                                ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m"));
+                                String flagMessage = "";
+                                if (team1.TeamTicketDifferenceRate < 0 && team2.TeamTicketDifferenceRate < 0) {
+                                    AdKatsTeam flagWinningTeam, flagLosingTeam;
+                                    if (team2.TeamAdjustedTicketDifferenceRate < team1.TeamAdjustedTicketDifferenceRate)
+                                    {
+                                        //Team1 has more flags than Team2
+                                        flagWinningTeam = team1;
+                                        flagLosingTeam = team2;
+                                    }
+                                    else
+                                    {
+                                        //Team2 has more flags than Team1
+                                        flagWinningTeam = team2;
+                                        flagLosingTeam = team1;
+                                    }
+                                    Double winRate = flagWinningTeam.TeamAdjustedTicketDifferenceRate;
+                                    Double loseRate = flagLosingTeam.TeamAdjustedTicketDifferenceRate;
+                                    if (winRate > -28 && loseRate > -28) {
+                                        flagMessage = " | Flags appear equal for both teams.";
+                                    }
+                                    else if (loseRate <= -28 && loseRate > -32)
+                                    {
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 1 flag.";
+                                    }
+                                    else if (loseRate <= -32 && loseRate > -38)
+                                    {
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 2 flags.";
+                                    }
+                                    else if (loseRate <= -38 && loseRate > -42)
+                                    {
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 3 flags.";
+                                    }
+                                    else if (loseRate <= -42 && loseRate > -48)
+                                    {
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 4 flags.";
+                                    }
+                                    else if (loseRate <= -48 && loseRate > -52)
+                                    {
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 5 flags.";
+                                    }
+                                    else if (loseRate <= -52 && loseRate > -58)
+                                    {
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 6 flags.";
+                                    }
+                                    else if (loseRate <= -58 && loseRate > -62)
+                                    {
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 7 flags.";
+                                    }
+                                    else if (loseRate <= -62 && loseRate > -68)
+                                    {
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 8 flags.";
+                                    }
+                                    else if (loseRate <= -68 && loseRate > -72)
+                                    {
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by 9 flags.";
+                                    }
+                                    else if (loseRate < -72)
+                                    {
+                                        flagMessage = " | Appears " + flagWinningTeam.TeamName + "is up by many flags.";
+                                    }
+                                }
+                                ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
                                 if(_isTestingAuthorized)
                                     ProconChatWrite(BoldMessage("Revived Counts: " + _unmatchedRoundDeathCounts.Where(nameCount => nameCount.Value > 1).OrderByDescending(nameCount => nameCount.Value).Take(3).Aggregate("", (current, nameCount) => current + "(" + nameCount.Key + "/" + nameCount.Value + ")")));
                             }
@@ -16942,7 +17004,7 @@ namespace PRoConEvents {
                     return false;
                 }
                 if (!ConfirmAdKatsTables()) {
-                    ConsoleError("AdKats tables not present or valid in the database. For this release the adkats database setup script must be run manually. Run the script then restart AdKats.");
+                    ConsoleError("AdKats tables not present or valid in the database. Have you run the AdKats database setup script yet? If so, are your tables InnoDB?");
                     return false;
                 }
                 ConsoleSuccess("Database confirmed functional for AdKats use.");
