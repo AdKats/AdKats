@@ -16942,7 +16942,7 @@ namespace PRoConEvents {
                     return false;
                 }
                 if (!ConfirmAdKatsTables()) {
-                    ConsoleError("AdKats tables not present or valid in the database. For this release the adkats database setup script must be run manually. Run the script then restart AdKats.");
+                    ConsoleError("AdKats tables not present or valid in the database. Have you run the AdKats database setup script yet? If so, are your tables InnoDB?");
                     return false;
                 }
                 ConsoleSuccess("Database confirmed functional for AdKats use.");
