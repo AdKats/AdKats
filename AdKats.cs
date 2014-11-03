@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.2.1
- * 1-NOV-2014
+ * Version 5.2.2.3
+ * 2-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.2.1</version_code>
+ * <version_code>5.2.2.3</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.2.1";
+        private const String PluginVersion = "5.2.2.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -861,7 +861,7 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Even Dispersion List", typeof (Boolean), _FeedMultiBalancerDisperseList));
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Reserved Slots", typeof (Boolean), _FeedServerReservedSlots));
                     if (_FeedServerReservedSlots) {
-                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Reserved Slot for User Cache", typeof (Boolean), _FeedServerReservedSlots_UserCache));
+                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Reserved Slot for Admins", typeof (Boolean), _FeedServerReservedSlots_UserCache));
                     }
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Spectator List", typeof (Boolean), _FeedServerSpectatorList));
                     if (_FeedServerSpectatorList) {
@@ -979,7 +979,7 @@ namespace PRoConEvents {
                     {
                         lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
                         lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
-                        if (!_surrenderAutoUseMetroValues || _surrenderAutoUseLockerValues)
+                        if (!_surrenderAutoUseMetroValues && !_surrenderAutoUseLockerValues)
                         {
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
@@ -2009,13 +2009,13 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof (Boolean), _FeedServerReservedSlots));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Automatic Reserved Slot for User Cache").Success) {
+                else if (Regex.Match(strVariable, @"Automatic Reserved Slot for Admins").Success) {
                     Boolean feedSRSUser = Boolean.Parse(strValue);
                     if (feedSRSUser != _FeedServerReservedSlots_UserCache) {
                         _FeedServerReservedSlots_UserCache = feedSRSUser;
                         FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for User Cache", typeof (Boolean), _FeedServerReservedSlots_UserCache));
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof (Boolean), _FeedServerReservedSlots_UserCache));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Feed Server Spectator List").Success) {
@@ -5433,6 +5433,7 @@ namespace PRoConEvents {
                             {
                                 if (_surrenderAutoUseMetroValues &&
                                     Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
+                                    losingTeam.TeamTicketCount > 100 &&
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0)
                                 {
@@ -5450,7 +5451,8 @@ namespace PRoConEvents {
                                     }
                                 }
                                 else if (_surrenderAutoUseLockerValues &&
-                                    Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
+                                    Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 && 
+                                    losingTeam.TeamTicketCount > 100 &&
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0)
                                 {
@@ -6244,7 +6246,6 @@ namespace PRoConEvents {
                                 _teamDictionary.TryGetValue(aPlayer.frostbitePlayerInfo.TeamID, out aTeam) &&
                                 _unmatchedRoundDeaths.Contains(aPlayer.player_name)) {
                                 aTeam.IncrementTeamTicketAdjustment();
-                                ConsoleInfo(aTeam.TeamKey + " adjustment incremented by " + aPlayer.player_name);
                             }
                             //Removed unmatched death if applicable
                             _unmatchedRoundDeaths.Remove(aPlayer.player_name);
@@ -17459,7 +17460,9 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Rule Print Interval", typeof (Double), _ServerRulesInterval));
                 QueueSettingForUpload(new CPluginVariable(@"Server Rule List", typeof (String), CPluginVariable.EncodeStringArray(_ServerRulesList)));
                 QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Whitelist", typeof (Boolean), _FeedMultiBalancerWhitelist));
-                QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Even Dispersion List", typeof (Boolean), _FeedMultiBalancerDisperseList));
+                QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList)); 
+                QueueSettingForUpload(new CPluginVariable(@"Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_UserCache));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_UserCache));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof (Boolean), _FeedServerReservedSlots));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof (Boolean), _FeedServerSpectatorList));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
@@ -22722,7 +22725,9 @@ namespace PRoConEvents {
                     lock (_userCache) {
                         foreach (AdKatsPlayer soldier in FetchAllUserSoldiers()) {
                             //Only add soldiers for the current game
-                            if (soldier.game_id == _serverInfo.GameID) {
+                            if (soldier.game_id == _serverInfo.GameID &&
+                                (PlayerIsAdmin(soldier) || (_isTestingAuthorized && soldier.player_role.role_key == "Reserved_Slot")))
+                            {
                                 if (!allowedReservedSlotPlayers.Contains(soldier.player_name)) {
                                     allowedReservedSlotPlayers.Add(soldier.player_name);
                                 }
