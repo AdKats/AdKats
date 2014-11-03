@@ -5454,10 +5454,10 @@ namespace PRoConEvents {
                                     }
                                     Double winRate = flagWinningTeam.TeamAdjustedTicketDifferenceRate;
                                     Double loseRate = flagLosingTeam.TeamAdjustedTicketDifferenceRate;
-                                    if (winRate > -28 && loseRate > -28) {
+                                    if (winRate > -25 && loseRate > -25) {
                                         flagMessage = " | Flags appear equal for both teams.";
                                     }
-                                    else if (loseRate <= -28 && loseRate > -32)
+                                    else if (loseRate <= -25 && loseRate > -32)
                                     {
                                         flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 1 flag.";
                                     }
@@ -25615,12 +25615,12 @@ namespace PRoConEvents {
                         TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
                     }
 
-                    //Remove old values (more than 90 seconds ago)
+                    //Remove old values (more than 60 seconds ago)
                     Boolean removed = false;
                     do
                     {
                         removed = false;
-                        if (TeamTicketCounts.Any() && (Plugin.UtcDbTime() - TeamTicketCounts.Peek().Value).TotalSeconds > 90)
+                        if (TeamTicketCounts.Any() && (Plugin.UtcDbTime() - TeamTicketCounts.Peek().Value).TotalSeconds > 60)
                         {
                             TeamTicketCounts.Dequeue();
                             removed = true;
@@ -25683,12 +25683,12 @@ namespace PRoConEvents {
                         TeamAdjustedTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
                     }
 
-                    //Remove old values (more than 90 seconds ago)
+                    //Remove old values (more than 60 seconds ago)
                     Boolean removed = false;
                     do
                     {
                         removed = false;
-                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 90)
+                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 60)
                         {
                             TeamAdjustedTicketCounts.Dequeue();
                             removed = true;
@@ -25751,12 +25751,12 @@ namespace PRoConEvents {
                         TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(subScoreValue, subScoreTime));
                     }
 
-                    //Remove old values
+                    //Remove old values (more than 60 seconds ago)
                     Boolean removed = false;
                     do
                     {
                         removed = false;
-                        if (TeamTotalScores.Any() && (Plugin.UtcDbTime() - TeamTotalScores.Peek().Value).TotalSeconds > 120)
+                        if (TeamTotalScores.Any() && (Plugin.UtcDbTime() - TeamTotalScores.Peek().Value).TotalSeconds > 60)
                         {
                             TeamTotalScores.Dequeue();
                             removed = true;
