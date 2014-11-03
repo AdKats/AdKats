@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.0.9
- * 30-OCT-2014
+ * Version 5.2.2.5
+ * 3-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.0.9</version_code>
+ * <version_code>5.2.2.5</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.0.9";
+        private const String PluginVersion = "5.2.2.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -138,7 +138,7 @@ namespace PRoConEvents {
         private GameVersion _gameVersion = GameVersion.BF3;
         private Boolean _isTestingAuthorized;
         private Boolean _endingRound;
-        private readonly AdKatsServer _serverInfo = new AdKatsServer();
+        private readonly AdKatsServer _serverInfo;
         private Int64 _settingImportID = -1;
         private Boolean _settingsFetched;
         private Boolean _settingsLocked;
@@ -186,7 +186,7 @@ namespace PRoConEvents {
         private TimeSpan _populationDurationLow = TimeSpan.Zero;
 
         //MySQL connection
-        private String _mySqlDatabaseName = "";
+        private String _mySqlSchemaName = "";
         private String _mySqlHostname = "";
         private String _mySqlPassword = "";
         private String _mySqlPort = "";
@@ -205,9 +205,11 @@ namespace PRoConEvents {
         private volatile Boolean _dbSettingsChanged = true;
         private Boolean _dbTimingChecked;
         private Boolean _dbTimingValid;
-        private Boolean _dbTimingValidOverride;
+        private TimeSpan _dbTimingOffset = TimeSpan.Zero;
         private Boolean _globalTimingChecked;
         private Boolean _globalTimingValid;
+        private TimeSpan _globalTimingOffset = TimeSpan.Zero;
+        private Boolean _timingValidOverride;
         private Hashtable _lastStatLoggerStatusUpdate;
         private String _statLoggerVersion = "BF3";
 
@@ -317,6 +319,8 @@ namespace PRoConEvents {
         //Games and teams
         private readonly Dictionary<Int64, GameVersion> _gameIDDictionary = new Dictionary<Int64, GameVersion>();
         private readonly Dictionary<Int32, AdKatsTeam> _teamDictionary = new Dictionary<Int32, AdKatsTeam>();
+        private readonly Dictionary<String, Int32> _unmatchedRoundDeathCounts = new Dictionary<String, Int32>();
+        private readonly HashSet<String> _unmatchedRoundDeaths = new HashSet<String>();  
 
         //Players
         private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
@@ -433,13 +437,15 @@ namespace PRoConEvents {
         //Auto-Surrender
         private Boolean _surrenderAutoEnable;
         private Boolean _surrenderAutoUseMetroValues;
+        private Boolean _surrenderAutoUseLockerValues;
+        private Boolean _surrenderAutoUseAdjustedTicketRates;
         private Int32 _surrenderAutoMinimumTicketGap = 100;
         private Double _surrenderAutoLosingRateMax = 999;
         private Double _surrenderAutoLosingRateMin = 999;
         private Double _surrenderAutoWinningRateMax = 999;
         private Double _surrenderAutoWinningRateMin = 999;
         private Int32 _surrenderAutoTriggerCountToSurrender = 1;
-        private Int32 _surrenderAutoTriggerCountCurrent = 0;
+        private Int32 _surrenderAutoTriggerCountCurrent;
         private String _surrenderAutoMessage = "Ending/Scrambling Baserape Round. %WinnerName% Wins!";
         private Boolean _surrenderAutoNukeWinning;
         private String _surrenderAutoNukeMessage = "Nuking %WinnerName% for baserape!";
@@ -550,6 +556,9 @@ namespace PRoConEvents {
         private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
 
         public AdKats() {
+            //Create the server reference
+            _serverInfo = new AdKatsServer(this);
+
             //Set defaults for webclient
             System.Net.ServicePointManager.Expect100Continue = false;
 
@@ -620,7 +629,7 @@ namespace PRoConEvents {
             }
 
             //Fetch the plugin description and changelog
-            FetchPluginDescAndChangelog();
+            FetchPluginDocumentation();
 
             //Fill command descriptions
             FillCommandDescDictionary();
@@ -700,7 +709,7 @@ namespace PRoConEvents {
                         //SQL Settings
                         lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Hostname", typeof (String), _mySqlHostname));
                         lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Port", typeof (String), _mySqlPort));
-                        lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Database", typeof (String), _mySqlDatabaseName));
+                        lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Database", typeof (String), _mySqlSchemaName));
                         lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Username", typeof (String), _mySqlUsername));
                         lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Password", typeof (String), _mySqlPassword));
                     }
@@ -709,7 +718,7 @@ namespace PRoConEvents {
                     //Database Timing
                     if (_dbTimingChecked && !_dbTimingValid)
                     {
-                        lstReturn.Add(new CPluginVariable("3. Database Timing Mismatch|Override Timing Confirmation", typeof(Boolean), _dbTimingValidOverride));
+                        lstReturn.Add(new CPluginVariable("3. Database Timing Mismatch|Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
                     }
                 }
                 else {
@@ -735,7 +744,7 @@ namespace PRoConEvents {
                     //SQL Settings
                     lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Hostname", typeof (String), _mySqlHostname));
                     lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Port", typeof (String), _mySqlPort));
-                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Database", typeof (String), _mySqlDatabaseName));
+                    lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Database", typeof (String), _mySqlSchemaName));
                     lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof (String), _mySqlUsername));
                     lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof (String), _mySqlPassword));
 
@@ -853,11 +862,11 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Even Dispersion List", typeof (Boolean), _FeedMultiBalancerDisperseList));
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Reserved Slots", typeof (Boolean), _FeedServerReservedSlots));
                     if (_FeedServerReservedSlots) {
-                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Reserved Slot for User Cache", typeof (Boolean), _FeedServerReservedSlots_UserCache));
+                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Reserved Slot for Admins", typeof (Boolean), _FeedServerReservedSlots_UserCache));
                     }
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Spectator List", typeof (Boolean), _FeedServerSpectatorList));
                     if (_FeedServerSpectatorList) {
-                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Spectator Slot for User Cache", typeof (Boolean), _FeedServerReservedSlots_UserCache));
+                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Spectator Slot for User Cache", typeof(Boolean), _FeedServerSpectatorList_UserCache));
                     }
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
@@ -969,16 +978,17 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                     if (_surrenderAutoEnable)
                     {
-                        lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
-                        if (!_surrenderAutoUseMetroValues)
+                        lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
+                        lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
+                        if (!_surrenderAutoUseMetroValues && !_surrenderAutoUseLockerValues)
                         {
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
+                            lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
-                            //lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
                         }
                         if (!_surrenderAutoNukeWinning) {
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
@@ -1072,27 +1082,28 @@ namespace PRoConEvents {
                         const string roleListPrefix = "4. Role Settings|";
                         lstReturn.Add(new CPluginVariable(roleListPrefix + "Add Role", typeof (String), ""));
                         if (_RoleKeyDictionary.Count > 0) {
-                            lock (_RoleIDDictionary) {
-                                foreach (AdKatsRole aRole in _RoleKeyDictionary.Values) {
-                                    lock (_CommandNameDictionary) {
+                            lock (_RoleKeyDictionary)
+                            {
+                                foreach (AdKatsRole aRole in _RoleKeyDictionary.Values)
+                                {
+                                    lock (_CommandNameDictionary)
+                                    {
                                         String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
-                                        foreach (AdKatsCommand aCommand in _CommandNameDictionary.Values) {
-                                            if (aCommand.command_active == AdKatsCommand.CommandActive.Active) {
-                                                //Guest admin command block
-                                                if (aRole.role_key == "guest_default" && aCommand.command_playerInteraction) {
-                                                    continue;
-                                                }
-                                                //Hidden ADK commands
-                                                if (!_isTestingAuthorized && aCommand.command_id == 71) {
-                                                    continue;
-                                                }
-                                                String allowEnum = "enum.roleAllowCommandEnum(Allow|Deny)";
-                                                Boolean allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key);
-                                                String display = rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name + ((allowed && aCommand.command_playerInteraction)?(" [ADMIN]"):(""));
-                                                var cVar = new CPluginVariable(display , allowEnum, allowed ? ("Allow") : ("Deny"));
-                                                lstReturn.Add(cVar);
-                                            }
-                                        }
+                                        lstReturn.AddRange(
+                                            from 
+                                                aCommand 
+                                            in 
+                                                _CommandNameDictionary.Values 
+                                            where 
+                                                aCommand.command_active == AdKatsCommand.CommandActive.Active 
+                                            where 
+                                                aRole.role_key != "guest_default" || !aCommand.command_playerInteraction 
+                                            let 
+                                                allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) 
+                                            let 
+                                                display = rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name + ((allowed && aCommand.command_playerInteraction) ? (" [ADMIN]") : ("")) 
+                                            select 
+                                                new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
                                         //Do not display the delete option for default guest
                                         if (aRole.role_key != "guest_default") {
                                             lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof (String), ""));
@@ -1158,7 +1169,7 @@ namespace PRoConEvents {
 
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Hostname", typeof (String), _mySqlHostname));
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Port", typeof (String), _mySqlPort));
-            lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Database", typeof (String), _mySqlDatabaseName));
+            lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Database", typeof (String), _mySqlSchemaName));
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof (String), _mySqlUsername));
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof (String), _mySqlPassword));
 
@@ -1166,7 +1177,7 @@ namespace PRoConEvents {
             lstReturn.Add(new CPluginVariable("3. Debugging|Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
             lstReturn.Add(new CPluginVariable("3. Debugging|Disable Usage Data Posting - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
 
-            lstReturn.Add(new CPluginVariable("4. Database Timing Mismatch|Override Timing Confirmation", typeof(Boolean), _dbTimingValidOverride));
+            lstReturn.Add(new CPluginVariable("4. Database Timing Mismatch|Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
 
             return lstReturn;
         }
@@ -1191,10 +1202,10 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Override Timing Confirmation").Success) {
                     Boolean dbTimingValidOverride = Boolean.Parse(strValue);
-                    if (dbTimingValidOverride != _dbTimingValidOverride) {
-                        _dbTimingValidOverride = dbTimingValidOverride;
+                    if (dbTimingValidOverride != _timingValidOverride) {
+                        _timingValidOverride = dbTimingValidOverride;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Override Timing Confirmation", typeof (Boolean), _dbTimingValidOverride));
+                        QueueSettingForUpload(new CPluginVariable(@"Override Timing Confirmation", typeof (Boolean), _timingValidOverride));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Unlock Settings").Success) {
@@ -1814,8 +1825,36 @@ namespace PRoConEvents {
                     if (surrenderAutoUseMetroValues != _surrenderAutoUseMetroValues)
                     {
                         _surrenderAutoUseMetroValues = surrenderAutoUseMetroValues;
+                        if (_surrenderAutoUseMetroValues)
+                        {
+                            _surrenderAutoUseLockerValues = false;
+                        }
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Use Optimal Values for Locker").Success)
+                {
+                    Boolean surrenderAutoUseLockerValues = Boolean.Parse(strValue);
+                    if (surrenderAutoUseLockerValues != _surrenderAutoUseLockerValues)
+                    {
+                        _surrenderAutoUseLockerValues = surrenderAutoUseLockerValues;
+                        if (_surrenderAutoUseLockerValues)
+                        {
+                            _surrenderAutoUseMetroValues = false;
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Use Adjusted Ticket Rates").Success)
+                {
+                    Boolean surrenderAutoUseAdjustedTicketRates = Boolean.Parse(strValue);
+                    if (surrenderAutoUseAdjustedTicketRates != _surrenderAutoUseAdjustedTicketRates)
+                    {
+                        _surrenderAutoUseAdjustedTicketRates = surrenderAutoUseAdjustedTicketRates;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Nuke Winning Team Instead of Surrendering Losing Team").Success)
@@ -1982,13 +2021,13 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof (Boolean), _FeedServerReservedSlots));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Automatic Reserved Slot for User Cache").Success) {
+                else if (Regex.Match(strVariable, @"Automatic Reserved Slot for Admins").Success) {
                     Boolean feedSRSUser = Boolean.Parse(strValue);
                     if (feedSRSUser != _FeedServerReservedSlots_UserCache) {
                         _FeedServerReservedSlots_UserCache = feedSRSUser;
                         FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for User Cache", typeof (Boolean), _FeedServerReservedSlots_UserCache));
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof (Boolean), _FeedServerReservedSlots_UserCache));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Feed Server Spectator List").Success) {
@@ -2802,7 +2841,7 @@ namespace PRoConEvents {
                     }
                 }
                 else if (Regex.Match(strVariable, @"MySQL Database").Success) {
-                    _mySqlDatabaseName = strValue;
+                    _mySqlSchemaName = strValue;
                     _dbSettingsChanged = true;
                     _DbCommunicationWaitHandle.Set();
                 }
@@ -3095,9 +3134,9 @@ namespace PRoConEvents {
                     if (spamBotEnable != _spamBotEnabled)
                     {
                         if (spamBotEnable) {
-                            _spamBotSayLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(10);
-                            _spamBotYellLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(10);
-                            _spamBotTellLastPost = DateTime.UtcNow - TimeSpan.FromSeconds(10);
+                            _spamBotSayLastPost = UtcDbTime() - TimeSpan.FromSeconds(10);
+                            _spamBotYellLastPost = UtcDbTime() - TimeSpan.FromSeconds(10);
+                            _spamBotTellLastPost = UtcDbTime() - TimeSpan.FromSeconds(10);
                         }
                         _spamBotEnabled = spamBotEnable;
                         //Once setting has been changed, upload the change to database
@@ -3278,7 +3317,7 @@ namespace PRoConEvents {
                     if (SoldierNameValid(strValue)) {
                         var aUser = new AdKatsUser {
                             user_name = strValue,
-                            user_expiration = DateTime.UtcNow.AddYears(20),
+                            user_expiration = UtcDbTime().AddYears(20),
                             user_notes = "No Notes"
                         };
                         Boolean valid = true;
@@ -3412,11 +3451,12 @@ namespace PRoConEvents {
                             _pluginRebootOnDisableSource = null;
                         }
 
-                        if ((DateTime.UtcNow - _proconStartTime).TotalSeconds < 10) {
+                        if ((UtcDbTime() - _proconStartTime).TotalSeconds <= 20) {
                             ConsoleWrite("Waiting a few seconds for requirements and other plugins to initialize, please wait...");
                             //Wait on all settings to be imported by procon for initial start, and for all other plugins to start and register.
-                            for (Int32 index = 7; index > 0; index--) {
-                                DebugWrite(index + "...", 1);
+                            for (Int32 index = 20 - (Int32)(UtcDbTime() - _proconStartTime).TotalSeconds; index > 0; index--)
+                            {
+                                ConsoleWrite(index + "...");
                                 _threadMasterWaitHandle.WaitOne(1000);
                             }
                         }
@@ -3426,12 +3466,45 @@ namespace PRoConEvents {
 
                         //Initialize the stat library
                         _StatLibrary = new StatLibrary(this);
+                        if (_StatLibrary.PopulateWeaponStats())
+                        {
+                            ConsoleSuccess("Fetched " + _StatLibrary.Weapons.Count + " " + _gameVersion + " weapon stat definitions.");
+                        }
+                        else
+                        {
+                            ConsoleError("Failed to fetch weapon stat definitions. AdKats cannot be started.");
+                            Disable();
+                            return;
+                        }
 
                         //Fetch all reputation information
-                        PopulateCommandReputationDictionaries();
+                        if (PopulateCommandReputationDictionaries()) 
+                        {
+                            ConsoleSuccess("Fetched reputation definitions.");
+                        }
+                        else
+                        {
+                            ConsoleError("Failed to fetch reputation definitions. AdKats cannot be started.");
+                            Disable();
+                            return;
+                        }
 
                         //Fetch all special player group information
-                        PopulateSpecialGroupsDictionary();
+                        if (PopulateSpecialGroupsDictionary())
+                        {
+                            ConsoleSuccess("Fetched special player group definitions.");
+                        }
+                        else
+                        {
+                            ConsoleError("Failed to fetch special player group definitions. AdKats cannot be started.");
+                            Disable();
+                            return;
+                        }
+
+                        //Fetch global timing
+                        TimeSpan diffUTCGlobal;
+                        _globalTimingValid = TestGlobalTiming(false, true, out diffUTCGlobal);
+                        _globalTimingOffset = diffUTCGlobal;
 
                         //Don't directly depend on stat logger being controllable at this time, connection is unstable
                         /*if (useDatabase)
@@ -3459,7 +3532,7 @@ namespace PRoConEvents {
 
                         //Set the enabled variable
                         _pluginEnabled = true;
-                        _LastUsageStatsUpdate = DateTime.UtcNow - TimeSpan.FromHours(1);
+                        _LastUsageStatsUpdate = UtcDbTime() - TimeSpan.FromHours(1);
 
                         //Init and start all the threads
                         InitWaitHandles();
@@ -3581,6 +3654,8 @@ namespace PRoConEvents {
                             _ActOnIsAliveDictionary.Clear();
                         if (_ActionConfirmDic != null)
                             _ActionConfirmDic.Clear();
+                        _unmatchedRoundDeathCounts.Clear();
+                        _unmatchedRoundDeaths.Clear();
                         _endingRound = false;
                         _surrenderVoteList.Clear();
                         _nosurrenderVoteList.Clear();
@@ -3609,7 +3684,7 @@ namespace PRoConEvents {
             }
         }
 
-        private void FetchPluginDescAndChangelog() {
+        private void FetchPluginDocumentation() {
             if (_aliveThreads.Values.Any(aThread => aThread.Name == "descfetching")) {
                 return;
             }
@@ -3630,30 +3705,56 @@ namespace PRoConEvents {
                     }
                     catch (Exception)
                     {
-                        ConsoleError("Failed to fetch plugin links.");
+                        try
+                        {
+                            _pluginLinks = client.DownloadString("http://api.gamerethos.net/adkats/fetch/links");
+                            DebugWrite("Plugin links fetched from backup location.", 1);
+                        }
+                        catch (Exception)
+                        {
+                            ConsoleError("Failed to fetch plugin links.");
+                        }
                     }
                     _pluginDescFetchProgress = "LinksFetched";
                     DebugWrite("Fetching plugin readme...", 2);
                     try
                     {
                         _pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
-                        DebugWrite("Plugin description fetched.", 1);
+                        DebugWrite("Plugin readme fetched.", 1);
                     }
                     catch (Exception)
                     {
-                        ConsoleError("Failed to fetch plugin description.");
+                        try
+                        {
+                            _pluginDescription = client.DownloadString("http://api.gamerethos.net/adkats/fetch/readme");
+                            DebugWrite("Plugin readme fetched from backup location.", 1);
+                        }
+                        catch (Exception)
+                        {
+                            ConsoleError("Failed to fetch plugin readme.");
+                        }
                     }
                     _pluginDescFetchProgress = "DescFetched";
                     DebugWrite("Fetching plugin changelog...", 2);
-                    try {
+                    try
+                    {
                         _pluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
                         DebugWrite("Plugin changelog fetched.", 1);
                     }
-                    catch (Exception) {
-                        ConsoleError("Failed to fetch plugin changelog.");
+                    catch (Exception)
+                    {
+                        try
+                        {
+                            _pluginChangelog = client.DownloadString("http://api.gamerethos.net/adkats/fetch/changelog");
+                            DebugWrite("Plugin changelog fetched from backup location.", 1);
+                        }
+                        catch (Exception)
+                        {
+                            ConsoleError("Failed to fetch plugin changelog.");
+                        }
                     }
                     _pluginDescFetchProgress = "ChangeFetched";
-                    if (_pluginDescription != "DESCRIPTION FETCH FAILED|") {
+                    if (!String.IsNullOrEmpty(_pluginDescription)) {
                         //Extract the latest stable version
                         String latestStableVersion = ExtractString(_pluginDescription, "latest_stable_release");
                         if (!String.IsNullOrEmpty(latestStableVersion)) {
@@ -3666,16 +3767,14 @@ namespace PRoConEvents {
 
                             String versionStatus = String.Empty;
                             //Add the appropriate message to plugin description
-                            if (_latestPluginVersionInt > _currentPluginVersionInt)
-                            {
+                            if (_latestPluginVersionInt > _currentPluginVersionInt) {
                                 if (_pluginUpdatePatched) {
                                     versionStatus = @"
                                     <h2 style='color:#DF0101;'>
                                         You are running an outdated version! The update has been patched, reboot PRoCon to run version " + latestStableVersion + @"!
                                     </h2>";
                                 }
-                                else
-                                {
+                                else {
                                     versionStatus = @"
                                     <h2 style='color:#DF0101;'>
                                         You are running an outdated version! Version " + latestStableVersion + @" is available for download!
@@ -3687,16 +3786,14 @@ namespace PRoConEvents {
                                 }
                                 _pluginVersionStatus = VersionStatus.OutdatedBuild;
                             }
-                            else if (_latestPluginVersionInt == _currentPluginVersionInt)
-                            {
+                            else if (_latestPluginVersionInt == _currentPluginVersionInt) {
                                 versionStatus = @"
                                 <h2 style='color:#01DF01;'>
                                     Congrats! You are running the latest stable version!
                                 </h2>";
                                 _pluginVersionStatus = VersionStatus.StableBuild;
                             }
-                            else if (_latestPluginVersionInt < _currentPluginVersionInt)
-                            {
+                            else if (_latestPluginVersionInt < _currentPluginVersionInt) {
                                 versionStatus = @"
                                 <h2 style='color:#FF8000;'>
                                     CAUTION! You are running a TEST version! Functionality might not be completely tested.
@@ -3714,9 +3811,14 @@ namespace PRoConEvents {
                             _pluginDescFetchProgress = "UpdateChecked";
                         }
                     }
+                    else if (!_fetchedPluginInformation) {
+                        ConsoleError("Unable to fetch required documentation files. AdKats cannot be started.");
+                        Disable();
+                        return;
+                    }
                     DebugWrite("Setting desc fetch handle.", 1);
                     _fetchedPluginInformation = true;
-                    _LastPluginDescFetch = DateTime.UtcNow;
+                    _LastPluginDescFetch = UtcDbTime();
                     _PluginDescriptionWaitHandle.Set();
                     _pluginDescFetchProgress = "Completed";
                 }
@@ -3735,15 +3837,15 @@ namespace PRoConEvents {
             var statusMonitorThread = new Thread(new ThreadStart(delegate {
                 try {
                     Thread.CurrentThread.Name = "StatusMonitor";
-                    DateTime lastKeepAliveCheck = DateTime.UtcNow;
+                    DateTime lastKeepAliveCheck = UtcDbTime();
                     ExecuteCommand("procon.protected.send", "serverInfo");
-                    DateTime lastServerInfoRequest = DateTime.UtcNow;
+                    DateTime lastServerInfoRequest = UtcDbTime();
                     while (true)
                     {
                         try
                         {
                             //Check for unswitcher disable every 20 seconds
-                            if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (DateTime.UtcNow - _LastPlayerMoveIssued).TotalSeconds > 20)
+                            if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (UtcDbTime() - _LastPlayerMoveIssued).TotalSeconds > 20)
                             {
                                 DebugWrite("MULTIBalancer Unswitcher Re-Enabled", 3);
                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
@@ -3751,16 +3853,16 @@ namespace PRoConEvents {
                             }
 
                             //Check for plugin updates at interval
-                            if ((DateTime.UtcNow - _LastPluginDescFetch).TotalHours > 1 ||
-                                (_isTestingAuthorized && (DateTime.UtcNow - _LastPluginDescFetch).TotalMinutes > 20))
+                            if ((UtcDbTime() - _LastPluginDescFetch).TotalHours > 1 ||
+                                (_isTestingAuthorized && (UtcDbTime() - _LastPluginDescFetch).TotalMinutes > 20))
                             {
-                                FetchPluginDescAndChangelog();
+                                FetchPluginDocumentation();
                             }
 
                             //Post usage stats at interval
                             if ((!_usageDataDisabled || _pluginVersionStatus == VersionStatus.TestBuild || _isTestingAuthorized) &&
-                                (DateTime.UtcNow - _LastUsageStatsUpdate).TotalHours > 1 &&
-                                (_threadsReady || (DateTime.UtcNow - _proconStartTime).TotalSeconds > 30))
+                                (UtcDbTime() - _LastUsageStatsUpdate).TotalHours > 1 &&
+                                (_threadsReady || (UtcDbTime() - _proconStartTime).TotalSeconds > 30))
                             {
                                 PostUsageStatsUpdate();
                             }
@@ -3768,7 +3870,7 @@ namespace PRoConEvents {
                             //Run SpamBot
                             if (_pluginEnabled && _spamBotEnabled)
                             {
-                                if ((DateTime.UtcNow - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds)
+                                if ((UtcDbTime() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds)
                                 {
                                     if (_spamBotExcludeAdminsAndWhitelist)
                                     {
@@ -3780,10 +3882,10 @@ namespace PRoConEvents {
                                         if (!String.IsNullOrEmpty(_spamBotSayQueue.Peek()))
                                             AdminSayMessage(_spamBotSayQueue.Peek());
                                     }
-                                    _spamBotSayLastPost = DateTime.UtcNow;
+                                    _spamBotSayLastPost = UtcDbTime();
                                     _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
                                 }
-                                if ((DateTime.UtcNow - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds)
+                                if ((UtcDbTime() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds)
                                 {
                                     if (_spamBotExcludeAdminsAndWhitelist)
                                     {
@@ -3796,9 +3898,9 @@ namespace PRoConEvents {
                                             AdminYellMessage(_spamBotYellQueue.Peek());
                                     }
                                     _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
-                                    _spamBotYellLastPost = DateTime.UtcNow;
+                                    _spamBotYellLastPost = UtcDbTime();
                                 }
-                                if ((DateTime.UtcNow - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds)
+                                if ((UtcDbTime() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds)
                                 {
                                     if (_spamBotExcludeAdminsAndWhitelist)
                                     {
@@ -3811,14 +3913,14 @@ namespace PRoConEvents {
                                             AdminTellMessage(_spamBotTellQueue.Peek());
                                     }
                                     _spamBotTellQueue.Enqueue(_spamBotTellQueue.Dequeue());
-                                    _spamBotTellLastPost = DateTime.UtcNow;
+                                    _spamBotTellLastPost = UtcDbTime();
                                 }
                             }
 
                             //Check for keep alive every 30 seconds
-                            if ((DateTime.UtcNow - lastKeepAliveCheck).TotalSeconds > 30)
+                            if ((UtcDbTime() - lastKeepAliveCheck).TotalSeconds > 30)
                             {
-                                lastKeepAliveCheck = DateTime.UtcNow;
+                                lastKeepAliveCheck = UtcDbTime();
 
                                 //Enable if auto-enable wanted
                                 if (_useKeepAlive && !_pluginEnabled)
@@ -3842,7 +3944,8 @@ namespace PRoConEvents {
                                 {
                                     List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
                                         aPlayer =>
-                                            (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes &&
+                                            (UtcDbTime() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes &&
+                                            aPlayer.frostbitePlayerInfo != null && 
                                             _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
                                             !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
                                     if (_AFKIgnoreUserList)
@@ -3856,13 +3959,13 @@ namespace PRoConEvents {
                                     }
                                     foreach(var aPlayer in afkPlayers)
                                     {
-                                        string afkTime = FormatTimeString(DateTime.UtcNow - aPlayer.lastAction, 2);
+                                        string afkTime = FormatTimeString(UtcDbTime() - aPlayer.lastAction, 2);
                                         DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
                                         var record = new AdKatsRecord
                                         {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                             server_id = _serverInfo.ServerID,
-                                            command_type = _CommandKeyDictionary["player_kick"],
+                                            command_type = GetCommandByKey("player_kick"),
                                             command_numeric = 0,
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
@@ -3878,10 +3981,10 @@ namespace PRoConEvents {
                                 }
                             }
                             //Check for possible connection interuption every 10 seconds
-                            if (_threadsReady && (DateTime.UtcNow - lastServerInfoRequest).TotalSeconds > 10)
+                            if (_threadsReady && (UtcDbTime() - lastServerInfoRequest).TotalSeconds > 10)
                             {
                                 ExecuteCommand("procon.protected.send", "serverInfo");
-                                lastServerInfoRequest = DateTime.UtcNow;
+                                lastServerInfoRequest = UtcDbTime();
                             }
                             //Sleep 1 second between loops
                             _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
@@ -4195,6 +4298,10 @@ namespace PRoConEvents {
         public override void OnPlayerTeamChange(String soldierName, Int32 teamId, Int32 squadId) {
             DebugWrite("Entering OnPlayerTeamChange", 7);
             try {
+                if (!_firstPlayerListComplete) 
+                {
+                    return;
+                }
                 if (_PlayerDictionary.ContainsKey(soldierName)) {
                     AdKatsPlayer aPlayer = _PlayerDictionary[soldierName];
                     if (aPlayer.RequiredTeam != null && 
@@ -4227,6 +4334,10 @@ namespace PRoConEvents {
             DebugWrite("Entering OnPlayerSquadChange", 7);
             try
             {
+                if (!_firstPlayerListComplete)
+                {
+                    return;
+                }
                 if (_PlayerDictionary.ContainsKey(soldierName))
                 {
                     AdKatsPlayer aPlayer = _PlayerDictionary[soldierName];
@@ -4247,7 +4358,7 @@ namespace PRoConEvents {
                 //Only handle the list if it is an "All players" list
                 if (cpsSubset.Subset == CPlayerSubset.PlayerSubsetType.All) {
                     //Return if small duration (5 seconds) since last player list
-                    if ((DateTime.UtcNow - _lastSuccessfulPlayerList) < TimeSpan.FromSeconds(5)) {
+                    if ((UtcDbTime() - _lastSuccessfulPlayerList) < TimeSpan.FromSeconds(5)) {
                         return;
                     }
                     //Only perform the following if all threads are ready
@@ -4302,7 +4413,7 @@ namespace PRoConEvents {
             try {
                 DebugWrite("PLIST: Starting Player Listing Thread", 1);
                 Thread.CurrentThread.Name = "playerlisting";
-                DateTime loopStart = DateTime.UtcNow;
+                DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
                         DebugWrite("PLIST: Entering Player Listing Thread Loop", 7);
@@ -4358,14 +4469,14 @@ namespace PRoConEvents {
                             {
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             }
-                            if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
-                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((DateTime.UtcNow - loopStart).TotalMilliseconds)) + "ms", 4);
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _PlayerProcessingWaitHandle.Reset();
                             _PlayerProcessingWaitHandle.WaitOne(Timeout.Infinite);
-                            loopStart = DateTime.UtcNow;
+                            loopStart = UtcDbTime();
                             if (_firstPlayerListComplete) {
                                 //Case where all players are gone after first player list
-                                _lastSuccessfulPlayerList = DateTime.UtcNow;
+                                _lastSuccessfulPlayerList = UtcDbTime();
                             }
                             continue;
                         }
@@ -4431,7 +4542,7 @@ namespace PRoConEvents {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = partner.player_server.ServerID,
                                                 record_orchestrate = true,
-                                                command_type = _CommandKeyDictionary["player_pm_cancel"],
+                                                command_type = GetCommandByKey("player_pm_cancel"),
                                                 command_numeric = 0,
                                                 target_name = partner.player_name,
                                                 target_player = partner,
@@ -4486,7 +4597,7 @@ namespace PRoConEvents {
                                     if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
                                         //They are
                                         if (aPlayer.frostbitePlayerInfo.Score != playerInfo.Score || aPlayer.frostbitePlayerInfo.Kills != playerInfo.Kills || aPlayer.frostbitePlayerInfo.Deaths != playerInfo.Deaths) {
-                                            aPlayer.lastAction = DateTime.UtcNow;
+                                            aPlayer.lastAction = UtcDbTime();
                                         }
                                         aPlayer.frostbitePlayerInfo = playerInfo;
                                         switch (aPlayer.frostbitePlayerInfo.Type)
@@ -4579,14 +4690,14 @@ namespace PRoConEvents {
                                             {
                                                 if (_currentRoundID != 0)
                                                 {
-                                                    IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(aPlayer.player_id, _CommandKeyDictionary["player_log"].command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message == "Dispersion Trigger" && aRecord.server_id == _serverInfo.ServerID);
+                                                    IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_log").command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message == "Dispersion Trigger" && aRecord.server_id == _serverInfo.ServerID);
                                                     if (!locRecords.Any(aRecord => aRecord.command_numeric == _currentRoundID))
                                                     {
                                                         var triggerRecord = new AdKatsRecord
                                                         {
                                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                                             server_id = _serverInfo.ServerID,
-                                                            command_type = _CommandKeyDictionary["player_log"],
+                                                            command_type = GetCommandByKey("player_log"),
                                                             command_numeric = _currentRoundID,
                                                             target_name = aPlayer.player_name,
                                                             target_player = aPlayer,
@@ -4610,7 +4721,7 @@ namespace PRoConEvents {
                                                 {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                                     server_id = _serverInfo.ServerID,
-                                                    command_type = _CommandKeyDictionary["player_blacklistdisperse"],
+                                                    command_type = GetCommandByKey("player_blacklistdisperse"),
                                                     command_numeric = 0,
                                                     target_name = aPlayer.player_name,
                                                     target_player = aPlayer,
@@ -4629,7 +4740,7 @@ namespace PRoConEvents {
                                             {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
-                                                command_type = _CommandKeyDictionary["player_kick"],
+                                                command_type = GetCommandByKey("player_kick"),
                                                 command_numeric = 0,
                                                 target_name = aPlayer.player_name,
                                                 target_player = aPlayer,
@@ -4656,7 +4767,7 @@ namespace PRoConEvents {
                                                 {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                                     server_id = _serverInfo.ServerID,
-                                                    command_type = _CommandKeyDictionary["player_changename"],
+                                                    command_type = GetCommandByKey("player_changename"),
                                                     command_numeric = 0,
                                                     target_name = aPlayer.player_name,
                                                     target_player = aPlayer,
@@ -4671,7 +4782,7 @@ namespace PRoConEvents {
                                                 }
                                                 UpdatePlayer(aPlayer);
                                             }
-                                            if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "player_kick" && (DateTime.UtcNow - aRecord.record_time).TotalMinutes < 30) && aPlayer.TargetedRecords.All(aRecord => aRecord.command_action.command_key != "banenforcer_enforce"))
+                                            if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "player_kick" && (UtcDbTime() - aRecord.record_time).TotalMinutes < 30) && aPlayer.TargetedRecords.All(aRecord => aRecord.command_action.command_key != "banenforcer_enforce"))
                                             {
                                                 OnlineAdminSayMessage("Kicked player " + aPlayer.player_name + " rejoined the server.");
                                             }
@@ -4747,9 +4858,9 @@ namespace PRoConEvents {
                                             }
                                         }
                                         //Set their last death/spawn times
-                                        aPlayer.lastDeath = DateTime.UtcNow;
-                                        aPlayer.lastSpawn = DateTime.UtcNow;
-                                        aPlayer.lastAction = DateTime.UtcNow;
+                                        aPlayer.lastDeath = UtcDbTime();
+                                        aPlayer.lastSpawn = UtcDbTime();
+                                        aPlayer.lastAction = UtcDbTime();
                                         //Add them to the dictionary
                                         _PlayerDictionary.Add(playerInfo.SoldierName, aPlayer);
                                         //Update rep
@@ -4797,7 +4908,7 @@ namespace PRoConEvents {
                                         {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                             server_id = _serverInfo.ServerID,
-                                            command_type = _CommandKeyDictionary["player_kick"],
+                                            command_type = GetCommandByKey("player_kick"),
                                             command_numeric = 0,
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
@@ -4831,7 +4942,7 @@ namespace PRoConEvents {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                                     server_id = partner.player_server.ServerID,
                                                     record_orchestrate = true,
-                                                    command_type = _CommandKeyDictionary["player_pm_cancel"],
+                                                    command_type = GetCommandByKey("player_pm_cancel"),
                                                     command_numeric = 0,
                                                     target_name = partner.player_name,
                                                     target_player = partner,
@@ -4863,12 +4974,12 @@ namespace PRoConEvents {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         isDebug = true,
                                         server_id = _serverInfo.ServerID,
-                                        command_type = _CommandKeyDictionary["player_calladmin"],
-                                        command_numeric = 0,
+                                        command_type = GetCommandByKey("player_calladmin"),
+                                        command_numeric = straglerCount,
                                         target_name = "Server",
                                         target_player = null,
                                         source_name = "AdKats",
-                                        record_message = "Server Crashed (" + dicCount + " Players Lost)"
+                                        record_message = "Server Crashed (" + straglerCount + " Players Lost)"
                                     };
                                     //Process the record
                                     QueueRecordForProcessing(record);
@@ -4880,25 +4991,25 @@ namespace PRoConEvents {
                                     if (_populationStatusLow) {
                                         //Switching state from low to high
                                         _populationStatusLow = false;
-                                        _populationTransitionTime = DateTime.UtcNow;
-                                        _populationDurationLow += (DateTime.UtcNow - _populationUpdateTime);
+                                        _populationTransitionTime = UtcDbTime();
+                                        _populationDurationLow += (UtcDbTime() - _populationUpdateTime);
                                     }
                                     else {
-                                        _populationDurationHigh += (DateTime.UtcNow - _populationUpdateTime);
+                                        _populationDurationHigh += (UtcDbTime() - _populationUpdateTime);
                                     }
                                 }
                                 else {
                                     if (!_populationStatusLow) {
                                         //Switching state from high to low
                                         _populationStatusLow = true;
-                                        _populationTransitionTime = DateTime.UtcNow;
-                                        _populationDurationHigh += (DateTime.UtcNow - _populationUpdateTime);
+                                        _populationTransitionTime = UtcDbTime();
+                                        _populationDurationHigh += (UtcDbTime() - _populationUpdateTime);
                                     }
                                     else {
-                                        _populationDurationLow += (DateTime.UtcNow - _populationUpdateTime);
+                                        _populationDurationLow += (UtcDbTime() - _populationUpdateTime);
                                     }
                                 }
-                                _populationUpdateTime = DateTime.UtcNow;
+                                _populationUpdateTime = UtcDbTime();
                             }
                             if (_PlayerRoleRefetch) {
                                 //Update roles for all online players
@@ -4915,7 +5026,7 @@ namespace PRoConEvents {
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_kick"],
+                                command_type = GetCommandByKey("player_kick"),
                                 command_numeric = 0,
                                 target_name = pingPickedPlayer.player_name,
                                 target_player = pingPickedPlayer,
@@ -4923,17 +5034,17 @@ namespace PRoConEvents {
                                 record_message = _pingEnforcerMessagePrefix + " " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]"))
                             };
                             QueueRecordForProcessing(record);
-                            OnlineAdminSayMessage((++_pingKicksThisRound) + " players kicked for ping during this round. " + Math.Round(++_pingKicksTotal / (DateTime.UtcNow - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
+                            OnlineAdminSayMessage((++_pingKicksThisRound) + " players kicked for ping during this round. " + Math.Round(++_pingKicksTotal / (UtcDbTime() - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
                         }
 
                         //Update last successful player list time
-                        _lastSuccessfulPlayerList = DateTime.UtcNow;
+                        _lastSuccessfulPlayerList = UtcDbTime();
                         //Set required handles 
                         _PlayerListUpdateWaitHandle.Set();
                         _TeamswapWaitHandle.Set();
                         if (!_firstPlayerListComplete && playerListFetched && _pluginEnabled) 
                         {
-                            _AdKatsRunningTime = DateTime.UtcNow;
+                            _AdKatsRunningTime = UtcDbTime();
                             _firstPlayerListComplete = true;
                             OnlineAdminSayMessage("Player listing complete [" + _PlayerDictionary.Count + " players]. Performing final startup.");
                             ConsoleSuccess("Player listing complete [" + _PlayerDictionary.Count + " players].");
@@ -4944,7 +5055,7 @@ namespace PRoConEvents {
                             RegisterCommand(_fetchAuthorizedSoldiersMatchCommand);
                             _threadMasterWaitHandle.WaitOne(500);
 
-                            OnlineAdminTellMessage("AdKats startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.");
+                            OnlineAdminTellMessage("AdKats startup complete [" + FormatTimeString(UtcDbTime() - _AdKatsStartTime, 3) + "]. Commands are now online.");
                             foreach (String playerName in _PlayersRequestingCommands) {
                                 AdKatsPlayer aPlayer;
                                 if (_PlayerDictionary.TryGetValue(playerName, out aPlayer)) {
@@ -4953,7 +5064,7 @@ namespace PRoConEvents {
                                     }
                                 }
                             }
-                            ConsoleSuccess("AdKats " + GetPluginVersion() + " startup complete [" + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + "]. Commands are now online.");
+                            ConsoleSuccess("AdKats " + GetPluginVersion() + " startup complete [" + FormatTimeString(UtcDbTime() - _AdKatsStartTime, 3) + "]. Commands are now online.");
                         }
                     }
                     catch (Exception e) {
@@ -4991,7 +5102,7 @@ namespace PRoConEvents {
                             var record = new AdKatsRecord {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_changeip"],
+                                command_type = GetCommandByKey("player_changeip"),
                                 command_numeric = 0,
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
@@ -5025,21 +5136,21 @@ namespace PRoConEvents {
             }
             else if (_threadsReady) {
                 lock (_userCache) {
-                    DateTime start = DateTime.UtcNow;
+                    DateTime start = UtcDbTime();
                     FetchCommands();
-                    DebugWrite("Command fetch took " + (DateTime.UtcNow - start).TotalMilliseconds + "ms.", 4);
-                    start = DateTime.UtcNow;
+                    DebugWrite("Command fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                    start = UtcDbTime();
                     FetchRoles();
-                    DebugWrite("Role fetch took " + (DateTime.UtcNow - start).TotalMilliseconds + "ms.", 4);
-                    start = DateTime.UtcNow;
+                    DebugWrite("Role fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                    start = UtcDbTime();
                     if (!_firstUserListComplete)
                     {
                         OnlineAdminSayMessage("Fetching user list.");
                         ConsoleInfo("Fetching user list.");
                     }
                     FetchUserList();
-                    DebugWrite("User fetch took " + (DateTime.UtcNow - start).TotalMilliseconds + "ms.", 4);
-                    start = DateTime.UtcNow;
+                    DebugWrite("User fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                    start = UtcDbTime();
                 }
             }
         }
@@ -5048,7 +5159,7 @@ namespace PRoConEvents {
             try {
                 DebugWrite("FACC: Starting Access Fetching Thread", 1);
                 Thread.CurrentThread.Name = "AccessFetching";
-                DateTime loopStart = DateTime.UtcNow;
+                DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
                         DebugWrite("FACC: Entering Access Fetching Thread Loop", 7);
@@ -5060,11 +5171,11 @@ namespace PRoConEvents {
                         FetchAllAccess(false);
 
                         DebugWrite("FACC: Access fetch waiting for Input.", 5);
-                        if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
-                            DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((DateTime.UtcNow - loopStart).TotalMilliseconds)) + "ms", 4);
+                        if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                         _AccessFetchWaitHandle.Reset();
                         _AccessFetchWaitHandle.WaitOne(Timeout.Infinite);
-                        loopStart = DateTime.UtcNow;
+                        loopStart = UtcDbTime();
                     }
                     catch (Exception e) {
                         if (e is ThreadAbortException) {
@@ -5207,10 +5318,41 @@ namespace PRoConEvents {
                                     command.Parameters.AddWithValue("@team2_tpm", Math.Round(team2.TeamTicketDifferenceRate, 2));
                                     if (team1.TeamPlayerCount > 0 || team2.TeamPlayerCount > 0)
                                     {
-                                        //Attempt to execute the query
-                                        if (command.ExecuteNonQuery() > 0)
+                                        try
                                         {
-                                            DebugWrite("round stat pushed to database", 5);
+                                            //Attempt to execute the query
+                                            if (command.ExecuteNonQuery() > 0)
+                                            {
+                                                DebugWrite("round stat pushed to database", 5);
+                                            }
+                                        }
+                                        catch (Exception e) {
+                                            HandleException(new AdKatsException("Invalid round stats when posting. " +
+                                                FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "|" +
+
+                                                team1.TeamPlayerCount + "|" + 
+
+                                                team2.TeamPlayerCount + "|" + 
+
+                                                Math.Round(team1.TeamTotalScore, 2) + "|" +
+ 
+                                                Math.Round(team2.TeamTotalScore, 2) + "|" +
+
+                                                Math.Round(team1.TeamScoreDifferenceRate, 2) + "|" +
+                                                team1.TeamScoreDifferenceRate + "|" +
+
+                                                Math.Round(team2.TeamScoreDifferenceRate, 2) + "|" +
+                                                team2.TeamScoreDifferenceRate + "|" + 
+
+                                                team1.TeamTicketCount + "|" + 
+
+                                                team2.TeamTicketCount + "|" +
+
+                                                Math.Round(team1.TeamTicketDifferenceRate, 2) + "|" +
+                                                team1.TeamTicketDifferenceRate + "|" +
+
+                                                Math.Round(team2.TeamTicketDifferenceRate, 2) + "|" +
+                                                team2.TeamTicketDifferenceRate));
                                         }
                                     }
                                 }
@@ -5291,9 +5433,11 @@ namespace PRoConEvents {
                                 winningTeam = team2;
                                 losingTeam = team1;
                             }
-                            if (_DisplayTicketRatesInProconChat && (DateTime.UtcNow - _LastTicketRateDisplay).TotalSeconds > 25 && _roundState == RoundState.Playing) {
-                                _LastTicketRateDisplay = DateTime.UtcNow;
-                                ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " t/m"));
+                            if (_DisplayTicketRatesInProconChat && (UtcDbTime() - _LastTicketRateDisplay).TotalSeconds > 25 && _roundState == RoundState.Playing) {
+                                _LastTicketRateDisplay = UtcDbTime();
+                                ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m"));
+                                if(_isTestingAuthorized)
+                                    ProconChatWrite(BoldMessage("Revived Counts: " + _unmatchedRoundDeathCounts.Where(nameCount => nameCount.Value > 1).OrderByDescending(nameCount => nameCount.Value).Take(3).Aggregate("", (current, nameCount) => current + "(" + nameCount.Key + "/" + nameCount.Value + ")")));
                             }
                             if (team1.TeamTicketCount >= 0 && team2.TeamTicketCount >= 0) {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
@@ -5301,35 +5445,97 @@ namespace PRoConEvents {
                             }
                             if (_surrenderAutoEnable && !_endingRound && _serverInfo.GetRoundElapsedTime().TotalSeconds > 60)
                             {
-                                if (_surrenderAutoUseMetroValues && 
+                                if (_surrenderAutoUseMetroValues &&
                                     Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
+                                    losingTeam.TeamTicketCount > 100 &&
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
-                                    losingTeam.TeamTicketDifferenceRate < 0) {
-                                    if ((losingTeam.TeamTicketDifferenceRate < -70 && winningTeam.TeamTicketDifferenceRate > -15) || 
-                                        (losingTeam.TeamTicketDifferenceRate < -60 && winningTeam.TeamTicketDifferenceRate > -10)) {
-                                        if (++_surrenderAutoTriggerCountCurrent > 3) {
+                                    losingTeam.TeamTicketDifferenceRate < 0)
+                                {
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -1))
+                                    {
+                                        if (++_surrenderAutoTriggerCountCurrent >= 5)
+                                        {
                                             baserapingTeam = winningTeam;
                                             baserapedTeam = losingTeam;
                                         }
+                                        else
+                                        {
+                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/5.");
+                                        }
                                     }
-                                    else {
+                                    else
+                                    {
+                                        _surrenderAutoTriggerCountCurrent = 0;
+                                    }
+                                }
+                                else if (_surrenderAutoUseLockerValues &&
+                                    Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 && 
+                                    losingTeam.TeamTicketCount > 100 &&
+                                    winningTeam.TeamTicketDifferenceRate < 0 &&
+                                    losingTeam.TeamTicketDifferenceRate < 0)
+                                {
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -50 && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
+                                    {
+                                        if (++_surrenderAutoTriggerCountCurrent >= 5)
+                                        {
+                                            baserapingTeam = winningTeam;
+                                            baserapedTeam = losingTeam;
+                                        }
+                                        else
+                                        {
+                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/5.");
+                                        }
+                                    }
+                                    else
+                                    {
                                         _surrenderAutoTriggerCountCurrent = 0;
                                     }
                                 }
                                 else {
                                     if (Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > _surrenderAutoMinimumTicketGap) {
-                                        if (winningTeam.TeamTicketDifferenceRate < _surrenderAutoWinningRateMax && 
-                                            winningTeam.TeamTicketDifferenceRate > _surrenderAutoWinningRateMin && 
-                                            losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax && 
-                                            losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin) 
+                                        if (_surrenderAutoUseAdjustedTicketRates)
                                         {
-                                            if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender) {
-                                                baserapingTeam = winningTeam;
-                                                baserapedTeam = losingTeam;
+                                            if (winningTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoWinningRateMax &&
+                                                winningTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoWinningRateMin &&
+                                                losingTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoLosingRateMax &&
+                                                losingTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoLosingRateMin)
+                                            {
+                                                if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender) 
+                                                {
+                                                    baserapingTeam = winningTeam;
+                                                    baserapedTeam = losingTeam;
+                                                }
+                                                else 
+                                                {
+                                                    OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                _surrenderAutoTriggerCountCurrent = 0;
                                             }
                                         }
-                                        else {
-                                            _surrenderAutoTriggerCountCurrent = 0;
+                                        else
+                                        {
+                                            if (winningTeam.TeamTicketDifferenceRate < _surrenderAutoWinningRateMax &&
+                                                winningTeam.TeamTicketDifferenceRate > _surrenderAutoWinningRateMin &&
+                                                losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax &&
+                                                losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin)
+                                            {
+                                                if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender)
+                                                {
+                                                    baserapingTeam = winningTeam;
+                                                    baserapedTeam = losingTeam;
+                                                }
+                                                else
+                                                {
+                                                    OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
+                                                }
+                                            }
+                                            else
+                                            {
+                                                _surrenderAutoTriggerCountCurrent = 0;
+                                            }
                                         }
                                     }
                                     else {
@@ -5343,7 +5549,7 @@ namespace PRoConEvents {
                                         QueueRecordForProcessing(new AdKatsRecord {
                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                             server_id = _serverInfo.ServerID,
-                                            command_type = _CommandKeyDictionary["server_nuke"],
+                                            command_type = GetCommandByKey("server_nuke"),
                                             command_numeric = baserapingTeam.TeamID,
                                             target_name = baserapingTeam.TeamName,
                                             source_name = "RoundManager",
@@ -5370,7 +5576,7 @@ namespace PRoConEvents {
                                                 {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                                     server_id = _serverInfo.ServerID,
-                                                    command_type = _CommandKeyDictionary["round_end"],
+                                                    command_type = GetCommandByKey("round_end"),
                                                     command_numeric = baserapingTeam.TeamID,
                                                     target_name = baserapingTeam.TeamName,
                                                     source_name = "RoundManager",
@@ -5411,9 +5617,15 @@ namespace PRoConEvents {
                                     _CMDRManagerEnable = true;
                                     _surrenderVoteEnable = true;
                                     _surrenderVoteMinimumTicketGap = 250;
-                                    if (_serverInfo.ServerName.Contains("#7")) {
+                                    if (_serverInfo.ServerName.Contains("#7")) 
+                                    {
                                         _surrenderAutoEnable = true;
                                         _surrenderAutoUseMetroValues = true;
+                                    }
+                                    else if (_serverInfo.ServerName.Contains("#6"))
+                                    {
+                                        _surrenderAutoEnable = true;
+                                        _surrenderAutoUseLockerValues = true;
                                     }
                                     _spamBotExcludeAdminsAndWhitelist = true;
                                 }
@@ -5460,6 +5672,8 @@ namespace PRoConEvents {
                     _Team1MoveQueue.Clear();
                     _Team2MoveQueue.Clear();
                     _RoundCookers.Clear();
+                    _unmatchedRoundDeathCounts.Clear();
+                    _unmatchedRoundDeaths.Clear();
                     //Update the factions 
                     UpdateFactions();
                     //Enable round timer
@@ -5492,7 +5706,7 @@ namespace PRoConEvents {
             DebugWrite("Entering OnPlayerKilled", 7);
             try {
                 //If the plugin is not enabled just return
-                if (!_pluginEnabled || !_threadsReady) {
+                if (!_pluginEnabled || !_threadsReady || !_firstPlayerListComplete) {
                     return;
                 }
                 //Otherwise, queue the kill for processing
@@ -5530,7 +5744,7 @@ namespace PRoConEvents {
                                         SendMessageToSource(aRecord, aRecord.target_player.player_name + " is dead. Queueing them for kill on-spawn.");
                                         ExecuteCommand("procon.protected.send", "admin.killPlayer", aRecord.target_player.player_name);
                                         lock (_ActOnSpawnDictionary) {
-                                            aRecord.command_action = _CommandKeyDictionary["player_kill_repeat"];
+                                            aRecord.command_action = GetCommandByKey("player_kill_repeat");
                                             _ActOnSpawnDictionary.Add(aRecord.target_player.player_name, aRecord);
                                         }
                                     }
@@ -5582,7 +5796,7 @@ namespace PRoConEvents {
             try {
                 DebugWrite("KILLPROC: Starting Kill Processing Thread", 1);
                 Thread.CurrentThread.Name = "killprocessing";
-                DateTime loopStart = DateTime.UtcNow;
+                DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try {
@@ -5607,11 +5821,11 @@ namespace PRoConEvents {
                         else {
                             DebugWrite("KILLPROC: No inbound player kills. Waiting for Input.", 6);
                             //Wait for input
-                            if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
-                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((DateTime.UtcNow - loopStart).TotalMilliseconds)) + "ms", 4);
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _KillProcessingWaitHandle.Reset();
                             _KillProcessingWaitHandle.WaitOne(Timeout.Infinite);
-                            loopStart = DateTime.UtcNow;
+                            loopStart = UtcDbTime();
                             continue;
                         }
 
@@ -5658,8 +5872,8 @@ namespace PRoConEvents {
                     return;
                 }
 
-                victim.lastAction = DateTime.UtcNow;
-                killer.lastAction = DateTime.UtcNow;
+                victim.lastAction = UtcDbTime();
+                killer.lastAction = UtcDbTime();
                 //Used for delayed player moving
                 if (_TeamswapOnDeathMoveDic.Count > 0) {
                     lock (_TeamswapOnDeathCheckingQueue) {
@@ -5668,188 +5882,229 @@ namespace PRoConEvents {
                     }
                 }
 
+                //Add the unmatched unique round death
+                if (!_unmatchedRoundDeaths.Contains(victim.player_name)) {
+                    _unmatchedRoundDeaths.Add(victim.player_name);
+                }
+                //Add the unmatched round death count
+                if (_unmatchedRoundDeathCounts.ContainsKey(victim.player_name)) {
+                    _unmatchedRoundDeathCounts[victim.player_name] = _unmatchedRoundDeathCounts[victim.player_name] + 1;
+                }
+                else {
+                    _unmatchedRoundDeathCounts[victim.player_name] = 1;
+                }
+
                 Boolean gKillHandled = false;
                 //Update player death information
-                if (_PlayerDictionary.ContainsKey(kKillerVictimDetails.Victim.SoldierName)) {
-                    DebugWrite("Setting " + victim.player_name + " time of death to " + kKillerVictimDetails.TimeOfDeath, 7);
-                    victim.lastDeath = DateTime.UtcNow;
-                    //Only add the last death if it's not a death by admin
-                    if (!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName)) {
-                        try {
-                            //ADK grenade cooking catcher
-                            if (_useExperimentalTools && _UseGrenadeCookCatcher) {
-                                if (_RoundCookers == null) {
-                                    _RoundCookers = new Dictionary<String, AdKatsPlayer>();
-                                }
-                                const double possibleRange = 750.00;
-                                //Update killer information
-                                //Initialize the recent kills queue
-                                if (killer.RecentKills == null) {
-                                    killer.RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
-                                }
-                                //Only keep the last 10 kills in memory
-                                while (killer.RecentKills.Count > 10) {
-                                    killer.RecentKills.Dequeue();
-                                }
-                                //Add the player
-                                killer.RecentKills.Enqueue(new KeyValuePair<AdKatsPlayer, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
-                                //Check for cooked grenade and non-suicide
-                                if (kKillerVictimDetails.DamageType.Contains("M67") || kKillerVictimDetails.DamageType.Contains("V40")) {
-                                    if (true) {
-                                        Double fuseTime = 0;
-                                        if (kKillerVictimDetails.DamageType.Contains("M67")) {
-                                            if (_gameVersion == GameVersion.BF3) {
-                                                fuseTime = 3735.00;
+                DebugWrite("Setting " + victim.player_name + " time of death to " + kKillerVictimDetails.TimeOfDeath, 7);
+                victim.lastDeath = UtcDbTime();
+                //Only add the last death if it's not a death by admin
+                if (!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName))
+                {
+                    try
+                    {
+                        //ADK grenade cooking catcher
+                        if (_useExperimentalTools && _UseGrenadeCookCatcher)
+                        {
+                            if (_RoundCookers == null)
+                            {
+                                _RoundCookers = new Dictionary<String, AdKatsPlayer>();
+                            }
+                            const double possibleRange = 750.00;
+                            //Update killer information
+                            //Initialize the recent kills queue
+                            if (killer.RecentKills == null)
+                            {
+                                killer.RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
+                            }
+                            //Only keep the last 10 kills in memory
+                            while (killer.RecentKills.Count > 10)
+                            {
+                                killer.RecentKills.Dequeue();
+                            }
+                            //Add the player
+                            killer.RecentKills.Enqueue(new KeyValuePair<AdKatsPlayer, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
+                            //Check for cooked grenade and non-suicide
+                            if (kKillerVictimDetails.DamageType.Contains("M67") || kKillerVictimDetails.DamageType.Contains("V40"))
+                            {
+                                if (true)
+                                {
+                                    Double fuseTime = 0;
+                                    if (kKillerVictimDetails.DamageType.Contains("M67"))
+                                    {
+                                        if (_gameVersion == GameVersion.BF3)
+                                        {
+                                            fuseTime = 3735.00;
+                                        }
+                                        else if (_gameVersion == GameVersion.BF4)
+                                        {
+                                            fuseTime = 3132.00;
+                                        }
+                                    }
+                                    else if (kKillerVictimDetails.DamageType.Contains("V40"))
+                                    {
+                                        fuseTime = 2865.00;
+                                    }
+                                    Boolean told = false;
+                                    var possible = new List<KeyValuePair<AdKatsPlayer, String>>();
+                                    var sure = new List<KeyValuePair<AdKatsPlayer, String>>();
+                                    foreach (var cooker in killer.RecentKills)
+                                    {
+                                        //Get the actual time since cooker value
+                                        Double milli = kKillerVictimDetails.TimeOfDeath.Subtract(cooker.Value).TotalMilliseconds;
+
+                                        //Calculate the percentage probability
+                                        Double probability;
+                                        if (Math.Abs(milli - fuseTime) < possibleRange)
+                                        {
+                                            probability = (1 - Math.Abs((milli - fuseTime) / possibleRange)) * 100;
+                                            DebugWrite(cooker.Key.player_name + " cooking probability: " + probability + "%", 2);
+                                        }
+                                        else
+                                        {
+                                            probability = 0.00;
+                                        }
+
+                                        //If probability > 60% report the player and add them to the round cookers list
+                                        if (probability > 60.00)
+                                        {
+                                            DebugWrite(cooker.Key.player_name + " in " + killer.player_name + "'s recent kills has a " + probability + "% cooking probability.", 2);
+                                            gKillHandled = true;
+                                            //Code to avoid spam
+                                            if (killer.lastKill.AddSeconds(2) < UtcDbTime())
+                                            {
+                                                killer.lastKill = UtcDbTime();
                                             }
-                                            else if (_gameVersion == GameVersion.BF4) {
-                                                fuseTime = 3132.00;
+                                            else
+                                            {
+                                                DebugWrite("Skipping additional auto-actions for multi-kill event.", 2);
+                                                continue;
+                                            }
+
+                                            if (!told)
+                                            {
+                                                //Inform the victim player that they will not be punished
+                                                PlayerTellMessage(killer.player_name, "You appear to be a victim of grenade cooking and will NOT be punished.");
+                                                PlayerTellMessage(victim.player_name, killer.player_name + " was a victim of grenade cooking, they did not use explosives.");
+                                                told = true;
+                                            }
+
+                                            //Create the probability String
+                                            String probString = ((int)probability) + "-" + ((int)milli);
+
+                                            //If the player is already on the round cooker list, ban them
+                                            if (_RoundCookers.ContainsKey(cooker.Key.player_name))
+                                            {
+                                                //Create the ban record
+                                                var record = new AdKatsRecord
+                                                {
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("player_punish"),
+                                                    command_numeric = 0,
+                                                    target_name = cooker.Key.player_name,
+                                                    target_player = cooker.Key,
+                                                    source_name = "AutoAdmin",
+                                                    record_message = "Rules: Cooking Grenades [" + probString + "-X] [Victim " + killer.player_name + " Protected]"
+                                                };
+                                                //Process the record
+                                                QueueRecordForProcessing(record);
+                                                //adminSay("Punishing " + killer.player_name + " for " + record.record_message);
+                                                DebugWrite(record.target_player.player_name + " punished for " + record.record_message, 2);
+                                                return;
+                                            }
+                                            //else if probability > 92.5% add them to the SURE list, and round cooker list
+                                            if (probability > 92.5)
+                                            {
+                                                _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
+                                                DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
+                                                //Add to SURE
+                                                sure.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
+                                            }
+                                            //Otherwise add them to the round cooker list, and add to POSSIBLE list
+                                            else
+                                            {
+                                                _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
+                                                DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
+                                                //Add to POSSIBLE
+                                                possible.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
                                             }
                                         }
-                                        else if (kKillerVictimDetails.DamageType.Contains("V40")) {
-                                            fuseTime = 2865.00;
-                                        }
-                                        Boolean told = false;
-                                        var possible = new List<KeyValuePair<AdKatsPlayer, String>>();
-                                        var sure = new List<KeyValuePair<AdKatsPlayer, String>>();
-                                        foreach (var cooker in killer.RecentKills) {
-                                            //Get the actual time since cooker value
-                                            Double milli = kKillerVictimDetails.TimeOfDeath.Subtract(cooker.Value).TotalMilliseconds;
-
-                                            //Calculate the percentage probability
-                                            Double probability;
-                                            if (Math.Abs(milli - fuseTime) < possibleRange) {
-                                                probability = (1 - Math.Abs((milli - fuseTime) / possibleRange)) * 100;
-                                                DebugWrite(cooker.Key.player_name + " cooking probability: " + probability + "%", 2);
-                                            }
-                                            else {
-                                                probability = 0.00;
-                                            }
-
-                                            //If probability > 60% report the player and add them to the round cookers list
-                                            if (probability > 60.00) {
-                                                DebugWrite(cooker.Key.player_name + " in " + killer.player_name + "'s recent kills has a " + probability + "% cooking probability.", 2);
-                                                gKillHandled = true;
-                                                //Code to avoid spam
-                                                if (killer.lastKill.AddSeconds(2) < DateTime.UtcNow) {
-                                                    killer.lastKill = DateTime.UtcNow;
-                                                }
-                                                else {
-                                                    DebugWrite("Skipping additional auto-actions for multi-kill event.", 2);
-                                                    continue;
-                                                }
-
-                                                if (!told) {
-                                                    //Inform the victim player that they will not be punished
-                                                    PlayerTellMessage(killer.player_name, "You appear to be a victim of grenade cooking and will NOT be punished.");
-                                                    PlayerTellMessage(victim.player_name, killer.player_name + " was a victim of grenade cooking, they did not use explosives.");
-                                                    told = true;
-                                                }
-
-                                                //Create the probability String
-                                                String probString = ((int) probability) + "-" + ((int) milli);
-
-                                                //If the player is already on the round cooker list, ban them
-                                                if (_RoundCookers.ContainsKey(cooker.Key.player_name)) {
-                                                    //Create the ban record
-                                                    var record = new AdKatsRecord {
-                                                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                        server_id = _serverInfo.ServerID,
-                                                        command_type = _CommandKeyDictionary["player_punish"],
-                                                        command_numeric = 0,
-                                                        target_name = cooker.Key.player_name,
-                                                        target_player = cooker.Key,
-                                                        source_name = "AutoAdmin",
-                                                        record_message = "Rules: Cooking Grenades [" + probString + "-X] [Victim " + killer.player_name + " Protected]"
-                                                    };
-                                                    //Process the record
-                                                    QueueRecordForProcessing(record);
-                                                    //adminSay("Punishing " + killer.player_name + " for " + record.record_message);
-                                                    DebugWrite(record.target_player.player_name + " punished for " + record.record_message, 2);
-                                                    return;
-                                                }
-                                                //else if probability > 92.5% add them to the SURE list, and round cooker list
-                                                if (probability > 92.5) {
-                                                    _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
-                                                    DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
-                                                    //Add to SURE
-                                                    sure.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
-                                                }
-                                                    //Otherwise add them to the round cooker list, and add to POSSIBLE list
-                                                else {
-                                                    _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
-                                                    DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
-                                                    //Add to POSSIBLE
-                                                    possible.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
-                                                }
-                                            }
-                                        }
-                                        //This method used for dealing with multiple kills at the same instant i.e twin/triple headshots
-                                        if (sure.Count == 1 && possible.Count == 0) {
-                                            AdKatsPlayer player = sure[0].Key;
-                                            String probString = sure[0].Value;
-                                            //Create the ban record
-                                            var record = new AdKatsRecord {
+                                    }
+                                    //This method used for dealing with multiple kills at the same instant i.e twin/triple headshots
+                                    if (sure.Count == 1 && possible.Count == 0)
+                                    {
+                                        AdKatsPlayer player = sure[0].Key;
+                                        String probString = sure[0].Value;
+                                        //Create the ban record
+                                        var record = new AdKatsRecord
+                                        {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_punish"),
+                                            command_numeric = 0,
+                                            target_name = player.player_name,
+                                            target_player = player,
+                                            source_name = "AutoAdmin",
+                                            record_message = "Rules: Cooking Grenades [" + probString + "] [Victim " + killer.player_name + " Protected]"
+                                        };
+                                        //Process the record
+                                        QueueRecordForProcessing(record);
+                                        //adminSay("Punishing " + killer.player_name + " for " + record.record_message);
+                                        DebugWrite(record.target_player.player_name + " punished for " + record.record_message, 2);
+                                    }
+                                    else
+                                    {
+                                        AdKatsPlayer player;
+                                        String probString;
+                                        foreach (var playerPair in sure)
+                                        {
+                                            player = playerPair.Key;
+                                            probString = playerPair.Value;
+                                            //Create the report record
+                                            var record = new AdKatsRecord
+                                            {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
-                                                command_type = _CommandKeyDictionary["player_punish"],
+                                                command_type = GetCommandByKey("player_report"),
                                                 command_numeric = 0,
                                                 target_name = player.player_name,
                                                 target_player = player,
                                                 source_name = "AutoAdmin",
-                                                record_message = "Rules: Cooking Grenades [" + probString + "] [Victim " + killer.player_name + " Protected]"
+                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.player_name + " Protected]"
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
-                                            //adminSay("Punishing " + killer.player_name + " for " + record.record_message);
-                                            DebugWrite(record.target_player.player_name + " punished for " + record.record_message, 2);
+                                            DebugWrite(record.target_player.player_name + " reported for " + record.record_message, 2);
                                         }
-                                        else {
-                                            AdKatsPlayer player;
-                                            String probString;
-                                            foreach (var playerPair in sure) {
-                                                player = playerPair.Key;
-                                                probString = playerPair.Value;
-                                                //Create the report record
-                                                var record = new AdKatsRecord {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = _CommandKeyDictionary["player_report"],
-                                                    command_numeric = 0,
-                                                    target_name = player.player_name,
-                                                    target_player = player,
-                                                    source_name = "AutoAdmin",
-                                                    record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.player_name + " Protected]"
-                                                };
-                                                //Process the record
-                                                QueueRecordForProcessing(record);
-                                                DebugWrite(record.target_player.player_name + " reported for " + record.record_message, 2);
-                                            }
-                                            foreach (var playerPair in possible) {
-                                                player = playerPair.Key;
-                                                probString = playerPair.Value;
-                                                //Create the report record
-                                                var record = new AdKatsRecord {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = _CommandKeyDictionary["player_report"],
-                                                    command_numeric = 0,
-                                                    target_name = player.player_name,
-                                                    target_player = player,
-                                                    source_name = "AutoAdmin",
-                                                    record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.player_name + " Protected]"
-                                                };
-                                                //Process the record
-                                                QueueRecordForProcessing(record);
-                                                DebugWrite(record.target_player.player_name + " reported for " + record.record_message, 2);
-                                            }
+                                        foreach (var playerPair in possible)
+                                        {
+                                            player = playerPair.Key;
+                                            probString = playerPair.Value;
+                                            //Create the report record
+                                            var record = new AdKatsRecord
+                                            {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_report"),
+                                                command_numeric = 0,
+                                                target_name = player.player_name,
+                                                target_player = player,
+                                                source_name = "AutoAdmin",
+                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.player_name + " Protected]"
+                                            };
+                                            //Process the record
+                                            QueueRecordForProcessing(record);
+                                            DebugWrite(record.target_player.player_name + " reported for " + record.record_message, 2);
                                         }
                                     }
                                 }
                             }
                         }
-                        catch (Exception e) {
-                            HandleException(new AdKatsException("Error in grenade cook catcher.", e));
-                        }
+                    }
+                    catch (Exception e)
+                    {
+                        HandleException(new AdKatsException("Error in grenade cook catcher.", e));
                     }
                 }
 
@@ -5866,7 +6121,7 @@ namespace PRoConEvents {
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_kill_force"],
+                                command_type = GetCommandByKey("player_kill_force"),
                                 command_numeric = 0,
                                 target_name = killer.player_name,
                                 target_player = killer,
@@ -5892,13 +6147,13 @@ namespace PRoConEvents {
                                     //Get player from the dictionary
                                     if (killer != null) {
                                         //Code to avoid spam
-                                        if (killer.lastKill.AddSeconds(2) < DateTime.UtcNow) {
-                                            killer.lastKill = DateTime.UtcNow;
+                                        if (killer.lastKill.AddSeconds(2) < UtcDbTime()) {
+                                            killer.lastKill = UtcDbTime();
                                             //Create the punish record
                                             var record = new AdKatsRecord {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
-                                                command_type = _CommandKeyDictionary["player_punish"],
+                                                command_type = GetCommandByKey("player_punish"),
                                                 command_numeric = 0,
                                                 target_name = killer.player_name,
                                                 target_player = killer,
@@ -5934,7 +6189,7 @@ namespace PRoConEvents {
                                             var repRecord = new AdKatsRecord {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 server_id = _serverInfo.ServerID,
-                                                command_type = _CommandKeyDictionary["player_repboost"],
+                                                command_type = GetCommandByKey("player_repboost"),
                                                 command_numeric = 0,
                                                 target_name = victim.player_name,
                                                 target_player = victim,
@@ -6033,10 +6288,25 @@ namespace PRoConEvents {
                     }
                     if (_CommandNameDictionary.Count > 0) {
                         //Handle TeamSwap notifications
-                        String command = _CommandKeyDictionary["self_teamswap"].command_text;
+                        String command = GetCommandByKey("self_teamswap").command_text;
                         if (_PlayerDictionary.TryGetValue(soldierName, out aPlayer)) {
-                            aPlayer.lastSpawn = DateTime.UtcNow;
-                            aPlayer.lastAction = DateTime.UtcNow;
+                            aPlayer.lastSpawn = UtcDbTime();
+                            aPlayer.lastAction = UtcDbTime();
+
+                            //Add matched spawn count
+                            AdKatsTeam aTeam;
+                            if (aPlayer.frostbitePlayerInfo != null &&
+                                _teamDictionary.TryGetValue(aPlayer.frostbitePlayerInfo.TeamID, out aTeam) &&
+                                _unmatchedRoundDeaths.Contains(aPlayer.player_name)) {
+                                aTeam.IncrementTeamTicketAdjustment();
+                            }
+                            //Removed unmatched death if applicable
+                            _unmatchedRoundDeaths.Remove(aPlayer.player_name);
+                            //Decrement unmatched death count if applicable
+                            if (_unmatchedRoundDeathCounts.ContainsKey(aPlayer.player_name)) {
+                                _unmatchedRoundDeathCounts[aPlayer.player_name] = _unmatchedRoundDeathCounts[aPlayer.player_name] - 1;
+                            }
+
                             if (aPlayer.player_aa && !aPlayer.player_aa_told) {
                                 String adminAssistantMessage = "You are now considered an Admin Assistant. ";
                                 if (!_UseAAReportAutoHandler && !_EnableAdminAssistantPerk) {
@@ -6284,7 +6554,7 @@ namespace PRoConEvents {
             try {
                 DebugWrite("BANENF: Starting Ban Enforcer Thread", 1);
                 Thread.CurrentThread.Name = "BanEnforcer";
-                DateTime loopStart = DateTime.UtcNow;
+                DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
                         DebugWrite("BANENF: Entering Ban Enforcer Thread Loop", 7);
@@ -6311,11 +6581,11 @@ namespace PRoConEvents {
                         else {
                             DebugWrite("BANENF: No inbound ban checks. Waiting for Input.", 6);
                             //Wait for input
-                            if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
-                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((DateTime.UtcNow - loopStart).TotalMilliseconds)) + "ms", 4);
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _BanEnforcerWaitHandle.Reset();
                             _BanEnforcerWaitHandle.WaitOne(Timeout.Infinite);
-                            loopStart = DateTime.UtcNow;
+                            loopStart = UtcDbTime();
                             continue;
                         }
 
@@ -6345,7 +6615,7 @@ namespace PRoConEvents {
                                                 server_id = _serverInfo.ServerID,
                                                 target_name = aPlayer.player_name,
                                                 target_player = aPlayer,
-                                                command_type = _CommandKeyDictionary["banenforcer_enforce"],
+                                                command_type = GetCommandByKey("banenforcer_enforce"),
                                                 command_numeric = (int)aBan.ban_id,
                                                 record_message = aBan.ban_record.record_message + ((aBan.ban_record.target_player.player_id != aPlayer.player_id) ? (" [LINKED ACCOUNT " + aBan.ban_record.target_player.player_id + "]") : (""))
                                             };
@@ -6398,7 +6668,7 @@ namespace PRoConEvents {
             }
             try {
                 //Return if small duration (0.5 seconds) since last ban list, or if there is already a ban list going on
-                if ((DateTime.UtcNow - _lastSuccessfulBanList) < TimeSpan.FromSeconds(0.5)) {
+                if ((UtcDbTime() - _lastSuccessfulBanList) < TimeSpan.FromSeconds(0.5)) {
                     DebugWrite("Banlist being called quickly.", 4);
                     return;
                 }
@@ -6406,7 +6676,7 @@ namespace PRoConEvents {
                     ConsoleError("Attempted banlist call rejected. Processing already in progress.");
                     return;
                 }
-                DateTime startTime = DateTime.UtcNow;
+                DateTime startTime = UtcDbTime();
                 _lastSuccessfulBanList = startTime;
                 if (!_pluginEnabled)
                     return;
@@ -6421,7 +6691,7 @@ namespace PRoConEvents {
                                     DebugWrite("Queuing Ban.", 7);
                                     _CBanProcessingQueue.Enqueue(cBan);
                                     _BansQueuing = true;
-                                    if (DateTime.UtcNow - startTime > TimeSpan.FromSeconds(50)) {
+                                    if (UtcDbTime() - startTime > TimeSpan.FromSeconds(50)) {
                                         HandleException(new AdKatsException("OnBanList took longer than 50 seconds, exiting so procon doesn't panic."));
                                         _BansQueuing = false;
                                         return;
@@ -6582,7 +6852,7 @@ namespace PRoConEvents {
 
                 var playerCheckingQueue = new Queue<AdKatsPlayer>();
                 var repeatCheckingQueue = new Queue<AdKatsPlayer>();
-                DateTime loopStart = DateTime.UtcNow;
+                DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
                         DebugWrite("HCKCHK: Entering Hacker Checker Thread Loop", 7);
@@ -6608,12 +6878,12 @@ namespace PRoConEvents {
                             else {
                                 DebugWrite("HCKCHK: No inbound hacker checks. Waiting 10 seconds or for input.", 4);
                                 //Wait for input
-                                if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
-                                    DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((DateTime.UtcNow - loopStart).TotalMilliseconds)) + "ms", 4);
+                                if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                    DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                                 _HackerCheckerWaitHandle.Reset();
                                 //Either loop when handle is set, or after 3 minutes
                                 _HackerCheckerWaitHandle.WaitOne(180000 / ((repeatCheckingQueue.Count > 0) ? (repeatCheckingQueue.Count) : (1)));
-                                loopStart = DateTime.UtcNow;
+                                loopStart = UtcDbTime();
                             }
                         }
                         catch (Exception e) {
@@ -6825,10 +7095,10 @@ namespace PRoConEvents {
                             DebugWrite("Starting a ban delay thread.", 5);
                             try {
                                 Thread.CurrentThread.Name = "bandelay";
-                                var start = DateTime.UtcNow;
+                                var start = UtcDbTime();
                                 ConsoleInfo(banPlayer.player_name + " will be banned. Waiting for starting case.");
                                 OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
-                                while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (DateTime.UtcNow - start).TotalSeconds < 300)
+                                while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
                                 {
                                     if (!_pluginEnabled)
                                     {
@@ -6851,7 +7121,7 @@ namespace PRoConEvents {
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverInfo.ServerID,
-                                        command_type = _CommandKeyDictionary["player_ban_perm"],
+                                        command_type = GetCommandByKey("player_ban_perm"),
                                         command_numeric = 0,
                                         target_name = aPlayer.player_name,
                                         target_player = aPlayer,
@@ -6882,7 +7152,7 @@ namespace PRoConEvents {
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_ban_perm"],
+                                command_type = GetCommandByKey("player_ban_perm"),
                                 command_numeric = 0,
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
@@ -6972,10 +7242,10 @@ namespace PRoConEvents {
                             try
                             {
                                 Thread.CurrentThread.Name = "bandelay";
-                                var start = DateTime.UtcNow;
+                                var start = UtcDbTime();
                                 ConsoleInfo(banPlayer.player_name + " will be banned. Waiting for starting case.");
                                 OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
-                                while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (DateTime.UtcNow - start).TotalSeconds < 300)
+                                while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
                                 {
                                     if (!_pluginEnabled)
                                     {
@@ -7001,7 +7271,7 @@ namespace PRoConEvents {
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverInfo.ServerID,
-                                        command_type = _CommandKeyDictionary["player_ban_perm"],
+                                        command_type = GetCommandByKey("player_ban_perm"),
                                         command_numeric = 0,
                                         target_name = aPlayer.player_name,
                                         target_player = aPlayer,
@@ -7033,7 +7303,7 @@ namespace PRoConEvents {
                             {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_ban_perm"],
+                                command_type = GetCommandByKey("player_ban_perm"),
                                 command_numeric = 0,
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
@@ -7124,7 +7394,7 @@ namespace PRoConEvents {
                         var record = new AdKatsRecord {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
                             server_id = _serverInfo.ServerID,
-                            command_type = _CommandKeyDictionary["player_ban_perm"],
+                            command_type = GetCommandByKey("player_ban_perm"),
                             command_numeric = 0,
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
@@ -7224,7 +7494,7 @@ namespace PRoConEvents {
                 if (_pluginEnabled) {
                     //Performance testing area
                     if (messageObject.Speaker == _debugSoldierName) {
-                        _commandStartTime = DateTime.UtcNow;
+                        _commandStartTime = UtcDbTime();
                     }
                     //If message contains comorose just return and ignore
                     if (messageObject.Message.Contains("ComoRose:")) {
@@ -7650,7 +7920,7 @@ namespace PRoConEvents {
             try {
                 DebugWrite("MESSAGE: Starting Messaging Thread", 1);
                 Thread.CurrentThread.Name = "messaging";
-                DateTime loopStart = DateTime.UtcNow;
+                DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
                         DebugWrite("MESSAGE: Entering Messaging Thread Loop", 7);
@@ -7674,11 +7944,11 @@ namespace PRoConEvents {
                         else {
                             DebugWrite("MESSAGE: No inbound messages. Waiting for Input.", 6);
                             //Wait for input
-                            if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
-                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((DateTime.UtcNow - loopStart).TotalMilliseconds)) + "ms", 4);
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _MessageParsingWaitHandle.Reset();
                             _MessageParsingWaitHandle.WaitOne(Timeout.Infinite);
-                            loopStart = DateTime.UtcNow;
+                            loopStart = UtcDbTime();
                             continue;
                         }
 
@@ -7705,7 +7975,7 @@ namespace PRoConEvents {
                                 AdKatsPlayer aPlayer;
                                 if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer))
                                 {
-                                    aPlayer.lastAction = DateTime.UtcNow;
+                                    aPlayer.lastAction = UtcDbTime();
                                 }
                             }
 
@@ -7754,14 +8024,14 @@ namespace PRoConEvents {
                                             if (_RoundMutedPlayers[messageObject.Speaker] > _MutedPlayerChances)
                                             {
                                                 record.record_message = _MutedPlayerKickMessage;
-                                                record.command_type = _CommandKeyDictionary["player_kick"];
-                                                record.command_action = _CommandKeyDictionary["player_kick"];
+                                                record.command_type = GetCommandByKey("player_kick");
+                                                record.command_action = GetCommandByKey("player_kick");
                                             }
                                             else
                                             {
                                                 record.record_message = _MutedPlayerKillMessage;
-                                                record.command_type = _CommandKeyDictionary["player_kill"];
-                                                record.command_action = _CommandKeyDictionary["player_kill"];
+                                                record.command_type = GetCommandByKey("player_kill");
+                                                record.command_action = GetCommandByKey("player_kill");
                                                 AdminSayMessage(record.target_name + " killed for talking while muted. They can speak again next round.");
                                             }
                                             QueueRecordForProcessing(record);
@@ -7857,7 +8127,7 @@ namespace PRoConEvents {
             try {
                 DebugWrite("TSWAP: Starting TeamSwap Thread", 1);
                 Thread.CurrentThread.Name = "TeamSwap";
-                DateTime loopStart = DateTime.UtcNow;
+                DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
                         DebugWrite("TSWAP: Entering TeamSwap Thread Loop", 7);
@@ -7982,7 +8252,7 @@ namespace PRoConEvents {
                                             _MULTIBalancerUnswitcherDisabled = true;
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "1", "1", "true");
                                             dicPlayer.RequiredTeam = _teamDictionary[1];
-                                            _LastPlayerMoveIssued = DateTime.UtcNow;
+                                            _LastPlayerMoveIssued = UtcDbTime();
                                             team1.TeamPlayerCount++;
                                             team2.TeamPlayerCount--;
                                         }
@@ -8011,7 +8281,7 @@ namespace PRoConEvents {
                                             _MULTIBalancerUnswitcherDisabled = true;
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "2", "1", "true");
                                             dicPlayer.RequiredTeam = _teamDictionary[2];
-                                            _LastPlayerMoveIssued = DateTime.UtcNow;
+                                            _LastPlayerMoveIssued = UtcDbTime();
                                             team2.TeamPlayerCount++;
                                             team1.TeamPlayerCount--;
                                         }
@@ -8024,11 +8294,11 @@ namespace PRoConEvents {
                         else {
                             DebugWrite("TSWAP: No players to swap. Waiting for Input.", 6);
                             //There are no players to swap, wait.
-                            if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
-                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((DateTime.UtcNow - loopStart).TotalMilliseconds)) + "ms", 4);
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _TeamswapWaitHandle.Reset();
                             _TeamswapWaitHandle.WaitOne(Timeout.Infinite);
-                            loopStart = DateTime.UtcNow;
+                            loopStart = UtcDbTime();
                             continue;
                         }
                     }
@@ -8091,6 +8361,11 @@ namespace PRoConEvents {
             DebugWrite("Entering queueRecordForProcessing", 7);
             try {
                 if (record.command_action == null) {
+                    if (record.command_type == null) {
+                        record.record_exception = HandleException(new AdKatsException("Attempted to create a record with no command. " + ((String.IsNullOrEmpty(record.source_name)) ? ("NOSOURCE") : (record.source_name)) + "|" + ((String.IsNullOrEmpty(record.record_message)) ? ("NOMESSAGE") : (record.record_message))));
+                        FinalizeRecord(record);
+                        return;
+                    }
                     record.command_action = record.command_type;
                 }
                 if (!record.record_action_executed) {
@@ -8106,7 +8381,7 @@ namespace PRoConEvents {
                         if (record.target_player != null && !record.TargetPlayersLocal.Any())
                         {
                             //Cancel call if record is on timeout for single player
-                            if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow))
+                            if (record.target_player.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > UtcDbTime()))
                             {
                                 SendMessageToSource(record, record.command_type.command_name + " on timeout for " + record.target_player.player_name);
                                 FinalizeRecord(record);
@@ -8118,7 +8393,7 @@ namespace PRoConEvents {
                             //Cancel call if record is on timeout for any targeted players
                             foreach (AdKatsPlayer aPlayer in record.TargetPlayersLocal)
                             {
-                                if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > DateTime.UtcNow))
+                                if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > UtcDbTime()))
                                 {
                                     SendMessageToSource(record, record.command_type.command_name + " on timeout for " + aPlayer.player_name);
                                     FinalizeRecord(record);
@@ -8144,7 +8419,7 @@ namespace PRoConEvents {
                         triggerCommands.Add("player_kill_force");
                         foreach (AdKatsRecord targetRecord in record.target_player.TargetedRecords)
                         {
-                            if (triggerCommands.Contains(targetRecord.command_type.command_key) && (DateTime.UtcNow - targetRecord.record_time).TotalSeconds < 60)
+                            if (triggerCommands.Contains(targetRecord.command_type.command_key) && (UtcDbTime() - targetRecord.record_time).TotalSeconds < 60)
                             {
                                 OnlineAdminSayMessage("Report on " + record.target_player.player_name + " blocked. Player already acted on.");
                                 SendMessageToSource(record, "Report on " + record.target_player.player_name + " blocked. Player already acted on.");
@@ -8211,7 +8486,7 @@ namespace PRoConEvents {
                                             (aRecord.command_action.command_key == "player_kick" ||
                                             aRecord.command_action.command_key == "player_ban_temp" ||
                                             aRecord.command_action.command_key == "player_ban_perm") &&
-                                            (DateTime.UtcNow - aRecord.record_time).TotalSeconds < 300)) {
+                                            (UtcDbTime() - aRecord.record_time).TotalSeconds < 300)) {
                                     SendMessageToSource(record, record.target_player.player_name + " has already been removed from the server by admin.");
                                     FinalizeRecord(record);
                                     return;
@@ -8446,13 +8721,13 @@ namespace PRoConEvents {
                             {
                                 AdminSayMessage(record.target_name + " was PUNISHED by " + record.source_name + " for " + record.record_message);
                             }
-                            record.command_type = _CommandKeyDictionary["player_kill"];
-                            record.command_action = _CommandKeyDictionary["player_kill"];
+                            record.command_type = GetCommandByKey("player_kill");
+                            record.command_action = GetCommandByKey("player_kill");
                         }
                         else if (killCount >= 4 && punishCount >= 2)
                         {
-                            record.command_type = _CommandKeyDictionary["player_kick"];
-                            record.command_action = _CommandKeyDictionary["player_kick"];
+                            record.command_type = GetCommandByKey("player_kick");
+                            record.command_action = GetCommandByKey("player_kick");
                         }
                     }
                 }
@@ -8488,7 +8763,7 @@ namespace PRoConEvents {
             try {
                 DebugWrite("COMMAND: Starting Command Parsing Thread", 1);
                 Thread.CurrentThread.Name = "Command";
-                DateTime loopStart = DateTime.UtcNow;
+                DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
                         DebugWrite("COMMAND: Entering Command Parsing Thread Loop", 7);
@@ -8545,11 +8820,11 @@ namespace PRoConEvents {
                         else {
                             DebugWrite("COMMAND: No inbound commands, ready.", 7);
                             //No commands to parse, ready.
-                            if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
-                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((DateTime.UtcNow - loopStart).TotalMilliseconds)) + "ms", 4);
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _CommandParsingWaitHandle.Reset();
                             _CommandParsingWaitHandle.WaitOne(Timeout.Infinite);
-                            loopStart = DateTime.UtcNow;
+                            loopStart = UtcDbTime();
                             continue;
                         }
                     }
@@ -8585,7 +8860,7 @@ namespace PRoConEvents {
                 String remainingMessage = message.TrimStart(splitMessage[0].ToCharArray()).Trim();
 
                 record.server_id = _serverInfo.ServerID;
-                record.record_time = DateTime.UtcNow;
+                record.record_time = UtcDbTime();
 
                 //GATE 1: Add Command
                 AdKatsCommand commandType = null;
@@ -8616,11 +8891,11 @@ namespace PRoConEvents {
                     }
                     if (!_firstUserListComplete)
                     {
-                        SendMessageToSource(record, "Command startup in progress, 1/3 complete, " + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + " elapsed.");
+                        SendMessageToSource(record, "Command startup in progress, 1/3 complete, " + FormatTimeString(UtcDbTime() - _AdKatsStartTime, 3) + " elapsed.");
                     }
                     else
                     {
-                        SendMessageToSource(record, "Command startup in progress, 2/3 complete, " + FormatTimeString(DateTime.UtcNow - _AdKatsStartTime, 3) + " elapsed.");
+                        SendMessageToSource(record, "Command startup in progress, 2/3 complete, " + FormatTimeString(UtcDbTime() - _AdKatsStartTime, 3) + " elapsed.");
                     }
                     FinalizeRecord(record);
                     return;
@@ -8842,7 +9117,7 @@ namespace PRoConEvents {
                         if ((!enemyWinning && !enemyStrong) ||
                             (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 200)) {
                             //15 second timeout
-                            Double timeout = (60 - (DateTime.UtcNow - _commandUsageTimes["self_assist"]).TotalSeconds);
+                            Double timeout = (60 - (UtcDbTime() - _commandUsageTimes["self_assist"]).TotalSeconds);
                             if (timeout > 0) {
                                 SendMessageToSource(record, "Assist recently used. Please wait " + (int) timeout + " seconds before using it. Thank you. " + debug);
                                 FinalizeRecord(record);
@@ -9931,7 +10206,7 @@ namespace PRoConEvents {
                         break;
                     case "player_report": {
                         //Get the command text for report
-                        String command = _CommandKeyDictionary["player_report"].command_text;
+                        String command = GetCommandByKey("player_report").command_text;
 
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
@@ -9975,7 +10250,7 @@ namespace PRoConEvents {
                         break;
                     case "player_calladmin": {
                         //Get the command text for call admin
-                        String command = _CommandKeyDictionary["player_calladmin"].command_text;
+                        String command = GetCommandByKey("player_calladmin").command_text;
 
                         //Remove previous commands awaiting confirmation
                         CancelSourcePendingAction(record);
@@ -10606,7 +10881,7 @@ namespace PRoConEvents {
                                     }
                                     else
                                     {
-                                        record.record_message = "Invalid PreMessage ID or command name. !" + _CommandKeyDictionary["self_help"].command_text + " for command list. Valid PreMessage IDs are 1-" + _PreMessageList.Count;
+                                        record.record_message = "Invalid PreMessage ID or command name. !" + GetCommandByKey("self_help").command_text + " for command list. Valid PreMessage IDs are 1-" + _PreMessageList.Count;
                                     }
                                 }
                                 SendMessageToSource(record, record.record_message);
@@ -11663,59 +11938,80 @@ namespace PRoConEvents {
 
         public void FinalizeRecord(AdKatsRecord record)
         {
-            if (record.command_action == null)
+            DebugWrite("Entering FinalizeRecord", 7);
+            try
             {
-                if (record.command_type != null)
+                //Make sure commands are assigned properly
+                if (record.command_action == null)
                 {
-                    record.command_action = record.command_type;
+                    if (record.command_type != null)
+                    {
+                        record.command_action = record.command_type;
+                    }
+                    else
+                    {
+                        HandleException(new AdKatsException("Record command not found, unable to finalize record. " + ((String.IsNullOrEmpty(record.source_name)) ? ("NOSOURCE") : (record.source_name)) + "|" + ((String.IsNullOrEmpty(record.record_message)) ? ("NOMESSAGE") : (record.record_message))));
+                        return;
+                    }
                 }
-                else
+                if (record.external_responseRequested)
                 {
-                    ConsoleError("Record command not found, unable to finalize record.");
-                    return;
-                }
-            }
-            if (record.external_responseRequested) {
-                var responseHashtable = new Hashtable {
+                    var responseHashtable = new Hashtable {
                     {"caller_identity", "AdKats"},
                     {"response_requested", false},
                     {"response_type", "IssueCommand"},
                     {"response_value", CPluginVariable.EncodeStringArray(record.debugMessages.ToArray())}
                 };
-                ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, JSON.JsonEncode(responseHashtable));
-            }
-            //Performance testing area
-            if (record.source_name == _debugSoldierName) {
-                SendMessageToSource(record, "Duration: " + ((int) DateTime.UtcNow.Subtract(_commandStartTime).TotalMilliseconds) + "ms");
-            }
-            if (record.record_source == AdKatsRecord.Sources.InGame || record.record_source == AdKatsRecord.Sources.InternalAutomated) {
-                DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + Math.Round((DateTime.UtcNow - record.record_time).TotalMilliseconds) + "ms to complete.", 3);
-            } 
-            //Add event log
-            if (String.IsNullOrEmpty(record.target_name)) {
-                if (record.target_player != null) {
-                    record.target_name = record.target_player.player_name;
+                    ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, JSON.JsonEncode(responseHashtable));
                 }
-                else {
-                    record.target_name = "UnknownTarget";
+                //Performance testing area
+                if (record.source_name == _debugSoldierName)
+                {
+                    SendMessageToSource(record, "Duration: " + ((int)UtcDbTime().Subtract(_commandStartTime).TotalMilliseconds) + "ms");
                 }
-            } 
-            if (String.IsNullOrEmpty(record.source_name)) {
-                if (record.source_player != null) {
-                    record.source_name = record.source_player.player_name;
+                if (record.record_source == AdKatsRecord.Sources.InGame || record.record_source == AdKatsRecord.Sources.InternalAutomated)
+                {
+                    DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + Math.Round((UtcDbTime() - record.record_time).TotalMilliseconds) + "ms to complete.", 3);
                 }
-                else {
-                    record.source_name = "UnknownSource";
+                //Add event log
+                if (String.IsNullOrEmpty(record.target_name))
+                {
+                    if (record.target_player != null)
+                    {
+                        record.target_name = record.target_player.player_name;
+                    }
+                    else
+                    {
+                        record.target_name = "UnknownTarget";
+                    }
                 }
-            } 
-            String message;
-            if (record.record_action_executed) {
-                message = record.source_name + " issued " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
+                if (String.IsNullOrEmpty(record.source_name))
+                {
+                    if (record.source_player != null)
+                    {
+                        record.source_name = record.source_player.player_name;
+                    }
+                    else
+                    {
+                        record.source_name = "UnknownSource";
+                    }
+                }
+                String message;
+                if (record.record_action_executed)
+                {
+                    message = record.source_name + " issued " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
+                }
+                else
+                {
+                    message = record.source_name + " FAILED to issue " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
+                }
+                this.ExecuteCommand("procon.protected.events.write", "Plugins", "PluginAction", message, record.source_name);
             }
-            else {
-                message = record.source_name + " FAILED to issue " + record.command_action.command_name + " on " + record.target_name + " for " + record.record_message;
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while finalizing record.", e));
             }
-            this.ExecuteCommand("procon.protected.events.write", "Plugins", "PluginAction", message, record.source_name);
+            DebugWrite("Exiting FinalizeRecord", 7);
         }
 
         public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm, Boolean externalFetchOverFuzzy, Boolean externalOnlineFetchOverFuzzy)
@@ -12123,7 +12419,7 @@ namespace PRoConEvents {
                 if (reportedRecord != null)
                 {
                     DebugWrite("Denying round report.", 5);
-                    reportedRecord.command_action = _CommandKeyDictionary["player_report_deny"];
+                    reportedRecord.command_action = GetCommandByKey("player_report_deny");
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been denied.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been denied by " + record.source_name + ".");
@@ -12150,7 +12446,7 @@ namespace PRoConEvents {
                 if (reportedRecord != null)
                 {
                     DebugWrite("Ignoring round report.", 5);
-                    reportedRecord.command_action = _CommandKeyDictionary["player_report_ignore"];
+                    reportedRecord.command_action = GetCommandByKey("player_report_ignore");
                     UpdateRecord(reportedRecord);
                     //Do not inform the player their report was ignored
                     //SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been ignored.");
@@ -12175,7 +12471,7 @@ namespace PRoConEvents {
                 AdKatsRecord reportedRecord = FetchRoundReport(record.target_name, true);
                 if (reportedRecord != null) {
                     DebugWrite("Accepting round report.", 5);
-                    reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
+                    reportedRecord.command_action = GetCommandByKey("player_report_confirm");
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been accepted. Thank you.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been accepted by " + record.source_name + ".");
@@ -12204,8 +12500,8 @@ namespace PRoConEvents {
                     {
                         return false;
                     }
-                    if ((DateTime.UtcNow - reportedRecord.record_time).TotalSeconds < _MinimumReportHandleSeconds) {
-                        SendMessageToSource(record, "Report [" + record.target_name + "] cannot be acted on. " + FormatTimeString(TimeSpan.FromSeconds(_MinimumReportHandleSeconds - (DateTime.UtcNow - reportedRecord.record_time).TotalSeconds), 2) + " remaining.");
+                    if ((UtcDbTime() - reportedRecord.record_time).TotalSeconds < _MinimumReportHandleSeconds) {
+                        SendMessageToSource(record, "Report [" + record.target_name + "] cannot be acted on. " + FormatTimeString(TimeSpan.FromSeconds(_MinimumReportHandleSeconds - (UtcDbTime() - reportedRecord.record_time).TotalSeconds), 2) + " remaining.");
                         return true;
                     }
                     if (_RoundReports.Remove(record.target_name))
@@ -12223,7 +12519,7 @@ namespace PRoConEvents {
                     DebugWrite("Handling round report.", 5);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been acted on. Thank you.");
                     OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been acted on by " + record.source_name + ".");
-                    reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
+                    reportedRecord.command_action = GetCommandByKey("player_report_confirm");
                     UpdateRecord(reportedRecord);
 
                     record.target_name = reportedRecord.target_name;
@@ -12291,7 +12587,7 @@ namespace PRoConEvents {
             try {
                 DebugWrite("ACTION: Starting Action Thread", 1);
                 Thread.CurrentThread.Name = "action";
-                DateTime loopStart = DateTime.UtcNow;
+                DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
                         DebugWrite("ACTION: Entering Action Thread Loop", 7);
@@ -12337,11 +12633,11 @@ namespace PRoConEvents {
                         else {
                             DebugWrite("ACTION: No inbound actions. Waiting.", 6);
                             //Wait for new actions
-                            if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
-                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((DateTime.UtcNow - loopStart).TotalMilliseconds)) + "ms", 4);
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _ActionHandlingWaitHandle.Reset();
                             _ActionHandlingWaitHandle.WaitOne(Timeout.Infinite);
-                            loopStart = DateTime.UtcNow;
+                            loopStart = UtcDbTime();
                         }
                     }
                     catch (Exception e) {
@@ -12601,8 +12897,8 @@ namespace PRoConEvents {
                         FinalizeRecord(record);
                         break;
                 }
-                DebugWrite(record.command_type.command_key + " last used " + FormatTimeString(DateTime.UtcNow - _commandUsageTimes[record.command_type.command_key], 10) + " ago.", 3);
-                _commandUsageTimes[record.command_type.command_key] = DateTime.UtcNow;
+                DebugWrite(record.command_type.command_key + " last used " + FormatTimeString(UtcDbTime() - _commandUsageTimes[record.command_type.command_key], 10) + " ago.", 3);
+                _commandUsageTimes[record.command_type.command_key] = UtcDbTime();
             }
             catch (Exception e) {
                 record.record_exception = HandleException(new AdKatsException("Error while choosing action for record.", e));
@@ -12646,8 +12942,8 @@ namespace PRoConEvents {
             try
             {
                 record.record_action_executed = true;
-                if (record.command_type == _CommandKeyDictionary["self_teamswap"]) {
-                    if ((record.source_player != null && HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"])) || ((_TeamSwapTicketWindowHigh >= _highestTicketCount) && (_TeamSwapTicketWindowLow <= _lowestTicketCount))) {
+                if (record.command_type == GetCommandByKey("self_teamswap")) {
+                    if ((record.source_player != null && HasAccess(record.source_player, GetCommandByKey("self_teamswap"))) || ((_TeamSwapTicketWindowHigh >= _highestTicketCount) && (_TeamSwapTicketWindowLow <= _lowestTicketCount))) {
                         message = "Calling Teamswap on self";
                         DebugWrite(message, 6);
                         QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
@@ -12704,13 +13000,13 @@ namespace PRoConEvents {
                                     AdminSayMessage(record.target_name + " was PUNISHED by " + record.source_name + " for " + record.record_message);
                                 }
                             }
-                            var seconds = (int) DateTime.UtcNow.Subtract(record.target_player.lastDeath).TotalSeconds;
+                            var seconds = (int) UtcDbTime().Subtract(record.target_player.lastDeath).TotalSeconds;
                             DebugWrite("Killing player. Player last died " + seconds + " seconds ago.", 3);
                             if (seconds < 6 && record.command_action.command_key != "player_kill_repeat") {
                                 DebugWrite("Queueing player for kill on spawn. (" + seconds + ")&(" + record.command_action + ")", 3);
                                 if (!_ActOnSpawnDictionary.ContainsKey(record.target_player.player_name)) {
                                     lock (_ActOnSpawnDictionary) {
-                                        record.command_action = _CommandKeyDictionary["player_kill_repeat"];
+                                        record.command_action = GetCommandByKey("player_kill_repeat");
                                         _ActOnSpawnDictionary.Add(record.target_player.player_name, record);
                                     }
                                 }
@@ -13125,7 +13421,7 @@ namespace PRoConEvents {
                 DebugWrite("Ban Enforce Message: '" + generatedBanReason + "'", 3);
 
                 //Perform Actions
-                if (_PlayerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < DateTime.UtcNow) {
+                if (_PlayerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < UtcDbTime()) {
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", aBan.ban_record.target_player.player_name, generatedBanReason);
                     //Inform the server of the enforced ban
                     if (verbose) {
@@ -13203,62 +13499,62 @@ namespace PRoConEvents {
                         PlayerTellMessage(record.target_name, "Warned by admin for " + record.record_message, true , 3);
                     }
                     else if ((action == "kill" || (isLowPop && !iroOverride)) && !action.Equals("ban")) {
-                        record.command_action = (isLowPop) ? (_CommandKeyDictionary["player_kill_lowpop"]) : (_CommandKeyDictionary["player_kill"]);
+                        record.command_action = (isLowPop) ? (GetCommandByKey("player_kill_lowpop")) : (GetCommandByKey("player_kill"));
                         KillTarget(record);
                     }
                     else if (action == "kick") {
-                        record.command_action = _CommandKeyDictionary["player_kick"];
+                        record.command_action = GetCommandByKey("player_kick");
                         KickTarget(record);
                     }
                     else if (action == "tban60") {
                         record.command_numeric = 60;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tban120") {
                         record.command_numeric = 120;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tbanday")
                     {
                         record.command_numeric = 1440;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tban2days")
                     {
                         record.command_numeric = 2880;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tban3days")
                     {
                         record.command_numeric = 4320;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tbanweek") {
                         record.command_numeric = 10080;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tban2weeks") {
                         record.command_numeric = 20160;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "tbanmonth") {
                         record.command_numeric = 43200;
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                        record.command_action = GetCommandByKey("player_ban_temp");
                         TempBanTarget(record);
                     }
                     else if (action == "ban") {
-                        record.command_action = _CommandKeyDictionary["player_ban_perm"];
+                        record.command_action = GetCommandByKey("player_ban_perm");
                         PermaBanTarget(record);
                     }
                     else {
-                        record.command_action = _CommandKeyDictionary["player_kill"];
+                        record.command_action = GetCommandByKey("player_kill");
                         KillTarget(record);
                         record.record_exception = new AdKatsException("Punish options are set incorrectly. '" + action + "' not found. Inform plugin setting manager.");
                         HandleException(record.record_exception);
@@ -13266,7 +13562,7 @@ namespace PRoConEvents {
                 }
                 else {
                     //Exception found, just kill the player
-                    record.command_action = _CommandKeyDictionary["player_kill"];
+                    record.command_action = GetCommandByKey("player_kill");
                     KillTarget(record);
                 }
             }
@@ -13796,7 +14092,7 @@ namespace PRoConEvents {
             try
             {
                 record.record_action_executed = true;
-                if (!HasAccess(record.target_player, _CommandKeyDictionary["player_mute"])) {
+                if (!HasAccess(record.target_player, GetCommandByKey("player_mute"))) {
                     if (!_RoundMutedPlayers.ContainsKey(record.target_player.player_name)) {
                         _RoundMutedPlayers.Add(record.target_player.player_name, 0);
                         PlayerSayMessage(record.target_player.player_name, _MutedPlayerMuteMessage);
@@ -13829,7 +14125,7 @@ namespace PRoConEvents {
                 if (_PlayerDictionary.TryGetValue(record.source_name, out sourcePlayer))
                 {
                     //If the source has access to move players, then the squad will be unlocked for their entry
-                    if (HasAccess(record.source_player, _CommandKeyDictionary["player_move"]))
+                    if (HasAccess(record.source_player, GetCommandByKey("player_move")))
                     {
                         //Unlock target squad
                         SendMessageToSource(record, "Unlocking target squad if needed, please wait.");
@@ -13838,9 +14134,9 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(500);
                     }
                     //Check for player access to change teams
-                    if (record.target_player.frostbitePlayerInfo.TeamID != sourcePlayer.frostbitePlayerInfo.TeamID && !HasAccess(record.source_player, _CommandKeyDictionary["self_teamswap"]))
+                    if (record.target_player.frostbitePlayerInfo.TeamID != sourcePlayer.frostbitePlayerInfo.TeamID && !HasAccess(record.source_player, GetCommandByKey("self_teamswap")))
                     {
-                        SendMessageToSource(record, "Target player is not on your team, you need @" + _CommandKeyDictionary["self_teamswap"].command_text + "/TeamSwap access to join them.");
+                        SendMessageToSource(record, "Target player is not on your team, you need @" + GetCommandByKey("self_teamswap").command_text + "/TeamSwap access to join them.");
                     }
                     else
                     {
@@ -13849,7 +14145,7 @@ namespace PRoConEvents {
                         ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                         _MULTIBalancerUnswitcherDisabled = true;
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", record.source_name, record.target_player.frostbitePlayerInfo.TeamID + "", record.target_player.frostbitePlayerInfo.SquadID + "", "true");
-                        _LastPlayerMoveIssued = DateTime.UtcNow;
+                        _LastPlayerMoveIssued = UtcDbTime();
                         SendMessageToSource(record, "Attempting to join " + record.target_player.player_name);
                     }
                 }
@@ -13882,7 +14178,7 @@ namespace PRoConEvents {
                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                 _MULTIBalancerUnswitcherDisabled = true;
                 ExecuteCommand("procon.protected.send", "admin.movePlayer", record.target_name, record.source_player.frostbitePlayerInfo.TeamID + "", record.source_player.frostbitePlayerInfo.SquadID + "", "true");
-                _LastPlayerMoveIssued = DateTime.UtcNow;
+                _LastPlayerMoveIssued = UtcDbTime();
                 SendMessageToSource(record, "Attempting to pull " + record.target_player.player_name);
             }
             catch (Exception e)
@@ -13968,7 +14264,8 @@ namespace PRoConEvents {
                         _EmailHandler.SendReport(record);
                     }
                 }
-                if (record.source_player != null &&  
+                if (record.source_player != null && 
+                    record.source_name != record.target_name &&
                     record.source_player.player_type == PlayerType.Spectator)
                 {
                     //Custom record to boost rep for reporting from spectator mode
@@ -13976,7 +14273,7 @@ namespace PRoConEvents {
                     {
                         record_source = AdKatsRecord.Sources.InternalAutomated,
                         server_id = _serverInfo.ServerID,
-                        command_type = _CommandKeyDictionary["player_repboost"],
+                        command_type = GetCommandByKey("player_repboost"),
                         command_numeric = 0,
                         target_name = record.source_player.player_name,
                         target_player = record.source_player,
@@ -14110,13 +14407,13 @@ namespace PRoConEvents {
                             //Remove it from the reports for this round
                             _RoundReports.Remove(reportID);
                             //Update it in the database
-                            reportedRecord.command_action = _CommandKeyDictionary["player_report_confirm"];
+                            reportedRecord.command_action = GetCommandByKey("player_report_confirm");
                             UpdateRecord(reportedRecord);
                             //Get target information
                             var aRecord = new AdKatsRecord {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
-                                command_type = _CommandKeyDictionary["player_punish"],
+                                command_type = GetCommandByKey("player_punish"),
                                 command_numeric = 0,
                                 target_name = reportedRecord.target_player.player_name,
                                 target_player = reportedRecord.target_player,
@@ -14346,7 +14643,7 @@ namespace PRoConEvents {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
                             server_id = oldPartner.player_server.ServerID,
                             record_orchestrate = true,
-                            command_type = _CommandKeyDictionary["player_pm_cancel"],
+                            command_type = GetCommandByKey("player_pm_cancel"),
                             command_numeric = 0,
                             target_name = oldPartner.player_name,
                             target_player = oldPartner,
@@ -14371,7 +14668,7 @@ namespace PRoConEvents {
                         record_source = AdKatsRecord.Sources.InternalAutomated,
                         server_id = partner.player_server.ServerID,
                         record_orchestrate = true,
-                        command_type = _CommandKeyDictionary["player_pm_start"],
+                        command_type = GetCommandByKey("player_pm_start"),
                         command_numeric = 0,
                         target_name = partner.player_name,
                         target_player = partner,
@@ -14414,7 +14711,7 @@ namespace PRoConEvents {
                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                     server_id = oldPartner.player_server.ServerID,
                                     record_orchestrate = true,
-                                    command_type = _CommandKeyDictionary["player_pm_cancel"],
+                                    command_type = GetCommandByKey("player_pm_cancel"),
                                     command_numeric = 0,
                                     target_name = oldPartner.player_name,
                                     target_player = oldPartner,
@@ -14470,7 +14767,7 @@ namespace PRoConEvents {
                         record_source = AdKatsRecord.Sources.InternalAutomated,
                         server_id = partner.player_server.ServerID,
                         record_orchestrate = true,
-                        command_type = _CommandKeyDictionary["player_pm_transmit"],
+                        command_type = GetCommandByKey("player_pm_transmit"),
                         command_numeric = 0,
                         target_name = partner.player_name,
                         target_player = partner,
@@ -14544,7 +14841,7 @@ namespace PRoConEvents {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = oldPartner.player_server.ServerID,
                                 record_orchestrate = true,
-                                command_type = _CommandKeyDictionary["player_pm_cancel"],
+                                command_type = GetCommandByKey("player_pm_cancel"),
                                 command_numeric = 0,
                                 target_name = oldPartner.player_name,
                                 target_player = oldPartner,
@@ -14629,7 +14926,7 @@ namespace PRoConEvents {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
                             server_id = sender.player_server.ServerID,
                             record_orchestrate = true,
-                            command_type = _CommandKeyDictionary["player_pm_cancel"],
+                            command_type = GetCommandByKey("player_pm_cancel"),
                             command_numeric = 0,
                             target_name = sender.player_name,
                             target_player = sender,
@@ -14890,7 +15187,7 @@ namespace PRoConEvents {
 
                     _surrenderVoteActive = true;
                     voteEnabled = true;
-                    _surrenderVoteStartTime = DateTime.UtcNow;
+                    _surrenderVoteStartTime = UtcDbTime();
                     if (_surrenderVoteTimeoutEnable)
                     {
                         var surrenderTimingThread = new Thread(new ThreadStart(delegate
@@ -14899,7 +15196,7 @@ namespace PRoConEvents {
                             try
                             {
                                 while (_pluginEnabled &&
-                                       (DateTime.UtcNow - _surrenderVoteStartTime).TotalMinutes < _surrenderVoteTimeoutMinutes &&
+                                       (UtcDbTime() - _surrenderVoteStartTime).TotalMinutes < _surrenderVoteTimeoutMinutes &&
                                        !_surrenderVoteSucceeded &&
                                        _surrenderVoteActive)
                                 {
@@ -14951,7 +15248,7 @@ namespace PRoConEvents {
                                 {
                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                     server_id = _serverInfo.ServerID,
-                                    command_type = _CommandKeyDictionary["round_end"],
+                                    command_type = GetCommandByKey("round_end"),
                                     command_numeric = winningTeam.TeamID,
                                     target_name = winningTeam.TeamName,
                                     source_name = "RoundManager",
@@ -15151,13 +15448,13 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "uptimeprinter";
                         SendMessageToSource(record, "Server: " + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.InfoObject.ServerUptime), 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "Procon: " + FormatTimeString(DateTime.UtcNow - _proconStartTime, 10));
+                        SendMessageToSource(record, "Procon: " + FormatTimeString(UtcDbTime() - _proconStartTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "AdKats " + PluginVersion + ": " + FormatTimeString(DateTime.UtcNow - _AdKatsRunningTime, 10));
+                        SendMessageToSource(record, "AdKats " + PluginVersion + ": " + FormatTimeString(UtcDbTime() - _AdKatsRunningTime, 10));
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "Last Player List: " + FormatTimeString(DateTime.UtcNow - _lastSuccessfulPlayerList, 10) + " ago");
+                        SendMessageToSource(record, "Last Player List: " + FormatTimeString(UtcDbTime() - _lastSuccessfulPlayerList, 10) + " ago");
                         _threadMasterWaitHandle.WaitOne(3000);
-                        SendMessageToSource(record, "Server has been in " + ((_populationStatusLow) ? ("low") : ("high")) + " population for " + FormatTimeString(DateTime.UtcNow - _populationTransitionTime, 3));
+                        SendMessageToSource(record, "Server has been in " + ((_populationStatusLow) ? ("low") : ("high")) + " population for " + FormatTimeString(UtcDbTime() - _populationTransitionTime, 3));
                         Double totalPopulationDuration = (_populationDurationLow.TotalSeconds + _populationDurationHigh.TotalSeconds);
                         if (totalPopulationDuration > 0) {
                             _threadMasterWaitHandle.WaitOne(5000);
@@ -15203,7 +15500,7 @@ namespace PRoConEvents {
                     {
                         location = "OFFLINE";
                     }
-                    SendMessageToSource(record, "(" + rRecord.command_numeric + ")(" + FormatTimeString(DateTime.UtcNow - rRecord.record_time, 2) + ")(" + rRecord.target_name + "/" + location + "):" + rRecord.record_message);
+                    SendMessageToSource(record, "(" + rRecord.command_numeric + ")(" + FormatTimeString(UtcDbTime() - rRecord.record_time, 2) + ")(" + rRecord.target_name + "/" + location + "):" + rRecord.record_message);
                     Thread.Sleep(30);
                     listed = true;
                 }
@@ -15293,7 +15590,7 @@ namespace PRoConEvents {
                         }
                         SendMessageToSource(record, playerInfo);
                         _threadMasterWaitHandle.WaitOne(2000);
-                        SendMessageToSource(record, "First seen: " + FormatTimeString(DateTime.UtcNow - record.target_player.player_firstseen, 3) + " ago.");
+                        SendMessageToSource(record, "First seen: " + FormatTimeString(UtcDbTime() - record.target_player.player_firstseen, 3) + " ago.");
                         _threadMasterWaitHandle.WaitOne(2000);
                         SendMessageToSource(record, "Time on server: " + FormatTimeString(record.target_player.player_serverplaytime, 3) + " + current session.");
                         _threadMasterWaitHandle.WaitOne(2000);
@@ -15309,7 +15606,7 @@ namespace PRoConEvents {
                                     playerLoc += loc.regionName + ", ";
                                 }
                                 playerLoc += loc.country;
-                                IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_changeip"].command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message != "No previous IP on record");
+                                IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changeip").command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message != "No previous IP on record");
                                 if (locRecords.Count() > 0) {
                                     playerLoc += " with " + locRecords.Count() + " IP changes.";
                                 }
@@ -15355,48 +15652,48 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Last Punishment
                         String lastPunishText = "No punishments found.";
-                        var punishments = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_punish"].command_id, 1000, 1, true, false);
+                        var punishments = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_punish").command_id, 1000, 1, true, false);
                         if (punishments.Any()) {
                             var lastPunish = punishments[0];
-                            lastPunishText = FormatTimeString(DateTime.UtcNow - lastPunish.record_time, 2) + " ago by " + lastPunish.source_name + ": " + lastPunish.record_message;
+                            lastPunishText = FormatTimeString(UtcDbTime() - lastPunish.record_time, 2) + " ago by " + lastPunish.source_name + ": " + lastPunish.record_message;
                         }
                         SendMessageToSource(record, "Last Punishment: " + lastPunishText);
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Last Forgive
                         String lastForgiveText = "No forgives found.";
-                        var forgives = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_forgive"].command_id, 1000, 1, true, false);
+                        var forgives = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_forgive").command_id, 1000, 1, true, false);
                         if (forgives.Any())
                         {
                             var lastForgive = forgives[0];
-                            lastForgiveText = FormatTimeString(DateTime.UtcNow - lastForgive.record_time, 2) + " ago by " + lastForgive.source_name + ": " + lastForgive.record_message;
+                            lastForgiveText = FormatTimeString(UtcDbTime() - lastForgive.record_time, 2) + " ago by " + lastForgive.source_name + ": " + lastForgive.record_message;
                         }
                         SendMessageToSource(record, "Last Forgive: " + lastForgiveText);
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Rules requests
                         String rulesRequestsText = "Player has never requested rules.";
-                        var rulesRequests = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["self_rules"].command_id, 1000, 50, true, false);
+                        var rulesRequests = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("self_rules").command_id, 1000, 50, true, false);
                         if (rulesRequests.Any(innerRecord => innerRecord.source_player != null && innerRecord.source_player.player_id == record.target_player.player_id))
                         {
                             var lastRulesRequest = rulesRequests[0];
-                            rulesRequestsText = FormatTimeString(DateTime.UtcNow - lastRulesRequest.record_time, 2) + " ago.";
+                            rulesRequestsText = FormatTimeString(UtcDbTime() - lastRulesRequest.record_time, 2) + " ago.";
                         }
                         SendMessageToSource(record, "Last Rules Request: " + rulesRequestsText);
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Ping Kicks
                         String pingKicksText = "Player never kicked for ping.";
-                        var pingKicks = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_kick"].command_id, 1000, 50, true, false).Where(innerRecord => innerRecord.source_name == "PingEnforcer");
+                        var pingKicks = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_kick").command_id, 1000, 50, true, false).Where(innerRecord => innerRecord.source_name == "PingEnforcer");
                         if (pingKicks.Any())
                         {
                             pingKicksText = "Kicked " + pingKicks.Count() + " time(s) for high ping.";
                         }
-                        SendMessageToSource(record, "Ping Kicks: " + pingKicksText + " Current Ping [" + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping_avg, 2) + "") : ("Missing")) + "].");
+                        SendMessageToSource(record, "Ping Kicks: " + pingKicksText + " Current Ping [" + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping_avg, 2) + "") : ("Missing")) + ").");
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Reputation
                         SendMessageToSource(record, "Reputation: " + ((!PlayerIsAdmin(record.target_player)) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)));
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Previous Names
                         String playerNames = "No previous names.";
-                        List<AdKatsRecord> nameRecords = FetchRecentRecords(record.target_player.player_id, _CommandKeyDictionary["player_changename"].command_id, 1000, 50, true, false);
+                        List<AdKatsRecord> nameRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changename").command_id, 1000, 50, true, false);
                         if (nameRecords.Count > 0)
                         {
                             playerNames = record.target_name;
@@ -15638,7 +15935,7 @@ namespace PRoConEvents {
                 }
                 List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
                     aPlayer =>
-                        (DateTime.UtcNow - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes &&
+                        (UtcDbTime() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes &&
                         _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
                         !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
                 if (_AFKIgnoreUserList) {
@@ -15651,13 +15948,13 @@ namespace PRoConEvents {
                 if (afkPlayers.Any())
                 {
                     foreach (AdKatsPlayer aPlayer in afkPlayers) {
-                        string afkTime = FormatTimeString(DateTime.UtcNow - aPlayer.lastAction, 2);
+                        string afkTime = FormatTimeString(UtcDbTime() - aPlayer.lastAction, 2);
                         DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
                         var kickRecord = new AdKatsRecord
                         {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
                             server_id = _serverInfo.ServerID,
-                            command_type = _CommandKeyDictionary["player_kick"],
+                            command_type = GetCommandByKey("player_kick"),
                             command_numeric = 0,
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
@@ -15792,7 +16089,7 @@ namespace PRoConEvents {
                 DateTime loopStart;
                 var counter = new Stopwatch();
                 while (true) {
-                    loopStart = DateTime.UtcNow;
+                    loopStart = UtcDbTime();
                     try {
                         DebugWrite("DBCOMM: Entering Database Comm Thread Loop", 7);
                         if (!_pluginEnabled) {
@@ -15860,7 +16157,7 @@ namespace PRoConEvents {
                         }
 
                         //Check if settings need sync
-                        if (firstRun || _settingImportID != _serverInfo.ServerID || _lastDbSettingFetch.AddSeconds(DbSettingFetchFrequency) < DateTime.UtcNow) {
+                        if (firstRun || _settingImportID != _serverInfo.ServerID || _lastDbSettingFetch.AddSeconds(DbSettingFetchFrequency) < UtcDbTime()) {
                             DebugWrite("Preparing to fetch settings from server " + _serverInfo.ServerID, 6);
                             //Fetch new settings from the database
                             FetchSettings(_settingImportID, _settingImportID != _serverInfo.ServerID);
@@ -15900,7 +16197,7 @@ namespace PRoConEvents {
                         counter.Reset();
                         counter.Start();
                         //Check for new actions from the database at given interval
-                        if (_fetchActionsFromDb && (DateTime.UtcNow > _lastDbActionFetch.AddSeconds(DbActionFetchFrequency))) {
+                        if (_fetchActionsFromDb && (UtcDbTime() > _lastDbActionFetch.AddSeconds(DbActionFetchFrequency))) {
                             RunActionsFromDB();
                         }
                         else {
@@ -15916,7 +16213,7 @@ namespace PRoConEvents {
                         if (firstRun)
                         {
                             //Set the start time
-                            _AdKatsStartTime = DateTime.UtcNow;
+                            _AdKatsStartTime = UtcDbTime();
 
                             //Start other threads
                             StartAndLogThread(_PlayerListingThread);
@@ -16007,8 +16304,8 @@ namespace PRoConEvents {
                             DebugWrite("DBCOMM: No unprocessed records. Waiting for input", 7);
                             _DbCommunicationWaitHandle.Reset();
 
-                            if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
-                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((DateTime.UtcNow - loopStart).TotalMilliseconds)) + "ms", 4);
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             if (_fetchActionsFromDb || _UseBanEnforcer || _UsingAwa) {
                                 //If waiting on DB input, the maximum time we can wait is "db action frequency"
                                 _DbCommunicationWaitHandle.WaitOne(DbActionFetchFrequency * 1000);
@@ -16041,7 +16338,7 @@ namespace PRoConEvents {
         private void FeedStatLoggerSettings() {
             DebugWrite("FeedStatLoggerSettings starting!", 6);
             //Every 60 minutes feed stat logger settings
-            if (_lastStatLoggerStatusUpdateTime.AddMinutes(60) < DateTime.UtcNow)
+            if (_lastStatLoggerStatusUpdateTime.AddMinutes(60) < UtcDbTime())
             {
                 if (_aliveThreads.Values.Any(aThread => aThread.Name == "StatLoggerSettingsFeeder"))
                 {
@@ -16055,7 +16352,7 @@ namespace PRoConEvents {
                     {
                         Thread.CurrentThread.Name = "StatLoggerSettingsFeeder";
                         DebugWrite("Starting a stat logger setting feeder thread.", 5);
-                        _lastStatLoggerStatusUpdateTime = DateTime.UtcNow;
+                        _lastStatLoggerStatusUpdateTime = UtcDbTime();
                         if (_isTestingAuthorized)
                         {
                             _FeedStatLoggerSettings = true;
@@ -16073,7 +16370,7 @@ namespace PRoConEvents {
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Session ON?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Save Sessiondata to DB?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Log playerdata only (no playerstats)?", "No");
-                                Double slOffset = DateTime.UtcNow.Subtract(DateTime.Now).TotalHours;
+                                Double slOffset = UtcDbTime().Subtract(DateTime.Now).TotalHours;
                                 SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Servertime Offset", slOffset + "");
                             }
                             if (_PostStatLoggerChatManually)
@@ -16099,7 +16396,7 @@ namespace PRoConEvents {
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Session ON?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Save Sessiondata to DB?", "Yes");
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Log playerdata only (no playerstats)?", "No");
-                                Double slOffset = DateTime.UtcNow.Subtract(DateTime.Now).TotalHours;
+                                Double slOffset = UtcDbTime().Subtract(DateTime.Now).TotalHours;
                                 SetExternalPluginSetting("CChatGUIDStatsLogger", "Servertime Offset", slOffset + "");
                             }
                             if (_PostStatLoggerChatManually)
@@ -16275,7 +16572,7 @@ namespace PRoConEvents {
                 }
                 FetchAllAccess(true);
             }
-            else if (DateTime.UtcNow > _lastUserFetch.AddSeconds(DbUserFetchFrequency) || _userCache.Count == 0) {
+            else if (UtcDbTime() > _lastUserFetch.AddSeconds(DbUserFetchFrequency) || _userCache.Count == 0) {
                 FetchAllAccess(true);
             }
             else {
@@ -16285,8 +16582,8 @@ namespace PRoConEvents {
 
         private void HandleActiveBanEnforcer() {
             //Call banlist at set interval (20 seconds)
-            if (_UseBanEnforcerPreviousState && (DateTime.UtcNow > _lastBanListCall.AddSeconds(20))) {
-                _lastBanListCall = DateTime.UtcNow;
+            if (_UseBanEnforcerPreviousState && (UtcDbTime() > _lastBanListCall.AddSeconds(20))) {
+                _lastBanListCall = UtcDbTime();
                 DebugWrite("banlist.list called at interval.", 6);
                 ExecuteCommand("procon.protected.send", "banList.list");
             }
@@ -16294,7 +16591,7 @@ namespace PRoConEvents {
             FetchNameBanCount();
             FetchGUIDBanCount();
             FetchIPBanCount();
-            if (!_UseBanEnforcerPreviousState || (DateTime.UtcNow > _lastDbBanFetch.AddSeconds(DbBanFetchFrequency))) {
+            if (!_UseBanEnforcerPreviousState || (UtcDbTime() > _lastDbBanFetch.AddSeconds(DbBanFetchFrequency))) {
                 //Load all bans on startup
                 if (!_UseBanEnforcerPreviousState) {
                     //Get all bans from procon
@@ -16364,7 +16661,7 @@ namespace PRoConEvents {
                 Double totalCBans = 0;
                 Double bansImported = 0;
                 Boolean earlyExit = false;
-                DateTime startTime = DateTime.UtcNow;
+                DateTime startTime = UtcDbTime();
                 Queue<CBanInfo> inboundCBans;
                 lock (_CBanProcessingQueue) {
                     DebugWrite("DBCOMM: Inbound cBans found. Grabbing.", 6);
@@ -16394,19 +16691,19 @@ namespace PRoConEvents {
                     //Permabans and Temp bans longer than 1 year will be defaulted to permaban
                     switch (cBan.BanLength.Subset) {
                         case TimeoutSubset.TimeoutSubsetType.Seconds:
-                            record.command_type = _CommandKeyDictionary["player_ban_temp"];
-                            record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                            record.command_type = GetCommandByKey("player_ban_temp");
+                            record.command_action = GetCommandByKey("player_ban_temp");
                             record.command_numeric = cBan.BanLength.Seconds / 60;
                             break;
                         case TimeoutSubset.TimeoutSubsetType.Permanent:
-                            record.command_type = _CommandKeyDictionary["player_ban_perm"];
-                            record.command_action = _CommandKeyDictionary["player_ban_perm"];
+                            record.command_type = GetCommandByKey("player_ban_perm");
+                            record.command_action = GetCommandByKey("player_ban_perm");
                             record.command_numeric = 0;
                             break;
                         case TimeoutSubset.TimeoutSubsetType.Round:
                             //Accept round ban as 1 hour timeban
-                            record.command_type = _CommandKeyDictionary["player_ban_temp"];
-                            record.command_action = _CommandKeyDictionary["player_ban_temp"];
+                            record.command_type = GetCommandByKey("player_ban_temp");
+                            record.command_action = GetCommandByKey("player_ban_temp");
                             record.command_numeric = 60;
                             break;
                         default:
@@ -16458,7 +16755,7 @@ namespace PRoConEvents {
                     UploadBan(aBan);
 
                     if (!_UseBanEnforcerPreviousState && (++bansImported % 25 == 0)) {
-                        ConsoleWrite(Math.Round(100 * bansImported / totalCBans, 2) + "% of bans uploaded. AVG " + Math.Round(bansImported / ((DateTime.UtcNow - startTime).TotalSeconds), 2) + " uploads/sec.");
+                        ConsoleWrite(Math.Round(100 * bansImported / totalCBans, 2) + "% of bans uploaded. AVG " + Math.Round(bansImported / ((UtcDbTime() - startTime).TotalSeconds), 2) + " uploads/sec.");
                     }
                 }
                 if (bansFound && !earlyExit) {
@@ -16511,7 +16808,7 @@ namespace PRoConEvents {
         }
 
         private Boolean ConnectionCapable() {
-            if (!string.IsNullOrEmpty(_mySqlDatabaseName) && !string.IsNullOrEmpty(_mySqlHostname) && !string.IsNullOrEmpty(_mySqlPassword) && !string.IsNullOrEmpty(_mySqlPort) && !string.IsNullOrEmpty(_mySqlUsername)) {
+            if (!string.IsNullOrEmpty(_mySqlSchemaName) && !string.IsNullOrEmpty(_mySqlHostname) && !string.IsNullOrEmpty(_mySqlPassword) && !string.IsNullOrEmpty(_mySqlPort) && !string.IsNullOrEmpty(_mySqlUsername)) {
                 DebugWrite("MySql Connection capable. All variables in place.", 8);
                 return true;
             }
@@ -16537,7 +16834,7 @@ namespace PRoConEvents {
                 _dbCommStringBuilder.Server = _mySqlHostname;
                 _dbCommStringBuilder.UserID = _mySqlUsername;
                 _dbCommStringBuilder.Password = _mySqlPassword;
-                _dbCommStringBuilder.Database = _mySqlDatabaseName;
+                _dbCommStringBuilder.Database = _mySqlSchemaName;
                 //Set up connection pooling
                 if (UseConnectionPooling) {
                     _dbCommStringBuilder.Pooling = true;
@@ -16624,79 +16921,9 @@ namespace PRoConEvents {
                 }
                 else
                 {
-                    var curUTC = DateTime.UtcNow;
-                    DateTime globalUTC;
-                    TimeSpan diffGlobalUTC;
-                    if (GetGlobalUTCTimestamp(out globalUTC))
-                    {
-                        if (globalUTC > curUTC)
-                        {
-                            diffGlobalUTC = globalUTC - curUTC;
-                        }
-                        else
-                        {
-                            diffGlobalUTC = curUTC - globalUTC;
-                        }
-                        _globalTimingChecked = true;
-                        if (diffGlobalUTC.TotalSeconds > 300)
-                        {
-                            ConsoleError("Your PRoCon layer has a " + FormatTimeString(diffGlobalUTC, 3) + " UTC timestamp mismatch vs Global Time. UTC-Global:(" + globalUTC.ToShortDateString() + " " + globalUTC.ToLongTimeString() + ") UTC-Procon:(" + curUTC.ToShortDateString() + " " + curUTC.ToLongTimeString() + ")");
-                            _globalTimingValid = false;
-                            Disable();
-                            return false;
-                        }
-                        _globalTimingValid = true;
-                        if (diffGlobalUTC.TotalSeconds > 15)
-                        {
-                            ConsoleWarn("Global timing confirmed, but there is a " + FormatTimeString(diffGlobalUTC, 3) + " UTC timestamp mismatch between your layer and global time.");
-                        }
-                        else
-                        {
-                            ConsoleSuccess("Global timing confirmed.");
-                        }
-                    }
-                    else
-                    {
-                        ConsoleError("Unable to confirm timing controls. Global UTC Timestamp could not be fetched.");
-                    }
-                    //Confirm database UTC timestamp matches procon UTC timestamp
-                    var dbUTC = GetDatabaseUTCTimestamp();
-                    TimeSpan diffdbUTC;
-                    if (dbUTC > curUTC)
-                    {
-                        diffdbUTC = dbUTC - curUTC;
-                    }
-                    else
-                    {
-                        diffdbUTC = curUTC - dbUTC;
-                    }
-                    _dbTimingChecked = true;
-                    if (dbUTC == DateTime.MinValue) {
-                        ConsoleError("Unable to confirm timing controls. Database UTC Timestamp could not be fetched.");
-                        _dbTimingValid = false;
-                        if (!_dbTimingValidOverride)
-                        {
-                            Disable();
-                            return false;
-                        }
-                    }
-                    else if (diffdbUTC.TotalSeconds > 300) {
-                        ConsoleError("Your PRoCon layer and database have a " + FormatTimeString(diffdbUTC, 3) + " UTC timestamp mismatch. UTC-Database:(" + dbUTC.ToShortDateString() + " " + dbUTC.ToLongTimeString() + ") UTC-Procon:(" + curUTC.ToShortDateString() + " " + curUTC.ToLongTimeString() + ")");
-                        _dbTimingValid = false;
-                        if (!_dbTimingValidOverride) {
-                            Disable();
-                            return false;
-                        }
-                    }
-                    else {
-                        _dbTimingValid = true;
-                        if (diffdbUTC.TotalSeconds > 15) {
-                            ConsoleWarn("Database timing confirmed, but there is a " + FormatTimeString(diffdbUTC, 3) + " UTC timestamp mismatch between your layer and database.");
-                        }
-                        else {
-                            ConsoleSuccess("Database timing confirmed.");
-                        }
-                    }
+                    TimeSpan diffDBUTC;
+                    _dbTimingValid = TestDBTiming(true, out diffDBUTC);
+                    _dbTimingOffset = diffDBUTC;
                 }
             }
             else {
@@ -16715,7 +16942,7 @@ namespace PRoConEvents {
                     return false;
                 }
                 if (!ConfirmAdKatsTables()) {
-                    ConsoleError("AdKats tables not present in the database. For this release the adkats database setup script must be run manually. Run the script then restart AdKats.");
+                    ConsoleError("AdKats tables not present or valid in the database. For this release the adkats database setup script must be run manually. Run the script then restart AdKats.");
                     return false;
                 }
                 ConsoleSuccess("Database confirmed functional for AdKats use.");
@@ -16727,28 +16954,47 @@ namespace PRoConEvents {
             }
         }
 
-        private void runDBSetupScript() {
+        private Boolean runDBSetupScript() {
             try {
                 ConsoleWrite("Running database setup script. You will not lose any data.");
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        var downloader = new WebClient();
-                        //Set the insert command structure
-                        command.CommandText = downloader.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql");
+                        var client = new WebClient();
+                        DebugWrite("Fetching plugin changelog...", 2);
+                        try
+                        {
+                            command.CommandText = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql");
+                            DebugWrite("SQL setup script fetched.", 1);
+                        }
+                        catch (Exception)
+                        {
+                            try
+                            {
+                                command.CommandText = client.DownloadString("http://api.gamerethos.net/adkats/fetch/sqlsetup");
+                                DebugWrite("SQL setup script fetched from backup location.", 1);
+                            }
+                            catch (Exception)
+                            {
+                                ConsoleError("Failed to fetch SQL setup script.");
+                                return false;
+                            }
+                        }
                         try {
                             //Attempt to execute the query
                             Int32 rowsAffected = command.ExecuteNonQuery();
                             ConsoleWrite("Setup script successful, your database is now prepared for use by AdKats " + GetPluginVersion());
+                            return true;
                         }
                         catch (Exception e) {
-                            ConsoleError("Your database did not accept the script. Does your account have access to table creation? AdKats will not function properly. Exception: " + e);
+                            HandleException(new AdKatsException("Your database did not accept the script. Does your account have access to table, trigger, and stored procedure creation?", e));
                         }
                     }
                 }
             }
             catch (Exception e) {
-                ConsoleError("ERROR when setting up DB, you might not have connection to github: " + e);
+                ConsoleError("Unable to set up the database for AdKats use." + e);
             }
+            return false;
         }
 
         private Boolean ConfirmAdKatsTables()
@@ -16829,13 +17075,15 @@ namespace PRoConEvents {
                         PRIMARY KEY (`roundstat_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Extended Round Stats'", true);
             }
-            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_effective' )", false))
+            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_effective' )", false))
             {
-                SendNonQuery("Adding special player expiration.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_effective` DATETIME NOT NULL AFTER `player_identifier`", true);
+                ConsoleInfo("Special player effective not found. Attempting to add.");
+                SendNonQuery("Adding special player effective.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_effective` DATETIME NOT NULL AFTER `player_identifier`", true);
                 SendNonQuery("Adding initial special player effective values.", "UPDATE `adkats_specialplayers` SET `player_effective` = UTC_TIMESTAMP()", true);
             }
-            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_expiration' )", false))
+            if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_expiration' )", false))
             {
+                ConsoleInfo("Special player expiration not found. Attempting to add.");
                 SendNonQuery("Adding special player expiration.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_expiration` DATETIME NOT NULL AFTER `player_effective`", true);
                 SendNonQuery("Adding initial special player expiration values.", "UPDATE `adkats_specialplayers` SET `player_expiration` = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)", true);
             }
@@ -16848,9 +17096,13 @@ namespace PRoConEvents {
                     ConfirmTable("adkats_rolecommands") && 
                     ConfirmTable("adkats_roles") && 
                     ConfirmTable("adkats_settings") && 
-                    ConfirmTable("adkats_users") && 
-                    ConfirmTable("adkats_usersoldiers") && 
-                    ConfirmTable("adkats_specialplayers");
+                    ConfirmTable("adkats_users") &&
+                    ConfirmTable("adkats_usersoldiers") &&
+                    ConfirmTable("adkats_specialplayers") &&
+                    ConfirmTable("adkats_player_reputation") &&
+                    ConfirmTable("adkats_orchestration") &&
+                    ConfirmTable("tbl_extendedroundstats") && 
+                    !SendQuery("SELECT `TABLE_NAME` AS `table_name` FROM `INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA` = '" + _mySqlSchemaName + "' AND `TABLE_NAME` LIKE 'adkats_%' AND ENGINE <> 'InnoDB'", false);
         }
 
         private Boolean ConfirmStatLoggerTables() {
@@ -16952,7 +17204,7 @@ namespace PRoConEvents {
                                 oldUsers.Add(new AdKatsUser {
                                     user_name = reader.GetString("player_name"),
                                     user_role = _RoleKeyDictionary["guest_default"],
-                                    user_expiration = DateTime.UtcNow.AddYears(20),
+                                    user_expiration = UtcDbTime().AddYears(20),
                                     user_notes = "No Notes"
                                 });
                             }
@@ -16969,44 +17221,44 @@ namespace PRoConEvents {
                 ConsoleInfo("Updating Records...");
                 //Generate old->new command key dictionary
                 var commandConversionDictionary = new Dictionary<string, AdKatsCommand>();
-                commandConversionDictionary.Add("AdminSay", _CommandKeyDictionary["admin_say"]);
-                commandConversionDictionary.Add("AdminTell", _CommandKeyDictionary["admin_tell"]);
-                commandConversionDictionary.Add("AdminYell", _CommandKeyDictionary["admin_yell"]);
-                commandConversionDictionary.Add("CallAdmin", _CommandKeyDictionary["player_calladmin"]);
-                commandConversionDictionary.Add("ConfirmReport", _CommandKeyDictionary["player_report_confirm"]);
-                commandConversionDictionary.Add("EndLevel", _CommandKeyDictionary["round_end"]);
-                commandConversionDictionary.Add("EnforceBan", _CommandKeyDictionary["banenforcer_enforce"]);
-                commandConversionDictionary.Add("Exception", _CommandKeyDictionary["adkats_exception"]);
-                commandConversionDictionary.Add("ForceMove", _CommandKeyDictionary["player_fmove"]);
-                commandConversionDictionary.Add("Forgive", _CommandKeyDictionary["player_forgive"]);
-                commandConversionDictionary.Add("Join", _CommandKeyDictionary["player_join"]);
-                commandConversionDictionary.Add("Kick", _CommandKeyDictionary["player_kick"]);
-                commandConversionDictionary.Add("Kill", _CommandKeyDictionary["player_kill"]);
-                commandConversionDictionary.Add("KickAll", _CommandKeyDictionary["server_kickall"]);
-                commandConversionDictionary.Add("LowPopKill", _CommandKeyDictionary["player_kill_lowpop"]);
-                commandConversionDictionary.Add("Move", _CommandKeyDictionary["player_move"]);
-                commandConversionDictionary.Add("Mute", _CommandKeyDictionary["player_mute"]);
-                commandConversionDictionary.Add("NextLevel", _CommandKeyDictionary["round_next"]);
-                commandConversionDictionary.Add("Nuke", _CommandKeyDictionary["server_nuke"]);
-                commandConversionDictionary.Add("PermaBan", _CommandKeyDictionary["player_ban_perm"]);
-                commandConversionDictionary.Add("PlayerSay", _CommandKeyDictionary["player_say"]);
-                commandConversionDictionary.Add("PlayerYell", _CommandKeyDictionary["player_yell"]);
-                commandConversionDictionary.Add("PlayerTell", _CommandKeyDictionary["player_tell"]);
-                commandConversionDictionary.Add("Punish", _CommandKeyDictionary["player_punish"]);
-                commandConversionDictionary.Add("RepeatKill", _CommandKeyDictionary["player_kill_repeat"]);
-                commandConversionDictionary.Add("Report", _CommandKeyDictionary["player_report"]);
-                commandConversionDictionary.Add("RestartLevel", _CommandKeyDictionary["round_restart"]);
-                commandConversionDictionary.Add("RequestRules", _CommandKeyDictionary["self_rules"]);
-                commandConversionDictionary.Add("RoundWhitelist", _CommandKeyDictionary["player_roundwhitelist"]);
-                commandConversionDictionary.Add("KillSelf", _CommandKeyDictionary["self_kill"]);
-                commandConversionDictionary.Add("Teamswap", _CommandKeyDictionary["self_teamswap"]);
-                commandConversionDictionary.Add("TempBan", _CommandKeyDictionary["player_ban_temp"]);
+                commandConversionDictionary.Add("AdminSay", GetCommandByKey("admin_say"));
+                commandConversionDictionary.Add("AdminTell", GetCommandByKey("admin_tell"));
+                commandConversionDictionary.Add("AdminYell", GetCommandByKey("admin_yell"));
+                commandConversionDictionary.Add("CallAdmin", GetCommandByKey("player_calladmin"));
+                commandConversionDictionary.Add("ConfirmReport", GetCommandByKey("player_report_confirm"));
+                commandConversionDictionary.Add("EndLevel", GetCommandByKey("round_end"));
+                commandConversionDictionary.Add("EnforceBan", GetCommandByKey("banenforcer_enforce"));
+                commandConversionDictionary.Add("Exception", GetCommandByKey("adkats_exception"));
+                commandConversionDictionary.Add("ForceMove", GetCommandByKey("player_fmove"));
+                commandConversionDictionary.Add("Forgive", GetCommandByKey("player_forgive"));
+                commandConversionDictionary.Add("Join", GetCommandByKey("player_join"));
+                commandConversionDictionary.Add("Kick", GetCommandByKey("player_kick"));
+                commandConversionDictionary.Add("Kill", GetCommandByKey("player_kill"));
+                commandConversionDictionary.Add("KickAll", GetCommandByKey("server_kickall"));
+                commandConversionDictionary.Add("LowPopKill", GetCommandByKey("player_kill_lowpop"));
+                commandConversionDictionary.Add("Move", GetCommandByKey("player_move"));
+                commandConversionDictionary.Add("Mute", GetCommandByKey("player_mute"));
+                commandConversionDictionary.Add("NextLevel", GetCommandByKey("round_next"));
+                commandConversionDictionary.Add("Nuke", GetCommandByKey("server_nuke"));
+                commandConversionDictionary.Add("PermaBan", GetCommandByKey("player_ban_perm"));
+                commandConversionDictionary.Add("PlayerSay", GetCommandByKey("player_say"));
+                commandConversionDictionary.Add("PlayerYell", GetCommandByKey("player_yell"));
+                commandConversionDictionary.Add("PlayerTell", GetCommandByKey("player_tell"));
+                commandConversionDictionary.Add("Punish", GetCommandByKey("player_punish"));
+                commandConversionDictionary.Add("RepeatKill", GetCommandByKey("player_kill_repeat"));
+                commandConversionDictionary.Add("Report", GetCommandByKey("player_report"));
+                commandConversionDictionary.Add("RestartLevel", GetCommandByKey("round_restart"));
+                commandConversionDictionary.Add("RequestRules", GetCommandByKey("self_rules"));
+                commandConversionDictionary.Add("RoundWhitelist", GetCommandByKey("player_roundwhitelist"));
+                commandConversionDictionary.Add("KillSelf", GetCommandByKey("self_kill"));
+                commandConversionDictionary.Add("Teamswap", GetCommandByKey("self_teamswap"));
+                commandConversionDictionary.Add("TempBan", GetCommandByKey("player_ban_temp"));
                 ConsoleWrite("Updating Bans...");
                 //Download all bans
                 Double totalBans = 0;
                 Double bansDownloaded = 0;
                 Double bansUpdated = 0;
-                DateTime startTime = DateTime.UtcNow;
+                DateTime startTime = UtcDbTime();
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"
@@ -17113,19 +17365,19 @@ namespace PRoConEvents {
                                 importedBans.Add(aBan);
 
                                 if (++bansDownloaded % 100 == 0) {
-                                    ConsoleWrite(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((DateTime.UtcNow - startTime).TotalSeconds), 2) + " downloads/sec.");
+                                    ConsoleWrite(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((UtcDbTime() - startTime).TotalSeconds), 2) + " downloads/sec.");
                                 }
                             }
                         }
                         if (importedBans.Count > 0) {
                             ConsoleInfo(importedBans.Count + " bans downloaded, beginning update to 4.0 spec.");
                         }
-                        startTime = DateTime.UtcNow;
+                        startTime = UtcDbTime();
                         //Upload all of those bans to the new database
                         foreach (AdKatsBan aBan in importedBans) {
                             UploadBan(aBan);
                             if (++bansUpdated % 15 == 0) {
-                                ConsoleWrite(Math.Round(100 * bansUpdated / totalBans, 2) + "% of bans updated. AVG " + Math.Round(bansUpdated / ((DateTime.UtcNow - startTime).TotalSeconds), 2) + " updates/sec.");
+                                ConsoleWrite(Math.Round(100 * bansUpdated / totalBans, 2) + "% of bans updated. AVG " + Math.Round(bansUpdated / ((UtcDbTime() - startTime).TotalSeconds), 2) + " updates/sec.");
                             }
                         }
                         ConsoleSuccess("All AdKats Enforced bans updated to 4.0 spec.");
@@ -17229,7 +17481,7 @@ namespace PRoConEvents {
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        command.CommandText = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME= '" + tableName + "'";
+                        command.CommandText = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME= '" + tableName + "'";
                         using (MySqlDataReader reader = command.ExecuteReader()) {
                             return reader.Read();
                         }
@@ -17253,7 +17505,7 @@ namespace PRoConEvents {
             try {
                 DebugWrite("uploadAllSettings starting!", 6);
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
-                QueueSettingForUpload(new CPluginVariable(@"Override Timing Confirmation", typeof(Boolean), _dbTimingValidOverride));
+                QueueSettingForUpload(new CPluginVariable(@"Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
                 QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof (int), _debugLevel));
                 QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof (String), _debugSoldierName));
                 QueueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof (String), _ServerVoipAddress));
@@ -17261,7 +17513,9 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Rule Print Interval", typeof (Double), _ServerRulesInterval));
                 QueueSettingForUpload(new CPluginVariable(@"Server Rule List", typeof (String), CPluginVariable.EncodeStringArray(_ServerRulesList)));
                 QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Whitelist", typeof (Boolean), _FeedMultiBalancerWhitelist));
-                QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Even Dispersion List", typeof (Boolean), _FeedMultiBalancerDisperseList));
+                QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList)); 
+                QueueSettingForUpload(new CPluginVariable(@"Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_UserCache));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_UserCache));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof (Boolean), _FeedServerReservedSlots));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof (Boolean), _FeedServerSpectatorList));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
@@ -17380,7 +17634,9 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Minutes", typeof(Int32), _surrenderVoteTimeoutMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
-                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
                 QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
@@ -17413,7 +17669,7 @@ namespace PRoConEvents {
                         DebugWrite(var.Value, 7);
                         //Set the insert command structure
                         command.CommandText = @"
-                        INSERT INTO `" + _mySqlDatabaseName + @"`.`adkats_settings` 
+                        INSERT INTO `" + _mySqlSchemaName + @"`.`adkats_settings` 
                         (
                             `server_id`, 
                             `setting_name`, 
@@ -17465,7 +17721,7 @@ namespace PRoConEvents {
                             `setting_type`, 
                             `setting_value`
                         FROM 
-                            `" + _mySqlDatabaseName + @"`.`adkats_settings` 
+                            `" + _mySqlSchemaName + @"`.`adkats_settings` 
                         WHERE 
                             `server_id` = " + serverID;
                         command.CommandText = sql;
@@ -17478,7 +17734,7 @@ namespace PRoConEvents {
                                 SetPluginVariable(var.Name, var.Value);
                             }
                             if (success) {
-                                _lastDbSettingFetch = DateTime.UtcNow;
+                                _lastDbSettingFetch = UtcDbTime();
                                 UpdateSettingPage();
                             }
                             else {
@@ -17514,7 +17770,7 @@ namespace PRoConEvents {
                         //Set the insert command structure
                         sqlcommand.CommandText = @"
                         INSERT INTO 
-                        `" + _mySqlDatabaseName + @"`.`adkats_commands` 
+                        `" + _mySqlSchemaName + @"`.`adkats_commands` 
                         (
 	                        `command_id`,
 	                        `command_active`,
@@ -18050,6 +18306,10 @@ namespace PRoConEvents {
 
         private void UpdatePlayerReputation(AdKatsPlayer aPlayer, Boolean informPlayer) {
             try {
+                if (aPlayer == null) {
+                    ConsoleError("Attempted to update reputation of invalid player.");
+                    return;
+                }
                 if (_commandSourceReputationDictionary == null || 
                     !_commandSourceReputationDictionary.Any() ||
                     _commandTargetReputationDictionary == null || 
@@ -18059,17 +18319,17 @@ namespace PRoConEvents {
                 double sourceReputation = 0.0;
                 double targetReputation = 0.0;
                 double pointReputation = 0;
-                var recentPunishments = FetchRecentRecords(aPlayer.player_id, _CommandKeyDictionary["player_punish"].command_id, 1000, 1000, true, false);
+                var recentPunishments = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_punish").command_id, 1000, 1000, true, false);
                 foreach (var punishment in recentPunishments) {
-                    var timeSince = DateTime.UtcNow - punishment.record_time;
+                    var timeSince = UtcDbTime() - punishment.record_time;
                     if (timeSince.TotalDays < 50) {
                         pointReputation -= 20 * ((50 - timeSince.TotalDays) / 50);
                     }
                 }
-                var recentForgives = FetchRecentRecords(aPlayer.player_id, _CommandKeyDictionary["player_forgive"].command_id, 1000, 1000, true, false);
+                var recentForgives = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_forgive").command_id, 1000, 1000, true, false);
                 foreach (var forgive in recentForgives)
                 {
-                    var timeSince = DateTime.UtcNow - forgive.record_time;
+                    var timeSince = UtcDbTime() - forgive.record_time;
                     if (timeSince.TotalDays < 50)
                     {
                         pointReputation += 20 * ((50 - timeSince.TotalDays) / 50);
@@ -18681,7 +18941,7 @@ namespace PRoConEvents {
                             `record_message`, 
                             `record_time` 
                         FROM 
-                            `" + _mySqlDatabaseName + @"`.`adkats_records_main` 
+                            `" + _mySqlSchemaName + @"`.`adkats_records_main` 
                         WHERE 
                             `adkats_read` = 'N' 
                         AND 
@@ -18830,7 +19090,7 @@ namespace PRoConEvents {
                                 var ePlayer = FetchPlayer(false, false, false, null, reader.GetInt64("player_id"), null, null, null);
                                 if (ePlayer != null)
                                 {
-                                    ePlayer.player_server = new AdKatsServer()
+                                    ePlayer.player_server = new AdKatsServer(this)
                                     {
                                         ServerID = reader.GetInt64("server_id"),
                                         ServerName = reader.GetString("server_name")
@@ -18898,7 +19158,7 @@ namespace PRoConEvents {
                                     {
                                         return null;
                                     }
-                                    aPlayer.player_server = new AdKatsServer()
+                                    aPlayer.player_server = new AdKatsServer(this)
                                     {
                                         ServerID = reader.GetInt64("server_id"),
                                         ServerName = reader.GetString("server_name")
@@ -18962,10 +19222,10 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (_NameBanCount >= 0 && (DateTime.UtcNow - _lastNameBanCountFetch).TotalSeconds < 30) {
+            if (_NameBanCount >= 0 && (UtcDbTime() - _lastNameBanCountFetch).TotalSeconds < 30) {
                 return _NameBanCount;
             }
-            _lastNameBanCountFetch = DateTime.UtcNow;
+            _lastNameBanCountFetch = UtcDbTime();
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -19003,10 +19263,10 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (_GUIDBanCount >= 0 && (DateTime.UtcNow - _lastGUIDBanCountFetch).TotalSeconds < 30) {
+            if (_GUIDBanCount >= 0 && (UtcDbTime() - _lastGUIDBanCountFetch).TotalSeconds < 30) {
                 return _GUIDBanCount;
             }
-            _lastGUIDBanCountFetch = DateTime.UtcNow;
+            _lastGUIDBanCountFetch = UtcDbTime();
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -19044,10 +19304,10 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return 0;
             }
-            if (_IPBanCount >= 0 && (DateTime.UtcNow - _lastIPBanCountFetch).TotalSeconds < 30) {
+            if (_IPBanCount >= 0 && (UtcDbTime() - _lastIPBanCountFetch).TotalSeconds < 30) {
                 return _IPBanCount;
             }
-            _lastIPBanCountFetch = DateTime.UtcNow;
+            _lastIPBanCountFetch = UtcDbTime();
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -19086,7 +19346,7 @@ namespace PRoConEvents {
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        command.CommandText = "DELETE FROM `" + _mySqlDatabaseName + "`.`adkats_users` WHERE `user_id` = @user_id";
+                        command.CommandText = "DELETE FROM `" + _mySqlSchemaName + "`.`adkats_users` WHERE `user_id` = @user_id";
                         command.Parameters.AddWithValue("@user_id", user.user_id);
                         Int32 rowsAffected = command.ExecuteNonQuery();
                     }
@@ -19120,12 +19380,12 @@ namespace PRoConEvents {
                 }
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        command.CommandText = "DELETE FROM `" + _mySqlDatabaseName + "`.`adkats_rolecommands` WHERE `role_id` = @role_id";
+                        command.CommandText = "DELETE FROM `" + _mySqlSchemaName + "`.`adkats_rolecommands` WHERE `role_id` = @role_id";
                         command.Parameters.AddWithValue("@role_id", aRole.role_id);
                         Int32 rowsAffected = command.ExecuteNonQuery();
                     }
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        command.CommandText = "DELETE FROM `" + _mySqlDatabaseName + "`.`adkats_roles` WHERE `role_id` = @role_id";
+                        command.CommandText = "DELETE FROM `" + _mySqlSchemaName + "`.`adkats_roles` WHERE `role_id` = @role_id";
                         command.Parameters.AddWithValue("@role_id", aRole.role_id);
                         Int32 rowsAffected = command.ExecuteNonQuery();
                     }
@@ -19433,7 +19693,7 @@ namespace PRoConEvents {
                         using (MySqlCommand command = connection.CreateCommand()) {
                             command.CommandText = @"
                             INSERT INTO 
-                            `" + _mySqlDatabaseName + @"`.`adkats_bans` 
+                            `" + _mySqlSchemaName + @"`.`adkats_bans` 
                             (
 	                            `player_id`, 
 	                            `latest_record_id`, 
@@ -19493,7 +19753,7 @@ namespace PRoConEvents {
                             command.Parameters.AddWithValue("@ban_sync", "*" + _serverInfo.ServerID + "*");
                             //Handle permaban case
                             if (aBan.ban_record.command_action.command_key.Contains("player_ban_perm")) {
-                                command.Parameters.AddWithValue("@ban_durationMinutes", (Int32) _PermaBanEndTime.Subtract(DateTime.UtcNow).TotalMinutes);
+                                command.Parameters.AddWithValue("@ban_durationMinutes", (Int32) _PermaBanEndTime.Subtract(UtcDbTime()).TotalMinutes);
                             }
                             else {
                                 command.Parameters.AddWithValue("@ban_durationMinutes", aBan.ban_record.command_numeric);
@@ -19648,7 +19908,7 @@ namespace PRoConEvents {
                             {
                                 sql += ",`GameID` as `game_id` ";
                             }
-                            sql += "FROM `" + _mySqlDatabaseName + @"`.`tbl_playerdata` ";
+                            sql += "FROM `" + _mySqlSchemaName + @"`.`tbl_playerdata` ";
                             bool sqlEnder = true;
                             if (playerID >= 0)
                             {
@@ -19762,7 +20022,7 @@ namespace PRoConEvents {
                                     //The on duplicate key clause should never be hit, but is placed there to avoid exceptions in rare edge cases
                                     Boolean hasPrevious = (_serverInfo.GameID > 0) || !String.IsNullOrEmpty(playerName) || !String.IsNullOrEmpty(playerGUID) || !String.IsNullOrEmpty(playerIP);
                                     command.CommandText = @"
-                                    INSERT INTO `" + _mySqlDatabaseName + @"`.`tbl_playerdata` 
+                                    INSERT INTO `" + _mySqlSchemaName + @"`.`tbl_playerdata` 
                                     (
                                         " + ((useableGameID != null) ? ("`GameID`") : ("")) + @"
                                         " + ((!String.IsNullOrEmpty(playerName)) ? (((useableGameID != null) ? (",") : ("")) + "`SoldierName`") : ("")) + @"
@@ -19815,7 +20075,7 @@ namespace PRoConEvents {
                                 var record = new AdKatsRecord {
                                     record_source = AdKatsRecord.Sources.InternalAutomated,
                                     server_id = _serverInfo.ServerID,
-                                    command_type = _CommandKeyDictionary["player_changename"],
+                                    command_type = GetCommandByKey("player_changename"),
                                     command_numeric = 0,
                                     target_name = aPlayer.player_name,
                                     target_player = aPlayer,
@@ -19865,7 +20125,7 @@ namespace PRoConEvents {
                                     }
                                     else
                                     {
-                                        aPlayer.player_firstseen = DateTime.UtcNow;
+                                        aPlayer.player_firstseen = UtcDbTime();
                                         DebugWrite("No stats found to fetch first seen time.", 5);
                                     }
                                 }
@@ -19930,7 +20190,7 @@ namespace PRoConEvents {
                         using (MySqlCommand command = connection.CreateCommand()) {
                             //Set the insert command structure
                             command.CommandText = @"
-                            UPDATE IGNORE `" + _mySqlDatabaseName + @"`.`tbl_playerdata` SET 
+                            UPDATE IGNORE `" + _mySqlSchemaName + @"`.`tbl_playerdata` SET 
                                 `SoldierName` = '" + player.player_name + @"',
                                 `EAGUID` = '" + player.player_guid + @"',
                                 `IP_Address` = '" + player.player_ip + @"'
@@ -20002,7 +20262,7 @@ namespace PRoConEvents {
                                     ban_enforceIP = (reader.GetString("ban_enforceIP") == "Y"),
                                     ban_record = FetchRecordByID(reader.GetInt64("latest_record_id"), false)
                                 };
-                                if (aBan.ban_endTime.Subtract(DateTime.UtcNow).TotalSeconds < 0)
+                                if (aBan.ban_endTime.Subtract(UtcDbTime()).TotalSeconds < 0)
                                 {
                                     aBan.ban_status = "Expired";
                                     UpdateBanStatus(aBan);
@@ -20122,7 +20382,7 @@ namespace PRoConEvents {
                                     ban_enforceIP = (reader.GetString("ban_enforceIP") == "Y"),
                                     ban_record = FetchRecordByID(reader.GetInt64("latest_record_id"), false)
                                 };
-                                if (aBan.ban_endTime.Subtract(DateTime.UtcNow).TotalSeconds < 0)
+                                if (aBan.ban_endTime.Subtract(UtcDbTime()).TotalSeconds < 0)
                                 {
                                     aBan.ban_status = "Expired";
                                     UpdateBanStatus(aBan);
@@ -20133,7 +20393,7 @@ namespace PRoConEvents {
                                     {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         server_id = _serverInfo.ServerID,
-                                        command_type = _CommandKeyDictionary["player_unban"],
+                                        command_type = GetCommandByKey("player_unban"),
                                         command_numeric = 0,
                                         target_name = player.player_name,
                                         target_player = player,
@@ -20142,7 +20402,7 @@ namespace PRoConEvents {
                                     };
                                     QueueRecordForProcessing(record);
                                 }
-                                else if (_serverInfo.ServerGroup == FetchServerGroup(aBan.ban_record.server_id) && aBan.ban_startTime < DateTime.UtcNow)
+                                else if (_serverInfo.ServerGroup == FetchServerGroup(aBan.ban_record.server_id) && aBan.ban_startTime < UtcDbTime())
                                 {
                                     aBanList.Add(aBan);
                                 }
@@ -20238,7 +20498,7 @@ namespace PRoConEvents {
             Double bansDownloaded = 0;
             Double bansRepopulated = 0;
             Boolean earlyExit = false;
-            DateTime startTime = DateTime.UtcNow;
+            DateTime startTime = UtcDbTime();
 
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
@@ -20315,7 +20575,7 @@ namespace PRoConEvents {
                                 if (aBan.ban_record.target_player != null) {
                                     importedBans.Add(aBan);
                                     if (++bansDownloaded % 15 == 0) {
-                                        ConsoleWrite(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((DateTime.UtcNow - startTime).TotalSeconds), 2) + " downloads/sec.");
+                                        ConsoleWrite(Math.Round(100 * bansDownloaded / totalBans, 2) + "% of bans downloaded. AVG " + Math.Round(bansDownloaded / ((UtcDbTime() - startTime).TotalSeconds), 2) + " downloads/sec.");
                                     }
                                 }
                             }
@@ -20323,10 +20583,10 @@ namespace PRoConEvents {
                         if (importedBans.Count > 0) {
                             ConsoleInfo(importedBans.Count + " bans downloaded, beginning repopulation to ban list.");
                         }
-                        startTime = DateTime.UtcNow;
+                        startTime = UtcDbTime();
                         foreach (AdKatsBan aBan in importedBans) {
                             //Get the record information
-                            var totalBanSeconds = (long) aBan.ban_endTime.Subtract(DateTime.UtcNow).TotalSeconds;
+                            var totalBanSeconds = (long) aBan.ban_endTime.Subtract(UtcDbTime()).TotalSeconds;
                             if (totalBanSeconds > 0) {
                                 DebugWrite("Re-ProconBanning: " + aBan.ban_record.target_player.player_name + " for " + totalBanSeconds + "sec for " + aBan.ban_record.record_message, 4);
 
@@ -20368,7 +20628,7 @@ namespace PRoConEvents {
                             }
 
                             if (++bansRepopulated % 15 == 0) {
-                                ConsoleWrite(Math.Round(100 * bansRepopulated / totalBans, 2) + "% of bans repopulated. AVG " + Math.Round(bansRepopulated / ((DateTime.UtcNow - startTime).TotalSeconds), 2) + " downloads/sec.");
+                                ConsoleWrite(Math.Round(100 * bansRepopulated / totalBans, 2) + "% of bans repopulated. AVG " + Math.Round(bansRepopulated / ((UtcDbTime() - startTime).TotalSeconds), 2) + " downloads/sec.");
                             }
                         }
                         ExecuteCommand("procon.protected.send", "banList.save");
@@ -20378,7 +20638,7 @@ namespace PRoConEvents {
                         }
 
                         //Update the last db ban fetch time
-                        _lastDbBanFetch = DateTime.UtcNow;
+                        _lastDbBanFetch = UtcDbTime();
                     }
                 }
             }
@@ -20410,7 +20670,7 @@ namespace PRoConEvents {
                         using (MySqlCommand command = connection.CreateCommand()) {
                             String query = @"
                             UPDATE 
-                            `" + _mySqlDatabaseName + @"`.`adkats_bans` 
+                            `" + _mySqlSchemaName + @"`.`adkats_bans` 
                             SET 
                             `ban_sync` = '" + aBan.ban_sync + @"', 
                             `ban_status` = '" + aBan.ban_status + @"'
@@ -20449,7 +20709,7 @@ namespace PRoConEvents {
                         SELECT 
                             * 
                         FROM 
-                            `" + _mySqlDatabaseName + @"`.`adkats_bans` 
+                            `" + _mySqlSchemaName + @"`.`adkats_bans` 
                         WHERE 
                             `adkats_bans`.`ban_notes` = 'BBM5108' 
                         LIMIT 1";
@@ -20473,7 +20733,7 @@ namespace PRoConEvents {
             Double totalBans = 0;
             Double bansImported = 0;
             var inboundBBMBans = new Queue<BBM5108Ban>();
-            DateTime startTime = DateTime.UtcNow;
+            DateTime startTime = UtcDbTime();
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -20534,15 +20794,15 @@ namespace PRoConEvents {
                     record.record_source = AdKatsRecord.Sources.InternalAutomated;
                     if (bbmBan.ban_length == "permanent") {
                         DebugWrite("Ban is permanent", 4);
-                        record.command_type = _CommandKeyDictionary["player_ban_perm"];
-                        record.command_action = _CommandKeyDictionary["player_ban_perm"];
+                        record.command_type = GetCommandByKey("player_ban_perm");
+                        record.command_action = GetCommandByKey("player_ban_perm");
                         record.command_numeric = 0;
                     }
                     else if (bbmBan.ban_length == "seconds") {
                         DebugWrite("Ban is temporary", 4);
-                        record.command_type = _CommandKeyDictionary["player_ban_temp"];
-                        record.command_action = _CommandKeyDictionary["player_ban_temp"];
-                        record.command_numeric = (Int32) (bbmBan.ban_duration - DateTime.UtcNow).TotalMinutes;
+                        record.command_type = GetCommandByKey("player_ban_temp");
+                        record.command_action = GetCommandByKey("player_ban_temp");
+                        record.command_numeric = (Int32) (bbmBan.ban_duration - UtcDbTime()).TotalMinutes;
                     }
                     else {
                         //Ignore all other cases e.g. round bans
@@ -20581,7 +20841,7 @@ namespace PRoConEvents {
                     UploadBan(aBan);
 
                     if (++bansImported % 25 == 0) {
-                        ConsoleWrite(Math.Round(100 * bansImported / totalBans, 2) + "% of Ban Manager bans uploaded. AVG " + Math.Round(bansImported / ((DateTime.UtcNow - startTime).TotalSeconds), 2) + " uploads/sec.");
+                        ConsoleWrite(Math.Round(100 * bansImported / totalBans, 2) + "% of Ban Manager bans uploaded. AVG " + Math.Round(bansImported / ((UtcDbTime() - startTime).TotalSeconds), 2) + " uploads/sec.");
                     }
                 }
             }
@@ -20606,7 +20866,7 @@ namespace PRoConEvents {
                 record.target_player.TargetedRecords.Any(
                     aRecord => 
                         aRecord.command_type.command_key == "player_punish" && 
-                        (DateTime.UtcNow - aRecord.record_time).TotalSeconds < duration)) {
+                        (UtcDbTime() - aRecord.record_time).TotalSeconds < duration)) {
                 return false;
             }
             //Make sure database connection active
@@ -20708,7 +20968,7 @@ namespace PRoConEvents {
                     QueueRecordForActionHandling(record);
                 }
                 //Update the last time this was fetched
-                _lastDbActionFetch = DateTime.UtcNow;
+                _lastDbActionFetch = UtcDbTime();
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while queueing unread records for action handling.", e));
@@ -20729,11 +20989,11 @@ namespace PRoConEvents {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         if (_CombineServerPunishments || combineOverride) {
-                            command.CommandText = @"SELECT `total_points` FROM `" + _mySqlDatabaseName + @"`.`adkats_infractions_global` WHERE `player_id` = @player_id";
+                            command.CommandText = @"SELECT `total_points` FROM `" + _mySqlSchemaName + @"`.`adkats_infractions_global` WHERE `player_id` = @player_id";
                             command.Parameters.AddWithValue("@player_id", player.player_id);
                         }
                         else {
-                            command.CommandText = @"SELECT `total_points` FROM `" + _mySqlDatabaseName + @"`.`adkats_infractions_server` WHERE `player_id` = @player_id and `server_id` = @server_id";
+                            command.CommandText = @"SELECT `total_points` FROM `" + _mySqlSchemaName + @"`.`adkats_infractions_server` WHERE `player_id` = @player_id and `server_id` = @server_id";
                             command.Parameters.AddWithValue("@player_id", player.player_id);
                             command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         }
@@ -20940,7 +21200,7 @@ namespace PRoConEvents {
                                     _CommandTextDictionary.Add(currentCommand.command_text, currentCommand);
                                     if (!_commandUsageTimes.ContainsKey(currentCommand.command_key))
                                     {
-                                        _commandUsageTimes[currentCommand.command_key] = DateTime.UtcNow;
+                                        _commandUsageTimes[currentCommand.command_key] = UtcDbTime();
                                     }
                                 }
                             }
@@ -21630,19 +21890,19 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return;
             }
-            DateTime start = DateTime.UtcNow;
+            DateTime start = UtcDbTime();
             try
             {
-                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_expiration' )", false))
+                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_expiration' )", false))
                 {
                     SendNonQuery("Adding user expiration.", "ALTER TABLE `adkats_users` ADD COLUMN `user_expiration` DATETIME NOT NULL AFTER `user_role`", true);
                     SendNonQuery("Adding initial user expiration values.", "UPDATE `adkats_users` SET `user_expiration` = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)", true);
                 }
-                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlDatabaseName + "' AND TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_notes' )", false))
+                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_notes' )", false))
                 {
                     SendNonQuery("Adding user notes.", "ALTER TABLE `adkats_users` ADD COLUMN `user_notes` VARCHAR(1000) NOT NULL DEFAULT 'No Notes' AFTER `user_expiration`", true);
                 }
-                start = DateTime.UtcNow;
+                start = UtcDbTime();
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"
@@ -21686,10 +21946,10 @@ namespace PRoConEvents {
                                     AdKatsUser aUser;
                                     if (_userCache.TryGetValue(userID, out aUser))
                                     {
-                                        if (expirationTime < DateTime.UtcNow)
+                                        if (expirationTime < UtcDbTime())
                                         {
                                             userRole = _RoleKeyDictionary["guest_default"];
-                                            expirationTime = DateTime.UtcNow.AddYears(20);
+                                            expirationTime = UtcDbTime().AddYears(20);
                                             QueueUserForUpload(aUser);
                                         }
                                         aUser.user_name = userName;
@@ -21709,10 +21969,10 @@ namespace PRoConEvents {
                                             user_expiration = expirationTime,
                                             user_notes = userNotes
                                         };
-                                        if (expirationTime < DateTime.UtcNow)
+                                        if (expirationTime < UtcDbTime())
                                         {
                                             userRole = _RoleKeyDictionary["guest_default"];
-                                            expirationTime = DateTime.UtcNow.AddYears(20);
+                                            expirationTime = UtcDbTime().AddYears(20);
                                             QueueUserForUpload(aUser);
                                         }
                                         _userCache.Add(aUser.user_id, aUser);
@@ -21730,8 +21990,8 @@ namespace PRoConEvents {
                             }
                         }
                     }
-                    DebugWrite("User fetch (Users) took " + (DateTime.UtcNow - start).TotalMilliseconds + "ms.", 4);
-                    start = DateTime.UtcNow;
+                    DebugWrite("User fetch (Users) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                    start = UtcDbTime();
                     using (MySqlCommand command = connection.CreateCommand()) {
                         if (_serverInfo.GameID > 0) {
                             command.CommandText = @"
@@ -21850,8 +22110,8 @@ namespace PRoConEvents {
                             }
                         }
                     }
-                    DebugWrite("User fetch (User Soldiers) took " + (DateTime.UtcNow - start).TotalMilliseconds + "ms.", 4);
-                    start = DateTime.UtcNow;
+                    DebugWrite("User fetch (User Soldiers) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+                    start = UtcDbTime();
                     lock (_specialPlayerCache)
                     {
                         using (MySqlCommand command = connection.CreateCommand()) {
@@ -21978,8 +22238,7 @@ namespace PRoConEvents {
                                 }
                             }
                         }
-                        DebugWrite("User fetch (Special Player Fetch) took " + (DateTime.UtcNow - start).TotalMilliseconds + "ms.", 4);
-                        start = DateTime.UtcNow;
+                        DebugWrite("User fetch (Special Player Fetch) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     }
                 }
             }
@@ -21990,13 +22249,18 @@ namespace PRoConEvents {
             _PlayerRoleRefetch = true;
             _PlayerProcessingWaitHandle.Set();
 
+            start = UtcDbTime();
             UpdateMULTIBalancerWhitelist();
             UpdateMULTIBalancerDisperseList();
+            ExecuteCommand("procon.protected.send", "reservedSlotsList.list");
+            Thread.Sleep(50);
             UpdateReservedSlots();
+            ExecuteCommand("procon.protected.send", "spectatorList.list");
+            Thread.Sleep(50);
             UpdateSpectatorList();
-            DebugWrite("User fetch (Orchestration) took " + (DateTime.UtcNow - start).TotalMilliseconds + "ms.", 4);
-            start = DateTime.UtcNow;
-            _lastUserFetch = DateTime.UtcNow;
+            DebugWrite("User fetch (Orchestration) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
+            start = UtcDbTime();
+            _lastUserFetch = UtcDbTime();
             if (!_firstUserListComplete) {
                 _firstUserListComplete = true;
                 OnlineAdminSayMessage("User fetch complete [" + _userCache.Count + " users, " + _specialPlayerCache.Count + " Special Players]. Fetching player list.");
@@ -22223,11 +22487,11 @@ namespace PRoConEvents {
         }
 
         private Boolean DebugDatabaseConnectionActive() {
-            DebugWrite("databaseConnectionActive starting!", 8);
+            DebugWrite("DebugDatabaseConnectionActive starting!", 8);
 
             Boolean active = true;
 
-            DateTime startTime = DateTime.UtcNow;
+            DateTime startTime = UtcDbTime();
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -22246,43 +22510,17 @@ namespace PRoConEvents {
             catch (Exception) {
                 active = false;
             }
-            if ((DateTime.UtcNow - startTime).TotalSeconds > 10) {
+            if ((UtcDbTime() - startTime).TotalSeconds > 10) {
                 //If the connection took longer than 10 seconds also say the database is disconnected
                 active = false;
             }
-            DebugWrite("databaseConnectionActive finished!", 8);
+            DebugWrite("DebugDatabaseConnectionActive finished!", 8);
             return active;
         }
 
-        private DateTime GetDatabaseUTCTimestamp()
+        public Boolean GetGlobalUTCTimestamp(out DateTime globalUTCTime)
         {
-            try
-            {
-                using (MySqlConnection connection = GetDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        command.CommandText = @"SELECT UTC_TIMESTAMP() AS `current_time`";
-                        using (MySqlDataReader reader = command.ExecuteReader())
-                        {
-                            if (reader.Read()) {
-                                return reader.GetDateTime("current_time");
-                            }
-
-                        }
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                ConsoleError("Unable to fetch database UTC Timestamp.");
-            }
-            return DateTime.MinValue;
-        }
-
-        public Boolean GetGlobalUTCTimestamp(out DateTime UTCTime)
-        {
-            UTCTime = DateTime.UtcNow;
+            globalUTCTime = UtcDbTime();
             using (var client = new WebClient())
             {
                 try
@@ -22292,15 +22530,108 @@ namespace PRoConEvents {
                     Double epochSeconds = 0;
                     if (Double.TryParse(elements[0], out epochSeconds))
                     {
-                        UTCTime = DateTimeFromEpochSeconds(epochSeconds);
+                        globalUTCTime = DateTimeFromEpochSeconds(epochSeconds);
                         return true;
                     }
                 }
                 catch (Exception)
                 {
-                    ConsoleWarn("Unable to fetch global UTC Timestamp");
+                    return false;
                 }
             }
+            return false;
+        }
+
+        public Boolean TestGlobalTiming(Boolean failOnFetchError, Boolean verbose, out TimeSpan diffGlobalUTC)
+        {
+            DateTime globalUTC;
+            diffGlobalUTC = TimeSpan.Zero;
+            if (GetGlobalUTCTimestamp(out globalUTC)) {
+                DateTime curUTC = UtcDbTime();
+                diffGlobalUTC = globalUTC - curUTC;
+                if (verbose)
+                {
+                    if (diffGlobalUTC.Duration().TotalSeconds > 300)
+                    {
+                        ConsoleWarn("Your PRoCon layer has a " + FormatTimeString(diffGlobalUTC.Duration(), 3) + " UTC timestamp mismatch vs Global Time. UTC-Global:(" + globalUTC.ToShortDateString() + " " + globalUTC.ToLongTimeString() + ") UTC-Procon:(" + curUTC.ToShortDateString() + " " + curUTC.ToLongTimeString() + ")");
+                        _globalTimingChecked = true;
+                        return false;
+                    }
+                    if (diffGlobalUTC.Duration().TotalSeconds > 15)
+                    {
+                        ConsoleWarn("Global timing confirmed, but there is a " + FormatTimeString(diffGlobalUTC.Duration(), 3) + " UTC timestamp mismatch between your layer and global time.");
+                    }
+                    else
+                    {
+                        ConsoleSuccess("Global timing confirmed.");
+                    }
+                }
+                _globalTimingChecked = true;
+                return true;
+            }
+            if (verbose)
+                ConsoleError("Unable to confirm global timing. Global UTC Timestamp could not be fetched.");
+            _globalTimingChecked = true;
+            return !failOnFetchError;
+        }
+
+        private Boolean GetDatabaseUTCTimestamp(out DateTime dbUTC)
+        {
+            dbUTC = UtcDbTime();
+            try
+            {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"SELECT UTC_TIMESTAMP() AS `current_time`";
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            if (reader.Read())
+                            {
+                                dbUTC = reader.GetDateTime("current_time");
+                                return true;
+                            }
+
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+            return false;
+        }
+
+        public Boolean TestDBTiming(Boolean verbose, out TimeSpan diffDBUTC)
+        {
+            //Confirm database UTC timestamp matches procon UTC timestamp
+            diffDBUTC = TimeSpan.Zero;
+            DateTime dbUTC;
+            if (GetDatabaseUTCTimestamp(out dbUTC)) {
+                DateTime curUTC = UtcDbTime();
+                diffDBUTC = dbUTC - curUTC;
+                if (verbose)
+                {
+                    if (diffDBUTC.Duration().TotalSeconds > 300)
+                    {
+                        ConsoleWarn("Your PRoCon layer and database have a " + FormatTimeString(diffDBUTC.Duration(), 3) + " UTC timestamp mismatch. UTC-Database:(" + dbUTC.ToShortDateString() + " " + dbUTC.ToLongTimeString() + ") UTC-Procon:(" + curUTC.ToShortDateString() + " " + curUTC.ToLongTimeString() + ")");
+                    }
+                    else if (diffDBUTC.Duration().TotalSeconds > 15)
+                    {
+                        ConsoleWarn("Database timing confirmed, but there is a " + FormatTimeString(diffDBUTC.Duration(), 3) + " UTC timestamp mismatch between your layer and database.");
+                    }
+                    else
+                    {
+                        ConsoleSuccess("Database timing confirmed.");
+                    }
+                }
+                _dbTimingChecked = true;
+                return true;
+            }
+            if (verbose)
+                ConsoleError("Unable to confirm timing controls. Database UTC Timestamp could not be fetched.");
+            _dbTimingChecked = true;
             return false;
         }
 
@@ -22448,7 +22779,9 @@ namespace PRoConEvents {
                     lock (_userCache) {
                         foreach (AdKatsPlayer soldier in FetchAllUserSoldiers()) {
                             //Only add soldiers for the current game
-                            if (soldier.game_id == _serverInfo.GameID) {
+                            if (soldier.game_id == _serverInfo.GameID &&
+                                (PlayerIsAdmin(soldier) || (_isTestingAuthorized && soldier.player_role.role_key == "Reserved_Slot")))
+                            {
                                 if (!allowedReservedSlotPlayers.Contains(soldier.player_name)) {
                                     allowedReservedSlotPlayers.Add(soldier.player_name);
                                 }
@@ -22493,7 +22826,9 @@ namespace PRoConEvents {
             }
         }
 
-        private void UpdateSpectatorList() {
+        private void UpdateSpectatorList()
+        {
+            DebugWrite("Entering UpdateSpectatorList", 6);
             try {
                 if (!_FeedServerSpectatorList || _CurrentSpectatorListPlayers == null) {
                     return;
@@ -22522,14 +22857,19 @@ namespace PRoConEvents {
                                 continue;
                             }
                             if (!allowedSpectatorSlotPlayers.Contains(playerIdentifier)) {
+                                DebugWrite("Valid slot_spectator " + playerIdentifier + " fetched.", 5);
                                 allowedSpectatorSlotPlayers.Add(playerIdentifier);
                             }
                         }
+                    }
+                    else {
+                        DebugWrite("No players under special player group slot_spectator.", 5);
                     }
                 }
                 //Pull players from user list
                 if (_userCache.Count > 0 && _FeedServerSpectatorList_UserCache)
                 {
+                    DebugWrite("Feeding spetators from user cache.", 5);
                     foreach (AdKatsPlayer soldier in FetchAllUserSoldiers())
                     {
                         //Only add soldiers for the current game
@@ -22537,7 +22877,9 @@ namespace PRoConEvents {
                             //Only add if players are admins
                             if (PlayerIsAdmin(soldier))
                             {
-                                if (!allowedSpectatorSlotPlayers.Contains(soldier.player_name)) {
+                                if (!allowedSpectatorSlotPlayers.Contains(soldier.player_name))
+                                {
+                                    DebugWrite("Valid user spectator " + soldier.player_name + " fetched.", 5);
                                     allowedSpectatorSlotPlayers.Add(soldier.player_name);
                                 }
                             }
@@ -22570,6 +22912,7 @@ namespace PRoConEvents {
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while updating server spectator list.", e));
             }
+            DebugWrite("Exiting UpdateSpectatorList", 6);
         }
 
         public override void OnSpectatorListList(List<String> soldierNames) {
@@ -22629,7 +22972,7 @@ namespace PRoConEvents {
                 var record = new AdKatsRecord {
                     record_source = AdKatsRecord.Sources.ExternalPlugin,
                     server_id = _serverInfo.ServerID,
-                    record_time = DateTime.UtcNow
+                    record_time = UtcDbTime()
                 };
 
                 //Parse information into a record
@@ -23167,7 +23510,7 @@ namespace PRoConEvents {
                         {"server_name", _serverInfo.ServerName},
                         {"adkats_version_current", PluginVersion},
                         {"adkats_enabled", _pluginEnabled.ToString().ToLower()},
-                        {"adkats_uptime", (_threadsReady)?(Math.Round((DateTime.UtcNow - _AdKatsStartTime).TotalSeconds).ToString()):("0")},
+                        {"adkats_uptime", (_threadsReady)?(Math.Round((UtcDbTime() - _AdKatsStartTime).TotalSeconds).ToString()):("0")},
                         {"updates_disabled", _usageDataDisabled.ToString().ToLower()}
                     };
                     byte[] response = client.UploadValues("http://api.gamerethos.net/adkats/usage", data);
@@ -23177,113 +23520,158 @@ namespace PRoConEvents {
             {
                 //Do nothing
             }
-            _LastUsageStatsUpdate = DateTime.UtcNow;
+            _LastUsageStatsUpdate = UtcDbTime();
         }
 
-        private void PopulateSpecialGroupsDictionary() {
-            try {
-                var groupList = FetchAdKatsSpecialGroups();
-                if (groupList == null || groupList.Count == 0) {
-                    ConsoleError("Error populating special group cache");
-                    return;
-                }
-                foreach (var group in groupList) {
-                    _specialPlayerGroupCache[group.group_key] = group;
-                }
-                ConsoleSuccess("Fetched group definitions.");
-            }
-            catch (Exception e) {
-                HandleException(new AdKatsException("Exception while populating special group cache", e));
-            }
-        }
-
-        private void PopulateCommandReputationDictionaries() {
+        private Boolean PopulateCommandReputationDictionaries() {
             try {
                 var sourceDic = new Dictionary<String, Double>();
                 var targetDic = new Dictionary<String, Double>();
-                ArrayList reputationStats = FetchAdKatsReputationStats();
-                foreach (Hashtable repWeapon in reputationStats) {
+                ArrayList repDefs = FetchAdKatsReputationDefinitions();
+                if (repDefs == null || repDefs.Count == 0) {
+                    return false;
+                }
+                foreach (Hashtable repWeapon in repDefs) {
                     sourceDic[(String) repWeapon["command_typeaction"]] = (double) repWeapon["source_weight"];
                     targetDic[(String) repWeapon["command_typeaction"]] = (double) repWeapon["target_weight"];
                 }
                 _commandSourceReputationDictionary = sourceDic;
                 _commandTargetReputationDictionary = targetDic;
-                ConsoleSuccess("Fetched reputation definitions.");
+                return true;
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while populating command reputation cache", e));
             }
+            return false;
         }
 
-        private ArrayList FetchAdKatsReputationStats()
+        private ArrayList FetchAdKatsReputationDefinitions()
         {
+            DebugWrite("Entering FetchAdKatsReputationDefinitions", 7);
             ArrayList repTable = null;
-            using (var client = new WebClient())
+            using (var client = new WebClient()) 
             {
+                String repInfo;
+                DebugWrite("Fetching reputation definitions...", 2);
                 try
                 {
-                    const string url = "https://raw.github.com/ColColonCleaner/AdKats/master/adkatsreputationstats.json";
-                    String textResponse = client.DownloadString(url);
-                    repTable = (ArrayList)JSON.JsonDecode(textResponse);
+                    repInfo = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsreputationstats.json");
+                    DebugWrite("Reputation definitions fetched.", 1);
+                }
+                catch (Exception)
+                {
+                    try
+                    {
+                        repInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/reputation");
+                        DebugWrite("Reputation definitions fetched from backup location.", 1);
+                    }
+                    catch (Exception)
+                    {
+                        return null;
+                    }
+                }
+                try
+                {
+                    repTable = (ArrayList)JSON.JsonDecode(repInfo);
                 }
                 catch (Exception e) {
-                    HandleException(new AdKatsException("Error while fetching reputation definitions.", e));
+                    HandleException(new AdKatsException("Error while parsing reputation definitions.", e));
                 }
             }
+            DebugWrite("Exiting FetchAdKatsReputationDefinitions", 7);
             return repTable;
         }
 
-        private List<AdKatsSpecialGroup> FetchAdKatsSpecialGroups()
+        private Boolean PopulateSpecialGroupsDictionary()
         {
-            DebugWrite("Entering FetchAdKatsSpecialGroups", 7);
+            DebugWrite("Entering PopulateSpecialGroupsDictionary", 7);
+            try
+            {
+                var groupList = FetchAdKatsSpecialGroupDefinitions();
+                if (groupList == null || groupList.Count == 0)
+                {
+                    return false;
+                }
+                foreach (var group in groupList)
+                {
+                    _specialPlayerGroupCache[group.group_key] = group;
+                }
+                return true;
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Exception while populating special group cache", e));
+            }
+            DebugWrite("Exiting PopulateSpecialGroupsDictionary", 7);
+            return false;
+        }
+
+        private List<AdKatsSpecialGroup> FetchAdKatsSpecialGroupDefinitions()
+        {
+            DebugWrite("Entering FetchAdKatsSpecialGroupDefinitions", 7);
             List<AdKatsSpecialGroup> SpecialGroupsList = null;
             using (var client = new WebClient())
             {
+                String groupInfo;
+                DebugWrite("Fetching special group definitions...", 2);
                 try
                 {
-                    const string url = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/adkatsspecialgroups.json";
-                    String textResponse = client.DownloadString(url);
-                    var groupsTable  = (Hashtable)JSON.JsonDecode(textResponse);
-                    ArrayList GroupsList = (ArrayList)groupsTable["SpecialGroups"];
-                    if (GroupsList != null && GroupsList.Count > 0)
+                    groupInfo = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsspecialgroups.json");
+                    DebugWrite("Special group definitions fetched.", 1);
+                }
+                catch (Exception)
+                {
+                    try
                     {
-                        SpecialGroupsList = new List<AdKatsSpecialGroup>();
-                        foreach (Hashtable groupHash in GroupsList)
-                        {
-                            AdKatsSpecialGroup update = new AdKatsSpecialGroup();
-                            //update_id
-                            update.group_id = Convert.ToInt32(groupHash["group_id"]);
-                            //group_key
-                            Object group_key = groupHash["group_key"];
-                            if (group_key == null)
-                            {
-                                ConsoleError("AdKats special group entry group_key was not found.");
-                                continue;
-                            }
-                            update.group_key = (String)group_key;
-                            //group_name
-                            Object group_name = groupHash["group_name"];
-                            if (group_name == null)
-                            {
-                                ConsoleError("AdKats special group entry group_name was not found.");
-                                continue;
-                            }
-                            update.group_name = (String)group_name;
-                            //Add
-                            SpecialGroupsList.Add(update);
-                        }
+                        groupInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/specialgroups");
+                        DebugWrite("Special group definitions fetched from backup location.", 1);
                     }
-                    else
+                    catch (Exception)
                     {
-                        ConsoleError("Special Groups list could not be downloaded.");
+                        return null;
+                    }
+                }
+                try
+                {
+                    var groupsTable = (Hashtable)JSON.JsonDecode(groupInfo);
+                    ArrayList GroupsList = (ArrayList)groupsTable["SpecialGroups"];
+                    if (GroupsList == null || GroupsList.Count == 0)
+                    {
+                        return null;
+                    }
+                    SpecialGroupsList = new List<AdKatsSpecialGroup>();
+                    foreach (Hashtable groupHash in GroupsList)
+                    {
+                        AdKatsSpecialGroup update = new AdKatsSpecialGroup();
+                        //update_id
+                        update.group_id = Convert.ToInt32(groupHash["group_id"]);
+                        //group_key
+                        Object group_key = groupHash["group_key"];
+                        if (group_key == null)
+                        {
+                            ConsoleError("AdKats special group entry group_key was not found.");
+                            continue;
+                        }
+                        update.group_key = (String)group_key;
+                        //group_name
+                        Object group_name = groupHash["group_name"];
+                        if (group_name == null)
+                        {
+                            ConsoleError("AdKats special group entry group_name was not found.");
+                            continue;
+                        }
+                        update.group_name = (String)group_name;
+                        //Add
+                        SpecialGroupsList.Add(update);
                     }
                 }
                 catch (Exception e)
                 {
-                    HandleException(new AdKatsException("Error while fetching group definitions.", e));
+                    HandleException(new AdKatsException("Error while parsing special group definitions.", e));
+                    return null;
                 }
             }
-            DebugWrite("Exiting FetchAdKatsSpecialGroups", 7);
+            DebugWrite("Exiting FetchAdKatsSpecialGroupDefinitions", 7);
             return SpecialGroupsList;
         }
 
@@ -23378,9 +23766,26 @@ namespace PRoConEvents {
             {
                 try
                 {
-                    const string url = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/adkatsupdates.json";
-                    String textResponse = client.DownloadString(url);
-                    Hashtable updateTable = (Hashtable)JSON.JsonDecode(textResponse);
+                    String updateInfo;
+                    try
+                    {
+                        updateInfo = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsupdates.json");
+                        DebugWrite("SQL updates fetched.", 1);
+                    }
+                    catch (Exception)
+                    {
+                        try
+                        {
+                            updateInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/sqlupdates");
+                            DebugWrite("SQL updates fetched from backup location.", 1);
+                        }
+                        catch (Exception)
+                        {
+                            ConsoleError("Unable to download SQL updates.");
+                            return SQLUpdates;
+                        }
+                    }
+                    Hashtable updateTable = (Hashtable)JSON.JsonDecode(updateInfo);
                     ArrayList SQLUpdateList = (ArrayList) updateTable["SQLUpdates"];
                     if (SQLUpdateList != null && SQLUpdateList.Count > 0) {
                         DebugWrite("SQL updates found. Parsing...", 5);
@@ -23503,7 +23908,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error while fetching SQL updates.", e));
                     }
                     else {
-                        ConsoleError("Unable to fetch SQL updates.");
+                        ConsoleError("Unable to process SQL updates.");
                     }
                 }
             }
@@ -23763,7 +24168,7 @@ namespace PRoConEvents {
         }
 
         private TimeSpan GetRemainingBanTime(AdKatsBan aBan) {
-            return aBan.ban_endTime.Subtract(DateTime.UtcNow);
+            return aBan.ban_endTime.Subtract(UtcDbTime());
         }
 
         public Boolean ConfirmStatLoggerSetup() {
@@ -23804,19 +24209,19 @@ namespace PRoConEvents {
                         return false;
                     }
 
-                    if (!Regex.Match((String) statLoggerStatus["DBHost"], _mySqlHostname, RegexOptions.IgnoreCase).Success || !Regex.Match((String) statLoggerStatus["DBPort"], _mySqlPort, RegexOptions.IgnoreCase).Success || !Regex.Match((String) statLoggerStatus["DBName"], _mySqlDatabaseName, RegexOptions.IgnoreCase).Success) {
+                    if (!Regex.Match((String) statLoggerStatus["DBHost"], _mySqlHostname, RegexOptions.IgnoreCase).Success || !Regex.Match((String) statLoggerStatus["DBPort"], _mySqlPort, RegexOptions.IgnoreCase).Success || !Regex.Match((String) statLoggerStatus["DBName"], _mySqlSchemaName, RegexOptions.IgnoreCase).Success) {
                         //Are db settings set for AdKats? If not, import them from stat logger.
-                        if (String.IsNullOrEmpty(_mySqlHostname) || String.IsNullOrEmpty(_mySqlPort) || String.IsNullOrEmpty(_mySqlDatabaseName)) {
+                        if (String.IsNullOrEmpty(_mySqlHostname) || String.IsNullOrEmpty(_mySqlPort) || String.IsNullOrEmpty(_mySqlSchemaName)) {
                             _mySqlHostname = (String) statLoggerStatus["DBHost"];
                             _mySqlPort = (String) statLoggerStatus["DBPort"];
-                            _mySqlDatabaseName = (String) statLoggerStatus["DBName"];
+                            _mySqlSchemaName = (String) statLoggerStatus["DBName"];
                             UpdateSettingPage();
                         }
                         //Are DB Settings set for stat logger? If not, set them
                         if (String.IsNullOrEmpty((String) statLoggerStatus["DBHost"]) || String.IsNullOrEmpty((String) statLoggerStatus["DBPort"]) || String.IsNullOrEmpty((String) statLoggerStatus["DBName"])) {
                             SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Host", _mySqlHostname);
                             SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Port", _mySqlPort);
-                            SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Database Name", _mySqlDatabaseName);
+                            SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Database Name", _mySqlSchemaName);
                             SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "UserName", _mySqlUsername);
                             SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Password", _mySqlPassword);
 
@@ -23909,13 +24314,17 @@ namespace PRoConEvents {
                     return;
                 }
                 _lastStatLoggerStatusUpdate = (Hashtable) JSON.JsonDecode(commands[0]);
-                _lastStatLoggerStatusUpdateTime = DateTime.UtcNow;
+                _lastStatLoggerStatusUpdateTime = UtcDbTime();
                 _StatLoggerStatusWaitHandle.Set();
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while handling stat logger status response.", e));
             }
             DebugWrite("Exiting HandleStatLoggerStatusResponse", 7);
+        }
+
+        public DateTime UtcDbTime() {
+            return DateTime.UtcNow + _dbTimingOffset;
         }
 
         public static String GetRandom32BitHashCode() {
@@ -23968,8 +24377,8 @@ namespace PRoConEvents {
 
         //Calling this method will make the settings window refresh with new data
         public void UpdateSettingPage() {
-            DebugWrite("Updating Setting Page: " + (DateTime.UtcNow - _lastUpdateSettingRequest).TotalSeconds + " seconds since last update.", 4);
-            _lastUpdateSettingRequest = DateTime.UtcNow;
+            DebugWrite("Updating Setting Page: " + (UtcDbTime() - _lastUpdateSettingRequest).TotalSeconds + " seconds since last update.", 4);
+            _lastUpdateSettingRequest = UtcDbTime();
             SetExternalPluginSetting("AdKats", "UpdateSettings", "Update");
         }
 
@@ -24272,9 +24681,9 @@ namespace PRoConEvents {
                                         //Patched version is newer than an already patched version
                                         ConsoleSuccess("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ". Restart procon to run this version.");
                                     }
-                                    else if (!_pluginUpdatePatched) {
+                                    else if (!_pluginUpdatePatched && patchedVersionInt > _currentPluginVersionInt) {
                                         //User not notified of patch yet
-                                        ConsoleSuccess("Plugin updated to version " + _latestPluginVersion + ". Restart procon to run this version.");
+                                        ConsoleSuccess("Plugin updated to version " + patchedVersion + ". Restart procon to run this version.");
                                         ConsoleSuccess("Updated plugin file located at: " + pluginPath);
                                     }
                                 }
@@ -24405,7 +24814,7 @@ namespace PRoConEvents {
                         record_source = AdKatsRecord.Sources.InternalAutomated,
                         isDebug = true,
                         server_id = _serverInfo.ServerID,
-                        command_type = _CommandKeyDictionary["adkats_exception"],
+                        command_type = GetCommandByKey("adkats_exception"),
                         command_numeric = 0,
                         target_name = "AdKats",
                         target_player = null,
@@ -24423,12 +24832,12 @@ namespace PRoConEvents {
             //Only handle these errors if all threads are already functioning normally
             if (_threadsReady || !_pluginEnabled) {
                 if (_databaseTimeouts == 0) {
-                    _lastDatabaseTimeout = DateTime.UtcNow;
+                    _lastDatabaseTimeout = UtcDbTime();
                 }
                 ++_databaseTimeouts;
                 ConsoleWarn("Database connection fault detected. This is fault " + _databaseTimeouts + ". Critical disconnect at " + DatabaseTimeoutThreshold + ".");
                 //Check for critical state (timeouts > threshold, and last timeout less than 1 minute ago)
-                if ((DateTime.UtcNow - _lastDatabaseTimeout).TotalSeconds < 60) {
+                if ((UtcDbTime() - _lastDatabaseTimeout).TotalSeconds < 60) {
                     if (_databaseTimeouts >= DatabaseTimeoutThreshold) {
                         try {
                             //If the handler is already alive, return
@@ -24492,7 +24901,7 @@ namespace PRoConEvents {
                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                         isDebug = true,
                                         server_id = _serverInfo.ServerID,
-                                        command_type = _CommandKeyDictionary["adkats_exception"],
+                                        command_type = GetCommandByKey("adkats_exception"),
                                         command_numeric = 0,
                                         target_name = "Database",
                                         target_player = null,
@@ -24521,7 +24930,7 @@ namespace PRoConEvents {
                     //Reset the current timout count
                     _databaseTimeouts = 0;
                 }
-                _lastDatabaseTimeout = DateTime.UtcNow;
+                _lastDatabaseTimeout = UtcDbTime();
             }
             else {
                 DebugWrite("Attempted to handle database timeout when threads not running.", 2);
@@ -24762,7 +25171,7 @@ namespace PRoConEvents {
             }
 
             public TimeSpan GetIdleTime() {
-                return DateTime.UtcNow - lastAction;
+                return Plugin.UtcDbTime() - lastAction;
             }
 
             public void ClearPingEntries() {
@@ -24775,7 +25184,7 @@ namespace PRoConEvents {
             public void AddPingEntry(Double newPingValue)
             {
                 //Get rounded time (floor)
-                DateTime newPingTime = DateTime.UtcNow;
+                DateTime newPingTime = Plugin.UtcDbTime();
                 newPingTime = newPingTime.AddTicks(-(newPingTime.Ticks % TimeSpan.TicksPerSecond));
                 if (!player_ping_added) {
                     player_ping_avg = newPingValue;
@@ -24804,7 +25213,7 @@ namespace PRoConEvents {
                 do
                 {
                     removed = false;
-                    if (player_pings.Any() && (DateTime.UtcNow - player_pings.Peek().Value).TotalSeconds > Plugin._pingMovingAverageDurationSeconds)
+                    if (player_pings.Any() && (Plugin.UtcDbTime() - player_pings.Peek().Value).TotalSeconds > Plugin._pingMovingAverageDurationSeconds)
                     {
                         player_pings.Dequeue();
                         player_pings_full = true;
@@ -24819,7 +25228,7 @@ namespace PRoConEvents {
             }
 
             public Boolean IsLocked() {
-                if (player_locked && player_locked_start + player_locked_duration < DateTime.UtcNow)
+                if (player_locked && player_locked_start + player_locked_duration < Plugin.UtcDbTime())
                 {
                     //Unlock the player
                     player_locked = false;
@@ -24841,7 +25250,7 @@ namespace PRoConEvents {
                 }
                 player_locked = true;
                 player_locked_duration = duration;
-                player_locked_start = DateTime.UtcNow;
+                player_locked_start = Plugin.UtcDbTime();
                 player_locked_source = locker;
                 return true;
             }
@@ -24852,7 +25261,7 @@ namespace PRoConEvents {
 
             public TimeSpan GetLockRemaining() {
                 if (IsLocked()) {
-                    return (player_locked_start + player_locked_duration) - DateTime.UtcNow;
+                    return (player_locked_start + player_locked_duration) - Plugin.UtcDbTime();
                 }
                 return TimeSpan.Zero;
             }
@@ -24882,10 +25291,16 @@ namespace PRoConEvents {
             public CServerInfo InfoObject { get; private set; }
             private DateTime infoObjectTime = DateTime.UtcNow;
 
+            private AdKats Plugin;
+
+            public AdKatsServer(AdKats plugin) {
+                Plugin = plugin;
+            }
+
             public void SetInfoObject(CServerInfo infoObject) {
                 InfoObject = infoObject;
                 ServerName = infoObject.ServerName;
-                infoObjectTime = DateTime.UtcNow;
+                infoObjectTime = Plugin.UtcDbTime();
             }
 
             public TimeSpan GetRoundElapsedTime()
@@ -24894,7 +25309,7 @@ namespace PRoConEvents {
                 {
                     return TimeSpan.Zero;
                 }
-                return TimeSpan.FromSeconds(InfoObject.RoundTime) + (DateTime.UtcNow - infoObjectTime);
+                return TimeSpan.FromSeconds(InfoObject.RoundTime) + (Plugin.UtcDbTime() - infoObjectTime);
             }
         }
 
@@ -25051,12 +25466,20 @@ namespace PRoConEvents {
 
         public class AdKatsTeam {
             private AdKats Plugin;
-            //Final vars
+
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamTicketCounts;
             public Double TeamTicketDifferenceRate { get; private set; }
             public Int32 TeamTicketCount { get; private set; }
             public DateTime TeamTicketsTime { get; private set; }
             public Boolean TeamTicketsAdded { get; private set; }
+
+            //Ticket Adjustments
+            private Int32 TeamTicketAdjustment;
+            private readonly Queue<KeyValuePair<Double, DateTime>> TeamAdjustedTicketCounts;
+            public Double TeamAdjustedTicketDifferenceRate { get; private set; }
+            public Int32 TeamAdjustedTicketCount { get; private set; }
+            public DateTime TeamAdjustedTicketsTime { get; private set; }
+            public Boolean TeamAdjustedTicketsAdded { get; private set; }
 
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamTotalScores;
             public Double TeamScoreDifferenceRate { get; private set; }
@@ -25072,6 +25495,7 @@ namespace PRoConEvents {
                 TeamDesc = teamDesc;
                 TeamTotalScores = new Queue<KeyValuePair<Double, DateTime>>();
                 TeamTicketCounts = new Queue<KeyValuePair<Double, DateTime>>();
+                TeamAdjustedTicketCounts = new Queue<KeyValuePair<Double, DateTime>>();
             }
 
             public Int32 TeamID { get; private set; }
@@ -25088,125 +25512,234 @@ namespace PRoConEvents {
                 TeamPlayerCount = playerCount;
             }
 
+            public void IncrementTeamTicketAdjustment()
+            {
+                Interlocked.Increment(ref TeamTicketAdjustment);
+            }
+
             public void UpdateTicketCount(Double newTicketCount)
             {
-                //Get rounded time (floor)
-                DateTime newTicketTime = DateTime.UtcNow;
-                newTicketTime = newTicketTime.AddTicks(-(newTicketTime.Ticks % TimeSpan.TicksPerSecond));
-                if (!TeamTicketsAdded)
+                try
                 {
-                    TeamScoreDifferenceRate = 0;
+                    UpdateAdjustedTicketCount(newTicketCount);
+                    //Get rounded time (floor)
+                    DateTime newTicketTime = Plugin.UtcDbTime();
+                    newTicketTime = newTicketTime.AddTicks(-(newTicketTime.Ticks % TimeSpan.TicksPerSecond));
+                    if (!TeamTicketsAdded) {
+                        TeamTicketDifferenceRate = 0;
+                        TeamTicketCount = (Int32)newTicketCount;
+                        TeamTicketsTime = newTicketTime;
+                        TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(newTicketCount, newTicketTime));
+                        TeamTicketsAdded = true;
+                        return;
+                    }
+
+                    //Interpolation
+                    DateTime oldTicketTime = TeamTicketsTime;
+                    Double oldTicketValue = TeamTicketCount;
+                    Double interTimeOldSeconds = 0;
+                    Double interTimeNewSeconds = (newTicketTime - oldTicketTime).TotalSeconds;
+                    Double m = (newTicketCount - oldTicketValue) / (interTimeNewSeconds);
+                    Double b = oldTicketValue;
+                    for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
+                    {
+                        DateTime subTicketTime = oldTicketTime.AddSeconds(sec);
+                        Double subTicketValue = (m * sec) + b;
+                        TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
+                    }
+
+                    //Remove old values (more than 90 seconds ago)
+                    Boolean removed = false;
+                    do
+                    {
+                        removed = false;
+                        if (TeamTicketCounts.Any() && (Plugin.UtcDbTime() - TeamTicketCounts.Peek().Value).TotalSeconds > 90)
+                        {
+                            TeamTicketCounts.Dequeue();
+                            removed = true;
+                        }
+                    } while (removed);
+
+                    //Set instance vars
                     TeamTicketCount = (Int32)newTicketCount;
                     TeamTicketsTime = newTicketTime;
-                    TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(newTicketCount, newTicketTime));
-                    TeamTicketsAdded = true;
-                    return;
-                }
 
-                //Interpolation
-                DateTime oldTicketTime = TeamTicketsTime;
-                Double oldTicketValue = TeamTicketCount;
-                Double interTimeOldSeconds = 0;
-                Double interTimeNewSeconds = (newTicketTime - oldTicketTime).TotalSeconds;
-                Double m = (newTicketCount - oldTicketValue) / (interTimeNewSeconds);
-                Double b = oldTicketValue;
-                for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
-                {
-                    DateTime subTicketTime = oldTicketTime.AddSeconds(sec);
-                    Double subTicketValue = (m * sec) + b;
-                    TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
-                }
-
-                //Remove old values
-                Boolean removed = false;
-                do
-                {
-                    removed = false;
-                    if (TeamTicketCounts.Any() && (DateTime.UtcNow - TeamTicketCounts.Peek().Value).TotalSeconds > 120)
+                    List<Double> values = TeamTicketCounts.Select(pair => pair.Key).ToList();
+                    var differences = new List<Double>();
+                    for (int i = 0; i < values.Count - 1; i++)
                     {
-                        TeamTicketCounts.Dequeue();
-                        removed = true;
+                        differences.Add(values[i + 1] - values[i]);
                     }
-                } while (removed);
-
-                //Set instance vars
-                TeamTicketCount = (Int32)newTicketCount;
-                TeamTicketsTime = newTicketTime;
-
-                List<Double> values = TeamTicketCounts.Select(pair => pair.Key).ToList();
-                var differences = new List<Double>();
-                for (int i = 0; i < values.Count - 1; i++)
-                {
-                    differences.Add(values[i + 1] - values[i]);
+                    differences.Sort();
+                    //Convert to tickets/min
+                    TeamTicketDifferenceRate = (differences.Sum() / differences.Count) * 60;
+                    if (Double.IsNaN(TeamTicketDifferenceRate))
+                    {
+                        TeamTicketDifferenceRate = 0;
+                    }
                 }
-                differences.Sort();
-                //Convert to tickets/min
-                TeamTicketDifferenceRate = (differences.Sum() / differences.Count) * 60;
+                catch (Exception e) {
+                    Plugin.HandleException(new AdKatsException("Error while updating team ticket count.", e));
+                }
+            }
+
+            private void UpdateAdjustedTicketCount(Double newRealTicketCount)
+            {
+                try
+                {
+                    //Calculate adjusted ticket count
+                    Double newAdjustedTicketCount = newRealTicketCount + TeamTicketAdjustment;
+                    //Get rounded time (floor)
+                    DateTime newAdjustedTicketTime = Plugin.UtcDbTime();
+                    newAdjustedTicketTime = newAdjustedTicketTime.AddTicks(-(newAdjustedTicketTime.Ticks % TimeSpan.TicksPerSecond));
+                    if (!TeamTicketsAdded)
+                    {
+                        TeamAdjustedTicketDifferenceRate = 0;
+                        TeamAdjustedTicketCount = (Int32)newAdjustedTicketCount;
+                        TeamAdjustedTicketsTime = newAdjustedTicketTime;
+                        TeamAdjustedTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(newAdjustedTicketCount, newAdjustedTicketTime));
+                        TeamAdjustedTicketsAdded = true;
+                        return;
+                    }
+
+                    //Interpolation
+                    DateTime oldTicketTime = TeamAdjustedTicketsTime;
+                    Double oldTicketValue = TeamAdjustedTicketCount;
+                    Double interTimeOldSeconds = 0;
+                    Double interTimeNewSeconds = (newAdjustedTicketTime - oldTicketTime).TotalSeconds;
+                    Double m = (newAdjustedTicketCount - oldTicketValue) / (interTimeNewSeconds);
+                    Double b = oldTicketValue;
+                    for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
+                    {
+                        DateTime subTicketTime = oldTicketTime.AddSeconds(sec);
+                        Double subTicketValue = (m * sec) + b;
+                        TeamAdjustedTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
+                    }
+
+                    //Remove old values (more than 90 seconds ago)
+                    Boolean removed = false;
+                    do
+                    {
+                        removed = false;
+                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 90)
+                        {
+                            TeamAdjustedTicketCounts.Dequeue();
+                            removed = true;
+                        }
+                    } while (removed);
+
+                    //Set instance vars
+                    TeamAdjustedTicketCount = (Int32)newAdjustedTicketCount;
+                    TeamAdjustedTicketsTime = newAdjustedTicketTime;
+
+                    List<Double> values = TeamAdjustedTicketCounts.Select(pair => pair.Key).ToList();
+                    var differences = new List<Double>();
+                    for (int i = 0; i < values.Count - 1; i++)
+                    {
+                        differences.Add(values[i + 1] - values[i]);
+                    }
+                    differences.Sort();
+                    //Convert to tickets/min
+                    TeamAdjustedTicketDifferenceRate = (differences.Sum() / differences.Count) * 60;
+                    if (Double.IsNaN(TeamAdjustedTicketDifferenceRate) ||
+                        TeamAdjustedTicketDifferenceRate > 0)
+                    {
+                        TeamAdjustedTicketDifferenceRate = 0;
+                    }
+                }
+                catch (Exception e)
+                {
+                    Plugin.HandleException(new AdKatsException("Error while updating team adjusted ticket count.", e));
+                }
             }
 
             public void UpdateTotalScore(Double newTotalScore)
             {
-                //Get rounded time (floor)
-                DateTime newScoreTime = DateTime.UtcNow;
-                newScoreTime = newScoreTime.AddTicks(-(newScoreTime.Ticks % TimeSpan.TicksPerSecond));
-                if (!TeamTotalScoresAdded)
+                try
                 {
-                    TeamScoreDifferenceRate = 0;
+                    //Get rounded time (floor)
+                    DateTime newScoreTime = Plugin.UtcDbTime();
+                    newScoreTime = newScoreTime.AddTicks(-(newScoreTime.Ticks % TimeSpan.TicksPerSecond));
+                    if (!TeamTotalScoresAdded)
+                    {
+                        TeamScoreDifferenceRate = 0;
+                        TeamTotalScore = newTotalScore;
+                        TeamTotalScoresTime = newScoreTime;
+                        TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(newTotalScore, newScoreTime));
+                        TeamTotalScoresAdded = true;
+                        return;
+                    }
+
+                    //Interpolation
+                    DateTime oldScoreTime = TeamTotalScoresTime;
+                    Double oldScoreValue = TeamTotalScore;
+                    Double interTimeOldSeconds = 0;
+                    Double interTimeNewSeconds = (newScoreTime - oldScoreTime).TotalSeconds;
+                    Double m = (newTotalScore - oldScoreValue) / (interTimeNewSeconds);
+                    Double b = oldScoreValue;
+                    for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
+                    {
+                        DateTime subScoreTime = oldScoreTime.AddSeconds(sec);
+                        Double subScoreValue = (m * sec) + b;
+                        TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(subScoreValue, subScoreTime));
+                    }
+
+                    //Remove old values
+                    Boolean removed = false;
+                    do
+                    {
+                        removed = false;
+                        if (TeamTotalScores.Any() && (Plugin.UtcDbTime() - TeamTotalScores.Peek().Value).TotalSeconds > 120)
+                        {
+                            TeamTotalScores.Dequeue();
+                            removed = true;
+                        }
+                    } while (removed);
+
+                    //Set instance vars
                     TeamTotalScore = newTotalScore;
                     TeamTotalScoresTime = newScoreTime;
-                    TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(newTotalScore, newScoreTime));
-                    TeamTotalScoresAdded = true;
-                    return;
-                }
 
-                //Interpolation
-                DateTime oldScoreTime = TeamTotalScoresTime;
-                Double oldScoreValue = TeamTotalScore;
-                Double interTimeOldSeconds = 0;
-                Double interTimeNewSeconds = (newScoreTime - oldScoreTime).TotalSeconds;
-                Double m = (newTotalScore - oldScoreValue) / (interTimeNewSeconds);
-                Double b = oldScoreValue;
-                for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
-                {
-                    DateTime subScoreTime = oldScoreTime.AddSeconds(sec);
-                    Double subScoreValue = (m * sec) + b;
-                    TeamTotalScores.Enqueue(new KeyValuePair<double, DateTime>(subScoreValue, subScoreTime));
-                }
-
-                //Remove old values
-                Boolean removed = false;
-                do
-                {
-                    removed = false;
-                    if (TeamTotalScores.Any() && (DateTime.UtcNow - TeamTotalScores.Peek().Value).TotalSeconds > 120)
+                    List<Double> values = TeamTotalScores.Select(pair => pair.Key).ToList();
+                    var differences = new List<Double>();
+                    for (int i = 0; i < values.Count - 1; i++)
                     {
-                        TeamTotalScores.Dequeue();
-                        removed = true;
+                        differences.Add(values[i + 1] - values[i]);
                     }
-                } while (removed);
-
-                //Set instance vars
-                TeamTotalScore = newTotalScore;
-                TeamTotalScoresTime = newScoreTime;
-
-                List<Double> values = TeamTotalScores.Select(pair => pair.Key).ToList();
-                var differences = new List<Double>();
-                for (int i = 0; i < values.Count - 1; i++)
-                {
-                    differences.Add(values[i + 1] - values[i]);
+                    differences.Sort();
+                    //Convert to tickets/min
+                    TeamScoreDifferenceRate = (differences.Sum() / differences.Count) * 60;
+                    if (Double.IsNaN(TeamScoreDifferenceRate))
+                    {
+                        TeamScoreDifferenceRate = 0;
+                    }
                 }
-                differences.Sort();
-                //Convert to tickets/min
-                TeamScoreDifferenceRate = (differences.Sum() / differences.Count) * 60;
+                catch (Exception e)
+                {
+                    Plugin.HandleException(new AdKatsException("Error while updating team ticket total score.", e));
+                }
             }
 
             public void Reset() {
-                TeamTicketCount = 0;
-                TeamTotalScore = 0;
-                TeamTotalScores.Clear();
-                TeamScoreDifferenceRate = 0;
-                TeamTicketCounts.Clear();
-                TeamTicketDifferenceRate = 0;
+                try
+                {
+                    TeamTicketCount = 0;
+                    TeamAdjustedTicketCount = 0;
+                    TeamTicketCounts.Clear();
+                    TeamAdjustedTicketCounts.Clear();
+                    TeamTicketDifferenceRate = 0;
+                    TeamAdjustedTicketDifferenceRate = 0;
+                    TeamTicketsAdded = false;
+                    TeamAdjustedTicketsAdded = false;
+                    TeamTicketAdjustment = 0;
+                    TeamTotalScore = 0;
+                    TeamTotalScores.Clear();
+                    TeamScoreDifferenceRate = 0;
+                    TeamTotalScoresAdded = false;
+                }
+                catch (Exception e) {
+                    Plugin.HandleException(new AdKatsException("Error while resetting team.", e));
+                }
             }
         }
 
@@ -25492,7 +26025,7 @@ namespace PRoConEvents {
                 try {
                     Plugin.DebugWrite("EMAIL: Starting Email Handling Thread", 1);
                     Thread.CurrentThread.Name = "EmailHandling";
-                    DateTime loopStart = DateTime.UtcNow;
+                    DateTime loopStart = Plugin.UtcDbTime();
                     while (true) {
                         try {
                             Plugin.DebugWrite("EMAIL: Entering Email Handling Thread Loop", 7);
@@ -25516,11 +26049,11 @@ namespace PRoConEvents {
                             else {
                                 Plugin.DebugWrite("EMAIL: No inbound mail. Waiting for Input.", 6);
                                 //Wait for input
-                                if ((DateTime.UtcNow - loopStart).TotalMilliseconds > 1000)
-                                    Plugin.DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((DateTime.UtcNow - loopStart).TotalMilliseconds)) + "ms", 4);
+                                if ((Plugin.UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                    Plugin.DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((Plugin.UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                                 _EmailProcessingWaitHandle.Reset();
                                 _EmailProcessingWaitHandle.WaitOne(Timeout.Infinite);
-                                loopStart = DateTime.UtcNow;
+                                loopStart = Plugin.UtcDbTime();
                                 continue;
                             }
 
@@ -26096,7 +26629,6 @@ namespace PRoConEvents {
 
             public StatLibrary(AdKats plugin) {
                 Plugin = plugin;
-                PopulateWeaponStats();
             }
 
             private Dictionary<String, StatLibraryWeapon> OverloadBF3Weapons() {
@@ -26593,18 +27125,15 @@ namespace PRoConEvents {
                 return bf3Weapons;
             }
 
-            private void PopulateWeaponStats() {
+            public Boolean PopulateWeaponStats() {
                 try {
-                    Hashtable statTable = FetchWeaponStats();
                     if (Plugin._gameVersion == GameVersion.BF3) {
                         //No need for download, all BF3 weapons are set in stone now.
                         Weapons = OverloadBF3Weapons();
-                        if (Plugin._UseHackerChecker) {
-                            Plugin.ConsoleInfo("Downloaded " + Weapons.Count + " " + Plugin._gameVersion + " weapon definitions for hacker checker.");
-                        }
-                        return;
+                        return true;
                     }
                     //Get Weapons
+                    Hashtable statTable = FetchWeaponDefinitions();
                     var statData = (ArrayList) statTable[Plugin._gameVersion + ""];
                     if (statData != null && statData.Count > 0) {
                         var tempWeapons = new Dictionary<String, StatLibraryWeapon>();
@@ -26620,34 +27149,46 @@ namespace PRoConEvents {
                         }
                         if (tempWeapons.Count > 0) {
                             Weapons = tempWeapons;
-                            if (Plugin._UseHackerChecker) {
-                                Plugin.ConsoleInfo("Downloaded " + Weapons.Count + " " + Plugin._gameVersion + " weapon definitions for hacker checker.");
-                            }
+                            return true;
                         }
-                        else {
-                            Plugin.HandleException(new AdKatsException("Valid game found, but no weapons were founds."));
-                        }
-                    }
-                    else {
-                        Plugin.HandleException(new AdKatsException("Unable to fetch weapon stats from github. Unable to perform hacker checking."));
                     }
                 }
                 catch (Exception e) {
                     Plugin.HandleException(new AdKatsException("Error while fetching weapon stats for " + Plugin._gameVersion, e));
                 }
+                return false;
             }
 
-            private Hashtable FetchWeaponStats() {
+            private Hashtable FetchWeaponDefinitions() {
                 Hashtable statTable = null;
-                using (var client = new WebClient()) {
+                using (var client = new WebClient())
+                {
+                    String weaponInfo;
+                    Plugin.DebugWrite("Fetching weapon statistic definitions...", 2);
+                    try
+                    {
+                        weaponInfo = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsweaponstats.json");
+                        Plugin.DebugWrite("Weapon statistic definitions fetched.", 1);
+                    }
+                    catch (Exception)
+                    {
+                        try
+                        {
+                            weaponInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/weapons");
+                            Plugin.DebugWrite("Weapon statistic definitions fetched from backup location.", 1);
+                        }
+                        catch (Exception)
+                        {
+                            return null;
+                        }
+                    }
                     try {
-                        const string url = "https://raw.github.com/ColColonCleaner/AdKats/master/adkatsweaponstats.json";
-                        String textResponse = client.DownloadString(url);
-                        statTable = (Hashtable) JSON.JsonDecode(textResponse);
+                        statTable = (Hashtable)JSON.JsonDecode(weaponInfo);
                     }
                     catch (Exception e)
                     {
-                        Plugin.HandleException(new AdKatsException("Error while fetching weapon statistic definitions.", e));
+                        Plugin.HandleException(new AdKatsException("Error while parsing weapon statistic definitions.", e));
+                        return null;
                     }
                 }
                 return statTable;
