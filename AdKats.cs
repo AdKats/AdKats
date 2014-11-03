@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.2.0
+ * Version 5.2.2.1
  * 1-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.2.0</version_code>
+ * <version_code>5.2.2.1</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.2.0";
+        private const String PluginVersion = "5.2.2.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -437,6 +437,7 @@ namespace PRoConEvents {
         //Auto-Surrender
         private Boolean _surrenderAutoEnable;
         private Boolean _surrenderAutoUseMetroValues;
+        private Boolean _surrenderAutoUseLockerValues;
         private Int32 _surrenderAutoMinimumTicketGap = 100;
         private Double _surrenderAutoLosingRateMax = 999;
         private Double _surrenderAutoLosingRateMin = 999;
@@ -976,8 +977,9 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                     if (_surrenderAutoEnable)
                     {
-                        lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
-                        if (!_surrenderAutoUseMetroValues)
+                        lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
+                        lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
+                        if (!_surrenderAutoUseMetroValues || _surrenderAutoUseLockerValues)
                         {
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
@@ -985,7 +987,6 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
-                            //lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Vote Gap Reduction Value", typeof(Double), _surrenderAutoVoteGapReduction));
                         }
                         if (!_surrenderAutoNukeWinning) {
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
@@ -1822,8 +1823,26 @@ namespace PRoConEvents {
                     if (surrenderAutoUseMetroValues != _surrenderAutoUseMetroValues)
                     {
                         _surrenderAutoUseMetroValues = surrenderAutoUseMetroValues;
+                        if (_surrenderAutoUseMetroValues)
+                        {
+                            _surrenderAutoUseLockerValues = false;
+                        }
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Use Optimal Values for Locker").Success)
+                {
+                    Boolean surrenderAutoUseLockerValues = Boolean.Parse(strValue);
+                    if (surrenderAutoUseLockerValues != _surrenderAutoUseLockerValues)
+                    {
+                        _surrenderAutoUseLockerValues = surrenderAutoUseLockerValues;
+                        if (_surrenderAutoUseLockerValues) 
+                        {
+                            _surrenderAutoUseMetroValues = false;
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Nuke Winning Team Instead of Surrendering Losing Team").Success)
@@ -5412,17 +5431,39 @@ namespace PRoConEvents {
                             }
                             if (_surrenderAutoEnable && !_endingRound && _serverInfo.GetRoundElapsedTime().TotalSeconds > 60)
                             {
-                                if (_surrenderAutoUseMetroValues && 
+                                if (_surrenderAutoUseMetroValues &&
                                     Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
-                                    losingTeam.TeamTicketDifferenceRate < 0) {
-                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -1)) {
-                                        if (++_surrenderAutoTriggerCountCurrent > 4) {
+                                    losingTeam.TeamTicketDifferenceRate < 0)
+                                {
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -1))
+                                    {
+                                        if (++_surrenderAutoTriggerCountCurrent > 4)
+                                        {
                                             baserapingTeam = winningTeam;
                                             baserapedTeam = losingTeam;
                                         }
                                     }
-                                    else {
+                                    else
+                                    {
+                                        _surrenderAutoTriggerCountCurrent = 0;
+                                    }
+                                }
+                                else if (_surrenderAutoUseLockerValues &&
+                                    Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
+                                    winningTeam.TeamTicketDifferenceRate < 0 &&
+                                    losingTeam.TeamTicketDifferenceRate < 0)
+                                {
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -50 && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
+                                    {
+                                        if (++_surrenderAutoTriggerCountCurrent > 4)
+                                        {
+                                            baserapingTeam = winningTeam;
+                                            baserapedTeam = losingTeam;
+                                        }
+                                    }
+                                    else
+                                    {
                                         _surrenderAutoTriggerCountCurrent = 0;
                                     }
                                 }
@@ -5521,9 +5562,15 @@ namespace PRoConEvents {
                                     _CMDRManagerEnable = true;
                                     _surrenderVoteEnable = true;
                                     _surrenderVoteMinimumTicketGap = 250;
-                                    if (_serverInfo.ServerName.Contains("#7")) {
+                                    if (_serverInfo.ServerName.Contains("#7")) 
+                                    {
                                         _surrenderAutoEnable = true;
                                         _surrenderAutoUseMetroValues = true;
+                                    }
+                                    else if (_serverInfo.ServerName.Contains("#6"))
+                                    {
+                                        _surrenderAutoEnable = true;
+                                        _surrenderAutoUseLockerValues = true;
                                     }
                                     _spamBotExcludeAdminsAndWhitelist = true;
                                 }
@@ -17531,7 +17578,8 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Surrender Vote Timeout Minutes", typeof(Int32), _surrenderVoteTimeoutMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
-                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro", typeof(Boolean), _surrenderAutoUseMetroValues));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
                 QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
