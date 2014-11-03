@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.2.3
+ * Version 5.2.2.4
  * 2-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.2.3</version_code>
+ * <version_code>5.2.2.4</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.2.3";
+        private const String PluginVersion = "5.2.2.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5424,6 +5424,8 @@ namespace PRoConEvents {
                             if (_DisplayTicketRatesInProconChat && (UtcDbTime() - _LastTicketRateDisplay).TotalSeconds > 25 && _roundState == RoundState.Playing) {
                                 _LastTicketRateDisplay = UtcDbTime();
                                 ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m"));
+                                if(_isTestingAuthorized)
+                                    ProconChatWrite(BoldMessage("Revived Counts: " + _unmatchedRoundDeathCounts.Where(nameCount => nameCount.Value > 1).OrderByDescending(nameCount => nameCount.Value).Take(3).Aggregate("", (current, nameCount) => current + "(" + nameCount.Key + "/" + nameCount.Value + ")")));
                             }
                             if (team1.TeamTicketCount >= 0 && team2.TeamTicketCount >= 0) {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
@@ -25494,12 +25496,12 @@ namespace PRoConEvents {
                         TeamTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
                     }
 
-                    //Remove old values
+                    //Remove old values (more than 90 seconds ago)
                     Boolean removed = false;
                     do
                     {
                         removed = false;
-                        if (TeamTicketCounts.Any() && (Plugin.UtcDbTime() - TeamTicketCounts.Peek().Value).TotalSeconds > 120)
+                        if (TeamTicketCounts.Any() && (Plugin.UtcDbTime() - TeamTicketCounts.Peek().Value).TotalSeconds > 90)
                         {
                             TeamTicketCounts.Dequeue();
                             removed = true;
@@ -25562,12 +25564,12 @@ namespace PRoConEvents {
                         TeamAdjustedTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
                     }
 
-                    //Remove old values
+                    //Remove old values (more than 90 seconds ago)
                     Boolean removed = false;
                     do
                     {
                         removed = false;
-                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 120)
+                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 90)
                         {
                             TeamAdjustedTicketCounts.Dequeue();
                             removed = true;
