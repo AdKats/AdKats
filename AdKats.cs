@@ -5453,10 +5453,14 @@ namespace PRoConEvents {
                                 {
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -1))
                                     {
-                                        if (++_surrenderAutoTriggerCountCurrent > 4)
+                                        if (++_surrenderAutoTriggerCountCurrent >= 5)
                                         {
                                             baserapingTeam = winningTeam;
                                             baserapedTeam = losingTeam;
+                                        }
+                                        else
+                                        {
+                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/5.");
                                         }
                                     }
                                     else
@@ -5472,10 +5476,14 @@ namespace PRoConEvents {
                                 {
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < -50 && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
                                     {
-                                        if (++_surrenderAutoTriggerCountCurrent > 4)
+                                        if (++_surrenderAutoTriggerCountCurrent >= 5)
                                         {
                                             baserapingTeam = winningTeam;
                                             baserapedTeam = losingTeam;
+                                        }
+                                        else
+                                        {
+                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/5.");
                                         }
                                     }
                                     else
@@ -5499,7 +5507,7 @@ namespace PRoConEvents {
                                                 }
                                                 else 
                                                 {
-                                                    OnlineAdminSayMessage("About to fire auto-" + ((_surrenderAutoNukeWinning)?("nuke"):("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
+                                                    OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
                                                 }
                                             }
                                             else
@@ -5521,7 +5529,7 @@ namespace PRoConEvents {
                                                 }
                                                 else
                                                 {
-                                                    OnlineAdminSayMessage("About to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
+                                                    OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
                                                 }
                                             }
                                             else
