@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.3.1
+ * Version 5.2.3.2
  * 4-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.3.1</version_code>
+ * <version_code>5.2.3.2</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.3.1";
+        private const String PluginVersion = "5.2.3.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -17743,8 +17743,8 @@ namespace PRoConEvents {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         //Check for length too great
-                        if (var.Value.Length > 1499) {
-                            ConsoleError("Unable to upload setting, length of setting too great. Really dude? It's 1500+ chars. This is battlefield, not a book club.");
+                        if (var.Value.Length > 2999) {
+                            ConsoleError("Unable to upload setting, length of setting too great. Really dude? It's 3000+ chars. This is battlefield, not a book club.");
                             return;
                         }
                         DebugWrite(var.Value, 7);
