@@ -18,11 +18,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.2.8
+ * Version 5.2.2.9
  * 3-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.2.8</version_code>
+ * <version_code>5.2.2.9</version_code>
  */
 
 using System;
@@ -54,7 +54,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.2.8";
+        private const String PluginVersion = "5.2.2.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -148,6 +148,7 @@ namespace PRoConEvents {
         private Int32 _currentRoundID = 0;
         private Boolean _usageDataDisabled;
         private Boolean _automaticUpdatesDisabled;
+        private String _currentFlagMessage;
 
         //Debug
         private volatile Int32 _debugLevel;
@@ -5434,11 +5435,12 @@ namespace PRoConEvents {
                                 winningTeam = team2;
                                 losingTeam = team1;
                             }
-                            if (_DisplayTicketRatesInProconChat && (UtcDbTime() - _LastTicketRateDisplay).TotalSeconds > 25 && _roundState == RoundState.Playing) 
+                            if (_DisplayTicketRatesInProconChat && _roundState == RoundState.Playing)
                             {
-                                _LastTicketRateDisplay = UtcDbTime();
                                 String flagMessage = "";
-                                if (team1.TeamTicketDifferenceRate < 0 && team2.TeamTicketDifferenceRate < 0) {
+                                if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" ||
+                                    _serverInfo.InfoObject.GameMode == "Chainlink0")
+                                {
                                     AdKatsTeam flagWinningTeam, flagLosingTeam;
                                     if (team2.TeamAdjustedTicketDifferenceRate < team1.TeamAdjustedTicketDifferenceRate)
                                     {
@@ -5454,38 +5456,50 @@ namespace PRoConEvents {
                                     }
                                     Double winRate = flagWinningTeam.TeamAdjustedTicketDifferenceRate;
                                     Double loseRate = flagLosingTeam.TeamAdjustedTicketDifferenceRate;
-                                    if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" && _gameVersion == GameVersion.BF4) {
-                                        if (winRate > -25 && loseRate > -25) {
+                                    if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" && _gameVersion == GameVersion.BF4)
+                                    {
+                                        if (winRate > -25 && loseRate > -25)
+                                        {
                                             flagMessage = " | Flags appear equal for both teams.";
                                         }
-                                        else if (loseRate <= -25 && loseRate > -34) {
+                                        else if (loseRate <= -25 && loseRate > -34)
+                                        {
                                             flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 1 flag.";
                                         }
-                                        else if (loseRate <= -34 && loseRate > -38) {
+                                        else if (loseRate <= -34 && loseRate > -38)
+                                        {
                                             flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 1-3 flags.";
                                         }
-                                        else if (loseRate <= -38 && loseRate > -44) {
+                                        else if (loseRate <= -38 && loseRate > -44)
+                                        {
                                             flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 3 flags.";
                                         }
-                                        else if (loseRate <= -44 && loseRate > -48) {
+                                        else if (loseRate <= -44 && loseRate > -48)
+                                        {
                                             flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 3-5 flags.";
                                         }
-                                        else if (loseRate <= -48 && loseRate > -54) {
+                                        else if (loseRate <= -48 && loseRate > -54)
+                                        {
                                             flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 5 flags.";
                                         }
-                                        else if (loseRate <= -54 && loseRate > -58) {
+                                        else if (loseRate <= -54 && loseRate > -58)
+                                        {
                                             flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 5-7 flags.";
                                         }
-                                        else if (loseRate <= -58 && loseRate > -64) {
+                                        else if (loseRate <= -58 && loseRate > -64)
+                                        {
                                             flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 7 flags.";
                                         }
-                                        else if (loseRate <= -64 && loseRate > -68) {
+                                        else if (loseRate <= -64 && loseRate > -68)
+                                        {
                                             flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 7-9 flags.";
                                         }
-                                        else if (loseRate <= -68 && loseRate > -74) {
+                                        else if (loseRate <= -68 && loseRate > -74)
+                                        {
                                             flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 9 flags.";
                                         }
-                                        else if (loseRate < -74) {
+                                        else if (loseRate < -74)
+                                        {
                                             flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by many flags.";
                                         }
                                     }
@@ -5494,9 +5508,14 @@ namespace PRoConEvents {
                                         flagMessage = " | " + _serverInfo.InfoObject.GameMode;
                                     }
                                 }
-                                ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
-                                if(_isTestingAuthorized)
-                                    ProconChatWrite(BoldMessage("Revived Counts: " + _unmatchedRoundDeathCounts.Where(nameCount => nameCount.Value > 1).OrderByDescending(nameCount => nameCount.Value).Take(3).Aggregate("", (current, nameCount) => current + "(" + nameCount.Key + "/" + nameCount.Value + ")")));
+                                if ((UtcDbTime() - _LastTicketRateDisplay).TotalSeconds > 55 || _currentFlagMessage != flagMessage)
+                                {
+                                    _LastTicketRateDisplay = UtcDbTime();
+                                    _currentFlagMessage = flagMessage;
+                                    ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
+                                    //if (_isTestingAuthorized)
+                                    //    ProconChatWrite(BoldMessage("Revived Counts: " + _unmatchedRoundDeathCounts.Where(nameCount => nameCount.Value > 1).OrderByDescending(nameCount => nameCount.Value).Take(3).Aggregate("", (current, nameCount) => current + "(" + nameCount.Key + "/" + nameCount.Value + ")")));
+                                }
                             }
                             if (team1.TeamTicketCount >= 0 && team2.TeamTicketCount >= 0) {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
@@ -11963,7 +11982,7 @@ namespace PRoConEvents {
                             if (_surrenderVoteList.Remove(record.source_name))
                             {
                                 SendMessageToSource(record, "Your surrender vote has been removed.");
-                                Int32 requiredVotes = (Int32)((_serverInfo.InfoObject.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                                Int32 requiredVotes = (Int32)((_PlayerDictionary.Count / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                                 OnlineAdminSayMessage(record.source_name + " removed their surrender vote.");
                                 AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
@@ -15287,7 +15306,7 @@ namespace PRoConEvents {
                 _nosurrenderVoteList.Remove(record.source_name);
                 //Add the vote
                 _surrenderVoteList.Add(record.source_name);
-                Int32 requiredVotes = (Int32)((_serverInfo.InfoObject.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                Int32 requiredVotes = (Int32)((_PlayerDictionary.Count / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 if (voteCount >= requiredVotes) {
                     //Vote succeeded, trigger winning team
@@ -15393,7 +15412,7 @@ namespace PRoConEvents {
                 _surrenderVoteList.Remove(record.source_name);
                 //Add the vote
                 _nosurrenderVoteList.Add(record.source_name);
-                Int32 requiredVotes = (Int32)((_serverInfo.InfoObject.MaxPlayerCount / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
+                Int32 requiredVotes = (Int32)((_PlayerDictionary.Count / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                 AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                 OnlineAdminSayMessage(record.source_name + " voted against round surrender.");
