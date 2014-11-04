@@ -14,15 +14,16 @@
  * Code Credit:
  * Modded Levenshtein Distance algorithm from Micovery's InsaneLimits
  * Email System adapted from MorpheusX(AUT)'s "Notify Me!"
+ * Metabans integration by Phogue
  * 
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.3.2
+ * Version 5.2.3.3
  * 4-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.3.2</version_code>
+ * <version_code>5.2.3.3</version_code>
  */
 
 using System;
@@ -54,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.3.2";
+        private const String PluginVersion = "5.2.3.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -468,7 +469,8 @@ namespace PRoConEvents {
         private Boolean _FeedServerSpectatorList_UserCache;
         private Boolean _FeedStatLoggerSettings;
         private Boolean _PostStatLoggerChatManually;
-        private Boolean _PostServerChatSpam = true;
+        private Boolean _PostStatLoggerChatManually_PostServerChatSpam = true;
+        private Boolean _PostStatLoggerChatManually_IgnoreCommands = false;
         private Boolean _MULTIBalancerUnswitcherDisabled = false;
 
         //Hacker-checker
@@ -874,7 +876,8 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
                     if (_PostStatLoggerChatManually)
                     {
-                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Post Server Chat Spam", typeof(Boolean), _PostServerChatSpam));
+                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
+                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
                     }
 
                     lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Enable", typeof (Boolean), _useRoundTimer));
@@ -2084,11 +2087,21 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Post Server Chat Spam").Success)
                 {
                     Boolean PostServerChatSpam = Boolean.Parse(strValue);
-                    if (PostServerChatSpam != _PostServerChatSpam)
+                    if (PostServerChatSpam != _PostStatLoggerChatManually_PostServerChatSpam)
                     {
-                        _PostServerChatSpam = PostServerChatSpam;
+                        _PostStatLoggerChatManually_PostServerChatSpam = PostServerChatSpam;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Post Server Chat Spam", typeof(Boolean), _PostServerChatSpam));
+                        QueueSettingForUpload(new CPluginVariable(@"Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Exclude Commands from Chat Logs").Success)
+                {
+                    Boolean PostStatLoggerChatManually_IgnoreCommands = Boolean.Parse(strValue);
+                    if (PostStatLoggerChatManually_IgnoreCommands != _PostStatLoggerChatManually_IgnoreCommands)
+                    {
+                        _PostStatLoggerChatManually_IgnoreCommands = PostStatLoggerChatManually_IgnoreCommands;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Experimental Tools").Success) {
@@ -17601,6 +17614,8 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof (Boolean), _FeedServerSpectatorList));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
                 QueueSettingForUpload(new CPluginVariable(@"Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
+                QueueSettingForUpload(new CPluginVariable(@"Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
+                QueueSettingForUpload(new CPluginVariable(@"Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _maxRoundTimeMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof (Boolean), _UseWeaponLimiter));
@@ -18289,10 +18304,17 @@ namespace PRoConEvents {
                 return success;
             }
             //Server spam check
-            if (!_PostServerChatSpam && messageObject.Speaker == "Server") {
+            if (!_PostStatLoggerChatManually_PostServerChatSpam && messageObject.Speaker == "Server") {
                 success = true;
                 return success;
             }
+            //Ignore command check
+            if (_PostStatLoggerChatManually_IgnoreCommands &&
+                (messageObject.Message.StartsWith("@") || messageObject.Message.StartsWith("!") || messageObject.Message.StartsWith(".") || messageObject.Message.StartsWith("/"))) {
+                success = true;
+                return success;
+            }
+
             MySqlCommand commandAttempt = null;
             try
             {
