@@ -1,5 +1,5 @@
 -- AdKats Database Setup Script
--- Version 5.2.0.7 (11/1/2014)
+-- Version 5.2.2.5 (11/4/2014)
 -- ColColonCleaner
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -447,7 +447,7 @@ CREATE TABLE IF NOT EXISTS `adkats_settings` (
   `server_id` smallint(5) unsigned NOT NULL,
   `setting_name` varchar(200) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'SettingName',
   `setting_type` varchar(45) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'SettingType',
-  `setting_value` varchar(1500) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'SettingValue',
+  `setting_value` varchar(3000) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'SettingValue',
   PRIMARY KEY (`server_id`,`setting_name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Server Setting List';
 
