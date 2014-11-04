@@ -5539,7 +5539,7 @@ namespace PRoConEvents {
                                         }
                                         else
                                         {
-                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/5.");
+                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/10.");
                                         }
                                     }
                                     else
@@ -5563,7 +5563,7 @@ namespace PRoConEvents {
                                         }
                                         else
                                         {
-                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/5.");
+                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/10.");
                                         }
                                     }
                                     else
