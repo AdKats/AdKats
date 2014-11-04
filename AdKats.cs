@@ -19,7 +19,7 @@
  * 
  * AdKats.cs
  * Version 5.2.3.1
- * 3-NOV-2014
+ * 4-NOV-2014
  * 
  * Automatic Update Information
  * <version_code>5.2.3.1</version_code>
@@ -16017,7 +16017,7 @@ namespace PRoConEvents {
                 List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
                     aPlayer =>
                         (UtcDbTime() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes &&
-                        _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey != "Spectator" &&
+                        aPlayer.player_type != PlayerType.Spectator &&
                         !PlayerIsAdmin(aPlayer)).Take(_PlayerDictionary.Count - _AFKTriggerMinimumPlayers).ToList();
                 if (_AFKIgnoreUserList) {
                     IEnumerable<string> userSoldierGuids = FetchAllUserSoldiers().Select(aPlayer => aPlayer.player_guid);
