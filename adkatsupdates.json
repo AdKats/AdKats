@@ -54,6 +54,24 @@
 			],
 			"update_success":[],
 			"update_failure":[]
+		},
+		{
+			"update_id":"increaseSettingMaxSize",
+			"version_minimum":"5.2.3.2",
+			"version_maximum":null,
+			"message_name":"Increasing max size of setting values",
+			"message_success":"Setting value max size increased to 3000 characters",
+			"message_failure":"Failed to increase setting value max size",
+			"update_checks_hasResults":true,
+			"update_checks":[
+				"SHOW FIELDS FROM `adkats_settings` WHERE `Field` = 'setting_value' AND `TYPE` = 'varchar(1500)'"
+			],
+			"update_execute_requiresModRows":false,
+			"update_execute":[
+				"ALTER TABLE `adkats_settings` MODIFY `setting_value` VARCHAR(3000)"
+			],
+			"update_success":[],
+			"update_failure":[]
 		}
 	]
 }
