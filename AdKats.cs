@@ -17978,14 +17978,10 @@ namespace PRoConEvents {
                                 _lastDbSettingFetch = UtcDbTime();
                                 UpdateSettingPage();
                             }
-                            else {
-                                if (serverID == _serverInfo.ServerID) {
-                                    UploadAllSettings();
-                                }
-                                else if (verbose) {
-                                    ConsoleError("Settings could not be loaded. Server " + serverID + " invalid.");
-                                }
+                            else if (verbose) {
+                                ConsoleError("Settings could not be loaded. Server " + serverID + " invalid.");
                             }
+                            UploadAllSettings();
                             _settingsFetched = true;
                             _settingImportID = _serverInfo.ServerID;
                         }
