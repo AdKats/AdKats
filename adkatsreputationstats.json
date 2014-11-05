@@ -528,5 +528,20 @@
     "command_typeaction": "87|87",
     "target_weight": 0,
     "source_weight": 0
+  },
+  {
+    "command_typeaction": "88|88",
+    "target_weight": 10,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "89|89",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "90|90",
+    "target_weight": 0,
+    "source_weight": 0
   }
 ]
