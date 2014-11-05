@@ -4619,6 +4619,8 @@ namespace PRoConEvents {
                                         }
                                         aPlayer.conversationPartner = null;
                                     }
+                                    //Remove from populators
+                                    _populationPopulatingPlayers.Remove(aPlayer.player_name);
                                     //Add player to the left dictionary
                                     aPlayer.player_online = false;
                                     aPlayer.player_server = null;
