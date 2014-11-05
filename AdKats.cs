@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.3.5
+ * Version 5.2.3.6
  * 5-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.3.5</version_code>
+ * <version_code>5.2.3.6</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.3.5";
+        private const String PluginVersion = "5.2.3.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4899,10 +4899,10 @@ namespace PRoConEvents {
                                                 ConsoleError("Player type " + aPlayer.frostbitePlayerInfo.Type + " is not valid.");
                                                 break;
                                         }
-                                        //Notify reputable players
                                         if (_firstPlayerListComplete)
                                         {
                                             var isAdmin = PlayerIsAdmin(aPlayer);
+                                            //Notify reputable players
                                             if ((isAdmin || aPlayer.player_aa) && _InformReputablePlayersOfAdminJoins)
                                             {
                                                 List<AdKatsPlayer> reputablePlayers = _PlayerDictionary.Values.Where(iPlayer => iPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(iPlayer)).ToList();
@@ -4916,6 +4916,10 @@ namespace PRoConEvents {
                                             else if (aPlayer.player_type == PlayerType.Spectator)
                                             {
                                                 OnlineAdminSayMessage(aPlayer.player_name + " is now spectating the server.");
+                                            }
+                                            //If populating, add player
+                                            if (_populationPopulating) {
+                                                _populationPopulatingPlayers[aPlayer.player_name] = aPlayer;
                                             }
                                         }
                                         //Set their last death/spawn times
