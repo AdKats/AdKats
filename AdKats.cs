@@ -15694,7 +15694,10 @@ namespace PRoConEvents {
                         SendMessageToSource(record, "Last Player List: " + FormatTimeString(UtcDbTime() - _lastSuccessfulPlayerList, 10) + " ago");
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "Server has been in " + _populationStatus.ToString().ToLower() + " population for " + FormatTimeString(UtcDbTime() - _populationTransitionTime, 3));
-                        Double totalPopulationDuration = _populationDurations.Values.Sum(duration => duration.TotalSeconds);
+                        Double totalPopulationDuration = 
+                            _populationDurations[PopulationState.Low].TotalSeconds +
+                            _populationDurations[PopulationState.Medium].TotalSeconds +
+                            _populationDurations[PopulationState.High].TotalSeconds;
                         if (totalPopulationDuration > 0) {
                             _threadMasterWaitHandle.WaitOne(5000);
                             Int32 lowPopPercentage = (int)Math.Round(_populationDurations[PopulationState.Low].TotalSeconds / totalPopulationDuration * 100);
