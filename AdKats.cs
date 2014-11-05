@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.3.6
+ * Version 5.2.3.7
  * 5-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.3.6</version_code>
+ * <version_code>5.2.3.7</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.3.6";
+        private const String PluginVersion = "5.2.3.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4920,7 +4920,7 @@ namespace PRoConEvents {
                                                 OnlineAdminSayMessage(aPlayer.player_name + " is now spectating the server.");
                                             }
                                             //If populating, add player
-                                            if (_populationPopulating) {
+                                            if (_populationPopulating && aPlayer.player_type == PlayerType.Player) {
                                                 _populationPopulatingPlayers[aPlayer.player_name] = aPlayer;
                                             }
                                         }
