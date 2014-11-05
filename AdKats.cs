@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.3.4
+ * Version 5.2.3.5
  * 5-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.3.4</version_code>
+ * <version_code>5.2.3.5</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.3.4";
+        private const String PluginVersion = "5.2.3.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -178,6 +178,7 @@ namespace PRoConEvents {
         private DateTime _lastStatLoggerStatusUpdateTime = DateTime.UtcNow - TimeSpan.FromMinutes(60);
         private DateTime _lastSuccessfulBanList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _populationTransitionTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _populationUpdateTime = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastDatabaseTimeout = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastDbActionFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastDbSettingFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
@@ -2822,10 +2823,20 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Low Population Value").Success)
                 {
-                    Int32 lowPop = Int32.Parse(strValue);
-                    if (lowPop != _lowPopulationPlayerCount)
+                    Int32 lowPopulationPlayerCount = Int32.Parse(strValue);
+                    if (lowPopulationPlayerCount != _lowPopulationPlayerCount)
                     {
-                        _lowPopulationPlayerCount = lowPop;
+                        if (lowPopulationPlayerCount < 0)
+                        {
+                            ConsoleError("Low population value cannot be less than 0.");
+                            lowPopulationPlayerCount = 0;
+                        }
+                        if (lowPopulationPlayerCount > _highPopulationPlayerCount)
+                        {
+                            ConsoleError("Low population value cannot be greater than high population value.");
+                            lowPopulationPlayerCount = _highPopulationPlayerCount;
+                        }
+                        _lowPopulationPlayerCount = lowPopulationPlayerCount;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                     }
@@ -2835,6 +2846,16 @@ namespace PRoConEvents {
                     Int32 HighPopulationPlayerCount = Int32.Parse(strValue);
                     if (HighPopulationPlayerCount != _highPopulationPlayerCount)
                     {
+                        if (HighPopulationPlayerCount > 64)
+                        {
+                            ConsoleError("High population value cannot be greater than 64.");
+                            HighPopulationPlayerCount = 64;
+                        }
+                        if (HighPopulationPlayerCount < _lowPopulationPlayerCount)
+                        {
+                            ConsoleError("High population value cannot be less than low population value.");
+                            HighPopulationPlayerCount = _lowPopulationPlayerCount;
+                        }
                         _highPopulationPlayerCount = HighPopulationPlayerCount;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"High Population Value", typeof(Int32), _highPopulationPlayerCount));
@@ -5027,112 +5048,6 @@ namespace PRoConEvents {
                                     //Set round ended
                                     _roundState = RoundState.Ended;
                                 }
-
-                                if (_firstPlayerListComplete)
-                                {
-                                    Int32 playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
-                                    if (playerCount < _lowPopulationPlayerCount)
-                                    {
-                                        switch (_populationStatus) {
-                                            case PopulationState.Unknown:
-                                                _populationTransitionTime = UtcDbTime();
-                                                OnlineAdminSayMessage("Server in populating mode.");
-                                                break;
-                                            case PopulationState.Low:
-                                                //Current state
-                                                break;
-                                            case PopulationState.Medium:
-                                                _populationTransitionTime = UtcDbTime();
-                                                _populationDurations[PopulationState.Medium] += (UtcDbTime() - _populationTransitionTime);
-                                                OnlineAdminSayMessage("Server now in populating mode, with " + playerCount + " populators.");
-                                                break;
-                                            case PopulationState.High:
-                                                _populationTransitionTime = UtcDbTime();
-                                                _populationDurations[PopulationState.High] += (UtcDbTime() - _populationTransitionTime);
-                                                OnlineAdminSayMessage("Server now in populating mode, with " + playerCount + " populators.");
-                                                break;
-                                            default:
-                                                break;
-                                        }
-                                        if (!_populationPopulating)
-                                        {
-                                            _populationPopulating = true;
-                                            foreach (var popPlayer in _PlayerDictionary.Values.Where(player => player.player_type == PlayerType.Player)) {
-                                                _populationPopulatingPlayers[popPlayer.player_name] = popPlayer;
-                                            }
-                                        }
-                                        _populationStatus = PopulationState.Low;
-                                    }
-                                    else if (playerCount < _highPopulationPlayerCount)
-                                    {
-                                        switch (_populationStatus)
-                                        {
-                                            case PopulationState.Unknown:
-                                                _populationTransitionTime = UtcDbTime();
-                                                break;
-                                            case PopulationState.Low:
-                                                _populationTransitionTime = UtcDbTime();
-                                                _populationDurations[PopulationState.Low] += (UtcDbTime() - _populationTransitionTime);
-                                                break;
-                                            case PopulationState.Medium:
-                                                //Current state
-                                                break;
-                                            case PopulationState.High:
-                                                _populationTransitionTime = UtcDbTime();
-                                                _populationDurations[PopulationState.High] += (UtcDbTime() - _populationTransitionTime);
-                                                break;
-                                            default:
-                                                break;
-                                        }
-                                        _populationStatus = PopulationState.Medium;
-                                    }
-                                    else
-                                    {
-                                        switch (_populationStatus)
-                                        {
-                                            case PopulationState.Unknown:
-                                                _populationTransitionTime = UtcDbTime();
-                                                break;
-                                            case PopulationState.Low:
-                                                _populationTransitionTime = UtcDbTime();
-                                                _populationDurations[PopulationState.Low] += (UtcDbTime() - _populationTransitionTime);
-                                                break;
-                                            case PopulationState.Medium:
-                                                _populationTransitionTime = UtcDbTime();
-                                                _populationDurations[PopulationState.Medium] += (UtcDbTime() - _populationTransitionTime);
-                                                break;
-                                            case PopulationState.High:
-                                                //Current state
-                                                break;
-                                            default:
-                                                break;
-                                        }
-                                        if (_populationPopulating)
-                                        {
-                                            foreach (var popPlayer in _populationPopulatingPlayers.Values.Where(aPlayer => 
-                                                                                                                    aPlayer.player_online && 
-                                                                                                                    _PlayerDictionary.ContainsKey(aPlayer.player_name) && 
-                                                                                                                    aPlayer.player_type == PlayerType.Player))
-                                            {
-                                                QueueRecordForProcessing(new AdKatsRecord
-                                                {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = GetCommandByKey("player_population_success"),
-                                                    command_numeric = 0,
-                                                    target_name = popPlayer.player_name,
-                                                    target_player = popPlayer,
-                                                    source_name = "PopulationManager",
-                                                    record_message = "Populated Server " + _serverInfo.ServerID
-                                                });
-                                                PlayerSayMessage(popPlayer.player_name, "Thank you for helping populate the server!");
-                                            }
-                                            _populationPopulatingPlayers.Clear();
-                                            _populationPopulating = false;
-                                        }
-                                        _populationStatus = PopulationState.High;
-                                    }
-                                }
                             }
                             if (_PlayerRoleRefetch) {
                                 //Update roles for all online players
@@ -5140,6 +5055,118 @@ namespace PRoConEvents {
                                     AssignPlayerRole(aPlayer);
                                 }
                                 _PlayerRoleRefetch = false;
+                            }
+
+                            if (_firstPlayerListComplete)
+                            {
+                                Int32 playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
+                                if (playerCount < _lowPopulationPlayerCount)
+                                {
+                                    switch (_populationStatus)
+                                    {
+                                        case PopulationState.Unknown:
+                                            _populationTransitionTime = UtcDbTime();
+                                            OnlineAdminSayMessage("Server in populating mode.");
+                                            break;
+                                        case PopulationState.Low:
+                                            //Current state
+                                            _populationDurations[PopulationState.Low] += (UtcDbTime() - _populationUpdateTime);
+                                            break;
+                                        case PopulationState.Medium:
+                                            _populationTransitionTime = UtcDbTime();
+                                            _populationDurations[PopulationState.Medium] += (UtcDbTime() - _populationTransitionTime);
+                                            OnlineAdminSayMessage("Server now in populating mode, with " + playerCount + " populators.");
+                                            break;
+                                        case PopulationState.High:
+                                            _populationTransitionTime = UtcDbTime();
+                                            _populationDurations[PopulationState.High] += (UtcDbTime() - _populationTransitionTime);
+                                            OnlineAdminSayMessage("Server now in populating mode, with " + playerCount + " populators.");
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                    if (!_populationPopulating)
+                                    {
+                                        _populationPopulating = true;
+                                        foreach (var popPlayer in _PlayerDictionary.Values.Where(player => player.player_type == PlayerType.Player))
+                                        {
+                                            _populationPopulatingPlayers[popPlayer.player_name] = popPlayer;
+                                        }
+                                    }
+                                    _populationStatus = PopulationState.Low;
+                                }
+                                else if (playerCount < _highPopulationPlayerCount)
+                                {
+                                    switch (_populationStatus)
+                                    {
+                                        case PopulationState.Unknown:
+                                            _populationTransitionTime = UtcDbTime();
+                                            break;
+                                        case PopulationState.Low:
+                                            _populationTransitionTime = UtcDbTime();
+                                            _populationDurations[PopulationState.Low] += (UtcDbTime() - _populationTransitionTime);
+                                            break;
+                                        case PopulationState.Medium:
+                                            //Current state
+                                            _populationDurations[PopulationState.Medium] += (UtcDbTime() - _populationUpdateTime);
+                                            break;
+                                        case PopulationState.High:
+                                            _populationTransitionTime = UtcDbTime();
+                                            _populationDurations[PopulationState.High] += (UtcDbTime() - _populationTransitionTime);
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                    _populationStatus = PopulationState.Medium;
+                                }
+                                else
+                                {
+                                    switch (_populationStatus)
+                                    {
+                                        case PopulationState.Unknown:
+                                            _populationTransitionTime = UtcDbTime();
+                                            break;
+                                        case PopulationState.Low:
+                                            _populationTransitionTime = UtcDbTime();
+                                            _populationDurations[PopulationState.Low] += (UtcDbTime() - _populationTransitionTime);
+                                            break;
+                                        case PopulationState.Medium:
+                                            _populationTransitionTime = UtcDbTime();
+                                            _populationDurations[PopulationState.Medium] += (UtcDbTime() - _populationTransitionTime);
+                                            break;
+                                        case PopulationState.High:
+                                            //Current state
+                                            _populationDurations[PopulationState.High] += (UtcDbTime() - _populationUpdateTime);
+                                            break;
+                                        default:
+                                            break;
+                                    }
+                                    if (_populationPopulating)
+                                    {
+                                        foreach (var popPlayer in _populationPopulatingPlayers.Values.Where(aPlayer =>
+                                                                                                                aPlayer.player_online &&
+                                                                                                                _PlayerDictionary.ContainsKey(aPlayer.player_name) &&
+                                                                                                                aPlayer.player_type == PlayerType.Player))
+                                        {
+                                            QueueRecordForProcessing(new AdKatsRecord
+                                            {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_population_success"),
+                                                command_numeric = 0,
+                                                target_name = popPlayer.player_name,
+                                                target_player = popPlayer,
+                                                source_name = "PopulationManager",
+                                                record_message = "Populated Server " + _serverInfo.ServerID
+                                            });
+                                            PlayerSayMessage(popPlayer.player_name, "Thank you for helping populate the server!");
+                                        }
+                                        _populationPopulatingPlayers.Clear();
+                                        _populationPopulating = false;
+                                    }
+                                    _populationStatus = PopulationState.High;
+                                }
+                                _populationUpdateTime = UtcDbTime();
                             }
                         }
 
