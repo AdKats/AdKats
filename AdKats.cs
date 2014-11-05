@@ -13123,6 +13123,7 @@ namespace PRoConEvents {
                     case "self_contest":
                     case "banenforcer_enforce":
                     case "player_repboost":
+                    case "player_population_success":
                         record.record_action_executed = true;
                         //Don't do anything here
                         break;
