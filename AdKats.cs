@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.3.9
- * 5-NOV-2014
+ * Version 5.2.4.0
+ * 6-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.3.9</version_code>
+ * <version_code>5.2.4.0</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.3.9";
+        private const String PluginVersion = "5.2.4.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4619,6 +4619,21 @@ namespace PRoConEvents {
                                         }
                                         aPlayer.conversationPartner = null;
                                     }
+                                    if (_isTestingAuthorized &&
+                                        _roundState == RoundState.Loaded &&
+                                        _serverInfo.InfoObject != null)
+                                    {
+                                        QueueRecordForProcessing(new AdKatsRecord
+                                        {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("server_map_detriment"),
+                                            command_numeric = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player),
+                                            target_name = _serverInfo.InfoObject.Map,
+                                            source_name = "MapManager",
+                                            record_message = aPlayer.player_name + " left because of " + _serverInfo.InfoObject.Map
+                                        });
+                                    }
                                     //Remove from populators
                                     _populationPopulatingPlayers.Remove(aPlayer.player_name);
                                     //Add player to the left dictionary
@@ -4925,6 +4940,20 @@ namespace PRoConEvents {
                                                 aPlayer.player_type == PlayerType.Player) {
                                                 _populationPopulatingPlayers[aPlayer.player_name] = aPlayer;
                                             }
+                                            if (_isTestingAuthorized &&
+                                                _roundState == RoundState.Playing &&
+                                                _serverInfo.InfoObject != null) {
+                                                QueueRecordForProcessing(new AdKatsRecord
+                                                {
+                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                    server_id = _serverInfo.ServerID,
+                                                    command_type = GetCommandByKey("server_map_benefit"),
+                                                    command_numeric = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player),
+                                                    target_name = _serverInfo.InfoObject.Map,
+                                                    source_name = "MapManager",
+                                                    record_message = aPlayer.player_name + " joined because of " + _serverInfo.InfoObject.Map
+                                                });
+                                            }
                                         }
                                         //Set their last death/spawn times
                                         aPlayer.lastDeath = UtcDbTime();
@@ -5167,7 +5196,6 @@ namespace PRoConEvents {
                                                 source_name = "PopulationManager",
                                                 record_message = "Populated Server " + _serverInfo.ServerID
                                             });
-                                            PlayerSayMessage(popPlayer.player_name, "Thank you for helping populate the server!");
                                         }
                                         _populationPopulatingPlayers.Clear();
                                         _populationPopulating = false;
@@ -5896,6 +5924,8 @@ namespace PRoConEvents {
             try {
                 if (_pluginEnabled) {
                     _roundState = RoundState.Loaded;
+                    //Request new server info
+                    ExecuteCommand("procon.protected.send", "serverInfo");
                     //Completely clear all round-specific data
                     _endingRound = false;
                     _surrenderVoteList.Clear();
@@ -5916,10 +5946,6 @@ namespace PRoConEvents {
                     _unmatchedRoundDeaths.Clear();
                     //Update the factions 
                     UpdateFactions();
-                    //Enable round timer
-                    if (_useRoundTimer) {
-                        StartRoundTimer();
-                    }
                     StartRoundTicketLogger(0);
                 }
             }
@@ -6525,6 +6551,9 @@ namespace PRoConEvents {
                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete) {
                     if (_roundState == RoundState.Loaded) {
                         _roundState = RoundState.Playing;
+                        if (_useRoundTimer) {
+                            StartRoundTimer();
+                        }
                     }
                     if (_CommandNameDictionary.Count > 0) {
                         //Handle TeamSwap notifications
@@ -13080,6 +13109,9 @@ namespace PRoConEvents {
                     case "player_log":
                         SendMessageToSource(record, "Log saved for " + record.target_name);
                         break;
+                    case "player_population_success":
+                        SendPopulationSuccess(record);
+                        break;
                     case "self_rules":
                         SendServerRules(record);
                         break;
@@ -13127,7 +13159,8 @@ namespace PRoConEvents {
                     case "self_contest":
                     case "banenforcer_enforce":
                     case "player_repboost":
-                    case "player_population_success":
+                    case "server_map_detriment":
+                    case "server_map_benefit":
                         record.record_action_executed = true;
                         //Don't do anything here
                         break;
@@ -15280,6 +15313,30 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting playerTell", 6);
+        }
+
+        public void SendPopulationSuccess(AdKatsRecord record)
+        {
+            DebugWrite("Entering SendPopulationSuccess", 6);
+            try
+            {
+                record.record_action_executed = true;
+                if (_isTestingAuthorized)
+                {
+                    PlayerTellMessage(record.target_player.player_name, "Thank you for helping populate the server!");
+                }
+                else
+                {
+                    PlayerSayMessage(record.target_player.player_name, "Thank you for helping populate the server!");
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for population success record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SendPopulationSuccess", 6);
         }
 
         public void SendServerRules(AdKatsRecord record)
@@ -21843,6 +21900,16 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 88", "REPLACE INTO `adkats_commands` VALUES(88, 'Invisible', 'player_population_success', 'Log', 'Player Successfully Populated Server', 'popsuccess', FALSE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(89))
+                                {
+                                    SendNonQuery("Adding command 89", "REPLACE INTO `adkats_commands` VALUES(89, 'Invisible', 'server_map_detriment', 'Log', 'Map Detriment Log', 'mapdetriment', FALSE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(90))
+                                {
+                                    SendNonQuery("Adding command 90", "REPLACE INTO `adkats_commands` VALUES(90, 'Invisible', 'server_map_benefit', 'Log', 'Map Benefit Log', 'mapbenefit', FALSE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -25205,17 +25272,17 @@ namespace PRoConEvents {
                         try {
                             Thread.CurrentThread.Name = "RoundTimer";
                             DebugWrite("starting round timer", 2);
-                            _threadMasterWaitHandle.WaitOne(3000);
-                            var roundTimeSeconds = (Int32) (_maxRoundTimeMinutes * 60);
-                            for (Int32 secondsRemaining = roundTimeSeconds; secondsRemaining > 0; secondsRemaining--) {
+                            _threadMasterWaitHandle.WaitOne(5000);
+                            var maxRoundTimeSeconds = (Int32) (_maxRoundTimeMinutes * 60);
+                            for (Int32 secondsRemaining = maxRoundTimeSeconds; secondsRemaining > 0; secondsRemaining--) {
                                 if (_roundState == RoundState.Ended || !_pluginEnabled || !_threadsReady) {
                                     return;
                                 }
-                                if (secondsRemaining == roundTimeSeconds - 60 && secondsRemaining > 60) {
+                                if (secondsRemaining == maxRoundTimeSeconds - 60 && secondsRemaining > 60) {
                                     AdminTellMessage("Round will end automatically in ~" + (Int32) (secondsRemaining / 60.0) + " minutes.");
                                     DebugWrite("Round will end automatically in ~" + (Int32) (secondsRemaining / 60.0) + " minutes.", 3);
                                 }
-                                else if (secondsRemaining == (roundTimeSeconds / 2) && secondsRemaining > 60) {
+                                else if (secondsRemaining == (maxRoundTimeSeconds / 2) && secondsRemaining > 60) {
                                     AdminTellMessage("Round will end automatically in ~" + (Int32) (secondsRemaining / 60.0) + " minutes.");
                                     DebugWrite("Round will end automatically in ~" + (Int32) (secondsRemaining / 60.0) + " minutes.", 3);
                                 }
