@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.4.1
+ * Version 5.2.4.2
  * 6-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.4.1</version_code>
+ * <version_code>5.2.4.2</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.4.1";
+        private const String PluginVersion = "5.2.4.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -480,6 +480,7 @@ namespace PRoConEvents {
         private Boolean _PostStatLoggerChatManually;
         private Boolean _PostStatLoggerChatManually_PostServerChatSpam = true;
         private Boolean _PostStatLoggerChatManually_IgnoreCommands = false;
+        private Boolean _PostMapBenefitStatistics;
         private Boolean _MULTIBalancerUnswitcherDisabled = false;
 
         //Hacker-checker
@@ -994,6 +995,7 @@ namespace PRoConEvents {
                         }
                     }
 
+                    //Auto-Surrender Settings
                     lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                     if (_surrenderAutoEnable)
                     {
@@ -1018,6 +1020,9 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
                         }
                     }
+
+                    //Statistics Settings
+                    lstReturn.Add(new CPluginVariable("B26. Statistics Settings|Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
 
                     //Debug settings
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
@@ -2117,6 +2122,16 @@ namespace PRoConEvents {
                         _PostStatLoggerChatManually_IgnoreCommands = PostStatLoggerChatManually_IgnoreCommands;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Post Map Benefit/Detriment Statistics").Success)
+                {
+                    Boolean PostMapBenefitStatistics = Boolean.Parse(strValue);
+                    if (PostMapBenefitStatistics != _PostMapBenefitStatistics)
+                    {
+                        _PostMapBenefitStatistics = PostMapBenefitStatistics;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Experimental Tools").Success) {
@@ -4633,7 +4648,7 @@ namespace PRoConEvents {
                                         }
                                         aPlayer.conversationPartner = null;
                                     }
-                                    if (_isTestingAuthorized &&
+                                    if (_PostMapBenefitStatistics &&
                                         _serverInfo.InfoObject != null &&
                                         (_roundState == RoundState.Loaded || (_roundState == RoundState.Playing && _serverInfo.GetRoundElapsedTime().TotalMinutes < 2)) &&
                                         !PlayerIsAdmin(aPlayer))
@@ -4955,7 +4970,7 @@ namespace PRoConEvents {
                                                 aPlayer.player_type == PlayerType.Player) {
                                                 _populationPopulatingPlayers[aPlayer.player_name] = aPlayer;
                                             }
-                                            if (_isTestingAuthorized &&
+                                            if (_PostMapBenefitStatistics &&
                                                 _serverInfo.InfoObject != null &&
                                                 (_roundState == RoundState.Playing || _roundState == RoundState.Loaded) &&
                                                 !PlayerIsAdmin(aPlayer)) {
@@ -5889,7 +5904,7 @@ namespace PRoConEvents {
                             Boolean wasADK = _isTestingAuthorized;
                             _isTestingAuthorized = serverInfo.ServerName.Contains("=ADK=");
                             if (!wasADK && _isTestingAuthorized) {
-                                ConsoleSuccess("Server is testing authorized.");
+                                ConsoleInfo("Server is testing authorized.");
                                 if (_gameVersion != GameVersion.BF3)
                                 {
                                     _FeedStatLoggerSettings = true;
@@ -5898,7 +5913,6 @@ namespace PRoConEvents {
                                     _pingEnforcerKickMissingPings = true;
                                     _CMDRManagerEnable = true;
                                     _surrenderVoteEnable = true;
-                                    _surrenderVoteMinimumTicketGap = 250;
                                     if (_serverInfo.ServerName.Contains("#7")) 
                                     {
                                         _surrenderAutoEnable = true;
@@ -5912,8 +5926,7 @@ namespace PRoConEvents {
                                     _spamBotExcludeAdminsAndWhitelist = true;
                                 }
                                 _DisplayTicketRatesInProconChat = true;
-                                //Test modifying privileges
-                                ExecuteCommand("procon.layer.setPrivileges", "ColColonCleaner", "3972679");
+                                _PostMapBenefitStatistics = true;
                                 UpdateSettingPage();
                             }
                             if (!_pluginUpdateServerInfoChecked) {
@@ -16425,7 +16438,7 @@ namespace PRoConEvents {
                                 continue;
                             }
                         }
-                        //On first run, pull all roles and commands and update database if needed
+                        //On first run, pull all roles and commands, update database if needed
                         if (firstRun) {
                             counter.Reset();
                             counter.Start();
@@ -17246,6 +17259,8 @@ namespace PRoConEvents {
             }
             else {
                 ConsoleError("Not DB connection capable yet, complete SQL connection variables.");
+                Disable();
+                _threadMasterWaitHandle.WaitOne(500);
             }
             DebugWrite("testDatabaseConnection finished!", 6);
 
@@ -17840,6 +17855,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
                 QueueSettingForUpload(new CPluginVariable(@"Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
                 QueueSettingForUpload(new CPluginVariable(@"Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
+                QueueSettingForUpload(new CPluginVariable(@"Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _maxRoundTimeMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof (Boolean), _UseWeaponLimiter));
