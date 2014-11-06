@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.4.0
+ * Version 5.2.4.1
  * 6-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.4.0</version_code>
+ * <version_code>5.2.4.1</version_code>
  */
 
 using System;
@@ -4620,8 +4620,9 @@ namespace PRoConEvents {
                                         aPlayer.conversationPartner = null;
                                     }
                                     if (_isTestingAuthorized &&
-                                        _roundState == RoundState.Loaded &&
-                                        _serverInfo.InfoObject != null)
+                                        _serverInfo.InfoObject != null &&
+                                        (_roundState == RoundState.Loaded || (_roundState == RoundState.Playing && _serverInfo.GetRoundElapsedTime().TotalMinutes < 2)) &&
+                                        !PlayerIsAdmin(aPlayer))
                                     {
                                         QueueRecordForProcessing(new AdKatsRecord
                                         {
@@ -4941,8 +4942,9 @@ namespace PRoConEvents {
                                                 _populationPopulatingPlayers[aPlayer.player_name] = aPlayer;
                                             }
                                             if (_isTestingAuthorized &&
-                                                _roundState == RoundState.Playing &&
-                                                _serverInfo.InfoObject != null) {
+                                                _serverInfo.InfoObject != null &&
+                                                (_roundState == RoundState.Playing || _roundState == RoundState.Loaded) &&
+                                                !PlayerIsAdmin(aPlayer)) {
                                                 QueueRecordForProcessing(new AdKatsRecord
                                                 {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -12240,7 +12242,7 @@ namespace PRoConEvents {
                 }
                 if (record.record_source == AdKatsRecord.Sources.InGame || record.record_source == AdKatsRecord.Sources.InternalAutomated)
                 {
-                    DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + Math.Round((UtcDbTime() - record.record_time).TotalMilliseconds) + "ms to complete.", 3);
+                    DebugWrite("In-Game/Automated " + record.command_action.command_key + " record took " + Math.Round((DateTime.UtcNow - record.record_creationTime).TotalMilliseconds) + "ms to complete actions.", 3);
                 }
                 //Add event log
                 if (String.IsNullOrEmpty(record.target_name))
@@ -25727,6 +25729,7 @@ namespace PRoConEvents {
 
             //Multiple targets if needed
             //Not pushed to database
+            public DateTime record_creationTime { get; private set; }
             public Boolean record_held;
             public Boolean record_orchestrate;
             public List<String> TargetNamesLocal; 
@@ -25739,6 +25742,7 @@ namespace PRoConEvents {
                 TargetNamesLocal = new List<String>();
                 TargetPlayersLocal = new List<AdKatsPlayer>();
                 TargetInnerRecords = new List<AdKatsRecord>();
+                record_creationTime = DateTime.UtcNow;
             }
         }
 
