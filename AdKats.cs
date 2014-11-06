@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.4.0";
+        private const String PluginVersion = "5.2.4.1";
 
         public enum ConsoleMessageType {
             Normal,
