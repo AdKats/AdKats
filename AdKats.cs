@@ -4020,7 +4020,7 @@ namespace PRoConEvents {
                                     }
                                     foreach(var aPlayer in afkPlayers)
                                     {
-                                        string afkTime = FormatTimeString(UtcDbTime() - aPlayer.lastAction, 2);
+                                        String afkTime = FormatTimeString(UtcDbTime() - aPlayer.lastAction, 2);
                                         DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
                                         var record = new AdKatsRecord
                                         {
@@ -4217,6 +4217,7 @@ namespace PRoConEvents {
             _EmailHandler = new EmailHandler(this);
             //Update faction info
             //Load initial factions
+            OnTeamFactionOverride(-1, -1);
             OnTeamFactionOverride(1, 0);
             OnTeamFactionOverride(2, 1);
             OnTeamFactionOverride(3, 0);
@@ -4235,10 +4236,23 @@ namespace PRoConEvents {
                 {
                     switch (overrideTeamId)
                     {
+                        case -1:
+                            //Check for already existing Neutral team
+                            if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
+                                _teamDictionary.ContainsKey(targetTeamID) &&
+                                _teamDictionary[targetTeamID].TeamKey == "Neutral" &&
+                                _roundState == RoundState.Playing)
+                            {
+                                DebugWrite("Neutral Team already set for team " + targetTeamID + ", cancelling override.", 4);
+                                break;
+                            }
+                            _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "Neutral", "Neutral Team", "Neutral Team");
+                            DebugWrite("Assigning team ID " + targetTeamID + " to Neutral ", 4);
+                            break;
                         case 0:
                             //Check for already existing US team
-                            if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && 
-                                _teamDictionary.ContainsKey(targetTeamID) && 
+                            if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
+                                _teamDictionary.ContainsKey(targetTeamID) &&
                                 _teamDictionary[targetTeamID].TeamKey == "US" &&
                                 _roundState == RoundState.Playing)
                             {
