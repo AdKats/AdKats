@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.4.3
- * 6-NOV-2014
+ * Version 5.2.4.4
+ * 7-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.4.3</version_code>
+ * <version_code>5.2.4.4</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.4.3";
+        private const String PluginVersion = "5.2.4.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1399,9 +1399,12 @@ namespace PRoConEvents {
                         }
                     }
                 }
-                else if (Regex.Match(strVariable, @"Maximum Temp-Ban Duration Minutes").Success)
-                {
-                    Double maxDuration = Double.Parse(strValue);
+                else if (Regex.Match(strVariable, @"Maximum Temp-Ban Duration Minutes").Success) {
+                    Double maxDuration;
+                    if (!Double.TryParse(strValue, out maxDuration)) {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (maxDuration <= 0)
                     {
                         ConsoleError("Max duration cannot be negative.");
@@ -1425,7 +1428,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Rule Print Delay").Success)
                 {
-                    Double delay = Double.Parse(strValue);
+                    Double delay;
+                    if (!Double.TryParse(strValue, out delay))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_ServerRulesDelay != delay)
                     {
                         if (delay <= 0)
@@ -1440,7 +1448,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Rule Print Interval").Success)
                 {
-                    Double interval = Double.Parse(strValue);
+                    Double interval;
+                    if (!Double.TryParse(strValue, out interval))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_ServerRulesInterval != interval)
                     {
                         if (interval <= 0)
@@ -1532,7 +1545,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"AFK Trigger Minutes").Success)
                 {
-                    Double afkAutoKickDurationMinutes = Double.Parse(strValue);
+                    Double afkAutoKickDurationMinutes;
+                    if (!Double.TryParse(strValue, out afkAutoKickDurationMinutes))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_AFKTriggerDurationMinutes != afkAutoKickDurationMinutes)
                     {
                         if (afkAutoKickDurationMinutes < 0)
@@ -1595,7 +1613,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Ping Moving Average Duration sec").Success)
                 {
-                    Double pingMovingAverageDurationSeconds = Double.Parse(strValue);
+                    Double pingMovingAverageDurationSeconds;
+                    if (!Double.TryParse(strValue, out pingMovingAverageDurationSeconds))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_pingMovingAverageDurationSeconds != pingMovingAverageDurationSeconds)
                     {
                         if (pingMovingAverageDurationSeconds < 30)
@@ -1610,7 +1633,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Ping Kick Trigger ms").Success)
                 {
-                    Double pingEnforcerTriggerMS = Double.Parse(strValue);
+                    Double pingEnforcerTriggerMS;
+                    if (!Double.TryParse(strValue, out pingEnforcerTriggerMS))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_pingEnforcerTriggerMS != pingEnforcerTriggerMS)
                     {
                         if (pingEnforcerTriggerMS < 10)
@@ -1736,7 +1764,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Percentage Votes Needed for Surrender").Success)
                 {
-                    Double surrenderVoteMinimumPlayerPercentage = Double.Parse(strValue);
+                    Double surrenderVoteMinimumPlayerPercentage;
+                    if (!Double.TryParse(strValue, out surrenderVoteMinimumPlayerPercentage))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_surrenderVoteMinimumPlayerPercentage != surrenderVoteMinimumPlayerPercentage)
                     {
                         if (surrenderVoteMinimumPlayerPercentage < 0)
@@ -1796,7 +1829,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Minimum Ticket Rate Gap to Surrender").Success)
                 {
-                    Double surrenderVoteMinimumTicketRateGap = Double.Parse(strValue);
+                    Double surrenderVoteMinimumTicketRateGap;
+                    if (!Double.TryParse(strValue, out surrenderVoteMinimumTicketRateGap))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_surrenderVoteMinimumTicketRateGap != surrenderVoteMinimumTicketRateGap)
                     {
                         if (surrenderVoteMinimumTicketRateGap < 0)
@@ -1904,7 +1942,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Auto-Surrender Losing Team Rate Window Max").Success)
                 {
-                    Double surrenderAutoLosingRateMax = Double.Parse(strValue);
+                    Double surrenderAutoLosingRateMax;
+                    if (!Double.TryParse(strValue, out surrenderAutoLosingRateMax))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_surrenderAutoLosingRateMax != surrenderAutoLosingRateMax)
                     {
                         _surrenderAutoLosingRateMax = surrenderAutoLosingRateMax;
@@ -1914,7 +1957,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Auto-Surrender Losing Team Rate Window Min").Success)
                 {
-                    Double surrenderAutoLosingRateMin = Double.Parse(strValue);
+                    Double surrenderAutoLosingRateMin;
+                    if (!Double.TryParse(strValue, out surrenderAutoLosingRateMin))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_surrenderAutoLosingRateMin != surrenderAutoLosingRateMin)
                     {
                         _surrenderAutoLosingRateMin = surrenderAutoLosingRateMin;
@@ -1924,7 +1972,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Auto-Surrender Winning Team Rate Window Max").Success)
                 {
-                    Double surrenderAutoWinningRateMax = Double.Parse(strValue);
+                    Double surrenderAutoWinningRateMax;
+                    if (!Double.TryParse(strValue, out surrenderAutoWinningRateMax))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_surrenderAutoWinningRateMax != surrenderAutoWinningRateMax)
                     {
                         _surrenderAutoWinningRateMax = surrenderAutoWinningRateMax;
@@ -1934,7 +1987,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Auto-Surrender Winning Team Rate Window Min").Success)
                 {
-                    Double surrenderAutoWinningRateMin = Double.Parse(strValue);
+                    Double surrenderAutoWinningRateMin;
+                    if (!Double.TryParse(strValue, out surrenderAutoWinningRateMin))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_surrenderAutoWinningRateMin != surrenderAutoWinningRateMin)
                     {
                         _surrenderAutoWinningRateMin = surrenderAutoWinningRateMin;
@@ -1972,7 +2030,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Player Lock Manual Duration Minutes").Success)
                 {
-                    Double playerLockingManualDuration = Double.Parse(strValue);
+                    Double playerLockingManualDuration;
+                    if (!Double.TryParse(strValue, out playerLockingManualDuration))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_playerLockingManualDuration != playerLockingManualDuration)
                     {
                         if (playerLockingManualDuration < 0)
@@ -1997,7 +2060,12 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Player Lock Automatic Duration Minutes").Success)
                 {
-                    Double playerLockingAutomaticDuration = Double.Parse(strValue);
+                    Double playerLockingAutomaticDuration;
+                    if (!Double.TryParse(strValue, out playerLockingAutomaticDuration))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_playerLockingAutomaticDuration != playerLockingAutomaticDuration)
                     {
                         if (playerLockingAutomaticDuration < 0)
@@ -2173,7 +2241,12 @@ namespace PRoConEvents {
                     }
                 }
                 else if (Regex.Match(strVariable, @"Round Timer: Round Duration Minutes").Success) {
-                    Double duration = Double.Parse(strValue);
+                    Double duration;
+                    if (!Double.TryParse(strValue, out duration))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_maxRoundTimeMinutes != duration) {
                         if (duration <= 0) {
                             duration = 30.0;
@@ -2283,7 +2356,12 @@ namespace PRoConEvents {
                     }
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: DPS Checker: Trigger Level").Success) {
-                    Double triggerLevel = Double.Parse(strValue);
+                    Double triggerLevel;
+                    if (!Double.TryParse(strValue, out triggerLevel))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_DpsTriggerLevel != triggerLevel) {
                         if (triggerLevel <= 0) {
                             triggerLevel = 100.0;
@@ -2317,7 +2395,12 @@ namespace PRoConEvents {
                     }
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: HSK Checker: Trigger Level").Success) {
-                    Double triggerLevel = Double.Parse(strValue);
+                    Double triggerLevel;
+                    if (!Double.TryParse(strValue, out triggerLevel))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_HskTriggerLevel != triggerLevel) {
                         if (triggerLevel <= 0) {
                             triggerLevel = 100.0;
@@ -2351,7 +2434,12 @@ namespace PRoConEvents {
                     }
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: KPM Checker: Trigger Level").Success) {
-                    Double triggerLevel = Double.Parse(strValue);
+                    Double triggerLevel;
+                    if (!Double.TryParse(strValue, out triggerLevel))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
                     if (_KpmTriggerLevel != triggerLevel) {
                         if (triggerLevel <= 0) {
                             triggerLevel = 100.0;
@@ -4041,7 +4129,7 @@ namespace PRoConEvents {
                                             teamKey = "/" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey;
                                         }
                                         else {
-                                            HandleException(new AdKatsException("Team ID " + aPlayer.frostbitePlayerInfo.TeamID + " not found in the team dictionary when AFK kicking."));
+                                            HandleException(new AdKatsException("Team ID " + aPlayer.frostbitePlayerInfo.TeamID + " not found in the team dictionary of " + _teamDictionary.Count + " teams when AFK kicking."));
                                         }
                                         DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
                                         var record = new AdKatsRecord
@@ -12255,7 +12343,7 @@ namespace PRoConEvents {
                     }
                     else
                     {
-                        HandleException(new AdKatsException("Record command not found, unable to finalize record. " + ((String.IsNullOrEmpty(record.source_name)) ? ("NOSOURCE") : (record.source_name)) + "|" + ((String.IsNullOrEmpty(record.record_message)) ? ("NOMESSAGE") : (record.record_message))));
+                        //Record has no command. Ignore it.
                         return;
                     }
                 }
@@ -24390,7 +24478,14 @@ namespace PRoConEvents {
 
         public AdKatsCommand GetCommandByKey(String commandKey) {
             AdKatsCommand command = null;
+            if (String.IsNullOrEmpty(commandKey)) {
+                HandleException(new AdKatsException("commandKey was null when fetching command"));
+                return command;
+            }
             _CommandKeyDictionary.TryGetValue(commandKey, out command);
+            if (command == null) {
+                HandleException(new AdKatsException("Unable to get command for key '" + commandKey + "'"));
+            }
             return command;
         }
 
@@ -25411,9 +25506,21 @@ namespace PRoConEvents {
                         loc.region = (String) response["region"];
                         loc.regionName = (String) response["regionName"];
                         loc.city = (String) response["city"];
-                        loc.zip = (String) response["zip"];
-                        loc.lat = Double.Parse((String) response["lat"]);
-                        loc.lon = Double.Parse((String) response["lon"]);
+                        loc.zip = (String)response["zip"];
+                        if (!Double.TryParse((String)response["lat"], out loc.lat))
+                        {
+                            HandleException(new AdKatsException("Error parsing double for ip location latitude. '" + (String)response["lat"] + "'"));
+                            loc.status = "fail";
+                            loc.message = "error fetching latitude";
+                            return loc;
+                        }
+                        if (!Double.TryParse((String)response["lon"], out loc.lon))
+                        {
+                            HandleException(new AdKatsException("Error parsing double for ip location longitude. '" + (String)response["lon"] + "'"));
+                            loc.status = "fail";
+                            loc.message = "error fetching longitude";
+                            return loc;
+                        }
                         loc.timezone = (String) response["timezone"];
                         loc.isp = (String) response["isp"];
                         loc.org = (String) response["org"];
