@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.4.4
+ * Version 5.2.4.5
  * 7-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.4.4</version_code>
+ * <version_code>5.2.4.5</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.4.4";
+        private const String PluginVersion = "5.2.4.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4124,13 +4124,6 @@ namespace PRoConEvents {
                                     foreach(var aPlayer in afkPlayers)
                                     {
                                         String afkTime = FormatTimeString(UtcDbTime() - aPlayer.lastAction, 2);
-                                        String teamKey = "";
-                                        if (_teamDictionary.ContainsKey(aPlayer.frostbitePlayerInfo.TeamID)) {
-                                            teamKey = "/" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey;
-                                        }
-                                        else {
-                                            HandleException(new AdKatsException("Team ID " + aPlayer.frostbitePlayerInfo.TeamID + " not found in the team dictionary of " + _teamDictionary.Count + " teams when AFK kicking."));
-                                        }
                                         DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
                                         var record = new AdKatsRecord
                                         {
@@ -4141,7 +4134,7 @@ namespace PRoConEvents {
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
                                             source_name = "AFKManager",
-                                            record_message = "AFK time exceeded [" + afkTime + teamKey + "]. Please rejoin once you return."
+                                            record_message = "AFK time exceeded [" + afkTime + "/" + GetPlayerTeamKey(aPlayer) + "]. Please rejoin once you return."
                                         };
                                         QueueRecordForProcessing(record);
                                         //Only take one
@@ -4703,7 +4696,7 @@ namespace PRoConEvents {
                                             typeString = typeString.Trim().TrimEnd(',') + "]";
                                             if (_ShowTargetedPlayerLeftNotification)
                                             {
-                                                OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server from " + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " team. " + typeString);
+                                                OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server from " + GetPlayerTeamKey(aPlayer) + " team. " + typeString);
                                             }
                                             List<AdKatsRecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
                                             var reporters = new Dictionary<string, AdKatsPlayer>();
@@ -13574,7 +13567,8 @@ namespace PRoConEvents {
                         AdminSayMessage("Player " + record.target_name + " was KICKED by " + ((_ShowAdminNameInAnnouncement) ? (record.source_name) : ("admin")) + " for " + record.record_message);
                     }
                     if (record.target_player.frostbitePlayerInfo != null) {
-                        SendMessageToSource(record, "You KICKED " + record.target_name + " from " + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamName + " for " + record.record_message);
+                        String teamLocation;
+                        SendMessageToSource(record, "You KICKED " + record.target_name + " from " + GetPlayerTeamName(record.target_player) + " for " + record.record_message);
                     }
                     else
                     {
@@ -14609,7 +14603,7 @@ namespace PRoConEvents {
                 String sourcePlayerInfo = "";
                 if (record.source_player != null && record.source_player.frostbitePlayerInfo != null) {
                     if (record.source_player.player_online) {
-                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + "/" +
+                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.source_player) + "/" +
                                     (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" +
                                     record.source_player.frostbitePlayerInfo.Score + ")";
                     }
@@ -14623,7 +14617,7 @@ namespace PRoConEvents {
                 {
                     if (record.target_player.player_online)
                     {
-                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + "/" +
+                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.target_player) + "/" +
                                     (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" +
                                     record.target_player.frostbitePlayerInfo.Score + ")";
                     }
@@ -14712,7 +14706,7 @@ namespace PRoConEvents {
                 {
                     if (record.source_player.player_online)
                     {
-                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + _teamDictionary[record.source_player.frostbitePlayerInfo.TeamID].TeamKey + "/" +
+                        sourcePlayerInfo = " (" + Math.Round(record.source_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.source_player) + "/" +
                                     (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.source_player) + 1) + "/" +
                                     record.source_player.frostbitePlayerInfo.Score + ")";
                     }
@@ -14726,7 +14720,7 @@ namespace PRoConEvents {
                 {
                     if (record.target_player.player_online)
                     {
-                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamKey + "/" +
+                        targetPlayerInfo = " (" + Math.Round(record.target_player.player_reputation, 1) + ")(" + GetPlayerTeamKey(record.target_player) + "/" +
                                     (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" +
                                     record.target_player.frostbitePlayerInfo.Score + ")";
                     }
@@ -15919,7 +15913,7 @@ namespace PRoConEvents {
                     String location;
                     if (rRecord.target_player.player_online)
                     {
-                        location = _teamDictionary[rRecord.target_player.frostbitePlayerInfo.TeamID].TeamKey + "/" +
+                        location = GetPlayerTeamKey(rRecord.target_player) + "/" +
                             (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == rRecord.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(rRecord.target_player) + 1);
                     }
                     else
@@ -16005,7 +15999,7 @@ namespace PRoConEvents {
                         {
                             if (record.target_player.player_online)
                             {
-                                playerInfo += ", " + _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamName + "/" +
+                                playerInfo += ", " + GetPlayerTeamName(record.target_player) + "/" +
                                     (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" +
                                     record.target_player.frostbitePlayerInfo.Score;
                             }
@@ -16237,7 +16231,7 @@ namespace PRoConEvents {
                 if (record.target_player.player_online)
                 {
 
-                    playerInfo += _teamDictionary[record.target_player.frostbitePlayerInfo.TeamID].TeamName + "/" +
+                    playerInfo += GetPlayerTeamName(record.target_player) + "/" +
                         (_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.target_player.frostbitePlayerInfo.TeamID).OrderBy(aPlayer => aPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(record.target_player) + 1) + "/" +
                         record.target_player.frostbitePlayerInfo.Score;
                 }
@@ -16385,7 +16379,7 @@ namespace PRoConEvents {
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
                             source_name = "AFKManager",
-                            record_message = "AFK time exceeded [" + afkTime + "/" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
+                            record_message = "AFK time exceeded [" + afkTime + "/" + GetPlayerTeamKey(aPlayer) + "]. Please rejoin once you return."
                         };
                         QueueRecordForProcessing(kickRecord);
                     }
@@ -16414,7 +16408,7 @@ namespace PRoConEvents {
                 onlineAdmins = onlineAdminList.Aggregate(onlineAdmins, (current, aPlayer) => current + (
                     aPlayer.player_name + 
                     " (" + 
-                    _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + 
+                    GetPlayerTeamKey(aPlayer) + 
                     "/" + 
                     (_PlayerDictionary.Values.Where(innerPlayer => innerPlayer.frostbitePlayerInfo.TeamID == aPlayer.frostbitePlayerInfo.TeamID).OrderBy(innerPlayer => innerPlayer.frostbitePlayerInfo.Score).Reverse().ToList().IndexOf(aPlayer) + 1) + 
                     "), "));
@@ -24489,6 +24483,45 @@ namespace PRoConEvents {
             return command;
         }
 
+        public String GetPlayerTeamKey(AdKatsPlayer aPlayer)
+        {
+            String teamKey = "UKN";
+            if (aPlayer == null || aPlayer.frostbitePlayerInfo == null)
+            {
+                return teamKey;
+            }
+            AdKatsTeam aTeam;
+            if (GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out aTeam))
+            {
+                return aTeam.TeamKey;
+            }
+            return teamKey;
+        }
+
+        public String GetPlayerTeamName(AdKatsPlayer aPlayer)
+        {
+            String teamName = "Unknown";
+            if (aPlayer == null || aPlayer.frostbitePlayerInfo == null)
+            {
+                return teamName;
+            }
+            AdKatsTeam aTeam;
+            if (GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out aTeam))
+            {
+                return aTeam.TeamName;
+            }
+            return teamName;
+        }
+
+        public Boolean GetTeamByID(Int32 teamID, out AdKatsTeam aTeam) {
+            aTeam = null;
+            if (_teamDictionary.TryGetValue(teamID, out aTeam)) {
+                return true;
+            }
+            HandleException(new AdKatsException("Team not found for ID " + teamID + " in dictionary of " + _teamDictionary.Count + " teams."));
+            return false;
+        }
+
         public String ExtractString(String s, String tag) {
             if (String.IsNullOrEmpty(s) || String.IsNullOrEmpty(tag)) {
                 ConsoleError("Unable to extract String. Invalid inputs.");
@@ -25284,6 +25317,12 @@ namespace PRoConEvents {
                 aException.InternalException.ToString().Contains("Unable to read data") || 
                 aException.InternalException.ToString().Contains("Lock wait timeout exceeded"))) {
                 HandleDatabaseConnectionInteruption();
+            }
+            else if(aException.InternalException != null && 
+                    aException.InternalException.ToString().Contains("Deadlock"))
+            {
+                //Ignore. Deadlock cannot be avoided.
+                //In the future, find a way to restart the request
             }
             else {
                 ConsoleWrite(prefix + aException, ConsoleMessageType.Exception);
