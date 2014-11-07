@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.4.2
+ * Version 5.2.4.3
  * 6-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.4.2</version_code>
+ * <version_code>5.2.4.3</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.4.2";
+        private const String PluginVersion = "5.2.4.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4036,6 +4036,13 @@ namespace PRoConEvents {
                                     foreach(var aPlayer in afkPlayers)
                                     {
                                         String afkTime = FormatTimeString(UtcDbTime() - aPlayer.lastAction, 2);
+                                        String teamKey = "";
+                                        if (_teamDictionary.ContainsKey(aPlayer.frostbitePlayerInfo.TeamID)) {
+                                            teamKey = "/" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey;
+                                        }
+                                        else {
+                                            HandleException(new AdKatsException("Team ID " + aPlayer.frostbitePlayerInfo.TeamID + " not found in the team dictionary when AFK kicking."));
+                                        }
                                         DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
                                         var record = new AdKatsRecord
                                         {
@@ -4046,7 +4053,7 @@ namespace PRoConEvents {
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
                                             source_name = "AFKManager",
-                                            record_message = "AFK time exceeded [" + afkTime + "/" + _teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + "]. Please rejoin once you return."
+                                            record_message = "AFK time exceeded [" + afkTime + teamKey + "]. Please rejoin once you return."
                                         };
                                         QueueRecordForProcessing(record);
                                         //Only take one
@@ -17407,6 +17414,30 @@ namespace PRoConEvents {
                         `roundstat_time` datetime NOT NULL,
                         PRIMARY KEY (`roundstat_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Extended Round Stats'", true);
+            }
+            //TODO: remove testing
+            if (_isTestingAuthorized && !ConfirmTable("adkats_statistics"))
+            {
+                ConsoleInfo("AdKats statistics table not found. Attempting to add.");
+                SendNonQuery("Adding AdKats statistics table", @"
+                    CREATE TABLE `adkats_statistics` (
+                      `stat_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+                      `server_id` SMALLINT(5) UNSIGNED NOT NULL,
+                      `round_id` INT(10) UNSIGNED NOT NULL,
+                      `stat_type` varchar(50) NOT NULL,
+                      `target_name` varchar(50) NOT NULL,
+                      `target_id` INT(10) UNSIGNED DEFAULT NULL,
+                      `stat_value` FLOAT NOT NULL,
+                      `stat_comment` TEXT,
+                      `stat_time` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+                      PRIMARY KEY (`stat_id`),
+                      KEY `server_id` (`server_id`),
+                      KEY `stat_type` (`stat_type`),
+                      KEY `target_id` (`target_id`),
+                      KEY `stat_time` (`stat_time`),
+                      CONSTRAINT `adkats_statistics_target_id_fk` FOREIGN KEY (`target_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+                      CONSTRAINT `adkats_statistics_server_id_fk` FOREIGN KEY (`server_id`) REFERENCES `tbl_server` (`ServerID`) ON DELETE NO ACTION ON UPDATE NO ACTION
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Statistics'", true);
             }
             if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_specialplayers' AND COLUMN_NAME = 'player_effective' )", false))
             {
