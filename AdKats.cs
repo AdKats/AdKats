@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.4.6
- * 7-NOV-2014
+ * Version 5.2.4.7
+ * 8-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.4.6</version_code>
+ * <version_code>5.2.4.7</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.4.6";
+        private const String PluginVersion = "5.2.4.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1063,7 +1063,7 @@ namespace PRoConEvents {
                             String roleEnum = String.Empty;
                             if (_RoleKeyDictionary.Count > 0) {
                                 var random = new Random();
-                                foreach (AdKatsRole role in _RoleKeyDictionary.Values) {
+                                foreach (AdKatsRole role in _RoleKeyDictionary.Values.ToList()) {
                                     if (String.IsNullOrEmpty(roleEnum)) {
                                         roleEnum += "enum.RoleEnum_" + random.Next(100000, 999999) + "(";
                                     }
@@ -1109,7 +1109,7 @@ namespace PRoConEvents {
                         if (_RoleKeyDictionary.Count > 0) {
                             lock (_RoleKeyDictionary)
                             {
-                                foreach (AdKatsRole aRole in _RoleKeyDictionary.Values)
+                                foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
                                 {
                                     lock (_CommandNameDictionary)
                                     {
@@ -1145,7 +1145,7 @@ namespace PRoConEvents {
                         const string commandListPrefix = "6. Command List|";
                         if (_CommandNameDictionary.Count > 0) {
                             lock (_CommandIDDictionary) {
-                                foreach (AdKatsCommand command in _CommandIDDictionary.Values) {
+                                foreach (AdKatsCommand command in _CommandIDDictionary.Values.ToList()) {
                                     if (command.command_active != AdKatsCommand.CommandActive.Invisible) {
                                         String commandPrefix = commandListPrefix + "CDE" + command.command_id + separator + command.command_name + separator;
                                         lstReturn.Add(new CPluginVariable(commandPrefix + "Active", "enum.commandActiveEnum(Active|Disabled)", command.command_active.ToString()));
@@ -2762,7 +2762,7 @@ namespace PRoConEvents {
                             var rgx = new Regex("[^a-zA-Z0-9_-]");
                             strValue = rgx.Replace(strValue, "").ToLower();
                             //Check to make sure text is not a duplicate
-                            foreach (AdKatsCommand testCommand in _CommandNameDictionary.Values) {
+                            foreach (AdKatsCommand testCommand in _CommandNameDictionary.Values.ToList()) {
                                 if (testCommand.command_text == strValue) {
                                     ConsoleError("Command text cannot be the same as another command.");
                                     return;
@@ -2853,7 +2853,7 @@ namespace PRoConEvents {
                     Int32 banID = Int32.Parse(banIDStr);
 
                     AdKatsBan aBan = null;
-                    foreach (AdKatsBan innerBan in _BanEnforcerSearchResults) {
+                    foreach (AdKatsBan innerBan in _BanEnforcerSearchResults.ToList()) {
                         if (innerBan.ban_id == banID) {
                             aBan = innerBan;
                             break;
@@ -3314,7 +3314,7 @@ namespace PRoConEvents {
                     if (!_spamBotSayList.SequenceEqual(spamBotSayList)) 
                     {
                         _spamBotSayQueue.Clear();
-                        foreach (String line in spamBotSayList) 
+                        foreach (String line in spamBotSayList.ToList()) 
                         {
                             _spamBotSayQueue.Enqueue(line);
                         }
@@ -3343,7 +3343,7 @@ namespace PRoConEvents {
                     if (!_spamBotYellList.SequenceEqual(spamBotYellList))
                     {
                         _spamBotYellQueue.Clear();
-                        foreach (String line in spamBotYellList)
+                        foreach (String line in spamBotYellList.ToList())
                         {
                             _spamBotYellQueue.Enqueue(line);
                         }
@@ -3373,7 +3373,7 @@ namespace PRoConEvents {
                     if (!_spamBotYellList.SequenceEqual(spamBotTellList))
                     {
                         _spamBotTellQueue.Clear();
-                        foreach (String line in spamBotTellList)
+                        foreach (String line in spamBotTellList.ToList())
                         {
                             _spamBotTellQueue.Enqueue(line);
                         }
@@ -3519,7 +3519,7 @@ namespace PRoConEvents {
                             };
                             //By default we should include all commands as allowed
                             lock (_CommandNameDictionary) {
-                                foreach (AdKatsCommand aCommand in _CommandNameDictionary.Values) {
+                                foreach (AdKatsCommand aCommand in _CommandNameDictionary.Values.ToList()) {
                                     aRole.RoleAllowedCommands.Add(aCommand.command_key, aCommand);
                                 }
                             }
@@ -3749,7 +3749,7 @@ namespace PRoConEvents {
                             alive = false;
                             String aliveThreads = "";
                             lock (_aliveThreads) {
-                                foreach (Thread aliveThread in _aliveThreads.Values) {
+                                foreach (Thread aliveThread in _aliveThreads.Values.ToList()) {
                                     alive = true;
                                     aliveThreads += (aliveThread.Name + "[" + aliveThread.ManagedThreadId + "] ");
                                 }
@@ -4098,7 +4098,7 @@ namespace PRoConEvents {
                                     String aliveThreads = "";
                                     lock (_aliveThreads)
                                     {
-                                        foreach (Thread value in _aliveThreads.Values)
+                                        foreach (Thread value in _aliveThreads.Values.ToList())
                                             aliveThreads = aliveThreads + (value.Name + "[" + value.ManagedThreadId + "] ");
                                     }
                                     ConsoleWarn("Thread warning: " + aliveThreads);
@@ -4107,7 +4107,8 @@ namespace PRoConEvents {
                                 //Perform AFK processing
                                 if (_AFKManagerEnable && _AFKAutoKickEnable && (_PlayerDictionary.Count > _AFKTriggerMinimumPlayers))
                                 {
-                                    List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.Where(
+                                    //Double list conversion
+                                    List<AdKatsPlayer> afkPlayers = _PlayerDictionary.Values.ToList().Where(
                                         aPlayer =>
                                             (UtcDbTime() - aPlayer.lastAction).TotalMinutes > _AFKTriggerDurationMinutes &&
                                             aPlayer.player_type != PlayerType.Spectator &&
