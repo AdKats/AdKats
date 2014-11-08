@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.4.7
+ * Version 5.2.4.8
  * 8-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.4.7</version_code>
+ * <version_code>5.2.4.8</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.4.7";
+        private const String PluginVersion = "5.2.4.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -152,8 +152,10 @@ namespace PRoConEvents {
         private Boolean _settingsLocked;
         private String _settingsPassword;
         private Int32 _pingKicksThisRound = 0;
+        private Int32 _mapBenefitIndex = 0;
+        private Int32 _mapDetrimentIndex = 0;
         private Int32 _pingKicksTotal = 0;
-        private Int32 _currentRoundID = 0;
+        private Int32 _roundID = 0;
         private Boolean _usageDataDisabled;
         private Boolean _automaticUpdatesDisabled;
         private String _currentFlagMessage;
@@ -272,6 +274,7 @@ namespace PRoConEvents {
         private readonly Queue<AdKatsChatMessage> _UnparsedMessageQueue = new Queue<AdKatsChatMessage>();
         private readonly Queue<AdKatsRecord> _UnprocessedActionQueue = new Queue<AdKatsRecord>();
         private readonly Queue<AdKatsRecord> _UnprocessedRecordQueue = new Queue<AdKatsRecord>();
+        private readonly Queue<AdKatsStatistic> _UnprocessedStatisticQueue = new Queue<AdKatsStatistic>();
         private readonly Queue<AdKatsUser> _UserRemovalQueue = new Queue<AdKatsUser>();
         private readonly Queue<AdKatsUser> _UserUploadQueue = new Queue<AdKatsUser>();
 
@@ -3783,6 +3786,9 @@ namespace PRoConEvents {
                             _UnprocessedActionQueue.Clear();
                         if (_UnprocessedRecordQueue != null)
                             _UnprocessedRecordQueue.Clear();
+                        if (_UnprocessedStatisticQueue != null) {
+                            _UnprocessedStatisticQueue.Clear();
+                        }
                         if (_BanEnforcerCheckingQueue != null)
                             _BanEnforcerCheckingQueue.Clear();
                         _toldCol = false;
@@ -4737,21 +4743,10 @@ namespace PRoConEvents {
                                         }
                                         aPlayer.conversationPartner = null;
                                     }
-                                    if (_PostMapBenefitStatistics &&
-                                        _serverInfo.InfoObject != null &&
-                                        (_roundState == RoundState.Loaded || (_roundState == RoundState.Playing && _serverInfo.GetRoundElapsedTime().TotalMinutes < 2)) &&
-                                        !PlayerIsAdmin(aPlayer))
+                                    if ((_roundState == RoundState.Loaded || (_roundState == RoundState.Playing && _serverInfo.GetRoundElapsedTime().TotalMinutes < 2)) &&
+                                        !PlayerIsAdmin(aPlayer)) 
                                     {
-                                        QueueRecordForProcessing(new AdKatsRecord
-                                        {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("server_map_detriment"),
-                                            command_numeric = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player),
-                                            target_name = _serverInfo.InfoObject.Map,
-                                            source_name = "MapManager",
-                                            record_message = aPlayer.player_name + " left because of " + _serverInfo.InfoObject.Map
-                                        });
+                                        _mapDetrimentIndex++;
                                     }
                                     //Remove from populators
                                     _populationPopulatingPlayers.Remove(aPlayer.player_name);
@@ -4885,17 +4880,17 @@ namespace PRoConEvents {
                                                 aPlayer.frostbitePlayerInfo.Kdr > 15 ||
                                                 (aPlayer.frostbitePlayerInfo.Kdr > 3 && aPlayer.frostbitePlayerInfo.Kills > 30))
                                             {
-                                                if (_currentRoundID != 0)
+                                                if (_roundID != 0)
                                                 {
                                                     IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_log").command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message == "Dispersion Trigger" && aRecord.server_id == _serverInfo.ServerID);
-                                                    if (!locRecords.Any(aRecord => aRecord.command_numeric == _currentRoundID))
+                                                    if (!locRecords.Any(aRecord => aRecord.command_numeric == _roundID))
                                                     {
                                                         var triggerRecord = new AdKatsRecord
                                                         {
                                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                                             server_id = _serverInfo.ServerID,
                                                             command_type = GetCommandByKey("player_log"),
-                                                            command_numeric = _currentRoundID,
+                                                            command_numeric = _roundID,
                                                             target_name = aPlayer.player_name,
                                                             target_player = aPlayer,
                                                             source_name = "DispersionManager",
@@ -5056,23 +5051,15 @@ namespace PRoConEvents {
                                             //If populating, add player
                                             if (_populationPopulating && 
                                                 _populationStatus == PopulationState.Low &&
-                                                aPlayer.player_type == PlayerType.Player) {
+                                                aPlayer.player_type == PlayerType.Player) 
+                                            {
                                                 _populationPopulatingPlayers[aPlayer.player_name] = aPlayer;
                                             }
-                                            if (_PostMapBenefitStatistics &&
-                                                _serverInfo.InfoObject != null &&
-                                                (_roundState == RoundState.Playing || _roundState == RoundState.Loaded) &&
-                                                !PlayerIsAdmin(aPlayer)) {
-                                                QueueRecordForProcessing(new AdKatsRecord
-                                                {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = GetCommandByKey("server_map_benefit"),
-                                                    command_numeric = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player),
-                                                    target_name = _serverInfo.InfoObject.Map,
-                                                    source_name = "MapManager",
-                                                    record_message = aPlayer.player_name + " joined because of " + _serverInfo.InfoObject.Map
-                                                });
+                                            //Increment benefit index
+                                            if ((_roundState == RoundState.Playing || _roundState == RoundState.Loaded) &&
+                                                !PlayerIsAdmin(aPlayer)) 
+                                            {
+                                                _mapBenefitIndex++;
                                             }
                                         }
                                         //Set their last death/spawn times
@@ -5197,13 +5184,15 @@ namespace PRoConEvents {
                                         target_name = "Server",
                                         target_player = null,
                                         source_name = "AdKats",
-                                        record_message = "Server Crashed (" + straglerCount + " Players Lost)"
+                                        record_message = "Server Crashed (" + dicCount + " Players Lost)"
                                     };
                                     //Process the record
                                     QueueRecordForProcessing(record);
                                     ConsoleError(record.record_message);
                                     //Set round ended
                                     _roundState = RoundState.Ended;
+                                    //Clear populators
+                                    _populationPopulatingPlayers.Clear();
                                 }
                             }
                             if (_PlayerRoleRefetch) {
@@ -5532,17 +5521,17 @@ namespace PRoConEvents {
                                     if (reader.Read())
                                     {
                                         Int32 oldRoundID = reader.GetInt32("max_round_id");
-                                        _currentRoundID = oldRoundID + 1;
-                                        DebugWrite("New Round. ExtendedRoundID is " + _currentRoundID, 2);
+                                        _roundID = oldRoundID + 1;
+                                        DebugWrite("New Round. ExtendedRoundID is " + _roundID, 2);
                                     }
                                     else
                                     {
-                                        _currentRoundID = 1;
+                                        _roundID = 1;
                                     }
                                 }
                             }
                         }
-                        ProconChatWrite(BoldMessage("New Round. ExtendedRoundID is " + _currentRoundID));
+                        ProconChatWrite(BoldMessage("New Round. ExtendedRoundID is " + _roundID));
 
                         var watch = new Stopwatch();
                         while (true)
@@ -5610,7 +5599,7 @@ namespace PRoConEvents {
                                         UTC_TIMESTAMP()
                                     )";
                                     command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
-                                    command.Parameters.AddWithValue("@round_id", _currentRoundID);
+                                    command.Parameters.AddWithValue("@round_id", _roundID);
                                     command.Parameters.AddWithValue("@round_elapsedTimeSec", roundTimeSeconds);
                                     command.Parameters.AddWithValue("@team1_count", team1.TeamPlayerCount);
                                     command.Parameters.AddWithValue("@team2_count", team2.TeamPlayerCount);
@@ -6053,10 +6042,50 @@ namespace PRoConEvents {
             DebugWrite("Exiting OnServerInfo", 7);
         }
 
+        public void PostAndResetMapBenefitStatistics() {
+            DebugWrite("Entering PostAndResetMapBenefitStatistics", 7);
+            try {
+                if (_PostMapBenefitStatistics && _serverInfo != null && _serverInfo.InfoObject != null) {
+                    if (_mapDetrimentIndex > 0) {
+                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                            stat_type = AdKatsStatistic.StatisticType.map_detriment,
+                            server_id = _serverInfo.ServerID,
+                            round_id = _roundID,
+                            target_name = _serverInfo.InfoObject.Map,
+                            stat_value = _mapDetrimentIndex,
+                            stat_comment = _mapDetrimentIndex + " players left because of " + _serverInfo.InfoObject.Map,
+                            stat_time = UtcDbTime()
+                        });
+                    }
+                    if (_mapBenefitIndex > 0) {
+                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                            stat_type = AdKatsStatistic.StatisticType.map_benefit,
+                            server_id = _serverInfo.ServerID,
+                            round_id = _roundID,
+                            target_name = _serverInfo.InfoObject.Map,
+                            stat_value = _mapBenefitIndex,
+                            stat_comment = _mapBenefitIndex + " players joined because of " + _serverInfo.InfoObject.Map,
+                            stat_time = UtcDbTime()
+                        });
+                    }
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while preparing map stats for upload", e));
+            }
+            _mapDetrimentIndex = 0;
+            _mapBenefitIndex = 0;
+            DebugWrite("Exiting PostAndResetMapBenefitStatistics", 7);
+        }
+
         public override void OnLevelLoaded(String strMapFileName, String strMapMode, Int32 roundsPlayed, Int32 roundsTotal) {
             DebugWrite("Entering OnLevelLoaded", 7);
             try {
-                if (_pluginEnabled) {
+                if (_pluginEnabled)
+                {
+                    //Upload map benefit/detriment statistics
+                    PostAndResetMapBenefitStatistics();
+                    //Change round state
                     _roundState = RoundState.Loaded;
                     //Request new server info
                     ExecuteCommand("procon.protected.send", "serverInfo");
@@ -9160,6 +9189,27 @@ namespace PRoConEvents {
                 HandleException(record.record_exception);
             }
             DebugWrite("Exiting queueRecordForProcessing", 7);
+        }
+
+        private void QueueStatisticForProcessing(AdKatsStatistic aStat)
+        {
+            DebugWrite("Entering QueueStatisticForProcessing", 6);
+            try
+            {
+                DebugWrite("Preparing to queue statistic for processing", 6);
+                lock (_UnprocessedStatisticQueue)
+                {
+                    //Queue the statistic for processing
+                    _UnprocessedStatisticQueue.Enqueue(aStat);
+                    DebugWrite("Statistic queued for processing", 6);
+                    _DbCommunicationWaitHandle.Set();
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while queuing statistic for processing.", e));
+            }
+            DebugWrite("Exiting QueueStatisticForProcessing", 6);
         }
 
         private void CommandParsingThreadLoop() {
@@ -16633,6 +16683,13 @@ namespace PRoConEvents {
 
                         counter.Reset();
                         counter.Start();
+                        HandleStatisticUploads();
+                        counter.Stop();
+                        if (FullDebug)
+                            ConsoleWrite("DBCOMM: HandleStatisticUploads took " + counter.ElapsedMilliseconds + "ms");
+
+                        counter.Reset();
+                        counter.Start();
                         //Check for new actions from the database at given interval
                         if (_fetchActionsFromDb && (UtcDbTime() > _lastDbActionFetch.AddSeconds(DbActionFetchFrequency))) {
                             RunActionsFromDB();
@@ -16682,15 +16739,16 @@ namespace PRoConEvents {
                         if (FullDebug)
                             ConsoleWrite("DBCOMM: HandleActiveBanEnforcer took " + counter.ElapsedMilliseconds + "ms");
 
-                        if (_UnprocessedRecordQueue.Count > 0) {
+                        if (_UnprocessedRecordQueue.Count > 0) 
+                        {
                             counter.Reset();
                             counter.Start();
-                            DebugWrite("DBCOMM: Unprocessed: " + _UnprocessedRecordQueue.Count + " Current: 0", 4);
+                            DebugWrite("DBCOMM: Unprocessed Record: " + _UnprocessedRecordQueue.Count + " Current: 0", 4);
                             DebugWrite("DBCOMM: Preparing to lock inbound record queue to retrive new records", 7);
                             Queue<AdKatsRecord> inboundRecords;
                             lock (_UnprocessedRecordQueue) {
                                 DebugWrite("DBCOMM: Inbound records found. Grabbing.", 6);
-                                //Grab all messages in the queue
+                                //Grab all records in the queue
                                 inboundRecords = new Queue<AdKatsRecord>(_UnprocessedRecordQueue.ToArray());
                                 //Clear the queue for next run
                                 _UnprocessedRecordQueue.Clear();
@@ -16702,7 +16760,7 @@ namespace PRoConEvents {
                                 {
                                     break;
                                 }
-                                DebugWrite("DBCOMM: Unprocessed: " + _UnprocessedRecordQueue.Count + " Current: " + inboundRecords.Count, 4);
+                                DebugWrite("DBCOMM: Unprocessed Record: " + _UnprocessedRecordQueue.Count + " Current: " + inboundRecords.Count, 4);
                                 //Pull the next record
                                 AdKatsRecord record = inboundRecords.Dequeue();
                                 //Process the record message
@@ -16906,6 +16964,37 @@ namespace PRoConEvents {
                     UploadCommand(command);
                 }
                 UpdateSettingPage();
+            }
+        }
+
+        private void HandleStatisticUploads()
+        {
+            if (_UnprocessedStatisticQueue.Count > 0)
+            {
+                DebugWrite("DBCOMM: Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: 0", 4);
+                DebugWrite("DBCOMM: Preparing to lock inbound statistic queue to retrive new records", 7);
+                Queue<AdKatsStatistic> inboundStats;
+                lock (_UnprocessedStatisticQueue)
+                {
+                    DebugWrite("DBCOMM: Inbound statistics found. Grabbing.", 6);
+                    //Grab all statistics in the queue
+                    inboundStats = new Queue<AdKatsStatistic>(_UnprocessedStatisticQueue.ToArray());
+                    //Clear the queue for next run
+                    _UnprocessedStatisticQueue.Clear();
+                }
+                //Loop through all statistics in order that they came in
+                while (inboundStats.Count > 0)
+                {
+                    if (!_pluginEnabled)
+                    {
+                        break;
+                    }
+                    DebugWrite("DBCOMM: Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: " + inboundStats.Count, 4);
+                    //Pull the next statistic
+                    AdKatsStatistic aStat = inboundStats.Dequeue();
+                    //Upload the statistic
+                    UploadStatistic(aStat);
+                }
             }
         }
 
@@ -18481,18 +18570,23 @@ namespace PRoConEvents {
             return success;
         }
 
-        private Boolean UploadInnerRecord(AdKatsRecord record) {
+        private Boolean UploadInnerRecord(AdKatsRecord record)
+        {
             DebugWrite("uploadRecord starting!", 6);
 
             Boolean success = false;
             //Make sure database connection active
-            if (HandlePossibleDisconnect()) {
+            if (HandlePossibleDisconnect())
+            {
                 record.record_exception = new AdKatsException("Database not connected.");
                 return false;
             }
-            try {
-                using (MySqlConnection connection = GetDatabaseConnection()) {
-                    using (MySqlCommand command = connection.CreateCommand()) {
+            try
+            {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
                         //Decide which table the record should be added to
                         String tablename = (record.isDebug) ? ("`adkats_records_debug`") : ("`adkats_records_main`");
                         //Set the insert command structure
@@ -18569,41 +18663,51 @@ namespace PRoConEvents {
                             return false;
                         }
                         command.Parameters.AddWithValue("@server_id", record.server_id);
-                        if (record.command_type == null) {
+                        if (record.command_type == null)
+                        {
                             ConsoleError("Command type was null in uploadRecord, unable to continue.");
                             return false;
                         }
                         command.Parameters.AddWithValue("@command_type", record.command_type.command_id);
-                        if (record.command_action == null) {
+                        if (record.command_action == null)
+                        {
                             record.command_action = record.command_type;
                         }
                         command.Parameters.AddWithValue("@command_action", record.command_action.command_id);
                         command.Parameters.AddWithValue("@command_numeric", record.command_numeric);
                         String tName = "NoNameTarget";
-                        if (!String.IsNullOrEmpty(record.target_name)) {
+                        if (!String.IsNullOrEmpty(record.target_name))
+                        {
                             tName = record.target_name;
                         }
-                        if (record.target_player != null) {
-                            if (!String.IsNullOrEmpty(record.target_player.player_name)) {
+                        if (record.target_player != null)
+                        {
+                            if (!String.IsNullOrEmpty(record.target_player.player_name))
+                            {
                                 tName = record.target_player.player_name;
                             }
                             command.Parameters.AddWithValue("@target_id", record.target_player.player_id);
                         }
-                        else {
+                        else
+                        {
                             command.Parameters.AddWithValue("@target_id", null);
                         }
                         command.Parameters.AddWithValue("@target_name", tName);
                         String sName = "NoNameSource";
-                        if (!String.IsNullOrEmpty(record.source_name)) {
+                        if (!String.IsNullOrEmpty(record.source_name))
+                        {
                             sName = record.source_name;
                         }
-                        if (record.source_player != null) {
-                            if (!String.IsNullOrEmpty(record.source_player.player_name)) {
+                        if (record.source_player != null)
+                        {
+                            if (!String.IsNullOrEmpty(record.source_player.player_name))
+                            {
                                 sName = record.source_player.player_name;
                             }
                             command.Parameters.AddWithValue("@source_id", record.source_player.player_id);
                         }
-                        else {
+                        else
+                        {
                             command.Parameters.AddWithValue("@source_id", null);
                         }
                         command.Parameters.AddWithValue("@source_name", sName);
@@ -18625,17 +18729,20 @@ namespace PRoConEvents {
 
                         //Get reference to the command in case of error
                         //Attempt to execute the query
-                        if (command.ExecuteNonQuery() > 0) {
+                        if (command.ExecuteNonQuery() > 0)
+                        {
                             success = true;
                             record.record_id = command.LastInsertedId;
                         }
                     }
                 }
 
-                if (success) {
+                if (success)
+                {
                     DebugWrite(record.command_action.command_key + " upload for " + record.target_name + " by " + record.source_name + " SUCCESSFUL!", 3);
                 }
-                else {
+                else
+                {
                     record.record_exception = new AdKatsException("Unknown error uploading record.");
                     HandleException(record.record_exception);
                 }
@@ -18643,9 +18750,125 @@ namespace PRoConEvents {
                 DebugWrite("uploadRecord finished!", 6);
                 return success;
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 record.record_exception = new AdKatsException("Unexpected error uploading Record.", e);
                 HandleException(record.record_exception);
+                return false;
+            }
+        }
+
+        private Boolean UploadStatistic(AdKatsStatistic aStat)
+        {
+            DebugWrite("UploadStatistic starting!", 6);
+
+            Boolean success = false;
+            //Make sure database connection active
+            if (HandlePossibleDisconnect())
+            {
+                return false;
+            }
+            try
+            {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        //Set the insert command structure
+                        command.CommandText = @"
+                            INSERT INTO `adkats_statistics`
+                            (
+                                `server_id`, 
+                                `round_id`, 
+                                `stat_type`, 
+                                `target_name`, 
+                                `target_id`, 
+                                `stat_value`, 
+                                `stat_time`
+                            ) 
+                            VALUES 
+                            ( 
+                                @server_id, 
+                                @round_id, 
+                                @stat_type,
+                                @target_name, 
+                                @target_id, 
+                                @stat_value, 
+                                @stat_time
+                            )";
+
+                        //Fill the command
+                        if (aStat.server_id == 0)
+                        {
+                            HandleException(new AdKatsException("Statistic server ID was invalid when uploading, unable to continue."));
+                            return false;
+                        }
+                        command.Parameters.AddWithValue("@server_id", aStat.server_id);
+                        if (aStat.round_id == 0)
+                        {
+                            HandleException(new AdKatsException("Statistic round ID was invalid when uploading, unable to continue."));
+                            return false;
+                        }
+                        command.Parameters.AddWithValue("@round_id", aStat.round_id);
+                        command.Parameters.AddWithValue("@stat_type", aStat.stat_type);
+                        String tName = null;
+                        if (aStat.target_player != null)
+                        {
+                            if (!String.IsNullOrEmpty(aStat.target_player.player_name))
+                            {
+                                tName = aStat.target_player.player_name;
+                            }
+                            command.Parameters.AddWithValue("@target_id", aStat.target_player.player_id);
+                        }
+                        else
+                        {
+                            command.Parameters.AddWithValue("@target_id", null);
+                        }
+                        if (!String.IsNullOrEmpty(tName)) 
+                        {
+                            command.Parameters.AddWithValue("@target_name", tName);
+                        }
+                        else
+                        {
+                            if (!String.IsNullOrEmpty(aStat.target_name))
+                            {
+                                command.Parameters.AddWithValue("@target_name", aStat.target_name);
+                            }
+                            else
+                            {
+                                HandleException(new AdKatsException("Statistic target name null or empty when uploading, unable to continue."));
+                                return false;
+                            }
+                        }
+                        command.Parameters.AddWithValue("@stat_value", aStat.stat_value);
+                        command.Parameters.AddWithValue("@stat_comment", aStat.stat_comment);
+                        command.Parameters.AddWithValue("@stat_time", aStat.stat_time);
+
+                        //Get reference to the command in case of error
+                        //Attempt to execute the query
+                        if (command.ExecuteNonQuery() > 0)
+                        {
+                            success = true;
+                            aStat.stat_id = command.LastInsertedId;
+                        }
+                    }
+                }
+
+                if (success)
+                {
+                    DebugWrite(aStat.stat_type + " stat upload for " + aStat.target_name + " SUCCESSFUL!", 3);
+                }
+                else
+                {
+                    HandleException(new AdKatsException("Unknown error uploading statistic."));
+                }
+
+                DebugWrite("UploadStatistic finished!", 6);
+                return success;
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Unexpected error uploading statistic.", e));
                 return false;
             }
         }
@@ -25968,6 +26191,23 @@ namespace PRoConEvents {
                 TargetInnerRecords = new List<AdKatsRecord>();
                 record_creationTime = DateTime.UtcNow;
             }
+        }
+
+        public class AdKatsStatistic {
+            public enum StatisticType {
+                map_benefit,
+                map_detriment
+            }
+
+            public Int64 stat_id;
+            public Int64 server_id;
+            public Int64 round_id;
+            public StatisticType stat_type;
+            public String target_name;
+            public AdKatsPlayer target_player;
+            public Double stat_value;
+            public String stat_comment;
+            public DateTime stat_time;
         }
 
         public class AdKatsChatMessage {
