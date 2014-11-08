@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.4.5
+ * Version 5.2.4.6
  * 7-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.4.5</version_code>
+ * <version_code>5.2.4.6</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.4.5";
+        private const String PluginVersion = "5.2.4.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5847,6 +5847,10 @@ namespace PRoConEvents {
                                     }
                                     else
                                     {
+                                        if (_surrenderAutoTriggerCountCurrent > 0)
+                                        {
+                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                        }
                                         _surrenderAutoTriggerCountCurrent = 0;
                                     }
                                 }
@@ -5871,6 +5875,10 @@ namespace PRoConEvents {
                                     }
                                     else
                                     {
+                                        if (_surrenderAutoTriggerCountCurrent > 0)
+                                        {
+                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                        }
                                         _surrenderAutoTriggerCountCurrent = 0;
                                     }
                                 }
@@ -5896,6 +5904,10 @@ namespace PRoConEvents {
                                             }
                                             else
                                             {
+                                                if (_surrenderAutoTriggerCountCurrent > 0)
+                                                {
+                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                                }
                                                 _surrenderAutoTriggerCountCurrent = 0;
                                             }
                                         }
@@ -5919,6 +5931,10 @@ namespace PRoConEvents {
                                             }
                                             else
                                             {
+                                                if (_surrenderAutoTriggerCountCurrent > 0)
+                                                {
+                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                                }
                                                 _surrenderAutoTriggerCountCurrent = 0;
                                             }
                                         }
