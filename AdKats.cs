@@ -18783,6 +18783,7 @@ namespace PRoConEvents {
                                 `target_name`, 
                                 `target_id`, 
                                 `stat_value`, 
+                                `stat_comment`, 
                                 `stat_time`
                             ) 
                             VALUES 
@@ -18792,7 +18793,8 @@ namespace PRoConEvents {
                                 @stat_type,
                                 @target_name, 
                                 @target_id, 
-                                @stat_value, 
+                                @stat_value,
+                                @stat_comment, 
                                 @stat_time
                             )";
 
