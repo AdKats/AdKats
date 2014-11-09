@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.5.0
+ * Version 5.2.5.1
  * 8-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.5.0</version_code>
+ * <version_code>5.2.5.1</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.5.0";
+        private const String PluginVersion = "5.2.5.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -25550,7 +25550,7 @@ namespace PRoConEvents {
                 else {
                     prefix += "Unknown";
                 }
-                prefix += ": ";
+                prefix += "-" + _currentPluginVersionInt + ": ";
             }
             //Check if the exception attributes to the database
             if (aException.InternalException != null && 
@@ -25581,7 +25581,7 @@ namespace PRoConEvents {
                         isDebug = true,
                         server_id = _serverInfo.ServerID,
                         command_type = GetCommandByKey("adkats_exception"),
-                        command_numeric = 0,
+                        command_numeric = _currentPluginVersionInt,
                         target_name = "AdKats",
                         target_player = null,
                         source_name = "AdKats",
