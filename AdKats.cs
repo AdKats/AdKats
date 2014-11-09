@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.5.1
+ * Version 5.2.5.2
  * 8-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.5.1</version_code>
+ * <version_code>5.2.5.2</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.5.1";
+        private const String PluginVersion = "5.2.5.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6049,28 +6049,24 @@ namespace PRoConEvents {
                     Int32 roundID = _roundID;
                     String mapName = _serverInfo.InfoObject.Map;
                     if (roundID > 0 && !String.IsNullOrEmpty(mapName)) {
-                        if (_mapDetrimentIndex > 0) {
-                            QueueStatisticForProcessing(new AdKatsStatistic() {
-                                stat_type = AdKatsStatistic.StatisticType.map_detriment,
-                                server_id = _serverInfo.ServerID,
-                                round_id = _roundID,
-                                target_name = mapName,
-                                stat_value = _mapDetrimentIndex,
-                                stat_comment = _mapDetrimentIndex + " players left because of " + mapName,
-                                stat_time = UtcDbTime()
-                            });
-                        }
-                        if (_mapBenefitIndex > 0) {
-                            QueueStatisticForProcessing(new AdKatsStatistic() {
-                                stat_type = AdKatsStatistic.StatisticType.map_benefit,
-                                server_id = _serverInfo.ServerID,
-                                round_id = _roundID,
-                                target_name = mapName,
-                                stat_value = _mapBenefitIndex,
-                                stat_comment = _mapBenefitIndex + " players joined because of " + mapName,
-                                stat_time = UtcDbTime()
-                            });
-                        }
+                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                            stat_type = AdKatsStatistic.StatisticType.map_detriment,
+                            server_id = _serverInfo.ServerID,
+                            round_id = _roundID,
+                            target_name = mapName,
+                            stat_value = _mapDetrimentIndex,
+                            stat_comment = _mapDetrimentIndex + " players left because of " + mapName,
+                            stat_time = UtcDbTime()
+                        });
+                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                            stat_type = AdKatsStatistic.StatisticType.map_benefit,
+                            server_id = _serverInfo.ServerID,
+                            round_id = _roundID,
+                            target_name = mapName,
+                            stat_value = _mapBenefitIndex,
+                            stat_comment = _mapBenefitIndex + " players joined because of " + mapName,
+                            stat_time = UtcDbTime()
+                        });
                     }
                 }
             }
