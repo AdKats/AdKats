@@ -1451,7 +1451,7 @@
             "readable_long": "Desert Patrol Vehicle"
         },
         "Gameplay/Vehicles/CH_LTHE_Z-9/CH_LTHE_Z-9": {
-            "readable_short": "Transport Helicopter",
+            "readable_short": "Z-9 Transport",
             "readable_long": "Z-9 Transport Helicopter"
         },
         "Gameplay/Vehicles/CH_FAV_LYT2021/CH_FAV_LYT2021": {
@@ -1463,7 +1463,7 @@
             "readable_long": "Growler ITV"
         },
         "Ka-60": {
-            "readable_short": "Transport Helicopter",
+            "readable_short": "Ka-60 Transport",
             "readable_long": "Kamov Ka-60 Transport Helicopter"
         },
         "Gameplay/Vehicles/CH_MRAP-ZFB-05/CH_MRAP-ZFB-05": {
@@ -1487,7 +1487,7 @@
             "readable_long": "VDV Buggy"
         },
         "Gameplay/Vehicles/Venom/Venom": {
-            "readable_short": "Transport Helicopter",
+            "readable_short": "Venom Transport",
             "readable_long": "UH-1Y Venom Transport Helicopter"
         },
         "Gameplay/Vehicles/CH_AA_PGZ-95/CH_AA_PGZ-95": {
@@ -1587,11 +1587,11 @@
             "readable_long": "Z-10 Attack Helicopter"
         },
         "Gameplay/Vehicles/Z11W/Z-11w": {
-            "readable_short": "Z-11W",
+            "readable_short": "Z-11W Scout",
             "readable_long": "Z-11W Scout Helicopter"
         },
         "Gameplay/Vehicles/Z11W/spec/Z-11w_CH": {
-            "readable_short": "Z-11W",
+            "readable_short": "Z-11W Scout",
             "readable_long": "Z-11W Scout Helicopter"
         },
         "Gameplay/Vehicles/US_FAC-CB90/US_FAC-CB90": {
