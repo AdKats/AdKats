@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.4.8
+ * Version 5.2.4.9
  * 8-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.4.8</version_code>
+ * <version_code>5.2.4.9</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.4.8";
+        private const String PluginVersion = "5.2.4.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -17603,8 +17603,7 @@ namespace PRoConEvents {
                         PRIMARY KEY (`roundstat_id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Extended Round Stats'", true);
             }
-            //TODO: remove testing
-            if (_isTestingAuthorized && !ConfirmTable("adkats_statistics"))
+            if (!ConfirmTable("adkats_statistics"))
             {
                 ConsoleInfo("AdKats statistics table not found. Attempting to add.");
                 SendNonQuery("Adding AdKats statistics table", @"
@@ -18810,7 +18809,7 @@ namespace PRoConEvents {
                             return false;
                         }
                         command.Parameters.AddWithValue("@round_id", aStat.round_id);
-                        command.Parameters.AddWithValue("@stat_type", aStat.stat_type);
+                        command.Parameters.AddWithValue("@stat_type", aStat.stat_type.ToString());
                         String tName = null;
                         if (aStat.target_player != null)
                         {
