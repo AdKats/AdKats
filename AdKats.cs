@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.4.9
+ * Version 5.2.5.0
  * 8-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.4.9</version_code>
+ * <version_code>5.2.5.0</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.4.9";
+        private const String PluginVersion = "5.2.5.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6046,27 +6046,31 @@ namespace PRoConEvents {
             DebugWrite("Entering PostAndResetMapBenefitStatistics", 7);
             try {
                 if (_PostMapBenefitStatistics && _serverInfo != null && _serverInfo.InfoObject != null) {
-                    if (_mapDetrimentIndex > 0) {
-                        QueueStatisticForProcessing(new AdKatsStatistic() {
-                            stat_type = AdKatsStatistic.StatisticType.map_detriment,
-                            server_id = _serverInfo.ServerID,
-                            round_id = _roundID,
-                            target_name = _serverInfo.InfoObject.Map,
-                            stat_value = _mapDetrimentIndex,
-                            stat_comment = _mapDetrimentIndex + " players left because of " + _serverInfo.InfoObject.Map,
-                            stat_time = UtcDbTime()
-                        });
-                    }
-                    if (_mapBenefitIndex > 0) {
-                        QueueStatisticForProcessing(new AdKatsStatistic() {
-                            stat_type = AdKatsStatistic.StatisticType.map_benefit,
-                            server_id = _serverInfo.ServerID,
-                            round_id = _roundID,
-                            target_name = _serverInfo.InfoObject.Map,
-                            stat_value = _mapBenefitIndex,
-                            stat_comment = _mapBenefitIndex + " players joined because of " + _serverInfo.InfoObject.Map,
-                            stat_time = UtcDbTime()
-                        });
+                    Int32 roundID = _roundID;
+                    String mapName = _serverInfo.InfoObject.Map;
+                    if (roundID > 0 && !String.IsNullOrEmpty(mapName)) {
+                        if (_mapDetrimentIndex > 0) {
+                            QueueStatisticForProcessing(new AdKatsStatistic() {
+                                stat_type = AdKatsStatistic.StatisticType.map_detriment,
+                                server_id = _serverInfo.ServerID,
+                                round_id = _roundID,
+                                target_name = mapName,
+                                stat_value = _mapDetrimentIndex,
+                                stat_comment = _mapDetrimentIndex + " players left because of " + mapName,
+                                stat_time = UtcDbTime()
+                            });
+                        }
+                        if (_mapBenefitIndex > 0) {
+                            QueueStatisticForProcessing(new AdKatsStatistic() {
+                                stat_type = AdKatsStatistic.StatisticType.map_benefit,
+                                server_id = _serverInfo.ServerID,
+                                round_id = _roundID,
+                                target_name = mapName,
+                                stat_value = _mapBenefitIndex,
+                                stat_comment = _mapBenefitIndex + " players joined because of " + mapName,
+                                stat_time = UtcDbTime()
+                            });
+                        }
                     }
                 }
             }
@@ -18775,28 +18779,29 @@ namespace PRoConEvents {
                     {
                         //Set the insert command structure
                         command.CommandText = @"
-                            INSERT INTO `adkats_statistics`
-                            (
-                                `server_id`, 
-                                `round_id`, 
-                                `stat_type`, 
-                                `target_name`, 
-                                `target_id`, 
-                                `stat_value`, 
-                                `stat_comment`, 
-                                `stat_time`
-                            ) 
-                            VALUES 
-                            ( 
-                                @server_id, 
-                                @round_id, 
-                                @stat_type,
-                                @target_name, 
-                                @target_id, 
-                                @stat_value,
-                                @stat_comment, 
-                                @stat_time
-                            )";
+                        INSERT INTO 
+                            `adkats_statistics`
+                        (
+                            `server_id`, 
+                            `round_id`, 
+                            `stat_type`, 
+                            `target_name`, 
+                            `target_id`, 
+                            `stat_value`, 
+                            `stat_comment`, 
+                            `stat_time` 
+                        ) 
+                        VALUES 
+                        ( 
+                            @server_id, 
+                            @round_id, 
+                            @stat_type, 
+                            @target_name, 
+                            @target_id, 
+                            @stat_value, 
+                            @stat_comment, 
+                            @stat_time 
+                        )";
 
                         //Fill the command
                         if (aStat.server_id == 0)
