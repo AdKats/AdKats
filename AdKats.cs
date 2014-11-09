@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.5.2
- * 8-NOV-2014
+ * Version 5.2.5.4
+ * 9-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.5.2</version_code>
+ * <version_code>5.2.5.4</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.5.2";
+        private const String PluginVersion = "5.2.5.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -461,8 +461,10 @@ namespace PRoConEvents {
         private Double _surrenderAutoWinningRateMin = 999;
         private Int32 _surrenderAutoTriggerCountToSurrender = 1;
         private Int32 _surrenderAutoTriggerCountCurrent;
+        private Int32 _surrenderAutoMinimumPlayers = 10;
         private String _surrenderAutoMessage = "Ending/Scrambling Baserape Round. %WinnerName% Wins!";
         private Boolean _surrenderAutoNukeWinning;
+        private Boolean _surrenderAutoTriggerVote;
         private String _surrenderAutoNukeMessage = "Nuking %WinnerName% for baserape!";
             
         //EmailHandler
@@ -1014,13 +1016,19 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
                         }
-                        if (!_surrenderAutoNukeWinning) {
-                            lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
-                        }
+                        lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Minimum Players", typeof(Int32), _surrenderAutoMinimumPlayers));
                         lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
-                        if (_surrenderAutoNukeWinning)
+                        lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
+                        if (!_surrenderAutoTriggerVote)
                         {
-                            lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
+                            if (!_surrenderAutoNukeWinning)
+                            {
+                                lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
+                            }
+                            else
+                            {
+                                lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
+                            }
                         }
                     }
 
@@ -1929,8 +1937,26 @@ namespace PRoConEvents {
                     if (surrenderAutoNukeWinning != _surrenderAutoNukeWinning)
                     {
                         _surrenderAutoNukeWinning = surrenderAutoNukeWinning;
+                        if (_surrenderAutoNukeWinning)
+                        {
+                            _surrenderAutoTriggerVote = false;
+                        }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Start Surrender Vote Instead of Surrendering Losing Team").Success)
+                {
+                    Boolean surrenderAutoTriggerVote = Boolean.Parse(strValue);
+                    if (surrenderAutoTriggerVote != _surrenderAutoTriggerVote)
+                    {
+                        _surrenderAutoTriggerVote = surrenderAutoTriggerVote;
+                        if (surrenderAutoTriggerVote) 
+                        {
+                            _surrenderAutoNukeWinning = false;
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Auto-Surrender Minimum Ticket Gap").Success)
@@ -2029,6 +2055,21 @@ namespace PRoConEvents {
                         _surrenderAutoTriggerCountToSurrender = surrenderAutoTriggerCountToSurrender;
                         //Once setting has been changed, upload the change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Minimum Players").Success)
+                {
+                    Int32 surrenderAutoMinimumPlayers = Int32.Parse(strValue);
+                    if (_surrenderAutoMinimumPlayers != surrenderAutoMinimumPlayers)
+                    {
+                        if (surrenderAutoMinimumPlayers < 0)
+                        {
+                            ConsoleError("Minimum player count cannot be negative.");
+                            surrenderAutoMinimumPlayers = 0;
+                        }
+                        _surrenderAutoMinimumPlayers = surrenderAutoMinimumPlayers;
+                        //Once setting has been changed, upload the change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Players", typeof(Int32), _surrenderAutoMinimumPlayers));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Player Lock Manual Duration Minutes").Success)
@@ -5814,7 +5855,11 @@ namespace PRoConEvents {
                                 _lowestTicketCount = (team1.TeamTicketCount < team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                                 _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
-                            if (_surrenderAutoEnable && !_endingRound && (UtcDbTime() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9 && _serverInfo.GetRoundElapsedTime().TotalSeconds > 60)
+                            if (_surrenderAutoEnable && 
+                                !_endingRound && 
+                                (UtcDbTime() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9 && 
+                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 60 &&
+                                _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) >= _surrenderAutoMinimumPlayers)
                             {
                                 if (_surrenderAutoUseMetroValues &&
                                     Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
@@ -5947,6 +5992,19 @@ namespace PRoConEvents {
                                             record_message = autoNukeMessage
                                         });
                                     }
+                                    else if (_surrenderAutoTriggerVote)
+                                    {
+                                        QueueRecordForProcessing(new AdKatsRecord
+                                        {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("self_votenext"),
+                                            command_numeric = 0,
+                                            target_name = "RoundManager",
+                                            source_name = "RoundManager",
+                                            record_message = "Auto-Starting Surrender Vote"
+                                        });
+                                    }
                                     else if (!_endingRound)
                                     {
                                         _endingRound = true;
@@ -6017,6 +6075,7 @@ namespace PRoConEvents {
                                         _surrenderAutoEnable = true;
                                         _surrenderAutoUseLockerValues = true;
                                     }
+                                    _surrenderAutoMinimumPlayers = 32;
                                     _spamBotExcludeAdminsAndWhitelist = true;
                                 }
                                 _DisplayTicketRatesInProconChat = true;
@@ -7519,60 +7578,71 @@ namespace PRoConEvents {
                 if (actedWeapon != null) {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    if (_isTestingAuthorized && _aliveThreads.Values.All(thread => thread.Name != "bandelay"))
+                    if (_isTestingAuthorized)
                     {
-                        var banPlayer = aPlayer;
-                        //Special case. Let server live with the hacker for 1 minute then watch them be banned
-                        var banDelayThread = new Thread(new ThreadStart(delegate {
-                            DebugWrite("Starting a ban delay thread.", 5);
-                            try {
-                                Thread.CurrentThread.Name = "bandelay";
-                                var start = UtcDbTime();
-                                ConsoleInfo(banPlayer.player_name + " will be banned. Waiting for starting case.");
-                                OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
-                                while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
+                        if (!aPlayer.IsLocked())
+                        {
+                            var banPlayer = aPlayer;
+                            banPlayer.Lock("AutoAdmin", TimeSpan.FromMinutes(10));
+                            //Special case. Let server live with the hacker for 1 minute then watch them be banned
+                            var banDelayThread = new Thread(new ThreadStart(delegate
+                            {
+                                DebugWrite("Starting a ban delay thread.", 5);
+                                try
                                 {
-                                    if (!_pluginEnabled)
+                                    Thread.CurrentThread.Name = "bandelay";
+                                    var start = UtcDbTime();
+                                    ConsoleInfo(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                    OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                    while (banPlayer.player_online &&
+                                           !banPlayer.player_spawnedOnce &&
+                                           (UtcDbTime() - start).TotalSeconds < 300)
                                     {
-                                        break;
+                                        if (!_pluginEnabled)
+                                        {
+                                            break;
+                                        }
+                                        //Wait for trigger case to start timer
+                                        _threadMasterWaitHandle.WaitOne(1000);
                                     }
-                                    //Wait for trigger case to start timer
-                                    _threadMasterWaitHandle.WaitOne(1000);
-                                }
-                                //Onced triggered, ban after 90 seconds.
-                                OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 90 seconds.");
-                                _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
-                                PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", true, 6);
-                                _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
+                                    //Onced triggered, ban after 90 seconds.
+                                    OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 90 seconds.");
+                                    _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
+                                    PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", true, 6);
+                                    _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
 
-                                ConsoleInfo(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
-                                if (!debugMode)
-                                {
-                                    //Create the ban record
-                                    var record = new AdKatsRecord
+                                    ConsoleInfo(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                                    if (!debugMode)
                                     {
-                                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        server_id = _serverInfo.ServerID,
-                                        command_type = GetCommandByKey("player_ban_perm"),
-                                        command_numeric = 0,
-                                        target_name = aPlayer.player_name,
-                                        target_player = aPlayer,
-                                        source_name = "AutoAdmin",
-                                        record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
-                                    };
-                                    //Process the record
-                                    QueueRecordForProcessing(record);
+                                        //Unlock the player
+                                        banPlayer.Unlock();
+                                        //Create the ban record
+                                        var record = new AdKatsRecord
+                                        {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_ban_perm"),
+                                            command_numeric = 0,
+                                            target_name = aPlayer.player_name,
+                                            target_player = aPlayer,
+                                            source_name = "AutoAdmin",
+                                            record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                                        };
+                                        //Process the record
+                                        QueueRecordForProcessing(record);
+                                    }
                                 }
-                            }
-                            catch (Exception) {
-                                HandleException(new AdKatsException("Error while runnin ban delay."));
-                            }
-                            DebugWrite("Exiting a ban delay thread.", 5);
-                            LogThreadExit();
-                        }));
+                                catch (Exception)
+                                {
+                                    HandleException(new AdKatsException("Error while runnin ban delay."));
+                                }
+                                DebugWrite("Exiting a ban delay thread.", 5);
+                                LogThreadExit();
+                            }));
 
-                        //Start the thread
-                        StartAndLogThread(banDelayThread);
+                            //Start the thread
+                            StartAndLogThread(banDelayThread);
+                        }
                     }
                     else
                     {
@@ -7666,64 +7736,70 @@ namespace PRoConEvents {
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
                     if (_isTestingAuthorized)
                     {
-                        var banPlayer = aPlayer;
-                        //Special case. Let server live with the hacker for 1 minute then watch them be banned
-                        var banDelayThread = new Thread(new ThreadStart(delegate
+                        if (!aPlayer.IsLocked())
                         {
-                            DebugWrite("Starting a ban delay thread.", 5);
-                            try
+                            var banPlayer = aPlayer;
+                            banPlayer.Lock("AutoAdmin", TimeSpan.FromMinutes(10));
+                            //Special case. Let server live with the hacker for 1 minute then watch them be banned
+                            var banDelayThread = new Thread(new ThreadStart(delegate
                             {
-                                Thread.CurrentThread.Name = "bandelay";
-                                var start = UtcDbTime();
-                                ConsoleInfo(banPlayer.player_name + " will be banned. Waiting for starting case.");
-                                OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
-                                while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
+                                DebugWrite("Starting a ban delay thread.", 5);
+                                try
                                 {
-                                    if (!_pluginEnabled)
+                                    Thread.CurrentThread.Name = "bandelay";
+                                    var start = UtcDbTime();
+                                    ConsoleInfo(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                    OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                    while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
                                     {
-                                        break;
+                                        if (!_pluginEnabled)
+                                        {
+                                            break;
+                                        }
+                                        //Wait for trigger case to start timer
+                                        _threadMasterWaitHandle.WaitOne(1000);
                                     }
-                                    //Wait for trigger case to start timer
-                                    _threadMasterWaitHandle.WaitOne(1000);
-                                }
-                                //Onced triggered, ban after 90 seconds.
-                                OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 90 seconds.");
-                                _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
-                                if (actedWeapon.HSKR >= .7)
-                                {
-                                    PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", true, 6);
-                                }
-                                _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
-
-                                ConsoleInfo(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
-                                if (!debugMode)
-                                {
-                                    //Create the ban record
-                                    var record = new AdKatsRecord
+                                    //Onced triggered, ban after 90 seconds.
+                                    OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 90 seconds.");
+                                    _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
+                                    if (actedWeapon.HSKR >= .7)
                                     {
-                                        record_source = AdKatsRecord.Sources.InternalAutomated,
-                                        server_id = _serverInfo.ServerID,
-                                        command_type = GetCommandByKey("player_ban_perm"),
-                                        command_numeric = 0,
-                                        target_name = aPlayer.player_name,
-                                        target_player = aPlayer,
-                                        source_name = "AutoAdmin",
-                                        record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
-                                    };
-                                    //Process the record
-                                    QueueRecordForProcessing(record);
-                                }
-                            }
-                            catch (Exception)
-                            {
-                                HandleException(new AdKatsException("Error while runnin ban delay."));
-                            }
-                            DebugWrite("Exiting a ban delay thread.", 5);
-                            LogThreadExit();
-                        }));
+                                        PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", true, 6);
+                                    }
+                                    _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
 
-                        //Start the thread
-                        StartAndLogThread(banDelayThread);
+                                    ConsoleInfo(banPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                                    if (!debugMode)
+                                    {
+                                        //Unlock player
+                                        banPlayer.Unlock();
+                                        //Create the ban record
+                                        var record = new AdKatsRecord
+                                        {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_ban_perm"),
+                                            command_numeric = 0,
+                                            target_name = banPlayer.player_name,
+                                            target_player = banPlayer,
+                                            source_name = "AutoAdmin",
+                                            record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                                        };
+                                        //Process the record
+                                        QueueRecordForProcessing(record);
+                                    }
+                                }
+                                catch (Exception)
+                                {
+                                    HandleException(new AdKatsException("Error while runnin ban delay."));
+                                }
+                                DebugWrite("Exiting a ban delay thread.", 5);
+                                LogThreadExit();
+                            }));
+
+                            //Start the thread
+                            StartAndLogThread(banDelayThread);
+                        }
                     }
                     else
                     {
@@ -13121,7 +13197,7 @@ namespace PRoConEvents {
                     record.target_player != null && 
                     _playerLockingAutomaticLock && 
                     !record.target_player.IsLocked()) {
-                    record.target_player.AddLock(record.source_name, TimeSpan.FromMinutes(_playerLockingAutomaticDuration));
+                    record.target_player.Lock(record.source_name, TimeSpan.FromMinutes(_playerLockingAutomaticDuration));
                 }
                 //Perform Actions
                 switch (record.command_action.command_key) {
@@ -16345,7 +16421,7 @@ namespace PRoConEvents {
                 }
                 //Assign the new lock
                 TimeSpan duration = TimeSpan.FromMinutes(_playerLockingManualDuration);
-                record.target_player.AddLock(record.source_name, duration);
+                record.target_player.Lock(record.source_name, duration);
                 SendMessageToSource(record, record.target_player.player_name + " is now locked for " + FormatTimeString(duration, 3) + ", or until you unlock them.");
             }
             catch (Exception e)
@@ -16376,7 +16452,7 @@ namespace PRoConEvents {
                     FinalizeRecord(record);
                     return;
                 }
-                record.target_player.ClearLock();
+                record.target_player.Unlock();
                 SendMessageToSource(record, record.target_player.player_name + " is now unlocked.");
             }
             catch (Exception e)
@@ -18193,6 +18269,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
                 QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
+                QueueSettingForUpload(new CPluginVariable(@"Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
@@ -18200,6 +18277,8 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Players", typeof(Int32), _surrenderAutoMinimumPlayers));
                 DebugWrite("uploadAllSettings finished!", 6);
             }
             catch (Exception e) {
@@ -26010,7 +26089,7 @@ namespace PRoConEvents {
                 return player_locked;
             }
 
-            public Boolean AddLock(String locker, TimeSpan duration) {
+            public Boolean Lock(String locker, TimeSpan duration) {
                 if (IsLocked()) {
                     return false;
                 }
@@ -26029,7 +26108,7 @@ namespace PRoConEvents {
                 return true;
             }
 
-            public void ClearLock() {
+            public void Unlock() {
                 player_locked = false;
             }
 
