@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.5.4
+ * Version 5.2.5.6
  * 9-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.5.4</version_code>
+ * <version_code>5.2.5.6</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.5.4";
+        private const String PluginVersion = "5.2.5.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -560,6 +560,7 @@ namespace PRoConEvents {
         private const Double _reputationThresholdBad = 0;
 
         //Weapon stats
+        private readonly Dictionary<String, AdKatsWeaponName> _weaponNames = new Dictionary<String, AdKatsWeaponName>();
         private StatLibrary _StatLibrary;
 
         //Experimental
@@ -3698,6 +3699,18 @@ namespace PRoConEvents {
                             return;
                         }
 
+                        //Fetch all weapon names
+                        if (PopulateWeaponNameDictionaries()) 
+                        {
+                            ConsoleSuccess("Fetched weapon names.");
+                        }
+                        else
+                        {
+                            ConsoleError("Failed to fetch weapon names. AdKats cannot be started.");
+                            Disable();
+                            return;
+                        }
+
                         //Fetch all special player group information
                         if (PopulateSpecialGroupsDictionary())
                         {
@@ -6650,7 +6663,7 @@ namespace PRoConEvents {
                                             const string removeWeapon = "Weapons/";
                                             const string removeGadgets = "Gadgets/";
                                             const string removePrefix = "U_";
-                                            String weapon = kKillerVictimDetails.DamageType;
+                                            String weapon = GetShortWeaponNameByCode(kKillerVictimDetails.DamageType);
                                             Int32 index = weapon.IndexOf(removeWeapon, StringComparison.Ordinal);
                                             weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeWeapon.Length));
                                             index = weapon.IndexOf(removeGadgets, StringComparison.Ordinal);
@@ -13195,6 +13208,7 @@ namespace PRoConEvents {
                 //Automatic player locking
                 if (!record.record_action_executed && 
                     record.target_player != null && 
+                    (record.source_player == null || PlayerIsAdmin(record.source_player)) &&
                     _playerLockingAutomaticLock && 
                     !record.target_player.IsLocked()) {
                     record.target_player.Lock(record.source_name, TimeSpan.FromMinutes(_playerLockingAutomaticDuration));
@@ -18110,7 +18124,8 @@ namespace PRoConEvents {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME= '" + tableName + "'";
                         using (MySqlDataReader reader = command.ExecuteReader()) {
-                            return reader.Read();
+                            var confirmed = reader.Read();
+                            return confirmed;
                         }
                     }
                 }
@@ -24338,7 +24353,7 @@ namespace PRoConEvents {
         {
             DebugWrite("Entering FetchAdKatsReputationDefinitions", 7);
             ArrayList repTable = null;
-            using (var client = new WebClient()) 
+            using (var client = new WebClient())
             {
                 String repInfo;
                 DebugWrite("Fetching reputation definitions...", 2);
@@ -24363,12 +24378,87 @@ namespace PRoConEvents {
                 {
                     repTable = (ArrayList)JSON.JsonDecode(repInfo);
                 }
-                catch (Exception e) {
+                catch (Exception e)
+                {
                     HandleException(new AdKatsException("Error while parsing reputation definitions.", e));
                 }
             }
             DebugWrite("Exiting FetchAdKatsReputationDefinitions", 7);
             return repTable;
+        }
+
+        private Boolean PopulateWeaponNameDictionaries()
+        {
+            try
+            {
+                Hashtable weaponNames = FetchAdKatsWeaponNames();
+                if (weaponNames == null)
+                {
+                    ConsoleError("Weapons name library could not be fetched.");
+                    return false;
+                }
+                var gameWeaponNames = (Hashtable)weaponNames[_gameVersion.ToString()];
+                if (gameWeaponNames == null) {
+                    ConsoleError("Weapons for " + _gameVersion.ToString() + " not found in weapon name library.");
+                    return false;
+                }
+                foreach (DictionaryEntry currentWeapon in gameWeaponNames)
+                {
+                    //Create new construct
+                    String weaponCode = (String)currentWeapon.Key;
+                    String shortName = (String)((Hashtable)currentWeapon.Value)["readable_short"];
+                    String longName = (String)((Hashtable)currentWeapon.Value)["readable_long"];
+                    //Add the weapon name
+                    _weaponNames[weaponCode] = new AdKatsWeaponName() {
+                        weapon_game = _gameVersion,
+                        readable_short = shortName,
+                        readable_long = longName
+                    };
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while populating weapon name cache", e));
+            }
+            return true;
+        }
+
+        private Hashtable FetchAdKatsWeaponNames()
+        {
+            DebugWrite("Entering FetchAdKatsWeaponNames", 7);
+            Hashtable weaponNames = null;
+            using (var client = new WebClient())
+            {
+                String downloadString;
+                DebugWrite("Fetching weapon names...", 2);
+                try
+                {
+                    downloadString = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsweaponnames.json");
+                    DebugWrite("Weapon names fetched.", 1);
+                }
+                catch (Exception)
+                {
+                    try
+                    {
+                        downloadString = client.DownloadString("http://api.gamerethos.net/adkats/fetch/weaponnames");
+                        DebugWrite("Weapon names fetched from backup location.", 1);
+                    }
+                    catch (Exception)
+                    {
+                        return null;
+                    }
+                }
+                try
+                {
+                    weaponNames = (Hashtable)JSON.JsonDecode(downloadString);
+                }
+                catch (Exception e)
+                {
+                    HandleException(new AdKatsException("Error while parsing reputation definitions.", e));
+                }
+            }
+            DebugWrite("Exiting FetchAdKatsWeaponNames", 7);
+            return weaponNames;
         }
 
         private Boolean PopulateSpecialGroupsDictionary()
@@ -24802,6 +24892,40 @@ namespace PRoConEvents {
                 HandleException(new AdKatsException("Unable to get command for key '" + commandKey + "'"));
             }
             return command;
+        }
+
+        public String GetShortWeaponNameByCode(String weaponCode)
+        {
+            AdKatsWeaponName weaponName = null;
+            if (String.IsNullOrEmpty(weaponCode))
+            {
+                HandleException(new AdKatsException("weaponCode was null when fetching weapon name"));
+                return null;
+            }
+            _weaponNames.TryGetValue(weaponCode, out weaponName);
+            if (weaponName == null)
+            {
+                HandleException(new AdKatsException("Unable to get weapon name for code '" + weaponCode + "'"));
+                return weaponCode;
+            }
+            return weaponName.readable_short;
+        }
+
+        public String GetLongWeaponNameByCode(String weaponCode)
+        {
+            AdKatsWeaponName weaponName = null;
+            if (String.IsNullOrEmpty(weaponCode))
+            {
+                HandleException(new AdKatsException("weaponCode was null when fetching weapon name"));
+                return null;
+            }
+            _weaponNames.TryGetValue(weaponCode, out weaponName);
+            if (weaponName == null)
+            {
+                HandleException(new AdKatsException("Unable to get weapon name for code '" + weaponCode + "'"));
+                return weaponCode;
+            }
+            return weaponName.readable_short;
         }
 
         public String GetPlayerTeamKey(AdKatsPlayer aPlayer)
@@ -25524,7 +25648,7 @@ namespace PRoConEvents {
                                 }
                                 else if (!_pluginUpdatePatched) {
                                     //Patched version is older than current version
-                                    ConsoleWarn("Plugin reverted to previous version " + _latestPluginVersion + ". Restart procon to run this version.");
+                                    ConsoleWarn("Plugin reverted to previous version " + patchedVersion + ". Restart procon to run this version.");
                                 }
                                 _pluginPatchedVersion = patchedVersion;
                                 _pluginPatchedVersionInt = patchedVersionInt;
@@ -25896,6 +26020,12 @@ namespace PRoConEvents {
             loc.status = "fail";
             loc.message = "unknown error";
             return loc;
+        }
+
+        public class AdKatsWeaponName {
+            public GameVersion weapon_game;
+            public String readable_short;
+            public String readable_long;
         }
 
         public class AdKatsBan {
@@ -27503,510 +27633,11 @@ namespace PRoConEvents {
                 Plugin = plugin;
             }
 
-            private Dictionary<String, StatLibraryWeapon> OverloadBF3Weapons() {
-                //Create the game specific libraries
-                var bf3Weapons = new Dictionary<String, StatLibraryWeapon>();
-                //Add the weapons
-                StatLibraryWeapon weapon;
-                weapon = new StatLibraryWeapon {
-                    id = "G17C",
-                    damage_max = 25,
-                    damage_min = 13.75
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "G17C SUPP.",
-                    damage_max = 25,
-                    damage_min = 13.75
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "G17C TACT.",
-                    damage_max = 25,
-                    damage_min = 13.75
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = ".44 MAGNUM",
-                    damage_max = 60,
-                    damage_min = 30
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = ".44 SCOPED",
-                    damage_max = 60,
-                    damage_min = 30
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "93R",
-                    damage_max = 20,
-                    damage_min = 12.5
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "G18",
-                    damage_max = 20,
-                    damage_min = 12.5
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "G18 SUPP.",
-                    damage_max = 20,
-                    damage_min = 12.5
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "G18 TACT.",
-                    damage_max = 20,
-                    damage_min = 12.5
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M9",
-                    damage_max = 25,
-                    damage_min = 13.75
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M9 TACT.",
-                    damage_max = 25,
-                    damage_min = 13.75
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M9 SUPP.",
-                    damage_max = 25,
-                    damage_min = 13.75
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M1911",
-                    damage_max = 34,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M1911 TACT.",
-                    damage_max = 34,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M1911 SUPP.",
-                    damage_max = 34,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M1911 S-TAC",
-                    damage_max = 34,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "MP412 REX",
-                    damage_max = 50,
-                    damage_min = 28
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "MP443",
-                    damage_max = 25,
-                    damage_min = 13.75
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "MP443 TACT.",
-                    damage_max = 25,
-                    damage_min = 13.75
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "MP443 SUPP.",
-                    damage_max = 25,
-                    damage_min = 13.75
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "AS VAL",
-                    damage_max = 20,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M5K",
-                    damage_max = 25,
-                    damage_min = 13.75
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "MP7",
-                    damage_max = 20,
-                    damage_min = 11.2
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "P90",
-                    damage_max = 20,
-                    damage_min = 11.2
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "PDW-R",
-                    damage_max = 25,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "PP-19",
-                    damage_max = 16.7,
-                    damage_min = 12.5
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "PP-2000",
-                    damage_max = 25,
-                    damage_min = 13.75
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "UMP-45",
-                    damage_max = 34,
-                    damage_min = 12.5
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "JNG-90",
-                    damage_max = 80,
-                    damage_min = 59
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "L96",
-                    damage_max = 80,
-                    damage_min = 59
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M39 EMR",
-                    damage_max = 50,
-                    damage_min = 37.5
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M40A5",
-                    damage_max = 80,
-                    damage_min = 59
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M98B",
-                    damage_max = 95,
-                    damage_min = 59
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M417",
-                    damage_max = 50,
-                    damage_min = 37.5
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "MK11",
-                    damage_max = 50,
-                    damage_min = 37.5
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "QBU-88",
-                    damage_max = 50,
-                    damage_min = 37.5
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "SKS",
-                    damage_max = 43,
-                    damage_min = 27
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "SV98",
-                    damage_max = 80,
-                    damage_min = 50
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "SVD",
-                    damage_max = 50,
-                    damage_min = 37.5
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M27 IAR",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "RPK-74M",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "L86A2",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "LSAT",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M60E4",
-                    damage_max = 34,
-                    damage_min = 22
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M240B",
-                    damage_max = 34,
-                    damage_min = 22
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M249",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "MG36",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "PKP PECHENEG",
-                    damage_max = 34,
-                    damage_min = 22
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "QBB-95",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "TYPE 88 LMG",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "A-91",
-                    damage_max = 25,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "ACW-R",
-                    damage_max = 20,
-                    damage_min = 16.7
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "AKS-74u",
-                    damage_max = 25,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "G36C",
-                    damage_max = 25,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "G53",
-                    damage_max = 25,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M4A1",
-                    damage_max = 25,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "MTAR-21",
-                    damage_max = 25,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "QBZ-95B",
-                    damage_max = 25,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "SCAR-H",
-                    damage_max = 30,
-                    damage_min = 20
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "SG553",
-                    damage_max = 25,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M4",
-                    damage_max = 25,
-                    damage_min = 14.3
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "AEK-971",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "AK-74M",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "AN-94",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "AUG A3",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "F2000",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "FAMAS",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "G3A3",
-                    damage_max = 34,
-                    damage_min = 22
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "KH2002",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "L85A2",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M16A3",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M416",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "SCAR-L",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M16A4",
-                    damage_max = 25,
-                    damage_min = 18.4
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "XBOW",
-                    damage_max = 100,
-                    damage_min = 10
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "XBOW SCOPED",
-                    damage_max = 100,
-                    damage_min = 10
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M320",
-                    damage_max = 100,
-                    damage_min = 1
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M26",
-                    damage_max = 100,
-                    damage_min = 1
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M26 MASS",
-                    damage_max = 100,
-                    damage_min = 1
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M26 SLUG",
-                    damage_max = 100,
-                    damage_min = 1
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                weapon = new StatLibraryWeapon {
-                    id = "M26 FRAG",
-                    damage_max = 100,
-                    damage_min = 1
-                };
-                bf3Weapons.Add(weapon.id, weapon);
-                return bf3Weapons;
-            }
-
             public Boolean PopulateWeaponStats() {
                 try {
-                    if (Plugin._gameVersion == GameVersion.BF3) {
-                        //No need for download, all BF3 weapons are set in stone now.
-                        Weapons = OverloadBF3Weapons();
-                        return true;
-                    }
                     //Get Weapons
                     Hashtable statTable = FetchWeaponDefinitions();
-                    var statData = (ArrayList) statTable[Plugin._gameVersion + ""];
+                    var statData = (ArrayList) statTable[Plugin._gameVersion.ToString()];
                     if (statData != null && statData.Count > 0) {
                         var tempWeapons = new Dictionary<String, StatLibraryWeapon>();
                         foreach (Hashtable currentWeapon in statData) {
