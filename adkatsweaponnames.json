@@ -562,7 +562,7 @@
             "readable_short": "M320 Smoke",
             "readable_long": "M320 Smoke under ARX 160"
         },
-        "U_ASVAL": {
+        "U_ASVal": {
             "readable_short": "AS Val",
             "readable_long": "AS Val SubMachine Gun"
         },
