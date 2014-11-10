@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.5.8
+ * Version 5.2.5.9
  * 10-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.5.8</version_code>
+ * <version_code>5.2.5.9</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.5.8";
+        private const String PluginVersion = "5.2.5.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -8929,6 +8929,7 @@ namespace PRoConEvents {
                                 (targetedRecord.command_action.command_key == "player_kill" ||
                                  targetedRecord.command_action.command_key == "player_kill_lowpop" ||
                                  targetedRecord.command_action.command_key == "player_kill_repeat" ||
+                                 targetedRecord.command_action.command_key == "player_kill_force" ||
                                  targetedRecord.command_action.command_key == "player_kick" ||
                                  targetedRecord.command_action.command_key == "player_ban_temp" ||
                                  targetedRecord.command_action.command_key == "player_ban_perm" ||
@@ -8937,8 +8938,7 @@ namespace PRoConEvents {
                                  targetedRecord.command_action.command_key == "player_mute" ||
                                  targetedRecord.command_action.command_key == "player_say" ||
                                  targetedRecord.command_action.command_key == "player_yell" ||
-                                 targetedRecord.command_action.command_key == "player_tell" ||
-                                 targetedRecord.command_action.command_key == "player_kill_force") && 
+                                 targetedRecord.command_action.command_key == "player_tell") && 
                                 (UtcDbTime() - targetedRecord.record_time).TotalSeconds < 60))
                     {
                         OnlineAdminSayMessage("Report on " + record.target_player.player_name + " blocked. Player already acted on.");
@@ -16101,8 +16101,15 @@ namespace PRoConEvents {
                 if (record.record_source == AdKatsRecord.Sources.InGame) {
                     _pluginRebootOnDisableSource = record.source_name;
                 }
-                SendMessageToSource(record, "Rebooting AdKats.");
-                Disable();
+                SendMessageToSource(record, "Rebooting AdKats shortly.");
+                //Run the reboot delay thread
+                StartAndLogThread(new Thread(new ThreadStart(delegate
+                {
+                    Thread.CurrentThread.Name = "RebootDelay";
+                    Thread.Sleep(10000);
+                    Disable();
+                    LogThreadExit();
+                })));
             }
             catch (Exception e)
             {
@@ -21746,7 +21753,7 @@ namespace PRoConEvents {
         private void RunActionsFromDB() {
             DebugWrite("runActionsFromDB starting!", 7);
             //Make sure database connection active
-            if (HandlePossibleDisconnect()) {
+            if (HandlePossibleDisconnect() || !_firstPlayerListComplete) {
                 return;
             }
             try {
