@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.5.7
+ * Version 5.2.5.8
  * 10-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.5.7</version_code>
+ * <version_code>5.2.5.8</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.5.7";
+        private const String PluginVersion = "5.2.5.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -8922,31 +8922,29 @@ namespace PRoConEvents {
                             }
                         }
                     }
-                    if (record.target_player != null && (record.command_type.command_key == "player_report" || record.command_type.command_key == "player_calladmin"))
+                    if ( record.target_player != null && 
+                        (record.command_type.command_key == "player_report" || record.command_type.command_key == "player_calladmin") && 
+                         record.target_player.TargetedRecords.Any(
+                            targetedRecord =>
+                                (targetedRecord.command_action.command_key == "player_kill" ||
+                                 targetedRecord.command_action.command_key == "player_kill_lowpop" ||
+                                 targetedRecord.command_action.command_key == "player_kill_repeat" ||
+                                 targetedRecord.command_action.command_key == "player_kick" ||
+                                 targetedRecord.command_action.command_key == "player_ban_temp" ||
+                                 targetedRecord.command_action.command_key == "player_ban_perm" ||
+                                 targetedRecord.command_action.command_key == "player_ban_perm_future" ||
+                                 targetedRecord.command_action.command_key == "player_punish" ||
+                                 targetedRecord.command_action.command_key == "player_mute" ||
+                                 targetedRecord.command_action.command_key == "player_say" ||
+                                 targetedRecord.command_action.command_key == "player_yell" ||
+                                 targetedRecord.command_action.command_key == "player_tell" ||
+                                 targetedRecord.command_action.command_key == "player_kill_force") && 
+                                (UtcDbTime() - targetedRecord.record_time).TotalSeconds < 60))
                     {
-                        var triggerCommands = new List<String>();
-                        triggerCommands.Add("player_kill");
-                        triggerCommands.Add("player_kill_lowpop");
-                        triggerCommands.Add("player_kill_repeat");
-                        triggerCommands.Add("player_kick");
-                        triggerCommands.Add("player_ban_temp");
-                        triggerCommands.Add("player_ban_perm");
-                        triggerCommands.Add("player_punish");
-                        triggerCommands.Add("player_mute");
-                        triggerCommands.Add("player_say");
-                        triggerCommands.Add("player_yell");
-                        triggerCommands.Add("player_tell");
-                        triggerCommands.Add("player_kill_force");
-                        foreach (AdKatsRecord targetRecord in record.target_player.TargetedRecords)
-                        {
-                            if (triggerCommands.Contains(targetRecord.command_type.command_key) && (UtcDbTime() - targetRecord.record_time).TotalSeconds < 60)
-                            {
-                                OnlineAdminSayMessage("Report on " + record.target_player.player_name + " blocked. Player already acted on.");
-                                SendMessageToSource(record, "Report on " + record.target_player.player_name + " blocked. Player already acted on.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                        }
+                        OnlineAdminSayMessage("Report on " + record.target_player.player_name + " blocked. Player already acted on.");
+                        SendMessageToSource(record, "Report on " + record.target_player.player_name + " blocked. Player already acted on.");
+                        FinalizeRecord(record);
+                        return;
                     }
                     //Special command case
                     DebugWrite("Preparing to check " + record.command_type.command_key + " record for pre-upload processing.", 5);
