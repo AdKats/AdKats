@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.5.6
- * 9-NOV-2014
+ * Version 5.2.5.7
+ * 10-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.5.6</version_code>
+ * <version_code>5.2.5.7</version_code>
  */
 
 using System;
@@ -55,7 +55,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.5.6";
+        private const String PluginVersion = "5.2.5.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4381,7 +4381,7 @@ namespace PRoConEvents {
             _EmailHandler = new EmailHandler(this);
             //Update faction info
             //Load initial factions
-            OnTeamFactionOverride(-1, -1);
+            OnTeamFactionOverride(0, -1);
             OnTeamFactionOverride(1, 0);
             OnTeamFactionOverride(2, 1);
             OnTeamFactionOverride(3, 0);
@@ -5605,8 +5605,7 @@ namespace PRoConEvents {
                             }
                             if (_roundState == RoundState.Ended ||
                                 !_pluginEnabled ||
-                                (team1.TeamPlayerCount <= 1 && team1.Populated) ||
-                                (team2.TeamPlayerCount <= 1 && team1.Populated))
+                                (team1.TeamPlayerCount == 0 && team1.Populated && team2.TeamPlayerCount == 0 && team2.Populated))
                             {
                                 break;
                             }
