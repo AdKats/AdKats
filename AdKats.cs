@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.6.1
- * 11-NOV-2014
+ * Version 5.2.6.5
+ * 14-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.6.1</version_code>
+ * <version_code>5.2.6.5</version_code>
  */
 
 using System;
@@ -32,6 +32,7 @@ using System.IO.Compression;
 using System.Net;
 using System.Net.Mail;
 using System.Net.NetworkInformation;
+using System.Security.Policy;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections;
@@ -55,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.6.1";
+        private const String PluginVersion = "5.2.6.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -192,6 +193,8 @@ namespace PRoConEvents {
         private DateTime _LastUsageStatsUpdate = DateTime.UtcNow - TimeSpan.FromHours(1);
         private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
+        private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(1);
 
         //Server
         private PopulationState _populationStatus = PopulationState.Unknown;
@@ -235,6 +238,7 @@ namespace PRoConEvents {
         //Event trigger dictionaries
         private readonly Dictionary<String, AdKatsRecord> _ActOnIsAliveDictionary = new Dictionary<String, AdKatsRecord>();
         private readonly Dictionary<String, AdKatsRecord> _ActOnSpawnDictionary = new Dictionary<String, AdKatsRecord>();
+        private readonly Dictionary<String, AdKatsRecord> _LoadoutConfirmDictionary = new Dictionary<String, AdKatsRecord>();
         private readonly Dictionary<String, AdKatsRecord> _ActionConfirmDic = new Dictionary<String, AdKatsRecord>();
         private readonly Dictionary<String, Int32> _RoundMutedPlayers = new Dictionary<String, Int32>();
         private readonly Dictionary<String, AdKatsRecord> _RoundReports = new Dictionary<String, AdKatsRecord>();
@@ -298,7 +302,9 @@ namespace PRoConEvents {
         private EventWaitHandle _PluginDescriptionWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
         //Procon MatchCommand
+        private readonly MatchCommand _PluginEnabledMatchCommand;
         private readonly MatchCommand _fetchAuthorizedSoldiersMatchCommand;
+        private readonly MatchCommand _subscribeAsClientMatchCommand;
         private readonly MatchCommand _issueCommandMatchCommand;
 
         //Commands global
@@ -487,6 +493,8 @@ namespace PRoConEvents {
         private Boolean _PostStatLoggerChatManually_IgnoreCommands = false;
         private Boolean _PostMapBenefitStatistics;
         private Boolean _MULTIBalancerUnswitcherDisabled = false;
+        public readonly String[] _subscriptionGroups = {"OnlineSoldiers"};
+        private readonly List<AdKatsClient> _subscribedClients = new List<AdKatsClient>();
 
         //Hacker-checker
         private Boolean _UseHackerChecker;
@@ -586,8 +594,38 @@ namespace PRoConEvents {
             _pluginEnabled = false;
             _threadsReady = false;
             //Assign the match commands
-            _issueCommandMatchCommand = new MatchCommand("AdKats", "IssueCommand", new List<String>(), "AdKats_IssueCommand", new List<MatchArgumentFormat>(), new ExecutionRequirements(ExecutionScope.None), "Useable by other plugins to call AdKats commands.");
-            _fetchAuthorizedSoldiersMatchCommand = new MatchCommand("AdKats", "FetchAuthorizedSoldiers", new List<String>(), "AdKats_FetchAuthorizedSoldiers", new List<MatchArgumentFormat>(), new ExecutionRequirements(ExecutionScope.None), "Useable by other plugins to fetch authorized soldiers.");
+            _PluginEnabledMatchCommand = new MatchCommand(
+                "AdKats",
+                "PluginEnabled",
+                new List<String>(),
+                "AdKats_PluginEnabled",
+                new List<MatchArgumentFormat>(),
+                new ExecutionRequirements(ExecutionScope.None),
+                "Useable by other plugins to check if AdKats is enabled or in process of starting up.");
+            _issueCommandMatchCommand = new MatchCommand(
+                "AdKats",
+                "IssueCommand",
+                new List<String>(),
+                "AdKats_IssueCommand",
+                new List<MatchArgumentFormat>(),
+                new ExecutionRequirements(ExecutionScope.None),
+                "Useable by other plugins to call AdKats commands.");
+            _fetchAuthorizedSoldiersMatchCommand = new MatchCommand(
+                "AdKats", 
+                "FetchAuthorizedSoldiers", 
+                new List<String>(), 
+                "AdKats_FetchAuthorizedSoldiers", 
+                new List<MatchArgumentFormat>(), 
+                new ExecutionRequirements(ExecutionScope.None),
+                "Useable by other plugins to fetch authorized soldiers.");
+            _subscribeAsClientMatchCommand = new MatchCommand(
+                "AdKats",
+                "SubscribeAsClient",
+                new List<String>(),
+                "AdKats_SubscribeAsClient",
+                new List<MatchArgumentFormat>(),
+                new ExecutionRequirements(ExecutionScope.None),
+                "Useable by other plugins to subscribe to group events.");
             //Debug level is 0 by default
             _debugLevel = 0;
             //Randomize the external access key
@@ -676,14 +714,14 @@ namespace PRoConEvents {
         }
 
         public String GetPluginWebsite() {
-            return "https://github.com/ColColonCleaner/AdKats/";
+            return "https://github.com/AdKats/AdKats/";
         }
 
         public String GetPluginDescription() {
             String concat = @"
             <p>
-                <a href='https://github.com/ColColonCleaner/AdKats' name=adkats>
-                    <img src='https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg' alt='AdKats Advanced In-Game Admin Tools'>
+                <a href='https://github.com/AdKats/AdKats' name=adkats>
+                    <img src='https://raw.githubusercontent.com/AdKats/AdKats/master/images/AdKats.jpg' alt='AdKats Advanced In-Game Admin Tools'>
                 </a>
             </p>";
             try
@@ -3653,6 +3691,10 @@ namespace PRoConEvents {
                     try {
                         Thread.CurrentThread.Name = "enabler";
 
+                        //Add command informing other plugins that AdKats is enabling
+                        RegisterCommand(_PluginEnabledMatchCommand);
+                        RegisterCommand(_subscribeAsClientMatchCommand);
+
                         if (_pluginRebootOnDisable) {
                             if (!String.IsNullOrEmpty(_pluginRebootOnDisableSource)) {
                                 PlayerTellMessage(_pluginRebootOnDisableSource, "AdKats is Rebooting");
@@ -3791,8 +3833,10 @@ namespace PRoConEvents {
                         _pluginEnabled = false;
                         _threadsReady = false;
                         //Remove all match commands
+                        UnregisterCommand(_PluginEnabledMatchCommand);
                         UnregisterCommand(_issueCommandMatchCommand);
                         UnregisterCommand(_fetchAuthorizedSoldiersMatchCommand);
+                        UnregisterCommand(_subscribeAsClientMatchCommand);
                         //Open all handles. Threads will finish on their own.
                         OpenAllHandles();
 
@@ -3879,6 +3923,8 @@ namespace PRoConEvents {
                             _ActOnIsAliveDictionary.Clear();
                         if (_ActionConfirmDic != null)
                             _ActionConfirmDic.Clear();
+                        if(_LoadoutConfirmDictionary != null)
+                            _LoadoutConfirmDictionary.Clear();
                         _unmatchedRoundDeathCounts.Clear();
                         _unmatchedRoundDeaths.Clear();
                         _endingRound = false;
@@ -3888,6 +3934,10 @@ namespace PRoConEvents {
                         _surrenderVoteSucceeded = false;
                         _slowmo = false;
                         _pluginUpdateServerInfoChecked = false;
+                        if (_subscribedClients.Any()) {
+                            ConsoleWarn("All active subscriptions removed.");
+                            _subscribedClients.Clear();
+                        }
                         //Now that plugin is disabled, update the settings page to reflect
                         UpdateSettingPage();
                         ConsoleWrite("^b^1AdKats " + GetPluginVersion() + " Disabled! =(^n^0");
@@ -3925,7 +3975,7 @@ namespace PRoConEvents {
                     DebugWrite("Fetching plugin links...", 2);
                     try
                     {
-                        _pluginLinks = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/LINKS.md");
+                        _pluginLinks = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/LINKS.md");
                         DebugWrite("Plugin links fetched.", 1);
                     }
                     catch (Exception)
@@ -3944,7 +3994,7 @@ namespace PRoConEvents {
                     DebugWrite("Fetching plugin readme...", 2);
                     try
                     {
-                        _pluginDescription = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/README.md");
+                        _pluginDescription = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/README.md");
                         DebugWrite("Plugin readme fetched.", 1);
                     }
                     catch (Exception)
@@ -3963,7 +4013,7 @@ namespace PRoConEvents {
                     DebugWrite("Fetching plugin changelog...", 2);
                     try
                     {
-                        _pluginChangelog = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/CHANGELOG.md");
+                        _pluginChangelog = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/CHANGELOG.md");
                         DebugWrite("Plugin changelog fetched.", 1);
                     }
                     catch (Exception)
@@ -5044,6 +5094,7 @@ namespace PRoConEvents {
                                             }
                                         }
                                         aPlayer.player_online = true;
+                                        FetchPlayerPersonaID(aPlayer);
                                         aPlayer.player_server = _serverInfo;
                                         //Add the frostbite player info
                                         aPlayer.frostbitePlayerInfo = playerInfo;
@@ -5391,6 +5442,16 @@ namespace PRoConEvents {
                         //Set required handles 
                         _PlayerListUpdateWaitHandle.Set();
                         _TeamswapWaitHandle.Set();
+                        //Push online player subscription
+                        if (playerListFetched && _pluginEnabled)
+                        {
+                            foreach (AdKatsClient client in 
+                                    _subscribedClients.Where(aClient => 
+                                        aClient.SubscriptionGroup == "OnlineSoldiers" && 
+                                        aClient.SubscriptionEnabled)) {
+                                SendOnlineSoldiers(client);
+                            }
+                        }
                         if (!_firstPlayerListComplete && playerListFetched && _pluginEnabled) 
                         {
                             _AdKatsRunningTime = UtcDbTime();
@@ -8331,7 +8392,7 @@ namespace PRoConEvents {
                 {
                     ProconChatWrite("Yell[" + _YellDuration + "s] > " + message);
                 }
-                ExecuteCommand("procon.protected.send", "admin.yell", message.ToUpper(), _YellDuration + "", "all");
+                ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4) ? (System.Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "all");
             }
             catch (Exception e)
             {
@@ -8996,6 +9057,7 @@ namespace PRoConEvents {
                             }
                             break;
                         case "player_report":
+                        case "player_calladmin":
                             {
                                 if (record.target_player != null && 
                                     !record.target_player.player_online &&
@@ -9009,26 +9071,6 @@ namespace PRoConEvents {
                                     FinalizeRecord(record);
                                     return;
                                 }
-                                if (_isTestingAuthorized)
-                                {
-                                    var lowerM = " " + record.record_message.ToLower() + " ";
-                                    if (lowerM.Contains("bipod"))
-                                    {
-                                        SendMessageToSource(record, "Bipod related actions are not bannable.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                    if (lowerM.Contains(" ping") || lowerM.Contains(" pings ") || lowerM.Contains(" ping.") || lowerM.Contains(" ping,"))
-                                    {
-                                        SendMessageToSource(record, "Automatic system handles ping, do not report for it.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                }
-                            }
-                            break;
-                        case "player_calladmin":
-                            {
                                 if (_isTestingAuthorized)
                                 {
                                     var lowerM = " " + record.record_message.ToLower() + " ";
@@ -14740,13 +14782,43 @@ namespace PRoConEvents {
             DebugWrite("Entering reportTarget", 6);
             try {
                 var random = new Random();
-                Int32 reportID;
-                do {
-                    reportID = random.Next(100, 999);
-                } while (_RoundReports.ContainsKey(reportID + ""));
-                record.command_numeric = reportID;
-                _RoundReports.Add(reportID + "", record);
+                Int32 reportID = record.command_numeric;
+                if (record.command_numeric == 0) {
+                    do {
+                        reportID = random.Next(100, 999);
+                    } while (_RoundReports.ContainsKey(reportID + ""));
+                    record.command_numeric = reportID;
+                    _RoundReports.Add(reportID + "", record);
+                }
                 record.record_action_executed = true;
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled))
+                {
+                    ConsoleWarn("Running loadout case for report record " + reportID);
+                    if (!record.isLoadoutChecked)
+                    {
+                        if (!_LoadoutConfirmDictionary.ContainsKey(record.target_player.player_name))
+                        {
+                            lock (_LoadoutConfirmDictionary)
+                            {
+                                _LoadoutConfirmDictionary.Add(record.target_player.player_name, record);
+                            }
+                            ConsoleWarn("Report record " + reportID + " waiting for loadout confirmation.");
+                            ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable{
+                                {"caller_identity", "AdKats"},
+                                {"response_requested", false},
+                                {"player_name", record.target_player.player_name}
+                            }));
+                        }
+                        return;
+                    }
+                    if (!record.targetLoadoutValid)
+                    {
+                        OnlineAdminSayMessage("Report " + reportID + " is being acted on by loadout enforcer.");
+                        record.command_action = GetCommandByKey("player_report_confirm");
+                        UpdateRecord(record);
+                        return;
+                    }
+                }
                 AttemptReportAutoAction(record, reportID + "");
                 String sourceAAIdentifier = (record.source_player != null && record.source_player.player_aa) ? ("[AA]") : ("");
                 String targetAAIdentifier = (record.target_player != null && record.target_player.player_aa) ? ("[AA]") : ("");
@@ -14839,15 +14911,48 @@ namespace PRoConEvents {
 
         public void CallAdminOnTarget(AdKatsRecord record) {
             DebugWrite("Entering callAdminOnTarget", 6);
-            try {
+            try
+            {
                 var random = new Random();
-                Int32 reportID;
-                do {
-                    reportID = random.Next(100, 999);
-                } while (_RoundReports.ContainsKey(reportID + ""));
-                record.command_numeric = reportID;
-                _RoundReports.Add(reportID + "", record);
+                Int32 reportID = record.command_numeric;
+                if (record.command_numeric == 0)
+                {
+                    do
+                    {
+                        reportID = random.Next(100, 999);
+                    } while (_RoundReports.ContainsKey(reportID + ""));
+                    record.command_numeric = reportID;
+                    _RoundReports.Add(reportID + "", record);
+                }
                 record.record_action_executed = true;
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled))
+                {
+                    ConsoleWarn("Running loadout case for report record " + reportID);
+                    if (!record.isLoadoutChecked)
+                    {
+                        if (!_LoadoutConfirmDictionary.ContainsKey(record.target_player.player_name))
+                        {
+                            lock (_LoadoutConfirmDictionary)
+                            {
+                                _LoadoutConfirmDictionary.Add(record.target_player.player_name, record);
+                            }
+                            ConsoleWarn("Report record " + reportID + " waiting for loadout confirmation.");
+                            ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable{
+                                {"caller_identity", "AdKats"},
+                                {"response_requested", false},
+                                {"player_name", record.target_player.player_name}
+                            }));
+                        }
+                        return;
+                    }
+                    if (!record.targetLoadoutValid)
+                    {
+                        OnlineAdminSayMessage("Report " + reportID + " is being acted on by loadout enforcer.");
+                        record.command_action = GetCommandByKey("player_report_confirm");
+                        UpdateRecord(record);
+                        return;
+                    }
+                }
                 AttemptReportAutoAction(record, reportID + "");
                 String sourceAAIdentifier = (record.source_player != null && record.source_player.player_aa) ? ("[AA]") : ("");
                 String targetAAIdentifier = (record.target_player != null && record.target_player.player_aa) ? ("[AA]") : ("");
@@ -17585,7 +17690,7 @@ namespace PRoConEvents {
                         DebugWrite("Fetching plugin changelog...", 2);
                         try
                         {
-                            command.CommandText = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql");
+                            command.CommandText = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkats.sql");
                             DebugWrite("SQL setup script fetched.", 1);
                         }
                         catch (Exception)
@@ -24065,7 +24170,7 @@ namespace PRoConEvents {
                 responseHashtable.Add("response_type", "FetchAuthorizedSoldiers");
                 responseHashtable.Add("response_value", CPluginVariable.EncodeStringArray(soldierNames));
 
-                //TODO add error message if target not found
+                //TODO: add error message if target not found
 
                 ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, JSON.JsonEncode(responseHashtable));
             }
@@ -24074,6 +24179,346 @@ namespace PRoConEvents {
                 HandleException(new AdKatsException("Error returning authorized soldiers .", e));
             }
             DebugWrite("SendAuthorizedSoldiers finished!", 6);
+        }
+
+        private Boolean SubscribeClient(AdKatsClient aClient)
+        {
+            if (aClient == null)
+            {
+                ConsoleError("24134: Client null when issuing subscription.");
+                return false;
+            }
+            if (String.IsNullOrEmpty(aClient.ClientName))
+            {
+                ConsoleError("Attempted to enable subscription without a client name.");
+                return false;
+            }
+            if (String.IsNullOrEmpty(aClient.ClientMethod))
+            {
+                ConsoleError("Attempted to enable subscription for " + aClient.ClientName + " without a client method.");
+                return false;
+            }
+            if (String.IsNullOrEmpty(aClient.SubscriptionGroup))
+            {
+                ConsoleError("Attempted to enable subscription for " + aClient.ClientName + " with a blank group.");
+                return false;
+            }
+            if (!_subscriptionGroups.Contains(aClient.SubscriptionGroup))
+            {
+                ConsoleError("Attempted to enable subscription for " + aClient.ClientName + " with an invalid group.");
+                return false;
+            }
+            if (_subscribedClients.Any(iClient => 
+                iClient.ClientName == aClient.ClientName && 
+                iClient.ClientMethod == aClient.ClientMethod && 
+                iClient.SubscriptionGroup == aClient.SubscriptionGroup)) {
+                ConsoleError("Client " + aClient.ClientName + " already subscribed to " + aClient.SubscriptionGroup + ". Events are being sent to " + aClient.ClientMethod + ".");
+                return false;
+            }
+            _subscribedClients.Add(aClient);
+            ConsoleSuccess(aClient.ClientName + " now subscribed to " + aClient.SubscriptionGroup + ". Events will be sent to " + aClient.ClientMethod + ".");
+            return true;
+        }
+
+        private Boolean UnsubscribeClient(AdKatsClient aClient)
+        {
+            if (aClient == null)
+            {
+                ConsoleError("24169: Client null when issuing subscription.");
+                return false;
+            }
+            AdKatsClient eClient = 
+                _subscribedClients.Where(iClient => 
+                    iClient.ClientName == aClient.ClientName && 
+                    iClient.ClientMethod == aClient.ClientMethod && 
+                    iClient.SubscriptionGroup == aClient.SubscriptionGroup)
+                    .FirstOrDefault();
+            if (eClient != null)
+            {
+                _subscribedClients.Remove(eClient);
+                ConsoleSuccess("Client " + aClient.ClientName + " unsubscribed from " + aClient.SubscriptionGroup + ". Events no longer being sent to " + aClient.ClientMethod + ".");
+                return true;
+            }
+            ConsoleError("Client " + aClient.ClientName + " attempted to unsubscribe from " + aClient.SubscriptionGroup + " when they don't have an active subscription.");
+            return false;
+        }
+
+        public void ReceiveLoadoutValidity(params String[] informationParams)
+        {
+            DebugWrite("ReceiveLoadoutValidity starting!", 6);
+            try
+            {
+                if (!informationParams.Any())
+                {
+                    ConsoleError("ReceiveLoadoutValidity canceled. No parameters were provided.");
+                    return;
+                }
+
+                if (informationParams == null)
+                {
+                    ConsoleError("Loadout validity params were null when attempting to parse. Unable to continue.");
+                    return;
+                }
+                if (informationParams.Length != 2)
+                {
+                    ConsoleError("Invalid parameter count when attempting to parse loadout validity. Required: [source, jsonParams]. Unable to continue.");
+                    return;
+                }
+                String unparsedValidityJson = informationParams[1];
+
+                Hashtable parsedValidityHashtable = (Hashtable)JSON.JsonDecode(unparsedValidityJson);
+                if (parsedValidityHashtable == null)
+                {
+                    ConsoleError("Loadout valididy params could not be properly converted from JSON. Unable to continue.");
+                    return;
+                }
+
+                //Import the caller identity
+                if (!parsedValidityHashtable.ContainsKey("caller_identity"))
+                {
+                    ConsoleError("Loadout valididy params didn't contain a caller_identity! Unable to process.");
+                    return;
+                }
+                String identity = (String)parsedValidityHashtable["caller_identity"];
+                if (String.IsNullOrEmpty(identity))
+                {
+                    ConsoleError("caller_identity was empty. Unable to process.");
+                    return;
+                }
+                if (identity != "AdKatsLRT")
+                {
+                    ConsoleError("Loadout source not recognized. Unable to process.");
+                }
+
+                //Import the callback option
+                if (!parsedValidityHashtable.ContainsKey("response_requested"))
+                {
+                    ConsoleError("Loadout valididy params for " + identity + " didn't contain response_requested! Unable to process.");
+                    return;
+                }
+                var callbackRequested = (Boolean)parsedValidityHashtable["response_requested"];
+                if (callbackRequested)
+                {
+                    ConsoleWarn(identity + " requested confirmation response for loadout validity, which is unavailable.");
+                }
+
+                //Import the subscription method
+                if (!parsedValidityHashtable.ContainsKey("loadout_player"))
+                {
+                    ConsoleError("Loadout valididy params for " + identity + " didn't contain loadout_player! Unable to process.");
+                    return;
+                }
+                String loadoutPlayer = (String)parsedValidityHashtable["loadout_player"];
+                if (String.IsNullOrEmpty(loadoutPlayer))
+                {
+                    ConsoleError("loadout_player was empty. Unable to process.");
+                    return;
+                }
+
+                //Import the subscription group
+                if (!parsedValidityHashtable.ContainsKey("loadout_valid"))
+                {
+                    ConsoleError("Loadout valididy params for " + identity + " didn't contain loadout_valid! Unable to process.");
+                    return;
+                }
+                Boolean loadoutValid = (Boolean)parsedValidityHashtable["loadout_valid"];
+
+                lock (_LoadoutConfirmDictionary)
+                {
+                    AdKatsRecord aRecord;
+                    if (_LoadoutConfirmDictionary.TryGetValue(loadoutPlayer, out aRecord))
+                    {
+                        ConsoleSuccess("Report " + aRecord.command_numeric + " loadout checked.");
+                        aRecord.isLoadoutChecked = true;
+                        aRecord.targetLoadoutValid = loadoutValid;
+                        QueueRecordForActionHandling(aRecord);
+                        _LoadoutConfirmDictionary.Remove(loadoutPlayer);
+                    }
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while processing loadout validity.", e));
+            }
+            DebugWrite("ReceiveLoadoutValidity finished!", 6);
+        }
+
+        public void SubscribeAsClient(params String[] subscriptionParams)
+        {
+            DebugWrite("SubscribeAsClient starting!", 6);
+            if (!subscriptionParams.Any())
+            {
+                ConsoleError("SubscribeAsClient canceled. No parameters were provided.");
+                return;
+            }
+
+            if (subscriptionParams == null)
+            {
+                ConsoleError("Subscription params were null when attempting to subscribe. Unable to continue.");
+                return;
+            }
+            if (subscriptionParams.Length != 2)
+            {
+                ConsoleError("Invalid parameter count when attempting to subscribe. Required: [source, jsonParams]. Unable to continue.");
+                return;
+            }
+            String unparsedSubscriptionJSON = subscriptionParams[1];
+
+            Hashtable parsedClientInformation = (Hashtable)JSON.JsonDecode(unparsedSubscriptionJSON);
+            if (parsedClientInformation == null)
+            {
+                ConsoleError("Subscription params could not be properly converted from JSON. Unable to continue.");
+                return;
+            }
+
+            //Create new client
+            AdKatsClient aClient = new AdKatsClient(this);
+
+            //Import the caller identity
+            if (!parsedClientInformation.ContainsKey("caller_identity"))
+            {
+                ConsoleError("Subscription params didn't contain a caller_identity! Unable to process.");
+                return;
+            }
+            aClient.ClientName = (String)parsedClientInformation["caller_identity"];
+            if (String.IsNullOrEmpty(aClient.ClientName))
+            {
+                ConsoleError("caller_identity was empty. Unable to process.");
+                return;
+            }
+
+            //Import the callback option
+            if (!parsedClientInformation.ContainsKey("response_requested"))
+            {
+                ConsoleError("Subscription params for " + aClient.ClientName + " didn't contain response_requested! Unable to process.");
+                return;
+            }
+            var callbackRequested = (Boolean)parsedClientInformation["response_requested"];
+            if (callbackRequested) {
+                ConsoleWarn(aClient.ClientName + " requested confirmation response for group subscription, which is unavailable.");
+            }
+
+            //Import the subscription method
+            if (!parsedClientInformation.ContainsKey("subscription_method"))
+            {
+                ConsoleError("Subscription params for " + aClient.ClientName + " didn't contain subscription_method! Unable to process.");
+                return;
+            }
+            String subMethod = (String)parsedClientInformation["subscription_method"];
+            if (String.IsNullOrEmpty(subMethod))
+            {
+                ConsoleError("subscription_method was empty. Unable to process.");
+                return;
+            }
+            aClient.ClientMethod = subMethod;
+
+            //Import the subscription group
+            if (!parsedClientInformation.ContainsKey("subscription_group"))
+            {
+                ConsoleError("Subscription params for " + aClient.ClientName + " didn't contain subscription_group! Unable to process.");
+                return;
+            }
+            String subGroup = (String)parsedClientInformation["subscription_group"];
+            if (String.IsNullOrEmpty(subGroup))
+            {
+                ConsoleError("subscription_group was empty. Unable to process.");
+                return;
+            }
+            if (!_subscriptionGroups.Contains(subGroup))
+            {
+                ConsoleError("subscription_group was invalid, not found in subscription group library. Unable to process.");
+                return;
+            }
+            aClient.SubscriptionGroup = subGroup;
+
+            //Import the subscription method
+            if (!parsedClientInformation.ContainsKey("subscription_enabled"))
+            {
+                ConsoleError("Subscription params for " + aClient.ClientName + " didn't contain subscription_enabled! Unable to process.");
+                return;
+            }
+            Boolean subEnabled = (Boolean)parsedClientInformation["subscription_enabled"];
+            if (subEnabled) {
+                aClient.EnableSubscription();
+                SubscribeClient(aClient);
+            }
+            else {
+                aClient.DisableSubscription();
+                UnsubscribeClient(aClient);
+            }
+
+            DebugWrite("SubscribeAsClient finished!", 6);
+        }
+
+        private Boolean SendOnlineSoldiers(AdKatsClient client)
+        {
+            DebugWrite("SendOnlineSoldiers starting!", 6);
+            try
+            {
+                if (client == null) {
+                    ConsoleError("Client was null when sending online soldiers.");
+                    return false;
+                }
+                if (String.IsNullOrEmpty(client.ClientName))
+                {
+                    ConsoleError("Client name was empty when sending online players.");
+                    return false;
+                }
+                if (String.IsNullOrEmpty(client.ClientMethod))
+                {
+                    ConsoleError("Client method was empty when sending online players.");
+                    return false;
+                }
+
+                //Get player list
+                List<AdKatsPlayer> playerList = _PlayerDictionary.Values.ToList();
+                
+                //Parse player list
+                ArrayList onlineSoldierList = new ArrayList();
+                foreach (AdKatsPlayer aPlayer in playerList) {
+                    Hashtable tPlayer = new Hashtable();
+                    tPlayer["player_id"] = aPlayer.player_id;
+                    tPlayer["player_guid"] = aPlayer.player_guid;
+                    tPlayer["player_pbguid"] = aPlayer.player_pbguid;
+                    tPlayer["player_ip"] = aPlayer.player_ip;
+                    tPlayer["player_name"] = aPlayer.player_name;
+                    tPlayer["player_personaID"] = aPlayer.player_personaID;
+                    tPlayer["player_aa"] = aPlayer.player_aa;
+                    tPlayer["player_ping"] = Math.Round(aPlayer.player_ping_avg, 2);
+                    tPlayer["player_reputation"] = Math.Round(aPlayer.player_reputation, 3);
+                    tPlayer["player_infractionPoints"] = FetchPoints(aPlayer, false);
+                    tPlayer["player_role"] = aPlayer.player_role.role_key;
+                    tPlayer["player_type"] = aPlayer.player_type.ToString();
+                    tPlayer["player_isAdmin"] = PlayerIsAdmin(aPlayer);
+                    tPlayer["player_reported"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin");
+                    tPlayer["player_punished"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_punish");
+                    tPlayer["player_marked"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_mark");
+                    tPlayer["player_spawnedOnce"] = aPlayer.player_spawnedOnce;
+                    tPlayer["player_conversationPartner"] = ((aPlayer.conversationPartner == null) ? ("") : (aPlayer.conversationPartner.player_name));
+                    tPlayer["player_kills"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.Kills);
+                    tPlayer["player_deaths"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.Deaths);
+                    tPlayer["player_kdr"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : Math.Round(aPlayer.frostbitePlayerInfo.Kdr, 2);
+                    tPlayer["player_rank"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.Rank);
+                    tPlayer["player_score"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.Score);
+                    tPlayer["player_squad"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.SquadID);
+                    tPlayer["player_team"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.TeamID);
+                    onlineSoldierList.Add(tPlayer);
+                }
+
+                Hashtable responseHashtable = new Hashtable();
+                responseHashtable.Add("caller_identity", "AdKats");
+                responseHashtable.Add("response_requested", false);
+                responseHashtable.Add("response_type", "OnlineSoldiers");
+                responseHashtable.Add("response_value", onlineSoldierList);
+
+                ExecuteCommand("procon.protected.plugins.call", client.ClientName, client.ClientMethod, "AdKats", JSON.JsonEncode(responseHashtable));
+                return true;
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error sending online soldiers.", e));
+            }
+            DebugWrite("SendOnlineSoldiers finished!", 6);
+            return false;
         }
 
         public AdKatsPlayerStats FetchPlayerStats(AdKatsPlayer aPlayer) {
@@ -24304,6 +24749,54 @@ namespace PRoConEvents {
             }
             return playerData;
         }
+
+        public String FetchPlayerPersonaID(AdKatsPlayer aPlayer)
+        {
+            if (!String.IsNullOrEmpty(aPlayer.player_personaID)) {
+                return aPlayer.player_personaID;
+            }
+            if (_gameVersion == GameVersion.BF4)
+            {
+                if (String.IsNullOrEmpty(aPlayer.player_name)) {
+                    ConsoleError("Attempted to get persona ID of nameless player.");
+                    return null;
+                }
+                aPlayer.player_personaID = FetchBF4PersonaID(aPlayer.player_name);
+                return aPlayer.player_personaID;
+            }
+            return null;
+        }
+
+        public string FetchBF4PersonaID(string playerName)
+        {
+            try
+            {
+                using (var client = new WebClient())
+                {
+                    try
+                    {
+                        DoBattlelogWait();
+                        String response = client.DownloadString("http://battlelog.battlefield.com/bf4/user/" + playerName);
+                        Match pid = Regex.Match(response, @"bf4/soldier/" + playerName + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                        if (!pid.Success)
+                        {
+                            HandleException(new AdKatsException("Could not find persona ID for " + playerName));
+                            return null;
+                        }
+                        return pid.Groups[1].Value.Trim();
+                    }
+                    catch (Exception)
+                    {
+                        return null;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while finding persona ID for " + playerName, e));
+                return null;
+            }
+        }
         
         private void PostUsageStatsUpdate() {
             if (String.IsNullOrEmpty(_serverInfo.ServerIP)) {
@@ -24363,7 +24856,7 @@ namespace PRoConEvents {
                 DebugWrite("Fetching reputation definitions...", 2);
                 try
                 {
-                    repInfo = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsreputationstats.json");
+                    repInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsreputationstats.json");
                     DebugWrite("Reputation definitions fetched.", 1);
                 }
                 catch (Exception)
@@ -24437,7 +24930,7 @@ namespace PRoConEvents {
                 DebugWrite("Fetching weapon names...", 2);
                 try
                 {
-                    downloadString = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsweaponnames.json");
+                    downloadString = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsweaponnames.json");
                     DebugWrite("Weapon names fetched.", 1);
                 }
                 catch (Exception)
@@ -24499,7 +24992,7 @@ namespace PRoConEvents {
                 DebugWrite("Fetching special group definitions...", 2);
                 try
                 {
-                    groupInfo = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsspecialgroups.json");
+                    groupInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsspecialgroups.json");
                     DebugWrite("Special group definitions fetched.", 1);
                 }
                 catch (Exception)
@@ -24652,7 +25145,7 @@ namespace PRoConEvents {
                     String updateInfo;
                     try
                     {
-                        updateInfo = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsupdates.json");
+                        updateInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsupdates.json");
                         DebugWrite("SQL updates fetched.", 1);
                     }
                     catch (Exception)
@@ -25551,8 +26044,8 @@ namespace PRoConEvents {
                             {
                                 try
                                 {
-                                    const string stableURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/AdKats.cs";
-                                    const string testURL = "https://raw.githubusercontent.com/ColColonCleaner/AdKats/test/AdKats.cs";
+                                    const string stableURL = "https://raw.githubusercontent.com/AdKats/AdKats/master/AdKats.cs";
+                                    const string testURL = "https://raw.githubusercontent.com/AdKats/AdKats/test/AdKats.cs";
                                     if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     {
                                         pluginSource = client.DownloadString(stableURL);
@@ -25972,6 +26465,16 @@ namespace PRoConEvents {
             }
         }
 
+        private void DoBattlelogWait()
+        {
+            //Wait 2 seconds between battlelog actions
+            if ((DateTime.UtcNow - _LastBattlelogAction) < _BattlelogWaitDuration)
+            {
+                Thread.Sleep(_BattlelogWaitDuration - (DateTime.UtcNow - _LastBattlelogAction));
+            }
+            _LastBattlelogAction = DateTime.UtcNow;
+        }
+
         private IPAPILocation FetchIPLocation(String ip) {
             var loc = new IPAPILocation();
             if (String.IsNullOrEmpty(ip)) {
@@ -26102,10 +26605,9 @@ namespace PRoConEvents {
             }
         }
 
-        public class  AdKatsPlayer {
+        public class AdKatsPlayer {
             public CPunkbusterInfo PBPlayerInfo = null;
             public Queue<KeyValuePair<AdKatsPlayer, DateTime>> RecentKills = null;
-            //All records issued on this player during their current session
             public List<AdKatsRecord> TargetedRecords = null;
             public String clan_tag = null;
             public CPlayerInfo frostbitePlayerInfo = null;
@@ -26132,10 +26634,11 @@ namespace PRoConEvents {
             public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
             public Boolean player_spawnedOnce = false;
             public PlayerType player_type = PlayerType.Player;
-            private Boolean player_locked = false;
+            public String player_personaID;
+            private Boolean player_locked;
             private DateTime player_locked_start = DateTime.UtcNow;
             private TimeSpan player_locked_duration = TimeSpan.Zero;
-            private String player_locked_source = null;
+            private String player_locked_source;
             public AdKatsTeam RequiredTeam = null;
             public readonly Queue<KeyValuePair<Double, DateTime>> player_pings;
             public Boolean player_pings_full { get; private set; }
@@ -26261,6 +26764,30 @@ namespace PRoConEvents {
             }
         }
 
+        public class AdKatsClient {
+            public String ClientName;
+            public String ClientMethod;
+            public String SubscriptionGroup;
+            public Boolean SubscriptionEnabled;
+            public DateTime SubscriptionTime { get; private set; }
+
+            private AdKats Plugin;
+
+            public AdKatsClient(AdKats plugin) {
+                Plugin = plugin;
+            }
+
+            public void EnableSubscription() {
+                SubscriptionEnabled = true;
+                SubscriptionTime = Plugin.UtcDbTime();
+            }
+
+            public void DisableSubscription() {
+                SubscriptionEnabled = false;
+                SubscriptionTime = Plugin.UtcDbTime();
+            }
+        }
+
         public class AdKatsServer {
             public Int64 ServerID;
             public Int64 ServerGroup;
@@ -26373,6 +26900,8 @@ namespace PRoConEvents {
 
             public Boolean isConfirmed;
             public Boolean isAliveChecked;
+            public Boolean isLoadoutChecked;
+            public Boolean targetLoadoutValid;
             public Boolean isContested;
             public Boolean isDebug;
             public Boolean isIRO;
@@ -27674,7 +28203,7 @@ namespace PRoConEvents {
                     Plugin.DebugWrite("Fetching weapon statistic definitions...", 2);
                     try
                     {
-                        weaponInfo = client.DownloadString("https://raw.github.com/ColColonCleaner/AdKats/master/adkatsweaponstats.json");
+                        weaponInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsweaponstats.json");
                         Plugin.DebugWrite("Weapon statistic definitions fetched.", 1);
                     }
                     catch (Exception)
