@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.6.5
- * 14-NOV-2014
+ * Version 5.2.6.7
+ * 18-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.6.5</version_code>
+ * <version_code>5.2.6.7</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.6.5";
+        private const String PluginVersion = "5.2.6.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -509,7 +509,7 @@ namespace PRoConEvents {
         private String _HackerCheckerKPMBanMessage = "KPM Automatic Ban";
 
         //External commands
-        private String _ExternalCommandAccessKey = "NoPasswordSet";
+        private String _instanceKey = AdKats.GetRandom32BitHashCode();
 
         //Admin assistants
         public Boolean _EnableAdminAssistantPerk = false;
@@ -628,8 +628,6 @@ namespace PRoConEvents {
                 "Useable by other plugins to subscribe to group events.");
             //Debug level is 0 by default
             _debugLevel = 0;
-            //Randomize the external access key
-            _ExternalCommandAccessKey = AdKats.GetRandom32BitHashCode();
 
             //Init the punishment severity index
             _PunishmentSeverityIndex = new List<String> {
@@ -911,7 +909,6 @@ namespace PRoConEvents {
                     }
 
                     //External Command Settings
-                    lstReturn.Add(new CPluginVariable("A14. External Command Settings|HTTP External Access Key", typeof (String), _ExternalCommandAccessKey));
                     if (!_UseBanEnforcer && !_UsingAwa) {
                         lstReturn.Add(new CPluginVariable("A14. External Command Settings|Fetch Actions from Database", typeof (Boolean), _fetchActionsFromDb));
                     }
@@ -2537,13 +2534,6 @@ namespace PRoConEvents {
                         _HackerCheckerKPMBanMessage = strValue;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Ban Message", typeof (String), _HackerCheckerKPMBanMessage));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"External Access Key").Success) {
-                    if (strValue != _ExternalCommandAccessKey) {
-                        _ExternalCommandAccessKey = strValue;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"External Access Key", typeof (String), _ExternalCommandAccessKey));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Fetch Actions from Database").Success) {
@@ -4197,6 +4187,11 @@ namespace PRoConEvents {
                             {
                                 lastKeepAliveCheck = UtcDbTime();
 
+                                if (_pluginEnabled && _threadsReady && _firstPlayerListComplete)
+                                {
+                                    AdminSayMessage("/AdKatsInstanceCheck " + _instanceKey + " " + Math.Round((UtcDbTime() - _AdKatsRunningTime).TotalSeconds), false);
+                                }
+
                                 //Enable if auto-enable wanted
                                 if (_useKeepAlive && !_pluginEnabled)
                                 {
@@ -5338,6 +5333,7 @@ namespace PRoConEvents {
                                     }
                                     if (!_populationPopulating)
                                     {
+                                        _populationPopulatingPlayers.Clear();
                                         _populationPopulating = true;
                                         foreach (var popPlayer in _PlayerDictionary.Values.Where(player => player.player_type == PlayerType.Player))
                                         {
@@ -8544,12 +8540,6 @@ namespace PRoConEvents {
                             //Dequeue the first/next message
                             AdKatsChatMessage messageObject = inboundMessages.Dequeue();
 
-                            if (_PostStatLoggerChatManually)
-                            {
-                                //Upload the chat message
-                                UploadChatLog(messageObject);
-                            }
-
                             if (!_AFKIgnoreChat)
                             {
                                 //Update player last action
@@ -8576,6 +8566,43 @@ namespace PRoConEvents {
                             {
                                 messageObject.Message = messageObject.Message.Substring(1);
                                 isCommand = true;
+                            }
+
+                            if (isCommand && _threadsReady && _firstPlayerListComplete) {
+                                String[] splitMessage = messageObject.Message.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                                if (splitMessage.Length == 3 && 
+                                    splitMessage[0] == "AdKatsInstanceCheck") {
+                                    //Message is an instance check, confirm it is from this instance
+                                    if (splitMessage[1] == _instanceKey) {
+                                        DebugWrite("Instance confirmed. " + splitMessage[2], 7);
+                                    }
+                                    else {
+                                        //There is another instance of AdKats running on this server, check which is superior
+                                        String onlineDurationString = splitMessage[2];
+                                        Int32 onlineDurationInt;
+                                        if (Int32.TryParse(onlineDurationString, out onlineDurationInt)) {
+                                            if (onlineDurationInt > Math.Round((UtcDbTime() - _AdKatsRunningTime).TotalSeconds)) {
+                                                //Other instance has been online longer, disable this instance
+                                                OnlineAdminSayMessage("Shutting down this AdKats instance, another instance is already online.");
+                                                ConsoleWarn("Shutting down this AdKats instance, another instance is already online.");
+                                                _useKeepAlive = false;
+                                                Disable();
+                                            }
+                                            else {
+                                                OnlineAdminSayMessage("Warning, another running instance of AdKats was detected on this server. That instance will terminate shortly.");
+                                            }
+                                        }
+                                        else {
+                                            ConsoleError("Unable to parse plugin instance duration.");
+                                        }
+                                    }
+                                }
+                            }
+
+                            if (_PostStatLoggerChatManually)
+                            {
+                                //Upload the chat message
+                                UploadChatLog(messageObject);
                             }
                             
                             //check for player mute case
@@ -14074,7 +14101,7 @@ namespace PRoConEvents {
                         record.record_message += pointMessage;
                     }
 
-                    Boolean isLowPop = _OnlyKillOnLowPop && (_PlayerDictionary.Count < _lowPopulationPlayerCount);
+                    Boolean isLowPop = _OnlyKillOnLowPop && (_PlayerDictionary.Count < _highPopulationPlayerCount);
                     Boolean iroOverride = record.isIRO && _IROOverridesLowPop;
 
                     DebugWrite("Server low population: " + isLowPop + " (" + _PlayerDictionary.Count + " <? " + _lowPopulationPlayerCount + ") | Override: " + iroOverride, 5);
@@ -14791,7 +14818,7 @@ namespace PRoConEvents {
                     _RoundReports.Add(reportID + "", record);
                 }
                 record.record_action_executed = true;
-                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled))
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
                 {
                     ConsoleWarn("Running loadout case for report record " + reportID);
                     if (!record.isLoadoutChecked)
@@ -14925,7 +14952,7 @@ namespace PRoConEvents {
                     _RoundReports.Add(reportID + "", record);
                 }
                 record.record_action_executed = true;
-                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled))
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
                 {
                     ConsoleWarn("Running loadout case for report record " + reportID);
                     if (!record.isLoadoutChecked)
@@ -16598,7 +16625,18 @@ namespace PRoConEvents {
                     return;
                 }
                 record.record_action_executed = true;
-                SendMessageToSource(record, record.target_name + " marked for leave notification.");
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled)) {
+                    ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
+                        {"caller_identity", "AdKats"},
+                        {"response_requested", false},
+                        {"player_name", record.target_player.player_name}
+                    }));
+                    SendMessageToSource(record, record.target_name + " marked for loadout check.");
+                }
+                else
+                {
+                    SendMessageToSource(record, record.target_name + " marked for leave notification.");
+                }
             }
             catch (Exception e)
             {
@@ -18292,7 +18330,6 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Enable", typeof (Boolean), _UseKpmChecker));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Trigger Level", typeof (Double), _KpmTriggerLevel));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Ban Message", typeof (String), _HackerCheckerKPMBanMessage));
-                QueueSettingForUpload(new CPluginVariable(@"External Access Key", typeof (String), _ExternalCommandAccessKey));
                 QueueSettingForUpload(new CPluginVariable(@"Fetch Actions from Database", typeof (Boolean), _fetchActionsFromDb));
                 QueueSettingForUpload(new CPluginVariable(@"Use Additional Ban Message", typeof (Boolean), _UseBanAppend));
                 QueueSettingForUpload(new CPluginVariable(@"Additional Ban Message", typeof (String), _BanAppend));
@@ -24323,17 +24360,14 @@ namespace PRoConEvents {
                 }
                 Boolean loadoutValid = (Boolean)parsedValidityHashtable["loadout_valid"];
 
-                lock (_LoadoutConfirmDictionary)
+                AdKatsRecord aRecord;
+                if (_LoadoutConfirmDictionary.TryGetValue(loadoutPlayer, out aRecord))
                 {
-                    AdKatsRecord aRecord;
-                    if (_LoadoutConfirmDictionary.TryGetValue(loadoutPlayer, out aRecord))
-                    {
-                        ConsoleSuccess("Report " + aRecord.command_numeric + " loadout checked.");
-                        aRecord.isLoadoutChecked = true;
-                        aRecord.targetLoadoutValid = loadoutValid;
-                        QueueRecordForActionHandling(aRecord);
-                        _LoadoutConfirmDictionary.Remove(loadoutPlayer);
-                    }
+                    ConsoleSuccess("Report " + aRecord.command_numeric + " loadout checked.");
+                    aRecord.isLoadoutChecked = true;
+                    aRecord.targetLoadoutValid = loadoutValid;
+                    QueueRecordForActionHandling(aRecord);
+                    _LoadoutConfirmDictionary.Remove(loadoutPlayer);
                 }
             }
             catch (Exception e) {
