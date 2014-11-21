@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.6.7
- * 18-NOV-2014
+ * Version 5.2.6.8
+ * 21-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.6.7</version_code>
+ * <version_code>5.2.6.8</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.6.7";
+        private const String PluginVersion = "5.2.6.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5090,6 +5090,20 @@ namespace PRoConEvents {
                                         }
                                         aPlayer.player_online = true;
                                         FetchPlayerPersonaID(aPlayer);
+                                        //Last Punishment
+                                        var punishments = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_punish").command_id, 1000, 1, true, false);
+                                        if (punishments.Any())
+                                        {
+                                            aPlayer.LastPunishment = punishments.FirstOrDefault();
+                                        }
+                                        _threadMasterWaitHandle.WaitOne(2000);
+                                        //Last Forgive
+                                        var forgives = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_forgive").command_id, 1000, 1, true, false);
+                                        if (forgives.Any()) 
+                                        {
+                                            aPlayer.LastForgive = forgives.FirstOrDefault();
+                                        }
+                                        _threadMasterWaitHandle.WaitOne(2000);
                                         aPlayer.player_server = _serverInfo;
                                         //Add the frostbite player info
                                         aPlayer.frostbitePlayerInfo = playerInfo;
@@ -14061,7 +14075,7 @@ namespace PRoConEvents {
         }
 
         public void PunishTarget(AdKatsRecord record) {
-            DebugWrite("Entering punishTarget", 6);
+            DebugWrite("Entering PunishTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -14174,6 +14188,7 @@ namespace PRoConEvents {
                         record.record_exception = new AdKatsException("Punish options are set incorrectly. '" + action + "' not found. Inform plugin setting manager.");
                         HandleException(record.record_exception);
                     }
+                    record.target_player.LastPunishment = record;
                 }
                 else {
                     //Exception found, just kill the player
@@ -14186,7 +14201,7 @@ namespace PRoConEvents {
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            DebugWrite("Exiting punishTarget", 6);
+            DebugWrite("Exiting PunishTarget", 6);
         }
 
         public void ForgiveTarget(AdKatsRecord record) {
@@ -14199,6 +14214,7 @@ namespace PRoConEvents {
                     Int32 points = FetchPoints(record.target_player, false);
                     PlayerSayMessage(record.target_player.player_name, "Forgiven 1 infraction point. You now have " + points + " point(s) against you.");
                     SendMessageToSource(record, "Forgive Logged for " + record.target_player.player_name + ". They now have " + points + " infraction points.");
+                    record.target_player.LastForgive = record;
                 }
             }
             catch (Exception e) {
@@ -24526,6 +24542,23 @@ namespace PRoConEvents {
                     tPlayer["player_reported"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin");
                     tPlayer["player_punished"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_punish");
                     tPlayer["player_marked"] = aPlayer.TargetedRecords.Any(aRecord => aRecord.command_type.command_key == "player_mark");
+                    if (aPlayer.LastPunishment != null)
+                    {
+                        tPlayer["player_lastPunishment"] = Math.Round((UtcDbTime() - aPlayer.LastPunishment.record_time).TotalSeconds);
+                    }
+                    else
+                    {
+                        tPlayer["player_lastPunishment"] = 0;
+                    }
+                    if (aPlayer.LastForgive != null)
+                    {
+                        tPlayer["player_lastForgive"] = Math.Round((UtcDbTime() - aPlayer.LastForgive.record_time).TotalSeconds);
+                    }
+                    else
+                    {
+                        tPlayer["player_lastForgive"] = 0;
+                    }
+                    tPlayer["player_lastAction"] = Math.Round((UtcDbTime() - aPlayer.lastAction).TotalSeconds);
                     tPlayer["player_spawnedOnce"] = aPlayer.player_spawnedOnce;
                     tPlayer["player_conversationPartner"] = ((aPlayer.conversationPartner == null) ? ("") : (aPlayer.conversationPartner.player_name));
                     tPlayer["player_kills"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.Kills);
@@ -24794,6 +24827,9 @@ namespace PRoConEvents {
                 if (String.IsNullOrEmpty(aPlayer.player_name)) {
                     ConsoleError("Attempted to get persona ID of nameless player.");
                     return null;
+                }
+                if (!String.IsNullOrEmpty(aPlayer.player_personaID)) {
+                    return aPlayer.player_personaID;
                 }
                 aPlayer.player_personaID = FetchBF4PersonaID(aPlayer.player_name);
                 return aPlayer.player_personaID;
@@ -26501,7 +26537,6 @@ namespace PRoConEvents {
 
         private void DoBattlelogWait()
         {
-            //Wait 2 seconds between battlelog actions
             if ((DateTime.UtcNow - _LastBattlelogAction) < _BattlelogWaitDuration)
             {
                 Thread.Sleep(_BattlelogWaitDuration - (DateTime.UtcNow - _LastBattlelogAction));
@@ -26668,11 +26703,13 @@ namespace PRoConEvents {
             public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
             public Boolean player_spawnedOnce = false;
             public PlayerType player_type = PlayerType.Player;
-            public String player_personaID;
+            public String player_personaID = null;
             private Boolean player_locked;
             private DateTime player_locked_start = DateTime.UtcNow;
             private TimeSpan player_locked_duration = TimeSpan.Zero;
             private String player_locked_source;
+            public AdKatsRecord LastPunishment = null;
+            public AdKatsRecord LastForgive = null;
             public AdKatsTeam RequiredTeam = null;
             public readonly Queue<KeyValuePair<Double, DateTime>> player_pings;
             public Boolean player_pings_full { get; private set; }
