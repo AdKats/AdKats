@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.6.8
- * 21-NOV-2014
+ * Version 5.2.7.0
+ * 23-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.6.8</version_code>
+ * <version_code>5.2.7.0</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.6.8";
+        private const String PluginVersion = "5.2.7.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5950,7 +5950,7 @@ namespace PRoConEvents {
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0)
                                 {
-                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -1)) 
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5)) 
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
                                         if (++_surrenderAutoTriggerCountCurrent >= 10)
@@ -14129,6 +14129,14 @@ namespace PRoConEvents {
                     }
                     else if ((action == "kill" || (isLowPop && !iroOverride)) && !action.Equals("ban")) {
                         record.command_action = (isLowPop) ? (GetCommandByKey("player_kill_lowpop")) : (GetCommandByKey("player_kill"));
+                        if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
+                        {
+                            ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable{
+                                {"caller_identity", "AdKats"},
+                                {"response_requested", false},
+                                {"player_name", record.target_player.player_name}
+                            }));
+                        }
                         KillTarget(record);
                     }
                     else if (action == "kick") {
@@ -14184,6 +14192,14 @@ namespace PRoConEvents {
                     }
                     else {
                         record.command_action = GetCommandByKey("player_kill");
+                        if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
+                        {
+                            ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable{
+                                {"caller_identity", "AdKats"},
+                                {"response_requested", false},
+                                {"player_name", record.target_player.player_name}
+                            }));
+                        }
                         KillTarget(record);
                         record.record_exception = new AdKatsException("Punish options are set incorrectly. '" + action + "' not found. Inform plugin setting manager.");
                         HandleException(record.record_exception);
@@ -24531,6 +24547,7 @@ namespace PRoConEvents {
                     tPlayer["player_pbguid"] = aPlayer.player_pbguid;
                     tPlayer["player_ip"] = aPlayer.player_ip;
                     tPlayer["player_name"] = aPlayer.player_name;
+                    tPlayer["player_online"] = aPlayer.player_online;
                     tPlayer["player_personaID"] = aPlayer.player_personaID;
                     tPlayer["player_aa"] = aPlayer.player_aa;
                     tPlayer["player_ping"] = Math.Round(aPlayer.player_ping_avg, 2);
