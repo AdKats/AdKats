@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.7.0
- * 23-NOV-2014
+ * Version 5.2.7.1
+ * 25-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.7.0</version_code>
+ * <version_code>5.2.7.1</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.7.0";
+        private const String PluginVersion = "5.2.7.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -162,6 +162,7 @@ namespace PRoConEvents {
         private String _currentFlagMessage;
         private Boolean _populationPopulating;
         private readonly Dictionary<String, AdKatsPlayer> _populationPopulatingPlayers = new Dictionary<String, AdKatsPlayer>(); 
+        private String _AdKatsLRTExtensionToken = String.Empty;
 
         //Debug
         private volatile Int32 _debugLevel;
@@ -909,11 +910,12 @@ namespace PRoConEvents {
                     }
 
                     //External Command Settings
+                    lstReturn.Add(new CPluginVariable("A14. External Command Settings|AdkatsLRT Extension Token", typeof(String), _AdKatsLRTExtensionToken));
                     if (!_UseBanEnforcer && !_UsingAwa) {
                         lstReturn.Add(new CPluginVariable("A14. External Command Settings|Fetch Actions from Database", typeof (Boolean), _fetchActionsFromDb));
                     }
 
-                    lstReturn.Add(new CPluginVariable("A15. VOIP Settings|Server VOIP Address", typeof (String), _ServerVoipAddress));
+                    lstReturn.Add(new CPluginVariable("A15. VOIP Settings|Server VOIP Address", typeof(String), _ServerVoipAddress));
 
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Whitelist", typeof (Boolean), _FeedMultiBalancerWhitelist));
                     if (_FeedMultiBalancerWhitelist) {
@@ -2536,13 +2538,24 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Ban Message", typeof (String), _HackerCheckerKPMBanMessage));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Fetch Actions from Database").Success) {
+                else if (Regex.Match(strVariable, @"Fetch Actions from Database").Success)
+                {
                     Boolean fetch = Boolean.Parse(strValue);
-                    if (fetch != _fetchActionsFromDb) {
+                    if (fetch != _fetchActionsFromDb)
+                    {
                         _fetchActionsFromDb = fetch;
                         _DbCommunicationWaitHandle.Set();
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Fetch Actions from Database", typeof (Boolean), _fetchActionsFromDb));
+                        QueueSettingForUpload(new CPluginVariable(@"Fetch Actions from Database", typeof(Boolean), _fetchActionsFromDb));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"AdkatsLRT Extension Token").Success)
+                {
+                    if (_AdKatsLRTExtensionToken != strValue)
+                    {
+                        _AdKatsLRTExtensionToken = strValue;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"AdkatsLRT Extension Token", typeof(String), _AdKatsLRTExtensionToken));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Additional Ban Message").Success) {
@@ -18361,7 +18374,8 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Ban Message", typeof (String), _HackerCheckerHSKBanMessage));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Enable", typeof (Boolean), _UseKpmChecker));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Trigger Level", typeof (Double), _KpmTriggerLevel));
-                QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Ban Message", typeof (String), _HackerCheckerKPMBanMessage));
+                QueueSettingForUpload(new CPluginVariable(@"HackerChecker: KPM Checker: Ban Message", typeof(String), _HackerCheckerKPMBanMessage));
+                QueueSettingForUpload(new CPluginVariable(@"AdkatsLRT Extension Token", typeof(String), _AdKatsLRTExtensionToken));
                 QueueSettingForUpload(new CPluginVariable(@"Fetch Actions from Database", typeof (Boolean), _fetchActionsFromDb));
                 QueueSettingForUpload(new CPluginVariable(@"Use Additional Ban Message", typeof (Boolean), _UseBanAppend));
                 QueueSettingForUpload(new CPluginVariable(@"Additional Ban Message", typeof (String), _BanAppend));
@@ -24110,8 +24124,14 @@ namespace PRoConEvents {
 
         public void FetchAuthorizedSoldiers(params String[] commandParams) {
             DebugWrite("FetchAuthorizedSoldiers starting!", 6);
-            if (!commandParams.Any()) {
+            if (!commandParams.Any())
+            {
                 ConsoleError("Authorized soldier fetch canceled. No parameters were provided.");
+                return;
+            }
+            if (!_firstUserListComplete)
+            {
+                ConsoleError("Authorized soldier fetch canceled. Authorized soldiers requested before user list fetched.");
                 return;
             }
             //TODO add logging for this
@@ -26112,7 +26132,9 @@ namespace PRoConEvents {
         public void CheckForPluginUpdates() {
             try
             {
-                if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled && !_pluginUpdatePatched) || (_isTestingAuthorized))
+                if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled && !_pluginUpdatePatched) || 
+                    (_isTestingAuthorized) || 
+                    (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)))
                 {
                     if (_aliveThreads.Values.Any(aThread => aThread.Name == "PluginUpdater"))
                     {
@@ -26203,16 +26225,33 @@ namespace PRoConEvents {
                             _pluginUpdateProgress = "Compiled";
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                 ConsoleInfo("Preparing to update source file on disk.");
-                            using (FileStream stream = File.Open(pluginPath, FileMode.Create))
-                            {
-                                if (!stream.CanWrite)
-                                {
-                                    if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                            Int64 originalSizeKb = new FileInfo(pluginPath).Length / 1024;
+                            Int64 patchedSizeKb = 0;
+                            Boolean fileWriteFailed = false;
+                            Int32 attempts = 0;
+                            do {
+                                using (FileStream stream = File.Open(pluginPath, FileMode.Create)) {
+                                    if (!stream.CanWrite) {
                                         ConsoleError("Cannot write updates to source file. Unable to update to version " + _latestPluginVersion);
+                                        return;
+                                    }
+                                    Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
+                                    stream.Write(info, 0, info.Length);
                                 }
-                                Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
-                                stream.Write(info, 0, info.Length);
-                            }
+                                patchedSizeKb = new FileInfo(pluginPath).Length / 1024;
+                                //There is no way the valid plugin can be less than 1 Kb
+                                if (patchedSizeKb < 1) {
+                                    ConsoleError("Write failure on plugin update. Attempting write again.");
+                                    fileWriteFailed = true;
+                                }
+                                else {
+                                    fileWriteFailed = false;
+                                }
+                                if (++attempts > 5) {
+                                    ConsoleError("Constant failure to write plugin update to file. Unable to update to version " + _latestPluginVersion);
+                                    return;
+                                }
+                            } while (fileWriteFailed); 
                             String patchedVersion = ExtractString(pluginSource, "version_code");
                             if (!String.IsNullOrEmpty(patchedVersion)) {
                                 String trimmedPatchedVersion = patchedVersion.Replace(".", "");
@@ -26242,6 +26281,78 @@ namespace PRoConEvents {
                             }
                             _pluginUpdateProgress = "Patched";
                             _pluginUpdatePatched = true;
+
+                            //Extensions
+                            //1 - AdKatsLRT - Private Extension - Token Required
+                            if (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)) {
+                                String extensionSource;
+                                using (var client = new WebClient())
+                                {
+                                    try
+                                    {
+                                        extensionSource = client.DownloadString("https://raw.githubusercontent.com/AdKats/AdKats-LRT/test/AdKatsLRT.cs?token=" + _AdKatsLRTExtensionToken);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        ConsoleError("Unable to install/update AdKatsLRT Extension. Connection error, or invalid token.");
+                                        return;
+                                    }
+                                }
+                                if (String.IsNullOrEmpty(extensionSource))
+                                {
+                                    ConsoleError("Downloaded AdKatsLRT Extension source was empty. Unable to install/update AdKatsLRT Extension.");
+                                    return;
+                                }
+                                String extensionFileName = "AdKatsLRT.cs";
+                                String extensionPath = Path.Combine(dllPath.Trim(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), extensionFileName);
+                                var extensionCompileResults = cSharpCodeProvider.CompileAssemblyFromSource(compilerParameters, extensionSource);
+                                if (extensionCompileResults.Errors.HasErrors)
+                                {
+                                    foreach (CompilerError errComp in extensionCompileResults.Errors)
+                                    {
+                                        if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false)
+                                        {
+                                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                                ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { extensionFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
+                                        }
+                                    }
+                                    ConsoleError("Updated AdKatsLRT Extension source could not compile. Unable to install/update AdKatsLRT Extension.");
+                                    return;
+                                }
+                                Int64 patchedExtensionSizeKb = 0;
+                                Boolean extensionFileWriteFailed = false;
+                                Int32 extensionWriteAttempts = 0;
+                                do
+                                {
+                                    using (FileStream stream = File.Open(extensionPath, FileMode.Create))
+                                    {
+                                        if (!stream.CanWrite)
+                                        {
+                                            ConsoleError("Cannot write updates to AdKatsLRT Extension source file. Unable to install/update AdKatsLRT Extension.");
+                                            return;
+                                        }
+                                        Byte[] info = new UTF8Encoding(true).GetBytes(extensionSource);
+                                        stream.Write(info, 0, info.Length);
+                                    }
+                                    patchedExtensionSizeKb = new FileInfo(extensionPath).Length / 1024;
+                                    //There is no way the valid extension can be less than 1 Kb
+                                    if (patchedExtensionSizeKb < 1)
+                                    {
+                                        ConsoleError("Write failure on AdKatsLRT Extension update. Attempting write again.");
+                                        extensionFileWriteFailed = true;
+                                    }
+                                    else
+                                    {
+                                        extensionFileWriteFailed = false;
+                                    }
+                                    if (++extensionWriteAttempts > 5)
+                                    {
+                                        ConsoleError("Constant failure to write AdKatsLRT Extension update to file. Unable to install/update AdKatsLRT Extension.");
+                                        return;
+                                    }
+                                } while (extensionFileWriteFailed); 
+                                ConsoleSuccess("AdKatsLRT Extension installed/updated. Extension size " + patchedExtensionSizeKb + "KB");
+                            }
                         }
                         catch (Exception e) {
                             HandleException(new AdKatsException("Error while running update thread.", e));
