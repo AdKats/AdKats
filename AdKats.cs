@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.7.3
- * 25-NOV-2014
+ * Version 5.2.7.4
+ * 26-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.7.3</version_code>
+ * <version_code>5.2.7.4</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.7.3";
+        private const String PluginVersion = "5.2.7.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -11193,7 +11193,10 @@ namespace PRoConEvents {
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Marking Player";
-                                    CompleteTargetInformation(record, false, false, false);
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, false, false);
+                                    }
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
