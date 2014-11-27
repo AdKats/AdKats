@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.7.4
+ * Version 5.2.7.5
  * 26-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.7.4</version_code>
+ * <version_code>5.2.7.5</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.7.4";
+        private const String PluginVersion = "5.2.7.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5964,7 +5964,7 @@ namespace PRoConEvents {
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0)
                                 {
-                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5)) 
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5) && !_nosurrenderVoteList.Any()) 
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
                                         if (++_surrenderAutoTriggerCountCurrent >= 10)
@@ -5992,7 +5992,7 @@ namespace PRoConEvents {
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0)
                                 {
-                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -50 && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -50 && winningTeam.TeamAdjustedTicketDifferenceRate > -5) && !_nosurrenderVoteList.Any())
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
                                         if (++_surrenderAutoTriggerCountCurrent >= 10)
@@ -6021,7 +6021,7 @@ namespace PRoConEvents {
                                             if (winningTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoWinningRateMax &&
                                                 winningTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoWinningRateMin &&
                                                 losingTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoLosingRateMax &&
-                                                losingTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoLosingRateMin)
+                                                losingTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoLosingRateMin && !_nosurrenderVoteList.Any())
                                             {
                                                 _lastAutoSurrenderTriggerTime = UtcDbTime();
                                                 if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender) 
@@ -6048,7 +6048,7 @@ namespace PRoConEvents {
                                             if (winningTeam.TeamTicketDifferenceRate < _surrenderAutoWinningRateMax &&
                                                 winningTeam.TeamTicketDifferenceRate > _surrenderAutoWinningRateMin &&
                                                 losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax &&
-                                                losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin)
+                                                losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin && !_nosurrenderVoteList.Any())
                                             {
                                                 _lastAutoSurrenderTriggerTime = UtcDbTime();
                                                 if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender)
@@ -12601,7 +12601,7 @@ namespace PRoConEvents {
                     {"response_type", "IssueCommand"},
                     {"response_value", CPluginVariable.EncodeStringArray(record.debugMessages.ToArray())}
                 };
-                    ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, JSON.JsonEncode(responseHashtable));
+                    ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, "AdKats", JSON.JsonEncode(responseHashtable));
                 }
                 //Performance testing area
                 if (record.source_name == _debugSoldierName)
@@ -24265,7 +24265,7 @@ namespace PRoConEvents {
 
                 //TODO: add error message if target not found
 
-                ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, JSON.JsonEncode(responseHashtable));
+                ExecuteCommand("procon.protected.plugins.call", record.external_responseClass, record.external_responseMethod, "AdKats", JSON.JsonEncode(responseHashtable));
             }
             catch (Exception e) {
                 //Log the error in console
