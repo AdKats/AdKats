@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.7.5
- * 26-NOV-2014
+ * Version 5.2.7.6
+ * 28-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.7.5</version_code>
+ * <version_code>5.2.7.6</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.7.5";
+        private const String PluginVersion = "5.2.7.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -14151,7 +14151,8 @@ namespace PRoConEvents {
                             ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable{
                                 {"caller_identity", "AdKats"},
                                 {"response_requested", false},
-                                {"player_name", record.target_player.player_name}
+                                {"player_name", record.target_player.player_name},
+                                {"loadoutCheck_reason", "punished"}
                             }));
                         }
                         KillTarget(record);
@@ -14214,7 +14215,8 @@ namespace PRoConEvents {
                             ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable{
                                 {"caller_identity", "AdKats"},
                                 {"response_requested", false},
-                                {"player_name", record.target_player.player_name}
+                                {"player_name", record.target_player.player_name},
+                                {"loadoutCheck_reason", "punished"}
                             }));
                         }
                         KillTarget(record);
@@ -14882,12 +14884,13 @@ namespace PRoConEvents {
                             ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable{
                                 {"caller_identity", "AdKats"},
                                 {"response_requested", false},
-                                {"player_name", record.target_player.player_name}
+                                {"player_name", record.target_player.player_name},
+                                {"loadoutCheck_reason", "reported"}
                             }));
                         }
                         return;
                     }
-                    if (!record.targetLoadoutValid)
+                    if (!record.targetLoadoutValid && !FetchOnlineAdminSoldiers().Any())
                     {
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by loadout enforcer.");
                         record.command_action = GetCommandByKey("player_report_confirm");
@@ -15016,12 +15019,13 @@ namespace PRoConEvents {
                             ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable{
                                 {"caller_identity", "AdKats"},
                                 {"response_requested", false},
-                                {"player_name", record.target_player.player_name}
+                                {"player_name", record.target_player.player_name},
+                                {"loadoutCheck_reason", "reported"}
                             }));
                         }
                         return;
                     }
-                    if (!record.targetLoadoutValid)
+                    if (!record.targetLoadoutValid && !FetchOnlineAdminSoldiers().Any())
                     {
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by loadout enforcer.");
                         record.command_action = GetCommandByKey("player_report_confirm");
@@ -16678,7 +16682,8 @@ namespace PRoConEvents {
                     ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
                         {"caller_identity", "AdKats"},
                         {"response_requested", false},
-                        {"player_name", record.target_player.player_name}
+                        {"player_name", record.target_player.player_name},
+                        {"loadoutCheck_reason", "marked"}
                     }));
                     SendMessageToSource(record, record.target_name + " marked for loadout check.");
                 }
