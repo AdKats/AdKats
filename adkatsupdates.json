@@ -32,7 +32,7 @@
 			],
 			"update_execute_requiresModRows":false,
 			"update_execute":[
-				"ALTER TABLE `tbl_chatlog` ADD INDEX (logDate);"
+				"ALTER TABLE `tbl_chatlog` ADD INDEX (logDate)"
 			],
 			"update_success":[],
 			"update_failure":[]
@@ -50,7 +50,7 @@
 			],
 			"update_execute_requiresModRows":false,
 			"update_execute":[
-				"ALTER TABLE `adkats_records_main` ADD INDEX `adkats_records_main_fk_record_time` (`record_time` ASC);"
+				"ALTER TABLE `adkats_records_main` ADD INDEX `adkats_records_main_fk_record_time` (`record_time` ASC)"
 			],
 			"update_success":[],
 			"update_failure":[]
@@ -72,6 +72,42 @@
 			],
 			"update_success":[],
 			"update_failure":[]
+		},
+		{
+		    "update_id":"addCountryCodeIndex",
+		    "version_minimum":"5.2.0.0",
+		    "version_maximum":null,
+		    "message_name":"Indexing tbl_playerdata.CountryCode for performance",
+		    "message_success":"tbl_playerdata.CountryCode index successfully created",
+		    "message_failure":"Failed to added tbl_playerdata.CountryCode index",
+		    "update_checks_hasResults":false,
+		    "update_checks":[
+		        "SHOW INDEX FROM `tbl_playerdata` WHERE `Key_name` = 'INDEX_CountryCode'"
+		    ],
+		    "update_execute_requiresModRows":false,
+		    "update_execute":[
+		        "ALTER TABLE `tbl_playerdata` ADD INDEX `INDEX_CountryCode` (`record_time` ASC)"
+		    ],
+		    "update_success":[],
+		    "update_failure":[]
+		},
+		{
+		    "update_id":"increaseSPGroupMaxSize",
+		    "version_minimum":"5.2.0.0",
+		    "version_maximum":null,
+		    "message_name":"Increasing special player group size",
+		    "message_success":"Increased special player group size",
+		    "message_failure":"Failed to increase special player group size",
+		    "update_checks_hasResults":true,
+		    "update_checks":[
+		        "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_NAME` = 'adkats_specialplayers' AND `COLUMN_NAME` = 'player_group' AND `CHARACTER_MAXIMUM_LENGTH` <= 99"
+		    ],
+		    "update_execute_requiresModRows":false,
+		    "update_execute":[
+		        "ALTER TABLE `adkats_specialplayers` CHANGE COLUMN `player_group` `player_group` VARCHAR(100) CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci' NOT NULL"
+		    ],
+		    "update_success":[],
+		    "update_failure":[]
 		}
 	]
 }
