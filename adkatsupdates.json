@@ -68,7 +68,7 @@
 			],
 			"update_execute_requiresModRows":false,
 			"update_execute":[
-				"ALTER TABLE `adkats_settings` MODIFY `setting_value` VARCHAR(3000)"
+				"ALTER TABLE `adkats_settings` MODIFY `setting_value` VARCHAR(3000);"
 			],
 			"update_success":[],
 			"update_failure":[]
@@ -86,7 +86,7 @@
 		    ],
 		    "update_execute_requiresModRows":false,
 		    "update_execute":[
-		        "ALTER TABLE `tbl_playerdata` ADD INDEX `INDEX_CountryCode` (`record_time` ASC)"
+		        "ALTER TABLE `tbl_playerdata` ADD INDEX `INDEX_CountryCode` (`record_time` ASC);"
 		    ],
 		    "update_success":[],
 		    "update_failure":[]
