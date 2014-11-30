@@ -39,8 +39,11 @@
 			"group_id":7,
 			"group_key":"whitelist_spambot",
 			"group_name":"SpamBot Whitelist"
+		},
+		{
+			"group_id":8,
+			"group_key":"whitelist_teamswap",
+			"group_name":"TeamSwap Whitelist"
 		}
-		
-		 
 	]
 }
