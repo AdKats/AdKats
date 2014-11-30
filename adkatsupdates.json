@@ -82,7 +82,7 @@
 		    "message_failure":"Failed to added tbl_playerdata.CountryCode index",
 		    "update_checks_hasResults":false,
 		    "update_checks":[
-		        "SHOW INDEX FROM `tbl_playerdata` WHERE `Key_name` = 'INDEX_CountryCode'"
+		        "SHOW INDEX FROM `tbl_playerdata` WHERE `Table` = 'tbl_playerdata' AND `Key_name` = 'INDEX_CountryCode';"
 		    ],
 		    "update_execute_requiresModRows":false,
 		    "update_execute":[
