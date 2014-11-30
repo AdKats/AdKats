@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.7.6
- * 28-NOV-2014
+ * Version 5.2.7.8
+ * 30-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.7.6</version_code>
+ * <version_code>5.2.7.8</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.7.6";
+        private const String PluginVersion = "5.2.7.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -325,6 +325,7 @@ namespace PRoConEvents {
         private String _ServerVoipAddress = "(TS3) TS.ADKGamers.com:3796";
         //Dynamic access
         public Func<AdKats, AdKatsPlayer, Boolean> AAPerkFunc = ((plugin, aPlayer) => ((plugin._EnableAdminAssistantPerk && aPlayer.player_aa) || (aPlayer.player_reputation > _reputationThresholdGood)));
+        public Func<AdKats, AdKatsPlayer, Boolean> TeamSwapFunc = ((plugin, aPlayer) => ((plugin._EnableAdminAssistantPerk && aPlayer.player_aa) || plugin.GetMatchingASPlayersOfGroup("whitelist_teamswap", aPlayer).Any()));
 
         //Roles
         private readonly Dictionary<long, AdKatsRole> _RoleIDDictionary = new Dictionary<long, AdKatsRole>();
@@ -335,7 +336,8 @@ namespace PRoConEvents {
         //Users
         private const Int32 DbUserFetchFrequency = 300;
         private readonly Dictionary<long, AdKatsUser> _userCache = new Dictionary<long, AdKatsUser>();
-        private Dictionary<String, AdKatsSpecialGroup> _specialPlayerGroupCache = new Dictionary<string, AdKatsSpecialGroup>();
+        private Dictionary<Int64, AdKatsSpecialGroup> _specialPlayerGroupIDDictionary = new Dictionary<Int64, AdKatsSpecialGroup>();
+        private Dictionary<String, AdKatsSpecialGroup> _specialPlayerGroupKeyDictionary = new Dictionary<String, AdKatsSpecialGroup>();
         private readonly Dictionary<Int64, AdKatsSpecialPlayer> _specialPlayerCache = new Dictionary<Int64, AdKatsSpecialPlayer>();
 
         //Games and teams
@@ -482,12 +484,12 @@ namespace PRoConEvents {
         private List<String> _CurrentReservedSlotPlayers;
         private List<String> _CurrentSpectatorListPlayers;
         private Boolean _FeedMultiBalancerWhitelist;
-        private Boolean _FeedMultiBalancerWhitelist_UserCache = true;
+        private Boolean _FeedMultiBalancerWhitelist_Admins = true;
         private Boolean _FeedMultiBalancerDisperseList;
         private Boolean _FeedServerReservedSlots;
-        private Boolean _FeedServerReservedSlots_UserCache = true;
+        private Boolean _FeedServerReservedSlots_Admins = true;
         private Boolean _FeedServerSpectatorList;
-        private Boolean _FeedServerSpectatorList_UserCache;
+        private Boolean _FeedServerSpectatorList_Admins;
         private Boolean _FeedStatLoggerSettings;
         private Boolean _PostStatLoggerChatManually;
         private Boolean _PostStatLoggerChatManually_PostServerChatSpam = true;
@@ -919,16 +921,16 @@ namespace PRoConEvents {
 
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Whitelist", typeof (Boolean), _FeedMultiBalancerWhitelist));
                     if (_FeedMultiBalancerWhitelist) {
-                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic MULTIBalancer Whitelist for Admins", typeof (Boolean), _FeedMultiBalancerWhitelist_UserCache));
+                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic MULTIBalancer Whitelist for Admins", typeof (Boolean), _FeedMultiBalancerWhitelist_Admins));
                     }
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Even Dispersion List", typeof (Boolean), _FeedMultiBalancerDisperseList));
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Reserved Slots", typeof (Boolean), _FeedServerReservedSlots));
                     if (_FeedServerReservedSlots) {
-                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Reserved Slot for Admins", typeof (Boolean), _FeedServerReservedSlots_UserCache));
+                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Reserved Slot for Admins", typeof (Boolean), _FeedServerReservedSlots_Admins));
                     }
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Spectator List", typeof (Boolean), _FeedServerSpectatorList));
                     if (_FeedServerSpectatorList) {
-                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Spectator Slot for User Cache", typeof(Boolean), _FeedServerSpectatorList_UserCache));
+                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Spectator Slot for Admins", typeof(Boolean), _FeedServerSpectatorList_Admins));
                     }
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
@@ -1144,51 +1146,90 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable(userSettingsPrefix + "No Users in User List", typeof (String), "Add Users with 'Add User'."));
                         }
 
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Bypass all command confirmation -DO NOT USE-", typeof(Boolean), _bypassCommandConfirmation));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin player commands", typeof (String[]), _ExternalPlayerCommands.ToArray()));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
-
                         //Role Settings
                         const string roleListPrefix = "4. Role Settings|";
-                        lstReturn.Add(new CPluginVariable(roleListPrefix + "Add Role", typeof (String), ""));
-                        if (_RoleKeyDictionary.Count > 0) {
+                        lstReturn.Add(new CPluginVariable(roleListPrefix + "Add Role", typeof(String), ""));
+                        if (_RoleKeyDictionary.Count > 0)
+                        {
                             lock (_RoleKeyDictionary)
                             {
                                 foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
                                 {
                                     lock (_CommandNameDictionary)
                                     {
+                                        var random = new Random();
                                         String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
                                         lstReturn.AddRange(
-                                            from 
-                                                aCommand 
-                                            in 
-                                                _CommandNameDictionary.Values 
-                                            where 
-                                                aCommand.command_active == AdKatsCommand.CommandActive.Active 
-                                            where 
-                                                aRole.role_key != "guest_default" || !aCommand.command_playerInteraction 
-                                            let 
-                                                allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) 
-                                            let 
-                                                display = rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name + ((allowed && aCommand.command_playerInteraction) ? (" [ADMIN]") : ("")) 
-                                            select 
+                                            from
+                                                aCommand
+                                            in
+                                                _CommandNameDictionary.Values
+                                            where
+                                                aCommand.command_active == AdKatsCommand.CommandActive.Active
+                                            where
+                                                aRole.role_key != "guest_default" || !aCommand.command_playerInteraction
+                                            let
+                                                allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key)
+                                            let
+                                                display = rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name + ((allowed && aCommand.command_playerInteraction) ? (" [ADMIN]") : (""))
+                                            select
                                                 new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
                                         //Do not display the delete option for default guest
-                                        if (aRole.role_key != "guest_default") {
-                                            lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof (String), ""));
+                                        if (aRole.role_key != "guest_default")
+                                        {
+                                            lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
                                         }
                                     }
                                 }
                             }
                         }
-                        else {
-                            lstReturn.Add(new CPluginVariable(roleListPrefix + "Role List Empty", typeof (String), "No valid roles found in database."));
+                        else
+                        {
+                            lstReturn.Add(new CPluginVariable(roleListPrefix + "Role List Empty", typeof(String), "No valid roles found in database."));
                         }
+
+                        //Role Group Settings
+                        const string roleGroupListPrefix = "4-2. Role Group Settings|";
+                        if (_RoleKeyDictionary.Count > 0)
+                        {
+                            lock (_RoleKeyDictionary)
+                            {
+                                foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
+                                {
+                                    lock (_specialPlayerGroupKeyDictionary)
+                                    {
+                                        var random = new Random();
+                                        String rolePrefix = roleGroupListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
+                                        lstReturn.AddRange(
+                                            from
+                                                aGroup
+                                            in
+                                                _specialPlayerGroupKeyDictionary.Values
+                                            let
+                                                allowed = aRole.RoleSetGroups.ContainsKey(aGroup.group_key) ||
+                                                (aGroup.group_key == "slot_reserved" && _FeedServerReservedSlots_Admins && RoleIsAdmin(aRole)) ||
+                                                (aGroup.group_key == "slot_spectator" && _FeedServerSpectatorList_Admins && RoleIsAdmin(aRole)) ||
+                                                (aGroup.group_key == "whitelist_multibalancer" && _FeedMultiBalancerWhitelist_Admins && RoleIsAdmin(aRole))
+                                            let
+                                                display = rolePrefix + "GPE" + aGroup.group_id + separator + aGroup.group_name
+                                            select
+                                                new CPluginVariable(display, "enum.roleSetGroupEnum(Assign|Ignore)", allowed ? ("Assign") : ("Ignore")));
+                                    }
+                                }
+                            }
+                        }
+                        else
+                        {
+                            lstReturn.Add(new CPluginVariable(roleGroupListPrefix + "Role List Empty", typeof(String), "No valid roles found in database."));
+                        }
+
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|Bypass all command confirmation -DO NOT USE-", typeof(Boolean), _bypassCommandConfirmation));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin player commands", typeof(String[]), _ExternalPlayerCommands.ToArray()));
+                        lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
 
                         //Command Settings
                         const string commandListPrefix = "6. Command List|";
@@ -2171,11 +2212,11 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Automatic MULTIBalancer Whitelist for Admins").Success) {
                     Boolean feedMTBWhiteUser = Boolean.Parse(strValue);
-                    if (feedMTBWhiteUser != _FeedMultiBalancerWhitelist_UserCache) {
-                        _FeedMultiBalancerWhitelist_UserCache = feedMTBWhiteUser;
+                    if (feedMTBWhiteUser != _FeedMultiBalancerWhitelist_Admins) {
+                        _FeedMultiBalancerWhitelist_Admins = feedMTBWhiteUser;
                         FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Automatic MULTIBalancer Whitelist for Admins", typeof (Boolean), _FeedMultiBalancerWhitelist_UserCache));
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic MULTIBalancer Whitelist for Admins", typeof (Boolean), _FeedMultiBalancerWhitelist_Admins));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Feed MULTIBalancer Even Dispersion List").Success) {
@@ -2198,11 +2239,11 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"Automatic Reserved Slot for Admins").Success) {
                     Boolean feedSRSUser = Boolean.Parse(strValue);
-                    if (feedSRSUser != _FeedServerReservedSlots_UserCache) {
-                        _FeedServerReservedSlots_UserCache = feedSRSUser;
+                    if (feedSRSUser != _FeedServerReservedSlots_Admins) {
+                        _FeedServerReservedSlots_Admins = feedSRSUser;
                         FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof (Boolean), _FeedServerReservedSlots_UserCache));
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof (Boolean), _FeedServerReservedSlots_Admins));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Feed Server Spectator List").Success) {
@@ -2218,13 +2259,13 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof (Boolean), _FeedServerSpectatorList));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Automatic Spectator Slot for User Cache").Success) {
+                else if (Regex.Match(strVariable, @"Automatic Spectator Slot for Admins").Success) {
                     Boolean feedSSLUser = Boolean.Parse(strValue);
-                    if (feedSSLUser != _FeedServerSpectatorList_UserCache) {
-                        _FeedServerSpectatorList_UserCache = feedSSLUser;
+                    if (feedSSLUser != _FeedServerSpectatorList_Admins) {
+                        _FeedServerSpectatorList_Admins = feedSSLUser;
                         FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Automatic Spectator Slot for User Cache", typeof (Boolean), _FeedServerSpectatorList_UserCache));
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Spectator Slot for Admins", typeof (Boolean), _FeedServerSpectatorList_Admins));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Feed Stat Logger Settings").Success)
@@ -2882,27 +2923,34 @@ namespace PRoConEvents {
                     Int32 roleID = Int32.Parse(roleIDStr);
 
                     //If second section is a command prefix, this is the allow/deny clause
-                    if (commandSplit[2].Trim().StartsWith("CDE")) {
+                    if (commandSplit[2].Trim().StartsWith("CDE"))
+                    {
                         String commandIDStr = commandSplit[2].Trim().TrimStart("CDE".ToCharArray());
                         Int32 commandID = Int32.Parse(commandIDStr);
 
                         //Fetch needed role
                         AdKatsRole aRole = null;
-                        if (_RoleIDDictionary.TryGetValue(roleID, out aRole)) {
+                        if (_RoleIDDictionary.TryGetValue(roleID, out aRole))
+                        {
                             //Fetch needed command
                             AdKatsCommand aCommand = null;
-                            if (_CommandIDDictionary.TryGetValue(commandID, out aCommand)) {
-                                switch (strValue.ToLower()) {
+                            if (_CommandIDDictionary.TryGetValue(commandID, out aCommand))
+                            {
+                                switch (strValue.ToLower())
+                                {
                                     case "allow":
-                                        lock (aRole.RoleAllowedCommands) {
-                                            if (!aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key)) {
+                                        lock (aRole.RoleAllowedCommands)
+                                        {
+                                            if (!aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key))
+                                            {
                                                 aRole.RoleAllowedCommands.Add(aCommand.command_key, aCommand);
                                             }
                                         }
                                         QueueRoleForUpload(aRole);
                                         break;
                                     case "deny":
-                                        lock (aRole.RoleAllowedCommands) {
+                                        lock (aRole.RoleAllowedCommands)
+                                        {
                                             aRole.RoleAllowedCommands.Remove(aCommand.command_key);
                                         }
                                         QueueRoleForUpload(aRole);
@@ -2912,11 +2960,60 @@ namespace PRoConEvents {
                                         return;
                                 }
                             }
-                            else {
+                            else
+                            {
                                 ConsoleError("Command " + commandID + " not found in command dictionary.");
                             }
                         }
-                        else {
+                        else
+                        {
+                            ConsoleError("Role " + roleID + " not found in role dictionary.");
+                        }
+                    }
+                    else if (commandSplit[2].Trim().StartsWith("GPE"))
+                    {
+                        String groupIDStr = commandSplit[2].Trim().TrimStart("GPE".ToCharArray());
+                        Int32 groupID = Int32.Parse(groupIDStr);
+
+                        //Fetch needed role
+                        AdKatsRole aRole = null;
+                        if (_RoleIDDictionary.TryGetValue(roleID, out aRole))
+                        {
+                            //Fetch needed group
+                            AdKatsSpecialGroup aGroup = null;
+                            if (_specialPlayerGroupIDDictionary.TryGetValue(groupID, out aGroup))
+                            {
+                                switch (strValue.ToLower())
+                                {
+                                    case "assign":
+                                        lock (aRole.RoleSetGroups)
+                                        {
+                                            if (!aRole.RoleSetGroups.ContainsKey(aGroup.group_key))
+                                            {
+                                                aRole.RoleSetGroups.Add(aGroup.group_key, aGroup);
+                                            }
+                                        }
+                                        QueueRoleForUpload(aRole);
+                                        break;
+                                    case "ignore":
+                                        lock (aRole.RoleSetGroups)
+                                        {
+                                            aRole.RoleSetGroups.Remove(aGroup.group_key);
+                                        }
+                                        QueueRoleForUpload(aRole);
+                                        break;
+                                    default:
+                                        ConsoleError("Unknown setting when changing role group assignment.");
+                                        return;
+                                }
+                            }
+                            else
+                            {
+                                ConsoleError("Group " + groupID + " not found in group dictionary.");
+                            }
+                        }
+                        else
+                        {
                             ConsoleError("Role " + roleID + " not found in role dictionary.");
                         }
                     }
@@ -3758,7 +3855,7 @@ namespace PRoConEvents {
                         }
 
                         //Fetch all special player group information
-                        if (PopulateSpecialGroupsDictionary())
+                        if (PopulateSpecialGroupDictionaries())
                         {
                             ConsoleSuccess("Fetched special player group definitions.");
                         }
@@ -5010,7 +5107,7 @@ namespace PRoConEvents {
                                                             record_message = "Dispersion Trigger"
                                                         };
                                                         QueueRecordForProcessing(triggerRecord);
-                                                        OnlineAdminSayMessage(aPlayer.player_name + " hit a dispersion trigger. Not adding yet.");
+                                                        //OnlineAdminSayMessage(aPlayer.player_name + " hit a dispersion trigger. Not adding yet.");
                                                     }
                                                     if (locRecords.Count() > 3) {
                                                         addDispersion = true;
@@ -7329,7 +7426,40 @@ namespace PRoConEvents {
         }
 
         public List<AdKatsSpecialPlayer> GetASPlayersOfGroup(String specialPlayerGroup) {
-            return _specialPlayerCache.Values.Where(asPlayer => asPlayer.player_group.group_key == specialPlayerGroup).ToList();
+            Dictionary<Int64, AdKatsSpecialPlayer> tempASPlayers = new Dictionary<Int64, AdKatsSpecialPlayer>();
+            AdKatsSpecialGroup asGroup = null;
+            foreach (var asPlayer in _specialPlayerCache.Values.Where(asPlayer => asPlayer.player_group.group_key == specialPlayerGroup).ToList()) {
+                if (asPlayer.player_object != null) {
+                    tempASPlayers[asPlayer.player_object.player_id] = asPlayer;
+                }
+                else {
+                    tempASPlayers[asPlayer.specialplayer_id] = asPlayer;
+                }
+                if (asGroup == null) {
+                    asGroup = asPlayer.player_group;
+                }
+            }
+            lock (_userCache)
+            {
+                foreach (var aUser in _userCache.Values.Where(sUser => sUser.user_role.RoleSetGroups.ContainsKey(specialPlayerGroup)).ToList())
+                {
+                    foreach (var aPlayer in aUser.soldierDictionary.Values.ToList()) {
+                        //Check for existing player
+                        if (!tempASPlayers.ContainsKey(aPlayer.player_id)) {
+                            tempASPlayers[aPlayer.player_id] = new AdKatsSpecialPlayer() {
+                                player_game = (int)_serverInfo.GameID,
+                                player_server = (int)_serverInfo.ServerID,
+                                player_group = asGroup,
+                                player_identifier = aPlayer.player_name,
+                                player_object = aPlayer,
+                                player_effective = UtcDbTime(),
+                                player_expiration = aUser.user_expiration
+                            };
+                        }
+                    }
+                }
+            }
+            return tempASPlayers.Values.ToList();
         }
 
         public List<AdKatsSpecialPlayer> GetMatchingASPlayersOfGroup(String specialPlayerGroup, AdKatsPlayer aPlayer)
@@ -9078,7 +9208,7 @@ namespace PRoConEvents {
                                 DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
                                 if (record.source_name == "DispersionManager")
                                 {
-                                    OnlineAdminSayMessage(record.target_name + " automatically added to dispersion for this server.");
+                                    //OnlineAdminSayMessage(record.target_name + " automatically added to dispersion for this server.");
                                 }
                             }
                             break;
@@ -17824,7 +17954,7 @@ namespace PRoConEvents {
                 SendNonQuery("Adding special soldiers table", @"
                     CREATE TABLE IF NOT EXISTS `adkats_specialplayers`( 
                       `specialplayer_id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT,
-                      `player_group` varchar(30) COLLATE utf8_unicode_ci NOT NULL,
+                      `player_group` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
                       `player_id` int(10) UNSIGNED DEFAULT NULL,
                       `player_game` tinyint(4) UNSIGNED DEFAULT NULL,
                       `player_server` smallint(5) UNSIGNED DEFAULT NULL,
@@ -17929,6 +18059,19 @@ namespace PRoConEvents {
                 SendNonQuery("Adding special player expiration.", "ALTER TABLE `adkats_specialplayers` ADD COLUMN `player_expiration` DATETIME NOT NULL AFTER `player_effective`", true);
                 SendNonQuery("Adding initial special player expiration values.", "UPDATE `adkats_specialplayers` SET `player_expiration` = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)", true);
             }
+            if (!ConfirmTable("adkats_rolegroups"))
+            {
+                ConsoleInfo("AdKats role groups table not found. Attempting to add.");
+                SendNonQuery("Adding AdKats role groups table", @"
+                    CREATE TABLE `adkats_rolegroups` (
+                      `role_id` int(11) unsigned NOT NULL,
+                      `group_key` VARCHAR(100) NOT NULL,
+                      PRIMARY KEY (`role_id`,`group_key`),
+                      KEY `adkats_rolegroups_fk_role` (`role_id`),
+                      KEY `adkats_rolegroups_fk_command` (`group_key`),
+                      CONSTRAINT `adkats_rolegroups_fk_role` FOREIGN KEY (`role_id`) REFERENCES `adkats_roles` (`role_id`) ON DELETE CASCADE ON UPDATE CASCADE
+                    ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Connection of groups to roles'", true);
+            }
             return  ConfirmTable("adkats_bans") && 
                     ConfirmTable("adkats_commands") && 
                     ConfirmTable("adkats_infractions_global") && 
@@ -17943,7 +18086,9 @@ namespace PRoConEvents {
                     ConfirmTable("adkats_specialplayers") &&
                     ConfirmTable("adkats_player_reputation") &&
                     ConfirmTable("adkats_orchestration") &&
-                    ConfirmTable("tbl_extendedroundstats") && 
+                    ConfirmTable("adkats_statistics") && 
+                    ConfirmTable("adkats_rolegroups") && 
+                    ConfirmTable("tbl_extendedroundstats") &&
                     !SendQuery("SELECT `TABLE_NAME` AS `table_name` FROM `INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA` = '" + _mySqlSchemaName + "' AND `TABLE_NAME` LIKE 'adkats_%' AND ENGINE <> 'InnoDB'", false);
         }
 
@@ -18357,8 +18502,9 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Server Rule List", typeof (String), CPluginVariable.EncodeStringArray(_ServerRulesList)));
                 QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Whitelist", typeof (Boolean), _FeedMultiBalancerWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList)); 
-                QueueSettingForUpload(new CPluginVariable(@"Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_UserCache));
-                QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_UserCache));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_Admins));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic Spectator Slot for Admins", typeof(Boolean), _FeedServerSpectatorList_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof (Boolean), _FeedServerReservedSlots));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Spectator List", typeof (Boolean), _FeedServerSpectatorList));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
@@ -20605,14 +20751,17 @@ namespace PRoConEvents {
                                 }
                             }
                             //Delete all current allowed commands
-                            using (MySqlCommand command = connection.CreateCommand()) {
+                            using (MySqlCommand command = connection.CreateCommand())
+                            {
                                 command.CommandText = @"DELETE FROM `adkats_rolecommands` where `role_id` = " + aRole.role_id;
                                 //Attempt to execute the query
                                 Int32 rowsAffected = command.ExecuteNonQuery();
                             }
-                            foreach (AdKatsCommand aCommand in aRole.RoleAllowedCommands.Values) {
+                            foreach (AdKatsCommand aCommand in aRole.RoleAllowedCommands.Values)
+                            {
                                 //Upload the role's allowed commands
-                                using (MySqlCommand command = connection.CreateCommand()) {
+                                using (MySqlCommand command = connection.CreateCommand())
+                                {
                                     //Set the insert command structure
                                     command.CommandText = @"
                                     INSERT INTO 
@@ -20635,15 +20784,57 @@ namespace PRoConEvents {
 
                                     //Attempt to execute the query
                                     Int32 rowsAffected = command.ExecuteNonQuery();
-                                    if (rowsAffected > 0) {
-                                        //Set the user's new ID if new
-                                        if (aRole.role_id < 0) {
-                                            aRole.role_id = command.LastInsertedId;
-                                        }
+                                    if (rowsAffected > 0)
+                                    {
                                         DebugWrite("Role-command uploaded to database SUCCESSFULY.", 5);
                                     }
-                                    else {
+                                    else
+                                    {
                                         ConsoleError("Unable to upload role-command for " + aRole.role_name + ".");
+                                        return;
+                                    }
+                                }
+                            }
+                            //Delete all current role groups
+                            using (MySqlCommand command = connection.CreateCommand())
+                            {
+                                command.CommandText = @"DELETE FROM `adkats_rolegroups` where `role_id` = " + aRole.role_id;
+                                //Attempt to execute the query
+                                Int32 rowsAffected = command.ExecuteNonQuery();
+                            }
+                            foreach (AdKatsSpecialGroup aGroup in aRole.RoleSetGroups.Values)
+                            {
+                                //Upload the role's set groups
+                                using (MySqlCommand command = connection.CreateCommand())
+                                {
+                                    command.CommandText = @"
+                                    INSERT INTO 
+	                                    `adkats_rolegroups`
+                                    (
+	                                    `role_id`,
+	                                    `group_key`
+                                    )
+                                    VALUES
+                                    (
+	                                    @role_id,
+	                                    @group_key
+                                    )
+                                    ON DUPLICATE KEY UPDATE
+	                                    `role_id` = @role_id,
+	                                    `group_key` = @group_key";
+                                    //Set values
+                                    command.Parameters.AddWithValue("@role_id", aRole.role_id);
+                                    command.Parameters.AddWithValue("@group_key", aGroup.group_key);
+
+                                    //Attempt to execute the query
+                                    Int32 rowsAffected = command.ExecuteNonQuery();
+                                    if (rowsAffected > 0)
+                                    {
+                                        DebugWrite("Role-groups uploaded to database SUCCESSFULY.", 5);
+                                    }
+                                    else
+                                    {
+                                        ConsoleError("Unable to upload role-group " + aGroup.group_key + " for " + aRole.role_name + ".");
                                         return;
                                     }
                                 }
@@ -22774,7 +22965,8 @@ namespace PRoConEvents {
                                 }
                             }
                         }
-                        using (MySqlCommand sqlcommand = connection.CreateCommand()) {
+                        using (MySqlCommand sqlcommand = connection.CreateCommand())
+                        {
                             const string sql = @"
                             SELECT 
 	                            `role_id`,
@@ -22785,7 +22977,8 @@ namespace PRoConEvents {
                                 `role_id`
                             ASC";
                             sqlcommand.CommandText = sql;
-                            using (MySqlDataReader reader = sqlcommand.ExecuteReader()) {
+                            using (MySqlDataReader reader = sqlcommand.ExecuteReader())
+                            {
                                 var rIDcIDDictionary = new Dictionary<Int64, HashSet<Int64>>();
                                 while (reader.Read())
                                 {
@@ -22796,7 +22989,8 @@ namespace PRoConEvents {
                                     int roleID = reader.GetInt32("role_id");
                                     long commandID = reader.GetInt64("command_id");
                                     HashSet<Int64> allowedCommandIDs;
-                                    if (!rIDcIDDictionary.TryGetValue(roleID, out allowedCommandIDs)) {
+                                    if (!rIDcIDDictionary.TryGetValue(roleID, out allowedCommandIDs))
+                                    {
                                         allowedCommandIDs = new HashSet<Int64>();
                                         rIDcIDDictionary.Add(roleID, allowedCommandIDs);
                                     }
@@ -22810,7 +23004,8 @@ namespace PRoConEvents {
                                     }
                                     AdKatsRole aRole;
                                     Boolean uploadRequired = false;
-                                    if (!_RoleIDDictionary.TryGetValue(currentRoleElement.Key, out aRole)) {
+                                    if (!_RoleIDDictionary.TryGetValue(currentRoleElement.Key, out aRole))
+                                    {
                                         ConsoleWarn("Role for ID " + currentRoleElement.Key + " not found in role dictionary when assigning commands.");
                                         continue;
                                     }
@@ -22821,22 +23016,25 @@ namespace PRoConEvents {
                                             return;
                                         }
                                         AdKatsCommand aCommand;
-                                        if (!_CommandIDDictionary.TryGetValue(curRoleID, out aCommand)) {
+                                        if (!_CommandIDDictionary.TryGetValue(curRoleID, out aCommand))
+                                        {
                                             ConsoleWarn("Command for ID " + curRoleID + " not found in command dictionary when assigning commands.");
                                             uploadRequired = true;
                                             continue;
                                         }
-                                        if (!aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) && 
-                                            aCommand.command_active == AdKatsCommand.CommandActive.Active) {
+                                        if (!aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) &&
+                                            aCommand.command_active == AdKatsCommand.CommandActive.Active)
+                                        {
                                             //Conditional check for default guest admin commands
-                                            if (aRole.role_key == "guest_default" && aCommand.command_playerInteraction) {
+                                            if (aRole.role_key == "guest_default" && aCommand.command_playerInteraction)
+                                            {
                                                 ConsoleWarn("The guest role cannot have access to admin commands.");
                                                 uploadRequired = true;
                                                 continue;
                                             }
                                             aRole.RoleAllowedCommands.Add(aCommand.command_key, aCommand);
                                         }
-                                    } 
+                                    }
                                     KeyValuePair<Int64, HashSet<Int64>> element = currentRoleElement;
                                     foreach (AdKatsCommand remCommand in aRole.RoleAllowedCommands.Values.ToList().Where(remCommand => !element.Value.Contains(remCommand.command_id)))
                                     {
@@ -22856,9 +23054,93 @@ namespace PRoConEvents {
                                 }
                             }
                         }
-                        if (_RoleIDDictionary.Count == 0) {
+                        if (_RoleIDDictionary.Count == 0)
+                        {
                             ConsoleError("Roles could not be fetched.");
                         }
+                        //Fetch role groups
+                        using (MySqlCommand sqlcommand = connection.CreateCommand())
+                        {
+                            const string sql = @"
+                            SELECT 
+	                            `role_id`,
+	                            `group_key`
+                            FROM 
+	                            `adkats_rolegroups`
+                            ORDER BY
+                                `role_id`
+                            ASC";
+                            sqlcommand.CommandText = sql;
+                            using (MySqlDataReader reader = sqlcommand.ExecuteReader())
+                            {
+                                var rIDgKeyDictionary = new Dictionary<Int64, HashSet<String>>();
+                                while (reader.Read())
+                                {
+                                    if (!_pluginEnabled)
+                                    {
+                                        return;
+                                    }
+                                    int roleID = reader.GetInt32("role_id");
+                                    String groupKey = reader.GetString("group_key");
+                                    HashSet<String> setGroups;
+                                    if (!rIDgKeyDictionary.TryGetValue(roleID, out setGroups))
+                                    {
+                                        setGroups = new HashSet<String>();
+                                        rIDgKeyDictionary.Add(roleID, setGroups);
+                                    }
+                                    setGroups.Add(groupKey);
+                                }
+                                foreach (var currentRoleElement in rIDgKeyDictionary)
+                                {
+                                    if (!_pluginEnabled)
+                                    {
+                                        return;
+                                    }
+                                    AdKatsRole aRole;
+                                    Boolean uploadRequired = false;
+                                    if (!_RoleIDDictionary.TryGetValue(currentRoleElement.Key, out aRole))
+                                    {
+                                        ConsoleWarn("Role for ID " + currentRoleElement.Key + " not found in role dictionary when assigning groups.");
+                                        continue;
+                                    }
+                                    foreach (String groupKey in currentRoleElement.Value)
+                                    {
+                                        if (!_pluginEnabled)
+                                        {
+                                            return;
+                                        }
+                                        AdKatsSpecialGroup aGroup;
+                                        if (!_specialPlayerGroupKeyDictionary.TryGetValue(groupKey, out aGroup))
+                                        {
+                                            ConsoleWarn("Group for key " + groupKey + " not found in group cache when assigning groups.");
+                                            uploadRequired = true;
+                                            continue;
+                                        }
+                                        if (!aRole.RoleSetGroups.ContainsKey(aGroup.group_key))
+                                        {
+                                            aRole.RoleSetGroups.Add(aGroup.group_key, aGroup);
+                                        }
+                                    }
+                                    KeyValuePair<Int64, HashSet<String>> element = currentRoleElement;
+                                    foreach (AdKatsSpecialGroup remGroup in aRole.RoleSetGroups.Values.ToList().Where(remGroup => !element.Value.Contains(remGroup.group_key)))
+                                    {
+                                        if (!_pluginEnabled)
+                                        {
+                                            return;
+                                        }
+                                        ConsoleInfo("Removing group " + remGroup.group_key + " from role " + aRole.role_key);
+                                        aRole.RoleAllowedCommands.Remove(remGroup.group_key);
+                                        uploadRequired = true;
+                                    }
+                                    FillConditionalAllowedCommands(aRole);
+                                    if (uploadRequired)
+                                    {
+                                        QueueRoleForUpload(aRole);
+                                    }
+                                }
+                            }
+                        }
+                        //Done with users
                     }
                 }
             }
@@ -22874,7 +23156,7 @@ namespace PRoConEvents {
             AdKatsCommand teamswapCommand;
             if (_CommandKeyDictionary.TryGetValue("self_teamswap", out teamswapCommand)) {
                 if (!aRole.ConditionalAllowedCommands.ContainsKey(teamswapCommand.command_key))
-                    aRole.ConditionalAllowedCommands.Add(teamswapCommand.command_key, new KeyValuePair<Func<AdKats, AdKatsPlayer, Boolean>, AdKatsCommand>(AAPerkFunc, teamswapCommand));
+                    aRole.ConditionalAllowedCommands.Add(teamswapCommand.command_key, new KeyValuePair<Func<AdKats, AdKatsPlayer, Boolean>, AdKatsCommand>(TeamSwapFunc, teamswapCommand));
             }
             else {
                 ConsoleError("Unable to find teamswap command when assigning conditional commands.");
@@ -23173,7 +23455,7 @@ namespace PRoConEvents {
                                     {
                                         //Get Values
                                         String playerGroup = reader.GetString("player_group"); //1
-                                        if (!_specialPlayerGroupCache.ContainsKey(playerGroup)) {
+                                        if (!_specialPlayerGroupKeyDictionary.ContainsKey(playerGroup)) {
                                             ConsoleError("player_group entry '" + playerGroup + "' for specialplayer_id " + specialPlayerID + " is invalid.");
                                             continue;
                                         }
@@ -23203,7 +23485,7 @@ namespace PRoConEvents {
                                         //Build new Special Player Object
                                         asPlayer = new AdKatsSpecialPlayer();
                                         asPlayer.specialplayer_id = specialPlayerID;
-                                        asPlayer.player_group = _specialPlayerGroupCache[playerGroup];
+                                        asPlayer.player_group = _specialPlayerGroupKeyDictionary[playerGroup];
                                         if (playerID > 0) {
                                             asPlayer.player_object = FetchPlayer(false, true, false, null, playerID, null, null, null);
                                         }
@@ -23668,7 +23950,7 @@ namespace PRoConEvents {
                         }
                     }
                     //Pull players from user list
-                    if (_userCache.Count > 0 && _FeedMultiBalancerWhitelist_UserCache) {
+                    if (_userCache.Count > 0 && _FeedMultiBalancerWhitelist_Admins) {
                         lock (_userCache) {
                             foreach (AdKatsUser user in _userCache.Values) {
                                 lock (user) {
@@ -23780,12 +24062,11 @@ namespace PRoConEvents {
                     }
                 }
                 //Pull players from user list
-                if (_userCache.Count > 0 && _FeedServerReservedSlots_UserCache) {
+                if (_userCache.Count > 0 && _FeedServerReservedSlots_Admins) {
                     lock (_userCache) {
-                        foreach (AdKatsPlayer soldier in FetchAllUserSoldiers()) {
+                        foreach (AdKatsPlayer soldier in FetchAdminSoldiers()) {
                             //Only add soldiers for the current game
-                            if (soldier.game_id == _serverInfo.GameID &&
-                                (PlayerIsAdmin(soldier) || (_isTestingAuthorized && soldier.player_role.role_key == "Reserved_Slot")))
+                            if (soldier.game_id == _serverInfo.GameID)
                             {
                                 if (!allowedReservedSlotPlayers.Contains(soldier.player_name)) {
                                     allowedReservedSlotPlayers.Add(soldier.player_name);
@@ -23872,10 +24153,10 @@ namespace PRoConEvents {
                     }
                 }
                 //Pull players from user list
-                if (_userCache.Count > 0 && _FeedServerSpectatorList_UserCache)
+                if (_userCache.Count > 0 && _FeedServerSpectatorList_Admins)
                 {
                     DebugWrite("Feeding spetators from user cache.", 5);
-                    foreach (AdKatsPlayer soldier in FetchAllUserSoldiers())
+                    foreach (AdKatsPlayer soldier in FetchAdminSoldiers())
                     {
                         //Only add soldiers for the current game
                         if (soldier.game_id == _serverInfo.GameID) {
@@ -25074,7 +25355,7 @@ namespace PRoConEvents {
             return weaponNames;
         }
 
-        private Boolean PopulateSpecialGroupsDictionary()
+        private Boolean PopulateSpecialGroupDictionaries()
         {
             DebugWrite("Entering PopulateSpecialGroupsDictionary", 7);
             try
@@ -25084,9 +25365,18 @@ namespace PRoConEvents {
                 {
                     return false;
                 }
-                foreach (var group in groupList)
+                lock (_specialPlayerGroupKeyDictionary)
                 {
-                    _specialPlayerGroupCache[group.group_key] = group;
+                    lock (_specialPlayerGroupIDDictionary)
+                    {
+                        _specialPlayerGroupIDDictionary.Clear();
+                        _specialPlayerGroupKeyDictionary.Clear();
+                        foreach (var group in groupList)
+                        {
+                            _specialPlayerGroupIDDictionary[group.group_id] = group;
+                            _specialPlayerGroupKeyDictionary[group.group_key] = group;
+                        }
+                    }
                 }
                 return true;
             }
@@ -25462,12 +25752,9 @@ namespace PRoConEvents {
                 ConsoleError("role null in RoleIsAdmin");
                 return false;
             }
-            lock (aRole) {
-                lock (aRole.RoleAllowedCommands) {
-                    if (aRole.RoleAllowedCommands.Values.Any(command => command.command_playerInteraction)) {
-                        return true;
-                    }
-                }
+            if (aRole.RoleAllowedCommands.Values.Any(command => command.command_playerInteraction))
+            {
+                return true;
             }
             return false;
         }
@@ -27179,6 +27466,7 @@ namespace PRoConEvents {
         public class AdKatsRole {
             public Dictionary<String, KeyValuePair<Func<AdKats, AdKatsPlayer, Boolean>, AdKatsCommand>> ConditionalAllowedCommands = null;
             public Dictionary<String, AdKatsCommand> RoleAllowedCommands = null;
+            public Dictionary<String, AdKatsSpecialGroup> RoleSetGroups = null; 
             public CPrivileges RoleProconPrivileges = null;
             public Int64 role_id = -1;
             public String role_key = null;
@@ -27186,6 +27474,7 @@ namespace PRoConEvents {
 
             public AdKatsRole() {
                 RoleAllowedCommands = new Dictionary<String, AdKatsCommand>();
+                RoleSetGroups = new Dictionary<String, AdKatsSpecialGroup>();
                 ConditionalAllowedCommands = new Dictionary<String, KeyValuePair<Func<AdKats, AdKatsPlayer, Boolean>, AdKatsCommand>>();
             }
         }
