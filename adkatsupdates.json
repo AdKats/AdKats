@@ -74,24 +74,6 @@
 			"update_failure":[]
 		},
 		{
-		    "update_id":"addCountryCodeIndex",
-		    "version_minimum":"5.2.0.0",
-		    "version_maximum":null,
-		    "message_name":"Indexing tbl_playerdata.CountryCode for performance",
-		    "message_success":"tbl_playerdata.CountryCode index successfully created",
-		    "message_failure":"Failed to added tbl_playerdata.CountryCode index",
-		    "update_checks_hasResults":false,
-		    "update_checks":[
-		        "SHOW INDEX FROM `tbl_playerdata` WHERE `Table` = 'tbl_playerdata' AND `Key_name` = 'INDEX_CountryCode';"
-		    ],
-		    "update_execute_requiresModRows":false,
-		    "update_execute":[
-		        "ALTER TABLE `tbl_playerdata` ADD INDEX `INDEX_CountryCode` (`record_time` ASC);"
-		    ],
-		    "update_success":[],
-		    "update_failure":[]
-		},
-		{
 		    "update_id":"increaseSPGroupMaxSize",
 		    "version_minimum":"5.2.0.0",
 		    "version_maximum":null,
