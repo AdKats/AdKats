@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.7.8
+ * Version 5.2.7.9
  * 30-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.7.8</version_code>
+ * <version_code>5.2.7.9</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.7.8";
+        private const String PluginVersion = "5.2.7.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7439,23 +7439,23 @@ namespace PRoConEvents {
                     asGroup = asPlayer.player_group;
                 }
             }
-            lock (_userCache)
+            foreach (var aUser in _userCache.Values.Where(sUser => sUser.user_role.RoleSetGroups.ContainsKey(specialPlayerGroup)).ToList())
             {
-                foreach (var aUser in _userCache.Values.Where(sUser => sUser.user_role.RoleSetGroups.ContainsKey(specialPlayerGroup)).ToList())
+                foreach (var aPlayer in aUser.soldierDictionary.Values.ToList())
                 {
-                    foreach (var aPlayer in aUser.soldierDictionary.Values.ToList()) {
-                        //Check for existing player
-                        if (!tempASPlayers.ContainsKey(aPlayer.player_id)) {
-                            tempASPlayers[aPlayer.player_id] = new AdKatsSpecialPlayer() {
-                                player_game = (int)_serverInfo.GameID,
-                                player_server = (int)_serverInfo.ServerID,
-                                player_group = asGroup,
-                                player_identifier = aPlayer.player_name,
-                                player_object = aPlayer,
-                                player_effective = UtcDbTime(),
-                                player_expiration = aUser.user_expiration
-                            };
-                        }
+                    //Check for existing player
+                    if (!tempASPlayers.ContainsKey(aPlayer.player_id))
+                    {
+                        tempASPlayers[aPlayer.player_id] = new AdKatsSpecialPlayer()
+                        {
+                            player_game = (int)_serverInfo.GameID,
+                            player_server = (int)_serverInfo.ServerID,
+                            player_group = asGroup,
+                            player_identifier = aPlayer.player_name,
+                            player_object = aPlayer,
+                            player_effective = UtcDbTime(),
+                            player_expiration = aUser.user_expiration
+                        };
                     }
                 }
             }
