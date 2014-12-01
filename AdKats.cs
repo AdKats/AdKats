@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.7.9
+ * Version 5.2.8.0
  * 30-NOV-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.7.9</version_code>
+ * <version_code>5.2.8.0</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.7.9";
+        private const String PluginVersion = "5.2.8.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1209,7 +1209,8 @@ namespace PRoConEvents {
                                                 allowed = aRole.RoleSetGroups.ContainsKey(aGroup.group_key) ||
                                                 (aGroup.group_key == "slot_reserved" && _FeedServerReservedSlots_Admins && RoleIsAdmin(aRole)) ||
                                                 (aGroup.group_key == "slot_spectator" && _FeedServerSpectatorList_Admins && RoleIsAdmin(aRole)) ||
-                                                (aGroup.group_key == "whitelist_multibalancer" && _FeedMultiBalancerWhitelist_Admins && RoleIsAdmin(aRole))
+                                                (aGroup.group_key == "whitelist_multibalancer" && _FeedMultiBalancerWhitelist_Admins && RoleIsAdmin(aRole)) ||
+                                                (aGroup.group_key == "whitelist_spambot" && _spamBotExcludeAdminsAndWhitelist && RoleIsAdmin(aRole))
                                             let
                                                 display = rolePrefix + "GPE" + aGroup.group_id + separator + aGroup.group_name
                                             select
@@ -5106,7 +5107,8 @@ namespace PRoConEvents {
                                                             source_name = "DispersionManager",
                                                             record_message = "Dispersion Trigger"
                                                         };
-                                                        QueueRecordForProcessing(triggerRecord);
+                                                        //Automatic dispersion disabled
+                                                        ///QueueRecordForProcessing(triggerRecord);
                                                         //OnlineAdminSayMessage(aPlayer.player_name + " hit a dispersion trigger. Not adding yet.");
                                                     }
                                                     if (locRecords.Count() > 3) {
@@ -5130,7 +5132,8 @@ namespace PRoConEvents {
                                                     source_name = "DispersionManager",
                                                     record_message = "Server Balance"
                                                 };
-                                                QueueRecordForProcessing(record);
+                                                //Automatic dispersion disabled
+                                                //QueueRecordForProcessing(record);
                                             }
                                         }
                                         if (_CMDRManagerEnable &&
