@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.8.2
- * 1-DEC-2014
+ * Version 5.2.8.3
+ * 3-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.8.2</version_code>
+ * <version_code>5.2.8.3</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.8.2";
+        private const String PluginVersion = "5.2.8.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -12674,11 +12674,12 @@ namespace PRoConEvents {
                         else if (!_surrenderVoteSucceeded && _surrenderVoteList.Contains(record.source_name)) {
                             if (_surrenderVoteList.Remove(record.source_name))
                             {
-                                SendMessageToSource(record, "Your surrender vote has been removed.");
+                                SendMessageToSource(record, "Your surrender vote has been removed!");
                                 Int32 requiredVotes = (Int32)((_PlayerDictionary.Count / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                                 OnlineAdminSayMessage(record.source_name + " removed their surrender vote.");
-                                AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                                AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                                AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                             }
                         }
                         else {
@@ -16159,12 +16160,14 @@ namespace PRoConEvents {
                 }
                 else
                 {
+                    SendMessageToSource(record, "You voted for round surrender!");
                     if (voteEnabled) {
                         AdminTellMessage("Surrender Vote started! Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                     }
                     else
                     {
-                        AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                        AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                        AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                     }
                     OnlineAdminSayMessage(record.source_name + " voted for round surrender.");
                 }
@@ -16223,7 +16226,9 @@ namespace PRoConEvents {
                 _nosurrenderVoteList.Add(record.source_name);
                 Int32 requiredVotes = (Int32)((_PlayerDictionary.Count / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
-                AdminTellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                SendMessageToSource(record, "You voted against round surrender!");
+                AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
+                AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                 OnlineAdminSayMessage(record.source_name + " voted against round surrender.");
             }
             catch (Exception e)
