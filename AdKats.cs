@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.8.3
+ * Version 5.2.8.4
  * 3-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.8.3</version_code>
+ * <version_code>5.2.8.4</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.8.3";
+        private const String PluginVersion = "5.2.8.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4221,6 +4221,11 @@ namespace PRoConEvents {
                     {
                         try
                         {
+                            if (_isTestingAuthorized)
+                            {
+                                ConsoleWarn((GC.GetTotalMemory(true) / 1024) + "KB Memory Used. " + _FetchedPlayers.Count + " fetched players.");
+                            }
+
                             //Check for unswitcher disable every 20 seconds
                             if (_pluginEnabled && _MULTIBalancerUnswitcherDisabled && (UtcDbTime() - _LastPlayerMoveIssued).TotalSeconds > 20)
                             {
@@ -16593,7 +16598,7 @@ namespace PRoConEvents {
                         {
                             pingKicksText = "Kicked " + pingKicks.Count() + " time(s) for high ping.";
                         }
-                        SendMessageToSource(record, "Ping Kicks: " + pingKicksText + " Current Ping [" + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping_avg, 2) + "") : ("Missing")) + ").");
+                        SendMessageToSource(record, "Ping Kicks: " + pingKicksText + " Current Ping [" + ((record.target_player.player_ping_avg > 0) ? (Math.Round(record.target_player.player_ping_avg, 2) + "") : ("Missing")) + "].");
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Reputation
                         SendMessageToSource(record, "Reputation: " + ((!PlayerIsAdmin(record.target_player)) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)));
