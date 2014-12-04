@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.8.4
+ * Version 5.2.8.5
  * 3-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.8.4</version_code>
+ * <version_code>5.2.8.5</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.8.4";
+        private const String PluginVersion = "5.2.8.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4988,8 +4988,13 @@ namespace PRoConEvents {
                                 Int32 team3PC = 0;
                                 Int32 team4PC = 0;
 
-                                Double index = 0;
-                                foreach (CPlayerInfo playerInfo in inboundPlayerList.Where(player => !removedPlayers.Contains(player.SoldierName))) {
+                                List<Double> durations = new List<Double>();
+                                var trimmedInboundPlayers = inboundPlayerList.Where(player => !removedPlayers.Contains(player.SoldierName));
+                                Int32 index = 0;
+                                foreach (CPlayerInfo playerInfo in trimmedInboundPlayers) {
+                                    index++;
+                                    Stopwatch timer = new Stopwatch();
+                                    timer.Start();
                                     if (!_pluginEnabled) {
                                         break;
                                     }
@@ -5354,6 +5359,11 @@ namespace PRoConEvents {
                                             record_message = "Commanders not allowed until " + _CMDRMinimumPlayers + " active players"
                                         };
                                         QueueRecordForProcessing(record);
+                                    }
+                                    timer.Stop();
+                                    durations.Add(timer.Elapsed.TotalSeconds);
+                                    if (!_firstPlayerListComplete) {
+                                        DebugWrite(index + "/" + trimmedInboundPlayers.Count() + " loaded. " + Math.Round(durations.Sum()/durations.Count, 2) + "s per player.", 1);
                                     }
                                 }
                                 _teamDictionary[1].UpdatePlayerCount(team1PC);
