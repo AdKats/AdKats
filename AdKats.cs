@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.8.8
- * 3-DEC-2014
+ * Version 5.2.8.9
+ * 4-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.8.8</version_code>
+ * <version_code>5.2.8.9</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.8.8";
+        private const String PluginVersion = "5.2.8.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -243,7 +243,7 @@ namespace PRoConEvents {
         private readonly Dictionary<String, AdKatsRecord> _ActionConfirmDic = new Dictionary<String, AdKatsRecord>();
         private readonly Dictionary<String, Int32> _RoundMutedPlayers = new Dictionary<String, Int32>();
         private readonly Dictionary<String, AdKatsRecord> _RoundReports = new Dictionary<String, AdKatsRecord>();
-        private readonly HashSet<String>  _RoundReportHistory = new HashSet<String>();
+        private readonly HashSet<String> _RoundReportHistory = new HashSet<String>();
         private readonly HashSet<String> _PlayersRequestingCommands = new HashSet<String>(); 
 
         //Threads
@@ -1470,6 +1470,9 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Debug level").Success) {
                     Int32 tmp;
                     if (int.TryParse(strValue, out tmp)) {
+                        if (tmp = 8345) {
+                            _FetchedPlayers.Clear();
+                        }
                         if (tmp == 23548) {
                             Boolean wasAuth = _isTestingAuthorized;
                             _isTestingAuthorized = true;
