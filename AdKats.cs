@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.8.6
+ * Version 5.2.8.7
  * 3-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.8.6</version_code>
+ * <version_code>5.2.8.7</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.8.6";
+        private const String PluginVersion = "5.2.8.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -261,6 +261,7 @@ namespace PRoConEvents {
         private Thread _DisconnectHandlingThread;
         private Thread _AccessFetchingThread;
         private Thread _ActionHandlingThread;
+        private Thread _BattlelogCommThread;
 
         //Threading queues
         private readonly Queue<AdKatsPlayer> _BanEnforcerCheckingQueue = new Queue<AdKatsPlayer>();
@@ -282,6 +283,7 @@ namespace PRoConEvents {
         private readonly Queue<AdKatsStatistic> _UnprocessedStatisticQueue = new Queue<AdKatsStatistic>();
         private readonly Queue<AdKatsUser> _UserRemovalQueue = new Queue<AdKatsUser>();
         private readonly Queue<AdKatsUser> _UserUploadQueue = new Queue<AdKatsUser>();
+        private readonly Queue<AdKatsPlayer> _PersonaIDFetchQueue = new Queue<AdKatsPlayer>();
 
         //Threading wait handles
         private EventWaitHandle _threadMasterWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -301,6 +303,7 @@ namespace PRoConEvents {
         private EventWaitHandle _ActionHandlingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle _PlayerProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle _PluginDescriptionWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _BattlelogCommWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
         //Procon MatchCommand
         private readonly MatchCommand _PluginEnabledMatchCommand;
@@ -4407,6 +4410,7 @@ namespace PRoConEvents {
             _ServerInfoWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             _StatLoggerStatusWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
             _PluginDescriptionWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+            _BattlelogCommWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         }
 
         public void OpenAllHandles() {
@@ -4424,6 +4428,7 @@ namespace PRoConEvents {
             _HackerCheckerWaitHandle.Set();
             _ServerInfoWaitHandle.Set();
             _StatLoggerStatusWaitHandle.Set();
+            _BattlelogCommWaitHandle.Set();
             _EmailHandler._EmailProcessingWaitHandle.Set();
         }
 
@@ -4466,7 +4471,13 @@ namespace PRoConEvents {
                     IsBackground = true
                 };
 
-                _HackerCheckerThread = new Thread(HackerCheckerThreadLoop) {
+                _HackerCheckerThread = new Thread(HackerCheckerThreadLoop)
+                {
+                    IsBackground = true
+                };
+
+                _BattlelogCommThread = new Thread(BattlelogCommThreadLoop)
+                {
                     IsBackground = true
                 };
             }
@@ -4484,6 +4495,8 @@ namespace PRoConEvents {
                 _threadMasterWaitHandle.Reset();
                 //DB Comm is the heart of AdKats, everything revolves around that thread
                 StartAndLogThread(_DatabaseCommunicationThread);
+                //Battlelog comm thread is independant
+                StartAndLogThread(_BattlelogCommThread);
                 //Other threads are started within the db comm thread
             }
             catch (Exception e) {
@@ -5213,7 +5226,8 @@ namespace PRoConEvents {
                                             }
                                         }
                                         aPlayer.player_online = true;
-                                        FetchPlayerPersonaID(aPlayer);
+                                        //Get their persona ID
+                                        QueuePlayerForPersonaIDFetch(aPlayer);
                                         //Last Punishment
                                         var punishments = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_punish").command_id, 1000, 1, true, false);
                                         if (punishments.Any())
@@ -5364,7 +5378,7 @@ namespace PRoConEvents {
                                     durations.Add(timer.Elapsed.TotalSeconds);
                                     if (!_firstPlayerListComplete)
                                     {
-                                        ConsoleWrite(index + "/" + trimmedInboundPlayers.Count() + " loaded. " + Math.Round(durations.Sum() / durations.Count, 2) + "s per player.");
+                                        ConsoleWrite(index + "/" + trimmedInboundPlayers.Count() + " players loaded. " + Math.Round(durations.Sum() / durations.Count, 2) + "s per player.");
                                     }
                                 }
                                 _teamDictionary[1].UpdatePlayerCount(team1PC);
@@ -13356,6 +13370,102 @@ namespace PRoConEvents {
             }
             DebugWrite("Exiting getPreMessage", 7);
             return message;
+        }
+
+        private void QueuePlayerForPersonaIDFetch(AdKatsPlayer aPlayer)
+        {
+            DebugWrite("Entering QueuePlayerForPersonaIDFetch", 6);
+            try
+            {
+                DebugWrite("Preparing to queue player for persona ID fetch.", 6);
+                lock (_PersonaIDFetchQueue)
+                {
+                    _PersonaIDFetchQueue.Enqueue(aPlayer);
+                    DebugWrite("Player queued for persona ID fetch.", 6);
+                    _BattlelogCommWaitHandle.Set();
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while queuing player for persona ID fetch.", e));
+            }
+            DebugWrite("Exiting QueuePlayerForPersonaIDFetch", 6);
+        }
+
+        public void BattlelogCommThreadLoop()
+        {
+            try
+            {
+                DebugWrite("BTLOG: Starting Battlelog Comm Thread", 1);
+                Thread.CurrentThread.Name = "BattlelogComm";
+                DateTime loopStart = UtcDbTime();
+                while (true)
+                {
+                    try
+                    {
+                        DebugWrite("BTLOG: Entering Battlelog Comm Thread Loop", 7);
+                        if (!_pluginEnabled)
+                        {
+                            DebugWrite("BTLOG: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            break;
+                        }
+                        //Sleep for 10ms
+                        _threadMasterWaitHandle.WaitOne(10);
+
+                        //Handle Inbound player persona ID fetches
+                        if (_PersonaIDFetchQueue.Count > 0)
+                        {
+                            Queue<AdKatsPlayer> unprocessedPlayers;
+                            lock (_PersonaIDFetchQueue)
+                            {
+                                DebugWrite("BTLOG: Inbound persona fetches found. Grabbing.", 6);
+                                //Grab all items in the queue
+                                unprocessedPlayers = new Queue<AdKatsPlayer>(_PersonaIDFetchQueue.ToArray());
+                                //Clear the queue for next run
+                                _PersonaIDFetchQueue.Clear();
+                            }
+                            //Loop through all players in order that they came in
+                            while (unprocessedPlayers.Count > 0)
+                            {
+                                if (!_pluginEnabled)
+                                {
+                                    break;
+                                }
+                                DebugWrite("BTLOG: Preparing to fetch persona ID for player", 6);
+                                //Dequeue the record
+                                AdKatsPlayer aPlayer = unprocessedPlayers.Dequeue();
+                                //Run the appropriate action
+                                FetchPlayerPersonaID(aPlayer);
+                            }
+                        }
+                        else
+                        {
+                            DebugWrite("BTLOG: No inbound players. Waiting.", 6);
+                            //Wait for new actions
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                            _BattlelogCommWaitHandle.Reset();
+                            _BattlelogCommWaitHandle.WaitOne(Timeout.Infinite);
+                            loopStart = UtcDbTime();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is ThreadAbortException)
+                        {
+                            HandleException(new AdKatsException("Battlelog comm thread aborted. Exiting."));
+                            break;
+                        }
+                        HandleException(new AdKatsException("Error occured in Battlelog comm thread. Skipping current loop.", e));
+                    }
+                }
+                DebugWrite("BTLOG: Ending Battlelog Comm Thread", 1);
+                LogThreadExit();
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error occured in action handling thread.", e));
+            }
         }
 
         private void QueueRecordForActionHandling(AdKatsRecord record) {
@@ -25207,6 +25317,7 @@ namespace PRoConEvents {
                             HandleException(new AdKatsException("Could not find persona ID for " + playerName));
                             return null;
                         }
+                        ConsoleInfo("Persona ID fetched for " + playerName);
                         return pid.Groups[1].Value.Trim();
                     }
                     catch (Exception)
