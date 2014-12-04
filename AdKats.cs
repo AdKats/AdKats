@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.8.7
+ * Version 5.2.8.8
  * 3-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.8.7</version_code>
+ * <version_code>5.2.8.8</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.8.7";
+        private const String PluginVersion = "5.2.8.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5234,14 +5234,12 @@ namespace PRoConEvents {
                                         {
                                             aPlayer.LastPunishment = punishments.FirstOrDefault();
                                         }
-                                        _threadMasterWaitHandle.WaitOne(2000);
                                         //Last Forgive
                                         var forgives = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_forgive").command_id, 1000, 1, true, false);
                                         if (forgives.Any()) 
                                         {
                                             aPlayer.LastForgive = forgives.FirstOrDefault();
                                         }
-                                        _threadMasterWaitHandle.WaitOne(2000);
                                         aPlayer.player_server = _serverInfo;
                                         //Add the frostbite player info
                                         aPlayer.frostbitePlayerInfo = playerInfo;
