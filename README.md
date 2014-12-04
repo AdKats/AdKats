@@ -37,7 +37,7 @@
     </li>
     <li>
         <b>Player Reputation System.</b>
-        System based on issued commands from and against players, forming a reputation of the server.
+        System based on issued commands from and against players, forming a reputation on the server.
         Documentation below. Local leaderboard for reputation given in the BFAdminCP 2.0+.
     </li>
     <li>
