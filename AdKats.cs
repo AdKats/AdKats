@@ -1470,7 +1470,7 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Debug level").Success) {
                     Int32 tmp;
                     if (int.TryParse(strValue, out tmp)) {
-                        if (tmp = 8345) {
+                        if (tmp == 8345) {
                             _FetchedPlayers.Clear();
                         }
                         if (tmp == 23548) {
