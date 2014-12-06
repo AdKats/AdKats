@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.9.1
+ * Version 5.2.9.2
  * 6-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.9.1</version_code>
+ * <version_code>5.2.9.2</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.9.1";
+        private const String PluginVersion = "5.2.9.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5248,6 +5248,8 @@ namespace PRoConEvents {
                                             }
                                         }
                                         aPlayer.player_online = true;
+                                        //Get their location
+                                        FetchIPLocation(aPlayer, false);
                                         //Get their persona ID
                                         QueuePlayerForBattlelogInfoFetch(aPlayer);
                                         //Last Punishment
@@ -5697,6 +5699,8 @@ namespace PRoConEvents {
                         }
                     }
                     aPlayer.player_ip = player_ip;
+                    //Update IP location
+                    FetchIPLocation(aPlayer, updatePlayer);
                     if (updatePlayer) {
                         DebugWrite("OPPI: Queueing existing player " + aPlayer.player_name + " for update.", 4);
                         UpdatePlayer(aPlayer);
@@ -16705,8 +16709,8 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(2000);
                         String playerLoc = "Unknown";
                         if (!String.IsNullOrEmpty(record.target_player.player_ip)) {
-                            IPAPILocation loc = FetchIPLocation(record.target_player.player_ip);
-                            if (loc.status == "success") {
+                            IPAPILocation loc = FetchIPLocation(record.target_player, false);
+                            if (loc != null && loc.status == "success") {
                                 playerLoc = String.Empty;
                                 if (!String.IsNullOrEmpty(loc.city)) {
                                     playerLoc += loc.city + ", ";
@@ -23583,7 +23587,7 @@ namespace PRoConEvents {
                                         AdKatsPlayer aPlayer;
                                         if (aUser.soldierDictionary.TryGetValue(playerID, out aPlayer)) {
                                             aPlayer.game_id = gameID;
-                                            aPlayer.clan_tag = clanTag;
+                                            aPlayer.player_clanTag = clanTag;
                                             aPlayer.player_name = playerName;
                                             aPlayer.player_guid = playerGUID;
                                             aPlayer.player_ip = playerIP;
@@ -23592,7 +23596,7 @@ namespace PRoConEvents {
                                             aPlayer = new AdKatsPlayer(this) {
                                                 player_id = playerID,
                                                 game_id = gameID,
-                                                clan_tag = clanTag,
+                                                player_clanTag = clanTag,
                                                 player_name = playerName,
                                                 player_guid = playerGUID,
                                                 player_ip = playerIP
@@ -25074,9 +25078,18 @@ namespace PRoConEvents {
                     tPlayer["player_guid"] = aPlayer.player_guid;
                     tPlayer["player_pbguid"] = aPlayer.player_pbguid;
                     tPlayer["player_ip"] = aPlayer.player_ip;
+                    if (aPlayer.location != null && aPlayer.location.status == "success") 
+                    {
+                        tPlayer["player_country"] = aPlayer.location.countryCode;
+                    }
+                    else
+                    {
+                        tPlayer["player_country"] = null;
+                    }
                     tPlayer["player_name"] = aPlayer.player_name;
                     tPlayer["player_online"] = aPlayer.player_online;
                     tPlayer["player_personaID"] = aPlayer.player_personaID;
+                    tPlayer["player_clanTag"] = aPlayer.player_clanTag;
                     tPlayer["player_aa"] = aPlayer.player_aa;
                     tPlayer["player_ping"] = Math.Round(aPlayer.player_ping_avg, 2);
                     tPlayer["player_reputation"] = Math.Round(aPlayer.player_reputation, 3);
@@ -25390,16 +25403,16 @@ namespace PRoConEvents {
                                 return;
                             }
                             aPlayer.player_personaID = pid.Groups[1].Value.Trim();
-                            ConsoleInfo("Persona ID fetched for " + aPlayer.player_name);
+                            DebugWrite("Persona ID fetched for " + aPlayer.player_name, 4);
                             Match tag = Regex.Match(response, @"\[\s*([a-zA-Z0-9]+)\s*\]\s*" + aPlayer.player_name, RegexOptions.IgnoreCase | RegexOptions.Singleline);
                             if (!tag.Success || String.IsNullOrEmpty(tag.Groups[1].Value.Trim())) 
                             {
-                                ConsoleWarn("Could not find BF3 clan tag for " + aPlayer.player_name);
+                                DebugWrite("Could not find BF3 clan tag for " + aPlayer.player_name, 4);
                             }
                             else
                             {
-                                aPlayer.clan_tag = tag.Groups[1].Value.Trim();
-                                ConsoleInfo("Clan tag [" + aPlayer.clan_tag + "] found for " + aPlayer.player_name);
+                                aPlayer.player_clanTag = tag.Groups[1].Value.Trim();
+                                DebugWrite("Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
                             }
                         }
                         catch (Exception)
@@ -25423,7 +25436,7 @@ namespace PRoConEvents {
                                 return;
                             }
                             aPlayer.player_personaID = pid.Groups[1].Value.Trim();
-                            ConsoleInfo("Persona ID fetched for " + aPlayer.player_name);
+                            DebugWrite("Persona ID fetched for " + aPlayer.player_name, 4);
 
                             DoBattlelogWait();
                             String overviewResponse = client.DownloadString("http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_personaID + "/1/");
@@ -25433,7 +25446,7 @@ namespace PRoConEvents {
                             Hashtable info = null;
                             if (!data.ContainsKey("viewedPersonaInfo") || (info = (Hashtable)data["viewedPersonaInfo"]) == null)
                             {
-                                aPlayer.clan_tag = String.Empty;
+                                aPlayer.player_clanTag = String.Empty;
                                 ConsoleWarn("Could not find BF4 clan tag for " + aPlayer.player_name);
                             }
                             else
@@ -25441,13 +25454,13 @@ namespace PRoConEvents {
                                 String tag = String.Empty;
                                 if (!info.ContainsKey("tag") || String.IsNullOrEmpty(tag = (String)info["tag"]))
                                 {
-                                    aPlayer.clan_tag = String.Empty;
-                                    ConsoleWarn("Could not find BF4 clan tag for " + aPlayer.player_name);
+                                    aPlayer.player_clanTag = String.Empty;
+                                    DebugWrite("Could not find BF4 clan tag for " + aPlayer.player_name, 4);
                                 }
                                 else
                                 {
-                                    aPlayer.clan_tag = tag;
-                                    ConsoleInfo("Clan tag [" + aPlayer.clan_tag + "] found for " + aPlayer.player_name);
+                                    aPlayer.player_clanTag = tag;
+                                    DebugWrite("Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
                                 }
                             }
                         }
@@ -26886,15 +26899,21 @@ namespace PRoConEvents {
                                         //Patched version is newer than an already patched version
                                         ConsoleSuccess("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ". Restart procon to run this version.");
                                     }
-                                    else if (!_pluginUpdatePatched && patchedVersionInt > _currentPluginVersionInt)
+                                    else if (!_pluginUpdatePatched && patchedVersionInt > _currentPluginVersionInt) 
                                     {
-                                        if (_pluginUpdateCaller != null)
-                                        {
+                                        if (_pluginUpdateCaller != null) {
                                             SendMessageToSource(_pluginUpdateCaller, "Plugin updated to version " + patchedVersion + ". Restart procon to run this version.");
                                         }
                                         //User not notified of patch yet
                                         ConsoleSuccess("Plugin updated to version " + patchedVersion + ". Restart procon to run this version.");
                                         ConsoleSuccess("Updated plugin file located at: " + pluginPath);
+                                    }
+                                    else 
+                                    {
+                                        if (_pluginUpdateCaller != null)
+                                        {
+                                            SendMessageToSource(_pluginUpdateCaller, "Plugin updated to same version. "+ patchedVersion + ".");
+                                        }
                                     }
                                 }
                                 else if (!_pluginUpdatePatched)
@@ -27353,21 +27372,24 @@ namespace PRoConEvents {
             _LastGoogleAction = UtcDbTime();
         }
 
-        private IPAPILocation FetchIPLocation(String ip) {
-            var loc = new IPAPILocation();
-            if (String.IsNullOrEmpty(ip)) {
-                ConsoleError("Invalid IP in location query.");
-                loc.status = "fail";
-                loc.message = "invalid query";
-                return loc;
+        private IPAPILocation FetchIPLocation(AdKatsPlayer aPlayer, Boolean update) {
+            if (String.IsNullOrEmpty(aPlayer.player_ip)) 
+            {
+                return null;
             }
+            if (aPlayer.location != null && aPlayer.location.status == "success" && !update) 
+            {
+                return aPlayer.location;
+            }
+            var loc = new IPAPILocation();
             using (var client = new WebClient()) {
                 try {
-                    var response = (Hashtable) JSON.JsonDecode(client.DownloadString("http://ip-api.com/json/" + ip));
+                    var response = (Hashtable) JSON.JsonDecode(client.DownloadString("http://ip-api.com/json/" + aPlayer.player_ip));
                     loc.status = (String) response["status"];
                     if (loc.status == "fail") {
                         loc.message = (String) response["message"];
-                        return loc;
+                        aPlayer.location = loc;
+                        return null;
                     }
                     if (loc.status == "success") {
                         loc.country = (String) response["country"];
@@ -27382,6 +27404,7 @@ namespace PRoConEvents {
                         loc.isp = (String) response["isp"];
                         loc.org = (String) response["org"];
                         loc.query = (String) response["query"];
+                        aPlayer.location = loc;
                         return loc;
                     }
                 }
@@ -27392,7 +27415,8 @@ namespace PRoConEvents {
             }
             loc.status = "fail";
             loc.message = "unknown error";
-            return loc;
+            aPlayer.location = loc;
+            return null;
         }
 
         public class AdKatsWeaponName {
@@ -27475,7 +27499,7 @@ namespace PRoConEvents {
             public CPunkbusterInfo PBPlayerInfo = null;
             public Queue<KeyValuePair<AdKatsPlayer, DateTime>> RecentKills = null;
             public List<AdKatsRecord> TargetedRecords = null;
-            public String clan_tag = null;
+            public String player_clanTag = null;
             public CPlayerInfo frostbitePlayerInfo = null;
             public Int64 game_id = -1;
             public DateTime lastAction = DateTime.UtcNow;
@@ -27517,6 +27541,7 @@ namespace PRoConEvents {
             public AdKatsPlayer conversationPartner = null;
 
             public AdKatsPlayerStats stats = null;
+            public IPAPILocation location = null;
             public Boolean update_playerUpdated = true;
             public Boolean player_new = false;
 
@@ -27810,7 +27835,7 @@ namespace PRoConEvents {
                 String source = "";
                 if (source_player != null)
                 {
-                    source = ((source_player.player_online) ? ("") : ("(OFFLINE)")) + ((String.IsNullOrEmpty(source_player.clan_tag)) ? ("") : ("[" + source_player.clan_tag + "]")) + source_player.player_name;
+                    source = ((source_player.player_online) ? ("") : ("(OFFLINE)")) + ((String.IsNullOrEmpty(source_player.player_clanTag)) ? ("") : ("[" + source_player.player_clanTag + "]")) + source_player.player_name;
                 }
                 else if (String.IsNullOrEmpty(source_name)) {
                     source = "NOSOURCE";
@@ -27829,12 +27854,12 @@ namespace PRoConEvents {
                 {
                     foreach (AdKatsPlayer aPlayer in TargetPlayersLocal)
                     {
-                        targets += ((aPlayer.player_online) ? ("") : ("(OFFLINE)")) + ((String.IsNullOrEmpty(aPlayer.clan_tag))?(""):("[" + aPlayer.clan_tag + "]")) + aPlayer.player_name + ", ";
+                        targets += ((aPlayer.player_online) ? ("") : ("(OFFLINE)")) + ((String.IsNullOrEmpty(aPlayer.player_clanTag))?(""):("[" + aPlayer.player_clanTag + "]")) + aPlayer.player_name + ", ";
                     }
                 }
                 else if (target_player != null) 
                 {
-                    targets = ((target_player.player_online) ? ("") : ("(OFFLINE)")) + ((String.IsNullOrEmpty(target_player.clan_tag)) ? ("") : ("[" + target_player.clan_tag + "]")) + target_player.player_name;
+                    targets = ((target_player.player_online) ? ("") : ("(OFFLINE)")) + ((String.IsNullOrEmpty(target_player.player_clanTag)) ? ("") : ("[" + target_player.player_clanTag + "]")) + target_player.player_name;
                 }
                 else
                 {
@@ -28565,7 +28590,7 @@ namespace PRoConEvents {
             }
         }
 
-        private class IPAPILocation {
+        public class IPAPILocation {
             public String city;
             public String country;
             public String countryCode;
