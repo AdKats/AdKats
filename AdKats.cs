@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.9.2
+ * Version 5.2.9.3
  * 6-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.9.2</version_code>
+ * <version_code>5.2.9.3</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.9.2";
+        private const String PluginVersion = "5.2.9.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -26840,7 +26840,7 @@ namespace PRoConEvents {
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                 ConsoleInfo("Preparing to update source file on disk.");
                             Int64 originalSizeKb = new FileInfo(pluginPath).Length / 1024;
-                            Int64 patchedSizeKb = 0;
+                            Int64 patchedSizeKB = 0;
                             Boolean fileWriteFailed = false;
                             Int32 attempts = 0;
                             do {
@@ -26851,16 +26851,16 @@ namespace PRoConEvents {
                                         {
                                             SendMessageToSource(_pluginUpdateCaller, "Cannot write updates to source file. Cannot update.");
                                         }
-                                        ConsoleError("Cannot write updates to source file. Cannot update to version " + _latestPluginVersion);
+                                        ConsoleError("Cannot write updates to source file. Cannot update.");
                                         _pluginUpdateCaller = null;
                                         return;
                                     }
                                     Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
                                     stream.Write(info, 0, info.Length);
                                 }
-                                patchedSizeKb = new FileInfo(pluginPath).Length / 1024;
+                                patchedSizeKB = new FileInfo(pluginPath).Length / 1024;
                                 //There is no way the valid plugin can be less than 1 Kb
-                                if (patchedSizeKb < 1)
+                                if (patchedSizeKB < 1)
                                 {
                                     if (_pluginUpdateCaller != null)
                                     {
@@ -26879,7 +26879,7 @@ namespace PRoConEvents {
                                     {
                                         SendMessageToSource(_pluginUpdateCaller, "Constant failure to write plugin update to file. Cannot update.");
                                     }
-                                    ConsoleError("Constant failure to write plugin update to file. Cannot update to version " + _latestPluginVersion);
+                                    ConsoleError("Constant failure to write plugin update to file. Cannot update.");
                                     _pluginUpdateCaller = null;
                                     return;
                                 }
@@ -26894,25 +26894,25 @@ namespace PRoConEvents {
                                     {
                                         if (_pluginUpdateCaller != null)
                                         {
-                                            SendMessageToSource(_pluginUpdateCaller, "Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ". Restart procon to run this version.");
+                                            SendMessageToSource(_pluginUpdateCaller, "Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                         }
                                         //Patched version is newer than an already patched version
-                                        ConsoleSuccess("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ". Restart procon to run this version.");
+                                        ConsoleSuccess("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                     }
                                     else if (!_pluginUpdatePatched && patchedVersionInt > _currentPluginVersionInt) 
                                     {
                                         if (_pluginUpdateCaller != null) {
-                                            SendMessageToSource(_pluginUpdateCaller, "Plugin updated to version " + patchedVersion + ". Restart procon to run this version.");
+                                            SendMessageToSource(_pluginUpdateCaller, "Plugin updated to version " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                         }
                                         //User not notified of patch yet
-                                        ConsoleSuccess("Plugin updated to version " + patchedVersion + ". Restart procon to run this version.");
+                                        ConsoleSuccess("Plugin updated to version " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                         ConsoleSuccess("Updated plugin file located at: " + pluginPath);
                                     }
                                     else 
                                     {
                                         if (_pluginUpdateCaller != null)
                                         {
-                                            SendMessageToSource(_pluginUpdateCaller, "Plugin updated to same version. "+ patchedVersion + ".");
+                                            SendMessageToSource(_pluginUpdateCaller, "Plugin updated to same version, " + patchedVersion + ". Plugin size " + patchedSizeKB + "KB");
                                         }
                                     }
                                 }
@@ -26920,10 +26920,10 @@ namespace PRoConEvents {
                                 {
                                     if (_pluginUpdateCaller != null)
                                     {
-                                        SendMessageToSource(_pluginUpdateCaller, "Plugin reverted to previous version " + patchedVersion + ". Restart procon to run this version.");
+                                        SendMessageToSource(_pluginUpdateCaller, "Plugin reverted to previous version " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                     }
                                     //Patched version is older than current version
-                                    ConsoleWarn("Plugin reverted to previous version " + patchedVersion + ". Restart procon to run this version.");
+                                    ConsoleWarn("Plugin reverted to previous version " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                 }
                                 _pluginPatchedVersion = patchedVersion;
                                 _pluginPatchedVersionInt = patchedVersionInt;
@@ -26932,9 +26932,9 @@ namespace PRoConEvents {
                             {
                                 if (_pluginUpdateCaller != null)
                                 {
-                                    SendMessageToSource(_pluginUpdateCaller, "Plugin update patched, but its version could not be extracted.");
+                                    SendMessageToSource(_pluginUpdateCaller, "Plugin update patched, but its version could not be extracted. Plugin size " + patchedSizeKB + "KB");
                                 }
-                                ConsoleWarn("Plugin update patched, but its version could not be extracted.");
+                                ConsoleWarn("Plugin update patched, but its version could not be extracted. Plugin size " + patchedSizeKB + "KB");
                             }
                             _pluginUpdateProgress = "Patched";
                             _pluginUpdatePatched = true;
