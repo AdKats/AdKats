@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.9.3
+ * Version 5.2.9.4
  * 6-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.9.3</version_code>
+ * <version_code>5.2.9.4</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.9.3";
+        private const String PluginVersion = "5.2.9.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4388,12 +4388,14 @@ namespace PRoConEvents {
                                     //TODO: Once MULTIBalancer adds registered commands, check for availability
                                 }
                             }
-                            //Check for possible connection interuption every 10 seconds
+
                             if (_threadsReady && (UtcDbTime() - lastServerInfoRequest).TotalSeconds > 10)
                             {
                                 ExecuteCommand("procon.protected.send", "serverInfo");
+                                ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                                 lastServerInfoRequest = UtcDbTime();
                             }
+
                             //Sleep 1 second between loops
                             Thread.Sleep(TimeSpan.FromSeconds(1));
                         }
@@ -4900,6 +4902,7 @@ namespace PRoConEvents {
                             if (!_firstPlayerListStarted)
                             {
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
+                                Thread.Sleep(1000);
                             }
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
@@ -7899,7 +7902,7 @@ namespace PRoConEvents {
                                         _threadMasterWaitHandle.WaitOne(1000);
                                     }
                                     //Onced triggered, ban after 90 seconds.
-                                    OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 90 seconds.");
+                                    OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
                                     PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", true, 6);
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
@@ -8053,7 +8056,7 @@ namespace PRoConEvents {
                                         _threadMasterWaitHandle.WaitOne(1000);
                                     }
                                     //Onced triggered, ban after 90 seconds.
-                                    OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. They will be banned in 90 seconds.");
+                                    OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
                                     if (actedWeapon.HSKR >= .7)
                                     {
@@ -8992,9 +8995,7 @@ namespace PRoConEvents {
                         if ((_TeamswapOnDeathMoveDic.Count > 0 && _TeamswapOnDeathCheckingQueue.Count > 0) || _TeamswapForceMoveQueue.Count > 0) {
                             DebugWrite("TSWAP: Preparing to lock TeamSwap queues", 4);
 
-                            //Call List Players
                             _PlayerListUpdateWaitHandle.Reset();
-                            ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                             //Wait for listPlayers to finish, max 10 seconds
                             if (!_PlayerListUpdateWaitHandle.WaitOne(TimeSpan.FromSeconds(10))) {
                                 DebugWrite("ListPlayers ran out of time for TeamSwap. 10 sec.", 4);
