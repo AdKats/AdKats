@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.9.0
- * 5-DEC-2014
+ * Version 5.2.9.1
+ * 6-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.9.0</version_code>
+ * <version_code>5.2.9.1</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.9.0";
+        private const String PluginVersion = "5.2.9.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -135,6 +135,7 @@ namespace PRoConEvents {
         private volatile Int32 _pluginPatchedVersionInt;
         private volatile String _pluginUpdateProgress = "NotStarted";
         private volatile String _pluginDescFetchProgress = "NotStarted";
+        private AdKatsRecord _pluginUpdateCaller = null;
         private volatile Boolean _useKeepAlive;
         private readonly Dictionary<Int32, Thread> _aliveThreads = new Dictionary<Int32, Thread>();
         private RoundState _roundState = RoundState.Loaded;
@@ -196,6 +197,8 @@ namespace PRoConEvents {
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(1);
+        private DateTime _LastGoogleAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private TimeSpan _GoogleWaitDuration = TimeSpan.FromSeconds(0.25);
         private DateTime _lastGlitchedPlayerNotification = DateTime.UtcNow;
 
         //Server
@@ -558,6 +561,7 @@ namespace PRoConEvents {
         private Double _ServerRulesInterval = 5;
         private String[] _ServerRulesList = { "This server has not set rules yet." };
         private Boolean _ServerRulesNumbers = true;
+        private Boolean _ServerRulesYell = false;
 
         //Locking
         private Double _playerLockingManualDuration = 10;
@@ -976,6 +980,7 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Rule Print Interval", typeof(Double), _ServerRulesInterval));
                     lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Server Rule List", typeof(String[]), _ServerRulesList));
                     lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
+                    lstReturn.Add(new CPluginVariable("A19. Server Rules Settings|Yell Server Rules", typeof(Boolean), _ServerRulesYell));
 
                     //AFK manager settings
                     lstReturn.Add(new CPluginVariable("B20. AFK Settings|AFK System Enable", typeof(Boolean), _AFKManagerEnable));
@@ -1577,6 +1582,16 @@ namespace PRoConEvents {
                         _ServerRulesNumbers = ruleNumbers;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Yell Server Rules").Success)
+                {
+                    Boolean ruleYell = Boolean.Parse(strValue);
+                    if (ruleYell != _ServerRulesYell)
+                    {
+                        _ServerRulesYell = ruleYell;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Yell Server Rules", typeof(Boolean), _ServerRulesYell));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Disable Automatic Updates").Success)
@@ -2604,7 +2619,7 @@ namespace PRoConEvents {
                         _AdKatsLRTExtensionToken = strValue;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"AdkatsLRT Extension Token", typeof(String), _AdKatsLRTExtensionToken));
-                        CheckForPluginUpdates();
+                        CheckForPluginUpdates(true);
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Additional Ban Message").Success) {
@@ -4190,7 +4205,7 @@ namespace PRoConEvents {
                             _pluginVersionStatusString = versionStatus;
                             _pluginDescFetchProgress = "VersionStatusSet";
                             //Check for plugin updates
-                            CheckForPluginUpdates();
+                            CheckForPluginUpdates(false);
                             _pluginDescFetchProgress = "UpdateChecked";
                         }
                     }
@@ -6316,7 +6331,7 @@ namespace PRoConEvents {
                             }
                             if (!_pluginUpdateServerInfoChecked) {
                                 _pluginUpdateServerInfoChecked = true;
-                                CheckForPluginUpdates();
+                                CheckForPluginUpdates(false);
                             }
                             FeedStatLoggerSettings();
                         }
@@ -12655,23 +12670,45 @@ namespace PRoConEvents {
                         break;
                     case "plugin_restart":
                         {
-                        //Remove previous commands awaiting confirmationf
-                        CancelSourcePendingAction(record);
+                            //Remove previous commands awaiting confirmationf
+                            CancelSourcePendingAction(record);
 
-                        //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 1);
-                        switch (parameters.Length) {
-                            case 0:
-                                record.target_name = "AdKats";
-                                record.record_message = "Restart AdKats";
-                                ConfirmActionWithSource(record);
-                                break;
-                            default:
-                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    record.target_name = "AdKats";
+                                    record.record_message = "Restart AdKats";
+                                    ConfirmActionWithSource(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
                         }
-                    }
+                        break;
+                    case "plugin_update":
+                        {
+                            //Remove previous commands awaiting confirmationf
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    record.target_name = "AdKats";
+                                    record.record_message = "Update AdKats";
+                                    ConfirmActionWithSource(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
                         break;
                     case "server_shutdown":
                         {
@@ -13778,6 +13815,9 @@ namespace PRoConEvents {
                         break;
                     case "plugin_restart":
                         RebootPlugin(record);
+                        break;
+                    case "plugin_update":
+                        UpdatePlugin(record);
                         break;
                     case "server_shutdown":
                         ShutdownServer(record);
@@ -16114,7 +16154,14 @@ namespace PRoConEvents {
                                 {
                                     if (record.target_player != null)
                                     {
-                                        PlayerSayMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false));
+                                        if (_ServerRulesYell)
+                                        {
+                                            PlayerYellMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false));
+                                        }
+                                        else
+                                        {
+                                            PlayerSayMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false));
+                                        }
                                     }
                                     else
                                     {
@@ -16560,7 +16607,8 @@ namespace PRoConEvents {
             {
                 record.record_action_executed = true;
                 _pluginRebootOnDisable = true;
-                if (record.record_source == AdKatsRecord.Sources.InGame) {
+                if (record.record_source == AdKatsRecord.Sources.InGame)
+                {
                     _pluginRebootOnDisableSource = record.source_name;
                 }
                 SendMessageToSource(record, "Rebooting AdKats shortly.");
@@ -16580,6 +16628,24 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting RebootPlugin", 6);
+        }
+
+        public void UpdatePlugin(AdKatsRecord record)
+        {
+            DebugWrite("Entering UpdatePlugin", 6);
+            try
+            {
+                record.record_action_executed = true;
+                _pluginUpdateCaller = record;
+                CheckForPluginUpdates(true);
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while rebooting plugin.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting UpdatePlugin", 6);
         }
 
         public void ShutdownServer(AdKatsRecord record)
@@ -18646,7 +18712,9 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof (String), _ServerVoipAddress));
                 QueueSettingForUpload(new CPluginVariable(@"Rule Print Delay", typeof (Double), _ServerRulesDelay));
                 QueueSettingForUpload(new CPluginVariable(@"Rule Print Interval", typeof (Double), _ServerRulesInterval));
-                QueueSettingForUpload(new CPluginVariable(@"Server Rule List", typeof (String), CPluginVariable.EncodeStringArray(_ServerRulesList)));
+                QueueSettingForUpload(new CPluginVariable(@"Server Rule List", typeof(String), CPluginVariable.EncodeStringArray(_ServerRulesList)));
+                QueueSettingForUpload(new CPluginVariable(@"Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
+                QueueSettingForUpload(new CPluginVariable(@"Yell Server Rules", typeof(Boolean), _ServerRulesYell));
                 QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Whitelist", typeof (Boolean), _FeedMultiBalancerWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList)); 
                 QueueSettingForUpload(new CPluginVariable(@"Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_Admins));
@@ -22927,6 +22995,11 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 90", "REPLACE INTO `adkats_commands` VALUES(90, 'Invisible', 'server_map_benefit', 'Log', 'Map Benefit Log', 'mapbenefit', FALSE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(91))
+                                {
+                                    SendNonQuery("Adding command 91", "REPLACE INTO `adkats_commands` VALUES(91, 'Active', 'plugin_update', 'Unable', 'Update AdKats', 'pupdate', TRUE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -23032,6 +23105,7 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["plugin_restart"] = "Reboots AdKats.";
             _CommandDescriptionDictionary["self_nosurrender"] = "Votes against ending the round with surrender.";
             _CommandDescriptionDictionary["player_whitelistspambot"] = "Whitelists a player for SpamBot avoidance. They will not get any messages from the SpamBot.";
+            _CommandDescriptionDictionary["plugin_update"] = "Updates AdKats.";
         }
 
         private void UpdateCommandTimeouts() {
@@ -26620,15 +26694,20 @@ namespace PRoConEvents {
             return fullMessage;
         }
 
-        public void CheckForPluginUpdates() {
+        public void CheckForPluginUpdates(Boolean manual) {
             try
             {
                 if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled && !_pluginUpdatePatched) || 
                     (_isTestingAuthorized) || 
-                    (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)))
+                    (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)) || 
+                    manual)
                 {
                     if (_aliveThreads.Values.Any(aThread => aThread.Name == "PluginUpdater"))
                     {
+                        if (_pluginUpdateCaller != null) {
+                            SendMessageToSource(_pluginUpdateCaller, "Update already in progress.");
+                        }
+                        _pluginUpdateCaller = null;
                         return;
                     }
                     var pluginUpdater = new Thread(new ThreadStart(delegate
@@ -26637,6 +26716,10 @@ namespace PRoConEvents {
                         {
                             Thread.CurrentThread.Name = "PluginUpdater";
                             _pluginUpdateProgress = "Started";
+                            if (_pluginUpdateCaller != null)
+                            {
+                                SendMessageToSource(_pluginUpdateCaller, "Preparing to download plugin update.");
+                            }
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                 ConsoleInfo("Preparing to download plugin update to version " + _latestPluginVersion);
                             String pluginSource = null;
@@ -26657,18 +26740,32 @@ namespace PRoConEvents {
                                 }
                                 catch (Exception e)
                                 {
+                                    if (_pluginUpdateCaller != null)
+                                    {
+                                        SendMessageToSource(_pluginUpdateCaller, "Unable to download plugin update.");
+                                    }
                                     if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                         ConsoleError("Unable to download plugin update to version " + _latestPluginVersion);
+                                    _pluginUpdateCaller = null;
                                     return;
                                 }
                             }
                             if (String.IsNullOrEmpty(pluginSource))
                             {
+                                if (_pluginUpdateCaller != null)
+                                {
+                                    SendMessageToSource(_pluginUpdateCaller, "Downloaded plugin source was empty. Cannot update.");
+                                }
                                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                    ConsoleError("Downloaded plugin source was empty. Unable update to version " + _latestPluginVersion);
+                                    ConsoleError("Downloaded plugin source was empty. Cannot update to version " + _latestPluginVersion);
+                                _pluginUpdateCaller = null;
                                 return;
                             }
                             _pluginUpdateProgress = "Downloaded";
+                            if (_pluginUpdateCaller != null)
+                            {
+                                SendMessageToSource(_pluginUpdateCaller, "Updated plugin source downloaded. Preparing test compile.");
+                            }
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                             {
                                 ConsoleSuccess("Updated plugin source downloaded.");
@@ -26704,16 +26801,29 @@ namespace PRoConEvents {
                                             ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { pluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
                                     }
                                 }
+                                if (_pluginUpdateCaller != null)
+                                {
+                                    SendMessageToSource(_pluginUpdateCaller, "Updated plugin source could not compile. Cannot update.");
+                                }
                                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                    ConsoleError("Updated plugin source could not compile. Unable to update to version " + _latestPluginVersion);
+                                    ConsoleError("Updated plugin source could not compile. Cannot update to version " + _latestPluginVersion);
+                                _pluginUpdateCaller = null;
                                 return;
                             }
                             else
                             {
+                                if (_pluginUpdateCaller != null)
+                                {
+                                    SendMessageToSource(_pluginUpdateCaller, "Plugin update compiled successfully.");
+                                }
                                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     ConsoleSuccess("Plugin update compiled successfully.");
                             }
                             _pluginUpdateProgress = "Compiled";
+                            if (_pluginUpdateCaller != null)
+                            {
+                                SendMessageToSource(_pluginUpdateCaller, "Preparing to update source file on disk.");
+                            }
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                 ConsoleInfo("Preparing to update source file on disk.");
                             Int64 originalSizeKb = new FileInfo(pluginPath).Length / 1024;
@@ -26722,8 +26832,14 @@ namespace PRoConEvents {
                             Int32 attempts = 0;
                             do {
                                 using (FileStream stream = File.Open(pluginPath, FileMode.Create)) {
-                                    if (!stream.CanWrite) {
-                                        ConsoleError("Cannot write updates to source file. Unable to update to version " + _latestPluginVersion);
+                                    if (!stream.CanWrite)
+                                    {
+                                        if (_pluginUpdateCaller != null)
+                                        {
+                                            SendMessageToSource(_pluginUpdateCaller, "Cannot write updates to source file. Cannot update.");
+                                        }
+                                        ConsoleError("Cannot write updates to source file. Cannot update to version " + _latestPluginVersion);
+                                        _pluginUpdateCaller = null;
                                         return;
                                     }
                                     Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
@@ -26731,15 +26847,27 @@ namespace PRoConEvents {
                                 }
                                 patchedSizeKb = new FileInfo(pluginPath).Length / 1024;
                                 //There is no way the valid plugin can be less than 1 Kb
-                                if (patchedSizeKb < 1) {
+                                if (patchedSizeKb < 1)
+                                {
+                                    if (_pluginUpdateCaller != null)
+                                    {
+                                        SendMessageToSource(_pluginUpdateCaller, "Write failure on plugin update. Attempting write again.");
+                                    }
                                     ConsoleError("Write failure on plugin update. Attempting write again.");
+                                    Thread.Sleep(500);
                                     fileWriteFailed = true;
                                 }
                                 else {
                                     fileWriteFailed = false;
                                 }
-                                if (++attempts > 5) {
-                                    ConsoleError("Constant failure to write plugin update to file. Unable to update to version " + _latestPluginVersion);
+                                if (++attempts > 5)
+                                {
+                                    if (_pluginUpdateCaller != null)
+                                    {
+                                        SendMessageToSource(_pluginUpdateCaller, "Constant failure to write plugin update to file. Cannot update.");
+                                    }
+                                    ConsoleError("Constant failure to write plugin update to file. Cannot update to version " + _latestPluginVersion);
+                                    _pluginUpdateCaller = null;
                                     return;
                                 }
                             } while (fileWriteFailed); 
@@ -26751,23 +26879,42 @@ namespace PRoConEvents {
                                     //Patched version is newer than current version
                                     if (patchedVersionInt > _pluginPatchedVersionInt && _pluginUpdatePatched)
                                     {
+                                        if (_pluginUpdateCaller != null)
+                                        {
+                                            SendMessageToSource(_pluginUpdateCaller, "Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ". Restart procon to run this version.");
+                                        }
                                         //Patched version is newer than an already patched version
                                         ConsoleSuccess("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ". Restart procon to run this version.");
                                     }
-                                    else if (!_pluginUpdatePatched && patchedVersionInt > _currentPluginVersionInt) {
+                                    else if (!_pluginUpdatePatched && patchedVersionInt > _currentPluginVersionInt)
+                                    {
+                                        if (_pluginUpdateCaller != null)
+                                        {
+                                            SendMessageToSource(_pluginUpdateCaller, "Plugin updated to version " + patchedVersion + ". Restart procon to run this version.");
+                                        }
                                         //User not notified of patch yet
                                         ConsoleSuccess("Plugin updated to version " + patchedVersion + ". Restart procon to run this version.");
                                         ConsoleSuccess("Updated plugin file located at: " + pluginPath);
                                     }
                                 }
-                                else if (!_pluginUpdatePatched) {
+                                else if (!_pluginUpdatePatched)
+                                {
+                                    if (_pluginUpdateCaller != null)
+                                    {
+                                        SendMessageToSource(_pluginUpdateCaller, "Plugin reverted to previous version " + patchedVersion + ". Restart procon to run this version.");
+                                    }
                                     //Patched version is older than current version
                                     ConsoleWarn("Plugin reverted to previous version " + patchedVersion + ". Restart procon to run this version.");
                                 }
                                 _pluginPatchedVersion = patchedVersion;
                                 _pluginPatchedVersionInt = patchedVersionInt;
                             }
-                            else {
+                            else
+                            {
+                                if (_pluginUpdateCaller != null)
+                                {
+                                    SendMessageToSource(_pluginUpdateCaller, "Plugin update patched, but its version could not be extracted.");
+                                }
                                 ConsoleWarn("Plugin update patched, but its version could not be extracted.");
                             }
                             _pluginUpdateProgress = "Patched";
@@ -26785,13 +26932,23 @@ namespace PRoConEvents {
                                     }
                                     catch (Exception e)
                                     {
+                                        if (_pluginUpdateCaller != null)
+                                        {
+                                            SendMessageToSource(_pluginUpdateCaller, "Unable to install/update AdKatsLRT Extension. Connection error, or invalid token.");
+                                        }
                                         ConsoleError("Unable to install/update AdKatsLRT Extension. Connection error, or invalid token.");
+                                        _pluginUpdateCaller = null;
                                         return;
                                     }
                                 }
                                 if (String.IsNullOrEmpty(extensionSource))
                                 {
+                                    if (_pluginUpdateCaller != null)
+                                    {
+                                        SendMessageToSource(_pluginUpdateCaller, "Downloaded AdKatsLRT Extension source was empty. Unable to install/update AdKatsLRT Extension.");
+                                    }
                                     ConsoleError("Downloaded AdKatsLRT Extension source was empty. Unable to install/update AdKatsLRT Extension.");
+                                    _pluginUpdateCaller = null;
                                     return;
                                 }
                                 String extensionFileName = "AdKatsLRT.cs";
@@ -26807,7 +26964,12 @@ namespace PRoConEvents {
                                                 ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { extensionFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
                                         }
                                     }
+                                    if (_pluginUpdateCaller != null)
+                                    {
+                                        SendMessageToSource(_pluginUpdateCaller, "Updated AdKatsLRT Extension source could not compile. Unable to install/update AdKatsLRT Extension.");
+                                    }
                                     ConsoleError("Updated AdKatsLRT Extension source could not compile. Unable to install/update AdKatsLRT Extension.");
+                                    _pluginUpdateCaller = null;
                                     return;
                                 }
                                 Int64 patchedExtensionSizeKb = 0;
@@ -26819,7 +26981,12 @@ namespace PRoConEvents {
                                     {
                                         if (!stream.CanWrite)
                                         {
+                                            if (_pluginUpdateCaller != null)
+                                            {
+                                                SendMessageToSource(_pluginUpdateCaller, "Cannot write updates to AdKatsLRT Extension source file. Unable to install/update AdKatsLRT Extension.");
+                                            }
                                             ConsoleError("Cannot write updates to AdKatsLRT Extension source file. Unable to install/update AdKatsLRT Extension.");
+                                            _pluginUpdateCaller = null;
                                             return;
                                         }
                                         Byte[] info = new UTF8Encoding(true).GetBytes(extensionSource);
@@ -26829,6 +26996,10 @@ namespace PRoConEvents {
                                     //There is no way the valid extension can be less than 1 Kb
                                     if (patchedExtensionSizeKb < 1)
                                     {
+                                        if (_pluginUpdateCaller != null)
+                                        {
+                                            SendMessageToSource(_pluginUpdateCaller, "Write failure on AdKatsLRT Extension update. Attempting write again.");
+                                        }
                                         ConsoleError("Write failure on AdKatsLRT Extension update. Attempting write again.");
                                         extensionFileWriteFailed = true;
                                     }
@@ -26838,16 +27009,26 @@ namespace PRoConEvents {
                                     }
                                     if (++extensionWriteAttempts > 5)
                                     {
+                                        if (_pluginUpdateCaller != null)
+                                        {
+                                            SendMessageToSource(_pluginUpdateCaller, "Constant failure to write AdKatsLRT Extension update to file. Unable to install/update AdKatsLRT Extension.");
+                                        }
                                         ConsoleError("Constant failure to write AdKatsLRT Extension update to file. Unable to install/update AdKatsLRT Extension.");
+                                        _pluginUpdateCaller = null;
                                         return;
                                     }
-                                } while (extensionFileWriteFailed); 
+                                } while (extensionFileWriteFailed);
+                                if (_pluginUpdateCaller != null)
+                                {
+                                    SendMessageToSource(_pluginUpdateCaller, "AdKatsLRT Extension installed/updated. Extension size " + patchedExtensionSizeKb + "KB");
+                                }
                                 ConsoleSuccess("AdKatsLRT Extension installed/updated. Extension size " + patchedExtensionSizeKb + "KB");
                             }
                         }
                         catch (Exception e) {
                             HandleException(new AdKatsException("Error while running update thread.", e));
                         }
+                        _pluginUpdateCaller = null;
                         LogThreadExit();
                     }));
                     StartAndLogThread(pluginUpdater);
@@ -27156,11 +27337,20 @@ namespace PRoConEvents {
 
         private void DoBattlelogWait()
         {
-            if ((DateTime.UtcNow - _LastBattlelogAction) < _BattlelogWaitDuration)
+            if ((UtcDbTime() - _LastBattlelogAction) < _BattlelogWaitDuration)
             {
-                Thread.Sleep(_BattlelogWaitDuration - (DateTime.UtcNow - _LastBattlelogAction));
+                Thread.Sleep(_BattlelogWaitDuration - (UtcDbTime() - _LastBattlelogAction));
             }
-            _LastBattlelogAction = DateTime.UtcNow;
+            _LastBattlelogAction = UtcDbTime();
+        }
+
+        private void DoGoogleWait()
+        {
+            if ((UtcDbTime() - _LastGoogleAction) < _GoogleWaitDuration)
+            {
+                Thread.Sleep(_GoogleWaitDuration - (UtcDbTime() - _LastGoogleAction));
+            }
+            _LastGoogleAction = UtcDbTime();
         }
 
         private IPAPILocation FetchIPLocation(String ip) {
@@ -27186,20 +27376,8 @@ namespace PRoConEvents {
                         loc.regionName = (String) response["regionName"];
                         loc.city = (String) response["city"];
                         loc.zip = (String)response["zip"];
-                        if (!Double.TryParse((String)response["lat"], out loc.lat))
-                        {
-                            HandleException(new AdKatsException("Error parsing double for ip location latitude. '" + (String)response["lat"] + "'"));
-                            loc.status = "fail";
-                            loc.message = "error fetching latitude";
-                            return loc;
-                        }
-                        if (!Double.TryParse((String)response["lon"], out loc.lon))
-                        {
-                            HandleException(new AdKatsException("Error parsing double for ip location longitude. '" + (String)response["lon"] + "'"));
-                            loc.status = "fail";
-                            loc.message = "error fetching longitude";
-                            return loc;
-                        }
+                        loc.lat = (Double)response["lat"];
+                        loc.lon = (Double)response["lon"];
                         loc.timezone = (String) response["timezone"];
                         loc.isp = (String) response["isp"];
                         loc.org = (String) response["org"];
