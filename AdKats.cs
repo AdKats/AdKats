@@ -4398,7 +4398,7 @@ namespace PRoConEvents {
                                 lastServerInfoRequest = UtcDbTime();
                                 Double averageReadDuration = (_DatabaseReaderDurations.Sum() / (Double)_DatabaseReaderDurations.Count);
                                 Double averageModifyDuration = (_DatabaseNonQueryDurations.Sum() / (Double)_DatabaseNonQueryDurations.Count);
-                                ConsoleInfo("Average Read: " + Math.Round(averageReadDuration, 3) + "s | Average Write: " + Math.Round(averageModifyDuration, 3) + "s");
+                                ConsoleInfo("Average Read: " + Math.Round(averageReadDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(averageModifyDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
                             }
 
                             //Sleep 1 second between loops
