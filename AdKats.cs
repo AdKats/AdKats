@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.9.5
+ * Version 5.2.9.6
  * 6-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.9.5</version_code>
+ * <version_code>5.2.9.6</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.9.5";
+        private const String PluginVersion = "5.2.9.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -25488,7 +25488,7 @@ namespace PRoConEvents {
                             if (!data.ContainsKey("viewedPersonaInfo") || (info = (Hashtable)data["viewedPersonaInfo"]) == null)
                             {
                                 aPlayer.player_clanTag = String.Empty;
-                                ConsoleWarn("Could not find BF4 clan tag for " + aPlayer.player_name);
+                                DebugWrite("Could not find BF4 clan tag for " + aPlayer.player_name, 4);
                             }
                             else
                             {
