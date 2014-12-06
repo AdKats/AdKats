@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.9.4
+ * Version 5.2.9.5
  * 6-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.9.4</version_code>
+ * <version_code>5.2.9.5</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.9.4";
+        private const String PluginVersion = "5.2.9.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -224,6 +224,8 @@ namespace PRoConEvents {
         private Boolean _databaseConnectionCriticalState;
         private Int32 _databaseSuccess;
         private Int32 _databaseTimeouts;
+        private List<Double> _DatabaseReaderDurations = new List<Double>();
+        private List<Double> _DatabaseNonQueryDurations = new List<Double>();
         private volatile Boolean _dbSettingsChanged = true;
         private Boolean _dbTimingChecked;
         private Boolean _dbTimingValid;
@@ -4394,6 +4396,9 @@ namespace PRoConEvents {
                                 ExecuteCommand("procon.protected.send", "serverInfo");
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                                 lastServerInfoRequest = UtcDbTime();
+                                Double averageReadDuration = (_DatabaseReaderDurations.Sum() / (Double)_DatabaseReaderDurations.Count);
+                                Double averageModifyDuration = (_DatabaseNonQueryDurations.Sum() / (Double)_DatabaseNonQueryDurations.Count);
+                                ConsoleInfo("Average Read: " + Math.Round(averageReadDuration, 3) + "s | Average Write: " + Math.Round(averageModifyDuration, 3) + "s");
                             }
 
                             //Sleep 1 second between loops
@@ -4401,12 +4406,12 @@ namespace PRoConEvents {
                         }
                         catch (Exception e)
                         {
-                            HandleException(new AdKatsException("Error in keep-alive. Skipping current loop.", e));
+                            HandleException(new AdKatsException("Error in status monitor. Skipping current loop.", e));
                         }
                     }
                 }
                 catch (Exception e) {
-                    HandleException(new AdKatsException("Error while running keep-alive.", e));
+                    HandleException(new AdKatsException("Error while running status monitor.", e));
                 }
             }));
             //Start the thread
@@ -4953,7 +4958,7 @@ namespace PRoConEvents {
                                             typeString = typeString.Trim().TrimEnd(',') + "]";
                                             if (_ShowTargetedPlayerLeftNotification)
                                             {
-                                                OnlineAdminSayMessage("Targeted player " + aPlayer.player_name + " has left the server from " + GetPlayerTeamKey(aPlayer) + " team. " + typeString);
+                                                OnlineAdminSayMessage(aPlayer.player_name + " left from " + GetPlayerTeamKey(aPlayer) + " " + typeString);
                                             }
                                             List<AdKatsRecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
                                             var reporters = new Dictionary<string, AdKatsPlayer>();
@@ -5812,7 +5817,7 @@ namespace PRoConEvents {
                                 WHERE 
                                     `server_id` = @server_id";
                                 command.Parameters.AddWithValue("server_id", _serverInfo.ServerID);
-                                using (MySqlDataReader reader = command.ExecuteReader())
+                                using (MySqlDataReader reader = SafeExecuteReader(command))
                                 {
                                     if (reader.Read())
                                     {
@@ -5911,7 +5916,7 @@ namespace PRoConEvents {
                                         try
                                         {
                                             //Attempt to execute the query
-                                            if (command.ExecuteNonQuery() > 0)
+                                            if (SafeExecuteNonQuery(command) > 0)
                                             {
                                                 DebugWrite("round stat pushed to database", 5);
                                             }
@@ -7009,7 +7014,7 @@ namespace PRoConEvents {
                         UPDATE 
                             `weapon_usage_count` = `weapon_usage_count` + 1";
                         //Attempt to execute the query
-                        if (command.ExecuteNonQuery() > 0) {
+                        if (SafeExecuteNonQuery(command) > 0) {
                             DebugWrite("Weapon pushed to database", 7);
                         }
                     }
@@ -14084,22 +14089,30 @@ namespace PRoConEvents {
                     _ActOnSpawnDictionary.Remove(aPlayer.player_name);
                 }
                 //Handle teamswap action
-                CPlayerInfo info = _Team1MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
-                if (info != null)
-                    _Team1MoveQueue = new Queue<CPlayerInfo>(_Team1MoveQueue.Where(p => p != info));
-
-                info = _Team2MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
-                if (info != null)
-                    _Team2MoveQueue = new Queue<CPlayerInfo>(_Team2MoveQueue.Where(p => p != info));
-
-                info = _TeamswapForceMoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
-                if (info != null)
-                    _TeamswapForceMoveQueue = new Queue<CPlayerInfo>(_TeamswapForceMoveQueue.Where(p => p != info));
-
-                info = _TeamswapOnDeathCheckingQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
-                if (info != null)
-                    _TeamswapOnDeathCheckingQueue = new Queue<CPlayerInfo>(_TeamswapOnDeathCheckingQueue.Where(p => p != info));
-
+                lock (_Team1MoveQueue)
+                {
+                    CPlayerInfo info = _Team1MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
+                    if (info != null)
+                        _Team1MoveQueue = new Queue<CPlayerInfo>(_Team1MoveQueue.Where(p => p != info));
+                }
+                lock (_Team2MoveQueue)
+                {
+                    CPlayerInfo info = _Team2MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
+                    if (info != null)
+                        _Team2MoveQueue = new Queue<CPlayerInfo>(_Team2MoveQueue.Where(p => p != info));
+                }
+                lock (_TeamswapForceMoveQueue)
+                {
+                    CPlayerInfo info = _TeamswapForceMoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
+                    if (info != null)
+                        _TeamswapForceMoveQueue = new Queue<CPlayerInfo>(_TeamswapForceMoveQueue.Where(p => p != info));
+                }
+                lock (_TeamswapOnDeathCheckingQueue)
+                {
+                    CPlayerInfo info = _TeamswapOnDeathCheckingQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
+                    if (info != null)
+                        _TeamswapOnDeathCheckingQueue = new Queue<CPlayerInfo>(_TeamswapOnDeathCheckingQueue.Where(p => p != info));
+                }
                 if (_TeamswapOnDeathMoveDic.ContainsKey(aPlayer.player_name))
                 {
                     _TeamswapOnDeathMoveDic.Remove(aPlayer.player_name);
@@ -14599,11 +14612,17 @@ namespace PRoConEvents {
                             UTC_TIMESTAMP(),
                             DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
                         )";
+                        if (record.target_player.player_id <= 0) {
+                            ConsoleError("Player ID invalid when dispersing. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when dispersing. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_identifier", record.target_player.player_name);
 
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0) {
                             SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to even dispersion for this server.");
                             DebugWrite("Player " + record.GetTargetNames() + " added to even dispersion for this server.", 3);
@@ -14658,7 +14677,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
 
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0) {
                             SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to autobalance whitelist for this server.");
                             DebugWrite("Player " + record.GetTargetNames() + " added to autobalance whitelist for this server.", 3);
@@ -14713,7 +14732,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
 
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0) {
                             SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to reserved slot for this server.");
                             DebugWrite("Player " + record.GetTargetNames() + " added to reserved slot for this server.", 3);
@@ -14773,7 +14792,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
 
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
                             SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to spectator slot for this server.");
@@ -14839,7 +14858,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
 
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
                             SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to hacker checker whitelist for all servers.");
@@ -14910,7 +14929,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
 
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
                             SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to ping whitelist for all servers.");
@@ -14980,7 +14999,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
 
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
                             SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to Admin Assistant whitelist for all servers.");
@@ -15050,7 +15069,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
 
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
                             SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to SpamBot whitelist for all servers.");
@@ -18148,7 +18167,7 @@ namespace PRoConEvents {
                         }
                         try {
                             //Attempt to execute the query
-                            Int32 rowsAffected = command.ExecuteNonQuery();
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
                             ConsoleWrite("Setup script successful, your database is now prepared for use by AdKats " + GetPluginVersion());
                             return true;
                         }
@@ -18327,7 +18346,7 @@ namespace PRoConEvents {
                                 `Name` AS `game_name` 
                             FROM 
                                 `tbl_games`";
-                            using (MySqlDataReader reader = command.ExecuteReader()) {
+                            using (MySqlDataReader reader = SafeExecuteReader(command)) {
                                 lock (_gameIDDictionary) {
                                     _gameIDDictionary.Clear();
                                     while (reader.Read()) {
@@ -18380,7 +18399,7 @@ namespace PRoConEvents {
                         FROM
 	                        `adkats_records_main`
                         LIMIT 1";
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 ConsoleInfo("Not updating database, new records already found.");
                                 return;
@@ -18403,7 +18422,7 @@ namespace PRoConEvents {
                         ORDER BY
                             `access_level`
                         ASC";
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             while (reader.Read()) {
                                 //Set all users to default guest role
                                 oldUsers.Add(new AdKatsUser {
@@ -18472,7 +18491,7 @@ namespace PRoConEvents {
                         FROM 
 	                        `adkats_banlist`";
 
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 totalBans = reader.GetInt64("ban_count");
                             }
@@ -18513,7 +18532,7 @@ namespace PRoConEvents {
 	                        `adkats_banlist`.`latest_record_id` = `adkats_records`.`record_id`";
 
                         var importedBans = new List<AdKatsBan>();
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             //Loop through all incoming bans
                             while (reader.Read()) {
                                 //Create the ban element
@@ -18616,7 +18635,7 @@ namespace PRoConEvents {
                         ORDER BY
 	                        `record_id`
                         ASC";
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             while (reader.Read()) {
                                 var aRecord = new AdKatsRecord();
                                 aRecord.record_source = AdKatsRecord.Sources.InternalAutomated;
@@ -18687,7 +18706,7 @@ namespace PRoConEvents {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = "SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME= '" + tableName + "'";
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             var confirmed = reader.Read();
                             return confirmed;
                         }
@@ -18907,7 +18926,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@setting_type", var.Type);
                         command.Parameters.AddWithValue("@setting_value", var.Value);
                         //Attempt to execute the query
-                        if (command.ExecuteNonQuery() > 0) {
+                        if (SafeExecuteNonQuery(command) > 0) {
                             DebugWrite("Setting " + var.Name + " pushed to database", 7);
                         }
                     }
@@ -18941,7 +18960,7 @@ namespace PRoConEvents {
                         WHERE 
                             `server_id` = " + serverID;
                         command.CommandText = sql;
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             //Grab the settings
                             while (reader.Read()) {
                                 success = true;
@@ -18969,7 +18988,7 @@ namespace PRoConEvents {
             DebugWrite("fetchSettings finished!", 6);
         }
 
-        private void UploadCommand(AdKatsCommand command) {
+        private void UploadCommand(AdKatsCommand aCommand) {
             DebugWrite("uploadCommand starting!", 6);
 
             //Make sure database connection active
@@ -18978,9 +18997,9 @@ namespace PRoConEvents {
             }
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
-                    using (MySqlCommand sqlcommand = connection.CreateCommand()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
                         //Set the insert command structure
-                        sqlcommand.CommandText = @"
+                        command.CommandText = @"
                         INSERT INTO 
                         `" + _mySqlSchemaName + @"`.`adkats_commands` 
                         (
@@ -19011,17 +19030,17 @@ namespace PRoConEvents {
                             `command_playerInteraction` = @command_playerInteraction";
 
                         //Fill the command
-                        sqlcommand.Parameters.AddWithValue("@command_id", command.command_id);
-                        sqlcommand.Parameters.AddWithValue("@command_active", command.command_active.ToString());
-                        sqlcommand.Parameters.AddWithValue("@command_key", command.command_key);
-                        sqlcommand.Parameters.AddWithValue("@command_logging", command.command_logging.ToString());
-                        sqlcommand.Parameters.AddWithValue("@command_name", command.command_name);
-                        sqlcommand.Parameters.AddWithValue("@command_text", command.command_text);
-                        sqlcommand.Parameters.AddWithValue("@command_playerInteraction", command.command_playerInteraction);
+                        command.Parameters.AddWithValue("@command_id", aCommand.command_id);
+                        command.Parameters.AddWithValue("@command_active", aCommand.command_active.ToString());
+                        command.Parameters.AddWithValue("@command_key", aCommand.command_key);
+                        command.Parameters.AddWithValue("@command_logging", aCommand.command_logging.ToString());
+                        command.Parameters.AddWithValue("@command_name", aCommand.command_name);
+                        command.Parameters.AddWithValue("@command_text", aCommand.command_text);
+                        command.Parameters.AddWithValue("@command_playerInteraction", aCommand.command_playerInteraction);
 
                         //Get reference to the command in case of error
                         //Attempt to execute the query
-                        if (sqlcommand.ExecuteNonQuery() > 0) {
+                        if (SafeExecuteNonQuery(command) > 0) {
                         }
                     }
                 }
@@ -19346,6 +19365,14 @@ namespace PRoConEvents {
                             {
                                 tName = record.target_player.player_name;
                             }
+                            if (record.target_player.player_id <= 0)
+                            {
+                                ConsoleError("Target ID invalid when uploading record. Unable to complete.");
+                                record.record_exception = new AdKatsException("Target ID invalid when uploading record. Unable to complete.");
+                                SendMessageToSource(record, "Target ID invalid when uploading record. Unable to complete.");
+                                FinalizeRecord(record);
+                                return false;
+                            }
                             command.Parameters.AddWithValue("@target_id", record.target_player.player_id);
                         }
                         else
@@ -19363,6 +19390,14 @@ namespace PRoConEvents {
                             if (!String.IsNullOrEmpty(record.source_player.player_name))
                             {
                                 sName = record.source_player.player_name;
+                            }
+                            if (record.source_player.player_id <= 0)
+                            {
+                                ConsoleError("Source ID invalid when uploading record. Unable to complete.");
+                                record.record_exception = new AdKatsException("Source ID invalid when uploading record. Unable to complete.");
+                                SendMessageToSource(record, "Source ID invalid when uploading record. Unable to complete.");
+                                FinalizeRecord(record);
+                                return false;
                             }
                             command.Parameters.AddWithValue("@source_id", record.source_player.player_id);
                         }
@@ -19389,7 +19424,7 @@ namespace PRoConEvents {
 
                         //Get reference to the command in case of error
                         //Attempt to execute the query
-                        if (command.ExecuteNonQuery() > 0)
+                        if (SafeExecuteNonQuery(command) > 0)
                         {
                             success = true;
                             record.record_id = command.LastInsertedId;
@@ -19509,7 +19544,7 @@ namespace PRoConEvents {
 
                         //Get reference to the command in case of error
                         //Attempt to execute the query
-                        if (command.ExecuteNonQuery() > 0)
+                        if (SafeExecuteNonQuery(command) > 0)
                         {
                             success = true;
                             aStat.stat_id = command.LastInsertedId;
@@ -19621,7 +19656,7 @@ namespace PRoConEvents {
                         //Get reference to the command in case of error
                         commandAttempt = command;
                         //Attempt to execute the query
-                        if (command.ExecuteNonQuery() > 0)
+                        if (SafeExecuteNonQuery(command) > 0)
                         {
                             success = true;
                         }
@@ -19713,7 +19748,7 @@ namespace PRoConEvents {
                         GROUP BY command_type, command_action";
 
                         command.Parameters.AddWithValue("player_id", aPlayer.player_id);
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             while (reader.Read()) {
                                 String typeAction = reader.GetInt32("command_type") + "|" + reader.GetInt32("command_action");
                                 Double command_count = reader.GetDouble("command_count");
@@ -19741,7 +19776,7 @@ namespace PRoConEvents {
 	                        target_name <> source_name
                         GROUP BY command_type, command_action";
                         command.Parameters.AddWithValue("player_id", aPlayer.player_id);
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             while (reader.Read()) {
                                 String typeAction = reader.GetInt32("command_type") + "|" + reader.GetInt32("command_action");
                                 Double command_count = reader.GetDouble("command_count");
@@ -19776,7 +19811,7 @@ namespace PRoConEvents {
                             command_action = 51
                         GROUP BY command_type, command_action";
                         command.Parameters.AddWithValue("player_id", aPlayer.player_id);
-                        using (MySqlDataReader reader = command.ExecuteReader())
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             while (reader.Read())
                             {
@@ -19810,7 +19845,8 @@ namespace PRoConEvents {
                         totalReputationConstrained = -(1000 * Math.Abs(totalReputation)) / (Math.Abs(totalReputation) + 1000);
                     }
                     using (MySqlCommand command = connection.CreateCommand()) {
-                        command.CommandText = @"REPLACE INTO
+                        command.CommandText = @"
+                        REPLACE INTO
 	                        adkats_player_reputation
                         VALUES 
                         (
@@ -19821,7 +19857,11 @@ namespace PRoConEvents {
 	                        @total_rep,
                             @total_rep_co
                         )";
-
+                        if (aPlayer.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when updating player reputation. Unable to complete.");
+                            return;
+                        }
                         command.Parameters.AddWithValue("player_id", aPlayer.player_id);
                         if (aPlayer.game_id <= 0) {
                             aPlayer.game_id = _serverInfo.GameID;
@@ -19831,7 +19871,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("source_rep", sourceReputation);
                         command.Parameters.AddWithValue("total_rep", totalReputation);
                         command.Parameters.AddWithValue("total_rep_co", totalReputationConstrained);
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (_firstPlayerListComplete && Math.Abs(aPlayer.player_reputation - totalReputationConstrained) > .02) {
                             if (aPlayer.player_spawnedOnce || (aPlayer.frostbitePlayerInfo != null && aPlayer.frostbitePlayerInfo.TeamID == 0)){
                                 DebugWrite(aPlayer.player_name + "'s reputation updated from " + Math.Round(aPlayer.player_reputation, 2) + " to " + Math.Round(totalReputationConstrained, 2), 3);
@@ -19882,7 +19922,7 @@ namespace PRoConEvents {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         //Attempt to execute the query
                         command.CommandText = query;
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 if (verbose) {
                                     ConsoleSuccess("Query returned values.");
@@ -19915,7 +19955,7 @@ namespace PRoConEvents {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = nonQuery;
                         //Attempt to execute the non query
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (verbose) {
                             ConsoleSuccess("Non-Query success. " + rowsAffected + " rows affected. [" + desc + "]");
                         }
@@ -19986,7 +20026,7 @@ namespace PRoConEvents {
                                 command.Parameters.AddWithValue("@record_message", record.record_message);
                                 command.Parameters.AddWithValue("@command_action", record.command_action.command_id);
                                 //Attempt to execute the query
-                                Int32 rowsAffected = command.ExecuteNonQuery();
+                                Int32 rowsAffected = SafeExecuteNonQuery(command);
                                 if (rowsAffected > 0) {
                                     success = true;
                                 }
@@ -20052,7 +20092,7 @@ namespace PRoConEvents {
                         WHERE 
                             `record_id` = " + recordID;
                         command.CommandText = sql;
-                        using (MySqlDataReader reader = command.ExecuteReader())
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             //Grab the record
                             if (reader.Read())
@@ -20200,7 +20240,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@limit_days", limit_days);
                         command.Parameters.AddWithValue("@limit_records", limit_records);
                         command.CommandText = sql;
-                        using (MySqlDataReader reader = command.ExecuteReader())
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             //Grab the records
                             while (reader.Read())
@@ -20303,7 +20343,7 @@ namespace PRoConEvents {
                         AND 
                             `server_id` = " + _serverInfo.ServerID;
                         command.CommandText = sql;
-                        using (MySqlDataReader reader = command.ExecuteReader())
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             //Grab the record
                             while (reader.Read())
@@ -20438,7 +20478,7 @@ namespace PRoConEvents {
 	                        `tbl_playerdata`.`PlayerID`";
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
-                        using (MySqlDataReader reader = command.ExecuteReader())
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             //Grab the record
                             while (reader.Read())
@@ -20506,7 +20546,7 @@ namespace PRoConEvents {
 	                        `tbl_playerdata`.`PlayerID`";
                         command.CommandText = sql;
                         command.Parameters.AddWithValue("@current_server_id", _serverInfo.ServerID);
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             while (reader.Read()) {
                                 if (Regex.Match(reader.GetString("player_name"), searchName, RegexOptions.IgnoreCase).Success) {
                                     aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
@@ -20555,7 +20595,7 @@ namespace PRoConEvents {
                         WHERE
 	                        `setting_server` = @server_id";
                         command.Parameters.AddWithValue("server_id", _serverInfo.ServerID);
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             while (reader.Read()) {
                                 SetExternalPluginSetting(reader.GetString("setting_plugin"), reader.GetString("setting_name"), reader.GetString("setting_value"));
                                 _threadMasterWaitHandle.WaitOne(10);
@@ -20595,7 +20635,7 @@ namespace PRoConEvents {
                         AND 
                             `ban_status` = 'Active'";
 
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 _NameBanCount = reader.GetInt64("ban_count");
                                 return _NameBanCount;
@@ -20636,7 +20676,7 @@ namespace PRoConEvents {
                         AND 
                             `ban_status` = 'Active'";
 
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 _GUIDBanCount = reader.GetInt64("ban_count");
                                 return _GUIDBanCount;
@@ -20677,7 +20717,7 @@ namespace PRoConEvents {
                         AND 
                             `ban_status` = 'Active'";
 
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 _IPBanCount = reader.GetInt64("ban_count");
                                 return _IPBanCount;
@@ -20704,7 +20744,7 @@ namespace PRoConEvents {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = "DELETE FROM `" + _mySqlSchemaName + "`.`adkats_users` WHERE `user_id` = @user_id";
                         command.Parameters.AddWithValue("@user_id", user.user_id);
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                     }
                 }
             }
@@ -20738,12 +20778,12 @@ namespace PRoConEvents {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = "DELETE FROM `" + _mySqlSchemaName + "`.`adkats_rolecommands` WHERE `role_id` = @role_id";
                         command.Parameters.AddWithValue("@role_id", aRole.role_id);
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                     }
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = "DELETE FROM `" + _mySqlSchemaName + "`.`adkats_roles` WHERE `role_id` = @role_id";
                         command.Parameters.AddWithValue("@role_id", aRole.role_id);
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                     }
                 }
             }
@@ -20813,7 +20853,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@user_notes", aUser.user_notes);
 
                         //Attempt to execute the query
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0) {
                             //Set the user's new ID if new
                             if (aUser.user_id < 0) {
@@ -20830,7 +20870,7 @@ namespace PRoConEvents {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"DELETE FROM `adkats_usersoldiers` where `user_id` = " + aUser.user_id;
                         //Attempt to execute the query
-                        Int32 rowsAffected = command.ExecuteNonQuery();
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
                     }
                     //Upload/Update the user's soldier list
                     if (aUser.soldierDictionary.Count > 0) {
@@ -20857,7 +20897,7 @@ namespace PRoConEvents {
                                 command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
 
                                 //Attempt to execute the query
-                                Int32 rowsAffected = command.ExecuteNonQuery();
+                                Int32 rowsAffected = SafeExecuteNonQuery(command);
                                 if (rowsAffected > 0) {
                                     DebugWrite("Soldier link " + aUser.user_id + "->" + aPlayer.player_id + " uploaded to database SUCCESSFULY.", 5);
                                 }
@@ -20957,7 +20997,7 @@ namespace PRoConEvents {
                                 command.Parameters.AddWithValue("@role_name", aRole.role_name);
 
                                 //Attempt to execute the query
-                                Int32 rowsAffected = command.ExecuteNonQuery();
+                                Int32 rowsAffected = SafeExecuteNonQuery(command);
                                 if (rowsAffected > 0) {
                                     //Set the user's new ID if new
                                     if (aRole.role_id < 0) {
@@ -20975,7 +21015,7 @@ namespace PRoConEvents {
                             {
                                 command.CommandText = @"DELETE FROM `adkats_rolecommands` where `role_id` = " + aRole.role_id;
                                 //Attempt to execute the query
-                                Int32 rowsAffected = command.ExecuteNonQuery();
+                                Int32 rowsAffected = SafeExecuteNonQuery(command);
                             }
                             foreach (AdKatsCommand aCommand in aRole.RoleAllowedCommands.Values)
                             {
@@ -21003,7 +21043,7 @@ namespace PRoConEvents {
                                     command.Parameters.AddWithValue("@command_id", aCommand.command_id);
 
                                     //Attempt to execute the query
-                                    Int32 rowsAffected = command.ExecuteNonQuery();
+                                    Int32 rowsAffected = SafeExecuteNonQuery(command);
                                     if (rowsAffected > 0)
                                     {
                                         DebugWrite("Role-command uploaded to database SUCCESSFULY.", 5);
@@ -21020,7 +21060,7 @@ namespace PRoConEvents {
                             {
                                 command.CommandText = @"DELETE FROM `adkats_rolegroups` where `role_id` = " + aRole.role_id;
                                 //Attempt to execute the query
-                                Int32 rowsAffected = command.ExecuteNonQuery();
+                                Int32 rowsAffected = SafeExecuteNonQuery(command);
                             }
                             foreach (AdKatsSpecialGroup aGroup in aRole.RoleSetGroups.Values)
                             {
@@ -21047,7 +21087,7 @@ namespace PRoConEvents {
                                     command.Parameters.AddWithValue("@group_key", aGroup.group_key);
 
                                     //Attempt to execute the query
-                                    Int32 rowsAffected = command.ExecuteNonQuery();
+                                    Int32 rowsAffected = SafeExecuteNonQuery(command);
                                     if (rowsAffected > 0)
                                     {
                                         DebugWrite("Role-groups uploaded to database SUCCESSFULY.", 5);
@@ -21166,7 +21206,7 @@ namespace PRoConEvents {
                                 command.Parameters.AddWithValue("@ban_startTime", aBan.ban_record.record_time);
                             }
                             //Attempt to execute the query
-                            if (command.ExecuteNonQuery() >= 0) {
+                            if (SafeExecuteNonQuery(command) >= 0) {
                                 //Rows affected should be > 0
                                 DebugWrite("Success Uploading Ban on player " + aBan.ban_record.target_player.player_id, 5);
                                 success = true;
@@ -21187,7 +21227,7 @@ namespace PRoConEvents {
 
                                 command.Parameters.AddWithValue("@player_id", aBan.ban_record.target_player.player_id);
                                 //Attempt to execute the query
-                                using (MySqlDataReader reader = command.ExecuteReader()) {
+                                using (MySqlDataReader reader = SafeExecuteReader(command)) {
                                     //Grab the ban ID
                                     if (reader.Read()) {
                                         aBan.ban_id = reader.GetInt64("ban_id");
@@ -21243,7 +21283,7 @@ namespace PRoConEvents {
                     WHERE
 	                    `SoldierName` LIKE '%" + playerName + "%'";
                     //Attempt to execute the query
-                    using (MySqlDataReader reader = command.ExecuteReader()) {
+                    using (MySqlDataReader reader = SafeExecuteReader(command)) {
                         //Grab the matching players
                         while (reader.Read()) {
                             AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
@@ -21374,7 +21414,7 @@ namespace PRoConEvents {
                             sql += @"
                             LIMIT 1";
                             command.CommandText = sql;
-                            using (MySqlDataReader reader = command.ExecuteReader())
+                            using (MySqlDataReader reader = SafeExecuteReader(command))
                             {
                                 if (reader.Read())
                                 {
@@ -21444,7 +21484,7 @@ namespace PRoConEvents {
                                         " + ((!String.IsNullOrEmpty(playerGUID)) ? (@",`EAGUID` = '" + playerGUID + "'") : ("")) + @"
                                         " + ((!String.IsNullOrEmpty(playerIP)) ? (@",`IP_Address` = '" + playerIP + "'") : (""));
                                     //Attempt to execute the query
-                                    if (command.ExecuteNonQuery() > 0) {
+                                    if (SafeExecuteNonQuery(command) > 0) {
                                         //Rows affected should be > 0
                                         aPlayer = new AdKatsPlayer(this) {
                                             player_id = command.LastInsertedId,
@@ -21515,7 +21555,7 @@ namespace PRoConEvents {
 	                                tbl_playerstats.FirstSeenOnServer
                                 LIMIT 1";
                                 command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
-                                using (MySqlDataReader reader = command.ExecuteReader())
+                                using (MySqlDataReader reader = SafeExecuteReader(command))
                                 {
                                     if (reader.Read())
                                     {
@@ -21546,7 +21586,7 @@ namespace PRoConEvents {
 	                                Serverid ASC";
                                 command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
                                 command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
-                                using (MySqlDataReader reader = command.ExecuteReader())
+                                using (MySqlDataReader reader = SafeExecuteReader(command))
                                 {
                                     if (reader.Read())
                                     {
@@ -21594,7 +21634,7 @@ namespace PRoConEvents {
                                 `IP_Address` = '" + player.player_ip + @"'
                             WHERE `tbl_playerdata`.`PlayerID` = " + player.player_id;
                             //Attempt to execute the query
-                            if (command.ExecuteNonQuery() > 0) {
+                            if (SafeExecuteNonQuery(command) > 0) {
                                 DebugWrite("Update player info success.", 5);
                             }
                         }
@@ -21642,7 +21682,7 @@ namespace PRoConEvents {
                         WHERE 
                             `ban_id` = @ban_id";
                         command.Parameters.AddWithValue("@ban_id", ban_id);
-                        using (MySqlDataReader reader = command.ExecuteReader())
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             if (reader.Read())
                             {
@@ -21762,7 +21802,7 @@ namespace PRoConEvents {
                         //Assign the query
                         command.CommandText = query;
 
-                        using (MySqlDataReader reader = command.ExecuteReader())
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             while (reader.Read())
                             {
@@ -21866,7 +21906,7 @@ namespace PRoConEvents {
                         //Add the search value
                         command.Parameters.Add("@PlayerSubstring", "%" + playerSubstring + "%");
                         command.Parameters.Add("@searchLimit", searchLimit);
-                        using (MySqlDataReader reader = command.ExecuteReader())
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             while (reader.Read())
                             {
@@ -21907,7 +21947,7 @@ namespace PRoConEvents {
                         FROM 
 	                        `adkats_bans`";
 
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 totalBans = reader.GetInt64("ban_count");
                             }
@@ -21934,7 +21974,7 @@ namespace PRoConEvents {
 	                        `adkats_bans`";
 
                         var importedBans = new List<AdKatsBan>();
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             //Loop through all incoming bans
                             while (reader.Read()) {
                                 //Break from the loop if the plugin is disabled or the setting is reverted.
@@ -22076,7 +22116,7 @@ namespace PRoConEvents {
                             `ban_id` = " + aBan.ban_id;
                             command.CommandText = query;
                             //Attempt to execute the query
-                            if (command.ExecuteNonQuery() > 0) {
+                            if (SafeExecuteNonQuery(command) > 0) {
                                 success = true;
                             }
                         }
@@ -22112,7 +22152,7 @@ namespace PRoConEvents {
                             `adkats_bans`.`ban_notes` = 'BBM5108' 
                         LIMIT 1";
 
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 ConsoleInfo("BF3 Ban Manager bans already imported, canceling import.");
                                 return;
@@ -22146,7 +22186,7 @@ namespace PRoConEvents {
                         ON 
                             bm_banlist.soldierID = bm_soldiers.soldierID";
 
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             Boolean told = false;
                             while (reader.Read()) {
                                 if (!told) {
@@ -22290,7 +22330,7 @@ namespace PRoConEvents {
                             `record_time` 
                         DESC LIMIT 1";
 
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 DebugWrite("can't upload punish", 6);
                                 return false;
@@ -22337,7 +22377,7 @@ namespace PRoConEvents {
                         ORDER BY 
                             `record_time` 
                         DESC LIMIT 1";
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 DebugWrite("Punish is Double counted", 6);
                                 return true;
@@ -22395,7 +22435,7 @@ namespace PRoConEvents {
                             command.Parameters.AddWithValue("@player_id", player.player_id);
                             command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         }
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             returnVal = reader.Read() ? reader.GetInt32("total_points") : 0;
                         }
                     }
@@ -22448,7 +22488,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@limit_lines", limit_lines);
                         command.Parameters.AddWithValue("@limit_days", limit_days);
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             while (reader.Read()) {
                                 pchat.Add(new KeyValuePair<DateTime, KeyValuePair<string, string>>(reader.GetDateTime("chat_time"), new KeyValuePair<String, String>(reader.GetString("chat_player"), reader.GetString("chat_message"))));
                             }
@@ -22497,7 +22537,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@limit_lines", limit_lines);
                         command.Parameters.AddWithValue("@limit_days", limit_days);
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             while (reader.Read()) {
                                 pchat.Add(new KeyValuePair<DateTime, String>(reader.GetDateTime("chat_time"), reader.GetString("chat_message")));
                             }
@@ -22534,7 +22574,7 @@ namespace PRoConEvents {
 	                            `adkats_commands`";
                             sqlcommand.CommandText = sql;
                             var validIDs = new HashSet<Int64>();
-                            using (MySqlDataReader reader = sqlcommand.ExecuteReader()) {
+                            using (MySqlDataReader reader = SafeExecuteReader(sqlcommand)) {
                                 _CommandKeyDictionary.Clear();
                                 _CommandNameDictionary.Clear();
                                 _CommandTextDictionary.Clear();
@@ -23132,7 +23172,7 @@ namespace PRoConEvents {
             try {
                 lock (_RoleIDDictionary) {
                     using (MySqlConnection connection = GetDatabaseConnection()) {
-                        using (MySqlCommand sqlcommand = connection.CreateCommand()) {
+                        using (MySqlCommand command = connection.CreateCommand()) {
                             const string sql = @"
                             SELECT 
 	                            `role_id`,
@@ -23140,9 +23180,9 @@ namespace PRoConEvents {
 	                            `role_name`
                             FROM 
 	                            `adkats_roles`";
-                            sqlcommand.CommandText = sql;
+                            command.CommandText = sql;
                             var validIDs = new HashSet<Int64>();
-                            using (MySqlDataReader reader = sqlcommand.ExecuteReader()) {
+                            using (MySqlDataReader reader = SafeExecuteReader(command)) {
                                 _RoleKeyDictionary.Clear();
                                 _RoleNameDictionary.Clear();
                                 while (reader.Read())
@@ -23188,7 +23228,7 @@ namespace PRoConEvents {
                                 }
                             }
                         }
-                        using (MySqlCommand sqlcommand = connection.CreateCommand())
+                        using (MySqlCommand command = connection.CreateCommand())
                         {
                             const string sql = @"
                             SELECT 
@@ -23199,8 +23239,8 @@ namespace PRoConEvents {
                             ORDER BY
                                 `role_id`
                             ASC";
-                            sqlcommand.CommandText = sql;
-                            using (MySqlDataReader reader = sqlcommand.ExecuteReader())
+                            command.CommandText = sql;
+                            using (MySqlDataReader reader = SafeExecuteReader(command))
                             {
                                 var rIDcIDDictionary = new Dictionary<Int64, HashSet<Int64>>();
                                 while (reader.Read())
@@ -23282,7 +23322,7 @@ namespace PRoConEvents {
                             ConsoleError("Roles could not be fetched.");
                         }
                         //Fetch role groups
-                        using (MySqlCommand sqlcommand = connection.CreateCommand())
+                        using (MySqlCommand command = connection.CreateCommand())
                         {
                             const string sql = @"
                             SELECT 
@@ -23293,8 +23333,8 @@ namespace PRoConEvents {
                             ORDER BY
                                 `role_id`
                             ASC";
-                            sqlcommand.CommandText = sql;
-                            using (MySqlDataReader reader = sqlcommand.ExecuteReader())
+                            command.CommandText = sql;
+                            using (MySqlDataReader reader = SafeExecuteReader(command))
                             {
                                 var rIDgKeyDictionary = new Dictionary<Int64, HashSet<String>>();
                                 while (reader.Read())
@@ -23427,7 +23467,7 @@ namespace PRoConEvents {
                         FROM 
 	                        `adkats_users`";
                         var validIDs = new List<Int64>();
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             lock (_userCache) {
                                 while (reader.Read())
                                 {
@@ -23551,7 +23591,7 @@ namespace PRoConEvents {
                                 `user_id`
                             ASC";
                         }
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             lock (_userCache) {
                                 foreach (AdKatsPlayer aPlayer in _userCache.Values.SelectMany(aUser => aUser.soldierDictionary.Values))
                                 {
@@ -23658,7 +23698,7 @@ namespace PRoConEvents {
                             DESC";
                             command.Parameters.AddWithValue("@playerGame", _serverInfo.GameID);
                             command.Parameters.AddWithValue("@playerServer", _serverInfo.ServerID);
-                            using (MySqlDataReader reader = command.ExecuteReader()) {
+                            using (MySqlDataReader reader = SafeExecuteReader(command)) {
                                 List<Int64> validIDs = new List<Int64>();
                                 while (reader.Read())
                                 {
@@ -23889,7 +23929,7 @@ namespace PRoConEvents {
 	                        WHERE `command_action` = " + GetCommandByKey("player_report_confirm").command_id + @" 
 	                        AND `source_id` = " + aPlayer.player_id + @"
                         ) >= 75";
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 aPlayer.player_aa = true;
                             }
@@ -23927,7 +23967,7 @@ namespace PRoConEvents {
                         WHERE 
                             IP_Address = @IP_Address";
                         command.Parameters.AddWithValue("@IP_Address", _serverInfo.ServerIP);
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read())
                             {
                                 _serverInfo.ServerID = reader.GetInt64("server_id");
@@ -23968,7 +24008,7 @@ namespace PRoConEvents {
                         WHERE 
                             `ServerID` = @ServerID";
                         command.Parameters.AddWithValue("@ServerID", serverID);
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 return reader.GetInt64("server_group");
                             }
@@ -24006,7 +24046,7 @@ namespace PRoConEvents {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"SELECT UTC_TIMESTAMP() AS `current_time`";
-                        using (MySqlDataReader reader = command.ExecuteReader()) {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             if (reader.Read()) {
                                 active = true;
                             }
@@ -24095,7 +24135,7 @@ namespace PRoConEvents {
                     using (MySqlCommand command = connection.CreateCommand())
                     {
                         command.CommandText = @"SELECT UTC_TIMESTAMP() AS `current_time`";
-                        using (MySqlDataReader reader = command.ExecuteReader())
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             if (reader.Read())
                             {
@@ -27180,6 +27220,60 @@ namespace PRoConEvents {
             return aException;
         }
 
+        public MySqlDataReader SafeExecuteReader(MySqlCommand command)
+        {
+            Stopwatch watch = new Stopwatch();
+            watch.Start();
+            try
+            {
+                var reader = command.ExecuteReader();
+                watch.Stop();
+                _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
+                return reader;
+            }
+            catch (Exception e)
+            {
+                //If the failure was due to deadlock, wait a short duration and issue again
+                if (e.ToString().ToLower().Contains("deadlock"))
+                {
+                    Thread.Sleep(250);
+                    //If any further errors thrown, just throw them
+                    var reader = command.ExecuteReader();
+                    watch.Stop();
+                    _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
+                    return reader;
+                }
+                throw e;
+            }
+        }
+
+        public Int32 SafeExecuteNonQuery(MySqlCommand command)
+        {
+            Stopwatch watch = new Stopwatch();
+            watch.Start();
+            try
+            {
+                var modified = command.ExecuteNonQuery();
+                watch.Stop();
+                _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
+                return modified;
+            }
+            catch (Exception e) 
+            {
+                //If the failure was due to deadlock, wait a short duration and issue again
+                if (e.ToString().ToLower().Contains("deadlock")) 
+                {
+                    Thread.Sleep(250);
+                    //If any further errors thrown, just throw them
+                    var modified = command.ExecuteNonQuery();
+                    watch.Stop();
+                    _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
+                    return modified;
+                }
+                throw e;
+            }
+        }
+
         public void HandleDatabaseConnectionInteruption() {
             //Only handle these errors if all threads are already functioning normally
             if (_threadsReady || !_pluginEnabled) {
@@ -27555,6 +27649,10 @@ namespace PRoConEvents {
                 TargetedRecords = new List<AdKatsRecord>();
             }
 
+            public String GetVerboseName() {
+                return ((String.IsNullOrEmpty(player_clanTag)) ? ("") : ("[" + player_clanTag + "]")) + player_name;
+            }
+
             public TimeSpan GetIdleTime() {
                 return Plugin.UtcDbTime() - lastAction;
             }
@@ -27836,7 +27934,7 @@ namespace PRoConEvents {
                 String source = "";
                 if (source_player != null)
                 {
-                    source = ((source_player.player_online) ? ("") : ("(OFFLINE)")) + ((String.IsNullOrEmpty(source_player.player_clanTag)) ? ("") : ("[" + source_player.player_clanTag + "]")) + source_player.player_name;
+                    source = ((source_player.player_online) ? ("") : ("(OFFLINE)")) + source_player.GetVerboseName();
                 }
                 else if (String.IsNullOrEmpty(source_name)) {
                     source = "NOSOURCE";
@@ -27855,12 +27953,12 @@ namespace PRoConEvents {
                 {
                     foreach (AdKatsPlayer aPlayer in TargetPlayersLocal)
                     {
-                        targets += ((aPlayer.player_online) ? ("") : ("(OFFLINE)")) + ((String.IsNullOrEmpty(aPlayer.player_clanTag))?(""):("[" + aPlayer.player_clanTag + "]")) + aPlayer.player_name + ", ";
+                        targets += ((aPlayer.player_online) ? ("") : ("(OFFLINE)")) + aPlayer.GetVerboseName() + ", ";
                     }
                 }
                 else if (target_player != null) 
                 {
-                    targets = ((target_player.player_online) ? ("") : ("(OFFLINE)")) + ((String.IsNullOrEmpty(target_player.player_clanTag)) ? ("") : ("[" + target_player.player_clanTag + "]")) + target_player.player_name;
+                    targets = ((target_player.player_online) ? ("") : ("(OFFLINE)")) + target_player.GetVerboseName();
                 }
                 else
                 {
