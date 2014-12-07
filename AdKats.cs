@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.9.6
+ * Version 5.2.9.7
  * 6-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.9.6</version_code>
+ * <version_code>5.2.9.7</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.9.6";
+        private const String PluginVersion = "5.2.9.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -225,7 +225,9 @@ namespace PRoConEvents {
         private Int32 _databaseSuccess;
         private Int32 _databaseTimeouts;
         private List<Double> _DatabaseReaderDurations = new List<Double>();
+        private Double _DatabaseReadAverageDuration = 100;
         private List<Double> _DatabaseNonQueryDurations = new List<Double>();
+        private Double _DatabaseWriteAverageDuration = 100;
         private volatile Boolean _dbSettingsChanged = true;
         private Boolean _dbTimingChecked;
         private Boolean _dbTimingValid;
@@ -4391,14 +4393,15 @@ namespace PRoConEvents {
                                 }
                             }
 
+                            _DatabaseReadAverageDuration = (_DatabaseReaderDurations.Sum() / (Double)_DatabaseReaderDurations.Count);
+                            _DatabaseWriteAverageDuration = (_DatabaseNonQueryDurations.Sum() / (Double)_DatabaseNonQueryDurations.Count);
+
                             if (_threadsReady && (UtcDbTime() - lastServerInfoRequest).TotalSeconds > 10)
                             {
                                 ExecuteCommand("procon.protected.send", "serverInfo");
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                                 lastServerInfoRequest = UtcDbTime();
-                                Double averageReadDuration = (_DatabaseReaderDurations.Sum() / (Double)_DatabaseReaderDurations.Count);
-                                Double averageModifyDuration = (_DatabaseNonQueryDurations.Sum() / (Double)_DatabaseNonQueryDurations.Count);
-                                ConsoleInfo("Average Read: " + Math.Round(averageReadDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(averageModifyDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
+                                ConsoleInfo("Average Read: " + Math.Round(_DatabaseReadAverageDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(_DatabaseWriteAverageDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
                             }
 
                             //Sleep 1 second between loops
@@ -24046,8 +24049,12 @@ namespace PRoConEvents {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"SELECT UTC_TIMESTAMP() AS `current_time`";
-                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
-                            if (reader.Read()) {
+                        Stopwatch watch = new Stopwatch();
+                        watch.Start();
+                        using (MySqlDataReader reader = command.ExecuteReader())
+                        {
+                            watch.Stop();
+                            if (reader.Read() && watch.Elapsed.TotalSeconds < (50 *_DatabaseReadAverageDuration)) {
                                 active = true;
                             }
                             else {
@@ -27228,6 +27235,10 @@ namespace PRoConEvents {
             {
                 var reader = command.ExecuteReader();
                 watch.Stop();
+                if (watch.Elapsed.TotalSeconds > (50 * _DatabaseReadAverageDuration) && _firstPlayerListComplete) 
+                {
+                    HandleDatabaseConnectionInteruption();
+                }
                 _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
                 return reader;
             }
@@ -27238,8 +27249,14 @@ namespace PRoConEvents {
                 {
                     Thread.Sleep(250);
                     //If any further errors thrown, just throw them
+                    watch.Reset();
+                    watch.Start();
                     var reader = command.ExecuteReader();
                     watch.Stop();
+                    if (watch.Elapsed.TotalSeconds > (50 * _DatabaseReadAverageDuration) && _firstPlayerListComplete)
+                    {
+                        HandleDatabaseConnectionInteruption();
+                    }
                     _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
                     return reader;
                 }
@@ -27255,6 +27272,10 @@ namespace PRoConEvents {
             {
                 var modified = command.ExecuteNonQuery();
                 watch.Stop();
+                if (watch.Elapsed.TotalSeconds > (50 * _DatabaseWriteAverageDuration) && _firstPlayerListComplete)
+                {
+                    HandleDatabaseConnectionInteruption();
+                }
                 _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
                 return modified;
             }
@@ -27265,8 +27286,14 @@ namespace PRoConEvents {
                 {
                     Thread.Sleep(250);
                     //If any further errors thrown, just throw them
+                    watch.Reset();
+                    watch.Start();
                     var modified = command.ExecuteNonQuery();
                     watch.Stop();
+                    if (watch.Elapsed.TotalSeconds > (50 * _DatabaseWriteAverageDuration) && _firstPlayerListComplete)
+                    {
+                        HandleDatabaseConnectionInteruption();
+                    }
                     _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
                     return modified;
                 }
