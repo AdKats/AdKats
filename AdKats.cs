@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.9.9
- * 6-DEC-2014
+ * Version 5.3.0.1
+ * 7-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.9.9</version_code>
+ * <version_code>5.3.0.1</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.9.9";
+        private const String PluginVersion = "5.3.0.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4958,7 +4958,7 @@ namespace PRoConEvents {
                                             typeString = typeString.Trim().TrimEnd(',') + "]";
                                             if (_ShowTargetedPlayerLeftNotification)
                                             {
-                                                OnlineAdminSayMessage(aPlayer.player_name + " left from " + GetPlayerTeamKey(aPlayer) + " " + typeString);
+                                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " left from " + GetPlayerTeamKey(aPlayer) + " " + typeString);
                                             }
                                             List<AdKatsRecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
                                             var reporters = new Dictionary<string, AdKatsPlayer>();
@@ -4968,7 +4968,7 @@ namespace PRoConEvents {
                                             }
                                             foreach (AdKatsPlayer player in reporters.Values)
                                             {
-                                                PlayerSayMessage(player.player_name, "Player " + aPlayer.player_name + " you reported has left the server.");
+                                                PlayerSayMessage(player.player_name, "Player " + aPlayer.GetVerboseName() + " you reported has left the server.");
                                             }
                                         }
                                     }
@@ -4988,12 +4988,12 @@ namespace PRoConEvents {
                                                 target_player = partner,
                                                 source_name = aPlayer.player_name,
                                                 source_player = aPlayer,
-                                                record_message = aPlayer.player_name + " has left their server. Private conversation closed."
+                                                record_message = aPlayer.GetVerboseName() + " has left their server. Private conversation closed."
                                             });
                                         }
                                         else
                                         {
-                                            PlayerSayMessage(partner.player_name, aPlayer.player_name + " has left the server. Private conversation closed.");
+                                            PlayerSayMessage(partner.player_name, aPlayer.GetVerboseName() + " has left the server. Private conversation closed.");
                                             partner.conversationPartner = null;
                                         }
                                         aPlayer.conversationPartner = null;
@@ -5091,7 +5091,7 @@ namespace PRoConEvents {
                                             }
                                             else
                                             {
-                                                DebugWrite("Ping status for " + aPlayer.player_name + ": " + reply.Status, 5);
+                                                DebugWrite("Ping status for " + aPlayer.GetVerboseName() + ": " + reply.Status, 5);
                                                 ping = -1;
                                             }
                                         }
@@ -5242,7 +5242,7 @@ namespace PRoConEvents {
                                             }
                                             if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == "player_kick" && (UtcDbTime() - aRecord.record_time).TotalMinutes < 30) && aPlayer.TargetedRecords.All(aRecord => aRecord.command_action.command_key != "banenforcer_enforce"))
                                             {
-                                                OnlineAdminSayMessage("Kicked player " + aPlayer.player_name + " rejoined the server.");
+                                                OnlineAdminSayMessage("Kicked player " + aPlayer.GetVerboseName() + " rejoined the server.");
                                             }
                                         }
                                         else
@@ -5319,7 +5319,7 @@ namespace PRoConEvents {
                                             if ((isAdmin || aPlayer.player_aa) && _InformReputablePlayersOfAdminJoins)
                                             {
                                                 List<AdKatsPlayer> reputablePlayers = _PlayerDictionary.Values.Where(iPlayer => iPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(iPlayer)).ToList();
-                                                String message = ((isAdmin) ? ("Admin ") : ("Admin assistant ")) + aPlayer.player_name + " joined the server as a " + joinLocation + ".";
+                                                String message = ((isAdmin) ? ("Admin ") : ("Admin assistant ")) + aPlayer.GetVerboseName() + " joined the server as a " + joinLocation + ".";
                                                 OnlineAdminSayMessage(message);
                                                 foreach (var reputablePlayer in reputablePlayers)
                                                 {
@@ -5328,7 +5328,7 @@ namespace PRoConEvents {
                                             }
                                             else if (aPlayer.player_type == PlayerType.Spectator)
                                             {
-                                                OnlineAdminSayMessage(aPlayer.player_name + " is now spectating the server.");
+                                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " is now spectating the server.");
                                             }
                                             //If populating, add player
                                             if (_populationPopulating && 
@@ -5441,12 +5441,12 @@ namespace PRoConEvents {
                                                     target_player = partner,
                                                     source_name = aPlayer.player_name,
                                                     source_player = aPlayer,
-                                                    record_message = aPlayer.player_name + " has left their server. Private conversation closed."
+                                                    record_message = aPlayer.GetVerboseName() + " has left their server. Private conversation closed."
                                                 });
                                             }
                                             else
                                             {
-                                                PlayerSayMessage(partner.player_name, aPlayer.player_name + " has left the server. Private conversation closed.");
+                                                PlayerSayMessage(partner.player_name, aPlayer.GetVerboseName() + " has left the server. Private conversation closed.");
                                                 partner.conversationPartner = null;
                                             }
                                             aPlayer.conversationPartner = null;
@@ -5692,7 +5692,7 @@ namespace PRoConEvents {
                     if (player_ip != aPlayer.player_ip && !String.IsNullOrEmpty(player_ip)) {
                         updatePlayer = true;
                         if (!String.IsNullOrEmpty(aPlayer.player_ip)) {
-                            DebugWrite(aPlayer.player_name + " changed their IP from " + aPlayer.player_ip + " to " + player_ip + ". Updating the database.", 2);
+                            DebugWrite(aPlayer.GetVerboseName() + " changed their IP from " + aPlayer.player_ip + " to " + player_ip + ". Updating the database.", 2);
                             var record = new AdKatsRecord {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
@@ -5710,7 +5710,7 @@ namespace PRoConEvents {
                     //Update IP location
                     FetchIPLocation(aPlayer, updatePlayer);
                     if (updatePlayer) {
-                        DebugWrite("OPPI: Queueing existing player " + aPlayer.player_name + " for update.", 4);
+                        DebugWrite("OPPI: Queueing existing player " + aPlayer.GetVerboseName() + " for update.", 4);
                         UpdatePlayer(aPlayer);
                         //If using ban enforcer, queue player for update
                         if (_UseBanEnforcer) {
@@ -6646,7 +6646,7 @@ namespace PRoConEvents {
 
                 Boolean gKillHandled = false;
                 //Update player death information
-                DebugWrite("Setting " + victim.player_name + " time of death to " + kKillerVictimDetails.TimeOfDeath, 7);
+                DebugWrite("Setting " + victim.GetVerboseName() + " time of death to " + kKillerVictimDetails.TimeOfDeath, 7);
                 victim.lastDeath = UtcDbTime();
                 //Only add the last death if it's not a death by admin
                 if (!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName))
@@ -6708,7 +6708,7 @@ namespace PRoConEvents {
                                         if (Math.Abs(milli - fuseTime) < possibleRange)
                                         {
                                             probability = (1 - Math.Abs((milli - fuseTime) / possibleRange)) * 100;
-                                            DebugWrite(cooker.Key.player_name + " cooking probability: " + probability + "%", 2);
+                                            DebugWrite(cooker.Key.GetVerboseName() + " cooking probability: " + probability + "%", 2);
                                         }
                                         else
                                         {
@@ -6718,7 +6718,7 @@ namespace PRoConEvents {
                                         //If probability > 60% report the player and add them to the round cookers list
                                         if (probability > 60.00)
                                         {
-                                            DebugWrite(cooker.Key.player_name + " in " + killer.player_name + "'s recent kills has a " + probability + "% cooking probability.", 2);
+                                            DebugWrite(cooker.Key.GetVerboseName() + " in " + killer.GetVerboseName() + "'s recent kills has a " + probability + "% cooking probability.", 2);
                                             gKillHandled = true;
                                             //Code to avoid spam
                                             if (killer.lastKill.AddSeconds(2) < UtcDbTime())
@@ -6735,7 +6735,7 @@ namespace PRoConEvents {
                                             {
                                                 //Inform the victim player that they will not be punished
                                                 PlayerTellMessage(killer.player_name, "You appear to be a victim of grenade cooking and will NOT be punished.");
-                                                PlayerTellMessage(victim.player_name, killer.player_name + " was a victim of grenade cooking, they did not use explosives.");
+                                                PlayerTellMessage(victim.player_name, killer.GetVerboseName() + " was a victim of grenade cooking, they did not use explosives.");
                                                 told = true;
                                             }
 
@@ -6755,7 +6755,7 @@ namespace PRoConEvents {
                                                     target_name = cooker.Key.player_name,
                                                     target_player = cooker.Key,
                                                     source_name = "AutoAdmin",
-                                                    record_message = "Rules: Cooking Grenades [" + probString + "-X] [Victim " + killer.player_name + " Protected]"
+                                                    record_message = "Rules: Cooking Grenades [" + probString + "-X] [Victim " + killer.GetVerboseName() + " Protected]"
                                                 };
                                                 //Process the record
                                                 QueueRecordForProcessing(record);
@@ -6767,7 +6767,7 @@ namespace PRoConEvents {
                                             if (probability > 92.5)
                                             {
                                                 _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
-                                                DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
+                                                DebugWrite(cooker.Key.GetVerboseName() + " added to round cooker list.", 2);
                                                 //Add to SURE
                                                 sure.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
                                             }
@@ -6775,7 +6775,7 @@ namespace PRoConEvents {
                                             else
                                             {
                                                 _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
-                                                DebugWrite(cooker.Key.player_name + " added to round cooker list.", 2);
+                                                DebugWrite(cooker.Key.GetVerboseName() + " added to round cooker list.", 2);
                                                 //Add to POSSIBLE
                                                 possible.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
                                             }
@@ -6796,7 +6796,7 @@ namespace PRoConEvents {
                                             target_name = player.player_name,
                                             target_player = player,
                                             source_name = "AutoAdmin",
-                                            record_message = "Rules: Cooking Grenades [" + probString + "] [Victim " + killer.player_name + " Protected]"
+                                            record_message = "Rules: Cooking Grenades [" + probString + "] [Victim " + killer.GetVerboseName() + " Protected]"
                                         };
                                         //Process the record
                                         QueueRecordForProcessing(record);
@@ -6821,7 +6821,7 @@ namespace PRoConEvents {
                                                 target_name = player.player_name,
                                                 target_player = player,
                                                 source_name = "AutoAdmin",
-                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.player_name + " Protected]"
+                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.GetVerboseName() + " Protected]"
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
@@ -6841,7 +6841,7 @@ namespace PRoConEvents {
                                                 target_name = player.player_name,
                                                 target_player = player,
                                                 source_name = "AutoAdmin",
-                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.player_name + " Protected]"
+                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.GetVerboseName() + " Protected]"
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
@@ -6876,15 +6876,15 @@ namespace PRoConEvents {
                                 target_name = killer.player_name,
                                 target_player = killer,
                                 source_name = "AutoAdmin",
-                                record_message = "Teamkilling " + victim.player_name + " with a damage area"
+                                record_message = "Teamkilling " + victim.GetVerboseName() + " with a damage area"
                             };
                             QueueRecordForProcessing(aRecord);
                             //Inform the victim
-                            PlayerTellMessage(victim.player_name, killer.player_name + " was slain for teamkilling you");
+                            PlayerTellMessage(victim.player_name, killer.GetVerboseName() + " was slain for teamkilling you");
                         }
                         else if (kKillerVictimDetails.DamageType == "Medkit" || kKillerVictimDetails.DamageType == "U_PortableMedicpack" || kKillerVictimDetails.DamageType == "U_Medkit") {
-                            PlayerSayMessage(killer.player_name, victim.player_name + " denied your revive!");
-                            PlayerTellMessage(victim.player_name, "You denied " + killer.player_name + "'s revive!");
+                            PlayerSayMessage(killer.player_name, victim.GetVerboseName() + " denied your revive!");
+                            PlayerTellMessage(victim.player_name, "You denied " + killer.GetVerboseName() + "'s revive!");
                         }
                     }
                     else if (_UseWeaponLimiter && !gKillHandled) {
@@ -6933,7 +6933,7 @@ namespace PRoConEvents {
                                             else {
                                                 record.record_message = "Rules: Using Explosives [" + weapon + "]";
                                             }
-                                            PlayerYellMessage(victim.player_name, killer.player_name + " was punished for killing you with " + weapon);
+                                            PlayerYellMessage(victim.player_name, killer.GetVerboseName() + " was punished for killing you with " + weapon);
                                             
                                             //Custom record to boost rep for victim
                                             var repRecord = new AdKatsRecord {
@@ -7090,7 +7090,7 @@ namespace PRoConEvents {
                         aPlayer.player_spawnedOnce = true;
                         if (_ShowNewPlayerAnnouncement && aPlayer.player_new)
                         {
-                            OnlineAdminSayMessage(aPlayer.player_name + " just joined this server group for the first time!");
+                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " just joined this server group for the first time!");
                         }
                         if(_UseFirstSpawnMessage) {
                             var spawnPrinter = new Thread(new ThreadStart(delegate
@@ -7364,7 +7364,7 @@ namespace PRoConEvents {
                                     foreach (AdKatsBan aBan in aBanList) {
                                         if (aBan.ban_record.target_player.player_id == aPlayer.player_id || aBanList.Count <= 5)
                                         {
-                                            DebugWrite("BANENF: BAN ENFORCED on " + aPlayer.player_name, 3);
+                                            DebugWrite("BANENF: BAN ENFORCED on " + aPlayer.GetVerboseName(), 3);
                                             //Create the new record
                                             var aRecord = new AdKatsRecord
                                             {
@@ -7612,20 +7612,20 @@ namespace PRoConEvents {
                 if (protectedList.Any()) {
                     foreach (AdKatsSpecialPlayer asPlayer in protectedList) {
                         if (asPlayer.player_object != null && asPlayer.player_object.player_id == aPlayer.player_id) {
-                            DebugWrite(aPlayer.player_name + " protected from hacker checker by database ID.", 2);
+                            DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by database ID.", 2);
                             return true;
                         }
                         if (!String.IsNullOrEmpty(asPlayer.player_identifier)) {
                             if (aPlayer.player_name == asPlayer.player_identifier) {
-                                DebugWrite(aPlayer.player_name + " protected from hacker checker by NAME.", 2);
+                                DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by NAME.", 2);
                                 return true;
                             }
                             if (aPlayer.player_guid == asPlayer.player_identifier) {
-                                DebugWrite(aPlayer.player_name + " protected from hacker checker by GUID.", 2);
+                                DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by GUID.", 2);
                                 return true;
                             }
                             if (aPlayer.player_ip == asPlayer.player_identifier) {
-                                DebugWrite(aPlayer.player_name + " protected from hacker checker by IP.", 2);
+                                DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by IP.", 2);
                                 return true;
                             }
                         }
@@ -7706,7 +7706,7 @@ namespace PRoConEvents {
                                     FetchPlayerStats(aPlayer);
                                     if (aPlayer.stats != null && aPlayer.stats.StatsException == null) {
                                         playersWithStats++;
-                                        ConsoleSuccess(aPlayer.player_name + " now has stats. Checking.");
+                                        ConsoleSuccess(aPlayer.GetVerboseName() + " now has stats. Checking.");
                                         if (!PlayerProtected(aPlayer)) {
                                             RunStatSiteHackCheck(aPlayer, false);
                                         }
@@ -7772,22 +7772,22 @@ namespace PRoConEvents {
         }
 
         private void RunStatSiteHackCheck(AdKatsPlayer aPlayer, Boolean debug) {
-            DebugWrite("HackerChecker running on " + aPlayer.player_name, 5);
+            DebugWrite("HackerChecker running on " + aPlayer.GetVerboseName(), 5);
             Boolean acted = false;
             if (_UseDpsChecker) {
-                DebugWrite("Preparing to DPS check " + aPlayer.player_name, 5);
+                DebugWrite("Preparing to DPS check " + aPlayer.GetVerboseName(), 5);
                 acted = DamageHackCheck(aPlayer, debug);
             }
             if (_UseHskChecker && !acted) {
-                DebugWrite("Preparing to HSK check " + aPlayer.player_name, 5);
+                DebugWrite("Preparing to HSK check " + aPlayer.GetVerboseName(), 5);
                 acted = AimbotHackCheck(aPlayer, debug);
             }
             if (_UseKpmChecker && !acted) {
-                DebugWrite("Preparing to KPM check " + aPlayer.player_name, 5);
+                DebugWrite("Preparing to KPM check " + aPlayer.GetVerboseName(), 5);
                 acted = KPMHackCheck(aPlayer, debug);
             }
             if (!acted && debug) {
-                ConsoleSuccess(aPlayer.player_name + " is clean.");
+                ConsoleSuccess(aPlayer.GetVerboseName() + " is clean.");
             }
         }
 
@@ -7893,8 +7893,8 @@ namespace PRoConEvents {
                                 {
                                     Thread.CurrentThread.Name = "bandelay";
                                     var start = UtcDbTime();
-                                    ConsoleInfo(banPlayer.player_name + " will be banned. Waiting for starting case.");
-                                    OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                    ConsoleInfo(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
+                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
                                     while (banPlayer.player_online &&
                                            !banPlayer.player_spawnedOnce &&
                                            (UtcDbTime() - start).TotalSeconds < 300)
@@ -7907,12 +7907,12 @@ namespace PRoConEvents {
                                         _threadMasterWaitHandle.WaitOne(1000);
                                     }
                                     //Onced triggered, ban after 90 seconds.
-                                    OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
+                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " triggered timer. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
                                     PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", true, 6);
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
 
-                                    ConsoleInfo(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                                    ConsoleInfo(aPlayer.GetVerboseName() + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
                                     if (!debugMode)
                                     {
                                         //Unlock the player
@@ -7947,7 +7947,7 @@ namespace PRoConEvents {
                     }
                     else
                     {
-                        ConsoleInfo(aPlayer.player_name + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                        ConsoleInfo(aPlayer.GetVerboseName() + " auto-banned for damage mod. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
                         if (!debugMode)
                         {
                             //Create the ban record
@@ -8049,8 +8049,8 @@ namespace PRoConEvents {
                                 {
                                     Thread.CurrentThread.Name = "bandelay";
                                     var start = UtcDbTime();
-                                    ConsoleInfo(banPlayer.player_name + " will be banned. Waiting for starting case.");
-                                    OnlineAdminTellMessage(banPlayer.player_name + " will be banned. Waiting for starting case.");
+                                    ConsoleInfo(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
+                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
                                     while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
                                     {
                                         if (!_pluginEnabled)
@@ -8061,7 +8061,7 @@ namespace PRoConEvents {
                                         _threadMasterWaitHandle.WaitOne(1000);
                                     }
                                     //Onced triggered, ban after 90 seconds.
-                                    OnlineAdminTellMessage(banPlayer.player_name + " triggered timer. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
+                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " triggered timer. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
                                     if (actedWeapon.HSKR >= .7)
                                     {
@@ -8069,7 +8069,7 @@ namespace PRoConEvents {
                                     }
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
 
-                                    ConsoleInfo(banPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                                    ConsoleInfo(banPlayer.GetVerboseName() + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
                                     if (!debugMode)
                                     {
                                         //Unlock player
@@ -8104,7 +8104,7 @@ namespace PRoConEvents {
                     }
                     else
                     {
-                        ConsoleInfo(aPlayer.player_name + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
+                        ConsoleInfo(aPlayer.GetVerboseName() + " auto-banned for aimbot. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]");
                         if (!debugMode)
                         {
                             //Create the ban record
@@ -8197,7 +8197,7 @@ namespace PRoConEvents {
                 if (actedWeapon != null) {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    ConsoleInfo(aPlayer.player_name + ((debugMode) ? (" debug") : (" auto")) + "-banned for KPM. [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]");
+                    ConsoleInfo(aPlayer.GetVerboseName() + ((debugMode) ? (" debug") : (" auto")) + "-banned for KPM. [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int) actedWeapon.Kills + "-" + (int) actedWeapon.Headshots + "]");
                     if (!debugMode) {
                         //Create the ban record
                         var record = new AdKatsRecord {
@@ -8380,7 +8380,7 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "onlineNonAdminSay";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Say (-Admins" + ((whitelistedPlayers.Any())?(whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.player_name)):("")) + ") > " + message);
+                            ProconChatWrite("Say (-Admins" + ((whitelistedPlayers.Any())?(whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.GetVerboseName())):("")) + ") > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -8428,7 +8428,7 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "onlineNonAdminYell";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Yell[" + _YellDuration + "s] (-Admins" + ((whitelistedPlayers.Any()) ? (whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.player_name)) : ("")) + ") > " + message);
+                            ProconChatWrite("Yell[" + _YellDuration + "s] (-Admins" + ((whitelistedPlayers.Any()) ? (whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.GetVerboseName())) : ("")) + ") > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -8477,7 +8477,7 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "onlineNonAdminTell";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Tell[" + _YellDuration + "s] (-Admins" + ((whitelistedPlayers.Any()) ? (whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.player_name)) : ("")) + ") > " + message);
+                            ProconChatWrite("Tell[" + _YellDuration + "s] (-Admins" + ((whitelistedPlayers.Any()) ? (whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.GetVerboseName())) : ("")) + ") > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -9233,7 +9233,7 @@ namespace PRoConEvents {
                             {
                                 if (aPlayer.TargetedRecords.Any(aRecord => aRecord.command_action.command_key == record.command_action.command_key && aRecord.record_time.AddSeconds(Math.Abs(_commandTimeoutDictionary[record.command_action.command_key](this))) > UtcDbTime()))
                                 {
-                                    SendMessageToSource(record, record.command_type.command_name + " on timeout for " + aPlayer.player_name);
+                                    SendMessageToSource(record, record.command_type.command_name + " on timeout for " + aPlayer.GetVerboseName());
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -9536,7 +9536,7 @@ namespace PRoConEvents {
                             }
                             else
                             {
-                                AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + record.GetSourceNames() + " for " + record.record_message);
+                                AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + record.GetSourceName() + " for " + record.record_message);
                             }
                             record.command_type = GetCommandByKey("player_kill");
                             record.command_action = GetCommandByKey("player_kill");
@@ -12065,8 +12065,8 @@ namespace PRoConEvents {
                         aRecord.isContested = true;
                         //Inform All Parties
                         SendMessageToSource(aRecord, aRecord.GetTargetNames() + " has contested your report against them.");
-                        SendMessageToSource(record, "You have contested " + aRecord.GetSourceNames() + "'s report against you.");
-                        OnlineAdminSayMessage(record.GetSourceNames() + " has contested report [" + aRecord.command_numeric + "] for " + aRecord.record_message);
+                        SendMessageToSource(record, "You have contested " + aRecord.GetSourceName() + "'s report against you.");
+                        OnlineAdminSayMessage(record.GetSourceName() + " has contested report [" + aRecord.command_numeric + "] for " + aRecord.record_message);
 
                         QueueRecordForProcessing(record);
                     }
@@ -12765,7 +12765,7 @@ namespace PRoConEvents {
                                 SendMessageToSource(record, "Your surrender vote has been removed!");
                                 Int32 requiredVotes = (Int32)((_PlayerDictionary.Count / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
-                                OnlineAdminSayMessage(record.GetSourceNames() + " removed their surrender vote.");
+                                OnlineAdminSayMessage(record.GetSourceName() + " removed their surrender vote.");
                                 AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                                 AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                             }
@@ -12863,13 +12863,13 @@ namespace PRoConEvents {
                 String message;
                 if (record.record_action_executed)
                 {
-                    message = record.GetSourceNames() + " issued " + record.command_action.command_name + " on " + record.GetTargetNames() + " for " + record.record_message;
+                    message = record.GetSourceName() + " issued " + record.command_action.command_name + " on " + record.GetTargetNames() + " for " + record.record_message;
                 }
                 else
                 {
-                    message = record.GetSourceNames() + " FAILED to issue " + record.command_action.command_name + " on " + record.GetTargetNames() + " for " + record.record_message;
+                    message = record.GetSourceName() + " FAILED to issue " + record.command_action.command_name + " on " + record.GetTargetNames() + " for " + record.record_message;
                 }
-                this.ExecuteCommand("procon.protected.events.write", "Plugins", "PluginAction", message, record.GetSourceNames());
+                this.ExecuteCommand("procon.protected.events.write", "Plugins", "PluginAction", message, record.GetSourceName());
             }
             catch (Exception e)
             {
@@ -13275,7 +13275,7 @@ namespace PRoConEvents {
                     reportedRecord.command_action = GetCommandByKey("player_report_deny");
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been denied.");
-                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been denied by " + record.GetSourceNames() + ".");
+                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been denied by " + record.GetSourceName() + ".");
 
                     record.target_name = reportedRecord.source_name;
                     record.target_player = reportedRecord.source_player;
@@ -13303,7 +13303,7 @@ namespace PRoConEvents {
                     UpdateRecord(reportedRecord);
                     //Do not inform the player their report was ignored
                     //SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been ignored.");
-                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been ignored by " + record.GetSourceNames() + ".");
+                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been ignored by " + record.GetSourceName() + ".");
 
                     record.target_name = reportedRecord.source_name;
                     record.target_player = reportedRecord.source_player;
@@ -13327,7 +13327,7 @@ namespace PRoConEvents {
                     reportedRecord.command_action = GetCommandByKey("player_report_confirm");
                     UpdateRecord(reportedRecord);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been accepted. Thank you.");
-                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been accepted by " + record.GetSourceNames() + ".");
+                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been accepted by " + record.GetSourceName() + ".");
 
                     record.target_name = reportedRecord.source_name;
                     record.target_player = reportedRecord.source_player;
@@ -13371,7 +13371,7 @@ namespace PRoConEvents {
                     }
                     DebugWrite("Handling round report.", 5);
                     SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been acted on. Thank you.");
-                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been acted on by " + record.GetSourceNames() + ".");
+                    OnlineAdminSayMessage("Report [" + reportedRecord.command_numeric + "] has been acted on by " + record.GetSourceName() + ".");
                     reportedRecord.command_action = GetCommandByKey("player_report_confirm");
                     UpdateRecord(reportedRecord);
 
@@ -13481,8 +13481,14 @@ namespace PRoConEvents {
                                 DebugWrite("BTLOG: Preparing to fetch battlelog info for player", 6);
                                 //Dequeue the record
                                 AdKatsPlayer aPlayer = unprocessedPlayers.Dequeue();
+                                //Old Tag
+                                String oldTag = aPlayer.player_clanTag;
                                 //Run the appropriate action
                                 FetchPlayerBattlelogInformation(aPlayer);
+                                //Update database with clan tag
+                                if (!String.IsNullOrEmpty(aPlayer.player_clanTag) && (String.IsNullOrEmpty(oldTag) || aPlayer.player_clanTag != oldTag)) {
+                                    UpdatePlayer(aPlayer);
+                                }
                             }
                         }
                         else
@@ -13955,7 +13961,7 @@ namespace PRoConEvents {
                                 if (record.source_name == "AutoAdmin" || record.source_name == "ProconAdmin") {
                                     AdminSayMessage("Punishing " + record.GetTargetNames() + " for " + record.record_message);
                                 } else {
-                                    AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceNames()) : ("admin")) + " for " + record.record_message);
+                                    AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                                 }
                             }
                             var seconds = (int) UtcDbTime().Subtract(record.target_player.lastDeath).TotalSeconds;
@@ -13981,7 +13987,7 @@ namespace PRoConEvents {
                                     }
                                     else
                                     {
-                                        AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceNames()) : ("admin")) + " for " + record.record_message);
+                                        AdminSayMessage(record.GetTargetNames() + " PUNISHED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                                     }
                                 }
                                 if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name)) {
@@ -14139,7 +14145,7 @@ namespace PRoConEvents {
                 else {
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_player.player_name, kickReason);
                     if (record.target_name != record.source_name && record.source_name != "AFKManager") {
-                        AdminSayMessage(record.GetTargetNames() + " was KICKED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceNames()) : ("admin")) + " for " + record.record_message);
+                        AdminSayMessage(record.GetTargetNames() + " was KICKED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                     }
                     if (record.target_player.frostbitePlayerInfo != null) {
                         String teamLocation;
@@ -14218,7 +14224,7 @@ namespace PRoConEvents {
                     }
                 }
                 if (record.target_name != record.source_name) {
-                    AdminSayMessage(record.GetTargetNames() + " was BANNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceNames()) : ("admin")) + " for " + record.record_message);
+                    AdminSayMessage(record.GetTargetNames() + " was BANNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                 }
                 SendMessageToSource(record, "You TEMP BANNED " + record.GetTargetNames() + " for " + FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 3));
             }
@@ -14286,7 +14292,7 @@ namespace PRoConEvents {
                     }
                 }
                 if (record.target_name != record.source_name) {
-                    AdminSayMessage(record.GetTargetNames() + " was BANNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceNames()) : ("admin")) + " for " + record.record_message);
+                    AdminSayMessage(record.GetTargetNames() + " was BANNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                 }
                 SendMessageToSource(record, "You PERMA BANNED " + record.GetTargetNames());
             }
@@ -14462,12 +14468,12 @@ namespace PRoConEvents {
                     //Call correct action
                     if (action == "repwarn")
                     {
-                        AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceNames()) : ("admin")) + " for " + record.record_message);
+                        AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                         PlayerTellMessage(record.target_name, "Your reputation protected you from a punish, but has been reduced. Inform an admin!", true, 3);
                     }
                     else if (action == "warn")
                     {
-                        AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceNames()) : ("admin")) + " for " + record.record_message);
+                        AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                         PlayerTellMessage(record.target_name, "Warned by admin for " + record.record_message, true , 3);
                     }
                     else if ((action == "kill" || (isLowPop && !iroOverride)) && !action.Equals("ban")) 
@@ -15234,6 +15240,7 @@ namespace PRoConEvents {
                     }
                     if (!record.targetLoadoutValid && !FetchOnlineAdminSoldiers().Any())
                     {
+                        SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by loadout enforcer.");
                         record.command_action = GetCommandByKey("player_report_confirm");
                         UpdateRecord(record);
@@ -15271,23 +15278,23 @@ namespace PRoConEvents {
                         targetPlayerInfo = " (OFFLINE)";
                     }
                 }
-                OnlineAdminSayMessage("REPORT [" + reportID + "] Source: " + sourceAAIdentifier + record.GetSourceNames() + sourcePlayerInfo);
-                OnlineAdminSayMessage("REPORT [" + reportID + "] Target: " + targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo);
-                OnlineAdminSayMessage("REPORT [" + reportID + "] Reason: " + record.record_message);
+                OnlineAdminSayMessage("R[" + reportID + "] Source: " + sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo);
+                OnlineAdminSayMessage("R[" + reportID + "] Target: " + targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo);
+                OnlineAdminSayMessage("R[" + reportID + "] Reason: " + record.record_message);
                 if (_isTestingAuthorized && record.target_player != null && (record.target_player.player_reputation > _reputationThresholdGood || PlayerIsAdmin(record.target_player)))
                 {
                     //Set Contested
                     record.isContested = true;
                     //Inform All Parties
                     SendMessageToSource(record, record.GetTargetNames() + "'s reputation has automatically contested your report against them.");
-                    PlayerTellMessage(record.target_player.player_name, "Your reputation has automatically contested " + record.GetSourceNames() + "'s report against you.");
+                    PlayerTellMessage(record.target_player.player_name, "Your reputation has automatically contested " + record.GetSourceName() + "'s report against you.");
                     OnlineAdminSayMessage(record.GetTargetNames() + "'s reputation has automatically contested report [" + record.command_numeric + "]");
                 }
                 else if (_InformReportedPlayers) {
                     String mesLow = record.record_message.ToLower();
                     if (!_PlayerInformExclusionStrings.Any(exc => mesLow.Contains(exc.ToLower())))
                     {
-                        PlayerTellMessage(record.target_name, record.GetSourceNames() + " reported you for " + record.record_message, true, 6);
+                        PlayerTellMessage(record.target_name, record.GetSourceName() + " reported you for " + record.record_message, true, 6);
                     }
                 }
                 if (_UseEmail) {
@@ -15406,15 +15413,15 @@ namespace PRoConEvents {
                         targetPlayerInfo = " (OFFLINE)";
                     }
                 }
-                OnlineAdminSayMessage("ADMIN CALL [" + reportID + "] Source: " + sourceAAIdentifier + record.GetSourceNames() + sourcePlayerInfo);
-                OnlineAdminSayMessage("ADMIN CALL [" + reportID + "] Target: " + targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo);
-                OnlineAdminSayMessage("ADMIN CALL [" + reportID + "] Reason: " + record.record_message);
+                OnlineAdminSayMessage("A[" + reportID + "] Source: " + sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo);
+                OnlineAdminSayMessage("A[" + reportID + "] Target: " + targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo);
+                OnlineAdminSayMessage("A[" + reportID + "] Reason: " + record.record_message);
                 if (_InformReportedPlayers)
                 {
                     String mesLow = record.record_message.ToLower();
                     if (!_PlayerInformExclusionStrings.Any(exc => mesLow.Contains(exc.ToLower())))
                     {
-                        PlayerTellMessage(record.target_name, record.GetSourceNames() + " reported you for " + record.record_message, true, 6);
+                        PlayerTellMessage(record.target_name, record.GetSourceName() + " reported you for " + record.record_message, true, 6);
                     }
                 }
                 if (_UseEmail)
@@ -15678,11 +15685,11 @@ namespace PRoConEvents {
                     //No conversation partner exists. Inform of the new one.
                     if (PlayerIsAdmin(sender) && !PlayerIsAdmin(partner) && !adminInformedChange)
                     {
-                        OnlineAdminSayMessage("Admin " + sender.player_name + " is now in a private conversation with " + partner.player_name);
+                        OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName());
                         adminInformedChange = true;
                     }
                     else {
-                        PlayerSayMessage(sender.player_name, "You are now in a private conversation with " + partner.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
+                        PlayerSayMessage(sender.player_name, "You are now in a private conversation with " + partner.GetVerboseName() + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
                     }
                 }
                 else
@@ -15693,16 +15700,16 @@ namespace PRoConEvents {
                     if (oldPartner.player_guid != partner.player_guid) {
                         if (PlayerIsAdmin(sender) && !PlayerIsAdmin(partner) && !adminInformedChange)
                         {
-                            OnlineAdminSayMessage("Admin " + sender.player_name + " is now in a private conversation with " + partner.player_name);
+                            OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName());
                             adminInformedChange = true;
                         }
                         else {
-                            PlayerSayMessage(sender.player_name, "Private conversation partner changed from " + oldPartner.player_name + " to " + partner.player_name);
+                            PlayerSayMessage(sender.player_name, "Private conversation partner changed from " + oldPartner.GetVerboseName() + " to " + partner.GetVerboseName());
                         }
                     }
                     else
                     {
-                        PlayerSayMessage(sender.player_name, "You are already in a conversation with " + oldPartner.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
+                        PlayerSayMessage(sender.player_name, "You are already in a conversation with " + oldPartner.GetVerboseName() + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
                         return;
                     }
 
@@ -15718,12 +15725,12 @@ namespace PRoConEvents {
                             target_player = oldPartner,
                             source_name = sender.player_name,
                             source_player = sender,
-                            record_message = sender.player_name + " has left the private conversation."
+                            record_message = sender.GetVerboseName() + " has left the private conversation."
                         });
                     }
                     else
                     {
-                        PlayerSayMessage(oldPartner.player_name, sender.player_name + " has left the private conversation.");
+                        PlayerSayMessage(oldPartner.player_name, sender.GetVerboseName() + " has left the private conversation.");
                         oldPartner.conversationPartner = null;
                     }
                 }
@@ -15753,12 +15760,12 @@ namespace PRoConEvents {
                         //No conversation partner exists. Inform of the new one.
                         if (PlayerIsAdmin(partner) && !PlayerIsAdmin(sender) && !adminInformedChange)
                         {
-                            OnlineAdminSayMessage("Admin " + sender.player_name + " is now in a private conversation with " + partner.player_name);
+                            OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName());
                             adminInformedChange = true;
                         }
                         else
                         {
-                            PlayerSayMessage(partner.player_name, "You are now in a private conversation with " + sender.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
+                            PlayerSayMessage(partner.player_name, "You are now in a private conversation with " + sender.GetVerboseName() + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
                         }
                         partner.conversationPartner = sender;
                     }
@@ -15770,7 +15777,7 @@ namespace PRoConEvents {
                         if (oldPartner.player_guid != sender.player_guid)
                         {
                             //Inform partner of change
-                            PlayerSayMessage(partner.player_name, "Private conversation partner changed from " + oldPartner.player_name + " to " + sender.player_name);
+                            PlayerSayMessage(partner.player_name, "Private conversation partner changed from " + oldPartner.GetVerboseName() + " to " + sender.GetVerboseName());
 
                             //Cancel oldPartner conversation
                             if (PlayerIsExternal(oldPartner))
@@ -15786,12 +15793,12 @@ namespace PRoConEvents {
                                     target_player = oldPartner,
                                     source_name = sender.player_name,
                                     source_player = sender,
-                                    record_message = partner.player_name + " has left the private conversation."
+                                    record_message = partner.GetVerboseName() + " has left the private conversation."
                                 });
                             }
                             else
                             {
-                                PlayerSayMessage(oldPartner.player_name, partner.player_name + " has left the private conversation.");
+                                PlayerSayMessage(oldPartner.player_name, partner.GetVerboseName() + " has left the private conversation.");
                                 oldPartner.conversationPartner = null;
                             }
                         }
@@ -15883,12 +15890,12 @@ namespace PRoConEvents {
                     //No conversation partner exists. Inform of the new one.
                     if (PlayerIsAdmin(partner) && !PlayerIsAdmin(sender) && !adminInformedChange)
                     {
-                        OnlineAdminSayMessage("Admin " + sender.player_name + " is now in a private conversation with " + partner.player_name);
+                        OnlineAdminSayMessage("Admin " + sender.GetVerboseName() + " is now in a private conversation with " + partner.GetVerboseName());
                         adminInformedChange = true;
                     }
                     else
                     {
-                        PlayerSayMessage(partner.player_name, "You are now in a private conversation with " + sender.player_name + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
+                        PlayerSayMessage(partner.player_name, "You are now in a private conversation with " + sender.GetVerboseName() + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
                     }
                     partner.conversationPartner = sender;
                 }
@@ -15900,7 +15907,7 @@ namespace PRoConEvents {
                     if (oldPartner.player_guid != sender.player_guid)
                     {
                         //Inform partner of change
-                        PlayerSayMessage(partner.player_name, "Private conversation partner changed from " + oldPartner.player_name + " to " + sender.player_name);
+                        PlayerSayMessage(partner.player_name, "Private conversation partner changed from " + oldPartner.GetVerboseName() + " to " + sender.GetVerboseName());
 
                         //Cancel oldPartner conversation
                         if (PlayerIsExternal(oldPartner))
@@ -15916,12 +15923,12 @@ namespace PRoConEvents {
                                 target_player = oldPartner,
                                 source_name = sender.player_name,
                                 source_player = sender,
-                                record_message = partner.player_name + " has left the private conversation."
+                                record_message = partner.GetVerboseName() + " has left the private conversation."
                             });
                         }
                         else
                         {
-                            PlayerSayMessage(oldPartner.player_name, partner.player_name + " has left the private conversation.");
+                            PlayerSayMessage(oldPartner.player_name, partner.GetVerboseName() + " has left the private conversation.");
                             oldPartner.conversationPartner = null;
                         }
                     }
@@ -16001,11 +16008,11 @@ namespace PRoConEvents {
                             target_player = sender,
                             source_name = partner.player_name,
                             source_player = partner,
-                            record_message = partner.player_name + " is not in a private conversation with you."
+                            record_message = partner.GetVerboseName() + " is not in a private conversation with you."
                         });
                     }
                     else {
-                        PlayerSayMessage(partner.player_name, partner.player_name + " is not in a private conversation with you.");
+                        PlayerSayMessage(partner.player_name, partner.GetVerboseName() + " is not in a private conversation with you.");
                         sender.conversationPartner = null;
                     }
                 }
@@ -16152,11 +16159,11 @@ namespace PRoConEvents {
                         {
                             SendMessageToSource(record, "Telling server rules to " + record.GetTargetNames());
                         }
-                        OnlineAdminSayMessage(((sourceIsAdmin) ? ("Admin ") : ("")) + record.GetSourceNames() + " told server rules to " + record.GetTargetNames() + ".");
+                        OnlineAdminSayMessage(((sourceIsAdmin) ? ("Admin ") : ("")) + record.GetSourceName() + " told server rules to " + record.GetTargetNames() + ".");
                     }
                     else
                     {
-                        OnlineAdminSayMessage(((sourceIsAdmin) ? ("Admin ") : ("")) + record.GetSourceNames() + " requested server rules.");
+                        OnlineAdminSayMessage(((sourceIsAdmin) ? ("Admin ") : ("")) + record.GetSourceName() + " requested server rules.");
                     }
 
                     var rulePrinter = new Thread(new ThreadStart(delegate
@@ -16377,7 +16384,7 @@ namespace PRoConEvents {
                         AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                         AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                     }
-                    OnlineAdminSayMessage(record.GetSourceNames() + " voted for round surrender.");
+                    OnlineAdminSayMessage(record.GetSourceName() + " voted for round surrender.");
                 }
             }
             catch (Exception e)
@@ -16437,7 +16444,7 @@ namespace PRoConEvents {
                 SendMessageToSource(record, "You voted against round surrender!");
                 AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                 AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
-                OnlineAdminSayMessage(record.GetSourceNames() + " voted against round surrender.");
+                OnlineAdminSayMessage(record.GetSourceName() + " voted against round surrender.");
             }
             catch (Exception e)
             {
@@ -16789,7 +16796,7 @@ namespace PRoConEvents {
                         var punishments = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_punish").command_id, 1000, 1, true, false);
                         if (punishments.Any()) {
                             var lastPunish = punishments[0];
-                            lastPunishText = FormatTimeString(UtcDbTime() - lastPunish.record_time, 2) + " ago by " + lastPunish.GetSourceNames() + ": " + lastPunish.record_message;
+                            lastPunishText = FormatTimeString(UtcDbTime() - lastPunish.record_time, 2) + " ago by " + lastPunish.GetSourceName() + ": " + lastPunish.record_message;
                         }
                         SendMessageToSource(record, "Last Punishment: " + lastPunishText);
                         _threadMasterWaitHandle.WaitOne(2000);
@@ -16799,7 +16806,7 @@ namespace PRoConEvents {
                         if (forgives.Any())
                         {
                             var lastForgive = forgives[0];
-                            lastForgiveText = FormatTimeString(UtcDbTime() - lastForgive.record_time, 2) + " ago by " + lastForgive.GetSourceNames() + ": " + lastForgive.record_message;
+                            lastForgiveText = FormatTimeString(UtcDbTime() - lastForgive.record_time, 2) + " ago by " + lastForgive.GetSourceName() + ": " + lastForgive.record_message;
                         }
                         SendMessageToSource(record, "Last Forgive: " + lastForgiveText);
                         _threadMasterWaitHandle.WaitOne(2000);
@@ -17095,7 +17102,7 @@ namespace PRoConEvents {
                 {
                     foreach (AdKatsPlayer aPlayer in afkPlayers) {
                         string afkTime = FormatTimeString(UtcDbTime() - aPlayer.lastAction, 2);
-                        DebugWrite("Kicking " + aPlayer.player_name + " for being AFK " + afkTime + ".", 3);
+                        DebugWrite("Kicking " + aPlayer.GetVerboseName() + " for being AFK " + afkTime + ".", 3);
                         var kickRecord = new AdKatsRecord
                         {
                             record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -17132,7 +17139,7 @@ namespace PRoConEvents {
                 var onlineAdminList = FetchOnlineAdminSoldiers();
                 String onlineAdmins = "Admins: [" + onlineAdminList.Count + " Online] ";
                 onlineAdmins = onlineAdminList.Aggregate(onlineAdmins, (current, aPlayer) => current + (
-                    aPlayer.player_name + 
+                    aPlayer.GetVerboseName() + 
                     " (" + 
                     GetPlayerTeamKey(aPlayer) + 
                     "/" + 
@@ -19435,7 +19442,7 @@ namespace PRoConEvents {
 
                 if (success)
                 {
-                    DebugWrite(record.command_action.command_key + " upload for " + record.GetTargetNames() + " by " + record.GetSourceNames() + " SUCCESSFUL!", 3);
+                    DebugWrite(record.command_action.command_key + " upload for " + record.GetTargetNames() + " by " + record.GetSourceName() + " SUCCESSFUL!", 3);
                 }
                 else
                 {
@@ -19706,7 +19713,7 @@ namespace PRoConEvents {
                     !_commandSourceReputationDictionary.Any() ||
                     _commandTargetReputationDictionary == null || 
                     !_commandTargetReputationDictionary.Any()) {
-                    DebugWrite("Reputation dictionaries not populated. Can't update reputation for " + aPlayer.player_name + ".", 4);
+                    DebugWrite("Reputation dictionaries not populated. Can't update reputation for " + aPlayer.GetVerboseName() + ".", 4);
                 }
                 double sourceReputation = 0.0;
                 double targetReputation = 0.0;
@@ -19875,7 +19882,7 @@ namespace PRoConEvents {
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (_firstPlayerListComplete && Math.Abs(aPlayer.player_reputation - totalReputationConstrained) > .02) {
                             if (aPlayer.player_spawnedOnce || (aPlayer.frostbitePlayerInfo != null && aPlayer.frostbitePlayerInfo.TeamID == 0)){
-                                DebugWrite(aPlayer.player_name + "'s reputation updated from " + Math.Round(aPlayer.player_reputation, 2) + " to " + Math.Round(totalReputationConstrained, 2), 3);
+                                DebugWrite(aPlayer.GetVerboseName() + "'s reputation updated from " + Math.Round(aPlayer.player_reputation, 2) + " to " + Math.Round(totalReputationConstrained, 2), 3);
                                 if (!PlayerIsAdmin(aPlayer))
                                 {
                                     String message = "Your reputation ";
@@ -20043,10 +20050,10 @@ namespace PRoConEvents {
                 UpdateRecordEndPointReputations(record);
                 if (success)
                 {
-                    DebugWrite(record.command_action.command_key + " update for " + record.GetTargetNames() + " by " + record.GetSourceNames() + " SUCCESSFUL!", 3);
+                    DebugWrite(record.command_action.command_key + " update for " + record.GetTargetNames() + " by " + record.GetSourceName() + " SUCCESSFUL!", 3);
                 }
                 else {
-                    ConsoleError(record.command_action.command_key + " update for " + record.GetTargetNames() + " by " + record.GetSourceNames() + " FAILED!");
+                    ConsoleError(record.command_action.command_key + " update for " + record.GetTargetNames() + " by " + record.GetSourceName() + " FAILED!");
                 }
 
                 DebugWrite("UpdateInnerRecord finished!", 6);
@@ -20944,7 +20951,7 @@ namespace PRoConEvents {
                                     aUser.soldierDictionary.Add(matchingPlayer.player_id, matchingPlayer);
                                 }
                                 else {
-                                    ConsoleError("Player " + matchingPlayer.player_name + "(" + _gameIDDictionary[matchingPlayer.game_id] + ") already assigned to a user.");
+                                    ConsoleError("Player " + matchingPlayer.GetVerboseName() + "(" + _gameIDDictionary[matchingPlayer.game_id] + ") already assigned to a user.");
                                 }
                             }
                             return;
@@ -21614,13 +21621,13 @@ namespace PRoConEvents {
             return aPlayer;
         }
 
-        private AdKatsPlayer UpdatePlayer(AdKatsPlayer player) {
+        private AdKatsPlayer UpdatePlayer(AdKatsPlayer aPlayer) {
             DebugWrite("updatePlayer starting!", 6);
             //Make sure database connection active
             if (HandlePossibleDisconnect()) {
-                return player;
+                return aPlayer;
             }
-            if (player == null || player.player_id < 0 || (String.IsNullOrEmpty(player.player_name) && String.IsNullOrEmpty(player.player_guid) & String.IsNullOrEmpty(player.player_ip))) {
+            if (aPlayer == null || aPlayer.player_id < 0 || (String.IsNullOrEmpty(aPlayer.player_name) && String.IsNullOrEmpty(aPlayer.player_guid) & String.IsNullOrEmpty(aPlayer.player_ip))) {
                 ConsoleError("Attempted to update player without required information.");
             }
             else {
@@ -21629,11 +21636,20 @@ namespace PRoConEvents {
                         using (MySqlCommand command = connection.CreateCommand()) {
                             //Set the insert command structure
                             command.CommandText = @"
-                            UPDATE IGNORE `" + _mySqlSchemaName + @"`.`tbl_playerdata` SET 
-                                `SoldierName` = '" + player.player_name + @"',
-                                `EAGUID` = '" + player.player_guid + @"',
-                                `IP_Address` = '" + player.player_ip + @"'
-                            WHERE `tbl_playerdata`.`PlayerID` = " + player.player_id;
+                            UPDATE IGNORE 
+                                `tbl_playerdata` 
+                            SET
+                                `SoldierName` = @player_name,
+                                `EAGUID` = @player_guid,
+                                `ClanTag` = @player_clanTag,
+                                `IP_Address` = @player_ip
+                            WHERE
+                                `PlayerID` = @player_id";
+                            command.Parameters.AddWithValue("@player_id", aPlayer.player_id);
+                            command.Parameters.AddWithValue("@player_name", aPlayer.player_name);
+                            command.Parameters.AddWithValue("@player_guid", aPlayer.player_guid);
+                            command.Parameters.AddWithValue("@player_clanTag", aPlayer.player_clanTag);
+                            command.Parameters.AddWithValue("@player_ip", aPlayer.player_ip);
                             //Attempt to execute the query
                             if (SafeExecuteNonQuery(command) > 0) {
                                 DebugWrite("Update player info success.", 5);
@@ -21646,7 +21662,7 @@ namespace PRoConEvents {
                 }
             }
             DebugWrite("updatePlayer finished!", 6);
-            return player;
+            return aPlayer;
         }
 
         private AdKatsBan FetchBanByID(Int64 ban_id)
@@ -27237,7 +27253,7 @@ namespace PRoConEvents {
                 {
                     HandleDatabaseConnectionInteruption();
                 }
-                if (_DatabaseReaderDurations.Count < 100000)
+                if (_DatabaseReaderDurations.Count < 50000)
                 {
                     lock (_DatabaseReaderDurations)
                     {
@@ -27262,7 +27278,7 @@ namespace PRoConEvents {
                     {
                         HandleDatabaseConnectionInteruption();
                     }
-                    if (_DatabaseReaderDurations.Count < 100000)
+                    if (_DatabaseReaderDurations.Count < 50000)
                     {
                         lock (_DatabaseReaderDurations)
                         {
@@ -27288,7 +27304,7 @@ namespace PRoConEvents {
                 {
                     HandleDatabaseConnectionInteruption();
                 }
-                if (_DatabaseNonQueryDurations.Count < 100000)
+                if (_DatabaseNonQueryDurations.Count < 50000)
                 {
                     lock (_DatabaseNonQueryDurations)
                     {
@@ -27313,7 +27329,7 @@ namespace PRoConEvents {
                     {
                         HandleDatabaseConnectionInteruption();
                     }
-                    if (_DatabaseNonQueryDurations.Count < 100000)
+                    if (_DatabaseNonQueryDurations.Count < 50000)
                     {
                         lock (_DatabaseNonQueryDurations)
                         {
@@ -27982,7 +27998,7 @@ namespace PRoConEvents {
                 record_creationTime = DateTime.UtcNow;
             }
 
-            public String GetSourceNames()
+            public String GetSourceName()
             {
                 String source = "";
                 if (source_player != null)
@@ -28497,7 +28513,7 @@ namespace PRoConEvents {
                             sb.Append("<h1>AdKats " + Plugin._gameVersion + " Player Report [" + record.command_numeric + "]</h1>");
                             sb.Append("<h2>" + Plugin._serverInfo.ServerName + "</h2>");
                             sb.Append("<h3>" + DateTime.Now + " ProCon Time</h3>");
-                            sb.Append("<h3>" + record.GetSourceNames() + " has reported " + record.GetTargetNames() + " for " + record.record_message + "</h3>");
+                            sb.Append("<h3>" + record.GetSourceName() + " has reported " + record.GetTargetNames() + " for " + record.record_message + "</h3>");
                             sb.Append("<p>");
                             CPlayerInfo playerInfo = record.target_player.frostbitePlayerInfo;
                             //sb.Append("<h4>Current Information on " + record.target_name + ":</h4>");
