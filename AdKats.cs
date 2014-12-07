@@ -19,14 +19,15 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.0.3
+ * Version 5.3.0.4
  * 7-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.0.3</version_code>
+ * <version_code>5.3.0.4</version_code>
  */
 
 using System;
+using System.Data;
 using System.IO;
 using System.IO.Compression;
 using System.Net;
@@ -56,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.0.3";
+        private const String PluginVersion = "5.3.0.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -195,12 +196,12 @@ namespace PRoConEvents {
         private DateTime _LastUsageStatsUpdate = DateTime.UtcNow - TimeSpan.FromHours(1);
         private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
-        private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(1);
+        private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
+        private TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(2);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(1);
-        private DateTime _LastGoogleAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private TimeSpan _GoogleWaitDuration = TimeSpan.FromSeconds(0.25);
+        private TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(5);
+        private DateTime _LastGoogleAction = DateTime.UtcNow - TimeSpan.FromSeconds(0.3);
+        private TimeSpan _GoogleWaitDuration = TimeSpan.FromSeconds(0.3);
         private DateTime _lastGlitchedPlayerNotification = DateTime.UtcNow;
 
         //Server
@@ -272,6 +273,7 @@ namespace PRoConEvents {
         private Thread _AccessFetchingThread;
         private Thread _ActionHandlingThread;
         private Thread _BattlelogCommThread;
+        private Thread _IPAPICommThread;
 
         //Threading queues
         private readonly Queue<AdKatsPlayer> _BanEnforcerCheckingQueue = new Queue<AdKatsPlayer>();
@@ -294,6 +296,7 @@ namespace PRoConEvents {
         private readonly Queue<AdKatsUser> _UserRemovalQueue = new Queue<AdKatsUser>();
         private readonly Queue<AdKatsUser> _UserUploadQueue = new Queue<AdKatsUser>();
         private readonly Queue<AdKatsPlayer> _BattlelogFetchQueue = new Queue<AdKatsPlayer>();
+        private readonly Queue<AdKatsPlayer> _IPInfoFetchQueue = new Queue<AdKatsPlayer>();
 
         //Threading wait handles
         private EventWaitHandle _threadMasterWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
@@ -314,6 +317,7 @@ namespace PRoConEvents {
         private EventWaitHandle _PlayerProcessingWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle _PluginDescriptionWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
         private EventWaitHandle _BattlelogCommWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
+        private EventWaitHandle _IPInfoWaitHandle = new EventWaitHandle(false, EventResetMode.ManualReset);
 
         //Procon MatchCommand
         private readonly MatchCommand _PluginEnabledMatchCommand;
@@ -4329,6 +4333,7 @@ namespace PRoConEvents {
                             //Check for keep alive every 30 seconds
                             if ((UtcDbTime() - lastKeepAliveCheck).TotalSeconds > 30)
                             {
+                                ConsoleInfo("Average Read: " + Math.Round(_DatabaseReadAverageDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(_DatabaseWriteAverageDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
                                 lastKeepAliveCheck = UtcDbTime();
 
                                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete)
@@ -4400,7 +4405,6 @@ namespace PRoConEvents {
                                 ExecuteCommand("procon.protected.send", "serverInfo");
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                                 lastServerInfoRequest = UtcDbTime();
-                                ConsoleInfo("Average Read: " + Math.Round(_DatabaseReadAverageDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(_DatabaseWriteAverageDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
                             }
 
                             //Sleep 1 second between loops
@@ -4507,6 +4511,11 @@ namespace PRoConEvents {
                 {
                     IsBackground = true
                 };
+
+                _IPAPICommThread = new Thread(IPAPICommThreadLoop)
+                {
+                    IsBackground = true
+                };
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error occured while initializing threads.", e));
@@ -4522,8 +4531,9 @@ namespace PRoConEvents {
                 _threadMasterWaitHandle.Reset();
                 //DB Comm is the heart of AdKats, everything revolves around that thread
                 StartAndLogThread(_DatabaseCommunicationThread);
-                //Battlelog comm thread is independant
+                //Battlelog comm and IP API threads are independant
                 StartAndLogThread(_BattlelogCommThread);
+                StartAndLogThread(_IPAPICommThread);
                 //Other threads are started within the db comm thread
             }
             catch (Exception e) {
@@ -5259,7 +5269,7 @@ namespace PRoConEvents {
                                         }
                                         aPlayer.player_online = true;
                                         //Get their location
-                                        FetchIPLocation(aPlayer, false);
+                                        QueuePlayerForIPInfoFetch(aPlayer);
                                         //Get their persona ID
                                         QueuePlayerForBattlelogInfoFetch(aPlayer);
                                         //Last Punishment
@@ -5710,7 +5720,7 @@ namespace PRoConEvents {
                     }
                     aPlayer.player_ip = player_ip;
                     //Update IP location
-                    FetchIPLocation(aPlayer, updatePlayer);
+                    QueuePlayerForIPInfoFetch(aPlayer);
                     if (updatePlayer) {
                         DebugWrite("OPPI: Queueing existing player " + aPlayer.GetVerboseName() + " for update.", 4);
                         UpdatePlayer(aPlayer);
@@ -13421,24 +13431,120 @@ namespace PRoConEvents {
             return message;
         }
 
-        private void QueuePlayerForBattlelogInfoFetch(AdKatsPlayer aPlayer)
+        private void QueuePlayerForIPInfoFetch(AdKatsPlayer aPlayer)
         {
-            DebugWrite("Entering QueuePlayerForPersonaIDFetch", 6);
+            DebugWrite("Entering QueuePlayerForIPInfoFetch", 6);
             try
             {
-                DebugWrite("Preparing to queue player for persona ID fetch.", 6);
+                DebugWrite("Preparing to queue player for IP info fetch.", 6);
+                lock (_IPInfoFetchQueue)
+                {
+                    _IPInfoFetchQueue.Enqueue(aPlayer);
+                    DebugWrite("Player queued for IP info fetch.", 6);
+                    _IPInfoWaitHandle.Set();
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while queuing player for IP info fetch.", e));
+            }
+            DebugWrite("Exiting QueuePlayerForIPInfoFetch", 6);
+        }
+
+        public void IPAPICommThreadLoop()
+        {
+            try
+            {
+                DebugWrite("IPAPI: Starting IP API Comm Thread", 1);
+                Thread.CurrentThread.Name = "IPAPIComm";
+                DateTime loopStart = UtcDbTime();
+                while (true)
+                {
+                    try
+                    {
+                        DebugWrite("IPAPI: Entering IP API Comm Thread Loop", 7);
+                        if (!_pluginEnabled)
+                        {
+                            DebugWrite("IPAPI: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            break;
+                        }
+                        //Sleep for 10ms
+                        _threadMasterWaitHandle.WaitOne(10);
+
+                        //Handle Inbound player fetches
+                        if (_IPInfoFetchQueue.Count > 0)
+                        {
+                            Queue<AdKatsPlayer> unprocessedPlayers;
+                            lock (_IPInfoFetchQueue)
+                            {
+                                DebugWrite("IPAPI: Inbound players found. Grabbing.", 6);
+                                //Grab all items in the queue
+                                unprocessedPlayers = new Queue<AdKatsPlayer>(_IPInfoFetchQueue.ToArray());
+                                //Clear the queue for next run
+                                _IPInfoFetchQueue.Clear();
+                            }
+                            //Loop through all players in order that they came in
+                            while (unprocessedPlayers.Count > 0)
+                            {
+                                if (!_pluginEnabled)
+                                {
+                                    break;
+                                }
+                                DebugWrite("IPAPI: Preparing to fetch IP API info for player", 6);
+                                //Dequeue the record
+                                AdKatsPlayer aPlayer = unprocessedPlayers.Dequeue();
+                                //Run the appropriate action
+                                FetchIPLocation(aPlayer);
+                            }
+                        }
+                        else
+                        {
+                            DebugWrite("IPAPI: No inbound players. Waiting.", 6);
+                            //Wait for new actions
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                            _IPInfoWaitHandle.Reset();
+                            _IPInfoWaitHandle.WaitOne(Timeout.Infinite);
+                            loopStart = UtcDbTime();
+                        }
+                    }
+                    catch (Exception e)
+                    {
+                        if (e is ThreadAbortException)
+                        {
+                            HandleException(new AdKatsException("IP API comm thread aborted. Exiting."));
+                            break;
+                        }
+                        HandleException(new AdKatsException("Error occured in IP API comm thread. Skipping current loop.", e));
+                    }
+                }
+                DebugWrite("IPAPI: Ending IP API Comm Thread", 1);
+                LogThreadExit();
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error occured in IP API comm thread.", e));
+            }
+        }
+
+        private void QueuePlayerForBattlelogInfoFetch(AdKatsPlayer aPlayer)
+        {
+            DebugWrite("Entering QueuePlayerForBattlelogInfoFetch", 6);
+            try
+            {
+                DebugWrite("Preparing to queue player for battlelog info fetch.", 6);
                 lock (_BattlelogFetchQueue)
                 {
                     _BattlelogFetchQueue.Enqueue(aPlayer);
-                    DebugWrite("Player queued for persona ID fetch.", 6);
+                    DebugWrite("Player queued for battlelog info fetch.", 6);
                     _BattlelogCommWaitHandle.Set();
                 }
             }
             catch (Exception e)
             {
-                HandleException(new AdKatsException("Error while queuing player for persona ID fetch.", e));
+                HandleException(new AdKatsException("Error while queuing player for battlelog info fetch.", e));
             }
-            DebugWrite("Exiting QueuePlayerForPersonaIDFetch", 6);
+            DebugWrite("Exiting QueuePlayerForBattlelogInfoFetch", 6);
         }
 
         public void BattlelogCommThreadLoop()
@@ -13519,7 +13625,7 @@ namespace PRoConEvents {
             }
             catch (Exception e)
             {
-                HandleException(new AdKatsException("Error occured in action handling thread.", e));
+                HandleException(new AdKatsException("Error occured in battlelog comm thread.", e));
             }
         }
 
@@ -16739,7 +16845,7 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(2000);
                         String playerLoc = "Unknown";
                         if (!String.IsNullOrEmpty(record.target_player.player_ip)) {
-                            IPAPILocation loc = FetchIPLocation(record.target_player, false);
+                            IPAPILocation loc = record.target_player.location;
                             if (loc != null && loc.status == "success") {
                                 playerLoc = String.Empty;
                                 if (!String.IsNullOrEmpty(loc.city)) {
@@ -27535,16 +27641,13 @@ namespace PRoConEvents {
             _LastGoogleAction = UtcDbTime();
         }
 
-        private IPAPILocation FetchIPLocation(AdKatsPlayer aPlayer, Boolean update) {
-            if (String.IsNullOrEmpty(aPlayer.player_ip) || _isTestingAuthorized) 
+        private void FetchIPLocation(AdKatsPlayer aPlayer) {
+            if ( String.IsNullOrEmpty(aPlayer.player_ip) || 
+                (aPlayer.location != null && aPlayer.location.status == "success" && aPlayer.player_ip == aPlayer.location.IP))
             {
-                return null;
+                return;
             }
-            if (aPlayer.location != null && aPlayer.location.status == "success" && !update) 
-            {
-                return aPlayer.location;
-            }
-            var loc = new IPAPILocation();
+            var loc = new IPAPILocation(aPlayer.player_ip);
             using (var client = new WebClient()) {
                 try {
                     Hashtable response = null;
@@ -27553,14 +27656,14 @@ namespace PRoConEvents {
                         response = (Hashtable)JSON.JsonDecode(client.DownloadString("http://ip-api.com/json/" + aPlayer.player_ip));
                     }
                     catch (Exception e) {
-                        ConsoleError("ip-api failed to respond with player location information. " + e.Message);
-                        return null;
+                        ConsoleError("ip-api failed to respond with player location information, your layer may be IP banned. (" + e.Message + ")");
+                        return;
                     }
                     loc.status = (String) response["status"];
                     if (loc.status == "fail") {
                         loc.message = (String) response["message"];
                         aPlayer.location = loc;
-                        return null;
+                        return;
                     }
                     if (loc.status == "success") {
                         loc.country = (String) response["country"];
@@ -27576,7 +27679,9 @@ namespace PRoConEvents {
                         loc.org = (String) response["org"];
                         loc.query = (String) response["query"];
                         aPlayer.location = loc;
-                        return loc;
+                        if (_isTestingAuthorized) {
+                            ConsoleInfo(aPlayer.GetVerboseName() + " is playing from (" + loc.countryCode + ") " + loc.country);
+                        }
                     }
                 }
                 catch (Exception e)
@@ -27584,10 +27689,6 @@ namespace PRoConEvents {
                     HandleException(new AdKatsException("Error while parsing IP response information.", e));
                 }
             }
-            loc.status = "fail";
-            loc.message = "unknown error";
-            aPlayer.location = loc;
-            return null;
         }
 
         public class AdKatsWeaponName {
@@ -28766,6 +28867,7 @@ namespace PRoConEvents {
         }
 
         public class IPAPILocation {
+            public String IP;
             public String city;
             public String country;
             public String countryCode;
@@ -28780,6 +28882,13 @@ namespace PRoConEvents {
             public String status;
             public String timezone;
             public String zip;
+
+            public IPAPILocation(String ip) {
+                if (String.IsNullOrEmpty(ip)) {
+                    throw new NoNullAllowedException("Location IP must not be null.");
+                }
+                IP = ip;
+            }
         }
 
         internal class MetabansAPI {
