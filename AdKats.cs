@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.0.1
+ * Version 5.3.0.2
  * 7-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.0.1</version_code>
+ * <version_code>5.3.0.2</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.0.1";
+        private const String PluginVersion = "5.3.0.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -197,6 +197,8 @@ namespace PRoConEvents {
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(1);
+        private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(1);
         private DateTime _LastGoogleAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private TimeSpan _GoogleWaitDuration = TimeSpan.FromSeconds(0.25);
         private DateTime _lastGlitchedPlayerNotification = DateTime.UtcNow;
@@ -26837,10 +26839,6 @@ namespace PRoConEvents {
                                 return;
                             }
                             _pluginUpdateProgress = "Downloaded";
-                            if (_pluginUpdateCaller != null)
-                            {
-                                SendMessageToSource(_pluginUpdateCaller, "Updated plugin source downloaded. Preparing test compile.");
-                            }
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                             {
                                 ConsoleSuccess("Updated plugin source downloaded.");
@@ -26887,18 +26885,10 @@ namespace PRoConEvents {
                             }
                             else
                             {
-                                if (_pluginUpdateCaller != null)
-                                {
-                                    SendMessageToSource(_pluginUpdateCaller, "Plugin update compiled successfully.");
-                                }
                                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     ConsoleSuccess("Plugin update compiled successfully.");
                             }
                             _pluginUpdateProgress = "Compiled";
-                            if (_pluginUpdateCaller != null)
-                            {
-                                SendMessageToSource(_pluginUpdateCaller, "Preparing to update source file on disk.");
-                            }
                             if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                 ConsoleInfo("Preparing to update source file on disk.");
                             Int64 originalSizeKb = new FileInfo(pluginPath).Length / 1024;
@@ -27527,6 +27517,15 @@ namespace PRoConEvents {
             _LastBattlelogAction = UtcDbTime();
         }
 
+        private void DoIPAPIWait()
+        {
+            if ((UtcDbTime() - _LastIPAPIAction) < _IPAPIWaitDuration)
+            {
+                Thread.Sleep(_IPAPIWaitDuration - (UtcDbTime() - _LastIPAPIAction));
+            }
+            _LastIPAPIAction = UtcDbTime();
+        }
+
         private void DoGoogleWait()
         {
             if ((UtcDbTime() - _LastGoogleAction) < _GoogleWaitDuration)
@@ -27548,7 +27547,15 @@ namespace PRoConEvents {
             var loc = new IPAPILocation();
             using (var client = new WebClient()) {
                 try {
-                    var response = (Hashtable) JSON.JsonDecode(client.DownloadString("http://ip-api.com/json/" + aPlayer.player_ip));
+                    Hashtable response = null;
+                    try {
+                        DoIPAPIWait();
+                        response = (Hashtable)JSON.JsonDecode(client.DownloadString("http://ip-api.com/json/" + aPlayer.player_ip));
+                    }
+                    catch (Exception e) {
+                        ConsoleError("ip-api failed to respond with player location information. " + e.Message);
+                        return null;
+                    }
                     loc.status = (String) response["status"];
                     if (loc.status == "fail") {
                         loc.message = (String) response["message"];
