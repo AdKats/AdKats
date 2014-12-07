@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.9.8
+ * Version 5.2.9.9
  * 6-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.9.8</version_code>
+ * <version_code>5.2.9.9</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.9.8";
+        private const String PluginVersion = "5.2.9.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -14395,11 +14395,12 @@ namespace PRoConEvents {
                         String banDurationString;
                         //If ban time > 1000 days just say perm
                         TimeSpan remainingTime = GetRemainingBanTime(aBan);
-                        if (remainingTime.TotalDays > 1000) {
+                        TimeSpan totalTime = aBan.ban_endTime.Subtract(aBan.ban_startTime);
+                        if (remainingTime.TotalDays > 365) {
                             banDurationString = "permanent";
                         }
                         else {
-                            banDurationString = FormatTimeString(remainingTime, 2);
+                            banDurationString = FormatTimeString(totalTime, 2) + " (" + FormatTimeString(remainingTime, 2) + " left)";
                         }
                         AdminSayMessage("Enforcing " + banDurationString + " ban on " + aBan.ban_record.GetTargetNames() + " for " + aBan.ban_record.record_message);
                     }
@@ -27236,8 +27237,14 @@ namespace PRoConEvents {
                 {
                     HandleDatabaseConnectionInteruption();
                 }
-                _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
-                _DatabaseReadAverageDuration = (_DatabaseReaderDurations.Sum() / (Double)_DatabaseReaderDurations.Count);
+                if (_DatabaseReaderDurations.Count < 100000)
+                {
+                    lock (_DatabaseReaderDurations)
+                    {
+                        _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
+                        _DatabaseReadAverageDuration = _DatabaseReaderDurations.Average();
+                    }
+                }
                 return reader;
             }
             catch (Exception e)
@@ -27255,8 +27262,14 @@ namespace PRoConEvents {
                     {
                         HandleDatabaseConnectionInteruption();
                     }
-                    _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
-                    _DatabaseReadAverageDuration = (_DatabaseReaderDurations.Sum() / (Double)_DatabaseReaderDurations.Count);
+                    if (_DatabaseReaderDurations.Count < 100000)
+                    {
+                        lock (_DatabaseReaderDurations)
+                        {
+                            _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
+                            _DatabaseReadAverageDuration = _DatabaseReaderDurations.Average();
+                        }
+                    }
                     return reader;
                 }
                 throw e;
@@ -27275,8 +27288,14 @@ namespace PRoConEvents {
                 {
                     HandleDatabaseConnectionInteruption();
                 }
-                _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
-                _DatabaseWriteAverageDuration = (_DatabaseNonQueryDurations.Sum() / (Double)_DatabaseNonQueryDurations.Count);
+                if (_DatabaseNonQueryDurations.Count < 100000)
+                {
+                    lock (_DatabaseNonQueryDurations)
+                    {
+                        _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
+                        _DatabaseWriteAverageDuration = _DatabaseNonQueryDurations.Average();
+                    }
+                }
                 return modified;
             }
             catch (Exception e) 
@@ -27294,8 +27313,14 @@ namespace PRoConEvents {
                     {
                         HandleDatabaseConnectionInteruption();
                     }
-                    _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
-                    _DatabaseWriteAverageDuration = (_DatabaseNonQueryDurations.Sum() / (Double)_DatabaseNonQueryDurations.Count);
+                    if (_DatabaseNonQueryDurations.Count < 100000)
+                    {
+                        lock (_DatabaseNonQueryDurations)
+                        {
+                            _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
+                            _DatabaseWriteAverageDuration = _DatabaseNonQueryDurations.Average();
+                        }
+                    }
                     return modified;
                 }
                 throw e;
