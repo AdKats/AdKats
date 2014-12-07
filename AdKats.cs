@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.0.2
+ * Version 5.3.0.3
  * 7-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.0.2</version_code>
+ * <version_code>5.3.0.3</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.0.2";
+        private const String PluginVersion = "5.3.0.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -27536,7 +27536,7 @@ namespace PRoConEvents {
         }
 
         private IPAPILocation FetchIPLocation(AdKatsPlayer aPlayer, Boolean update) {
-            if (String.IsNullOrEmpty(aPlayer.player_ip)) 
+            if (String.IsNullOrEmpty(aPlayer.player_ip) || _isTestingAuthorized) 
             {
                 return null;
             }
