@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.2.9.7
+ * Version 5.2.9.8
  * 6-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.2.9.7</version_code>
+ * <version_code>5.2.9.8</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.2.9.7";
+        private const String PluginVersion = "5.2.9.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4392,9 +4392,6 @@ namespace PRoConEvents {
                                     //TODO: Once MULTIBalancer adds registered commands, check for availability
                                 }
                             }
-
-                            _DatabaseReadAverageDuration = (_DatabaseReaderDurations.Sum() / (Double)_DatabaseReaderDurations.Count);
-                            _DatabaseWriteAverageDuration = (_DatabaseNonQueryDurations.Sum() / (Double)_DatabaseNonQueryDurations.Count);
 
                             if (_threadsReady && (UtcDbTime() - lastServerInfoRequest).TotalSeconds > 10)
                             {
@@ -16710,7 +16707,7 @@ namespace PRoConEvents {
                             return;
                         }
                         _threadMasterWaitHandle.WaitOne(500);
-                        String playerInfo = record.GetTargetNames() + ": " + record.target_player.player_id + ", " + record.target_player.player_role.role_name;
+                        String playerInfo = record.target_player.GetVerboseName() + ": " + record.target_player.player_id + ", " + record.target_player.player_role.role_name;
                         if (record.target_player != null && record.target_player.frostbitePlayerInfo != null)
                         {
                             if (record.target_player.player_online)
@@ -27240,6 +27237,7 @@ namespace PRoConEvents {
                     HandleDatabaseConnectionInteruption();
                 }
                 _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
+                _DatabaseReadAverageDuration = (_DatabaseReaderDurations.Sum() / (Double)_DatabaseReaderDurations.Count);
                 return reader;
             }
             catch (Exception e)
@@ -27258,6 +27256,7 @@ namespace PRoConEvents {
                         HandleDatabaseConnectionInteruption();
                     }
                     _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
+                    _DatabaseReadAverageDuration = (_DatabaseReaderDurations.Sum() / (Double)_DatabaseReaderDurations.Count);
                     return reader;
                 }
                 throw e;
@@ -27277,6 +27276,7 @@ namespace PRoConEvents {
                     HandleDatabaseConnectionInteruption();
                 }
                 _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
+                _DatabaseWriteAverageDuration = (_DatabaseNonQueryDurations.Sum() / (Double)_DatabaseNonQueryDurations.Count);
                 return modified;
             }
             catch (Exception e) 
@@ -27295,6 +27295,7 @@ namespace PRoConEvents {
                         HandleDatabaseConnectionInteruption();
                     }
                     _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
+                    _DatabaseWriteAverageDuration = (_DatabaseNonQueryDurations.Sum() / (Double)_DatabaseNonQueryDurations.Count);
                     return modified;
                 }
                 throw e;
