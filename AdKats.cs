@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.0.4
- * 7-DEC-2014
+ * Version 5.3.0.5
+ * 8-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.0.4</version_code>
+ * <version_code>5.3.0.5</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.0.4";
+        private const String PluginVersion = "5.3.0.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -197,7 +197,7 @@ namespace PRoConEvents {
         private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
-        private TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(2);
+        private TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(1);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(5);
         private DateTime _LastGoogleAction = DateTime.UtcNow - TimeSpan.FromSeconds(0.3);
@@ -6636,6 +6636,26 @@ namespace PRoConEvents {
 
                 victim.lastAction = UtcDbTime();
                 killer.lastAction = UtcDbTime();
+
+                if (killer.player_type == PlayerType.Spectator)
+                {
+                    //Unlock the player
+                    killer.Unlock();
+                    //Create the ban record
+                    QueueRecordForProcessing(new AdKatsRecord
+                    {
+                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                        server_id = _serverInfo.ServerID,
+                        command_type = GetCommandByKey("player_ban_perm"),
+                        command_numeric = 0,
+                        target_name = killer.player_name,
+                        target_player = killer,
+                        source_name = "AutoAdmin",
+                        record_message = "Spectator Hack"
+                    });
+                    return;
+                }
+
                 //Used for delayed player moving
                 if (_TeamswapOnDeathMoveDic.Count > 0) {
                     lock (_TeamswapOnDeathCheckingQueue) {
@@ -16860,9 +16880,6 @@ namespace PRoConEvents {
                                     playerLoc += " with " + locRecords.Count() + " IP changes.";
                                 }
                             }
-                            else {
-                                playerLoc = "Error fetching player location";
-                            }
                         }
                         else {
                             playerLoc = "Player IP not found";
@@ -18013,6 +18030,10 @@ namespace PRoConEvents {
                     record.source_name = _CBanAdminName;
                     record.server_id = _serverInfo.ServerID;
                     record.target_player = FetchPlayer(true, false, false, null, -1, cBan.SoldierName, (!String.IsNullOrEmpty(cBan.Guid)) ? (cBan.Guid.ToUpper()) : (null), cBan.IpAddress);
+                    if (record.target_player == null) {
+                        ConsoleError("Empty ban record found. Ignoring.");
+                        continue;
+                    }
                     if (!String.IsNullOrEmpty(record.target_player.player_name)) {
                         record.target_name = record.target_player.player_name;
                     }
@@ -27679,9 +27700,6 @@ namespace PRoConEvents {
                         loc.org = (String) response["org"];
                         loc.query = (String) response["query"];
                         aPlayer.location = loc;
-                        if (_isTestingAuthorized) {
-                            ConsoleInfo(aPlayer.GetVerboseName() + " is playing from (" + loc.countryCode + ") " + loc.country);
-                        }
                     }
                 }
                 catch (Exception e)
