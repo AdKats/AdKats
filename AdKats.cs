@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.0.5
- * 8-DEC-2014
+ * Version 5.3.0.6
+ * 9-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.0.5</version_code>
+ * <version_code>5.3.0.6</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.0.5";
+        private const String PluginVersion = "5.3.0.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4333,7 +4333,7 @@ namespace PRoConEvents {
                             //Check for keep alive every 30 seconds
                             if ((UtcDbTime() - lastKeepAliveCheck).TotalSeconds > 30)
                             {
-                                ConsoleInfo("Average Read: " + Math.Round(_DatabaseReadAverageDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(_DatabaseWriteAverageDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
+                                //ConsoleInfo("Average Read: " + Math.Round(_DatabaseReadAverageDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(_DatabaseWriteAverageDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
                                 lastKeepAliveCheck = UtcDbTime();
 
                                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete)
@@ -14534,7 +14534,7 @@ namespace PRoConEvents {
                             banDurationString = "permanent";
                         }
                         else {
-                            banDurationString = FormatTimeString(totalTime, 2) + " (" + FormatTimeString(remainingTime, 2) + " left)";
+                            banDurationString = FormatTimeString(totalTime, 2) + " (" + FormatTimeString(remainingTime, 2) + ")";
                         }
                         AdminSayMessage("Enforcing " + banDurationString + " ban on " + aBan.ban_record.GetTargetNames() + " for " + aBan.ban_record.record_message);
                     }
@@ -18029,12 +18029,19 @@ namespace PRoConEvents {
                     }
                     record.source_name = _CBanAdminName;
                     record.server_id = _serverInfo.ServerID;
-                    record.target_player = FetchPlayer(true, false, false, null, -1, cBan.SoldierName, (!String.IsNullOrEmpty(cBan.Guid)) ? (cBan.Guid.ToUpper()) : (null), cBan.IpAddress);
-                    if (record.target_player == null) {
-                        ConsoleError("Empty ban record found. Ignoring.");
+                    if (String.IsNullOrEmpty(cBan.SoldierName) && String.IsNullOrEmpty(cBan.Guid) && String.IsNullOrEmpty(cBan.IpAddress))
+                    {
+                        ConsoleError("Player did not contain any identifiers when processing CBan. Ignoring.");
                         continue;
                     }
-                    if (!String.IsNullOrEmpty(record.target_player.player_name)) {
+                    record.target_player = FetchPlayer(true, false, false, null, -1, cBan.SoldierName, (!String.IsNullOrEmpty(cBan.Guid)) ? (cBan.Guid.ToUpper()) : (null), cBan.IpAddress);
+                    if (record.target_player == null) 
+                    {
+                        ConsoleError("Player could not be found/added when processing CBan. Ignoring.");
+                        continue;
+                    }
+                    if (!String.IsNullOrEmpty(record.target_player.player_name)) 
+                    {
                         record.target_name = record.target_player.player_name;
                     }
                     record.isIRO = false;
@@ -27370,7 +27377,7 @@ namespace PRoConEvents {
                 {
                     HandleDatabaseConnectionInteruption();
                 }
-                if (_DatabaseReaderDurations.Count < 50000)
+                if (_DatabaseReaderDurations.Count < 25000)
                 {
                     lock (_DatabaseReaderDurations)
                     {
@@ -27395,7 +27402,7 @@ namespace PRoConEvents {
                     {
                         HandleDatabaseConnectionInteruption();
                     }
-                    if (_DatabaseReaderDurations.Count < 50000)
+                    if (_DatabaseReaderDurations.Count < 25000)
                     {
                         lock (_DatabaseReaderDurations)
                         {
@@ -27421,7 +27428,7 @@ namespace PRoConEvents {
                 {
                     HandleDatabaseConnectionInteruption();
                 }
-                if (_DatabaseNonQueryDurations.Count < 50000)
+                if (_DatabaseNonQueryDurations.Count < 25000)
                 {
                     lock (_DatabaseNonQueryDurations)
                     {
@@ -27446,7 +27453,7 @@ namespace PRoConEvents {
                     {
                         HandleDatabaseConnectionInteruption();
                     }
-                    if (_DatabaseNonQueryDurations.Count < 50000)
+                    if (_DatabaseNonQueryDurations.Count < 25000)
                     {
                         lock (_DatabaseNonQueryDurations)
                         {
