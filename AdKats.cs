@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.0.7
- * 9-DEC-2014
+ * Version 5.3.0.8
+ * 10-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.0.7</version_code>
+ * <version_code>5.3.0.8</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.0.7";
+        private const String PluginVersion = "5.3.0.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -411,7 +411,10 @@ namespace PRoConEvents {
         //Ping enforcer
         private Boolean _pingEnforcerSystemEnable;
         private Int32 _pingEnforcerTriggerMinimumPlayers = 50;
-        private Double _pingEnforcerTriggerMS = 300;
+        private Double _pingEnforcerLowTriggerMS = 300;
+        private Double _pingEnforcerMedTriggerMS = 300;
+        private Double _pingEnforcerHighTriggerMS = 300;
+        private Double _pingEnforcerFullTriggerMS = 300;
         private Double _pingMovingAverageDurationSeconds = 180;
         private Boolean _pingEnforcerKickMissingPings = true;
         private Boolean _pingEnforcerIgnoreUserList = true;
@@ -1012,7 +1015,10 @@ namespace PRoConEvents {
                     if (_pingEnforcerSystemEnable)
                     {
                         lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
-                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Trigger ms", typeof(Double), _pingEnforcerTriggerMS));
+                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
+                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Medium Population Trigger ms", typeof(Double), _pingEnforcerMedTriggerMS));
+                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick High Population Trigger ms", typeof(Double), _pingEnforcerHighTriggerMS));
+                        lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Full Population Trigger ms", typeof(Double), _pingEnforcerFullTriggerMS));
                         lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
                         lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
                         lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
@@ -1753,24 +1759,84 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Ping Kick Trigger ms").Success)
+                else if (Regex.Match(strVariable, @"Ping Kick Low Population Trigger ms").Success)
                 {
-                    Double pingEnforcerTriggerMS;
-                    if (!Double.TryParse(strValue, out pingEnforcerTriggerMS))
+                    Double pingEnforcerLowTriggerMS;
+                    if (!Double.TryParse(strValue, out pingEnforcerLowTriggerMS))
                     {
                         HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
                         return;
                     }
-                    if (_pingEnforcerTriggerMS != pingEnforcerTriggerMS)
+                    if (_pingEnforcerLowTriggerMS != pingEnforcerLowTriggerMS)
                     {
-                        if (pingEnforcerTriggerMS < 10)
+                        if (pingEnforcerLowTriggerMS < 10)
                         {
                             ConsoleError("Trigger ms cannot be less than 10.");
                             return;
                         }
-                        _pingEnforcerTriggerMS = pingEnforcerTriggerMS;
+                        _pingEnforcerLowTriggerMS = pingEnforcerLowTriggerMS;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Ping Kick Trigger ms", typeof(Double), _pingEnforcerTriggerMS));
+                        QueueSettingForUpload(new CPluginVariable(@"Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Ping Kick Medium Population Trigger ms").Success)
+                {
+                    Double pingEnforcerMedTriggerMS;
+                    if (!Double.TryParse(strValue, out pingEnforcerMedTriggerMS))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
+                    if (_pingEnforcerMedTriggerMS != pingEnforcerMedTriggerMS)
+                    {
+                        if (pingEnforcerMedTriggerMS < 10)
+                        {
+                            ConsoleError("Trigger ms cannot be less than 10.");
+                            return;
+                        }
+                        _pingEnforcerMedTriggerMS = pingEnforcerMedTriggerMS;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Ping Kick Medium Population Trigger ms", typeof(Double), _pingEnforcerMedTriggerMS));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Ping Kick High Population Trigger ms").Success)
+                {
+                    Double pingEnforcerHighTriggerMS;
+                    if (!Double.TryParse(strValue, out pingEnforcerHighTriggerMS))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
+                    if (_pingEnforcerHighTriggerMS != pingEnforcerHighTriggerMS)
+                    {
+                        if (pingEnforcerHighTriggerMS < 10)
+                        {
+                            ConsoleError("Trigger ms cannot be less than 10.");
+                            return;
+                        }
+                        _pingEnforcerHighTriggerMS = pingEnforcerHighTriggerMS;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Ping Kick High Population Trigger ms", typeof(Double), _pingEnforcerHighTriggerMS));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Ping Kick Full Population Trigger ms").Success)
+                {
+                    Double pingEnforcerFullTriggerMS;
+                    if (!Double.TryParse(strValue, out pingEnforcerFullTriggerMS))
+                    {
+                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
+                        return;
+                    }
+                    if (_pingEnforcerFullTriggerMS != pingEnforcerFullTriggerMS)
+                    {
+                        if (pingEnforcerFullTriggerMS < 10)
+                        {
+                            ConsoleError("Trigger ms cannot be less than 10.");
+                            return;
+                        }
+                        _pingEnforcerFullTriggerMS = pingEnforcerFullTriggerMS;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Ping Kick Full Population Trigger ms", typeof(Double), _pingEnforcerFullTriggerMS));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Ping Kick Minimum Players").Success)
@@ -4949,6 +5015,7 @@ namespace PRoConEvents {
                                 AdKatsPlayer aPlayer;
                                 if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer)) {
                                     //Show leaving messages
+                                    Boolean toldAdmins = false;
                                     if (!aPlayer.TargetedRecords.Any(aRecord => 
                                         aRecord.command_action.command_key == "player_kick" || 
                                         aRecord.command_action.command_key == "player_ban_temp" || 
@@ -4970,8 +5037,9 @@ namespace PRoConEvents {
                                             List<String> types = (from record in meaningfulRecords select record.command_action.command_name).Distinct().ToList();
                                             String typeString = types.Aggregate("[", (current, type) => current + (type + ", "));
                                             typeString = typeString.Trim().TrimEnd(',') + "]";
-                                            if (_ShowTargetedPlayerLeftNotification)
+                                            if (_ShowTargetedPlayerLeftNotification) 
                                             {
+                                                toldAdmins = true;
                                                 OnlineAdminSayMessage(aPlayer.GetVerboseName() + " left from " + GetPlayerTeamKey(aPlayer) + " " + typeString);
                                             }
                                             List<AdKatsRecord> reports = aPlayer.TargetedRecords.Where(aRecord => aRecord.command_type.command_key == "player_report" || aRecord.command_type.command_key == "player_calladmin").ToList();
@@ -4985,6 +5053,9 @@ namespace PRoConEvents {
                                                 PlayerSayMessage(player.player_name, "Player " + aPlayer.GetVerboseName() + " you reported has left the server.");
                                             }
                                         }
+                                    }
+                                    if (!toldAdmins && aPlayer.player_type == PlayerType.Spectator) {
+                                        OnlineAdminSayMessage(((PlayerIsAdmin(aPlayer)) ? ("Admin ") : ("")) + aPlayer.GetVerboseName() + " stopped spectating the server.");
                                     }
                                     //Shut down any running conversations
                                     if (aPlayer.conversationPartner != null) {
@@ -5120,12 +5191,31 @@ namespace PRoConEvents {
                                                 !(_pingEnforcerIgnoreUserList && FetchAllUserSoldiers().Any(sPlayer => sPlayer.player_guid == aPlayer.player_guid)))
                                             {
                                                 var playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
-                                                if (playerCount > _pingEnforcerTriggerMinimumPlayers)
+                                                if (playerCount > _pingEnforcerTriggerMinimumPlayers) 
                                                 {
+                                                    Double currentTriggerMS = 1000;
+                                                    //Get current ping limit
+                                                    if (playerCount >= _serverInfo.InfoObject.MaxPlayerCount - 1) 
+                                                    {
+                                                        currentTriggerMS = _pingEnforcerFullTriggerMS;
+                                                    }
+                                                    else if (_populationStatus == PopulationState.High) 
+                                                    {
+                                                        currentTriggerMS = _pingEnforcerHighTriggerMS;
+                                                    }
+                                                    else if (_populationStatus == PopulationState.Medium) 
+                                                    {
+                                                        currentTriggerMS = _pingEnforcerMedTriggerMS;
+                                                    }
+                                                    else if (_populationStatus == PopulationState.Low) 
+                                                    {
+                                                        currentTriggerMS = _pingEnforcerLowTriggerMS;
+                                                    }
                                                     //Warn players of limit and spikes
-                                                    if (ping > _pingEnforcerTriggerMS) {
+                                                    if (ping > currentTriggerMS)
+                                                    {
                                                         if (aPlayer.player_pings_full &&
-                                                            aPlayer.player_ping_avg < _pingEnforcerTriggerMS && 
+                                                            aPlayer.player_ping_avg < currentTriggerMS && 
                                                             ping > (aPlayer.player_ping_avg * 1.5))
                                                         {
                                                             PlayerSayMessage(aPlayer.player_name, "Warning, your ping is spiking. Current: [" + Math.Round(ping) + "ms] Avg: [" + Math.Round(aPlayer.player_ping_avg, 1) + "ms]" + ((proconFetched) ? ("[PR]") : ("")));
@@ -5135,7 +5225,7 @@ namespace PRoConEvents {
                                                         }
                                                     }
                                                     //Are they over the limit, or missing
-                                                    if (((aPlayer.player_ping_avg > _pingEnforcerTriggerMS && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0)) && aPlayer.player_pings_full)
+                                                    if (((aPlayer.player_ping_avg > currentTriggerMS && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0)) && aPlayer.player_pings_full)
                                                     {
                                                         //Are they worse than the current picked player
                                                         if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0)) {
@@ -18992,7 +19082,10 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_AFKIgnoreRoles))); 
                 QueueSettingForUpload(new CPluginVariable(@"Ping Enforcer Enable", typeof(Boolean), _pingEnforcerSystemEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
-                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Trigger ms", typeof(Double), _pingEnforcerTriggerMS));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Medium Population Trigger ms", typeof(Double), _pingEnforcerMedTriggerMS));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick High Population Trigger ms", typeof(Double), _pingEnforcerHighTriggerMS));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Full Population Trigger ms", typeof(Double), _pingEnforcerFullTriggerMS));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
                 QueueSettingForUpload(new CPluginVariable(@"Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
