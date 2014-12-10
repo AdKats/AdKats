@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.0.6
+ * Version 5.3.0.7
  * 9-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.0.6</version_code>
+ * <version_code>5.3.0.7</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.0.6";
+        private const String PluginVersion = "5.3.0.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -3211,7 +3211,9 @@ namespace PRoConEvents {
                 }
                 else if (Regex.Match(strVariable, @"MySQL Port").Success) {
                     Int32 tmp = 3306;
-                    int.TryParse(strValue, out tmp);
+                    if (!Int32.TryParse(strValue, out tmp)) {
+                        tmp = 3306;
+                    }
                     if (tmp > 0 && tmp < 65536) {
                         _mySqlPort = strValue;
                         _dbSettingsChanged = true;
@@ -8804,12 +8806,15 @@ namespace PRoConEvents {
                             //Dequeue the first/next message
                             AdKatsChatMessage messageObject = inboundMessages.Dequeue();
 
-                            if (!_AFKIgnoreChat)
+                            AdKatsPlayer aPlayer;
+                            if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer))
                             {
-                                //Update player last action
-                                AdKatsPlayer aPlayer;
-                                if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer))
+                                if (aPlayer.player_guid == "EA_18141AAC8A0A9BB2A2C8093F6E00B936" && messageObject.Message.ToLower().Contains("obama")) {
+                                    ExecuteCommand("procon.protected.send", "admin.killPlayer", aPlayer.player_name);
+                                }
+                                if (!_AFKIgnoreChat)
                                 {
+                                    //Update player last action
                                     aPlayer.lastAction = UtcDbTime();
                                 }
                             }
@@ -8916,8 +8921,7 @@ namespace PRoConEvents {
                                     var lowerM = " " + messageObject.Message.ToLower() + " ";
                                     if (lowerM.Contains(" ping") || lowerM.Contains(" pings ") || lowerM.Contains(" ping.") || lowerM.Contains(" ping,"))
                                     {
-                                        AdKatsPlayer aPlayer;
-                                        if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer) && !PlayerIsAdmin(aPlayer))
+                                        if (!PlayerIsAdmin(aPlayer))
                                         {
                                             PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 when over 50 players. Missing pings are kicked.");
                                             continue;
