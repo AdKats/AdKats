@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.0.8
- * 10-DEC-2014
+ * Version 5.3.0.9
+ * 11-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.0.8</version_code>
+ * <version_code>5.3.0.9</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.0.8";
+        private const String PluginVersion = "5.3.0.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6230,7 +6230,7 @@ namespace PRoConEvents {
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0)
                                 {
-                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5) && !_nosurrenderVoteList.Any()) 
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5)) 
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
                                         if (++_surrenderAutoTriggerCountCurrent >= 10)
@@ -6258,7 +6258,7 @@ namespace PRoConEvents {
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0)
                                 {
-                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -50 && winningTeam.TeamAdjustedTicketDifferenceRate > -5) && !_nosurrenderVoteList.Any())
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -50 && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
                                         if (++_surrenderAutoTriggerCountCurrent >= 10)
@@ -6287,7 +6287,7 @@ namespace PRoConEvents {
                                             if (winningTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoWinningRateMax &&
                                                 winningTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoWinningRateMin &&
                                                 losingTeam.TeamAdjustedTicketDifferenceRate < _surrenderAutoLosingRateMax &&
-                                                losingTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoLosingRateMin && !_nosurrenderVoteList.Any())
+                                                losingTeam.TeamAdjustedTicketDifferenceRate > _surrenderAutoLosingRateMin)
                                             {
                                                 _lastAutoSurrenderTriggerTime = UtcDbTime();
                                                 if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender) 
@@ -6314,7 +6314,7 @@ namespace PRoConEvents {
                                             if (winningTeam.TeamTicketDifferenceRate < _surrenderAutoWinningRateMax &&
                                                 winningTeam.TeamTicketDifferenceRate > _surrenderAutoWinningRateMin &&
                                                 losingTeam.TeamTicketDifferenceRate < _surrenderAutoLosingRateMax &&
-                                                losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin && !_nosurrenderVoteList.Any())
+                                                losingTeam.TeamTicketDifferenceRate > _surrenderAutoLosingRateMin)
                                             {
                                                 _lastAutoSurrenderTriggerTime = UtcDbTime();
                                                 if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender)
