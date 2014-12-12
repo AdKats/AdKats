@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.0.9
- * 11-DEC-2014
+ * Version 5.3.1.0
+ * 12-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.0.9</version_code>
+ * <version_code>5.3.1.0</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.0.9";
+        private const String PluginVersion = "5.3.1.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5736,7 +5736,7 @@ namespace PRoConEvents {
                             foreach (AdKatsClient client in 
                                     _subscribedClients.Where(aClient => 
                                         aClient.SubscriptionGroup == "OnlineSoldiers" && 
-                                        aClient.SubscriptionEnabled)) {
+                                        aClient.SubscriptionEnabled).ToList()) {
                                 SendOnlineSoldiers(client);
                             }
                         }
@@ -8494,6 +8494,15 @@ namespace PRoConEvents {
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
+            if (_isTestingAuthorized) {
+                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
+                    if (aPlayer.player_reputation >= _reputationThresholdGood && 
+                        !PlayerIsAdmin(aPlayer) && 
+                        !whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                }
+            }
             if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
             {
                 var nonAdminSayThread = new Thread(new ThreadStart(delegate
