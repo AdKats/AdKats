@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.1.0
+ * Version 5.3.1.1
  * 12-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.1.0</version_code>
+ * <version_code>5.3.1.1</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.1.0";
+        private const String PluginVersion = "5.3.1.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6233,7 +6233,7 @@ namespace PRoConEvents {
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5)) 
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
-                                        if (++_surrenderAutoTriggerCountCurrent >= 10)
+                                        if (++_surrenderAutoTriggerCountCurrent >= ((_isTestingAuthorized)?(25):(10)))
                                         {
                                             baserapingTeam = winningTeam;
                                             baserapedTeam = losingTeam;
