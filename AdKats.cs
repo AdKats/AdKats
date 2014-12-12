@@ -6240,7 +6240,7 @@ namespace PRoConEvents {
                                         }
                                         else
                                         {
-                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/10.");
+                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + ((_isTestingAuthorized) ? (25) : (10)) + ".");
                                         }
                                     }
                                     else
