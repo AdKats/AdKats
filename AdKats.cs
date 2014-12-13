@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.1.1
- * 12-DEC-2014
+ * Version 5.3.1.2
+ * 13-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.1.1</version_code>
+ * <version_code>5.3.1.2</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.1.1";
+        private const String PluginVersion = "5.3.1.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -27479,7 +27479,7 @@ namespace PRoConEvents {
             {
                 var reader = command.ExecuteReader();
                 watch.Stop();
-                if (watch.Elapsed.TotalSeconds > (50 * _DatabaseReadAverageDuration) && _firstPlayerListComplete) 
+                if (watch.Elapsed.TotalSeconds > 4 && watch.Elapsed.TotalSeconds > (50 * _DatabaseReadAverageDuration) && _firstPlayerListComplete) 
                 {
                     HandleDatabaseConnectionInteruption();
                 }
@@ -27504,7 +27504,7 @@ namespace PRoConEvents {
                     watch.Start();
                     var reader = command.ExecuteReader();
                     watch.Stop();
-                    if (watch.Elapsed.TotalSeconds > (50 * _DatabaseReadAverageDuration) && _firstPlayerListComplete)
+                    if (watch.Elapsed.TotalSeconds > 4 && watch.Elapsed.TotalSeconds > (50 * _DatabaseReadAverageDuration) && _firstPlayerListComplete)
                     {
                         HandleDatabaseConnectionInteruption();
                     }
@@ -27530,7 +27530,7 @@ namespace PRoConEvents {
             {
                 var modified = command.ExecuteNonQuery();
                 watch.Stop();
-                if (watch.Elapsed.TotalSeconds > (50 * _DatabaseWriteAverageDuration) && _firstPlayerListComplete)
+                if (watch.Elapsed.TotalSeconds > 4 && watch.Elapsed.TotalSeconds > (50 * _DatabaseWriteAverageDuration) && _firstPlayerListComplete)
                 {
                     HandleDatabaseConnectionInteruption();
                 }
@@ -27555,7 +27555,7 @@ namespace PRoConEvents {
                     watch.Start();
                     var modified = command.ExecuteNonQuery();
                     watch.Stop();
-                    if (watch.Elapsed.TotalSeconds > (50 * _DatabaseWriteAverageDuration) && _firstPlayerListComplete)
+                    if (watch.Elapsed.TotalSeconds > 4 && watch.Elapsed.TotalSeconds > (50 * _DatabaseWriteAverageDuration) && _firstPlayerListComplete)
                     {
                         HandleDatabaseConnectionInteruption();
                     }
