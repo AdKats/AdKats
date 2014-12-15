@@ -1931,7 +1931,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </tr>
     <tr>
         <td>api.gamerethos.net</td>
-        <td>Version management.</td>
+        <td>Version management, and backup source for definition files.</td>
     </tr>
     <tr>
         <td>ip-api.com</td>
