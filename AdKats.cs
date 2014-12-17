@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.1.2
- * 13-DEC-2014
+ * Version 5.3.1.3
+ * 16-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.1.2</version_code>
+ * <version_code>5.3.1.3</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.1.2";
+        private const String PluginVersion = "5.3.1.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1103,7 +1103,7 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof(String), _debugSoldierName));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
-                    lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Usage Data Posting - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
+                    lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Command Entry", typeof (String), ""));
                     
                     //Experimental tools
@@ -1315,7 +1315,7 @@ namespace PRoConEvents {
 
             lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof(Int32), _debugLevel));
             lstReturn.Add(new CPluginVariable("3. Debugging|Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
-            lstReturn.Add(new CPluginVariable("3. Debugging|Disable Usage Data Posting - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
+            lstReturn.Add(new CPluginVariable("3. Debugging|Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
 
             lstReturn.Add(new CPluginVariable("4. Database Timing Mismatch|Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
 
@@ -1620,7 +1620,7 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Disable Usage Data Posting - Required For TEST Builds").Success)
+                else if (Regex.Match(strVariable, @"Disable Version Tracking - Required For TEST Builds").Success)
                 {
                     Boolean disableUpdatePosts = Boolean.Parse(strValue);
                     if (disableUpdatePosts != _usageDataDisabled)
@@ -1638,7 +1638,7 @@ namespace PRoConEvents {
                             PostUsageStatsUpdate();
                         }
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Disable Usage Data Posting - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
+                        QueueSettingForUpload(new CPluginVariable(@"Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
                     }
                 }
                 else if (Regex.Match(strVariable, @"AFK System Enable").Success)
@@ -5437,7 +5437,8 @@ namespace PRoConEvents {
                                             //If populating, add player
                                             if (_populationPopulating && 
                                                 _populationStatus == PopulationState.Low &&
-                                                aPlayer.player_type == PlayerType.Player) 
+                                                aPlayer.player_type == PlayerType.Player && 
+                                                _populationPopulatingPlayers.Count < _lowPopulationPlayerCount) 
                                             {
                                                 _populationPopulatingPlayers[aPlayer.player_name] = aPlayer;
                                             }
@@ -5555,6 +5556,8 @@ namespace PRoConEvents {
                                             }
                                             aPlayer.conversationPartner = null;
                                         }
+                                        //Remove from populators
+                                        _populationPopulatingPlayers.Remove(aPlayer.player_name);
                                         //Add player to the left dictionary
                                         aPlayer.player_online = false;
                                         aPlayer.player_server = null;
@@ -5627,7 +5630,7 @@ namespace PRoConEvents {
                                     {
                                         _populationPopulatingPlayers.Clear();
                                         _populationPopulating = true;
-                                        foreach (var popPlayer in _PlayerDictionary.Values.Where(player => player.player_type == PlayerType.Player))
+                                        foreach (var popPlayer in _PlayerDictionary.Values.Where(player => player.player_type == PlayerType.Player).ToList())
                                         {
                                             _populationPopulatingPlayers[popPlayer.player_name] = popPlayer;
                                         }
@@ -8513,7 +8516,7 @@ namespace PRoConEvents {
                         Thread.CurrentThread.Name = "onlineNonAdminSay";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Say (-Admins" + ((whitelistedPlayers.Any())?(whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.GetVerboseName())):("")) + ") > " + message);
+                            ProconChatWrite("Say -(Admins" + ((whitelistedPlayers.Any())?(whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.GetVerboseName())):("")) + ") > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -14710,7 +14713,7 @@ namespace PRoConEvents {
                     else if ((action == "kill" || (isLowPop && !iroOverride)) && !action.Equals("ban")) 
                     {
                         record.command_action = (isLowPop) ? (GetCommandByKey("player_kill_lowpop")) : (GetCommandByKey("player_kill"));
-                        if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
+                        if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled))
                         {
                             ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable{
                                 {"caller_identity", "AdKats"},
@@ -15448,7 +15451,7 @@ namespace PRoConEvents {
                     _RoundReports.Add(reportID + "", record);
                 }
                 record.record_action_executed = true;
-                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && (!_isTestingAuthorized || record.target_player.player_reputation < 0))
                 {
                     ConsoleWarn("Running loadout case for report record " + reportID);
                     if (!record.isLoadoutChecked)
@@ -15469,10 +15472,10 @@ namespace PRoConEvents {
                         }
                         return;
                     }
-                    if (!record.targetLoadoutValid && !FetchOnlineAdminSoldiers().Any())
+                    if (!record.targetLoadoutValid && (!_isTestingAuthorized || !FetchOnlineAdminSoldiers().Any()))
                     {
                         SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
-                        OnlineAdminSayMessage("Report " + reportID + " is being acted on by loadout enforcer.");
+                        OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
                         record.command_action = GetCommandByKey("player_report_confirm");
                         UpdateRecord(record);
                         return;
@@ -19081,7 +19084,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Inform reputable players and admins of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
-                QueueSettingForUpload(new CPluginVariable(@"Disable Usage Data Posting - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
+                QueueSettingForUpload(new CPluginVariable(@"Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
                 QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKManagerEnable));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
