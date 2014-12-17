@@ -59,7 +59,7 @@
 </p>
 <h4>1. AdKats</h4>
 <p>
-    AdKats 5.3.1.3 or later, and its dependencies.
+    AdKats 5.3.1.4 or later, and its dependencies.
 </p>
 <HR>
 <p>
