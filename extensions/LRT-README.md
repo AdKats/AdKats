@@ -71,7 +71,7 @@
         <b>Install AdKats.</b>
         Download and install the latest version of AdKats.
         <a href="https://github.com/AdKats/AdKats#install" target="_blank">AdKats Install Instructions.</a>
-        After install make sure you are running version 5.3.1.3 or later. If you are not, download the latest test version from here:
+        After install make sure you are running version 5.3.1.4 or later. If you are not, download the latest test version from here:
         <a href="https://raw.githubusercontent.com/AdKats/AdKats/test/AdKats.cs" target="_blank">AdKats Test Branch.</a>
     </li>
     <li>
