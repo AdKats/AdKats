@@ -44,7 +44,7 @@
     Development by Daniel J. Gradinjan (ColColonCleaner)
 </p>
 <p>
-    If you find any bugs, please inform me about them on the MyRCON forums and they will be fixed ASAP.
+    If you find any bugs, please inform me about them on the MyRCON forums and they will be fixed ASAP. Purchase of this plugin carries no guarantee to continue functioning properly if DICE changes their configuration to disallow this plugin's method of parsing loadouts.
 </p>
 <br/>
 <HR>
@@ -88,7 +88,7 @@
     </li>
 </ol>
 <p>
-    If you have any problems installing AdKatsLRT please let me know on the MyRCON forums and I'll respond promptly. Purchase of this plugin carries no guarantee to continue functioning properly if DICE changes their configuration to disallow this plugin's method of parsing loadouts.
+    If you have any problems installing AdKatsLRT please let me know on the MyRCON forums and I'll respond promptly.
 </p>
 <HR>
 <p>
