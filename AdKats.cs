@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.1.4
+ * Version 5.3.1.5
  * 17-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.1.4</version_code>
+ * <version_code>5.3.1.5</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.1.4";
+        private const String PluginVersion = "5.3.1.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -3927,6 +3927,7 @@ namespace PRoConEvents {
                         {
                             ConsoleError("Failed to fetch weapon stat definitions. AdKats cannot be started.");
                             Disable();
+                            LogThreadExit();
                             return;
                         }
 
@@ -3939,6 +3940,7 @@ namespace PRoConEvents {
                         {
                             ConsoleError("Failed to fetch reputation definitions. AdKats cannot be started.");
                             Disable();
+                            LogThreadExit();
                             return;
                         }
 
@@ -3951,6 +3953,7 @@ namespace PRoConEvents {
                         {
                             ConsoleError("Failed to fetch weapon names. AdKats cannot be started.");
                             Disable();
+                            LogThreadExit();
                             return;
                         }
 
@@ -3963,6 +3966,7 @@ namespace PRoConEvents {
                         {
                             ConsoleError("Failed to fetch special player group definitions. AdKats cannot be started.");
                             Disable();
+                            LogThreadExit();
                             return;
                         }
 
