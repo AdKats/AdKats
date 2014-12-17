@@ -27242,7 +27242,7 @@ namespace PRoConEvents {
                                 {
                                     try
                                     {
-                                        extensionSource = client.DownloadString("https://raw.githubusercontent.com/AdKats/AdKats-LRT/test/AdKatsLRT.cs?token=" + _AdKatsLRTExtensionToken);
+                                        extensionSource = client.DownloadString("https://raw.githubusercontent.com/AdKats/AdKats-LRT/master/AdKatsLRT.cs?token=" + _AdKatsLRTExtensionToken);
                                     }
                                     catch (Exception e)
                                     {
