@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.1.3
- * 16-DEC-2014
+ * Version 5.3.1.4
+ * 17-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.1.3</version_code>
+ * <version_code>5.3.1.4</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.1.3";
+        private const String PluginVersion = "5.3.1.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -15451,7 +15451,7 @@ namespace PRoConEvents {
                     _RoundReports.Add(reportID + "", record);
                 }
                 record.record_action_executed = true;
-                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && (!_isTestingAuthorized || record.target_player.player_reputation < 0))
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
                 {
                     ConsoleWarn("Running loadout case for report record " + reportID);
                     if (!record.isLoadoutChecked)
@@ -15472,7 +15472,7 @@ namespace PRoConEvents {
                         }
                         return;
                     }
-                    if (!record.targetLoadoutValid && (!_isTestingAuthorized || !FetchOnlineAdminSoldiers().Any()))
+                    if (!record.targetLoadoutValid && !FetchOnlineAdminSoldiers().Any())
                     {
                         SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
