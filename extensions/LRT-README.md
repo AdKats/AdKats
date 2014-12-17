@@ -88,7 +88,7 @@
     </li>
 </ol>
 <p>
-    If you have any problems installing AdKatsLRT please let me know on the MyRCON forums and I'll respond promptly.
+    If you have any problems installing AdKatsLRT please let me know on the MyRCON forums and I'll respond promptly. Purchase of this plugin carries no guarantee to continue functioning properly if DICE changes their configuration to disallow this plugin's method of parsing loadouts.
 </p>
 <HR>
 <p>
