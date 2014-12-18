@@ -76,7 +76,7 @@
     </li>
     <li>
         <b>Purchase AdKatsLRT, and aquire an extension token.</b>
-        Private message ColColonCleaner on the MyRCON forums about getting the plugin. Once approved and purchased, you will be given an extension token, usable to install AdKatsLRT.
+        <a href="https://forum.myrcon.com/private.php?do=newpm&u=15312" target="_blank">Private message ColColonCleaner</a> on the MyRCON forums about getting the plugin. Once approved and purchased, you will be given an extension token, usable to install AdKatsLRT.
     </li>
     <li>
         <b>Install the plugin.</b>
