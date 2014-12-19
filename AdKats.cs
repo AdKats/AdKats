@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.1.6
+ * Version 5.3.1.7
  * 18-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.1.6</version_code>
+ * <version_code>5.3.1.7</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.1.6";
+        private const String PluginVersion = "5.3.1.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5895,7 +5895,7 @@ namespace PRoConEvents {
                         if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                         _AccessFetchWaitHandle.Reset();
-                        _AccessFetchWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
+                        _AccessFetchWaitHandle.WaitOne(TimeSpan.FromSeconds(300));
                         loopStart = UtcDbTime();
                     }
                     catch (Exception e) {
@@ -6674,6 +6674,7 @@ namespace PRoConEvents {
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
+                    loopStart = UtcDbTime();
                     try {
                         DebugWrite("KILLPROC: Entering Kill Processing Thread Loop", 7);
                         if (!_pluginEnabled) {
@@ -17709,6 +17710,8 @@ namespace PRoConEvents {
                             counter.Stop();
                             if (FullDebug)
                                 ConsoleWrite("DBCOMM: UnprocessedRecords took " + counter.ElapsedMilliseconds + "ms");
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                                DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                         }
                         else {
                             counter.Reset();
