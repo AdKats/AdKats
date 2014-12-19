@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.2.0
+ * Version 5.3.2.1
  * 18-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.2.0</version_code>
+ * <version_code>5.3.2.1</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.2.0";
+        private const String PluginVersion = "5.3.2.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -14718,7 +14718,7 @@ namespace PRoConEvents {
                     Boolean isLowPop = _OnlyKillOnLowPop && (_PlayerDictionary.Count < _highPopulationPlayerCount);
                     Boolean iroOverride = record.isIRO && _IROOverridesLowPop;
 
-                    DebugWrite("Server low population: " + isLowPop + " (" + _PlayerDictionary.Count + " <? " + _lowPopulationPlayerCount + ") | Override: " + iroOverride, 5);
+                    DebugWrite("Server low population: " + isLowPop + " (" + _PlayerDictionary.Count + " <? " + _highPopulationPlayerCount + ") | Override: " + iroOverride, 5);
 
                     //Call correct action
                     if (action == "repwarn")
@@ -17564,9 +17564,18 @@ namespace PRoConEvents {
                             DebugWrite("Preparing to fetch settings from server " + _serverInfo.ServerID, 6);
                             //Fetch new settings from the database
                             FetchSettings(_settingImportID, _settingImportID != _serverInfo.ServerID);
+
+                            counter.Reset();
+                            counter.Start();
                             RunPluginOrchestration();
+                            counter.Stop();
+                            ConsoleWrite("DBCOMM: RunPluginOrchestration took " + counter.ElapsedMilliseconds + "ms");
                             //Run any available SQL Updates
+                            counter.Reset();
+                            counter.Start();
                             RunSQLUpdates();
+                            counter.Stop();
+                            ConsoleWrite("DBCOMM: RunSQLUpdates took " + counter.ElapsedMilliseconds + "ms");
                         }
 
                         counter.Reset();
@@ -17837,25 +17846,32 @@ namespace PRoConEvents {
                 {
                     Thread.CurrentThread.Name = "SettingUploader";
                     Thread.Sleep(250);
-                    DebugWrite("DBCOMM: Preparing to lock inbound setting queue to get new settings", 7);
-                    Queue<CPluginVariable> inboundSettingUpload;
-                    lock (_SettingUploadQueue)
+                    try
                     {
-                        DebugWrite("DBCOMM: Inbound settings found. Grabbing.", 6);
-                        //Grab all settings in the queue
-                        inboundSettingUpload = new Queue<CPluginVariable>(_SettingUploadQueue.ToArray());
-                        //Clear the queue for next run
-                        _SettingUploadQueue.Clear();
-                    }
-                    //Loop through all settings in order that they came in
-                    while (inboundSettingUpload.Count > 0)
-                    {
-                        if (!_pluginEnabled) {
-                            break;
+                        DebugWrite("DBCOMM: Preparing to lock inbound setting queue to get new settings", 7);
+                        Queue<CPluginVariable> inboundSettingUpload;
+                        lock (_SettingUploadQueue)
+                        {
+                            DebugWrite("DBCOMM: Inbound settings found. Grabbing.", 6);
+                            //Grab all settings in the queue
+                            inboundSettingUpload = new Queue<CPluginVariable>(_SettingUploadQueue.ToArray());
+                            //Clear the queue for next run
+                            _SettingUploadQueue.Clear();
                         }
-                        CPluginVariable setting = inboundSettingUpload.Dequeue();
+                        //Loop through all settings in order that they came in
+                        while (inboundSettingUpload.Count > 0)
+                        {
+                            if (!_pluginEnabled)
+                            {
+                                break;
+                            }
+                            CPluginVariable setting = inboundSettingUpload.Dequeue();
 
-                        UploadSetting(setting);
+                            UploadSetting(setting);
+                        }
+                    }
+                    catch (Exception e) {
+                        HandleException(new AdKatsException("Error while uploading settings.", e));
                     }
                     LogThreadExit();
                 })));
@@ -26089,84 +26105,121 @@ namespace PRoConEvents {
 
         private void RunSQLUpdates() {
             DebugWrite("Entering RunSQLUpdates", 7);
-            try
+            if (_aliveThreads.Values.Any(aThread => aThread.Name == "SQLUpdater"))
             {
-                Int32 currentVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
-                foreach (AdKatsSQLUpdate update in FetchSQLUpdates())
+                return;
+            }
+            StartAndLogThread(new Thread(new ThreadStart(delegate
+            {
+                Thread.CurrentThread.Name = "SQLUpdater";
+                Thread.Sleep(250);
+                try
                 {
-                    if (update == null) {
-                        ConsoleError("SQL update was null. Skipping.");
-                        continue;
-                    }
-                    try
+                    Int32 currentVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
+                    foreach (AdKatsSQLUpdate update in FetchSQLUpdates())
                     {
-                        //Check for valid version
-                        if (!String.IsNullOrEmpty(update.version_minimum) && currentVersionInt < Int32.Parse(update.version_minimum.Replace(".", "")))
+                        if (!_pluginEnabled)
                         {
-                            DebugWrite("Cancelling SQL update '" + update.update_id + "'. Version too early for update.", 5);
+                            break;
+                        }
+                        if (update == null)
+                        {
+                            ConsoleError("SQL update was null. Skipping.");
                             continue;
                         }
-                        if (!String.IsNullOrEmpty(update.version_maximum) && currentVersionInt > Int32.Parse(update.version_maximum.Replace(".", "")))
+                        try
                         {
-                            DebugWrite("Cancelling SQL update '" + update.update_id + "'. Version too late for update.", 5);
-                            continue;
-                        }
-                        //Check for valid initial conditions
-                        Boolean invalid = false;
-                        foreach (String checkSQL in update.update_checks) {
-                            if (SendQuery(checkSQL, false)) {
-                                if (!update.update_checks_hasResults) {
-                                    //Has results, when it shouldn't
-                                    invalid = true;
+                            //Check for valid version
+                            if (!String.IsNullOrEmpty(update.version_minimum) && currentVersionInt < Int32.Parse(update.version_minimum.Replace(".", "")))
+                            {
+                                DebugWrite("Cancelling SQL update '" + update.update_id + "'. Version too early for update.", 5);
+                                continue;
+                            }
+                            if (!String.IsNullOrEmpty(update.version_maximum) && currentVersionInt > Int32.Parse(update.version_maximum.Replace(".", "")))
+                            {
+                                DebugWrite("Cancelling SQL update '" + update.update_id + "'. Version too late for update.", 5);
+                                continue;
+                            }
+                            //Check for valid initial conditions
+                            Boolean invalid = false;
+                            foreach (String checkSQL in update.update_checks)
+                            {
+                                if (!_pluginEnabled)
+                                {
+                                    break;
+                                }
+                                if (SendQuery(checkSQL, false))
+                                {
+                                    if (!update.update_checks_hasResults)
+                                    {
+                                        //Has results, when it shouldn't
+                                        invalid = true;
+                                        break;
+                                    }
+                                }
+                                else
+                                {
+                                    if (update.update_checks_hasResults)
+                                    {
+                                        //Doesn't have results, when it should
+                                        invalid = true;
+                                        break;
+                                    }
+                                }
+                            }
+                            if (invalid)
+                            {
+                                DebugWrite("Cancelling SQL update '" + update.update_id + "', it does not apply to this database.", 5);
+                                continue;
+                            }
+                            //Run the updates
+                            Int32 executeIndex = 0;
+                            Boolean failed = false;
+                            foreach (String executeSQL in update.update_execute)
+                            {
+                                if (!_pluginEnabled)
+                                {
+                                    break;
+                                }
+                                if (!SendNonQuery("Executing SQL Update '" + update.update_id + "' (" + update.message_name + ")" + executeIndex++, executeSQL, false) && update.update_execute_requiresModRows)
+                                {
+                                    failed = true;
                                     break;
                                 }
                             }
-                            else {
-                                if (update.update_checks_hasResults) {
-                                    //Doesn't have results, when it should
-                                    invalid = true;
+                            if (failed)
+                            {
+                                ConsoleError("Cancelling SQL update '" + update.update_id + "'. Update failed execution (" + update.message_failure + "), running failure clause(s). ");
+                                Int32 failureIndex = 0;
+                                foreach (String failureSQL in update.update_failure)
+                                {
+                                    SendNonQuery("Running SQL Update '" + update.update_id + "' Failure Clause " + failureIndex++, failureSQL, false);
+                                }
+                                continue;
+                            }
+                            ConsoleSuccess("SQL Update '" + update.update_id + "' completed execution (" + update.message_success + ").");
+                            Int32 successIndex = 0;
+                            foreach (String successSQL in update.update_success)
+                            {
+                                if (!_pluginEnabled)
+                                {
                                     break;
                                 }
+                                SendNonQuery("Running SQL Update '" + update.update_id + "' Success Clause " + successIndex++, successSQL, false);
                             }
                         }
-                        if (invalid) {
-                            DebugWrite("Cancelling SQL update '" + update.update_id + "', it does not apply to this database.", 5);
-                            continue;
-                        }
-                        //Run the updates
-                        Int32 executeIndex = 0;
-                        Boolean failed = false;
-                        foreach (String executeSQL in update.update_execute) {
-                            if (!SendNonQuery("Executing SQL Update '" + update.update_id + "' (" + update.message_name + ")" + executeIndex++, executeSQL, false) && update.update_execute_requiresModRows) {
-                                failed = true;
-                                break;
-                            }
-                        }
-                        if (failed)
+                        catch (Exception e)
                         {
-                            ConsoleError("Cancelling SQL update '" + update.update_id + "'. Update failed execution (" + update.message_failure + "), running failure clause(s). ");
-                            Int32 failureIndex = 0;
-                            foreach (String failureSQL in update.update_failure) {
-                                SendNonQuery("Running SQL Update '" + update.update_id + "' Failure Clause " + failureIndex++, failureSQL, false);
-                            }
-                            continue;
+                            HandleException(new AdKatsException("Error while running SQL update '" + update.update_id + "'.", e));
                         }
-                        ConsoleSuccess("SQL Update '" + update.update_id + "' completed execution (" + update.message_success + ").");
-                        Int32 successIndex = 0;
-                        foreach (String successSQL in update.update_success)
-                        {
-                            SendNonQuery("Running SQL Update '" + update.update_id + "' Success Clause " + successIndex++, successSQL, false);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        HandleException(new AdKatsException("Error while running SQL update '" + update.update_id + "'.", e));
                     }
                 }
-            }
-            catch (Exception e) {
-                HandleException(new AdKatsException("Error while running SQL updates.", e));
-            }
+                catch (Exception e)
+                {
+                    HandleException(new AdKatsException("Error while processing SQL updates.", e));
+                }
+                LogThreadExit();
+            })));
             DebugWrite("Exiting RunSQLUpdates", 7);
         }
 
