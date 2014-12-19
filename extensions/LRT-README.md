@@ -72,7 +72,7 @@
         Download and install the latest version of AdKats.
         <a href="https://github.com/AdKats/AdKats#install" target="_blank">AdKats Install Instructions.</a>
         After install make sure you are running version 5.3.1.4 or later. If you are not, download the latest test version from here:
-        <a href="http://api.gamerethos.net/adkats/fetch/test?force=1" target="_blank">AdKats Test Branch.</a> And make sure that version is functioning properly before continuing.
+        <a href="http://api.gamerethos.net/adkats/fetch/test?force=1" target="_blank">AdKats Test Branch.</a> Make sure that version is functioning properly before continuing.
     </li>
     <li>
         <b>Purchase AdKatsLRT, and aquire an extension token.</b>
