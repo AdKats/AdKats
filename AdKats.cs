@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.2.1
+ * Version 5.3.2.2
  * 18-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.2.1</version_code>
+ * <version_code>5.3.2.2</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.2.1";
+        private const String PluginVersion = "5.3.2.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -514,7 +514,6 @@ namespace PRoConEvents {
         private Boolean _PostStatLoggerChatManually;
         private Boolean _PostStatLoggerChatManually_PostServerChatSpam = true;
         private Boolean _PostStatLoggerChatManually_IgnoreCommands = false;
-        private Boolean _LowDatabaseIntensityMode;
         private Boolean _PostMapBenefitStatistics;
         private Boolean _MULTIBalancerUnswitcherDisabled = false;
         public readonly String[] _subscriptionGroups = {"OnlineSoldiers"};
@@ -960,7 +959,6 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
                         lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
                     }
-                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Enable Low Database Intensity Mode", typeof(Boolean), _LowDatabaseIntensityMode));
 
                     lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                     if (_useRoundTimer) {
@@ -2413,16 +2411,6 @@ namespace PRoConEvents {
                         _PostStatLoggerChatManually_IgnoreCommands = PostStatLoggerChatManually_IgnoreCommands;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"Enable Low Database Intensity Mode").Success)
-                {
-                    Boolean LowDatabaseIntensityMode = Boolean.Parse(strValue);
-                    if (LowDatabaseIntensityMode != _LowDatabaseIntensityMode)
-                    {
-                        _LowDatabaseIntensityMode = LowDatabaseIntensityMode;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Enable Low Database Intensity Mode", typeof(Boolean), _LowDatabaseIntensityMode));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Post Map Benefit/Detriment Statistics").Success)
@@ -5918,7 +5906,7 @@ namespace PRoConEvents {
         {
             try
             {
-                if (!_pluginEnabled || !_threadsReady || _LowDatabaseIntensityMode)
+                if (!_pluginEnabled || !_threadsReady)
                 {
                     return;
                 }
@@ -7123,7 +7111,7 @@ namespace PRoConEvents {
             DebugWrite("uploadWeaponCode starting!", 7);
 
             //Make sure database connection active
-            if (HandlePossibleDisconnect() || !_isTestingAuthorized || _LowDatabaseIntensityMode) {
+            if (HandlePossibleDisconnect() || !_isTestingAuthorized) {
                 return;
             }
             try {
@@ -7465,10 +7453,8 @@ namespace PRoConEvents {
                             DebugWrite("BANENF: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
-
-                        if (!_LowDatabaseIntensityMode) {
-                            SendNonQuery("Updating Active Bans", "UPDATE `adkats_bans` SET `ban_status` = 'Expired' WHERE `ban_endTime` <= UTC_TIMESTAMP() AND `ban_status` = 'Active'", false);
-                        }
+                        
+                        SendNonQuery("Updating Active Bans", "UPDATE `adkats_bans` SET `ban_status` = 'Expired' WHERE `ban_endTime` <= UTC_TIMESTAMP() AND `ban_status` = 'Active'", false);
                             
                         //Get all unchecked players
                         Queue<AdKatsPlayer> playerCheckingQueue;
@@ -14723,11 +14709,13 @@ namespace PRoConEvents {
                     //Call correct action
                     if (action == "repwarn")
                     {
+                        SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
                         AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                         PlayerTellMessage(record.target_name, "Your reputation protected you from a punish, but has been reduced. Inform an admin!", true, 3);
                     }
                     else if (action == "warn")
                     {
+                        SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
                         AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                         PlayerTellMessage(record.target_name, "Warned by admin for " + record.record_message, true , 3);
                     }
@@ -17522,12 +17510,12 @@ namespace PRoConEvents {
                             UpdateDatabase37014000();
 
                             counter.Stop();
-                            ConsoleWrite("DBCOMM: Initial command fetch took " + counter.ElapsedMilliseconds + "ms");
+                            //ConsoleWrite("DBCOMM: Initial command fetch took " + counter.ElapsedMilliseconds + "ms");
                         }
                         counter.Reset();
                         counter.Start();
                         //FeedStatLoggerSettings();
-                        ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
 
                         //Update server ID
                         if (_serverInfo.ServerID <= 0) {
@@ -17569,44 +17557,44 @@ namespace PRoConEvents {
                             counter.Start();
                             RunPluginOrchestration();
                             counter.Stop();
-                            ConsoleWrite("DBCOMM: RunPluginOrchestration took " + counter.ElapsedMilliseconds + "ms");
+                            //ConsoleWrite("DBCOMM: RunPluginOrchestration took " + counter.ElapsedMilliseconds + "ms");
                             //Run any available SQL Updates
                             counter.Reset();
                             counter.Start();
                             RunSQLUpdates();
                             counter.Stop();
-                            ConsoleWrite("DBCOMM: RunSQLUpdates took " + counter.ElapsedMilliseconds + "ms");
+                            //ConsoleWrite("DBCOMM: RunSQLUpdates took " + counter.ElapsedMilliseconds + "ms");
                         }
 
                         counter.Reset();
                         counter.Start();
                         HandleSettingUploads();
                         counter.Stop();
-                        ConsoleWrite("DBCOMM: HandleSettingUploads took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("DBCOMM: HandleSettingUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleCommandUploads();
                         counter.Stop();
-                        ConsoleWrite("DBCOMM: HandleCommandUploads took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("DBCOMM: HandleCommandUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleRoleUploads();
                         counter.Stop();
-                        ConsoleWrite("DBCOMM: HandleRoleUploads took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("DBCOMM: HandleRoleUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleRoleRemovals();
                         counter.Stop();
-                        ConsoleWrite("DBCOMM: HandleRoleRemovals took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("DBCOMM: HandleRoleRemovals took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleStatisticUploads();
                         counter.Stop();
-                        ConsoleWrite("DBCOMM: HandleStatisticUploads took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("DBCOMM: HandleStatisticUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
@@ -17618,7 +17606,7 @@ namespace PRoConEvents {
                             DebugWrite("DBCOMM: Skipping DB action fetch", 7);
                         }
                         counter.Stop();
-                        ConsoleWrite("DBCOMM: RunActionsFromDB took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("DBCOMM: RunActionsFromDB took " + counter.ElapsedMilliseconds + "ms");
 
                         HandleUserChanges();
 
@@ -17655,7 +17643,7 @@ namespace PRoConEvents {
                             }
                         }
                         counter.Stop();
-                        ConsoleWrite("DBCOMM: HandleActiveBanEnforcer took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("DBCOMM: HandleActiveBanEnforcer took " + counter.ElapsedMilliseconds + "ms");
 
                         if (_UnprocessedRecordQueue.Count > 0) 
                         {
@@ -17708,7 +17696,7 @@ namespace PRoConEvents {
                                 }
                             }
                             counter.Stop();
-                            ConsoleWrite("DBCOMM: UnprocessedRecords took " + counter.ElapsedMilliseconds + "ms");
+                            //ConsoleWrite("DBCOMM: UnprocessedRecords took " + counter.ElapsedMilliseconds + "ms");
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                         }
@@ -17721,7 +17709,7 @@ namespace PRoConEvents {
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _DbCommunicationWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             counter.Stop();
-                            ConsoleWrite("DBCOMM: Waiting after complete took " + counter.ElapsedMilliseconds + "ms");
+                            //ConsoleWrite("DBCOMM: Waiting after complete took " + counter.ElapsedMilliseconds + "ms");
                         }
                     }
                     catch (Exception e) {
@@ -19036,7 +19024,6 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
                 QueueSettingForUpload(new CPluginVariable(@"Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
                 QueueSettingForUpload(new CPluginVariable(@"Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
-                QueueSettingForUpload(new CPluginVariable(@"Enable Low Database Intensity Mode", typeof(Boolean), _LowDatabaseIntensityMode));
                 QueueSettingForUpload(new CPluginVariable(@"Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _maxRoundTimeMinutes));
@@ -19749,7 +19736,7 @@ namespace PRoConEvents {
 
             Boolean success = false;
             //Make sure database connection active
-            if (_LowDatabaseIntensityMode || HandlePossibleDisconnect())
+            if (HandlePossibleDisconnect())
             {
                 return false;
             }
@@ -19987,9 +19974,6 @@ namespace PRoConEvents {
 
         private void UpdatePlayerReputation(AdKatsPlayer aPlayer, Boolean informPlayer) {
             try {
-                if (_LowDatabaseIntensityMode) {
-                    return;
-                }
                 if (aPlayer == null) {
                     ConsoleError("Attempted to update reputation of invalid player.");
                     return;
@@ -21831,7 +21815,7 @@ namespace PRoConEvents {
                         AssignPlayerRole(aPlayer);
 
                         //Pull player first seen
-                        if (aPlayer.player_id > 0 && !_LowDatabaseIntensityMode)
+                        if (aPlayer.player_id > 0)
                         {
                             using (MySqlCommand command = connection.CreateCommand())
                             {
@@ -22609,9 +22593,6 @@ namespace PRoConEvents {
                         (UtcDbTime() - aRecord.record_time).TotalSeconds < duration)) {
                 return false;
             }
-            if (_LowDatabaseIntensityMode) {
-                return true;
-            }
             //Make sure database connection active
             if (HandlePossibleDisconnect()) {
                 record.record_exception = new AdKatsException("Database not connected.");
@@ -22665,10 +22646,6 @@ namespace PRoConEvents {
                             (UtcDbTime() - aRecord.record_time).TotalSeconds < _IROTimeout))
                 {
                     return true;
-                }
-                if (_LowDatabaseIntensityMode)
-                {
-                    return false;
                 }
                 //Make sure database connection active
                 if (HandlePossibleDisconnect())
@@ -23475,7 +23452,7 @@ namespace PRoConEvents {
         private void UpdateCommandTimeouts() {
             //Add rules timeout
             _commandTimeoutDictionary["self_rules"] = (plugin => (plugin._ServerRulesList.Count() * plugin._ServerRulesInterval));
-            _commandTimeoutDictionary["player_punish"] = (plugin => (20));
+            _commandTimeoutDictionary["player_punish"] = (plugin => (18));
             _commandTimeoutDictionary["player_kick"] = (plugin => (30));
             _commandTimeoutDictionary["player_blacklistdisperse"] = (plugin => (30));
             _commandTimeoutDictionary["player_ban_temp"] = (plugin => (30));
