@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.1.5
- * 17-DEC-2014
+ * Version 5.3.1.6
+ * 18-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.1.5</version_code>
+ * <version_code>5.3.1.6</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.1.5";
+        private const String PluginVersion = "5.3.1.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -159,7 +159,7 @@ namespace PRoConEvents {
         private Int32 _mapDetrimentIndex = 0;
         private Int32 _pingKicksTotal = 0;
         private Int32 _roundID = 0;
-        private Boolean _usageDataDisabled;
+        private Boolean _versionTrackingDisabled;
         private Boolean _automaticUpdatesDisabled;
         private String _currentFlagMessage;
         private Boolean _populationPopulating;
@@ -514,6 +514,7 @@ namespace PRoConEvents {
         private Boolean _PostStatLoggerChatManually;
         private Boolean _PostStatLoggerChatManually_PostServerChatSpam = true;
         private Boolean _PostStatLoggerChatManually_IgnoreCommands = false;
+        private Boolean _LowDatabaseIntensityMode;
         private Boolean _PostMapBenefitStatistics;
         private Boolean _MULTIBalancerUnswitcherDisabled = false;
         public readonly String[] _subscriptionGroups = {"OnlineSoldiers"};
@@ -959,6 +960,7 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
                         lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
                     }
+                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Enable Low Database Intensity Mode", typeof(Boolean), _LowDatabaseIntensityMode));
 
                     lstReturn.Add(new CPluginVariable("A17. Round Settings|Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                     if (_useRoundTimer) {
@@ -1103,7 +1105,7 @@ namespace PRoConEvents {
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof(String), _debugSoldierName));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
-                    lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
+                    lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Command Entry", typeof (String), ""));
                     
                     //Experimental tools
@@ -1315,7 +1317,7 @@ namespace PRoConEvents {
 
             lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof(Int32), _debugLevel));
             lstReturn.Add(new CPluginVariable("3. Debugging|Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
-            lstReturn.Add(new CPluginVariable("3. Debugging|Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
+            lstReturn.Add(new CPluginVariable("3. Debugging|Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
 
             lstReturn.Add(new CPluginVariable("4. Database Timing Mismatch|Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
 
@@ -1613,7 +1615,7 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Disable Automatic Updates").Success)
                 {
                     Boolean disableAutomaticUpdates = Boolean.Parse(strValue);
-                    if (disableAutomaticUpdates != _usageDataDisabled)
+                    if (disableAutomaticUpdates != _versionTrackingDisabled)
                     {
                         _automaticUpdatesDisabled = disableAutomaticUpdates;
                         //Once setting has been changed, upload the change to database
@@ -1623,10 +1625,10 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Disable Version Tracking - Required For TEST Builds").Success)
                 {
                     Boolean disableUpdatePosts = Boolean.Parse(strValue);
-                    if (disableUpdatePosts != _usageDataDisabled)
+                    if (disableUpdatePosts != _versionTrackingDisabled)
                     {
-                        _usageDataDisabled = disableUpdatePosts;
-                        if (_usageDataDisabled)
+                        _versionTrackingDisabled = disableUpdatePosts;
+                        if (_versionTrackingDisabled)
                         {
                             if (_threadsReady)
                             {
@@ -1638,7 +1640,7 @@ namespace PRoConEvents {
                             PostUsageStatsUpdate();
                         }
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
+                        QueueSettingForUpload(new CPluginVariable(@"Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
                     }
                 }
                 else if (Regex.Match(strVariable, @"AFK System Enable").Success)
@@ -2411,6 +2413,16 @@ namespace PRoConEvents {
                         _PostStatLoggerChatManually_IgnoreCommands = PostStatLoggerChatManually_IgnoreCommands;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Enable Low Database Intensity Mode").Success)
+                {
+                    Boolean LowDatabaseIntensityMode = Boolean.Parse(strValue);
+                    if (LowDatabaseIntensityMode != _LowDatabaseIntensityMode)
+                    {
+                        _LowDatabaseIntensityMode = LowDatabaseIntensityMode;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Enable Low Database Intensity Mode", typeof(Boolean), _LowDatabaseIntensityMode));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Post Map Benefit/Detriment Statistics").Success)
@@ -3891,6 +3903,7 @@ namespace PRoConEvents {
                 _Activator = new Thread(new ThreadStart(delegate {
                     try {
                         Thread.CurrentThread.Name = "enabler";
+                        Thread.Sleep(250);
 
                         //Add command informing other plugins that AdKats is enabling
                         RegisterCommand(_PluginEnabledMatchCommand);
@@ -4294,6 +4307,7 @@ namespace PRoConEvents {
                     else if (!_fetchedPluginInformation) {
                         ConsoleError("Unable to fetch required documentation files. AdKats cannot be started.");
                         Disable();
+                        LogThreadExit();
                         return;
                     }
                     DebugWrite("Setting desc fetch handle.", 1);
@@ -4345,7 +4359,7 @@ namespace PRoConEvents {
                             }
 
                             //Post usage stats at interval
-                            if ((!_usageDataDisabled || _pluginVersionStatus == VersionStatus.TestBuild || _isTestingAuthorized) &&
+                            if ((!_versionTrackingDisabled || _pluginVersionStatus == VersionStatus.TestBuild || _isTestingAuthorized) &&
                                 (UtcDbTime() - _LastUsageStatsUpdate).TotalHours > 1 &&
                                 (_threadsReady || (UtcDbTime() - _proconStartTime).TotalSeconds > 30))
                             {
@@ -4996,7 +5010,7 @@ namespace PRoConEvents {
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _PlayerProcessingWaitHandle.Reset();
-                            _PlayerProcessingWaitHandle.WaitOne(Timeout.Infinite);
+                            _PlayerProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             loopStart = UtcDbTime();
                             if (_firstPlayerListComplete) {
                                 //Case where all players are gone after first player list
@@ -5881,7 +5895,7 @@ namespace PRoConEvents {
                         if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                         _AccessFetchWaitHandle.Reset();
-                        _AccessFetchWaitHandle.WaitOne(Timeout.Infinite);
+                        _AccessFetchWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                         loopStart = UtcDbTime();
                     }
                     catch (Exception e) {
@@ -5904,7 +5918,7 @@ namespace PRoConEvents {
         {
             try
             {
-                if (!_pluginEnabled || !_threadsReady)
+                if (!_pluginEnabled || !_threadsReady || _LowDatabaseIntensityMode)
                 {
                     return;
                 }
@@ -6418,7 +6432,7 @@ namespace PRoConEvents {
                             Boolean hadServerName = !String.IsNullOrEmpty(_serverInfo.ServerName);
                             _serverInfo.ServerName = serverInfo.ServerName;
                             Boolean haveServerName = !String.IsNullOrEmpty(_serverInfo.ServerName);
-                            if (!_usageDataDisabled && haveServerName && !hadServerName) {
+                            if (!_versionTrackingDisabled && haveServerName && !hadServerName) {
                                 PostUsageStatsUpdate();
                             }
 
@@ -6685,7 +6699,7 @@ namespace PRoConEvents {
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _KillProcessingWaitHandle.Reset();
-                            _KillProcessingWaitHandle.WaitOne(Timeout.Infinite);
+                            _KillProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             loopStart = UtcDbTime();
                             continue;
                         }
@@ -7108,7 +7122,7 @@ namespace PRoConEvents {
             DebugWrite("uploadWeaponCode starting!", 7);
 
             //Make sure database connection active
-            if (HandlePossibleDisconnect() || !_isTestingAuthorized) {
+            if (HandlePossibleDisconnect() || !_isTestingAuthorized || _LowDatabaseIntensityMode) {
                 return;
             }
             try {
@@ -7451,8 +7465,10 @@ namespace PRoConEvents {
                             break;
                         }
 
-                        SendNonQuery("Updating Active Bans", "UPDATE `adkats_bans` SET `ban_status` = 'Expired' WHERE `ban_endTime` <= UTC_TIMESTAMP() AND `ban_status` = 'Active'", false);
-
+                        if (!_LowDatabaseIntensityMode) {
+                            SendNonQuery("Updating Active Bans", "UPDATE `adkats_bans` SET `ban_status` = 'Expired' WHERE `ban_endTime` <= UTC_TIMESTAMP() AND `ban_status` = 'Active'", false);
+                        }
+                            
                         //Get all unchecked players
                         Queue<AdKatsPlayer> playerCheckingQueue;
                         if (_BanEnforcerCheckingQueue.Count > 0 && _UseBanEnforcer) {
@@ -8896,7 +8912,7 @@ namespace PRoConEvents {
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _MessageParsingWaitHandle.Reset();
-                            _MessageParsingWaitHandle.WaitOne(Timeout.Infinite);
+                            _MessageParsingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             loopStart = UtcDbTime();
                             continue;
                         }
@@ -9277,7 +9293,7 @@ namespace PRoConEvents {
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _TeamswapWaitHandle.Reset();
-                            _TeamswapWaitHandle.WaitOne(Timeout.Infinite);
+                            _TeamswapWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             loopStart = UtcDbTime();
                             continue;
                         }
@@ -9803,7 +9819,7 @@ namespace PRoConEvents {
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _CommandParsingWaitHandle.Reset();
-                            _CommandParsingWaitHandle.WaitOne(Timeout.Infinite);
+                            _CommandParsingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             loopStart = UtcDbTime();
                             continue;
                         }
@@ -13634,7 +13650,7 @@ namespace PRoConEvents {
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _IPInfoWaitHandle.Reset();
-                            _IPInfoWaitHandle.WaitOne(Timeout.Infinite);
+                            _IPInfoWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             loopStart = UtcDbTime();
                         }
                     }
@@ -13736,7 +13752,7 @@ namespace PRoConEvents {
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _BattlelogCommWaitHandle.Reset();
-                            _BattlelogCommWaitHandle.WaitOne(Timeout.Infinite);
+                            _BattlelogCommWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             loopStart = UtcDbTime();
                         }
                     }
@@ -13829,7 +13845,7 @@ namespace PRoConEvents {
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _ActionHandlingWaitHandle.Reset();
-                            _ActionHandlingWaitHandle.WaitOne(Timeout.Infinite);
+                            _ActionHandlingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             loopStart = UtcDbTime();
                         }
                     }
@@ -19004,6 +19020,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
                 QueueSettingForUpload(new CPluginVariable(@"Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
                 QueueSettingForUpload(new CPluginVariable(@"Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
+                QueueSettingForUpload(new CPluginVariable(@"Enable Low Database Intensity Mode", typeof(Boolean), _LowDatabaseIntensityMode));
                 QueueSettingForUpload(new CPluginVariable(@"Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _maxRoundTimeMinutes));
@@ -19088,7 +19105,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Inform reputable players and admins of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
                 QueueSettingForUpload(new CPluginVariable(@"Player Inform Exclusion Strings", typeof(String), CPluginVariable.EncodeStringArray(_PlayerInformExclusionStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
-                QueueSettingForUpload(new CPluginVariable(@"Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _usageDataDisabled));
+                QueueSettingForUpload(new CPluginVariable(@"Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
                 QueueSettingForUpload(new CPluginVariable(@"AFK System Enable", typeof(Boolean), _AFKManagerEnable));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
@@ -19716,7 +19733,7 @@ namespace PRoConEvents {
 
             Boolean success = false;
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_LowDatabaseIntensityMode || HandlePossibleDisconnect())
             {
                 return false;
             }
@@ -19954,6 +19971,9 @@ namespace PRoConEvents {
 
         private void UpdatePlayerReputation(AdKatsPlayer aPlayer, Boolean informPlayer) {
             try {
+                if (_LowDatabaseIntensityMode) {
+                    return;
+                }
                 if (aPlayer == null) {
                     ConsoleError("Attempted to update reputation of invalid player.");
                     return;
@@ -21795,7 +21815,7 @@ namespace PRoConEvents {
                         AssignPlayerRole(aPlayer);
 
                         //Pull player first seen
-                        if (aPlayer.player_id > 0)
+                        if (aPlayer.player_id > 0 && !_LowDatabaseIntensityMode)
                         {
                             using (MySqlCommand command = connection.CreateCommand())
                             {
@@ -22573,6 +22593,9 @@ namespace PRoConEvents {
                         (UtcDbTime() - aRecord.record_time).TotalSeconds < duration)) {
                 return false;
             }
+            if (_LowDatabaseIntensityMode) {
+                return true;
+            }
             //Make sure database connection active
             if (HandlePossibleDisconnect()) {
                 record.record_exception = new AdKatsException("Database not connected.");
@@ -22616,13 +22639,27 @@ namespace PRoConEvents {
         
         private Boolean FetchIROStatus(AdKatsRecord record) {
             DebugWrite("FetchIROStatus starting!", 6);
-            //Make sure database connection active
-            if (HandlePossibleDisconnect()) {
-                record.record_exception = new AdKatsException("Database not connected.");
-                return false;
-            }
-
-            try {
+            try
+            {
+                //TODO: Add check for multiple targets
+                if (record.target_player != null &&
+                    record.target_player.TargetedRecords.Any(
+                        aRecord =>
+                            aRecord.command_type.command_key == "player_punish" &&
+                            (UtcDbTime() - aRecord.record_time).TotalSeconds < _IROTimeout))
+                {
+                    return true;
+                }
+                if (_LowDatabaseIntensityMode)
+                {
+                    return false;
+                }
+                //Make sure database connection active
+                if (HandlePossibleDisconnect())
+                {
+                    record.record_exception = new AdKatsException("Database not connected.");
+                    return false;
+                }
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"
@@ -23709,12 +23746,12 @@ namespace PRoConEvents {
             DateTime start = UtcDbTime();
             try
             {
-                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_expiration' )", false))
+                if (!_firstUserListComplete && !SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_expiration' )", false))
                 {
                     SendNonQuery("Adding user expiration.", "ALTER TABLE `adkats_users` ADD COLUMN `user_expiration` DATETIME NOT NULL AFTER `user_role`", true);
                     SendNonQuery("Adding initial user expiration values.", "UPDATE `adkats_users` SET `user_expiration` = DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)", true);
                 }
-                if (!SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_notes' )", false))
+                if (!_firstUserListComplete && !SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_notes' )", false))
                 {
                     SendNonQuery("Adding user notes.", "ALTER TABLE `adkats_users` ADD COLUMN `user_notes` VARCHAR(1000) NOT NULL DEFAULT 'No Notes' AFTER `user_expiration`", true);
                 }
@@ -25802,7 +25839,7 @@ namespace PRoConEvents {
                         {"adkats_version_current", PluginVersion},
                         {"adkats_enabled", _pluginEnabled.ToString().ToLower()},
                         {"adkats_uptime", (_threadsReady)?(Math.Round((UtcDbTime() - _AdKatsStartTime).TotalSeconds).ToString()):("0")},
-                        {"updates_disabled", _usageDataDisabled.ToString().ToLower()}
+                        {"updates_disabled", _versionTrackingDisabled.ToString().ToLower()}
                     };
                     byte[] response = client.UploadValues("http://api.gamerethos.net/adkats/usage", data);
                 }
@@ -27451,8 +27488,7 @@ namespace PRoConEvents {
             else if(aException.InternalException != null && 
                     aException.InternalException.ToString().Contains("Deadlock"))
             {
-                //Ignore. Deadlock cannot be avoided.
-                //In the future, find a way to restart the request
+                //Ignore. Deadlock cannot be avoided. Request already retried.
             }
             else {
                 ConsoleWrite(prefix + aException, ConsoleMessageType.Exception);
@@ -27502,28 +27538,48 @@ namespace PRoConEvents {
             }
             catch (Exception e)
             {
-                //If the failure was due to deadlock, wait a short duration and issue again
-                if (e.ToString().ToLower().Contains("deadlock"))
+                try
                 {
-                    Thread.Sleep(250);
-                    //If any further errors thrown, just throw them
-                    watch.Reset();
-                    watch.Start();
-                    var reader = command.ExecuteReader();
-                    watch.Stop();
-                    if (watch.Elapsed.TotalSeconds > 4 && watch.Elapsed.TotalSeconds > (50 * _DatabaseReadAverageDuration) && _firstPlayerListComplete)
+                    //If the failure was due to deadlock, wait a short duration and issue again
+                    if (e.ToString().ToLower().Contains("deadlock"))
                     {
-                        HandleDatabaseConnectionInteruption();
-                    }
-                    if (_DatabaseReaderDurations.Count < 25000)
-                    {
-                        lock (_DatabaseReaderDurations)
+                        Thread.Sleep(250);
+                        //If any further errors thrown, just throw them
+                        watch.Reset();
+                        watch.Start();
+                        var reader = command.ExecuteReader();
+                        watch.Stop();
+                        if (watch.Elapsed.TotalSeconds > 4 && watch.Elapsed.TotalSeconds > (50 * _DatabaseReadAverageDuration) && _firstPlayerListComplete)
                         {
-                            _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
-                            _DatabaseReadAverageDuration = _DatabaseReaderDurations.Average();
+                            HandleDatabaseConnectionInteruption();
                         }
+                        if (_DatabaseReaderDurations.Count < 25000)
+                        {
+                            lock (_DatabaseReaderDurations)
+                            {
+                                _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
+                                _DatabaseReadAverageDuration = _DatabaseReaderDurations.Average();
+                            }
+                        }
+                        return reader;
                     }
-                    return reader;
+                    throw e;
+                }
+                catch (Exception e2) 
+                {
+                    e = e2;
+                    if ((e2.GetType() == typeof(System.TimeoutException) ||
+                        e2.ToString().Contains("Unable to connect to any of the specified MySQL hosts") ||
+                        e2.ToString().Contains("Reading from the stream has failed.") ||
+                        e2.ToString().Contains("Too many connections") ||
+                        e2.ToString().Contains("Timeout expired") ||
+                        e2.ToString().Contains("An existing connection was forcibly closed by the remote host") ||
+                        e2.ToString().Contains("Unable to read data") ||
+                        e2.ToString().Contains("Lock wait timeout exceeded")))
+                    {
+                        ConsoleInfo("Average Read: " + Math.Round(_DatabaseReadAverageDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(_DatabaseWriteAverageDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
+                        PrintPreparedCommand(command);
+                    }
                 }
                 throw e;
             }
@@ -27551,30 +27607,50 @@ namespace PRoConEvents {
                 }
                 return modified;
             }
-            catch (Exception e) 
+            catch (Exception e)
             {
-                //If the failure was due to deadlock, wait a short duration and issue again
-                if (e.ToString().ToLower().Contains("deadlock")) 
+                try
                 {
-                    Thread.Sleep(250);
-                    //If any further errors thrown, just throw them
-                    watch.Reset();
-                    watch.Start();
-                    var modified = command.ExecuteNonQuery();
-                    watch.Stop();
-                    if (watch.Elapsed.TotalSeconds > 4 && watch.Elapsed.TotalSeconds > (50 * _DatabaseWriteAverageDuration) && _firstPlayerListComplete)
+                    //If the failure was due to deadlock, wait a short duration and issue again
+                    if (e.ToString().ToLower().Contains("deadlock"))
                     {
-                        HandleDatabaseConnectionInteruption();
-                    }
-                    if (_DatabaseNonQueryDurations.Count < 25000)
-                    {
-                        lock (_DatabaseNonQueryDurations)
+                        Thread.Sleep(250);
+                        //If any further errors thrown, just throw them
+                        watch.Reset();
+                        watch.Start();
+                        var modified = command.ExecuteNonQuery();
+                        watch.Stop();
+                        if (watch.Elapsed.TotalSeconds > 4 && watch.Elapsed.TotalSeconds > (50 * _DatabaseWriteAverageDuration) && _firstPlayerListComplete)
                         {
-                            _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
-                            _DatabaseWriteAverageDuration = _DatabaseNonQueryDurations.Average();
+                            HandleDatabaseConnectionInteruption();
                         }
+                        if (_DatabaseNonQueryDurations.Count < 25000)
+                        {
+                            lock (_DatabaseNonQueryDurations)
+                            {
+                                _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
+                                _DatabaseWriteAverageDuration = _DatabaseNonQueryDurations.Average();
+                            }
+                        }
+                        return modified;
                     }
-                    return modified;
+                    throw e;
+                }
+                catch (Exception e2)
+                {
+                    e = e2;
+                    if ((e2.GetType() == typeof(System.TimeoutException) ||
+                        e2.ToString().Contains("Unable to connect to any of the specified MySQL hosts") ||
+                        e2.ToString().Contains("Reading from the stream has failed.") ||
+                        e2.ToString().Contains("Too many connections") ||
+                        e2.ToString().Contains("Timeout expired") ||
+                        e2.ToString().Contains("An existing connection was forcibly closed by the remote host") ||
+                        e2.ToString().Contains("Unable to read data") ||
+                        e2.ToString().Contains("Lock wait timeout exceeded")))
+                    {
+                        ConsoleInfo("Average Read: " + Math.Round(_DatabaseReadAverageDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(_DatabaseWriteAverageDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
+                        PrintPreparedCommand(command);
+                    }
                 }
                 throw e;
             }
@@ -28935,7 +29011,7 @@ namespace PRoConEvents {
                                 if ((Plugin.UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                     Plugin.DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((Plugin.UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                                 _EmailProcessingWaitHandle.Reset();
-                                _EmailProcessingWaitHandle.WaitOne(Timeout.Infinite);
+                                _EmailProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                                 loopStart = Plugin.UtcDbTime();
                                 continue;
                             }
