@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.1.9
+ * Version 5.3.2.0
  * 18-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.1.9</version_code>
+ * <version_code>5.3.2.0</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.1.9";
+        private const String PluginVersion = "5.3.2.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -17827,22 +17827,38 @@ namespace PRoConEvents {
 
         private void HandleSettingUploads() {
             //Handle Inbound Setting Uploads
-            if (_SettingUploadQueue.Count > 0) {
-                DebugWrite("DBCOMM: Preparing to lock inbound setting queue to get new settings", 7);
-                Queue<CPluginVariable> inboundSettingUpload;
-                lock (_SettingUploadQueue) {
-                    DebugWrite("DBCOMM: Inbound settings found. Grabbing.", 6);
-                    //Grab all settings in the queue
-                    inboundSettingUpload = new Queue<CPluginVariable>(_SettingUploadQueue.ToArray());
-                    //Clear the queue for next run
-                    _SettingUploadQueue.Clear();
+            if (_SettingUploadQueue.Count > 0)
+            {
+                if (_aliveThreads.Values.Any(aThread => aThread.Name == "SettingUploader"))
+                {
+                    return;
                 }
-                //Loop through all settings in order that they came in
-                while (inboundSettingUpload.Count > 0) {
-                    CPluginVariable setting = inboundSettingUpload.Dequeue();
+                StartAndLogThread(new Thread(new ThreadStart(delegate
+                {
+                    Thread.CurrentThread.Name = "SettingUploader";
+                    Thread.Sleep(250);
+                    DebugWrite("DBCOMM: Preparing to lock inbound setting queue to get new settings", 7);
+                    Queue<CPluginVariable> inboundSettingUpload;
+                    lock (_SettingUploadQueue)
+                    {
+                        DebugWrite("DBCOMM: Inbound settings found. Grabbing.", 6);
+                        //Grab all settings in the queue
+                        inboundSettingUpload = new Queue<CPluginVariable>(_SettingUploadQueue.ToArray());
+                        //Clear the queue for next run
+                        _SettingUploadQueue.Clear();
+                    }
+                    //Loop through all settings in order that they came in
+                    while (inboundSettingUpload.Count > 0)
+                    {
+                        if (!_pluginEnabled) {
+                            break;
+                        }
+                        CPluginVariable setting = inboundSettingUpload.Dequeue();
 
-                    UploadSetting(setting);
-                }
+                        UploadSetting(setting);
+                    }
+                    LogThreadExit();
+                })));
             }
         }
 
