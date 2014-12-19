@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.1.8
+ * Version 5.3.1.9
  * 18-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.1.8</version_code>
+ * <version_code>5.3.1.9</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.1.8";
+        private const String PluginVersion = "5.3.1.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5010,7 +5010,7 @@ namespace PRoConEvents {
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _PlayerProcessingWaitHandle.Reset();
-                            _PlayerProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
+                            _PlayerProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(60));
                             loopStart = UtcDbTime();
                             if (_firstPlayerListComplete) {
                                 //Case where all players are gone after first player list
@@ -17522,14 +17522,12 @@ namespace PRoConEvents {
                             UpdateDatabase37014000();
 
                             counter.Stop();
-                            if (FullDebug)
-                                ConsoleWrite("DBCOMM: Initial command fetch took " + counter.ElapsedMilliseconds + "ms");
+                            ConsoleWrite("DBCOMM: Initial command fetch took " + counter.ElapsedMilliseconds + "ms");
                         }
                         counter.Reset();
                         counter.Start();
                         //FeedStatLoggerSettings();
-                        if (FullDebug)
-                            ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
+                        ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
 
                         //Update server ID
                         if (_serverInfo.ServerID <= 0) {
@@ -17575,36 +17573,31 @@ namespace PRoConEvents {
                         counter.Start();
                         HandleSettingUploads();
                         counter.Stop();
-                        if (FullDebug)
-                            ConsoleWrite("DBCOMM: HandleSettingUploads took " + counter.ElapsedMilliseconds + "ms");
+                        ConsoleWrite("DBCOMM: HandleSettingUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleCommandUploads();
                         counter.Stop();
-                        if (FullDebug)
-                            ConsoleWrite("DBCOMM: HandleCommandUploads took " + counter.ElapsedMilliseconds + "ms");
+                        ConsoleWrite("DBCOMM: HandleCommandUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleRoleUploads();
                         counter.Stop();
-                        if (FullDebug)
-                            ConsoleWrite("DBCOMM: HandleRoleUploads took " + counter.ElapsedMilliseconds + "ms");
+                        ConsoleWrite("DBCOMM: HandleRoleUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleRoleRemovals();
                         counter.Stop();
-                        if (FullDebug)
-                            ConsoleWrite("DBCOMM: HandleRoleRemovals took " + counter.ElapsedMilliseconds + "ms");
+                        ConsoleWrite("DBCOMM: HandleRoleRemovals took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleStatisticUploads();
                         counter.Stop();
-                        if (FullDebug)
-                            ConsoleWrite("DBCOMM: HandleStatisticUploads took " + counter.ElapsedMilliseconds + "ms");
+                        ConsoleWrite("DBCOMM: HandleStatisticUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
@@ -17616,8 +17609,7 @@ namespace PRoConEvents {
                             DebugWrite("DBCOMM: Skipping DB action fetch", 7);
                         }
                         counter.Stop();
-                        if (FullDebug)
-                            ConsoleWrite("DBCOMM: RunActionsFromDB took " + counter.ElapsedMilliseconds + "ms");
+                        ConsoleWrite("DBCOMM: RunActionsFromDB took " + counter.ElapsedMilliseconds + "ms");
 
                         HandleUserChanges();
 
@@ -17654,8 +17646,7 @@ namespace PRoConEvents {
                             }
                         }
                         counter.Stop();
-                        if (FullDebug)
-                            ConsoleWrite("DBCOMM: HandleActiveBanEnforcer took " + counter.ElapsedMilliseconds + "ms");
+                        ConsoleWrite("DBCOMM: HandleActiveBanEnforcer took " + counter.ElapsedMilliseconds + "ms");
 
                         if (_UnprocessedRecordQueue.Count > 0) 
                         {
@@ -17708,8 +17699,7 @@ namespace PRoConEvents {
                                 }
                             }
                             counter.Stop();
-                            if (FullDebug)
-                                ConsoleWrite("DBCOMM: UnprocessedRecords took " + counter.ElapsedMilliseconds + "ms");
+                            ConsoleWrite("DBCOMM: UnprocessedRecords took " + counter.ElapsedMilliseconds + "ms");
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                         }
@@ -17722,8 +17712,7 @@ namespace PRoConEvents {
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _DbCommunicationWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             counter.Stop();
-                            if (FullDebug)
-                                ConsoleWrite("DBCOMM: Waiting after complete took " + counter.ElapsedMilliseconds + "ms");
+                            ConsoleWrite("DBCOMM: Waiting after complete took " + counter.ElapsedMilliseconds + "ms");
                         }
                     }
                     catch (Exception e) {
