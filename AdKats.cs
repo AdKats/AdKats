@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.2.2
+ * Version 5.3.2.3
  * 18-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.2.2</version_code>
+ * <version_code>5.3.2.3</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.2.2";
+        private const String PluginVersion = "5.3.2.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -14438,7 +14438,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Defaulting to procon banlist usage since exceptions existed in record"));
                     }
                     //Trim the ban message if necessary
-                    String banMessage = record.source_name + " - " + record.record_message;
+                    String banMessage = record.record_message + " [" + record.source_name + "]";
                     Int32 cutLength = banMessage.Length - 80;
                     if (cutLength > 0) {
                         banMessage = banMessage.Substring(0, banMessage.Length - cutLength);
@@ -14506,7 +14506,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Defaulting to procon banlist usage since exceptions existed in record"));
                     }
                     //Trim the ban message if necessary
-                    String banMessage = record.source_name + " - " + record.record_message;
+                    String banMessage = record.record_message + " [" + record.source_name + "]";
                     Int32 cutLength = banMessage.Length - 80;
                     if (cutLength > 0) {
                         banMessage = banMessage.Substring(0, banMessage.Length - cutLength);
@@ -25911,7 +25911,6 @@ namespace PRoConEvents {
                 Hashtable weaponNames = FetchAdKatsWeaponNames();
                 if (weaponNames == null)
                 {
-                    ConsoleError("Weapons name library could not be fetched.");
                     return false;
                 }
                 var gameWeaponNames = (Hashtable)weaponNames[_gameVersion.ToString()];
