@@ -17718,17 +17718,9 @@ namespace PRoConEvents {
                             counter.Start();
                             DebugWrite("DBCOMM: No unprocessed records. Waiting for input", 7);
                             _DbCommunicationWaitHandle.Reset();
-
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
-                            if (_fetchActionsFromDb || _UseBanEnforcer || _UsingAwa) {
-                                //If waiting on DB input, the maximum time we can wait is "db action frequency"
-                                _DbCommunicationWaitHandle.WaitOne(DbActionFetchFrequency * 1000);
-                            }
-                            else {
-                                //Maximum wait time is DB access fetch time
-                                _DbCommunicationWaitHandle.WaitOne(DbUserFetchFrequency * 1000);
-                            }
+                            _DbCommunicationWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             counter.Stop();
                             if (FullDebug)
                                 ConsoleWrite("DBCOMM: Waiting after complete took " + counter.ElapsedMilliseconds + "ms");
@@ -18032,11 +18024,11 @@ namespace PRoConEvents {
                 _lastBanListCall = UtcDbTime();
                 DebugWrite("banlist.list called at interval.", 6);
                 ExecuteCommand("procon.protected.send", "banList.list");
-            }
 
-            FetchNameBanCount();
-            FetchGUIDBanCount();
-            FetchIPBanCount();
+                FetchNameBanCount();
+                FetchGUIDBanCount();
+                FetchIPBanCount();
+            }
             if (!_UseBanEnforcerPreviousState || (UtcDbTime() > _lastDbBanFetch.AddSeconds(DbBanFetchFrequency))) {
                 //Load all bans on startup
                 if (!_UseBanEnforcerPreviousState) {
