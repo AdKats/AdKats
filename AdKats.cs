@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.2.3
+ * Version 5.3.2.4
  * 18-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.2.3</version_code>
+ * <version_code>5.3.2.4</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.2.3";
+        private const String PluginVersion = "5.3.2.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -480,6 +480,7 @@ namespace PRoConEvents {
         private readonly HashSet<String> _nosurrenderVoteList = new HashSet<String>(); 
         //Auto-Surrender
         private Boolean _surrenderAutoEnable;
+        private Boolean _surrenderAutoSucceeded;
         private Boolean _surrenderAutoUseMetroValues;
         private Boolean _surrenderAutoUseLockerValues;
         private Boolean _surrenderAutoUseAdjustedTicketRates;
@@ -6228,8 +6229,9 @@ namespace PRoConEvents {
                                 _highestTicketCount = (team1.TeamTicketCount > team2.TeamTicketCount) ? (team1.TeamTicketCount) : (team2.TeamTicketCount);
                             }
                             if (_surrenderAutoEnable && 
+                                _roundState == RoundState.Playing && 
                                 !_endingRound && 
-                                (UtcDbTime() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9 && 
+                                (UtcDbTime() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9.5 && 
                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 60 &&
                                 _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) >= _surrenderAutoMinimumPlayers)
                             {
@@ -6380,6 +6382,7 @@ namespace PRoConEvents {
                                     else if (!_endingRound)
                                     {
                                         _endingRound = true;
+                                        _surrenderAutoSucceeded = true;
                                         var roundEndDelayThread = new Thread(new ThreadStart(delegate
                                         {
                                             DebugWrite("Starting a round end delay thread.", 5);
@@ -6473,14 +6476,19 @@ namespace PRoConEvents {
             DebugWrite("Exiting OnServerInfo", 7);
         }
 
-        public void PostAndResetMapBenefitStatistics() {
+        public void PostAndResetMapBenefitStatistics()
+        {
             DebugWrite("Entering PostAndResetMapBenefitStatistics", 7);
-            try {
-                if (_PostMapBenefitStatistics && _serverInfo != null && _serverInfo.InfoObject != null) {
+            try
+            {
+                if (_PostMapBenefitStatistics && _serverInfo != null && _serverInfo.InfoObject != null)
+                {
                     Int32 roundID = _roundID;
                     String mapName = _serverInfo.InfoObject.Map;
-                    if (roundID > 0 && !String.IsNullOrEmpty(mapName)) {
-                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                    if (roundID > 0 && !String.IsNullOrEmpty(mapName))
+                    {
+                        QueueStatisticForProcessing(new AdKatsStatistic()
+                        {
                             stat_type = AdKatsStatistic.StatisticType.map_detriment,
                             server_id = _serverInfo.ServerID,
                             round_id = _roundID,
@@ -6489,7 +6497,8 @@ namespace PRoConEvents {
                             stat_comment = _mapDetrimentIndex + " players left because of " + mapName,
                             stat_time = UtcDbTime()
                         });
-                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                        QueueStatisticForProcessing(new AdKatsStatistic()
+                        {
                             stat_type = AdKatsStatistic.StatisticType.map_benefit,
                             server_id = _serverInfo.ServerID,
                             round_id = _roundID,
@@ -6501,12 +6510,94 @@ namespace PRoConEvents {
                     }
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 HandleException(new AdKatsException("Error while preparing map stats for upload", e));
             }
             _mapDetrimentIndex = 0;
             _mapBenefitIndex = 0;
             DebugWrite("Exiting PostAndResetMapBenefitStatistics", 7);
+        }
+
+        public void PostPlayerWinLossStatistics()
+        {
+            DebugWrite("Entering PostPlayerWinLossStatistics", 7);
+            try
+            {
+                AdKatsTeam team1 = _teamDictionary[1];
+                AdKatsTeam team2 = _teamDictionary[2];
+                AdKatsTeam winningTeam, losingTeam;
+                if (team1.TeamTicketCount > team2.TeamTicketCount)
+                {
+                    winningTeam = team1;
+                    losingTeam = team2;
+                }
+                else
+                {
+                    winningTeam = team2;
+                    losingTeam = team1;
+                }
+                List<AdKatsPlayer> WinningPlayers = _PlayerDictionary.Values
+                    .Where(aPlayer =>
+                        aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
+                        aPlayer.player_type == PlayerType.Player)
+                    .OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score)
+                    .ToList();
+                List<AdKatsPlayer> LosingPlayers = _PlayerDictionary.Values
+                    .Where(aPlayer =>
+                        aPlayer.frostbitePlayerInfo.TeamID == losingTeam.TeamID &&
+                        aPlayer.player_type == PlayerType.Player)
+                    .OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score)
+                    .ToList();
+                foreach (AdKatsPlayer aPlayer in WinningPlayers)
+                {
+                    QueueStatisticForProcessing(new AdKatsStatistic()
+                    {
+                        stat_type = AdKatsStatistic.StatisticType.player_win,
+                        server_id = _serverInfo.ServerID,
+                        round_id = _roundID,
+                        target_name = aPlayer.player_name,
+                        stat_value = aPlayer.player_id,
+                        stat_comment = aPlayer.player_name + " won",
+                        stat_time = UtcDbTime()
+                    });
+                }
+                foreach (AdKatsPlayer aPlayer in LosingPlayers)
+                {
+                    QueueStatisticForProcessing(new AdKatsStatistic()
+                    {
+                        stat_type = AdKatsStatistic.StatisticType.player_loss,
+                        server_id = _serverInfo.ServerID,
+                        round_id = _roundID,
+                        target_name = aPlayer.player_name,
+                        stat_value = aPlayer.player_id,
+                        stat_comment = aPlayer.player_name + " lost",
+                        stat_time = UtcDbTime()
+                    });
+                }
+                if (_surrenderAutoSucceeded || _surrenderVoteSucceeded)
+                {
+                    List<AdKatsPlayer> baserapingPlayers = WinningPlayers.Take(10).ToList();
+                    foreach (AdKatsPlayer aPlayer in LosingPlayers)
+                    {
+                        QueueStatisticForProcessing(new AdKatsStatistic()
+                        {
+                            stat_type = AdKatsStatistic.StatisticType.player_baserape,
+                            server_id = _serverInfo.ServerID,
+                            round_id = _roundID,
+                            target_name = aPlayer.player_name,
+                            stat_value = aPlayer.player_id,
+                            stat_comment = aPlayer.player_name + " baseraped from " + GetPlayerTeamKey(aPlayer) + " in position " + (WinningPlayers.IndexOf(aPlayer) + 1),
+                            stat_time = UtcDbTime()
+                        });
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while preparing map stats for upload", e));
+            }
+            DebugWrite("Exiting PostPlayerWinLossStatistics", 7);
         }
 
         public override void OnLevelLoaded(String strMapFileName, String strMapMode, Int32 roundsPlayed, Int32 roundsTotal) {
@@ -6526,6 +6617,7 @@ namespace PRoConEvents {
                     _nosurrenderVoteList.Clear();
                     _surrenderVoteActive = false;
                     _surrenderVoteSucceeded = false;
+                    _surrenderAutoSucceeded = false;
                     _RoundReports.Clear();
                     _RoundReportHistory.Clear();
                     _RoundMutedPlayers.Clear();
@@ -6555,6 +6647,10 @@ namespace PRoConEvents {
         //Round ended stuff
         public override void OnRoundOverTeamScores(List<TeamScore> teamScores)
         {
+            if (_isTestingAuthorized)
+            {
+                PostPlayerWinLossStatistics();
+            }
             _roundState = RoundState.Ended;
             _pingKicksThisRound = 0;
         }
@@ -28391,7 +28487,10 @@ namespace PRoConEvents {
         public class AdKatsStatistic {
             public enum StatisticType {
                 map_benefit,
-                map_detriment
+                map_detriment,
+                player_win,
+                player_loss,
+                player_baserape
             }
 
             public Int64 stat_id;
