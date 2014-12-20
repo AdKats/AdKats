@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.2.7
+ * Version 5.3.2.8
  * 19-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.2.7</version_code>
+ * <version_code>5.3.2.8</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.2.7";
+        private const String PluginVersion = "5.3.2.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6220,8 +6220,6 @@ namespace PRoConEvents {
                                     _LastTicketRateDisplay = UtcDbTime();
                                     _currentFlagMessage = flagMessage;
                                     ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
-                                    //if (_isTestingAuthorized)
-                                    //    ProconChatWrite(BoldMessage("Revived Counts: " + _unmatchedRoundDeathCounts.Where(nameCount => nameCount.Value > 1).OrderByDescending(nameCount => nameCount.Value).Take(3).Aggregate("", (current, nameCount) => current + "(" + nameCount.Key + "/" + nameCount.Value + ")")));
                                 }
                             }
                             if (team1.TeamTicketCount >= 0 && team2.TeamTicketCount >= 0) {
@@ -6239,19 +6237,20 @@ namespace PRoConEvents {
                                     Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
                                     losingTeam.TeamTicketCount > 100 &&
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
-                                    losingTeam.TeamTicketDifferenceRate < 0)
-                                {
+                                    losingTeam.TeamTicketDifferenceRate < 0) {
+                                    Int32 requiredTriggers = 25 - ((losingTeam.TeamTicketCount <= 500)?((500 - losingTeam.TeamTicketCount) / 30):(0));
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5)) 
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
-                                        if (++_surrenderAutoTriggerCountCurrent >= ((_isTestingAuthorized)?(25):(10)))
+                                        if (++_surrenderAutoTriggerCountCurrent >= requiredTriggers)
                                         {
                                             baserapingTeam = winningTeam;
                                             baserapedTeam = losingTeam;
                                         }
                                         else
                                         {
-                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + ((_isTestingAuthorized) ? (25) : (10)) + ".");
+                                            if(_surrenderAutoTriggerCountCurrent % 5 == 0)
+                                                OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + requiredTriggers + ".");
                                         }
                                     }
                                     else
@@ -6279,7 +6278,8 @@ namespace PRoConEvents {
                                         }
                                         else
                                         {
-                                            OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/10.");
+                                            if (_surrenderAutoTriggerCountCurrent % 5 == 0)
+                                                OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/10.");
                                         }
                                     }
                                     else
@@ -6308,7 +6308,8 @@ namespace PRoConEvents {
                                                 }
                                                 else 
                                                 {
-                                                    OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
+                                                    if (_surrenderAutoTriggerCountCurrent % 5 == 0)
+                                                        OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
                                                 }
                                             }
                                             else
@@ -6335,7 +6336,8 @@ namespace PRoConEvents {
                                                 }
                                                 else
                                                 {
-                                                    OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
+                                                    if (_surrenderAutoTriggerCountCurrent % 5 == 0)
+                                                        OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
                                                 }
                                             }
                                             else
