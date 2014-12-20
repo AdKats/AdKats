@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.2.4
+ * Version 5.3.2.5
  * 18-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.2.4</version_code>
+ * <version_code>5.3.2.5</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.2.4";
+        private const String PluginVersion = "5.3.2.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6557,7 +6557,8 @@ namespace PRoConEvents {
                         server_id = _serverInfo.ServerID,
                         round_id = _roundID,
                         target_name = aPlayer.player_name,
-                        stat_value = aPlayer.player_id,
+                        target_player = aPlayer,
+                        stat_value = aPlayer.frostbitePlayerInfo.SquadID,
                         stat_comment = aPlayer.player_name + " won",
                         stat_time = UtcDbTime()
                     });
@@ -6570,7 +6571,8 @@ namespace PRoConEvents {
                         server_id = _serverInfo.ServerID,
                         round_id = _roundID,
                         target_name = aPlayer.player_name,
-                        stat_value = aPlayer.player_id,
+                        target_player = aPlayer,
+                        stat_value = aPlayer.frostbitePlayerInfo.SquadID,
                         stat_comment = aPlayer.player_name + " lost",
                         stat_time = UtcDbTime()
                     });
@@ -6586,7 +6588,8 @@ namespace PRoConEvents {
                             server_id = _serverInfo.ServerID,
                             round_id = _roundID,
                             target_name = aPlayer.player_name,
-                            stat_value = aPlayer.player_id,
+                            target_player = aPlayer,
+                            stat_value = aPlayer.frostbitePlayerInfo.SquadID,
                             stat_comment = aPlayer.player_name + " baseraped from " + GetPlayerTeamKey(aPlayer) + " in position " + (WinningPlayers.IndexOf(aPlayer) + 1),
                             stat_time = UtcDbTime()
                         });
