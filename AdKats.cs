@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.2.6
+ * Version 5.3.2.7
  * 19-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.2.6</version_code>
+ * <version_code>5.3.2.7</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.2.6";
+        private const String PluginVersion = "5.3.2.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -27196,6 +27196,7 @@ namespace PRoConEvents {
                             SendMessageToSource(_pluginUpdateCaller, "Update already in progress.");
                         }
                         _pluginUpdateCaller = null;
+                        LogThreadExit();
                         return;
                     }
                     var pluginUpdater = new Thread(new ThreadStart(delegate
@@ -27235,6 +27236,7 @@ namespace PRoConEvents {
                                     if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                         ConsoleError("Unable to download plugin update to version " + _latestPluginVersion);
                                     _pluginUpdateCaller = null;
+                                    LogThreadExit();
                                     return;
                                 }
                             }
@@ -27247,6 +27249,7 @@ namespace PRoConEvents {
                                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     ConsoleError("Downloaded plugin source was empty. Cannot update to version " + _latestPluginVersion);
                                 _pluginUpdateCaller = null;
+                                LogThreadExit();
                                 return;
                             }
                             _pluginUpdateProgress = "Downloaded";
@@ -27292,6 +27295,7 @@ namespace PRoConEvents {
                                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     ConsoleError("Updated plugin source could not compile. Cannot update to version " + _latestPluginVersion);
                                 _pluginUpdateCaller = null;
+                                LogThreadExit();
                                 return;
                             }
                             else
@@ -27316,6 +27320,7 @@ namespace PRoConEvents {
                                         }
                                         ConsoleError("Cannot write updates to source file. Cannot update.");
                                         _pluginUpdateCaller = null;
+                                        LogThreadExit();
                                         return;
                                     }
                                     Byte[] info = new UTF8Encoding(true).GetBytes(pluginSource);
@@ -27344,6 +27349,7 @@ namespace PRoConEvents {
                                     }
                                     ConsoleError("Constant failure to write plugin update to file. Cannot update.");
                                     _pluginUpdateCaller = null;
+                                    LogThreadExit();
                                     return;
                                 }
                             } while (fileWriteFailed); 
@@ -27420,6 +27426,7 @@ namespace PRoConEvents {
                                         }
                                         ConsoleError("Unable to install/update AdKatsLRT Extension. Connection error, or invalid token.");
                                         _pluginUpdateCaller = null;
+                                        LogThreadExit();
                                         return;
                                     }
                                 }
@@ -27431,6 +27438,7 @@ namespace PRoConEvents {
                                     }
                                     ConsoleError("Downloaded AdKatsLRT Extension source was empty. Unable to install/update AdKatsLRT Extension.");
                                     _pluginUpdateCaller = null;
+                                    LogThreadExit();
                                     return;
                                 }
                                 String extensionFileName = "AdKatsLRT.cs";
@@ -27452,6 +27460,7 @@ namespace PRoConEvents {
                                     }
                                     ConsoleError("Updated AdKatsLRT Extension source could not compile. Unable to install/update AdKatsLRT Extension.");
                                     _pluginUpdateCaller = null;
+                                    LogThreadExit();
                                     return;
                                 }
                                 Int64 patchedExtensionSizeKb = 0;
@@ -27469,6 +27478,7 @@ namespace PRoConEvents {
                                             }
                                             ConsoleError("Cannot write updates to AdKatsLRT Extension source file. Unable to install/update AdKatsLRT Extension.");
                                             _pluginUpdateCaller = null;
+                                            LogThreadExit();
                                             return;
                                         }
                                         Byte[] info = new UTF8Encoding(true).GetBytes(extensionSource);
@@ -27497,6 +27507,7 @@ namespace PRoConEvents {
                                         }
                                         ConsoleError("Constant failure to write AdKatsLRT Extension update to file. Unable to install/update AdKatsLRT Extension.");
                                         _pluginUpdateCaller = null;
+                                        LogThreadExit();
                                         return;
                                     }
                                 } while (extensionFileWriteFailed);
