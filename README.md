@@ -5,12 +5,13 @@
     <a name=adkats />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
 </p>
-<h2>Overview</h2>
 <p>
+    New Extension! Click below for ability to enforce loadouts on-spawn!
     <a href="https://forum.myrcon.com/showthread.php?9180" name=thread>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKats Thread">
     </a>
 </p>
+<h2>Overview</h2>
 <p>
     Admin Toolset with a plethora of features, ~70 available in-game commands, and many customization options.
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any
