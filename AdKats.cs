@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.2.8
+ * Version 5.3.2.9
  * 19-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.2.8</version_code>
+ * <version_code>5.3.2.9</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.2.8";
+        private const String PluginVersion = "5.3.2.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6526,6 +6526,9 @@ namespace PRoConEvents {
             DebugWrite("Entering PostPlayerWinLossStatistics", 7);
             try
             {
+                if (_roundID < 1) {
+                    return;
+                }
                 AdKatsTeam team1 = _teamDictionary[1];
                 AdKatsTeam team2 = _teamDictionary[2];
                 AdKatsTeam winningTeam, losingTeam;
