@@ -99,6 +99,9 @@
 <p>
     Every infantry item in the game (about 3500 items), can be enforced here. The settings are split into 3 sections; Weapons, Gadgets, and Weapon Accessories, in that order.
 </p>
+<p>
+    <img src="http://i.gyazo.com/7991413c903cd88f268a18eb2e95bd38.png" alt="AdKatsLRT Setting List">
+</p>
 <h3>Loadout Processing</h3>
 <h4>Deciding Enforcement Type</h4>
 <p>
