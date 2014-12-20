@@ -7,6 +7,11 @@
 </p>
 <h2>Overview</h2>
 <p>
+    <a href="https://forum.myrcon.com/showthread.php?9180" name=thread>
+        <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKats Thread">
+    </a>
+</p>
+<p>
     Admin Toolset with a plethora of features, ~70 available in-game commands, and many customization options.
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any
     setup.
