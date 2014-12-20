@@ -6,7 +6,9 @@
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
 </p>
 <p>
-    New Extension! Click below for ability to enforce loadouts on-spawn!
+    <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b>
+</p>
+<p>
     <a href="https://forum.myrcon.com/showthread.php?9180" name=thread>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKats Thread">
     </a>
