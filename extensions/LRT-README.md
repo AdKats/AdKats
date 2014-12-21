@@ -1,7 +1,14 @@
 <script>
     //<latest_stable_release>1.0.4.1</latest_stable_release>
 </script>
-<h1>AdKatsLRT - On-Spawn Loadout Enforcer</h1>
+<p>
+    <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b>
+</p>
+<p>
+    <a href="https://forum.myrcon.com/showthread.php?9180" name=thread>
+        <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKats Thread">
+    </a>
+</p>
 <h2>Overview</h2>
 <p>
     AdKatsLRT allows for enforcement of any infantry loadout to the server owner's specs. It has automatic integration with AdKats systems, including punishments, infractions, reports, and marking.
@@ -35,11 +42,6 @@
         Statistics on enforcement, including percent of players enforced, percent killed for enforcement, percent who fixed their loadouts after kill, and percent who quit the server without fixing their loadouts after kill.
     </li>
 </ul>
-<p>
-    <a href="https://forum.myrcon.com/showthread.php?9180" name=thread>
-        <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Thread.jpg" alt="AdKatsLRT Thread">
-    </a>
-</p>
 <p>
     Development by Daniel J. Gradinjan (ColColonCleaner)
 </p>
