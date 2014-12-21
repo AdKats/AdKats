@@ -1,7 +1,7 @@
 <script>
     //<latest_stable_release>1.0.4.1</latest_stable_release>
 </script>
-<h1>AdKats Extension - LRT - Loadout Enforcer</h1>
+<h1>AdKatsLRT - On-Spawn Loadout Enforcer</h1>
 <h2>Overview</h2>
 <p>
     AdKatsLRT allows for enforcement of any infantry loadout to the server owner's specs. It has automatic integration with AdKats systems, including punishments, infractions, reports, and marking.
