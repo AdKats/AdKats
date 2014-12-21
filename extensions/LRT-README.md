@@ -195,6 +195,17 @@
     <a name=settings />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Settings.jpg" alt="AdKats User Manual">
 </p>
+<h3>0. Instance Settings:</h3>
+<ul>
+    <li><b>'Integrate with AdKats'</b> - Whether to integrate functions with AdKats. When enabled this unlocks more setting options.
+    </li>
+    <li><b>'Spawn Enforce Admins'</b> - Viewable when integrating with AdKats. Adds admins to spawn enforcement.
+    </li>
+    <li><b>'Spawn Enforce Reputable Players'</b> - Viewable when integrating with AdKats. Adds reputable players (> 15 rep) to spawn enforcement.
+    </li>
+    <li><b>'Trigger Enforce Minimum Infraction Points'</b> - Viewable when integrating with AdKats. Sets the minimum infraction point count to automatically add problem players to trigger level enforcement.
+    </li>
+</ul>
 <h3>1. Preset Settings:</h3>
 <ul>
     <li><b>'Coming Soon'</b> - This setting block will soon contain settings for presets, like 'No Frag Rounds', or 'No Explosives'.
