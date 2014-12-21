@@ -10,7 +10,7 @@
 <p>
     AdKatsLRT allows for enforcement of any infantry loadout to the server owner's specs. It has automatic integration with AdKats systems, including punishments, infractions, reports, and marking.
 </p>
-<h3>Basic</h3>
+<h4>Basic</h4>
 <ul>
     <li>
         Enforce every infantry item (any primary, secondary, attachments for either, gadgets, knifes, and grenades) in the game on-spawn.
@@ -28,7 +28,7 @@
         Statistics on enforcement, including percent of players enforced, percent killed for enforcement, percent who fixed their loadouts after kill, and percent who quit the server without fixing their loadouts after kill.
     </li>
 </ul>
-<h3>With AdKats</h3>
+<h4>With AdKats</h4>
 <ul>
     <li>
         Two levels of enforcement, allowing multiple levels of severity for each item.
