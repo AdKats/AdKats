@@ -3,7 +3,7 @@
 </script>
 <p>
     <a href="https://forum.myrcon.com/showthread.php?9180" name=thread>
-        <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKats Thread">
+        <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKatsLRT - On-Spawn Loadout Enforcer">
     </a>
 </p>
 <h2>Overview</h2>
