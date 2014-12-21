@@ -75,7 +75,7 @@
     </li>
     <li>
         <b>Purchase AdKatsLRT, and aquire an extension token.</b>
-        <a href="https://forum.myrcon.com/private.php?do=newpm&u=15312" target="_blank">Private message ColColonCleaner</a> on the MyRCON forums about getting the plugin. Include names of the servers you run, and the names of the servers you will be running the loadout enforcer on.
+        <a href="https://forum.myrcon.com/private.php?do=newpm&u=15312" target="_blank">Private message ColColonCleaner</a> on the MyRCON forums about getting the plugin. Include names of the servers you run, and the names of the servers you will be running the loadout enforcer on. AdKatsLRT is $25, one-time fee, with free updates for the duration of the project.
     </li>
     <li>
         <b>Install the plugin. (With AdKats Installed)</b>
