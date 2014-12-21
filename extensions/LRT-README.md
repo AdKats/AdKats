@@ -56,7 +56,11 @@
     <a name=dependencies />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Dependencies.jpg" alt="AdKats User Manual">
 </p>
-<h3>No direct dependencies, AdKatsLRT can run independently from the base plugin. However, for advanced functions, it requires AdKats 5.3.1.4 or later.</h3>
+<ul>
+    <li>
+        No direct dependencies, AdKatsLRT can run independently from the base plugin. However, for advanced functions, it requires AdKats 5.3.1.4 or later.
+    </li>
+</ul>
 <HR>
 <p>
     <a name=install />
