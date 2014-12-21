@@ -72,15 +72,19 @@
     </li>
     <li>
         <b>Purchase AdKatsLRT, and aquire an extension token.</b>
-        <a href="https://forum.myrcon.com/private.php?do=newpm&u=15312" target="_blank">Private message ColColonCleaner</a> on the MyRCON forums about getting the plugin. Include names of the servers you run, and the names of the servers you will be running the loadout enforcer on. Once approved and purchased, you will be given an extension token, usable to install AdKatsLRT.
+        <a href="https://forum.myrcon.com/private.php?do=newpm&u=15312" target="_blank">Private message ColColonCleaner</a> on the MyRCON forums about getting the plugin. Include names of the servers you run, and the names of the servers you will be running the loadout enforcer on.
     </li>
     <li>
-        <b>Install the plugin.</b>
-        Once purchased, and your extension token aquired, simply paste the token in AdKats setting "A14. External Command Settings | AdKatsLRT Extension Token". The plugin will be automatically downloaded and installed onto your procon instance. Restart procon to see the plugin.
+        <b>Install the plugin. (With AdKats Installed)</b>
+        Simple. You will be given an extension token on purchase, simply paste the token in AdKats setting "A14. External Command Settings | AdKatsLRT Extension Token". The plugin will be automatically downloaded and installed onto your procon instance. Restart procon to see the plugin.
+    </li>
+    <li>
+        <b>Install the plugin. (WITHOUT AdKats Installed)</b>
+        Once purchased, you will be given access to the private repository where AdKatsLRT is hosted. If you want future access for manual updates, supply a Github user name and you will be added that way. If you do not have a Github account, you will be given the source code manually.
     </li>
     <li>
         <b>Enable AdKatsLRT.</b>
-        AdKatsLRT will download the WARSAW library, parse its contents into usable settings, and those settings will appear. It will then wait for the first player list response from AdKats. Once that comes through, it will fully enable and loadout enforcement will be online. Enjoy your new admin tool!
+        AdKatsLRT will start and fetch required information, then wait for the first player list response from either AdKats or the server. Once that comes through, it will complete startup and loadout enforcement will be online. Enjoy your new admin tool!
     </li>
 </ol>
 <p>
