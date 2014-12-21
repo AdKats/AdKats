@@ -8,7 +8,7 @@
 </p>
 <h2>Overview</h2>
 <p>
-    AdKatsLRT allows for enforcement of any infantry loadout to the server owner's specs. It has automatic integration with AdKats systems, including punishments, infractions, reports, and marking.
+    All 3500 infantry items in the game (primaries, sidearms, attachments for either, gadgets, grenades, etc) can be denied on spawn using this extension, with customizable messages for each item. Settings allow for only enforcing loadouts on problem players, or for all players, with per-item gradation of that enforcement. Been running and testing it on our servers for around a month now with no issues. I will be working vehicle loadouts into this later.
 </p>
 <h4>Basic</h4>
 <ul>
