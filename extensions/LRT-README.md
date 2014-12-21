@@ -8,7 +8,7 @@
 </p>
 <h2>Overview</h2>
 <p>
-    All 3500 infantry items in the game (primaries, sidearms, attachments for either, gadgets, grenades, etc) can be denied on spawn using this extension, with customizable messages for each item. Settings allow for only enforcing loadouts on problem players, or for all players, with per-item gradation of that enforcement. Been running and testing it on our servers for around a month now with no issues. I will be working vehicle loadouts into this later.
+    All 3500 infantry items in the game (primaries, sidearms, attachments for either, gadgets, grenades, etc) can be denied on spawn using this plugin, with customizable messages for each item. Settings allow for only enforcing loadouts on problem players, or for all players, with per-item gradation of that enforcement.
 </p>
 <h4>Basic</h4>
 <ul>
