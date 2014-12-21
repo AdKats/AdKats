@@ -65,10 +65,10 @@
 </p>
 <ul>
     <li>
-        <b>Procon, and optionally AdKats:</b> Basic functions only require Procon, however, for advanced functions, it requires AdKats 5.3.1.4 or later to be installed and running.
+        <b>Procon, and optionally AdKats.</b> Basic functions only require Procon, however, for advanced functions, it requires AdKats 5.3.1.4 or later to be installed and running.
     </li>
     <li>
-        <b>Separated Layer IPs:</b> This is a battlelog intensive plugin, do not run it on more than one battlefield server from the same Procon layer IP address. If you have multiple servers to enforce, you must run the plugin from different Procon layer IP addresses. If you do not heed this warning, your layers run the risk of being temporarily IP banned from battlelog.
+        <b>Separated Layer IPs.</b> This is a battlelog intensive plugin, do not run it on more than one battlefield server from the same Procon layer IP address. If you have multiple servers to enforce, you must run the plugin from different Procon layer IP addresses. If you do not heed this warning, your layers run the risk of being temporarily IP banned from battlelog.
     </li>
 </ul>
 <HR>
