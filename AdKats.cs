@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.2.9
- * 19-DEC-2014
+ * Version 5.3.3.0
+ * 21-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.2.9</version_code>
+ * <version_code>5.3.3.0/version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.2.9";
+        private const String PluginVersion = "5.3.3.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -8256,16 +8256,41 @@ namespace PRoConEvents {
                     }
                     //Only count certain weapon categories
                     if (allowedCategories.Contains(weaponStat.Category)) {
-                        //Only take weapons with more than 100 kills
-                        if (weaponStat.Kills > 100) {
-                            //Check for aimbot hack
-                            DebugWrite("Checking " + weaponStat.ID + " HSKR (" + weaponStat.HSKR + " >? " + (_HskTriggerLevel / 100) + ")", 6);
-                            if (weaponStat.HSKR > (_HskTriggerLevel / 100)) {
-                                if (weaponStat.HSKR > actedHskr) {
-                                    actedHskr = weaponStat.HSKR;
-                                    actedWeapon = weaponStat;
+                        StatLibraryWeapon weapon;
+                        if (_StatLibrary.Weapons.TryGetValue(weaponStat.ID, out weapon))
+                        {
+                            //Only take weapons with more than 100 kills, and less than 50% damage
+                            if (weaponStat.Kills > 100 && weapon.damage_max < 50)
+                            {
+                                //Check for aimbot hack
+                                DebugWrite("Checking " + weaponStat.ID + " HSKR (" + weaponStat.HSKR + " >? " + (_HskTriggerLevel / 100) + ")", 6);
+                                if (weaponStat.HSKR > (_HskTriggerLevel / 100))
+                                {
+                                    if (weaponStat.HSKR > actedHskr)
+                                    {
+                                        actedHskr = weaponStat.HSKR;
+                                        actedWeapon = weaponStat;
+                                    }
                                 }
                             }
+                        }
+                        else
+                        {
+                            //Only take weapons with more than 100 kills, and less than 50% damage
+                            if (weaponStat.Kills > 100 && weaponStat.MaxDPS < 50)
+                            {
+                                //Check for aimbot hack
+                                DebugWrite("Checking " + weaponStat.ID + " HSKR (" + weaponStat.HSKR + " >? " + (_HskTriggerLevel / 100) + ")", 6);
+                                if (weaponStat.HSKR > (_HskTriggerLevel / 100))
+                                {
+                                    if (weaponStat.HSKR > actedHskr)
+                                    {
+                                        actedHskr = weaponStat.HSKR;
+                                        actedWeapon = weaponStat;
+                                    }
+                                }
+                            }
+                            ConsoleWarn("Could not find damage stats for " + weaponStat.ID + " in " + _gameVersion + " library of " + _StatLibrary.Weapons.Count + " weapons. Using BFXStats API damage of " + weaponStat.MaxDPS + " DPS in the meantime.");
                         }
                     }
                 }
