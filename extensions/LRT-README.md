@@ -85,7 +85,7 @@
     </li>
     <li>
         <b>Purchase AdKatsLRT, and aquire an extension token.</b>
-        <a href="https://forum.myrcon.com/private.php?do=newpm&u=15312" target="_blank">Private message ColColonCleaner</a> on the MyRCON forums about getting the plugin. Include names of the servers you run, and the names of the servers you will be running the loadout enforcer on. AdKatsLRT is $25, one-time fee, with free updates for the duration of the project. Payments accepted through <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=danielgradinjan%40gmail%2ecom&lc=US&item_name=AdKats%20-%20Advanced%20In-Game%20Admin%20for%20Procon%20Frostbite%20-%20Donation&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted" target="_blank">PayPal Donation</a> or <a href="https://wallet.google.com" target="_blank">Google Wallet</a> (colcoloncleaner@gmail.com).
+        <a href="https://forum.myrcon.com/private.php?do=newpm&u=15312" target="_blank">Private message ColColonCleaner</a> on the MyRCON forums about getting the plugin. Include names of the servers you run, and the names of the servers you will be running the loadout enforcer on. AdKatsLRT is $25, one-time fee, with free updates for the duration of the project. Payments accepted through <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=danielgradinjan%40gmail%2ecom&lc=US&item_name=AdKatsLRT%20-%20On-Spawn%20Loadout%20Enforcer%20for%20Procon%20Frostbite%20-%20Purchase&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_LG%2egif%3aNonHosted" target="_blank">PayPal Donation</a> or <a href="https://wallet.google.com" target="_blank">Google Wallet</a> (colcoloncleaner@gmail.com).
     </li>
     <li>
         <b>Install the plugin. (With AdKats Installed)</b>
