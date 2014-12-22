@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.3.0
+ * Version 5.3.3.1
  * 21-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.3.0/version_code>
+ * <version_code>5.3.3.1</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.3.0";
+        private const String PluginVersion = "5.3.3.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -26655,16 +26655,23 @@ namespace PRoConEvents {
         }
 
         public String ExtractString(String s, String tag) {
-            if (String.IsNullOrEmpty(s) || String.IsNullOrEmpty(tag)) {
-                ConsoleError("Unable to extract String. Invalid inputs.");
+            if (String.IsNullOrEmpty(s) || String.IsNullOrEmpty(tag))
+            {
+                ConsoleError("Unable to extract string '" + s + "'. Invalid inputs.");
                 return null;
             }
             String startTag = "<" + tag + ">";
             Int32 startIndex = s.IndexOf(startTag, System.StringComparison.Ordinal) + startTag.Length;
             if (startIndex == -1) {
-                ConsoleError("Unable to extract String. Tag not found.");
+                ConsoleError("Unable to extract string '" + s + "'. Starting tag not found.");
+                return null;
             }
             Int32 endIndex = s.IndexOf("</" + tag + ">", startIndex, System.StringComparison.Ordinal);
+            if (startIndex == -1)
+            {
+                ConsoleError("Unable to extract string '" + s + "'. Ending tag not found.");
+                return null;
+            }
             return s.Substring(startIndex, endIndex - startIndex);
         }
 
