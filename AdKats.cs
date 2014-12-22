@@ -193,7 +193,7 @@ namespace PRoConEvents {
         private DateTime _lastUserFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastPlayerMoveIssued = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastPluginDescFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private DateTime _LastUsageStatsUpdate = DateTime.UtcNow - TimeSpan.FromHours(1);
+        private DateTime _LastVersionTrackingUpdate = DateTime.UtcNow - TimeSpan.FromHours(1);
         private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
@@ -1631,12 +1631,12 @@ namespace PRoConEvents {
                         {
                             if (_threadsReady)
                             {
-                                PostUsageStatsUpdate();
+                                PostVersionTracking();
                             }
                         }
                         else
                         {
-                            PostUsageStatsUpdate();
+                            PostVersionTracking();
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
@@ -4003,7 +4003,7 @@ namespace PRoConEvents {
 
                         //Set the enabled variable
                         _pluginEnabled = true;
-                        _LastUsageStatsUpdate = UtcDbTime() - TimeSpan.FromHours(1);
+                        _LastVersionTrackingUpdate = UtcDbTime() - TimeSpan.FromHours(1);
 
                         //Init and start all the threads
                         InitWaitHandles();
@@ -4349,10 +4349,10 @@ namespace PRoConEvents {
 
                             //Post usage stats at interval
                             if ((!_versionTrackingDisabled || _pluginVersionStatus == VersionStatus.TestBuild || _isTestingAuthorized) &&
-                                (UtcDbTime() - _LastUsageStatsUpdate).TotalHours > 1 &&
+                                (UtcDbTime() - _LastVersionTrackingUpdate).TotalHours > 1 &&
                                 (_threadsReady || (UtcDbTime() - _proconStartTime).TotalSeconds > 30))
                             {
-                                PostUsageStatsUpdate();
+                                PostVersionTracking();
                             }
 
                             //Run SpamBot
@@ -6426,7 +6426,7 @@ namespace PRoConEvents {
                             _serverInfo.ServerName = serverInfo.ServerName;
                             Boolean haveServerName = !String.IsNullOrEmpty(_serverInfo.ServerName);
                             if (!_versionTrackingDisabled && haveServerName && !hadServerName) {
-                                PostUsageStatsUpdate();
+                                PostVersionTracking();
                             }
 
                             //Only activate the following on ADK servers.
@@ -25946,7 +25946,7 @@ namespace PRoConEvents {
             }
         }
         
-        private void PostUsageStatsUpdate() {
+        private void PostVersionTracking() {
             if (String.IsNullOrEmpty(_serverInfo.ServerIP)) {
                 return;
             }
@@ -25969,7 +25969,7 @@ namespace PRoConEvents {
             {
                 //Do nothing
             }
-            _LastUsageStatsUpdate = UtcDbTime();
+            _LastVersionTrackingUpdate = UtcDbTime();
         }
 
         private Boolean PopulateCommandReputationDictionaries() {
