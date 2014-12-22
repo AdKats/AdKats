@@ -1,4 +1,3 @@
-
 <p>
     <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b>
 </p>
@@ -7,6 +6,7 @@
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKats Thread">
     </a>
 </p>
+<HR>
 <p> 
     <a href="https://github.com/ColColonCleaner/AdKats#manual" target="_blank" name=manual>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_UserManual.jpg" alt="AdKats User Manual">
