@@ -213,17 +213,17 @@
 </ul>
 <h3>2. Weapons:</h3>
 <ul>
-    <li><b>'*WeaponIdentifier Allow on trigger?'</b> - Whether this item should be allowed/denied when a player is under trigger level enforcement.</li>
+    <li><b>'*WeaponIdentifier Allow on trigger?'</b> - Viewable when integrating with AdKats. Whether this item should be allowed/denied when a player is under trigger level enforcement.</li>
     <li><b>'*WeaponIdentifier Allow on spawn?'</b> - Appears when a weapon is denied under trigger enforcement. Whether this item should be allowed/denied when a player is under spawn level enforcement.</li>
 </ul>
 <h3>3. Gadgets:</h3>
 <ul>
-    <li><b>'*GadgetIdentifier Allow on trigger?'</b> - Whether this item should be allowed/denied when a player is under trigger level enforcement.</li>
+    <li><b>'*GadgetIdentifier Allow on trigger?'</b> - Viewable when integrating with AdKats. Whether this item should be allowed/denied when a player is under trigger level enforcement.</li>
     <li><b>'*GadgetIdentifier Allow on spawn?'</b> - Appears when a weapon is denied under trigger enforcement. Whether this item should be allowed/denied when a player is under spawn level enforcement.</li>
 </ul>
 <h3>4. Weapon Accessories:</h3>
 <ul>
-    <li><b>'*AccessoryIdentifier Allow on trigger?'</b> - Whether this item should be allowed/denied when a player is under trigger level enforcement.</li>
+    <li><b>'*AccessoryIdentifier Allow on trigger?'</b> - Viewable when integrating with AdKats. Whether this item should be allowed/denied when a player is under trigger level enforcement.</li>
     <li><b>'*AccessoryIdentifier Allow on spawn?'</b> - Appears when a weapon is denied under trigger enforcement. Whether this item should be allowed/denied when a player is under spawn level enforcement.</li>
 </ul>
 <h3>5A. Denied Item Kill Messages:</h3>
