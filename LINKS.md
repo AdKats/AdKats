@@ -1,4 +1,3 @@
-<HR>
 <p>
     <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b>
 </p>
