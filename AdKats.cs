@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.3.3.1
- * 21-DEC-2014
+ * Version 5.9.9.0
+ * 24-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.3.3.1</version_code>
+ * <version_code>5.9.9.0</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.3.3.1";
+        private const String PluginVersion = "5.9.9.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -9487,6 +9487,28 @@ namespace PRoConEvents {
                         FinalizeRecord(record);
                         return;
                     }
+                    //Power level exclusion
+                    if (record.source_player != null && record.target_player != null &&
+                        record.source_player.player_role.role_powerLevel < record.target_player.player_role.role_powerLevel &&
+                        (record.command_type.command_key == "player_kill" ||
+                         record.command_type.command_key == "player_kick" ||
+                         record.command_type.command_key == "player_ban_temp" ||
+                         record.command_type.command_key == "player_ban_perm" ||
+                         record.command_type.command_key == "player_ban_perm_future" ||
+                         record.command_type.command_key == "player_punish" ||
+                         record.command_type.command_key == "player_forgive" ||
+                         record.command_type.command_key == "player_mute" ||
+                         record.command_type.command_key == "player_move" ||
+                         record.command_type.command_key == "player_fmove" ||
+                         record.command_type.command_key == "self_lead" ||
+                         record.command_type.command_key == "player_pull" ||
+                         record.command_type.command_key == "player_lock"))
+                    {
+                        SendMessageToSource(record, "You cannot issue " + record.command_type.command_name + " on " + record.target_player.GetVerboseName()  + " their power level ("  + record.target_player.player_role.role_powerLevel + ") is higher than yours (" + record.source_player.player_role.role_powerLevel + ")");
+                        FinalizeRecord(record);
+                        return;
+                    }
+                    //Command timeouts
                     if (record.command_action != null && _commandTimeoutDictionary.ContainsKey(record.command_action.command_key) && !record.record_action_executed)
                     {
                         if (record.target_player != null && !record.TargetPlayersLocal.Any())
@@ -10026,7 +10048,7 @@ namespace PRoConEvents {
                         DebugWrite("No rights to call command", 6);
                         //Only tell the user they dont have access if the command is active
                         if (record.command_type.command_active == AdKatsCommand.CommandActive.Active) {
-                            SendMessageToSource(record, "Your user role " + record.source_player.player_role.role_name + " does not have access to " + record.command_type.command_name + ".");
+                            SendMessageToSource(record, "Your role " + record.source_player.player_role.role_name + " (Power Level " + record.source_player.player_role.role_powerLevel + ") cannot use " + record.command_type.command_name + ".");
                         }
                         FinalizeRecord(record);
                         return;
@@ -10337,65 +10359,143 @@ namespace PRoConEvents {
                         }
                     }
                         break;
-                    case "player_kill_force": {
-                        //Remove previous commands awaiting confirmation
-                        CancelSourcePendingAction(record);
+                    case "player_kill_force":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
-                            FinalizeRecord(record);
-                            return;
-                        }
-
-                        //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 2);
-                        switch (parameters.Length) {
-                            case 0:
-                                if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
-                                    FinalizeRecord(record);
-                                    return;
-                                }
-                                record.record_message = "Self-Inflicted";
-                                record.target_name = record.source_name;
-                                CompleteTargetInformation(record, false, false, false);
-                                break;
-                            case 1:
-                                record.target_name = parameters[0];
-                                //Handle based on report ID as only option
-                                if (!HandleRoundReport(record)) {
-                                    SendMessageToSource(record, "No reason given, unable to submit.");
-                                }
+                            if (_serverInfo.ServerType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
-                            case 2:
-                                record.target_name = parameters[0];
+                            }
 
-                                //attempt to handle via pre-message ID
-                                record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
-                                if (record.record_message == null) {
-                                    SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
-                                    FinalizeRecord(record);
-                                    return;
-                                }
-
-                                //Handle based on report ID if possible
-                                if (!HandleRoundReport(record)) {
-                                    if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
-                                    }
-                                    else {
-                                        SendMessageToSource(record, "Reason too short, unable to submit.");
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                         FinalizeRecord(record);
+                                        return;
                                     }
-                                }
-                                break;
-                            default:
-                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    record.record_message = "Self-Inflicted";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID as only option
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        SendMessageToSource(record, "No reason given, unable to submit.");
+                                    }
+                                    FinalizeRecord(record);
+                                    return;
+                                case 2:
+                                    record.target_name = parameters[0];
+
+                                    //attempt to handle via pre-message ID
+                                    record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        if (record.record_message.Length >= _RequiredReasonLength)
+                                        {
+                                            CompleteTargetInformation(record, false, false, false);
+                                        }
+                                        else
+                                        {
+                                            SendMessageToSource(record, "Reason too short, unable to submit.");
+                                            FinalizeRecord(record);
+                                        }
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_warn":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (_serverInfo.ServerType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Warning Yourself";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, false, false, false);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID as only option
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        SendMessageToSource(record, "No reason given, unable to submit.");
+                                    }
+                                    FinalizeRecord(record);
+                                    return;
+                                case 2:
+                                    record.target_name = parameters[0];
+
+                                    //attempt to handle via pre-message ID
+                                    record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        if (record.record_message.Length >= _RequiredReasonLength)
+                                        {
+                                            CompleteTargetInformation(record, false, false, false);
+                                        }
+                                        else
+                                        {
+                                            SendMessageToSource(record, "Reason too short, unable to submit.");
+                                            FinalizeRecord(record);
+                                        }
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
                         }
-                    }
                         break;
                     case "player_kick": {
                         //Remove previous commands awaiting confirmation
@@ -11757,84 +11857,180 @@ namespace PRoConEvents {
                             }
                         }
                         break;
-                    case "server_nuke": {
-                        //Remove previous commands awaiting confirmation
-                        CancelSourcePendingAction(record);
+                    case "server_nuke":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
 
-                        if (_serverInfo.ServerType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
-                            FinalizeRecord(record);
-                            return;
-                        }
-
-                        //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 2);
-                        switch (parameters.Length) {
-                            case 0:
-                                SendMessageToSource(record, "No parameters given, unable to submit.");
+                            if (_serverInfo.ServerType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
-                            case 1:
-                                String targetTeam = parameters[0];
-                                record.record_message = "Nuke Server";
-                                DebugWrite("target: " + targetTeam, 6);
-                                if (targetTeam.ToLower().Contains("us")) {
-                                    AdKatsTeam aTeam = GetTeamByKey("US");
-                                    if (aTeam != null) {
-                                        record.target_name = aTeam.TeamName;
-                                        record.command_numeric = aTeam.TeamID;
-                                        record.record_message += " (" + aTeam.TeamName + ")";
-                                    }
-                                    else {
-                                        SendMessageToSource(record, "Team US does not exist on this map.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                }
-                                else if (targetTeam.ToLower().Contains("ru")) {
-                                    AdKatsTeam aTeam = GetTeamByKey("RU");
-                                    if (aTeam != null) {
-                                        record.target_name = aTeam.TeamName;
-                                        record.command_numeric = aTeam.TeamID;
-                                        record.record_message += " (" + aTeam.TeamName + ")";
-                                    }
-                                    else {
-                                        SendMessageToSource(record, "Team RU does not exist on this map.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                }
-                                else if (targetTeam.ToLower().Contains("cn")) {
-                                    AdKatsTeam aTeam = GetTeamByKey("CN");
-                                    if (aTeam != null) {
-                                        record.target_name = aTeam.TeamName;
-                                        record.command_numeric = aTeam.TeamID;
-                                        record.record_message += " (" + aTeam.TeamName + ")";
-                                    }
-                                    else {
-                                        SendMessageToSource(record, "Team CN does not exist on this map.");
-                                        FinalizeRecord(record);
-                                        return;
-                                    }
-                                }
-                                else if (targetTeam.ToLower().Contains("all")) {
-                                    record.target_name = "Everyone";
-                                    record.record_message += " (Everyone)";
-                                }
-                                else {
-                                    SendMessageToSource(record, "Use 'US', 'RU', 'CN', or 'ALL' as targets.");
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
                                     FinalizeRecord(record);
                                     return;
-                                }
-                                //Have the admin confirm the action
-                                ConfirmActionWithSource(record);
-                                break;
-                            default:
-                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
+                                case 1:
+                                    String targetTeam = parameters[0];
+                                    record.record_message = "Nuke Server";
+                                    DebugWrite("target: " + targetTeam, 6);
+                                    if (targetTeam.ToLower().Contains("us"))
+                                    {
+                                        AdKatsTeam aTeam = GetTeamByKey("US");
+                                        if (aTeam != null)
+                                        {
+                                            record.target_name = aTeam.TeamName;
+                                            record.command_numeric = aTeam.TeamID;
+                                            record.record_message += " (" + aTeam.TeamName + ")";
+                                        }
+                                        else
+                                        {
+                                            SendMessageToSource(record, "Team US does not exist on this map.");
+                                            FinalizeRecord(record);
+                                            return;
+                                        }
+                                    }
+                                    else if (targetTeam.ToLower().Contains("ru"))
+                                    {
+                                        AdKatsTeam aTeam = GetTeamByKey("RU");
+                                        if (aTeam != null)
+                                        {
+                                            record.target_name = aTeam.TeamName;
+                                            record.command_numeric = aTeam.TeamID;
+                                            record.record_message += " (" + aTeam.TeamName + ")";
+                                        }
+                                        else
+                                        {
+                                            SendMessageToSource(record, "Team RU does not exist on this map.");
+                                            FinalizeRecord(record);
+                                            return;
+                                        }
+                                    }
+                                    else if (targetTeam.ToLower().Contains("cn"))
+                                    {
+                                        AdKatsTeam aTeam = GetTeamByKey("CN");
+                                        if (aTeam != null)
+                                        {
+                                            record.target_name = aTeam.TeamName;
+                                            record.command_numeric = aTeam.TeamID;
+                                            record.record_message += " (" + aTeam.TeamName + ")";
+                                        }
+                                        else
+                                        {
+                                            SendMessageToSource(record, "Team CN does not exist on this map.");
+                                            FinalizeRecord(record);
+                                            return;
+                                        }
+                                    }
+                                    else if (targetTeam.ToLower().Contains("all"))
+                                    {
+                                        record.target_name = "Everyone";
+                                        record.record_message += " (Everyone)";
+                                    }
+                                    else
+                                    {
+                                        SendMessageToSource(record, "Use 'US', 'RU', 'CN', or 'ALL' as targets.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    //Have the admin confirm the action
+                                    ConfirmActionWithSource(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
                         }
-                    }
+                        break;
+                    case "server_countdown":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 3:
+                                    String targetSubset = parameters[0].ToLower().Trim();
+                                    if (String.IsNullOrEmpty(targetSubset))
+                                    {
+                                        SendMessageToSource(record, "Invalid target, must be squad, team, or all. Unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    switch (targetSubset) {
+                                        case "squad":
+                                            if (record.source_player == null || 
+                                                !record.source_player.player_online || 
+                                                !_PlayerDictionary.ContainsKey(record.source_player.player_name) ||
+                                                record.source_player.player_type == PlayerType.Spectator)
+                                            {
+                                                SendMessageToSource(record, "Must be a player to use squad option. Unable to submit.");
+                                                FinalizeRecord(record);
+                                                return;
+                                            }
+                                            record.target_name = "Squad";
+                                            break;
+                                        case "team":
+                                            if (record.source_player == null ||
+                                                !record.source_player.player_online ||
+                                                !_PlayerDictionary.ContainsKey(record.source_player.player_name) ||
+                                                record.source_player.player_type == PlayerType.Spectator)
+                                            {
+                                                SendMessageToSource(record, "Must be a player to use team option. Unable to submit.");
+                                                FinalizeRecord(record);
+                                                return;
+                                            }
+                                            record.target_name = "Team";
+                                            break;
+                                        case "all":
+                                            record.target_name = "All";
+                                            break;
+                                        default:
+                                            SendMessageToSource(record, "Invalid target, must be squad, team, or all. Unable to submit.");
+                                            FinalizeRecord(record);
+                                            return;
+                                            break;
+                                    }
+                                    //Max 30 seconds
+                                    Int32 countdownSeconds;
+                                    if (!Int32.TryParse(parameters[1], out countdownSeconds) || countdownSeconds < 1 || countdownSeconds > 30)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration, must be 1-30. Unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = countdownSeconds;
+                                    String countdownMessage = parameters[2];
+                                    if (String.IsNullOrEmpty(countdownMessage)) {
+                                        SendMessageToSource(record, "Invalid countdown message, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = countdownMessage;
+
+                                    //Have the admin confirm the action
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
                         break;
                     case "server_kickall":
                         CancelSourcePendingAction(record);
@@ -14018,6 +14214,9 @@ namespace PRoConEvents {
                     case "player_kill_force":
                         ForceKillTarget(record);
                         break;
+                    case "player_warn":
+                        WarnTarget(record);
+                        break;
                     case "player_kill_lowpop":
                         KillTarget(record);
                         break;
@@ -14092,6 +14291,9 @@ namespace PRoConEvents {
                         break;
                     case "server_nuke":
                         NukeTarget(record);
+                        break;
+                    case "server_countdown":
+                        CountdownTarget(record);
                         break;
                     case "server_kickall":
                         KickAllPlayers(record);
@@ -14407,7 +14609,7 @@ namespace PRoConEvents {
                 //Perform actions
                 if (String.IsNullOrEmpty(record.target_player.player_name))
                 {
-                    ConsoleError("playername null in 5437");
+                    ConsoleError("playername null in 14491");
                 }
                 else
                 {
@@ -14430,6 +14632,34 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting ForceKillTarget", 6);
+        }
+
+        public void WarnTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering WarnTarget", 6);
+            String message = null;
+            try
+            {
+                record.record_action_executed = true;
+                //Perform actions
+                if (String.IsNullOrEmpty(record.target_player.player_name))
+                {
+                    ConsoleError("playername null in 14526");
+                }
+                else
+                {
+                    SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
+                    AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
+                    PlayerTellMessage(record.target_name, "Warned by admin for " + record.record_message, true, 3);
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for warn record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting WarnTarget", 6);
         }
 
         public void DequeueTarget(AdKatsRecord record)
@@ -14837,15 +15067,15 @@ namespace PRoConEvents {
                     //Call correct action
                     if (action == "repwarn")
                     {
-                        SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
-                        AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
+                        record.command_action = GetCommandByKey("player_warn");
+                        WarnTarget(record);
+                        _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
                         PlayerTellMessage(record.target_name, "Your reputation protected you from a punish, but has been reduced. Inform an admin!", true, 3);
                     }
                     else if (action == "warn")
                     {
-                        SendMessageToSource(record, "You WARNED " + record.GetTargetNames() + " for " + record.record_message);
-                        AdminSayMessage(record.GetTargetNames() + " WARNED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
-                        PlayerTellMessage(record.target_name, "Warned by admin for " + record.record_message, true , 3);
+                        record.command_action = GetCommandByKey("player_warn");
+                        WarnTarget(record);
                     }
                     else if ((action == "kill" || (isLowPop && !iroOverride)) && !action.Equals("ban")) 
                     {
@@ -15935,8 +16165,9 @@ namespace PRoConEvents {
             DebugWrite("Exiting EndLevel", 6);
         }
 
-        public void NukeTarget(AdKatsRecord record) {
-            DebugWrite("Entering nukeTarget", 6);
+        public void NukeTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering NukeTarget", 6);
             try
             {
                 record.record_action_executed = true;
@@ -15946,7 +16177,8 @@ namespace PRoConEvents {
                     {
                         AdminTellMessage(record.record_message);
                     }
-                    foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"))) {
+                    foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone")))
+                    {
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
                         if (record.source_name != "RoundManager")
                         {
@@ -15956,12 +16188,124 @@ namespace PRoConEvents {
                 }
                 SendMessageToSource(record, "You NUKED " + record.GetTargetNames() + " for " + record.record_message + ".");
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 record.record_exception = new AdKatsException("Error while taking action for NukeServer record.", e);
                 HandleException(record.record_exception);
                 FinalizeRecord(record);
             }
-            DebugWrite("Exiting nukeTarget", 6);
+            DebugWrite("Exiting NukeTarget", 6);
+        }
+
+        public void CountdownTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering CountdownTarget", 6);
+            try
+            {
+                record.record_action_executed = true;
+                if (record.command_numeric < 1 || record.command_numeric > 30)
+                {
+                    SendMessageToSource(record, "Invalid duration, must be 1-30. Unable to act.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                if (String.IsNullOrEmpty(record.record_message))
+                {
+                    SendMessageToSource(record, "Invalid countdown message, unable to act.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                List<AdKatsPlayer> targetedPlayers = new List<AdKatsPlayer>();
+                lock (_PlayerDictionary)
+                {
+                    switch (record.target_name)
+                    {
+                        case "Squad":
+                            if (record.source_player == null ||
+                                !record.source_player.player_online ||
+                                !_PlayerDictionary.ContainsKey(record.source_player.player_name) ||
+                                record.source_player.player_type == PlayerType.Spectator)
+                            {
+                                SendMessageToSource(record, "Source must be an online player to use squad option. Unable to act.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            targetedPlayers.AddRange(_PlayerDictionary.Values.Where(aPlayer =>
+                                aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID &&
+                                aPlayer.frostbitePlayerInfo.SquadID == record.source_player.frostbitePlayerInfo.SquadID).ToList());
+                            break;
+                        case "Team":
+                            if (record.source_player == null ||
+                                !record.source_player.player_online ||
+                                !_PlayerDictionary.ContainsKey(record.source_player.player_name) ||
+                                record.source_player.player_type == PlayerType.Spectator)
+                            {
+                                SendMessageToSource(record, "Source must be an online player to use team option. Unable to act.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            targetedPlayers.AddRange(_PlayerDictionary.Values.Where(aPlayer =>
+                                aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).ToList());
+                            break;
+                        case "All":
+                            //All players, so include spectators and commanders
+                            break;
+                        default:
+                            SendMessageToSource(record, "Invalid target, must be Squad, Team, or All. Unable to Act.");
+                            FinalizeRecord(record);
+                            return;
+                    }
+                }
+                //Start the thread
+                StartAndLogThread(new Thread(new ThreadStart(delegate
+                {
+                    DebugWrite("Starting a countdown printer thread.", 5);
+                    try
+                    {
+                        Thread.CurrentThread.Name = "countdownprinter";
+                        for(Int32 countdown = record.command_numeric; countdown > 0; countdown--)
+                        {
+                            if (!_pluginEnabled) {
+                                LogThreadExit();
+                                return;
+                            }
+                            if (record.target_name == "All") {
+                                AdminTellMessage(record.record_message + " in " + countdown + "...");
+                            }
+                            else {
+                                foreach (AdKatsPlayer aPlayer in targetedPlayers) {
+                                    PlayerTellMessage(aPlayer.player_name, record.record_message + " in " + countdown + "...");
+                                }
+                            }
+                            _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
+                        }
+                        if (record.target_name == "All")
+                        {
+                            AdminTellMessage(record.record_message + " NOW!");
+                        }
+                        else
+                        {
+                            foreach (AdKatsPlayer aPlayer in targetedPlayers)
+                            {
+                                PlayerTellMessage(aPlayer.player_name, record.record_message + " NOW!");
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        HandleException(new AdKatsException("Error while printing server countdown"));
+                    }
+                    DebugWrite("Exiting a countdown printer.", 5);
+                    LogThreadExit();
+                })));
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for ServerCountdown record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting CountdownTarget", 6);
         }
 
         public void SwapNukeServer(AdKatsRecord record) {
@@ -18156,205 +18500,236 @@ namespace PRoConEvents {
         }
 
         private void HandleActiveBanEnforcer() {
-            //Call banlist at set interval (20 seconds)
-            if (_UseBanEnforcerPreviousState && (UtcDbTime() > _lastBanListCall.AddSeconds(20))) {
-                _lastBanListCall = UtcDbTime();
-                DebugWrite("banlist.list called at interval.", 6);
-                ExecuteCommand("procon.protected.send", "banList.list");
-
-                FetchNameBanCount();
-                FetchGUIDBanCount();
-                FetchIPBanCount();
-            }
-            if (!_UseBanEnforcerPreviousState || (UtcDbTime() > _lastDbBanFetch.AddSeconds(DbBanFetchFrequency))) {
-                //Load all bans on startup
-                if (!_UseBanEnforcerPreviousState) {
-                    //Get all bans from procon
-                    ConsoleInfo("Preparing to queue procon bans for import. Please wait.");
-                    _DbCommunicationWaitHandle.Reset();
+            try
+            {
+                //Call banlist at set interval (20 seconds)
+                if (_UseBanEnforcerPreviousState && (UtcDbTime() > _lastBanListCall.AddSeconds(20)))
+                {
+                    _lastBanListCall = UtcDbTime();
+                    DebugWrite("banlist.list called at interval.", 6);
                     ExecuteCommand("procon.protected.send", "banList.list");
-                    _DbCommunicationWaitHandle.WaitOne(TimeSpan.FromMinutes(5));
-                    if (_CBanProcessingQueue.Count > 0) {
-                        ConsoleWrite(_CBanProcessingQueue.Count + " procon bans queued for import. Import might take several minutes if you have many bans!");
-                    }
-                    else {
-                        ConsoleWrite("No procon bans to import into Ban Enforcer.");
-                    }
+
+                    FetchNameBanCount();
+                    FetchGUIDBanCount();
+                    FetchIPBanCount();
                 }
-            }
-            else {
-                DebugWrite("DBCOMM: Skipping DB ban fetch", 7);
-            }
-
-            //Handle Inbound Ban Comms
-            if (_BanEnforcerProcessingQueue.Count > 0) {
-                DebugWrite("DBCOMM: Preparing to lock inbound ban enforcer queue to retrive new bans", 7);
-                Queue<AdKatsBan> inboundBans;
-                lock (_BanEnforcerProcessingQueue) {
-                    DebugWrite("DBCOMM: Inbound bans found. Grabbing.", 6);
-                    //Grab all messages in the queue
-                    inboundBans = new Queue<AdKatsBan>(_BanEnforcerProcessingQueue.ToArray());
-                    //Clear the queue for next run
-                    _BanEnforcerProcessingQueue.Clear();
-                }
-                Int32 index = 1;
-                //Loop through all bans in order that they came in
-                while (inboundBans.Count > 0) {
-                    if (!_pluginEnabled || !_UseBanEnforcer) {
-                        ConsoleWarn("Canceling ban import mid-operation.");
-                        break;
-                    }
-                    //Grab the ban
-                    AdKatsBan aBan = inboundBans.Dequeue();
-
-                    DebugWrite("DBCOMM: Processing Frostbite Ban: " + index++, 6);
-
-                    //Upload the ban
-                    UploadBan(aBan);
-
-                    //Only perform special action when ban is direct
-                    //Indirect bans are through the procon banlist, so the player has already been kicked
-                    if (aBan.ban_record.source_name != "BanEnforcer") {
-                        //Enforce the ban
-                        EnforceBan(aBan, false);
-                    }
-                }
-            }
-
-            //Handle BF3 Ban Manager imports
-            if (!_UseBanEnforcerPreviousState) {
-                //Import all bans from BF3 Ban Manager
-                ImportBansFromBBM5108();
-            }
-
-            //Handle Inbound CBan Uploads
-            if (_CBanProcessingQueue.Count > 0) {
-                if (!_UseBanEnforcerPreviousState) {
-                    ConsoleWarn("Do not disable AdKats or change any settings until upload is complete!");
-                }
-                DebugWrite("DBCOMM: Preparing to lock inbound cBan queue to retrive new cBans", 7);
-                Double totalCBans = 0;
-                Double bansImported = 0;
-                Boolean earlyExit = false;
-                DateTime startTime = UtcDbTime();
-                Queue<CBanInfo> inboundCBans;
-                lock (_CBanProcessingQueue) {
-                    DebugWrite("DBCOMM: Inbound cBans found. Grabbing.", 6);
-                    //Grab all cBans in the queue
-                    inboundCBans = new Queue<CBanInfo>(_CBanProcessingQueue.ToArray());
-                    totalCBans = inboundCBans.Count;
-                    //Clear the queue for next run
-                    _CBanProcessingQueue.Clear();
-                }
-                //Loop through all cBans in order that they came in
-                Boolean bansFound = false;
-                while (inboundCBans.Count > 0) {
-                    //Break from the loop if the plugin is disabled or the setting is reverted.
-                    if (!_pluginEnabled || !_UseBanEnforcer) {
-                        ConsoleWarn("You exited the ban upload process early, the process was not completed.");
-                        earlyExit = true;
-                        break;
-                    }
-
-                    bansFound = true;
-
-                    CBanInfo cBan = inboundCBans.Dequeue();
-
-                    //Create the record
-                    var record = new AdKatsRecord();
-                    record.record_source = AdKatsRecord.Sources.InternalAutomated;
-                    //Permabans and Temp bans longer than 1 year will be defaulted to permaban
-                    switch (cBan.BanLength.Subset) {
-                        case TimeoutSubset.TimeoutSubsetType.Seconds:
-                            record.command_type = GetCommandByKey("player_ban_temp");
-                            record.command_action = GetCommandByKey("player_ban_temp");
-                            record.command_numeric = cBan.BanLength.Seconds / 60;
-                            break;
-                        case TimeoutSubset.TimeoutSubsetType.Permanent:
-                            record.command_type = GetCommandByKey("player_ban_perm");
-                            record.command_action = GetCommandByKey("player_ban_perm");
-                            record.command_numeric = 0;
-                            break;
-                        case TimeoutSubset.TimeoutSubsetType.Round:
-                            //Accept round ban as 1 hour timeban
-                            record.command_type = GetCommandByKey("player_ban_temp");
-                            record.command_action = GetCommandByKey("player_ban_temp");
-                            record.command_numeric = 60;
-                            break;
-                        default:
-                            //Ban type is unknown, unable to process
-                            continue;
-                    }
-                    record.source_name = _CBanAdminName;
-                    record.server_id = _serverInfo.ServerID;
-                    if (String.IsNullOrEmpty(cBan.SoldierName) && String.IsNullOrEmpty(cBan.Guid) && String.IsNullOrEmpty(cBan.IpAddress))
+                if (!_UseBanEnforcerPreviousState || (UtcDbTime() > _lastDbBanFetch.AddSeconds(DbBanFetchFrequency)))
+                {
+                    //Load all bans on startup
+                    if (!_UseBanEnforcerPreviousState)
                     {
-                        ConsoleError("Player did not contain any identifiers when processing CBan. Ignoring.");
-                        continue;
-                    }
-                    record.target_player = FetchPlayer(true, false, false, null, -1, cBan.SoldierName, (!String.IsNullOrEmpty(cBan.Guid)) ? (cBan.Guid.ToUpper()) : (null), cBan.IpAddress);
-                    if (record.target_player == null) 
-                    {
-                        ConsoleError("Player could not be found/added when processing CBan. Ignoring.");
-                        continue;
-                    }
-                    if (!String.IsNullOrEmpty(record.target_player.player_name)) 
-                    {
-                        record.target_name = record.target_player.player_name;
-                    }
-                    record.isIRO = false;
-                    record.record_message = cBan.Reason;
-
-                    //Update the ban enforcement depending on available information
-                    Boolean nameAvailable = !String.IsNullOrEmpty(record.target_player.player_name);
-                    Boolean guidAvailable = !String.IsNullOrEmpty(record.target_player.player_guid);
-                    Boolean ipAvailable = !String.IsNullOrEmpty(record.target_player.player_ip);
-
-                    //Create the ban
-                    var aBan = new AdKatsBan {
-                        ban_record = record,
-                        ban_enforceName = nameAvailable && (_DefaultEnforceName || (!guidAvailable && !ipAvailable) || !String.IsNullOrEmpty(cBan.SoldierName)),
-                        ban_enforceGUID = guidAvailable && (_DefaultEnforceGUID || (!nameAvailable && !ipAvailable) || !String.IsNullOrEmpty(cBan.Guid)),
-                        ban_enforceIP = ipAvailable && (_DefaultEnforceIP || (!nameAvailable && !guidAvailable) || !String.IsNullOrEmpty(cBan.IpAddress))
-                    };
-                    if (!aBan.ban_enforceName && !aBan.ban_enforceGUID && !aBan.ban_enforceIP) {
-                        ConsoleError("Unable to create ban, no proper player information");
-                        continue;
-                    }
-
-                    //Check for duplicate ban posting
-                    Boolean duplicateFound = false;
-                    foreach (AdKatsBan storedBan in FetchPlayerBans(record.target_player)) {
-                        if (storedBan.ban_record.record_message == record.record_message && 
-                            storedBan.ban_record.source_name == record.source_name) {
-                            duplicateFound = true;
+                        //Get all bans from procon
+                        ConsoleInfo("Preparing to queue procon bans for import. Please wait.");
+                        _DbCommunicationWaitHandle.Reset();
+                        ExecuteCommand("procon.protected.send", "banList.list");
+                        _DbCommunicationWaitHandle.WaitOne(TimeSpan.FromMinutes(5));
+                        if (_CBanProcessingQueue.Count > 0)
+                        {
+                            ConsoleWrite(_CBanProcessingQueue.Count + " procon bans queued for import. Import might take several minutes if you have many bans!");
+                        }
+                        else
+                        {
+                            ConsoleWrite("No procon bans to import into Ban Enforcer.");
                         }
                     }
-                    if (duplicateFound)
-                    {
-                        ConsoleInfo("Attempted to post duplicate ban for player " + record.target_player.player_id + ". Cancelling operation.");
-                        continue;
-                    }
-                        
-                    //Upload the ban
-                    DebugWrite("Uploading ban from procon.", 5);
-                    UploadBan(aBan);
+                }
+                else
+                {
+                    DebugWrite("DBCOMM: Skipping DB ban fetch", 7);
+                }
 
-                    if (!_UseBanEnforcerPreviousState && (++bansImported % 25 == 0)) {
-                        ConsoleWrite(Math.Round(100 * bansImported / totalCBans, 2) + "% of bans uploaded. AVG " + Math.Round(bansImported / ((UtcDbTime() - startTime).TotalSeconds), 2) + " uploads/sec.");
+                //Handle Inbound Ban Comms
+                if (_BanEnforcerProcessingQueue.Count > 0)
+                {
+                    DebugWrite("DBCOMM: Preparing to lock inbound ban enforcer queue to retrive new bans", 7);
+                    Queue<AdKatsBan> inboundBans;
+                    lock (_BanEnforcerProcessingQueue)
+                    {
+                        DebugWrite("DBCOMM: Inbound bans found. Grabbing.", 6);
+                        //Grab all messages in the queue
+                        inboundBans = new Queue<AdKatsBan>(_BanEnforcerProcessingQueue.ToArray());
+                        //Clear the queue for next run
+                        _BanEnforcerProcessingQueue.Clear();
+                    }
+                    Int32 index = 1;
+                    //Loop through all bans in order that they came in
+                    while (inboundBans.Count > 0)
+                    {
+                        if (!_pluginEnabled || !_UseBanEnforcer)
+                        {
+                            ConsoleWarn("Canceling ban import mid-operation.");
+                            break;
+                        }
+                        //Grab the ban
+                        AdKatsBan aBan = inboundBans.Dequeue();
+
+                        DebugWrite("DBCOMM: Processing Frostbite Ban: " + index++, 6);
+
+                        //Upload the ban
+                        UploadBan(aBan);
+
+                        //Only perform special action when ban is direct
+                        //Indirect bans are through the procon banlist, so the player has already been kicked
+                        if (aBan.ban_record.source_name != "BanEnforcer")
+                        {
+                            //Enforce the ban
+                            EnforceBan(aBan, false);
+                        }
                     }
                 }
-                if (bansFound && !earlyExit) {
-                    //If all bans have been queued for processing, clear the ban list
-                    ExecuteCommand("procon.protected.send", "banList.clear");
-                    ExecuteCommand("procon.protected.send", "banList.save");
-                    ExecuteCommand("procon.protected.send", "banList.list");
-                    if (!_UseBanEnforcerPreviousState) {
-                        ConsoleSuccess("All bans uploaded into AdKats database.");
+
+                //Handle BF3 Ban Manager imports
+                if (!_UseBanEnforcerPreviousState)
+                {
+                    //Import all bans from BF3 Ban Manager
+                    ImportBansFromBBM5108();
+                }
+
+                //Handle Inbound CBan Uploads
+                if (_CBanProcessingQueue.Count > 0)
+                {
+                    if (!_UseBanEnforcerPreviousState)
+                    {
+                        ConsoleWarn("Do not disable AdKats or change any settings until upload is complete!");
+                    }
+                    DebugWrite("DBCOMM: Preparing to lock inbound cBan queue to retrive new cBans", 7);
+                    Double totalCBans = 0;
+                    Double bansImported = 0;
+                    Boolean earlyExit = false;
+                    DateTime startTime = UtcDbTime();
+                    Queue<CBanInfo> inboundCBans;
+                    lock (_CBanProcessingQueue)
+                    {
+                        DebugWrite("DBCOMM: Inbound cBans found. Grabbing.", 6);
+                        //Grab all cBans in the queue
+                        inboundCBans = new Queue<CBanInfo>(_CBanProcessingQueue.ToArray());
+                        totalCBans = inboundCBans.Count;
+                        //Clear the queue for next run
+                        _CBanProcessingQueue.Clear();
+                    }
+                    //Loop through all cBans in order that they came in
+                    Boolean bansFound = false;
+                    while (inboundCBans.Count > 0)
+                    {
+                        //Break from the loop if the plugin is disabled or the setting is reverted.
+                        if (!_pluginEnabled || !_UseBanEnforcer)
+                        {
+                            ConsoleWarn("You exited the ban upload process early, the process was not completed.");
+                            earlyExit = true;
+                            break;
+                        }
+
+                        bansFound = true;
+
+                        CBanInfo cBan = inboundCBans.Dequeue();
+
+                        //Create the record
+                        var record = new AdKatsRecord();
+                        record.record_source = AdKatsRecord.Sources.InternalAutomated;
+                        //Permabans and Temp bans longer than 1 year will be defaulted to permaban
+                        switch (cBan.BanLength.Subset)
+                        {
+                            case TimeoutSubset.TimeoutSubsetType.Seconds:
+                                record.command_type = GetCommandByKey("player_ban_temp");
+                                record.command_action = GetCommandByKey("player_ban_temp");
+                                record.command_numeric = cBan.BanLength.Seconds / 60;
+                                break;
+                            case TimeoutSubset.TimeoutSubsetType.Permanent:
+                                record.command_type = GetCommandByKey("player_ban_perm");
+                                record.command_action = GetCommandByKey("player_ban_perm");
+                                record.command_numeric = 0;
+                                break;
+                            case TimeoutSubset.TimeoutSubsetType.Round:
+                                //Accept round ban as 1 hour timeban
+                                record.command_type = GetCommandByKey("player_ban_temp");
+                                record.command_action = GetCommandByKey("player_ban_temp");
+                                record.command_numeric = 60;
+                                break;
+                            default:
+                                //Ban type is unknown, unable to process
+                                continue;
+                        }
+                        record.source_name = _CBanAdminName;
+                        record.server_id = _serverInfo.ServerID;
+                        if (String.IsNullOrEmpty(cBan.SoldierName) && String.IsNullOrEmpty(cBan.Guid) && String.IsNullOrEmpty(cBan.IpAddress))
+                        {
+                            ConsoleError("Player did not contain any identifiers when processing CBan. Ignoring.");
+                            continue;
+                        }
+                        record.target_player = FetchPlayer(true, false, false, null, -1, cBan.SoldierName, (!String.IsNullOrEmpty(cBan.Guid)) ? (cBan.Guid.ToUpper()) : (null), cBan.IpAddress);
+                        if (record.target_player == null)
+                        {
+                            ConsoleError("Player could not be found/added when processing CBan. Ignoring.");
+                            continue;
+                        }
+                        if (!String.IsNullOrEmpty(record.target_player.player_name))
+                        {
+                            record.target_name = record.target_player.player_name;
+                        }
+                        record.isIRO = false;
+                        record.record_message = cBan.Reason;
+
+                        //Update the ban enforcement depending on available information
+                        Boolean nameAvailable = !String.IsNullOrEmpty(record.target_player.player_name);
+                        Boolean guidAvailable = !String.IsNullOrEmpty(record.target_player.player_guid);
+                        Boolean ipAvailable = !String.IsNullOrEmpty(record.target_player.player_ip);
+
+                        //Create the ban
+                        var aBan = new AdKatsBan
+                        {
+                            ban_record = record,
+                            ban_enforceName = nameAvailable && (_DefaultEnforceName || (!guidAvailable && !ipAvailable) || !String.IsNullOrEmpty(cBan.SoldierName)),
+                            ban_enforceGUID = guidAvailable && (_DefaultEnforceGUID || (!nameAvailable && !ipAvailable) || !String.IsNullOrEmpty(cBan.Guid)),
+                            ban_enforceIP = ipAvailable && (_DefaultEnforceIP || (!nameAvailable && !guidAvailable) || !String.IsNullOrEmpty(cBan.IpAddress))
+                        };
+                        if (!aBan.ban_enforceName && !aBan.ban_enforceGUID && !aBan.ban_enforceIP)
+                        {
+                            ConsoleError("Unable to create ban, no proper player information");
+                            continue;
+                        }
+
+                        //Check for duplicate ban posting
+                        Boolean duplicateFound = false;
+                        foreach (AdKatsBan storedBan in FetchPlayerBans(record.target_player))
+                        {
+                            if (storedBan.ban_record.record_message == record.record_message &&
+                                storedBan.ban_record.source_name == record.source_name)
+                            {
+                                duplicateFound = true;
+                            }
+                        }
+                        if (duplicateFound)
+                        {
+                            ConsoleInfo("Attempted to post duplicate ban for player " + record.target_player.player_id + ". Cancelling operation.");
+                            continue;
+                        }
+
+                        //Upload the ban
+                        DebugWrite("Uploading ban from procon.", 5);
+                        UploadBan(aBan);
+
+                        if (!_UseBanEnforcerPreviousState && (++bansImported % 25 == 0))
+                        {
+                            ConsoleWrite(Math.Round(100 * bansImported / totalCBans, 2) + "% of bans uploaded. AVG " + Math.Round(bansImported / ((UtcDbTime() - startTime).TotalSeconds), 2) + " uploads/sec.");
+                        }
+                    }
+                    if (bansFound && !earlyExit)
+                    {
+                        //If all bans have been queued for processing, clear the ban list
+                        ExecuteCommand("procon.protected.send", "banList.clear");
+                        ExecuteCommand("procon.protected.send", "banList.save");
+                        ExecuteCommand("procon.protected.send", "banList.list");
+                        if (!_UseBanEnforcerPreviousState)
+                        {
+                            ConsoleSuccess("All bans uploaded into AdKats database.");
+                        }
                     }
                 }
+                _UseBanEnforcerPreviousState = true;
             }
-            _UseBanEnforcerPreviousState = true;
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while handling active ban enforcer.", e));
+            }
         }
 
         private void SubmitToMetabans(AdKatsBan aBan, AssessmentTypes type) {
@@ -23469,6 +23844,16 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 91", "REPLACE INTO `adkats_commands` VALUES(91, 'Active', 'plugin_update', 'Unable', 'Update AdKats', 'pupdate', TRUE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(92))
+                                {
+                                    SendNonQuery("Adding command 92", "REPLACE INTO `adkats_commands` VALUES(92, 'Active', 'player_warn', 'Log', 'Warn Player', 'warn', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(93))
+                                {
+                                    SendNonQuery("Adding command 93", "REPLACE INTO `adkats_commands` VALUES(93, 'Active', 'server_countdown', 'Log', 'Run Countdown', 'cdown', FALSE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -23575,6 +23960,8 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["self_nosurrender"] = "Votes against ending the round with surrender.";
             _CommandDescriptionDictionary["player_whitelistspambot"] = "Whitelists a player for SpamBot avoidance. They will not get any messages from the SpamBot.";
             _CommandDescriptionDictionary["plugin_update"] = "Updates AdKats.";
+            _CommandDescriptionDictionary["player_warn"] = "Warns a player. Requires a reason.";
+            _CommandDescriptionDictionary["server_countdown"] = "Sends a visible countdown to all players in the given subset.";
         }
 
         private void UpdateCommandTimeouts() {
@@ -23696,16 +24083,16 @@ namespace PRoConEvents {
                                         ConsoleWarn("Role for ID " + currentRoleElement.Key + " not found in role dictionary when assigning commands.");
                                         continue;
                                     }
-                                    foreach (long curRoleID in currentRoleElement.Value)
+                                    foreach (long curCommandID in currentRoleElement.Value)
                                     {
                                         if (!_pluginEnabled)
                                         {
                                             return;
                                         }
                                         AdKatsCommand aCommand;
-                                        if (!_CommandIDDictionary.TryGetValue(curRoleID, out aCommand))
+                                        if (!_CommandIDDictionary.TryGetValue(curCommandID, out aCommand))
                                         {
-                                            ConsoleWarn("Command for ID " + curRoleID + " not found in command dictionary when assigning commands.");
+                                            ConsoleWarn("Command for ID " + curCommandID + " not found in command dictionary when assigning commands.");
                                             uploadRequired = true;
                                             continue;
                                         }
@@ -23734,6 +24121,8 @@ namespace PRoConEvents {
                                         uploadRequired = true;
                                     }
                                     FillConditionalAllowedCommands(aRole);
+                                    //Calculate role power level
+                                    aRole.role_powerLevel = aRole.RoleAllowedCommands.Values.Count(aCommand => !aCommand.command_playerInteraction) + (2 * aRole.RoleAllowedCommands.Values.Count(aCommand => aCommand.command_playerInteraction));
                                     if (_CommandIDDictionary.Any() && uploadRequired)
                                     {
                                         QueueRoleForUpload(aRole);
@@ -28576,6 +28965,7 @@ namespace PRoConEvents {
             public Int64 role_id = -1;
             public String role_key = null;
             public String role_name = null;
+            public Int64 role_powerLevel = 0;
 
             public AdKatsRole() {
                 RoleAllowedCommands = new Dictionary<String, AdKatsCommand>();
