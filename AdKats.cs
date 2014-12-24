@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.9.9.0
+ * Version 5.9.9.1
  * 24-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.9.9.0</version_code>
+ * <version_code>5.9.9.1</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.9.9.0";
+        private const String PluginVersion = "5.9.9.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -16903,7 +16903,7 @@ namespace PRoConEvents {
                                     {
                                         if (_ServerRulesYell)
                                         {
-                                            PlayerYellMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false));
+                                            PlayerTellMessage(record.target_player.player_name, currentPrefix + GetPreMessage(rule, false));
                                         }
                                         else
                                         {
