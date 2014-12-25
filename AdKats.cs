@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 5.9.9.1
- * 24-DEC-2014
+ * Version 6.0.0.0
+ * 25-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>5.9.9.1</version_code>
+ * <version_code>6.0.0.0</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "5.9.9.1";
+        private const String PluginVersion = "6.0.0.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -824,7 +824,14 @@ namespace PRoConEvents {
                         return lstReturn;
                     }
                     //Auto-Enable Settings
-                    lstReturn.Add(new CPluginVariable("0. Instance Settings|Auto-Enable/Keep-Alive", typeof (Boolean), _useKeepAlive));
+                    lstReturn.Add(new CPluginVariable("0. Instance Settings|Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
+
+                    //Server Settings
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Setting Import", typeof(String), _serverInfo.ServerID));
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof(Int32), _serverInfo.ServerID));
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof(String), _serverInfo.ServerIP));
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
+                    lstReturn.Add(new CPluginVariable("1. Server Settings|High Population Value", typeof(Int32), _highPopulationPlayerCount));
 
                     //SQL Settings
                     lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Hostname", typeof (String), _mySqlHostname));
@@ -1121,13 +1128,6 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof (Boolean), _UseGrenadeCookCatcher));
                         }
                     }
-
-                    //Server Settings
-                    lstReturn.Add(new CPluginVariable("1. Server Settings|Setting Import", typeof (String), _serverInfo.ServerID));
-                    lstReturn.Add(new CPluginVariable("1. Server Settings|Server ID (Display)", typeof (Int32), _serverInfo.ServerID));
-                    lstReturn.Add(new CPluginVariable("1. Server Settings|Server IP (Display)", typeof(String), _serverInfo.ServerIP));
-                    lstReturn.Add(new CPluginVariable("1. Server Settings|Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
-                    lstReturn.Add(new CPluginVariable("1. Server Settings|High Population Value", typeof(Int32), _highPopulationPlayerCount));
                     if (!_UsingAwa) {
                         const string userSettingsPrefix = "3. User Settings|";
                         //User Settings
@@ -6238,7 +6238,7 @@ namespace PRoConEvents {
                                     losingTeam.TeamTicketCount > 100 &&
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0) {
-                                    Int32 requiredTriggers = 25 - ((losingTeam.TeamTicketCount <= 500)?((500 - losingTeam.TeamTicketCount) / 30):(0));
+                                    Int32 requiredTriggers = 20 - ((losingTeam.TeamTicketCount <= 500)?((500 - losingTeam.TeamTicketCount) / 30):(0));
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5)) 
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
@@ -6249,7 +6249,7 @@ namespace PRoConEvents {
                                         }
                                         else
                                         {
-                                            if(_surrenderAutoTriggerCountCurrent % 5 == 0)
+                                            if(_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1)
                                                 OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + requiredTriggers + ".");
                                         }
                                     }
@@ -6278,7 +6278,7 @@ namespace PRoConEvents {
                                         }
                                         else
                                         {
-                                            if (_surrenderAutoTriggerCountCurrent % 5 == 0)
+                                            if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1)
                                                 OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/10.");
                                         }
                                     }
@@ -6308,7 +6308,7 @@ namespace PRoConEvents {
                                                 }
                                                 else 
                                                 {
-                                                    if (_surrenderAutoTriggerCountCurrent % 5 == 0)
+                                                    if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1)
                                                         OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
                                                 }
                                             }
@@ -6336,7 +6336,7 @@ namespace PRoConEvents {
                                                 }
                                                 else
                                                 {
-                                                    if (_surrenderAutoTriggerCountCurrent % 5 == 0)
+                                                    if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1)
                                                         OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". Trigger " + _surrenderAutoTriggerCountCurrent + "/" + _surrenderAutoTriggerCountToSurrender + ".");
                                                 }
                                             }
@@ -8491,6 +8491,7 @@ namespace PRoConEvents {
                 {
                     Speaker = speaker,
                     Message = message,
+                    OriginalMessage = message,
                     Subset = AdKatsChatMessage.ChatSubset.Global,
                     SubsetTeamID = -1,
                     SubsetSquadID = -1
@@ -8519,6 +8520,7 @@ namespace PRoConEvents {
                 {
                     Speaker = speaker,
                     Message = message,
+                    OriginalMessage = message,
                     Subset = AdKatsChatMessage.ChatSubset.Team,
                     SubsetTeamID = teamId,
                     SubsetSquadID = -1
@@ -8547,6 +8549,7 @@ namespace PRoConEvents {
                 {
                     Speaker = speaker,
                     Message = message,
+                    OriginalMessage = message,
                     Subset = AdKatsChatMessage.ChatSubset.Global,
                     SubsetTeamID = teamId,
                     SubsetSquadID = squadId
@@ -9058,8 +9061,7 @@ namespace PRoConEvents {
 
                             Boolean isCommand = false;
                             //Check if the message is a command
-                            if (messageObject.Message.StartsWith("@") || messageObject.Message.StartsWith("!") || messageObject.Message.StartsWith("."))
-                            {
+                            if (messageObject.Message.StartsWith("@") || messageObject.Message.StartsWith("!") || messageObject.Message.StartsWith(".")) {
                                 messageObject.Message = messageObject.Message.Substring(1);
                                 isCommand = true;
                             }
@@ -20360,7 +20362,8 @@ namespace PRoConEvents {
                 return success;
             }
             //comorose BF4 chat handle
-            if (messageObject.Message.Contains("ID_CHAT"))
+            if (messageObject.OriginalMessage.Contains("ID_CHAT") ||
+                messageObject.OriginalMessage.Contains("AdKatsInstanceCheck"))
             {
                 success = true;
                 return success;
@@ -20378,7 +20381,11 @@ namespace PRoConEvents {
             }
             //Ignore command check
             if (_PostStatLoggerChatManually_IgnoreCommands &&
-                (messageObject.Message.StartsWith("@") || messageObject.Message.StartsWith("!") || messageObject.Message.StartsWith(".") || messageObject.Message.StartsWith("/"))) {
+                (messageObject.OriginalMessage.StartsWith("@") || 
+                messageObject.OriginalMessage.StartsWith("!") || 
+                messageObject.OriginalMessage.StartsWith(".") || 
+                messageObject.OriginalMessage.StartsWith("/")))
+            {
                 success = true;
                 return success;
             }
@@ -20430,7 +20437,7 @@ namespace PRoConEvents {
                         }
                         command.Parameters.AddWithValue("@log_player_name", messageObject.Speaker);
                         //Trim to 255 characters
-                        String logMessage = messageObject.Message.Length <= 255 ? messageObject.Message : messageObject.Message.Substring(0, 255);
+                        String logMessage = messageObject.Message.Length <= 255 ? messageObject.OriginalMessage : messageObject.OriginalMessage.Substring(0, 255);
                         command.Parameters.AddWithValue("@log_message", logMessage);
 
                         //Get reference to the command in case of error
@@ -26257,7 +26264,7 @@ namespace PRoConEvents {
                             Match pid = Regex.Match(response, @"bf3/soldier/" + aPlayer.player_name + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                             if (!pid.Success)
                             {
-                                HandleException(new AdKatsException("Could not find BF3 persona ID for " + aPlayer.player_name));
+                                //HandleException(new AdKatsException("Could not find BF3 persona ID for " + aPlayer.player_name));
                                 return;
                             }
                             aPlayer.player_personaID = pid.Groups[1].Value.Trim();
@@ -26635,12 +26642,13 @@ namespace PRoConEvents {
                             }
                             //Check for valid initial conditions
                             Boolean invalid = false;
-                            foreach (String checkSQL in update.update_checks)
+                            foreach (String icheckSQL in update.update_checks)
                             {
                                 if (!_pluginEnabled)
                                 {
                                     break;
                                 }
+                                String checkSQL = icheckSQL.Replace("%DATABASENAME%", _mySqlSchemaName);
                                 if (SendQuery(checkSQL, false))
                                 {
                                     if (!update.update_checks_hasResults)
@@ -26668,12 +26676,13 @@ namespace PRoConEvents {
                             //Run the updates
                             Int32 executeIndex = 0;
                             Boolean failed = false;
-                            foreach (String executeSQL in update.update_execute)
+                            foreach (String iexecuteSQL in update.update_execute)
                             {
                                 if (!_pluginEnabled)
                                 {
                                     break;
                                 }
+                                String executeSQL = iexecuteSQL.Replace("%DATABASENAME%", _mySqlSchemaName);
                                 if (!SendNonQuery("Executing SQL Update '" + update.update_id + "' (" + update.message_name + ")" + executeIndex++, executeSQL, false) && update.update_execute_requiresModRows)
                                 {
                                     failed = true;
@@ -27687,23 +27696,7 @@ namespace PRoConEvents {
                             String pluginFileName = "AdKats.cs";
                             String dllPath = Directory.GetParent(Assembly.GetExecutingAssembly().Location).FullName;
                             String pluginPath = Path.Combine(dllPath.Trim(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), pluginFileName);
-                            String procon_path = Directory.GetParent(Application.ExecutablePath).FullName;
-                            String pluginDirectory = Path.Combine(procon_path, Path.Combine("Plugins", "BF4"));
-                            var providerOptions = new Dictionary<String, String>();
-                            providerOptions.Add("CompilerVersion", "v3.5");
-                            var cSharpCodeProvider = new CSharpCodeProvider(providerOptions);
-                            var compilerParameters = new CompilerParameters();
-                            compilerParameters.ReferencedAssemblies.Add("System.dll");
-                            compilerParameters.ReferencedAssemblies.Add("System.Core.dll");
-                            compilerParameters.ReferencedAssemblies.Add("System.Data.dll");
-                            compilerParameters.ReferencedAssemblies.Add("System.Windows.Forms.dll");
-                            compilerParameters.ReferencedAssemblies.Add("System.Xml.dll");
-                            compilerParameters.ReferencedAssemblies.Add("MySql.Data.dll");
-                            compilerParameters.ReferencedAssemblies.Add("PRoCon.Core.dll");
-                            compilerParameters.GenerateInMemory = true;
-                            compilerParameters.IncludeDebugInformation = false;
-                            compilerParameters.TempFiles = new TempFileCollection(pluginDirectory);
-                            var compileResults = cSharpCodeProvider.CompileAssemblyFromSource(compilerParameters, pluginSource);
+                            var compileResults = CompilePluginSource(pluginSource);
                             if (compileResults.Errors.HasErrors)
                             {
                                 foreach (CompilerError errComp in compileResults.Errors)
@@ -27869,7 +27862,7 @@ namespace PRoConEvents {
                                 }
                                 String extensionFileName = "AdKatsLRT.cs";
                                 String extensionPath = Path.Combine(dllPath.Trim(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), extensionFileName);
-                                var extensionCompileResults = cSharpCodeProvider.CompileAssemblyFromSource(compilerParameters, extensionSource);
+                                var extensionCompileResults = CompilePluginSource(extensionSource);
                                 if (extensionCompileResults.Errors.HasErrors)
                                 {
                                     foreach (CompilerError errComp in extensionCompileResults.Errors)
@@ -28222,13 +28215,13 @@ namespace PRoConEvents {
 
         public void HandleDatabaseConnectionInteruption() {
             //Only handle these errors if all threads are already functioning normally
-            if (_threadsReady || !_pluginEnabled) {
+            if (_firstPlayerListComplete) {
                 if (_databaseTimeouts == 0) {
                     _lastDatabaseTimeout = UtcDbTime();
                 }
                 ++_databaseTimeouts;
-                ConsoleWarn("Database connection fault detected. This is fault " + _databaseTimeouts + ". Critical disconnect at " + DatabaseTimeoutThreshold + ".");
-                //Check for critical state (timeouts > threshold, and last timeout less than 1 minute ago)
+                ConsoleWarn("Database connection issue detected. Trigger " + _databaseTimeouts + "/" + DatabaseTimeoutThreshold + ".");
+                //Check for critical state (timeouts > threshold, and last issue less than 1 minute ago)
                 if ((UtcDbTime() - _lastDatabaseTimeout).TotalSeconds < 60) {
                     if (_databaseTimeouts >= DatabaseTimeoutThreshold) {
                         try {
@@ -28467,6 +28460,26 @@ namespace PRoConEvents {
                     HandleException(new AdKatsException("Error while parsing IP response information.", e));
                 }
             }
+        }
+
+        public CompilerResults CompilePluginSource(String pluginSource) {
+            String procon_path = Directory.GetParent(Application.ExecutablePath).FullName;
+            String pluginDirectory = Path.Combine(procon_path, Path.Combine("Plugins", _gameVersion.ToString()));
+            var providerOptions = new Dictionary<String, String>();
+            providerOptions.Add("CompilerVersion", "v3.5");
+            var cSharpCodeProvider = new CSharpCodeProvider(providerOptions);
+            var compilerParameters = new CompilerParameters();
+            compilerParameters.ReferencedAssemblies.Add("System.dll");
+            compilerParameters.ReferencedAssemblies.Add("System.Core.dll");
+            compilerParameters.ReferencedAssemblies.Add("System.Data.dll");
+            compilerParameters.ReferencedAssemblies.Add("System.Windows.Forms.dll");
+            compilerParameters.ReferencedAssemblies.Add("System.Xml.dll");
+            compilerParameters.ReferencedAssemblies.Add("MySql.Data.dll");
+            compilerParameters.ReferencedAssemblies.Add("PRoCon.Core.dll");
+            compilerParameters.GenerateInMemory = true;
+            compilerParameters.IncludeDebugInformation = false;
+            compilerParameters.TempFiles = new TempFileCollection(pluginDirectory);
+            return cSharpCodeProvider.CompileAssemblyFromSource(compilerParameters, pluginSource);
         }
 
         public class AdKatsWeaponName {
@@ -28952,6 +28965,7 @@ namespace PRoConEvents {
 
             public String Speaker;
             public String Message;
+            public String OriginalMessage;
             public ChatSubset Subset;
             public Int32 SubsetTeamID;
             public Int32 SubsetSquadID;
