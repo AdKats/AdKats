@@ -785,7 +785,7 @@
             "damage_min": 28
         },
         {
-            "id": "Phantom",
+            "id": "phantom",
             "damage_max": 100,
             "damage_min": 100
         }
