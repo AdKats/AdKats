@@ -74,22 +74,22 @@
 			"update_failure":[]
 		},
 		{
-		    "update_id":"increaseSPGroupMaxSize",
-		    "version_minimum":"6.0.0.0",
-		    "version_maximum":null,
-		    "message_name":"Increasing special player group size",
-		    "message_success":"Increased special player group size",
-		    "message_failure":"Failed to increase special player group size",
-		    "update_checks_hasResults":true,
-		    "update_checks":[
-		        "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME` = 'adkats_specialplayers' AND `COLUMN_NAME` = 'player_group' AND `CHARACTER_MAXIMUM_LENGTH` <= 99"
-		    ],
-		    "update_execute_requiresModRows":false,
-		    "update_execute":[
-		        "ALTER TABLE %DATABASENAME%.`adkats_specialplayers` CHANGE COLUMN `player_group` `player_group` VARCHAR(100) CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci' NOT NULL"
-		    ],
-		    "update_success":[],
-		    "update_failure":[]
+			"update_id":"increaseSPGroupMaxSize",
+			"version_minimum":"6.0.0.0",
+			"version_maximum":null,
+			"message_name":"Increasing special player group size",
+			"message_success":"Increased special player group size",
+			"message_failure":"Failed to increase special player group size",
+			"update_checks_hasResults":true,
+			"update_checks":[
+			"SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME` = 'adkats_specialplayers' AND `COLUMN_NAME` = 'player_group' AND `CHARACTER_MAXIMUM_LENGTH` <= 99"
+			],
+			"update_execute_requiresModRows":false,
+			"update_execute":[
+			"ALTER TABLE %DATABASENAME%.`adkats_specialplayers` CHANGE COLUMN `player_group` `player_group` VARCHAR(100) CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci' NOT NULL"
+			],
+			"update_success":[],
+			"update_failure":[]
 		}
 	]
 }
