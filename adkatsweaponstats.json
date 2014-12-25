@@ -783,6 +783,11 @@
             "id": "unica-6",
             "damage_max": 56,
             "damage_min": 28
+        },
+        {
+            "id": "Phantom",
+            "damage_max": 100,
+            "damage_min": 100
         }
     ]
 }
