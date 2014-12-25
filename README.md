@@ -1257,6 +1257,22 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </td>
 </tr>
 <tr>
+    <td><b>Warn Player</b></td>
+    <td>warn</td>
+    <td>
+        None<br/>
+        OR<br/>
+        [player][reason]<br/>
+        OR<br/>
+        [reportID]<br/>
+        OR<br/>
+        [reportID][reason]
+    </td>
+    <td>
+        The in-game command used for warning players. This will give them a verbal warning across their screen, and log that they were warned.
+    </td>
+</tr>
+<tr>
     <td><b>Mute Player</b></td>
     <td>mute</td>
     <td>
@@ -1810,6 +1826,14 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <td>[US/RU/ALL]</td>
     <td>
         The in-game command used for killing all players in a subset. US, RU, or ALL will work.
+    </td>
+</tr>
+<tr>
+    <td><b>Server Countdown</b></td>
+    <td>cdown</td>
+    <td>[squad/team/all] [seconds] [reason]</td>
+    <td>
+        The in-game command used for issuing countdowns on a subset of players.
     </td>
 </tr>
 <tr>
