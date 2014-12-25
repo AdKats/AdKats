@@ -374,6 +374,10 @@
     player gets more points. A player cannot be punished more than once every 20 seconds; this prevents multiple admins
     from accidentally punishing a player multiple times for the same infraction.
 </p>
+<h4>TeamKilling Management</h4>
+<p>
+    The punish and forgive commands in AdKats are admin use only. If you would like to integrate a teamkill punish/forgive system with the AdKats punish system, use the <a href="https://forum.myrcon.com/showthread.php?8690" target="_blank">Team Kill Tracker Plugin</a> and enable the AdKats integration settings.
+</p>
 <h4>IRO Punishments</h4>
 <p>
     When a player is punished, and has already been punished in the past 10 minutes, the new punish counts
@@ -815,9 +819,9 @@ it happen.
 <p>
     <ul>
         <li>DPS bans take priority over HSK bans, and HSK over KPM.</li>
-        <li>Whitelisting can either be done using the hcwhitelist command, or by entering their player ID, name, guid, 
+        <li>Whitelisting can either be done using the hcwhitelist command, or by entering their player ID, name, guid,
             or IP in the adkats_specialplayers table using the group "whitelist_hackerchecker"</li>
-        <li>If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes 
+        <li>If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes
             while they are in the server, stopping if they leave.</li>
     </ul>
 </p>
@@ -942,6 +946,10 @@ it happen.
     Once a round matches all of the parameters you set, auto-surrender or auto-nuke is triggered. Auto-surrender will
     cause the round to end, in favor of the current winning team. Auto-nuke will kill every player on the winning team
     that is currently alive; It will typically issue 1-3 times, making sure all players are dead.
+</p>
+<h3>Automatic Database Disconnect/Malfunction Handling System</h3>
+<p>
+    If the connected database goes offline, or becomes over encumbered to the point of being unusable, AdKats will automatically handle that state. If that state is reached, AdKats will temporarily halt all interaction with the database, disable stat logger, and wait for the situation to be rectified. Checks for fixed connection are made every 30 seconds, and once restored stat logger and AdKats connections with the database are re-enabled.
 </p>
 <h3>Commanding AdKats from External Source</h3>
 <h4><u>BFAdminCP 2.0+ can be used for this.</u></h4>
@@ -1899,6 +1907,16 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         Calls the AFK Management functionality manually. Cannot be used if AFK payers are being managed automatically.
     </td>
 </tr>
+<tr>
+    <td><b>Plugin Update</b></td>
+    <td>pupdate</td>
+    <td>
+        None
+    </td>
+    <td>
+        Calls manual update of AdKats source and any connected extensions to their latest versions.
+    </td>
+</tr>
 </table>
 <HR>
 <p>
@@ -2162,6 +2180,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Server ID (Display)'</b> - ID of this server. Automatically set via the database.</li>
     <li><b>'Server IP (Display)'</b> - IP address and port of this server. Automatically set via Procon.<br/></li>
     <li><b>'Low Population Value'</b> - Number of players at which the server is deemed 'Low Population'.</li>
+    <li><b>'High Population Value'</b> - Number of players at which the server is deemed 'High Population'.</li>
 </ul>
 <h3>2. MySQL Settings:</h3>
 <ul>
@@ -2198,6 +2217,10 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     When a user role is deleted, all users on that role are changed to the Default Guest role.
     You cannot delete the Default Guest role.
 </p>
+<h3>4-2. Role Group Settings:</h3>
+<p>
+    Listed in this section is an entry for each possible special player group, on every role in your role list. Setting 'Assign' to any entry will place all users/soldiers under that role on the selected special player group. Some settings are forced to 'Assign' per settings in other places in the program, for example if you've fed reserved slots for admins that group is force assigned for all admin roles.
+</p>
 <h3>5. Command Settings:</h3>
 <ul>
     <li><b>'Minimum Required Reason Length'</b> - The minimum length a reason must be for commands that require a reason
@@ -2223,8 +2246,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h3>6. Command List:</h3>
 <ul>
     <li><b>*Active*</b> - Globally disable or enable the given command.</li>
-    <li><b>*Logging*</b> - Set whether usage of this command is logged. All commands log by default except
-        roundwhitelist.
+    <li><b>*Logging*</b> - Set whether usage of this command is logged. All commands log by default, .
     </li>
     <li><b>*Text*</b> - Globally change the in-game text for this command. Command text must be unique.</li>
 </ul>
@@ -2327,6 +2349,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Display Ticket Rates in Procon Chat'</b> - Whether to display team ticket loss/gain rates in the Procon
         chat tab. Useful for setting values in auto-surrender.
     </li>
+    <li><b>'Inform reputable players and admins of admin joins'</b> - Whether to tell admins and reputable players that an admin joins the server.
+    </li>
     <li><b>'Inform players of reports against them'</b> - Whether to inform targeted players when someone reports them.
     </li>
     <li><b>'Player Inform Exclusion Strings'</b> - List of words or phrases that will cancel informing reported players.
@@ -2390,8 +2414,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </ul>
 <h3>A14. External Command Settings:</h3>
 <ul>
-    <li><b>'External Access Key'</b> - The access key required to use any HTTP commands, can be changed to whatever is
-        desired, but the default is a random 64Bit hashcode generated when the plugin first runs.
+    <li><b>'AdKatsLRT Extension Token'</b> - Usable with AdKatsLRT - OnSpawn Loadout Enforcer plugin. Once that plugin is purchased, the token can be placed here for automatic install/updates.
+    </li>
+    <li><b>'Fetch Actions from Database'</b> - When activated, AdKats will check the database every few seconds for new records added which are targeted at that particular server. It will run the action for new records and mark them read.
     </li>
 </ul>
 <h3>A15. VOIP Settings:</h3>
@@ -2412,13 +2437,13 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Feed Server Reserved Slots'</b> - When enabled, the servers reserved slots will include all AdKats user's
         soldiers.
     </li>
-    <li><b>'Automatic Reserved Slot for User Cache'</b> - When enabled, all users in your User List will be given a
+    <li><b>'Automatic Reserved Slot for Admins'</b> - When enabled, all admins in your User List will be given a
         reserved slot.
     </li>
     <li><b>'Feed Server Spectator List'</b> - When enabled, the servers spectator list will include all AdKats user's
         soldiers.
     </li>
-    <li><b>'Automatic Spectator Slot for User Cache'</b> - When enabled, all users in your User List will be given a
+    <li><b>'Automatic Spectator Slot for Admins'</b> - When enabled, all admins in your User List will be given a
         spectator slot.
     </li>
     <li><b>'Feed Stat Logger Settings'</b> - When enabled, stat logger is fed settings appropriate for AdKats, including
@@ -2446,12 +2471,14 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </li>
     <li><b>'Post Server Chat Spam'</b> - Whether to include server spam messages when posting stat logger chat manually.
     </li>
+    <li><b>'Exclude Commands from Chat Logs'</b> - Whether to exclude messages containing commands from being stored in the database.
+    </li>
 </ul>
 <h3>A17. Round Settings:</h3>
 <ul>
     <li><b>'Round Timer: Enable'</b> - When enabled, rounds will be limited to X minutes.</li>
     <li><b>'Round Timer: Round Duration Minutes'</b> - Number of minutes that the round will last before the current
-        winning team wins (Will only work correctly in conquest at the moment).
+        winning team wins (Will only work correctly in conquest/domination at the moment).
     </li>
 </ul>
 <h3>A18. Internal Hacker-Checker Settings:</h3>
@@ -2517,7 +2544,10 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Ping Enforcer Enable'</b> - Whether to enable the Ping Enforcer.</li>
     <li><b>'Ping Moving Average Duration sec'</b> - The amount of time that should be used to average the player pings.
         Default is a 3 minute window.</li>
-    <li><b>'Ping Kick Trigger ms '</b> - The minimum ping that will trigger a kick.</li>
+    <li><b>'Ping Kick Low Population Trigger ms'</b> - The minimum ping that will trigger a kick in low population.</li>
+    <li><b>'Ping Kick Medium Population Trigger ms'</b> - The minimum ping that will trigger a kick in medium population.</li>
+    <li><b>'Ping Kick High Population Trigger ms'</b> - The minimum ping that will trigger a kick in high population.</li>
+    <li><b>'Ping Kick Full Population Trigger ms'</b> - The minimum ping that will trigger a kick in full population.</li>
     <li><b>'Ping Kick Minimum Players'</b> - The minimum number of players that must be in the server before ping kicks
         will happen.</li>
     <li><b>'Kick Missing Pings'</b> - Whether to kick players for having missing ping.</li>
@@ -2565,10 +2595,13 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <ul>
     <li><b>'Auto-Surrender Enable'</b> - Whether to enable the Auto-Surrender System. When enabled, all below values
         must be contained in a round for it to trigger an automatic round surrender.</li>
-    <li><b>'Auto-Surrender Use Optimal Values for Metro'</b> - If you are running Metro 2014 on Conquest, use this
-        setting, it has been tested for months and will issue auto-surrender when a baserape happens.</li>
+    <li><b>'Auto-Surrender Use Optimal Values for Metro Conquest'</b> - If you are running Metro 2014 on Conquest, use this
+        setting, it will issue auto-surrender when a baserape happens and the weak team cannot recover.</li>
+    <li><b>'Auto-Surrender Use Optimal Values for Locker Conquest'</b> - If you are running Operation Locker on Conquest, use this
+        setting, it will issue auto-surrender when a baserape happens and the weak team cannot recover.</li>
     <li><b>'Auto-Surrender Minimum Ticket Gap'</b> - The minimum difference in ticket counts between teams for
         auto-surrender to fire.</li>
+    <li><b>'Auto-Surrender Use Adjusted Ticket Rates'</b> - Adjusted ticket rates are designed for modes where player spawns affect ticket count, like conquest and domination, it removes them from the equation leaving only flags affecting the ticket rates.</li>
     <li><b>'Auto-Surrender Losing Team Rate Window Max'</b> - The losing team's ticket rate must not be greater than
         this value for auto-surrender to fire.</li>
     <li><b>'Auto-Surrender Losing Team Rate Window Min'</b> - The losing team's ticket rate must not be less than
@@ -2577,8 +2610,8 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         this value for auto-surrender to fire.</li>
     <li><b>'Auto-Surrender Winning Team Rate Window Min'</b> - The winning team's ticket rate must not be less than
         this value for auto-surrender to fire.</li>
-    <li><b>'Auto-Surrender Trigger Count to Surrender'</b> - Triggers happen at maximum every 10 seconds. The above
-        values must be hit this number of times for auto-surrender to fire..</li>
+    <li><b>'Auto-Surrender Trigger Count to Surrender'</b> - Triggers happen every 10 seconds. The above
+        values must be hit this number of times for auto-surrender to fire. Admins are informed of triggers every </li>
     <li><b>'Auto-Surrender Message'</b> - The message that will be sent to the server when an auto-surrender is fired.
         Place %WinnerName% in the string for the name of the winning team.</li>
     <li><b>'Nuke Winning Team Instead of Surrendering Losing Team'</b> - When an auto-surrender would have been triggered
@@ -2587,6 +2620,12 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         dead.</li>
     <li><b>'Auto-Nuke Message'</b> - The message that will be sent to the server when an auto-nuke is fired.
         Place %WinnerName% in the string for the name of the winning team being nuked.</li>
+    <li><b>'Start Surrender Vote Instead of Surrendering Losing Team'</b> - When an auto-surrender would have been triggered
+        on the losing team due to the settings above, instead, simply start a surrender vote, with AutoAdmin giving 1 vote toward surrender.</li>
+</ul>
+<h3>B25. Statistics Settings:</h3>
+<ul>
+    <li><b>'Post Map Benefit/Detriment Statistics'</b> - Whether to post statistics on which maps are most beneficial/detrimental to the population of the server. Queries to extract meaning from this information can be aquired in the main AdKats forum thread.</li>
 </ul>
 <h3>D99. Debug Settings:</h3>
 <ul>
@@ -2603,11 +2642,10 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Disable Automatic Updates'</b> - Disables automatic updates for the plugin. Should only be disabled if
         you've modified the plugin code manually.
     </li>
-    <li><b>'Disable Usage Data Posting - Required For TEST Builds'</b> - Usage data tracks version numbers and counts
-        latest versions for stable and TEST builds. Used to see how many servers are currently running AdKats.
+    <li><b>'Disable Version Tracking - Required For TEST Builds'</b> - Tracks version numbers for stable and TEST builds. Used to see how many servers are currently running certain versions of AdKats.
     </li>
     <li><b>'Command Entry'</b> -
         Enter commands here just like in game, mainly for debug purposes. Don't let more than one person use this at any
         time.
     </li>
-</ul> 
+</ul>
