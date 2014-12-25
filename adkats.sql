@@ -533,6 +533,7 @@ CREATE TABLE `tbl_extendedroundstats` (
 	PRIMARY KEY (`roundstat_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Extended Round Stats';
 
+DROP TABLE IF EXISTS `adkats_statistics`;
 CREATE TABLE `adkats_statistics` (
       `stat_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
       `server_id` SMALLINT(5) UNSIGNED NOT NULL,
