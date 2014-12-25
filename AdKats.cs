@@ -18218,6 +18218,7 @@ namespace PRoConEvents {
                     try
                     {
                         Thread.CurrentThread.Name = "StatLoggerSettingsFeeder";
+                        Thread.Sleep(250);
                         DebugWrite("Starting a stat logger setting feeder thread.", 5);
                         _lastStatLoggerStatusUpdateTime = UtcDbTime();
                         if (_isTestingAuthorized)
