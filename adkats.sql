@@ -1,5 +1,5 @@
 -- AdKats Database Setup Script
--- Version 5.2.2.5 (11/4/2014)
+-- Version 6.0.0.0 (12/25/2014)
 -- ColColonCleaner
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -173,6 +173,12 @@ REPLACE INTO `adkats_commands` VALUES(84, 'Active', 'player_whitelistspambot', '
 REPLACE INTO `adkats_commands` VALUES(85, 'Invisible', 'player_pm_start', 'Log', 'Player Private Message Start', 'pmstart', FALSE);
 REPLACE INTO `adkats_commands` VALUES(86, 'Invisible', 'player_pm_transmit', 'Log', 'Player Private Message Transmit', 'pmtransmit', FALSE);
 REPLACE INTO `adkats_commands` VALUES(87, 'Invisible', 'player_pm_cancel', 'Log', 'Player Private Message Cancel', 'pmcancel', FALSE);
+REPLACE INTO `adkats_commands` VALUES(88, 'Invisible', 'player_population_success', 'Log', 'Player Successfully Populated Server', 'popsuccess', FALSE);
+REPLACE INTO `adkats_commands` VALUES(89, 'Invisible', 'server_map_detriment', 'Log', 'Map Detriment Log', 'mapdetriment', FALSE);
+REPLACE INTO `adkats_commands` VALUES(90, 'Invisible', 'server_map_benefit', 'Log', 'Map Benefit Log', 'mapbenefit', FALSE);
+REPLACE INTO `adkats_commands` VALUES(91, 'Active', 'plugin_update', 'Unable', 'Update AdKats', 'pupdate', TRUE);
+REPLACE INTO `adkats_commands` VALUES(92, 'Active', 'player_warn', 'Log', 'Warn Player', 'warn', TRUE);
+REPLACE INTO `adkats_commands` VALUES(93, 'Active', 'server_countdown', 'Log', 'Run Countdown', 'cdown', FALSE);
 
 DROP TABLE IF EXISTS `adkats_infractions_global`;
 CREATE TABLE IF NOT EXISTS `adkats_infractions_global` (
@@ -526,6 +532,25 @@ CREATE TABLE `tbl_extendedroundstats` (
 	`roundstat_time` datetime NOT NULL,
 	PRIMARY KEY (`roundstat_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Extended Round Stats';
+
+CREATE TABLE `adkats_statistics` (
+      `stat_id` INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+      `server_id` SMALLINT(5) UNSIGNED NOT NULL,
+      `round_id` INT(10) UNSIGNED NOT NULL,
+      `stat_type` varchar(50) NOT NULL,
+      `target_name` varchar(50) NOT NULL,
+      `target_id` INT(10) UNSIGNED DEFAULT NULL,
+      `stat_value` FLOAT NOT NULL,
+      `stat_comment` TEXT,
+      `stat_time` DATETIME NOT NULL DEFAULT '0000-00-00 00:00:00',
+      PRIMARY KEY (`stat_id`),
+      KEY `server_id` (`server_id`),
+      KEY `stat_type` (`stat_type`),
+      KEY `target_id` (`target_id`),
+      KEY `stat_time` (`stat_time`),
+      CONSTRAINT `adkats_statistics_target_id_fk` FOREIGN KEY (`target_id`) REFERENCES `tbl_playerdata` (`PlayerID`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+      CONSTRAINT `adkats_statistics_server_id_fk` FOREIGN KEY (`server_id`) REFERENCES `tbl_server` (`ServerID`) ON DELETE NO ACTION ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci COMMENT='AdKats - Statistics';
 
 SET FOREIGN_KEY_CHECKS=1;
 
