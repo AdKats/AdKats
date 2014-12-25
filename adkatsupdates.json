@@ -2,91 +2,91 @@
 	"SQLUpdates":[
 		{
 			"update_id":"command57adminfix",
-			"version_minimum":"5.0.0.0",
+			"version_minimum":"6.0.0.0",
 			"version_maximum":null,
 			"message_name":"Fix command 57 admin-only status",
 			"message_success":"Command 57 admin-only status fixed",
 			"message_failure":"Failed to fix command 57 admin-only status",
 			"update_checks_hasResults":true,
 			"update_checks":[
-				"SELECT command_id FROM adkats_commands WHERE command_id = 57",
-				"SELECT command_id FROM adkats_commands WHERE command_id = 57 AND command_playerInteraction = 1"
+				"SELECT command_id FROM %DATABASENAME%.adkats_commands WHERE command_id = 57",
+				"SELECT command_id FROM %DATABASENAME%.adkats_commands WHERE command_id = 57 AND command_playerInteraction = 1"
 			],
 			"update_execute_requiresModRows":true,
 			"update_execute":[
-				"UPDATE adkats_commands SET command_playerInteraction = 0 WHERE command_id = 57"
+				"UPDATE %DATABASENAME%.adkats_commands SET command_playerInteraction = 0 WHERE command_id = 57"
 			],
 			"update_success":[],
 			"update_failure":[]
 		},
 		{
 			"update_id":"addChatlogDateIndex",
-			"version_minimum":"5.1.4.9",
+			"version_minimum":"6.0.0.0",
 			"version_maximum":null,
 			"message_name":"Indexing tbl_chatlog.logDate for performance",
 			"message_success":"tbl_chatlog.logDate index successfully created",
 			"message_failure":"Failed to added tbl_chatlog.logDate index",
 			"update_checks_hasResults":false,
 			"update_checks":[
-				"SHOW INDEX FROM `tbl_chatlog` WHERE `Key_name` = 'logDate'"
+				"SHOW INDEX FROM %DATABASENAME%.`tbl_chatlog` WHERE `Key_name` = 'logDate'"
 			],
 			"update_execute_requiresModRows":false,
 			"update_execute":[
-				"ALTER TABLE `tbl_chatlog` ADD INDEX (logDate)"
+				"ALTER TABLE %DATABASENAME%.`tbl_chatlog` ADD INDEX (logDate)"
 			],
 			"update_success":[],
 			"update_failure":[]
 		},
 		{
 			"update_id":"addRecordTimeIndex",
-			"version_minimum":"5.2.0.0",
+			"version_minimum":"6.0.0.0",
 			"version_maximum":null,
 			"message_name":"Indexing adkats_records_main.record_time for performance",
 			"message_success":"adkats_records_main.record_time index successfully created",
 			"message_failure":"Failed to added adkats_records_main.record_time index",
 			"update_checks_hasResults":false,
 			"update_checks":[
-				"SHOW INDEX FROM `adkats_records_main` WHERE `Key_name` = 'adkats_records_main_fk_record_time'"
+				"SHOW INDEX FROM %DATABASENAME%.`adkats_records_main` WHERE `Key_name` = 'adkats_records_main_fk_record_time'"
 			],
 			"update_execute_requiresModRows":false,
 			"update_execute":[
-				"ALTER TABLE `adkats_records_main` ADD INDEX `adkats_records_main_fk_record_time` (`record_time` ASC)"
+				"ALTER TABLE %DATABASENAME%.`adkats_records_main` ADD INDEX `adkats_records_main_fk_record_time` (`record_time` ASC)"
 			],
 			"update_success":[],
 			"update_failure":[]
 		},
 		{
 			"update_id":"increaseSettingMaxSize",
-			"version_minimum":"5.2.3.2",
+			"version_minimum":"6.0.0.0",
 			"version_maximum":null,
 			"message_name":"Increasing max size of setting values",
 			"message_success":"Setting value max size increased to 3000 characters",
 			"message_failure":"Failed to increase setting value max size",
 			"update_checks_hasResults":true,
 			"update_checks":[
-				"SHOW FIELDS FROM `adkats_settings` WHERE `Field` = 'setting_value' AND `TYPE` = 'varchar(1500)'"
+				"SHOW FIELDS FROM %DATABASENAME%.`adkats_settings` WHERE `Field` = 'setting_value' AND `TYPE` = 'varchar(1500)'"
 			],
 			"update_execute_requiresModRows":false,
 			"update_execute":[
-				"ALTER TABLE `adkats_settings` MODIFY `setting_value` VARCHAR(3000);"
+				"ALTER TABLE %DATABASENAME%.`adkats_settings` MODIFY `setting_value` VARCHAR(3000);"
 			],
 			"update_success":[],
 			"update_failure":[]
 		},
 		{
 		    "update_id":"increaseSPGroupMaxSize",
-		    "version_minimum":"5.2.0.0",
+		    "version_minimum":"6.0.0.0",
 		    "version_maximum":null,
 		    "message_name":"Increasing special player group size",
 		    "message_success":"Increased special player group size",
 		    "message_failure":"Failed to increase special player group size",
 		    "update_checks_hasResults":true,
 		    "update_checks":[
-		        "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_NAME` = 'adkats_specialplayers' AND `COLUMN_NAME` = 'player_group' AND `CHARACTER_MAXIMUM_LENGTH` <= 99"
+		        "SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME` = 'adkats_specialplayers' AND `COLUMN_NAME` = 'player_group' AND `CHARACTER_MAXIMUM_LENGTH` <= 99"
 		    ],
 		    "update_execute_requiresModRows":false,
 		    "update_execute":[
-		        "ALTER TABLE `adkats_specialplayers` CHANGE COLUMN `player_group` `player_group` VARCHAR(100) CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci' NOT NULL"
+		        "ALTER TABLE %DATABASENAME%.`adkats_specialplayers` CHANGE COLUMN `player_group` `player_group` VARCHAR(100) CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci' NOT NULL"
 		    ],
 		    "update_success":[],
 		    "update_failure":[]
