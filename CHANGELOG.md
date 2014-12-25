@@ -577,12 +577,77 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 </ul>
 <b>Bugs Fixed</b><br/>
 <ul>
-    <li>Fixed bug where some threads would not exit quickly when disabling/restarting AdKats.</li>
-    <li>Fixed messages in console marked as warning when they should just be information.</li>
-    <li>Fixed bug where SwapNuke would attempt to move commanders and spectators.</li>
-    <li>Fixed bug where certain commands marked as logging "Unable" were still attempting logging.</li>
-    <li>Fixed bug where, when AdKats started with no players in the server, player listing would be stuck in an endless loop until first player join.</li>
-    <li>Fixed bug where AdKats was unable to detect stat logger tables after changing database connection mid-instance.</li>
+    <li></li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
+<h4>6.0.0.0 (25-DEC-2014) Merry Christmas!</h4>
+<b>Changes</b><br/>
+<ul>
+    <li>Manual round timer now activates on first spawn.</li>
+    <li>Database actions are not fetched until startup is fully complete.</li>
+    <li>Automatice spectator slot feed from user cache changed to admins only.</li>
+    <li>New roles, when created, are given access to the same commands as Default Guest.</li>
+    <li>'Display admin name in kick/ban announcement' now applies to punishments as well.</li>
+    <li>Population monitoring has 3 sections instead of 2 now, Low/Medium/High, so "Only kill players when server in low population" has been changed to include both low/medium population. This is to keep the definition the same as before without modifying existing user's settings.</li>
+</ul>
+<b>Enhancements</b><br/>
+<ul>
+    <li>Player clan tags now processed and displayed in all available locations.</li>
+    <li>Removed current score from player location in reports, and reduced the size of report prefixes to increase space for player names and vital information.</li>
+    <li>Added countdown timer command (/cdown)</li>
+    <li>Accepting Punish/Forgive for teamkilling through the Team Kill Tracker plugin.</li>
+    <li>Detecting bad database connection vs normal, allowing disconnect if database becomes over encumbered for external reasons.</li>
+    <li>Added manual plugin update command.</li>
+    <li>Added options for low, medium, and high population to the ping enforcer.</li>
+    <li>Added role power level, and disallowed certain commands from being issued from a lower power level player on a higher power level player. Commands such as kick/ban/mute/pull/mark/etc.</li>
+    <li>Added manual warn command.</li>
+    <li>Trimmed and cleaned targeted player leave message to be less intrusive on admin chat.</li>
+    <li>Updated ban enforce message for temp bans to include both total and remaining ban time.</li>
+    <li>Now updating stat logger information with player clan tags when available.</li>
+    <li>Increased total allowed size of settings, allowing increased number of rules and spambot messages.</li>
+    <li>Added option to exclude commands from manually posted chat logs.</li>
+    <li>Added option to yell server rules.</li>
+    <li>Added ability to add roles and their respective players to special player groups.</li>
+    <li>Added option for auto-surrender to simply start a surrender vote instead of issuing end round.</li>
+    <li>Added option for auto-surrender to have a minimum player count before triggering.</li>
+    <li>Ban enforcer bans in the database are automatically expired once their time is up every few minutes, instead of being expired when the banned player rejoins the server.</li>
+    <li>Added detection for duplicate instances of AdKats on each server. Only one instance of AdKats can be running on any given server.</li>
+    <li>Changed timing of "user joined this server for the first time" to when the player first spawns, instead of when they first load in.</li>
+    <li>Reduced chat spam from glitched player notification.</li>
+    <li>Added admin notification when spectators leave the server.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+    <li>Manual chat log posting of command messages did not include the command prefix in the message.</li>
+    <li>Massive I/O overload when database connection variables were not filled on startup, and procon plugin debug logging enabled.</li>
+    <li>BF4 Phantom bow, categorized as carbine, could cause invalid HSK bans.</li>
+    <li>Record posting bug could cause errors such as 'Unable to find source weight for type|action: 7|35'.</li>
+    <li>Ban delay timer for hacker-checker could post bans twice.</li>
+    <li>Automatic log on admin action was triggering on any action.</li>
+    <li>Mark command did not work on report IDs.</li>
+    <li>Automatic updater could complete with plugin file empty.</li>
+    <li>Setting lock did not disable access to command entry setting.</li>
+    <li>Required team for players once admin moved was not being cleared on round end.</li>
+    <li>Admin WARN on punish did not give feedback to the punisher.</li>
+    <li>Player identifiers were not stored when issuing new whitelist_multibalancer, slot_reserved, or slot_spectator special player entries.</li>
+    <li>IP location fetching failed latitude/longitude parsing. Valid locations for players are displayed in the /pinfo command again.</li>
+    <li>Ban enforcer could attempt to process server bans that did not have any identifiers.</li>
+    <li>Automatic update for extensions could cause multiple dll files to be created.</li>
+    <li>Automatic feed of reserved slots for admins was using all users in the user list on test versions.</li>
+    <li>Debug message for record time to complete was incorrect.</li>
+    <li>Round stat logger could attempt to post NaN entries to the database.</li>
+    <li>Record finalization could fail if record had no command type or command action.</li>
+    <li>Player reputation update could fail if commands were being fetched at the same time, could attempt to use invalid player IDs, and was not thread safe.</li>
+    <li>Player dequeue command could throw race exceptions in some cases.</li>
+    <li>Record upload could attempt to use invalid player IDs.</li>
+    <li>Balance dispersion could attempt to use invalid player IDs.</li>
+    <li>Targeted player leave message could fail if teams were being updated at the same time.</li>
+    <li>MySQL queries could return in deadlock state under InnoDB, and the case was not handled.</li>
+    <li>Player spawn processing could fail if commands were being fetched at the same time.</li>
+    <li>FetchSQLUpdates printed stacktrace on exception for servers which were not under testing.</li>
 </ul>
 <b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
 <ul>
