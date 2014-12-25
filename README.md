@@ -6,7 +6,7 @@
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
 </p>
 <p>
-    <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b>
+    <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b> 
 </p>
 <p>
     <a href="https://github.com/AdKats/AdKats/blob/master/extensions/LRT-README.md" name=thread>
@@ -267,7 +267,7 @@
     <li>
         <b>Set up the database.</b>
         Run the contents of the <a href="https://raw.github.com/ColColonCleaner/AdKats/master/adkats.sql" target="_blank">AdKats Database Setup Script</a> on your database, on the same schema stat logger uses.
-        <b><u>WARNING, if you already have AdKats installed, this will completely wipe your existing information for this plugin, including your settings.</u></b>
+        <b><u>WARNING, if you already have AdKats installed, this will completely wipe your existing information for this plugin.</u></b>
         The script must be run by an account with permissions to create tables, triggers, and stored procedures.
     </li>
     <li>
