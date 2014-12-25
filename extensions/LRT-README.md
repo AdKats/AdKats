@@ -101,7 +101,7 @@
     </li>
 </ol>
 <p>
-    If you have any problems installing AdKatsLRT please let me know on the MyRCON forums and I'll respond promptly.
+    If you have any problems installing AdKatsLRT please let me know on the MyRCON forums and I'll respond promptly. All instances of AdKatsLRT are tracked once installed.
 </p>
 <HR>
 <p>
