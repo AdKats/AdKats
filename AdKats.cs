@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.0.0
- * 25-DEC-2014
+ * Version 6.0.0.1
+ * 26-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.0.0</version_code>
+ * <version_code>6.0.0.1</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.0.0";
+        private const String PluginVersion = "6.0.0.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -489,7 +489,8 @@ namespace PRoConEvents {
         private Double _surrenderAutoLosingRateMin = 999;
         private Double _surrenderAutoWinningRateMax = 999;
         private Double _surrenderAutoWinningRateMin = 999;
-        private Int32 _surrenderAutoTriggerCountToSurrender = 1;
+        private Int32 _surrenderAutoTriggerCountToSurrender = 10;
+        private Boolean _surrenderAutoResetTriggerCountOnCancel = true;
         private Int32 _surrenderAutoTriggerCountCurrent;
         private Int32 _surrenderAutoMinimumPlayers = 10;
         private String _surrenderAutoMessage = "Ending/Scrambling Baserape Round. %WinnerName% Wins!";
@@ -1088,6 +1089,7 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
                             lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
                         }
+                        lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
                         lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Auto-Surrender Minimum Players", typeof(Int32), _surrenderAutoMinimumPlayers));
                         lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
                         lstReturn.Add(new CPluginVariable("B25. Auto-Surrender Settings|Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
@@ -1614,7 +1616,7 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Disable Automatic Updates").Success)
                 {
                     Boolean disableAutomaticUpdates = Boolean.Parse(strValue);
-                    if (disableAutomaticUpdates != _versionTrackingDisabled)
+                    if (disableAutomaticUpdates != _automaticUpdatesDisabled)
                     {
                         _automaticUpdatesDisabled = disableAutomaticUpdates;
                         //Once setting has been changed, upload the change to database
@@ -2107,6 +2109,16 @@ namespace PRoConEvents {
                         _surrenderAutoUseAdjustedTicketRates = surrenderAutoUseAdjustedTicketRates;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Auto-Surrender Reset Trigger Count on Cancel").Success)
+                {
+                    Boolean surrenderAutoResetTriggerCountOnCancel = Boolean.Parse(strValue);
+                    if (surrenderAutoResetTriggerCountOnCancel != _surrenderAutoResetTriggerCountOnCancel)
+                    {
+                        _surrenderAutoResetTriggerCountOnCancel = surrenderAutoResetTriggerCountOnCancel;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Nuke Winning Team Instead of Surrendering Losing Team").Success)
@@ -6255,11 +6267,21 @@ namespace PRoConEvents {
                                     }
                                     else
                                     {
-                                        if (_surrenderAutoTriggerCountCurrent > 0)
+                                        if (_surrenderAutoResetTriggerCountOnCancel)
                                         {
-                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                            if (_surrenderAutoTriggerCountCurrent > 0)
+                                            {
+                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                            }
+                                            _surrenderAutoTriggerCountCurrent = 0;
                                         }
-                                        _surrenderAutoTriggerCountCurrent = 0;
+                                        else
+                                        {
+                                            if (_surrenderAutoTriggerCountCurrent > 0)
+                                            {
+                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                            }
+                                        }
                                     }
                                 }
                                 else if (_surrenderAutoUseLockerValues &&
@@ -6284,11 +6306,21 @@ namespace PRoConEvents {
                                     }
                                     else
                                     {
-                                        if (_surrenderAutoTriggerCountCurrent > 0)
+                                        if (_surrenderAutoResetTriggerCountOnCancel)
                                         {
-                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                            if (_surrenderAutoTriggerCountCurrent > 0)
+                                            {
+                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                            }
+                                            _surrenderAutoTriggerCountCurrent = 0;
                                         }
-                                        _surrenderAutoTriggerCountCurrent = 0;
+                                        else
+                                        {
+                                            if (_surrenderAutoTriggerCountCurrent > 0)
+                                            {
+                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                            }
+                                        }
                                     }
                                 }
                                 else {
@@ -6314,11 +6346,21 @@ namespace PRoConEvents {
                                             }
                                             else
                                             {
-                                                if (_surrenderAutoTriggerCountCurrent > 0)
+                                                if (_surrenderAutoResetTriggerCountOnCancel)
                                                 {
-                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                                    if (_surrenderAutoTriggerCountCurrent > 0)
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                                    }
+                                                    _surrenderAutoTriggerCountCurrent = 0;
                                                 }
-                                                _surrenderAutoTriggerCountCurrent = 0;
+                                                else
+                                                {
+                                                    if (_surrenderAutoTriggerCountCurrent > 0)
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                    }
+                                                }
                                             }
                                         }
                                         else
@@ -6342,11 +6384,21 @@ namespace PRoConEvents {
                                             }
                                             else
                                             {
-                                                if (_surrenderAutoTriggerCountCurrent > 0)
+                                                if (_surrenderAutoResetTriggerCountOnCancel)
                                                 {
-                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                                    if (_surrenderAutoTriggerCountCurrent > 0)
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                                    }
+                                                    _surrenderAutoTriggerCountCurrent = 0;
                                                 }
-                                                _surrenderAutoTriggerCountCurrent = 0;
+                                                else
+                                                {
+                                                    if (_surrenderAutoTriggerCountCurrent > 0)
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -7722,11 +7774,18 @@ namespace PRoConEvents {
             DebugWrite("Entering queuePlayerForHackerCheck", 7);
             try {
                 if (_pluginEnabled) {
-                    DebugWrite("Preparing to queue player for hacker check", 6);
-                    lock (_HackerCheckerQueue) {
-                        _HackerCheckerQueue.Enqueue(player);
-                        DebugWrite("Player queued for checking", 6);
-                        _HackerCheckerWaitHandle.Set();
+                    DebugWrite("Preparing to queue " + player.player_name + " for hacker check", 6);
+                    lock (_HackerCheckerQueue)
+                    {
+                        if (_HackerCheckerQueue.All(qPlayer => qPlayer.player_guid != player.player_guid)) {
+                            _HackerCheckerQueue.Enqueue(player);
+                            DebugWrite(player.player_name + " queued for hacker check", 6);
+                            _HackerCheckerWaitHandle.Set();
+                        }
+                        else
+                        {
+                            DebugWrite(player.player_name + " hacker check cancelled; player already in queue.", 6);
+                        }
                     }
                 }
             }
@@ -7952,7 +8011,10 @@ namespace PRoConEvents {
                                     else {
                                         aPlayer.stats = null;
                                         //If they still dont have stats, add them back to the queue
-                                        repeatCheckingQueue.Enqueue(aPlayer);
+                                        if (repeatCheckingQueue.All(qPlayer => qPlayer.player_guid != aPlayer.player_guid))
+                                        {
+                                            repeatCheckingQueue.Enqueue(aPlayer);
+                                        }
                                     }
                                 }
                             }
@@ -7984,8 +8046,10 @@ namespace PRoConEvents {
                                         }
                                     }
                                     else {
-                                        //ConsoleError(aPlayer.player_name + " doesn't have stats.");
-                                        repeatCheckingQueue.Enqueue(aPlayer);
+                                        if (repeatCheckingQueue.All(qPlayer => qPlayer.player_guid != aPlayer.player_guid))
+                                        {
+                                            repeatCheckingQueue.Enqueue(aPlayer);
+                                        }
                                     }
                                     DebugWrite("Players with " + _gameVersion + "Stats: " + String.Format("{0:0.00}", (playersWithStats / checkedPlayers) * 100) + "%", 3);
                                 }
@@ -19652,6 +19716,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
+                QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
                 QueueSettingForUpload(new CPluginVariable(@"Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
                 QueueSettingForUpload(new CPluginVariable(@"Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
