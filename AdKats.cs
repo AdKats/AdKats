@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.0.1
- * 26-DEC-2014
+ * Version 6.0.0.2
+ * 28-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.0.1</version_code>
+ * <version_code>6.0.0.2</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.0.1";
+        private const String PluginVersion = "6.0.0.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -222,7 +222,7 @@ namespace PRoConEvents {
         private const Int32 MinConnectionPoolSize = 0;
         private const Int32 MaxConnectionPoolSize = 20;
         private const Boolean UseCompressedConnection = false;
-        private const Int32 DatabaseTimeoutThreshold = 10;
+        private const Int32 DatabaseTimeoutThreshold = 15;
         private const Int32 DatabaseSuccessThreshold = 5;
         private Boolean _databaseConnectionCriticalState;
         private Int32 _databaseSuccess;
@@ -492,6 +492,7 @@ namespace PRoConEvents {
         private Int32 _surrenderAutoTriggerCountToSurrender = 10;
         private Boolean _surrenderAutoResetTriggerCountOnCancel = true;
         private Int32 _surrenderAutoTriggerCountCurrent;
+        private Int32 _surrenderAutoTriggerCountPause;
         private Int32 _surrenderAutoMinimumPlayers = 10;
         private String _surrenderAutoMessage = "Ending/Scrambling Baserape Round. %WinnerName% Wins!";
         private Boolean _surrenderAutoNukeWinning;
@@ -1176,13 +1177,13 @@ namespace PRoConEvents {
                         //Role Settings
                         const string roleListPrefix = "4. Role Settings|";
                         lstReturn.Add(new CPluginVariable(roleListPrefix + "Add Role", typeof(String), ""));
-                        if (_RoleKeyDictionary.Count > 0)
+                        if (_RoleIDDictionary.Count > 0)
                         {
-                            lock (_RoleKeyDictionary)
+                            lock (_RoleIDDictionary)
                             {
                                 foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
                                 {
-                                    lock (_CommandNameDictionary)
+                                    lock (_CommandIDDictionary)
                                     {
                                         var random = new Random();
                                         String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
@@ -1217,9 +1218,9 @@ namespace PRoConEvents {
 
                         //Role Group Settings
                         const string roleGroupListPrefix = "4-2. Role Group Settings|";
-                        if (_RoleKeyDictionary.Count > 0)
+                        if (_RoleIDDictionary.Count > 0)
                         {
-                            lock (_RoleKeyDictionary)
+                            lock (_RoleIDDictionary)
                             {
                                 foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
                                 {
@@ -3008,7 +3009,7 @@ namespace PRoConEvents {
                                 }
                             }
                             //Assign the command text
-                            lock (_CommandTextDictionary) {
+                            lock (_CommandIDDictionary) {
                                 _CommandTextDictionary.Remove(command.command_text);
                                 command.command_text = strValue;
                                 _CommandTextDictionary.Add(command.command_text, command);
@@ -3815,7 +3816,7 @@ namespace PRoConEvents {
                                 role_name = roleName
                             };
                             //By default we should include all commands as allowed
-                            lock (_CommandNameDictionary) {
+                            lock (_CommandIDDictionary) {
                                 foreach (AdKatsCommand aCommand in _RoleKeyDictionary["guest_default"].RoleAllowedCommands.Values) {
                                     aRole.RoleAllowedCommands.Add(aCommand.command_key, aCommand);
                                 }
@@ -3843,7 +3844,7 @@ namespace PRoConEvents {
                 RegisterEvents(GetType().Name, 
                     "OnVersion", 
                     "OnServerInfo", 
-                    "OnListPlayers", 
+                    "OnListPlayers",
                     "OnPunkbusterPlayerInfo", 
                     "OnReservedSlotsList", 
                     "OnPlayerKilled", 
@@ -6277,9 +6278,10 @@ namespace PRoConEvents {
                                         }
                                         else
                                         {
-                                            if (_surrenderAutoTriggerCountCurrent > 0)
+                                            if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                             {
-                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
+                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + _surrenderAutoTriggerCountPause + " triggers.");
                                             }
                                         }
                                     }
@@ -6316,9 +6318,10 @@ namespace PRoConEvents {
                                         }
                                         else
                                         {
-                                            if (_surrenderAutoTriggerCountCurrent > 0)
+                                            if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                             {
-                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
+                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + _surrenderAutoTriggerCountPause + " triggers.");
                                             }
                                         }
                                     }
@@ -6356,9 +6359,10 @@ namespace PRoConEvents {
                                                 }
                                                 else
                                                 {
-                                                    if (_surrenderAutoTriggerCountCurrent > 0)
+                                                    if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                                     {
-                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                        _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + _surrenderAutoTriggerCountPause + " triggers.");
                                                     }
                                                 }
                                             }
@@ -6394,16 +6398,22 @@ namespace PRoConEvents {
                                                 }
                                                 else
                                                 {
-                                                    if (_surrenderAutoTriggerCountCurrent > 0)
+                                                    if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                                     {
-                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                        _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + _surrenderAutoTriggerCountPause + " triggers.");
                                                     }
                                                 }
                                             }
                                         }
                                     }
                                     else {
+                                        if (_roundState == RoundState.Playing && _surrenderAutoTriggerCountCurrent > 0)
+                                        {
+                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
+                                        }
                                         _surrenderAutoTriggerCountCurrent = 0;
+                                        _surrenderAutoTriggerCountPause = 0;
                                     }
                                 }
                                 if (baserapingTeam != null)
@@ -28286,7 +28296,10 @@ namespace PRoConEvents {
                     _lastDatabaseTimeout = UtcDbTime();
                 }
                 ++_databaseTimeouts;
-                ConsoleWarn("Database connection issue detected. Trigger " + _databaseTimeouts + "/" + DatabaseTimeoutThreshold + ".");
+                if (_databaseTimeouts >= 5)
+                {
+                    ConsoleWarn("Database connection issue detected. Trigger " + _databaseTimeouts + "/" + DatabaseTimeoutThreshold + ".");
+                }
                 //Check for critical state (timeouts > threshold, and last issue less than 1 minute ago)
                 if ((UtcDbTime() - _lastDatabaseTimeout).TotalSeconds < 60) {
                     if (_databaseTimeouts >= DatabaseTimeoutThreshold) {
