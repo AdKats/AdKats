@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.0.2
- * 28-DEC-2014
+ * Version 6.0.0.3
+ * 29-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.0.2</version_code>
+ * <version_code>6.0.0.3</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.0.2";
+        private const String PluginVersion = "6.0.0.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -22132,7 +22132,7 @@ namespace PRoConEvents {
             resultPlayers = new List<AdKatsPlayer>();
             if (String.IsNullOrEmpty(playerName)) {
                 if (verbose) {
-                    ConsoleError("Player id was blank when fetching players.");
+                    ConsoleError("Player id was blank when fetching matching players.");
                 }
                 return false;
             }
@@ -22518,6 +22518,122 @@ namespace PRoConEvents {
             }
             DebugWrite("updatePlayer finished!", 6);
             return aPlayer;
+        }
+
+        private List<AdKatsPlayer> GetBaserapeCausingPlayersPastWeek()
+        {
+            DebugWrite("GetBaserapeCausingPlayersPastWeek starting!", 6);
+            List<AdKatsPlayer> resultPlayers = new List<AdKatsPlayer>();
+            try
+            {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        SELECT 
+	                        `InnerResults`.*,
+	                        ROUND(`win_count`/REPLACE(`loss_count`, 0, 1), 2) AS `win_loss_ratio`,
+	                        ROUND(`baserape_count`/REPLACE(`round_count`, 0, 1), 2) AS `baserape_round_ratio`
+                        FROM
+                        (
+                        SELECT 
+	                        `server_id` AS `server`,
+	                        `target_id` AS `player_id`,
+	                        `target_name` AS `player_name`,
+	                        (SELECT
+		                        COUNT(`stat_id`)
+	                         FROM
+		                        `adkats_statistics`
+	                         WHERE
+		                        `server_id` = `server`
+	                         AND
+		                        `target_id` = `player_id`
+	                         AND
+		                        (
+			                        `stat_type` = 'player_win'
+			                        OR
+			                        `stat_type` = 'player_loss'
+		                        )) AS `round_count`,
+	                        (SELECT
+		                        COUNT(`stat_id`)
+	                         FROM
+		                        `adkats_statistics`
+	                         WHERE
+		                        `server_id` = `server`
+	                         AND
+		                        `target_id` = `player_id`
+	                         AND
+		                        `stat_type` = 'player_win') AS `win_count`,
+	                        (SELECT
+		                        COUNT(`stat_id`)
+	                         FROM
+		                        `adkats_statistics`
+	                         WHERE
+		                        `server_id` = `server`
+	                         AND
+		                        `target_id` = `player_id`
+	                         AND
+		                        `stat_type` = 'player_loss') AS `loss_count`,
+	                        (SELECT
+		                        COUNT(`stat_id`)
+	                         FROM
+		                        `adkats_statistics`
+	                         WHERE
+		                        `server_id` = `server`
+	                         AND
+		                        `target_id` = `player_id`
+	                         AND
+		                        `stat_type` = 'player_baserape') AS `baserape_count`
+                        FROM
+	                        `adkats_statistics`
+                        WHERE
+	                        `server_id` = @server_id
+                        AND
+	                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 7 DAY)
+                        AND
+                        (
+	                        `stat_type` = 'player_win'
+                        OR
+	                        `stat_type` = 'player_loss'
+                        OR
+	                        `stat_type` = 'player_baserape'
+                        ) 
+                        GROUP BY
+	                        `target_id`, `server_id`
+                        ORDER BY 
+	                        `baserape_count` DESC
+                        ) AS `InnerResults`
+                        WHERE
+	                        `baserape_count` >= 5
+                        AND
+	                        `win_count`/REPLACE(`loss_count`, 0, 1) > 1.0
+                        ORDER BY
+	                        `InnerResults`.`server` ASC, 
+	                        `baserape_count` DESC, 
+	                        `player_name` ASC";
+                        command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+                        //Attempt to execute the query
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
+                        {
+                            //Grab the matching players
+                            while (reader.Read())
+                            {
+                                AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
+                                if (aPlayer != null)
+                                {
+                                    resultPlayers.Add(aPlayer);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while fetching baserape causing players", e));
+            }
+            DebugWrite("GetBaserapeCausingPlayersPastWeek finished!", 6);
+            return resultPlayers;
         }
 
         private AdKatsBan FetchBanByID(Int64 ban_id)
@@ -25171,6 +25287,23 @@ namespace PRoConEvents {
                                 }
                             }
                         }
+                    }
+                    if (_isTestingAuthorized)
+                    {
+                        String baserapeCausingPlayers = "Baserape causing players: ";
+                        foreach (AdKatsPlayer aPlayer in GetBaserapeCausingPlayersPastWeek())
+                        {
+                            if (!evenDispersionList.Contains(aPlayer.player_guid))
+                            {
+                                evenDispersionList.Add(aPlayer.player_guid);
+                                baserapeCausingPlayers += aPlayer.player_name + ", ";
+                            }
+                            else
+                            {
+                                baserapeCausingPlayers += "E[" + aPlayer.player_name + "], ";
+                            }
+                        }
+                        ConsoleInfo(baserapeCausingPlayers);
                     }
                     SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Conquest Large|Conquest Large: Enable Disperse Evenly List", "True");
                     SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Conquest Small|Conquest Small: Enable Disperse Evenly List", "True");
