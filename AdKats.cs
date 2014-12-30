@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.0.3
+ * Version 6.0.0.4
  * 29-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.0.3</version_code>
+ * <version_code>6.0.0.4</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.0.3";
+        private const String PluginVersion = "6.0.0.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5258,61 +5258,6 @@ namespace PRoConEvents {
                                         else {
                                             aPlayer.ClearPingEntries();
                                         }
-                                        //Automatic Dispersion for 6 and 7
-                                        if (_isTestingAuthorized &&
-                                            (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6") || _serverInfo.ServerName.Contains("EU #5")) && 
-                                            !GetMatchingASPlayersOfGroup("blacklist_dispersion", aPlayer).Any()) {
-                                            Boolean addDispersion = false;
-                                            if (
-                                                (aPlayer.frostbitePlayerInfo.Kdr > 2 && aPlayer.frostbitePlayerInfo.Kills > 45) || 
-                                                aPlayer.frostbitePlayerInfo.Kdr > 15 ||
-                                                (aPlayer.frostbitePlayerInfo.Kdr > 3 && aPlayer.frostbitePlayerInfo.Kills > 30))
-                                            {
-                                                if (_roundID != 0)
-                                                {
-                                                    IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_log").command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message == "Dispersion Trigger" && aRecord.server_id == _serverInfo.ServerID);
-                                                    if (!locRecords.Any(aRecord => aRecord.command_numeric == _roundID))
-                                                    {
-                                                        var triggerRecord = new AdKatsRecord
-                                                        {
-                                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                            server_id = _serverInfo.ServerID,
-                                                            command_type = GetCommandByKey("player_log"),
-                                                            command_numeric = _roundID,
-                                                            target_name = aPlayer.player_name,
-                                                            target_player = aPlayer,
-                                                            source_name = "DispersionManager",
-                                                            record_message = "Dispersion Trigger"
-                                                        };
-                                                        //Automatic dispersion disabled
-                                                        ///QueueRecordForProcessing(triggerRecord);
-                                                        //OnlineAdminSayMessage(aPlayer.player_name + " hit a dispersion trigger. Not adding yet.");
-                                                    }
-                                                    if (locRecords.Count() > 3) {
-                                                        addDispersion = true;
-                                                    }
-                                                }
-                                            }
-                                            else if (aPlayer.frostbitePlayerInfo.Kills > 70) {
-                                                addDispersion = true;
-                                            }
-                                            if (addDispersion)
-                                            {
-                                                var record = new AdKatsRecord
-                                                {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = GetCommandByKey("player_blacklistdisperse"),
-                                                    command_numeric = 0,
-                                                    target_name = aPlayer.player_name,
-                                                    target_player = aPlayer,
-                                                    source_name = "DispersionManager",
-                                                    record_message = "Server Balance"
-                                                };
-                                                //Automatic dispersion disabled
-                                                //QueueRecordForProcessing(record);
-                                            }
-                                        }
                                         if (_CMDRManagerEnable &&
                                             _firstPlayerListComplete &&
                                             (aPlayer.player_type == PlayerType.CommanderPC || aPlayer.player_type == PlayerType.CommanderMobile) &&
@@ -5380,10 +5325,18 @@ namespace PRoConEvents {
                                             }
                                         }
                                         aPlayer.player_online = true;
-                                        //Get their location
-                                        QueuePlayerForIPInfoFetch(aPlayer);
-                                        //Get their persona ID
-                                        QueuePlayerForBattlelogInfoFetch(aPlayer);
+                                        //Fetch their infraction points
+                                        FetchPoints(aPlayer, false, true);
+                                        if (aPlayer.location == null || aPlayer.location.status != "success" || aPlayer.location.IP != aPlayer.player_ip)
+                                        {
+                                            //Update IP location
+                                            QueuePlayerForIPInfoFetch(aPlayer);
+                                        }
+                                        if (String.IsNullOrEmpty(aPlayer.player_personaID))
+                                        {
+                                            //Get their persona ID
+                                            QueuePlayerForBattlelogInfoFetch(aPlayer);
+                                        }
                                         //Last Punishment
                                         var punishments = FetchRecentRecords(aPlayer.player_id, GetCommandByKey("player_punish").command_id, 1000, 1, true, false);
                                         if (punishments.Any())
@@ -5809,7 +5762,6 @@ namespace PRoConEvents {
                 DebugWrite("OPPI: OnPunkbusterPlayerInfo fired!", 7);
                 AdKatsPlayer aPlayer;
                 if (_PlayerDictionary.TryGetValue(cpbiPlayer.SoldierName, out aPlayer)) {
-                    DebugWrite("OPPI: PB player already in the player list.", 7);
                     Boolean updatePlayer = false;
                     //Update the player with pb info
                     aPlayer.PBPlayerInfo = cpbiPlayer;
@@ -5834,8 +5786,13 @@ namespace PRoConEvents {
                         }
                     }
                     aPlayer.player_ip = player_ip;
-                    //Update IP location
-                    QueuePlayerForIPInfoFetch(aPlayer);
+
+                    if (aPlayer.location == null || aPlayer.location.status != "success" || aPlayer.location.IP != aPlayer.player_ip)
+                    {
+                        //Update IP location
+                        QueuePlayerForIPInfoFetch(aPlayer);
+                    }
+
                     if (updatePlayer) {
                         DebugWrite("OPPI: Queueing existing player " + aPlayer.GetVerboseName() + " for update.", 4);
                         UpdatePlayer(aPlayer);
@@ -7401,7 +7358,7 @@ namespace PRoConEvents {
                                     //Wait 2 seconds
                                     _threadMasterWaitHandle.WaitOne(2000);
                                     PlayerTellMessage(aPlayer.player_name, _FirstSpawnMessage);
-                                    var points = FetchPoints(aPlayer, false);
+                                    var points = FetchPoints(aPlayer, false, true);
                                     if ((_isTestingAuthorized && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6"))) || _useFirstSpawnRepMessage)
                                     {
                                         Boolean isAdmin = PlayerIsAdmin(aPlayer);
@@ -7844,7 +7801,7 @@ namespace PRoConEvents {
 
         public List<AdKatsSpecialPlayer> GetMatchingASPlayersOfGroup(String specialPlayerGroup, AdKatsPlayer aPlayer)
         {
-            DebugWrite("Entering FetchMatchingSpecialPlayers", 6);
+            DebugWrite("Entering GetMatchingASPlayersOfGroup", 8);
             try
             {
                 List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
@@ -7859,7 +7816,7 @@ namespace PRoConEvents {
             {
                 HandleException(new AdKatsException("Error while fetching matching special players.", e));
             }
-            DebugWrite("Exiting FetchMatchingSpecialPlayers", 6);
+            DebugWrite("Exiting GetMatchingASPlayersOfGroup", 8);
             return null;
         }
 
@@ -9676,7 +9633,7 @@ namespace PRoConEvents {
                             break;
                         case "player_forgive":
                             {
-                                if (_isTestingAuthorized && record.target_player != null && FetchPoints(record.target_player, _CombineServerPunishments) <= 0)
+                                if (_isTestingAuthorized && record.target_player != null && FetchPoints(record.target_player, _CombineServerPunishments, true) <= 0)
                                 {
                                     SendMessageToSource(record, record.GetTargetNames() + " does not have any infractions to forgive.");
                                     FinalizeRecord(record);
@@ -15100,9 +15057,10 @@ namespace PRoConEvents {
             {
                 record.record_action_executed = true;
                 //If the record has any exceptions, skip everything else and just kill the player
-                if (record.record_exception == null) {
+                if (record.record_exception == null)
+                {
                     //Get number of points the player from server
-                    Int32 points = FetchPoints(record.target_player, false);
+                    Int32 points = FetchPoints(record.target_player, false, true);
                     DebugWrite(record.GetTargetNames() + " has " + points + " points.", 5);
                     //Get the proper action to take for player punishment
                     String action = "noaction";
@@ -15255,8 +15213,9 @@ namespace PRoConEvents {
             {
                 record.record_action_executed = true;
                 //If the record has any exceptions, skip everything
-                if (record.record_exception == null) {
-                    Int32 points = FetchPoints(record.target_player, false);
+                if (record.record_exception == null)
+                {
+                    Int32 points = FetchPoints(record.target_player, false, true);
                     PlayerSayMessage(record.target_player.player_name, "Forgiven 1 infraction point. You now have " + points + " point(s) against you.");
                     SendMessageToSource(record, "Forgive Logged for " + record.GetTargetNames() + ". They now have " + points + " infraction points.");
                     record.target_player.LastForgive = record;
@@ -15896,7 +15855,7 @@ namespace PRoConEvents {
                 record.record_action_executed = true;
                 if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
                 {
-                    ConsoleWarn("Running loadout case for report record " + reportID);
+                    ConsoleInfo("Running loadout case for report record " + reportID);
                     if (!record.isLoadoutChecked)
                     {
                         if (!_LoadoutConfirmDictionary.ContainsKey(record.target_player.player_name))
@@ -17572,7 +17531,7 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Infraction Points
                         String playerInf = "Player in good standing.";
-                        Int64 infPoints = FetchPoints(record.target_player, false);
+                        Int64 infPoints = FetchPoints(record.target_player, false, true);
                         if (infPoints > 0)
                         {
                             playerInf = infPoints + " points.";
@@ -23411,16 +23370,13 @@ namespace PRoConEvents {
             }
         }
 
-        
-        private Int32 FetchPoints(AdKatsPlayer player, Boolean combineOverride) {
-            DebugWrite("fetchPoints starting!", 6);
-
-            Int32 returnVal = -1;
+        private Int32 FetchPoints(AdKatsPlayer player, Boolean combineOverride, Boolean update) {
+            Int32 returnVal = player.player_infractionPoints;
             //Make sure database connection active
-            if (HandlePossibleDisconnect()) {
-                return returnVal;
+            if (HandlePossibleDisconnect() || (!update && player.player_infractionPoints != Int32.MinValue)) {
+                return (returnVal > 0) ? (returnVal) : (0);
             }
-
+            DebugWrite("FetchPoints starting!", 6);
             try {
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
@@ -23435,6 +23391,7 @@ namespace PRoConEvents {
                         }
                         using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             returnVal = reader.Read() ? reader.GetInt32("total_points") : 0;
+                            player.player_infractionPoints = returnVal;
                         }
                     }
                 }
@@ -23442,11 +23399,10 @@ namespace PRoConEvents {
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while getting infraction points for player.", e));
             }
-            DebugWrite("fetchPoints finished!", 6);
+            DebugWrite("FetchPoints finished!", 6);
             return (returnVal > 0) ? (returnVal) : (0);
         }
 
-        
         private List<KeyValuePair<DateTime, KeyValuePair<String, String>>> FetchConversation(Int64 player1_id, Int64 player2_id, Int64 limit_lines, Int64 limit_days) {
             DebugWrite("FetchConversation starting!", 6);
 
@@ -23500,7 +23456,6 @@ namespace PRoConEvents {
             DebugWrite("FetchConversation finished!", 6);
             return pchat;
         }
-
         
         private List<KeyValuePair<DateTime, String>> FetchChat(Int64 player_id, Int64 limit_lines, Int64 limit_days) {
             DebugWrite("FetchChat starting!", 6);
@@ -26167,7 +26122,7 @@ namespace PRoConEvents {
                     tPlayer["player_aa"] = aPlayer.player_aa;
                     tPlayer["player_ping"] = Math.Round(aPlayer.player_ping_avg, 2);
                     tPlayer["player_reputation"] = Math.Round(aPlayer.player_reputation, 3);
-                    tPlayer["player_infractionPoints"] = FetchPoints(aPlayer, false);
+                    tPlayer["player_infractionPoints"] = FetchPoints(aPlayer, false, false);
                     tPlayer["player_role"] = aPlayer.player_role.role_key;
                     tPlayer["player_type"] = aPlayer.player_type.ToString();
                     tPlayer["player_isAdmin"] = PlayerIsAdmin(aPlayer);
@@ -28804,6 +28759,7 @@ namespace PRoConEvents {
             private DateTime player_locked_start = DateTime.UtcNow;
             private TimeSpan player_locked_duration = TimeSpan.Zero;
             private String player_locked_source;
+            public Int32 player_infractionPoints = Int32.MinValue;
             public AdKatsRecord LastPunishment = null;
             public AdKatsRecord LastForgive = null;
             public AdKatsTeam RequiredTeam = null;
@@ -29635,7 +29591,7 @@ namespace PRoConEvents {
                             //sb.Append("<h4>Current Information on " + record.target_name + ":</h4>");
                             int numReports = Plugin._RoundReports.Values.Count(aRecord => aRecord.target_name == record.target_name);
                             sb.Append("Reported " + numReports + " times during the current round.<br/>");
-                            sb.Append("Has " + Plugin.FetchPoints(record.target_player, false) + " infraction points on this server.<br/>");
+                            sb.Append("Has " + Plugin.FetchPoints(record.target_player, false, true) + " infraction points on this server.<br/>");
                             sb.Append("Score: " + playerInfo.Score + "<br/>");
                             sb.Append("Kills: " + playerInfo.Kills + "<br/>");
                             sb.Append("Deaths: " + playerInfo.Deaths + "<br/>");
