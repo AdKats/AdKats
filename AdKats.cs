@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.0.5
+ * Version 6.0.0.6
  * 29-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.0.5</version_code>
+ * <version_code>6.0.0.6</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.0.5";
+        private const String PluginVersion = "6.0.0.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -2317,6 +2317,9 @@ namespace PRoConEvents {
                     Boolean feedMTBWhite = Boolean.Parse(strValue);
                     if (feedMTBWhite != _FeedMultiBalancerWhitelist) {
                         _FeedMultiBalancerWhitelist = feedMTBWhite;
+                        if (_FeedMultiBalancerWhitelist) {
+                            SetExternalPluginSetting("MULTIbalancer", "2 - Exclusions|On Whitelist", "True");
+                        }
                         FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Whitelist", typeof (Boolean), _FeedMultiBalancerWhitelist));
@@ -2335,6 +2338,18 @@ namespace PRoConEvents {
                     Boolean feedMTBBlack = Boolean.Parse(strValue);
                     if (feedMTBBlack != _FeedMultiBalancerDisperseList) {
                         _FeedMultiBalancerDisperseList = feedMTBBlack;
+                        if (_FeedMultiBalancerDisperseList) {
+                            SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Conquest Large|Conquest Large: Enable Disperse Evenly List", "True");
+                            SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Conquest Small|Conquest Small: Enable Disperse Evenly List", "True");
+                            SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Defuse|Defuse: Enable Disperse Evenly List", "True");
+                            SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Domination|Domination: Enable Disperse Evenly List", "True");
+                            SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Obliteration|Obliteration: Enable Disperse Evenly List", "True");
+                            SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Rush|Rush: Enable Disperse Evenly List", "True");
+                            SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Squad Deathmatch|Squad Deathmatch: Enable Disperse Evenly List", "True");
+                            SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Superiority|Superiority: Enable Disperse Evenly List", "True");
+                            SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Team Deathmatch|Team Deathmatch: Enable Disperse Evenly List", "True");
+                            SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Unknown or New Mode|Unknown or New Mode: Enable Disperse Evenly List", "True");
+                        }
                         FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Even Dispersion List", typeof (Boolean), _FeedMultiBalancerDisperseList));
@@ -25207,7 +25222,6 @@ namespace PRoConEvents {
                             }
                         }
                     }
-                    SetExternalPluginSetting("MULTIbalancer", "2 - Exclusions|On Whitelist", "True");
                     SetExternalPluginSetting("MULTIbalancer", "1 - Settings|Whitelist", CPluginVariable.EncodeStringArray(autobalanceWhitelistedPlayers.ToArray()));
                 }
             }
@@ -25260,16 +25274,6 @@ namespace PRoConEvents {
                         }
                         ConsoleInfo(baserapeCausingPlayers);
                     }
-                    SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Conquest Large|Conquest Large: Enable Disperse Evenly List", "True");
-                    SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Conquest Small|Conquest Small: Enable Disperse Evenly List", "True");
-                    SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Defuse|Defuse: Enable Disperse Evenly List", "True");
-                    SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Domination|Domination: Enable Disperse Evenly List", "True");
-                    SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Obliteration|Obliteration: Enable Disperse Evenly List", "True");
-                    SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Rush|Rush: Enable Disperse Evenly List", "True");
-                    SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Squad Deathmatch|Squad Deathmatch: Enable Disperse Evenly List", "True");
-                    SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Superiority|Superiority: Enable Disperse Evenly List", "True");
-                    SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Team Deathmatch|Team Deathmatch: Enable Disperse Evenly List", "True");
-                    SetExternalPluginSetting("MULTIbalancer", "8 - Settings for Unknown or New Mode|Unknown or New Mode: Enable Disperse Evenly List", "True");
                     SetExternalPluginSetting("MULTIbalancer", "1 - Settings|Disperse Evenly List", CPluginVariable.EncodeStringArray(evenDispersionList.ToArray()));
                 }
             }
