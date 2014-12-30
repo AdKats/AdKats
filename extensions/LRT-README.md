@@ -40,7 +40,7 @@
         Using the reputation system, reputable players are optionally not forced to change their loadouts, as we know they are not going to use them.
     </li>
     <li>
-        Admins and are optionally whitelisted from spawn enforcement, but still fall under trigger enforcement if marked or punished.
+        Admins are optionally whitelisted from spawn enforcement, but still fall under trigger enforcement if marked or punished.
     </li>
     <li>
         Other plugins can call loadout checks and enforcement, so it can enhance your current autoadmin.
