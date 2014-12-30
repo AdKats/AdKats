@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.0.4
+ * Version 6.0.0.5
  * 29-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.0.4</version_code>
+ * <version_code>6.0.0.5</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.0.4";
+        private const String PluginVersion = "6.0.0.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -26079,20 +26079,36 @@ namespace PRoConEvents {
         private Boolean SendOnlineSoldiers(AdKatsClient client)
         {
             DebugWrite("SendOnlineSoldiers starting!", 6);
+            Stopwatch timer = new Stopwatch();
             try
             {
+                timer.Start();
                 if (client == null) {
                     ConsoleError("Client was null when sending online soldiers.");
+                    timer.Stop();
+                    if (timer.ElapsedMilliseconds > 500) {
+                        DebugWrite("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                    }
                     return false;
                 }
                 if (String.IsNullOrEmpty(client.ClientName))
                 {
                     ConsoleError("Client name was empty when sending online players.");
+                    timer.Stop();
+                    if (timer.ElapsedMilliseconds > 500)
+                    {
+                        DebugWrite("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                    }
                     return false;
                 }
                 if (String.IsNullOrEmpty(client.ClientMethod))
                 {
                     ConsoleError("Client method was empty when sending online players.");
+                    timer.Stop();
+                    if (timer.ElapsedMilliseconds > 500)
+                    {
+                        DebugWrite("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                    }
                     return false;
                 }
 
@@ -26165,6 +26181,11 @@ namespace PRoConEvents {
                 responseHashtable.Add("response_value", onlineSoldierList);
 
                 ExecuteCommand("procon.protected.plugins.call", client.ClientName, client.ClientMethod, "AdKats", JSON.JsonEncode(responseHashtable));
+                timer.Stop();
+                if (timer.ElapsedMilliseconds > 500)
+                {
+                    DebugWrite("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                }
                 return true;
             }
             catch (Exception e)
@@ -26172,6 +26193,11 @@ namespace PRoConEvents {
                 HandleException(new AdKatsException("Error sending online soldiers.", e));
             }
             DebugWrite("SendOnlineSoldiers finished!", 6);
+            timer.Stop();
+            if (timer.ElapsedMilliseconds > 500)
+            {
+                DebugWrite("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+            }
             return false;
         }
 
