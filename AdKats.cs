@@ -17725,17 +17725,6 @@ namespace PRoConEvents {
                     playerInfo += "OFFLINE";
                 }
                 SendMessageToSource(record, playerInfo);
-                var requestHashtable = new Hashtable {
-                    {"caller_identity", GetType().Name},
-                    {"response_requested", false},
-                    {"command_type", "player_ban_temp"},
-                    {"source_name", GetType().Name},
-                    {"target_name", record.target_player.player_name},
-                    {"target_guid", record.target_player.player_guid},
-                    {"record_message", "testing"},
-                    {"command_numeric", 30},
-                };
-                ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", GetType().Name, JSON.JsonEncode(requestHashtable));
             }
             catch (Exception e)
             {
