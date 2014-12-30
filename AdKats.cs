@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.0.6
- * 29-DEC-2014
+ * Version 6.0.0.7
+ * 30-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.0.6</version_code>
+ * <version_code>6.0.0.7</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.0.6";
+        private const String PluginVersion = "6.0.0.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6659,6 +6659,8 @@ namespace PRoConEvents {
                     _surrenderVoteActive = false;
                     _surrenderVoteSucceeded = false;
                     _surrenderAutoSucceeded = false;
+                    _surrenderAutoTriggerCountCurrent = 0;
+                    _surrenderAutoTriggerCountPause = 0;
                     _RoundReports.Clear();
                     _RoundReportHistory.Clear();
                     _RoundMutedPlayers.Clear();
@@ -17723,6 +17725,17 @@ namespace PRoConEvents {
                     playerInfo += "OFFLINE";
                 }
                 SendMessageToSource(record, playerInfo);
+                var requestHashtable = new Hashtable {
+                    {"caller_identity", GetType().Name},
+                    {"response_requested", false},
+                    {"command_type", "player_ban_temp"},
+                    {"source_name", GetType().Name},
+                    {"target_name", record.target_player.player_name},
+                    {"target_guid", record.target_player.player_guid},
+                    {"record_message", "testing"},
+                    {"command_numeric", 30},
+                };
+                ExecuteCommand("procon.protected.plugins.call", "AdKats", "IssueCommand", GetType().Name, JSON.JsonEncode(requestHashtable));
             }
             catch (Exception e)
             {
@@ -25605,7 +25618,11 @@ namespace PRoConEvents {
                         ConsoleError("Parsed command didn't contain a command_numeric! Unable to parse command.");
                         return;
                     }
-                    record.command_numeric = (Int32) parsedClientInformation["command_numeric"];
+                    if (!Int32.TryParse(parsedClientInformation["command_numeric"].ToString(), out record.command_numeric))
+                    {
+                        ConsoleError("Parsed command command_numeric was not a number! Unable to parse command.");
+                        return;
+                    }
                 }
 
                 //Import the source name
