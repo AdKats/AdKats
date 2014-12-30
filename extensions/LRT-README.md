@@ -65,7 +65,7 @@
 </p>
 <ul>
     <li>
-        <b>Procon, and optionally AdKats.</b> Basic functions only require Procon, however, for advanced functions, it requires AdKats 5.3.1.4 or later to be installed and running.
+        <b>Procon, and optionally AdKats.</b> Basic functions only require Procon, however, for advanced functions, it requires AdKats 6.0.0.0 or later to be installed and running.
     </li>
     <li>
         <b>Separated Layer IPs.</b> This is a battlelog intensive plugin, do not run it on more than one battlefield server from the same Procon layer IP address. If you have multiple servers to enforce, you must run the plugin from different Procon layer IP addresses. If you do not heed this warning, your layers run the risk of being temporarily IP banned from battlelog.
@@ -81,7 +81,7 @@
         <b>Optionally Install AdKats.</b>
         AdKatsLRT can run independently from the AdKats base plugin, but certain advanced functions are disabled as a result.         To install the latest version of AdKats, view the 
         <a href="https://github.com/AdKats/AdKats#install" target="_blank">AdKats Install Instructions.</a>
-        After install make sure you are running version 5.3.1.4 or later. If you are not, download the <a href="http://api.gamerethos.net/adkats/fetch/test?force=1" target="_blank">Latest Test Version</a>.
+        After install make sure you are running version 6.0.0.0 or later. If you are not, download the <a href="http://api.gamerethos.net/adkats/fetch/test?force=1" target="_blank">Latest Test Version</a>.
     </li>
     <li>
         <b>Purchase AdKatsLRT, and aquire an extension token.</b>
