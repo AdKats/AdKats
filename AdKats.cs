@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.0.7
+ * Version 6.0.0.8
  * 30-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.0.7</version_code>
+ * <version_code>6.0.0.8</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.0.7";
+        private const String PluginVersion = "6.0.0.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7410,6 +7410,11 @@ namespace PRoConEvents {
                                             }
                                         }
                                         PlayerTellMessage(aPlayer.player_name, repMessage);
+                                        if (_isTestingAuthorized && GetMatchingASPlayersOfGroup("blacklist_dispersion", aPlayer).Any())
+                                        {
+                                            _threadMasterWaitHandle.WaitOne(5000);
+                                            PlayerTellMessage(aPlayer.player_name, "Baserape monitor has placed you under temporary autobalance dispersion. Stats reset after 1 week.");
+                                        }
                                     }
                                 }
                                 catch (Exception)
@@ -22581,7 +22586,7 @@ namespace PRoConEvents {
 	                        `baserape_count` DESC
                         ) AS `InnerResults`
                         WHERE
-	                        `baserape_count` >= 5
+	                        `baserape_count` > 5
                         AND
 	                        `win_count`/REPLACE(`loss_count`, 0, 1) > 1.0
                         ORDER BY
