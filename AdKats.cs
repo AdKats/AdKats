@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.1.0
+ * Version 6.0.1.1
  * 30-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.1.0</version_code>
+ * <version_code>6.0.1.1</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.1.0";
+        private const String PluginVersion = "6.0.1.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -495,7 +495,7 @@ namespace PRoConEvents {
         private Int32 _surrenderAutoTriggerCountCurrent;
         private Int32 _surrenderAutoTriggerCountPause;
         private Int32 _surrenderAutoMinimumPlayers = 10;
-        private String _surrenderAutoMessage = "Ending/Scrambling Baserape Round. %WinnerName% Wins!";
+        private String _surrenderAutoMessage = "Auto-Resolving Baserape Round. %WinnerName% Wins!";
         private Boolean _surrenderAutoNukeWinning;
         private Boolean _surrenderAutoTriggerVote;
         private String _surrenderAutoNukeMessage = "Nuking %WinnerName% for baserape!";
@@ -6427,7 +6427,7 @@ namespace PRoConEvents {
                                             {
                                                 Thread.CurrentThread.Name = "roundenddelay";
                                                 var autoSurrenderMessage = _surrenderAutoMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
-                                                for (int i = 0; i < 6; i++)
+                                                for (int i = 0; i < 8; i++)
                                                 {
                                                     AdminTellMessage(autoSurrenderMessage);
                                                     Thread.Sleep(50);
@@ -7414,7 +7414,7 @@ namespace PRoConEvents {
                                         if (_isTestingAuthorized && _baserapeCausingPlayers.ContainsKey(aPlayer.player_name))
                                         {
                                             _threadMasterWaitHandle.WaitOne(5000);
-                                            PlayerTellMessage(aPlayer.player_name, "Baserape monitor has placed you under temporary autobalance dispersion. Stats reset after 1 week.");
+                                            PlayerTellMessage(aPlayer.player_name, "Baserape monitor has you under temporary autobalance dispersion. You are 1 of " + _baserapeCausingPlayers.Count + " players, stats reset after 1 week.");
                                         }
                                     }
                                 }
