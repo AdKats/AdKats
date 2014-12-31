@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.0.9
+ * Version 6.0.1.0
  * 30-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.0.9</version_code>
+ * <version_code>6.0.1.0</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.0.9";
+        private const String PluginVersion = "6.0.1.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -366,7 +366,8 @@ namespace PRoConEvents {
         //Players
         private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
         private readonly Dictionary<String, AdKatsPlayer> _PlayerLeftDictionary = new Dictionary<String, AdKatsPlayer>();
-        private readonly Dictionary<Int64, AdKatsPlayer> _FetchedPlayers = new Dictionary<Int64, AdKatsPlayer>(); 
+        private readonly Dictionary<Int64, AdKatsPlayer> _FetchedPlayers = new Dictionary<Int64, AdKatsPlayer>();
+        private readonly Dictionary<String, AdKatsPlayer> _baserapeCausingPlayers = new Dictionary<String, AdKatsPlayer>(); 
 
         //Punishment settings
         private readonly List<String> _PunishmentSeverityIndex;
@@ -7410,7 +7411,7 @@ namespace PRoConEvents {
                                             }
                                         }
                                         PlayerTellMessage(aPlayer.player_name, repMessage);
-                                        if (_isTestingAuthorized && GetMatchingASPlayersOfGroup("blacklist_dispersion", aPlayer).Any())
+                                        if (_isTestingAuthorized && _baserapeCausingPlayers.ContainsKey(aPlayer.player_name))
                                         {
                                             _threadMasterWaitHandle.WaitOne(5000);
                                             PlayerTellMessage(aPlayer.player_name, "Baserape monitor has placed you under temporary autobalance dispersion. Stats reset after 1 week.");
@@ -25263,23 +25264,37 @@ namespace PRoConEvents {
                                 }
                             }
                         }
-                    }
-                    if (_isTestingAuthorized)
-                    {
-                        String baserapeCausingPlayers = "Baserape causing players: ";
-                        foreach (AdKatsPlayer aPlayer in GetBaserapeCausingPlayersPastWeek())
+                        if (_isTestingAuthorized)
                         {
-                            if (!evenDispersionList.Contains(aPlayer.player_guid))
+                            String baserapeCausingPlayers = "Baserape causing players: ";
+                            List<Int64> validIDs = new List<Int64>();
+                            lock (_baserapeCausingPlayers)
                             {
-                                evenDispersionList.Add(aPlayer.player_guid);
-                                baserapeCausingPlayers += aPlayer.player_name + ", ";
-                            }
-                            else
-                            {
-                                baserapeCausingPlayers += "E[" + aPlayer.player_name + "], ";
+                                foreach (AdKatsPlayer aPlayer in GetBaserapeCausingPlayersPastWeek())
+                                {
+                                    validIDs.Add(aPlayer.player_id);
+                                    if (!_baserapeCausingPlayers.ContainsKey(aPlayer.player_name))
+                                    {
+                                        ConsoleInfo("Adding " + aPlayer.player_name + " to baserape causing player list.");
+                                    }
+                                    _baserapeCausingPlayers[aPlayer.player_name] = aPlayer;
+                                    if (!evenDispersionList.Contains(aPlayer.player_guid))
+                                    {
+                                        evenDispersionList.Add(aPlayer.player_guid);
+                                        baserapeCausingPlayers += aPlayer.player_name + ", ";
+                                    }
+                                    else
+                                    {
+                                        baserapeCausingPlayers += "E[" + aPlayer.player_name + "], ";
+                                    }
+                                }
+                                foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
+                                    ConsoleInfo("Removing " + aPlayer.player_name + " from baserape causing player list.");
+                                    _baserapeCausingPlayers.Remove(aPlayer.player_name);
+                                }
+                                ConsoleInfo(baserapeCausingPlayers);
                             }
                         }
-                        ConsoleInfo(baserapeCausingPlayers);
                     }
                     SetExternalPluginSetting("MULTIbalancer", "1 - Settings|Disperse Evenly List", CPluginVariable.EncodeStringArray(evenDispersionList.ToArray()));
                 }
