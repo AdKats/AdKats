@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.0.8
+ * Version 6.0.0.9
  * 30-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.0.8</version_code>
+ * <version_code>6.0.0.9</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.0.8";
+        private const String PluginVersion = "6.0.0.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6616,7 +6616,7 @@ namespace PRoConEvents {
                         stat_time = UtcDbTime()
                     });
                 }
-                if (_surrenderAutoSucceeded || _surrenderVoteSucceeded)
+                if (_surrenderAutoSucceeded || (_surrenderVoteSucceeded && _surrenderAutoTriggerCountCurrent > 0))
                 {
                     foreach (AdKatsPlayer aPlayer in WinningPlayers.Take(10).ToList())
                     {
@@ -15886,7 +15886,7 @@ namespace PRoConEvents {
                             {
                                 _LoadoutConfirmDictionary.Add(record.target_player.player_name, record);
                             }
-                            ConsoleWarn("Report record " + reportID + " waiting for loadout confirmation.");
+                            ConsoleInfo("Report record " + reportID + " waiting for loadout confirmation.");
                             ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable{
                                 {"caller_identity", "AdKats"},
                                 {"response_requested", false},
