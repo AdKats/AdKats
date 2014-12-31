@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.1.1
+ * Version 6.0.1.2
  * 30-DEC-2014
  * 
  * Automatic Update Information
- * <version_code>6.0.1.1</version_code>
+ * <version_code>6.0.1.2</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.1.1";
+        private const String PluginVersion = "6.0.1.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7411,7 +7411,7 @@ namespace PRoConEvents {
                                             }
                                         }
                                         PlayerTellMessage(aPlayer.player_name, repMessage);
-                                        if (_isTestingAuthorized && _baserapeCausingPlayers.ContainsKey(aPlayer.player_name))
+                                        if (_baserapeCausingPlayers.Values.Any(dPlayer => dPlayer.player_id == aPlayer.player_id))
                                         {
                                             _threadMasterWaitHandle.WaitOne(5000);
                                             PlayerTellMessage(aPlayer.player_name, "Baserape monitor has you under temporary autobalance dispersion. You are 1 of " + _baserapeCausingPlayers.Count + " players, stats reset after 1 week.");
@@ -10326,6 +10326,13 @@ namespace PRoConEvents {
                                 responseMessage += "losing, but is making a comeback.";
                             }
                             SendMessageToSource(record, responseMessage);
+                            FinalizeRecord(record);
+                            return;
+                        }
+
+                        if (_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
+                        {
+                            SendMessageToSource(record, "You are under dispersion for baserape. You may not use Assist at this time.");
                             FinalizeRecord(record);
                             return;
                         }
