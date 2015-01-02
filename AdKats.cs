@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.1.3
- * 31-DEC-2014
+ * Version 6.0.1.4
+ * 1-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.1.3</version_code>
+ * <version_code>6.0.1.4</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.1.3";
+        private const String PluginVersion = "6.0.1.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1417,7 +1417,7 @@ namespace PRoConEvents {
                     //Create new thread to run hack check
                     var statCheckingThread = new Thread(new ThreadStart(delegate {
                         try {
-                            Thread.CurrentThread.Name = "SpecialHackerCheck";
+                            Thread.CurrentThread.Name = "ManualHackerCheck";
                             if (String.IsNullOrEmpty(strValue) || !_threadsReady) {
                                 return;
                             }
@@ -2946,7 +2946,7 @@ namespace PRoConEvents {
                                 break;
                             case "Add Soldier?":
                                 var addSoldierThread = new Thread(new ThreadStart(delegate {
-                                    Thread.CurrentThread.Name = "addsoldier";
+                                    Thread.CurrentThread.Name = "AddSoldier";
                                     DebugWrite("Starting a user change thread.", 2);
                                     TryAddUserSoldier(aUser, strValue);
                                     QueueUserForUpload(aUser);
@@ -3818,7 +3818,7 @@ namespace PRoConEvents {
                             return;
                         }
                         var addUserThread = new Thread(new ThreadStart(delegate {
-                            Thread.CurrentThread.Name = "userchange";
+                            Thread.CurrentThread.Name = "UserChange";
                             DebugWrite("Starting a user change thread.", 2);
                             //Attempt to add soldiers matching the user's name
                             TryAddUserSoldier(aUser, aUser.user_name);
@@ -3930,7 +3930,7 @@ namespace PRoConEvents {
                 //Create a new thread to activate the plugin
                 _Activator = new Thread(new ThreadStart(delegate {
                     try {
-                        Thread.CurrentThread.Name = "enabler";
+                        Thread.CurrentThread.Name = "Enabler";
                         Thread.Sleep(250);
 
                         //Add command informing other plugins that AdKats is enabling
@@ -4073,7 +4073,7 @@ namespace PRoConEvents {
                 //Create a new thread to disabled the plugin
                 _Finalizer = new Thread(new ThreadStart(delegate {
                     try {
-                        Thread.CurrentThread.Name = "finalizer";
+                        Thread.CurrentThread.Name = "Finalizer";
                         ConsoleInfo("Shutting down AdKats.");
                         //Disable settings
                         _pluginEnabled = false;
@@ -4206,14 +4206,15 @@ namespace PRoConEvents {
         }
 
         private void FetchPluginDocumentation() {
-            if (_aliveThreads.Values.Any(aThread => aThread.Name == "descfetching")) {
+            if (_aliveThreads.Values.Any(aThread => aThread.Name == "DescFetching"))
+            {
                 return;
             }
             _PluginDescriptionWaitHandle.Reset();
             //Create a new thread to fetch the plugin description and changelog
             var descFetcher = new Thread(new ThreadStart(delegate {
                 try {
-                    Thread.CurrentThread.Name = "descfetching";
+                    Thread.CurrentThread.Name = "DescFetching";
                     _pluginDescFetchProgress = "Started";
                     //Create web client
                     var client = new WebClient();
@@ -4665,12 +4666,12 @@ namespace PRoConEvents {
         }
 
         private void Enable() {
-            if (Thread.CurrentThread.Name == "finalizer")
+            if (Thread.CurrentThread.Name == "Finalizer")
             {
                 var pluginRebootThread = new Thread(new ThreadStart(delegate {
                     DebugWrite("Starting a reboot thread.", 5);
                     try {
-                        Thread.CurrentThread.Name = "RebootThread";
+                        Thread.CurrentThread.Name = "Reboot";
                         Thread.Sleep(1000);
                         //Call Enable
                         ExecuteCommand("procon.protected.plugins.enable", "AdKats", "True");
@@ -4976,14 +4977,14 @@ namespace PRoConEvents {
 
         public void PlayerListingThreadLoop() {
             try {
-                DebugWrite("PLIST: Starting Player Listing Thread", 1);
-                Thread.CurrentThread.Name = "playerlisting";
+                DebugWrite("Starting Player Listing Thread", 1);
+                Thread.CurrentThread.Name = "PlayerListing";
                 DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
-                        DebugWrite("PLIST: Entering Player Listing Thread Loop", 7);
+                        DebugWrite("Entering Player Listing Thread Loop", 7);
                         if (!_pluginEnabled) {
-                            DebugWrite("PLIST: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
@@ -4994,9 +4995,9 @@ namespace PRoConEvents {
                         //Only allow player list fetching if the user list is already fetched
                         List<CPlayerInfo> inboundPlayerList = null;
                         if (_PlayerListProcessingQueue.Count > 0 && _firstUserListComplete) {
-                            DebugWrite("PLIST: Preparing to lock player list queues to retrive new player lists", 7);
+                            DebugWrite("Preparing to lock player list queues to retrive new player lists", 7);
                             lock (_PlayerListProcessingQueue) {
-                                DebugWrite("PLIST: Inbound player lists found. Grabbing.", 6);
+                                DebugWrite("Inbound player lists found. Grabbing.", 6);
                                 while (_PlayerListProcessingQueue.Any()) {
                                     inboundPlayerList = _PlayerListProcessingQueue.Dequeue();
                                     playerListFetched = true;
@@ -5013,9 +5014,9 @@ namespace PRoConEvents {
                         //Get all unparsed inbound player removals
                         Queue<CPlayerInfo> inboundPlayerRemoval = null;
                         if (_PlayerRemovalProcessingQueue.Count > 0) {
-                            DebugWrite("PLIST: Preparing to lock player removal queue to retrive new player removals", 7);
+                            DebugWrite("Preparing to lock player removal queue to retrive new player removals", 7);
                             lock (_PlayerRemovalProcessingQueue) {
-                                DebugWrite("PLIST: Inbound player removals found. Grabbing.", 6);
+                                DebugWrite("Inbound player removals found. Grabbing.", 6);
                                 if (_PlayerRemovalProcessingQueue.Any()) {
                                     inboundPlayerRemoval = new Queue<CPlayerInfo>(_PlayerRemovalProcessingQueue.ToArray());
                                 }
@@ -5028,7 +5029,7 @@ namespace PRoConEvents {
                         }
 
                         if (!inboundPlayerList.Any() && !inboundPlayerRemoval.Any() && !_PlayerRoleRefetch && !playerListFetched) {
-                            DebugWrite("PLIST: No inbound player lists or removals found. Waiting for Input.", 5);
+                            DebugWrite("No inbound player lists or removals found. Waiting for Input.", 5);
                             //Wait for input
                             if (!_firstPlayerListStarted)
                             {
@@ -5524,7 +5525,7 @@ namespace PRoConEvents {
                                 Int32 dicCount = _PlayerDictionary.Count;
                                 foreach (string playerName in _PlayerDictionary.Keys.Where(playerName => !validPlayers.Contains(playerName)).ToList()) {
                                     straglerCount++;
-                                    DebugWrite("PLIST: Removing " + playerName + " from current player list (VIA CLEANUP).", 4);
+                                    DebugWrite("Removing " + playerName + " from current player list (VIA CLEANUP).", 4);
                                     AdKatsPlayer aPlayer;
                                     if (_PlayerDictionary.TryGetValue(playerName, out aPlayer))
                                     {
@@ -5775,7 +5776,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error occured in player listing thread. Skipping loop.", e));
                     }
                 }
-                DebugWrite("PLIST: Ending Player Listing Thread", 1);
+                DebugWrite("Ending Player Listing Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e) {
@@ -5785,7 +5786,7 @@ namespace PRoConEvents {
 
         public override void OnPunkbusterPlayerInfo(CPunkbusterInfo cpbiPlayer) {
             try {
-                DebugWrite("OPPI: OnPunkbusterPlayerInfo fired!", 7);
+                DebugWrite("OnPunkbusterPlayerInfo fired!", 7);
                 AdKatsPlayer aPlayer;
                 if (_PlayerDictionary.TryGetValue(cpbiPlayer.SoldierName, out aPlayer)) {
                     Boolean updatePlayer = false;
@@ -5820,7 +5821,7 @@ namespace PRoConEvents {
                     }
 
                     if (updatePlayer) {
-                        DebugWrite("OPPI: Queueing existing player " + aPlayer.GetVerboseName() + " for update.", 4);
+                        DebugWrite("Queueing existing player " + aPlayer.GetVerboseName() + " for update.", 4);
                         UpdatePlayer(aPlayer);
                         //If using ban enforcer, queue player for update
                         if (_UseBanEnforcer) {
@@ -5828,8 +5829,8 @@ namespace PRoConEvents {
                         }
                     }
                 }
-                DebugWrite("OPPI: Player slot: " + cpbiPlayer.SlotID, 7);
-                DebugWrite("OPPI: OnPunkbusterPlayerInfo finished!", 7);
+                DebugWrite("Player slot: " + cpbiPlayer.SlotID, 7);
+                DebugWrite("OnPunkbusterPlayerInfo finished!", 7);
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error occured while processing punkbuster info.", e));
@@ -5863,20 +5864,20 @@ namespace PRoConEvents {
 
         private void AccessFetchingThreadLoop() {
             try {
-                DebugWrite("FACC: Starting Access Fetching Thread", 1);
+                DebugWrite("Starting Access Fetching Thread", 1);
                 Thread.CurrentThread.Name = "AccessFetching";
                 DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
-                        DebugWrite("FACC: Entering Access Fetching Thread Loop", 7);
+                        DebugWrite("Entering Access Fetching Thread Loop", 7);
                         if (!_pluginEnabled) {
-                            DebugWrite("FACC: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
                         FetchAllAccess(false);
 
-                        DebugWrite("FACC: Access fetch waiting for Input.", 5);
+                        DebugWrite("Access fetch waiting for Input.", 5);
                         if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                         _AccessFetchWaitHandle.Reset();
@@ -5891,7 +5892,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error occured in Access Fetching thread. Skipping loop.", e));
                     }
                 }
-                DebugWrite("FACC: Ending Access Fetching Thread", 1);
+                DebugWrite("Ending Access Fetching Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e) {
@@ -5911,7 +5912,7 @@ namespace PRoConEvents {
                 {
                     try
                     {
-                        Thread.CurrentThread.Name = "roundticketlogger";
+                        Thread.CurrentThread.Name = "RoundTicketLogger";
                         Int32 TPCSCounter = 0;
                         Boolean TPCSActionTaken = false;
                         Int32 roundTimeSeconds = startingSeconds;
@@ -6078,7 +6079,7 @@ namespace PRoConEvents {
                     LogThreadExit();
                 }));
 
-                if (_aliveThreads.Values.All(thread => thread.Name != "roundticketlogger"))
+                if (_aliveThreads.Values.All(thread => thread.Name != "RoundTicketLogger"))
                 {
                     //Start the thread
                     StartAndLogThread(roundLoggerThread);
@@ -6465,7 +6466,7 @@ namespace PRoConEvents {
                                             DebugWrite("Starting a round end delay thread.", 5);
                                             try
                                             {
-                                                Thread.CurrentThread.Name = "roundenddelay";
+                                                Thread.CurrentThread.Name = "RoundEndDelay";
                                                 var autoSurrenderMessage = _surrenderAutoMessage.Replace("%WinnerName%", baserapingTeam.TeamName);
                                                 for (int i = 0; i < 8; i++)
                                                 {
@@ -6837,25 +6838,25 @@ namespace PRoConEvents {
 
         public void KillProcessingThreadLoop() {
             try {
-                DebugWrite("KILLPROC: Starting Kill Processing Thread", 1);
-                Thread.CurrentThread.Name = "killprocessing";
+                DebugWrite("Starting Kill Processing Thread", 1);
+                Thread.CurrentThread.Name = "KillProcessing";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     loopStart = UtcDbTime();
                     try {
-                        DebugWrite("KILLPROC: Entering Kill Processing Thread Loop", 7);
+                        DebugWrite("Entering Kill Processing Thread Loop", 7);
                         if (!_pluginEnabled) {
-                            DebugWrite("KILLPROC: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
                         //Get all unprocessed inbound kills
                         Queue<Kill> inboundPlayerKills;
                         if (_KillProcessingQueue.Count > 0) {
-                            DebugWrite("KILLPROC: Preparing to lock inbound kill queue to retrive new player kills", 7);
+                            DebugWrite("Preparing to lock inbound kill queue to retrive new player kills", 7);
                             lock (_KillProcessingQueue) {
-                                DebugWrite("KILLPROC: Inbound kills found. Grabbing.", 6);
+                                DebugWrite("Inbound kills found. Grabbing.", 6);
                                 //Grab all kills in the queue
                                 inboundPlayerKills = new Queue<Kill>(_KillProcessingQueue.ToArray());
                                 //Clear the queue for next run
@@ -6863,7 +6864,7 @@ namespace PRoConEvents {
                             }
                         }
                         else {
-                            DebugWrite("KILLPROC: No inbound player kills. Waiting for Input.", 6);
+                            DebugWrite("No inbound player kills. Waiting for Input.", 6);
                             //Wait for input
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
@@ -6878,7 +6879,7 @@ namespace PRoConEvents {
                             if (!_pluginEnabled) {
                                 break;
                             }
-                            DebugWrite("KILLPROC: begin reading player kills", 6);
+                            DebugWrite("begin reading player kills", 6);
                             //Dequeue the first/next kill
                             Kill playerKill = inboundPlayerKills.Dequeue();
 
@@ -6894,7 +6895,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error occured in kill processing thread.", e));
                     }
                 }
-                DebugWrite("KILLPROC: Ending Kill Processing Thread", 1);
+                DebugWrite("Ending Kill Processing Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e) {
@@ -7412,7 +7413,7 @@ namespace PRoConEvents {
                                 DebugWrite("Starting a spawn printer thread.", 5);
                                 try
                                 {
-                                    Thread.CurrentThread.Name = "spawnprinter";
+                                    Thread.CurrentThread.Name = "SpawnPrinter";
                                     //Wait 2 seconds
                                     _threadMasterWaitHandle.WaitOne(2000);
                                     PlayerTellMessage(aPlayer.player_name, _FirstSpawnMessage);
@@ -7628,14 +7629,14 @@ namespace PRoConEvents {
 
         private void BanEnforcerThreadLoop() {
             try {
-                DebugWrite("BANENF: Starting Ban Enforcer Thread", 1);
+                DebugWrite("Starting Ban Enforcer Thread", 1);
                 Thread.CurrentThread.Name = "BanEnforcer";
                 DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
-                        DebugWrite("BANENF: Entering Ban Enforcer Thread Loop", 7);
+                        DebugWrite("Entering Ban Enforcer Thread Loop", 7);
                         if (!_pluginEnabled) {
-                            DebugWrite("BANENF: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
                         
@@ -7644,9 +7645,9 @@ namespace PRoConEvents {
                         //Get all unchecked players
                         Queue<AdKatsPlayer> playerCheckingQueue;
                         if (_BanEnforcerCheckingQueue.Count > 0 && _UseBanEnforcer) {
-                            DebugWrite("BANENF: Preparing to lock banEnforcerMutex to retrive new players", 6);
+                            DebugWrite("Preparing to lock banEnforcerMutex to retrive new players", 6);
                             lock (_BanEnforcerCheckingQueue) {
-                                DebugWrite("BANENF: Inbound players found. Grabbing.", 5);
+                                DebugWrite("Inbound players found. Grabbing.", 5);
                                 //Grab all players in the queue
                                 playerCheckingQueue = new Queue<AdKatsPlayer>(_BanEnforcerCheckingQueue.ToArray());
                                 //Clear the queue for next run
@@ -7657,7 +7658,7 @@ namespace PRoConEvents {
                             }
                         }
                         else {
-                            DebugWrite("BANENF: No inbound ban checks. Waiting for Input.", 6);
+                            DebugWrite("No inbound ban checks. Waiting for Input.", 6);
                             //Wait for input
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
@@ -7676,14 +7677,14 @@ namespace PRoConEvents {
                             }
                             //Grab first/next player
                             AdKatsPlayer aPlayer = playerCheckingQueue.Dequeue();
-                            DebugWrite("BANENF: begin reading player", 5);
+                            DebugWrite("begin reading player", 5);
                             if (_PlayerDictionary.ContainsKey(aPlayer.player_name)) {
                                 List<AdKatsBan> aBanList = FetchPlayerBans(aPlayer);
                                 if (aBanList.Count > 0) {
                                     foreach (AdKatsBan aBan in aBanList) {
                                         if (aBan.ban_record.target_player.player_id == aPlayer.player_id || aBanList.Count <= 5)
                                         {
-                                            DebugWrite("BANENF: BAN ENFORCED on " + aPlayer.GetVerboseName(), 3);
+                                            DebugWrite("BAN ENFORCED on " + aPlayer.GetVerboseName(), 3);
                                             //Create the new record
                                             var aRecord = new AdKatsRecord
                                             {
@@ -7707,7 +7708,7 @@ namespace PRoConEvents {
                                     }
                                 }
                                 else {
-                                    DebugWrite("BANENF: No ban found for player", 5);
+                                    DebugWrite("No ban found for player", 5);
                                     //Only call a hack check if the player does not already have a ban
                                     if (_UseHackerChecker) {
                                         QueuePlayerForHackerCheck(aPlayer);
@@ -7724,7 +7725,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error occured in ban enforcer thread. Skipping current loop.", e));
                     }
                 }
-                DebugWrite("BANENF: Ending Ban Enforcer Thread", 1);
+                DebugWrite("Ending Ban Enforcer Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e) {
@@ -7965,7 +7966,7 @@ namespace PRoConEvents {
             Double checkedPlayers = 0;
             Double playersWithStats = 0;
             try {
-                DebugWrite("HCKCHK: Starting Hacker Checker Thread", 1);
+                DebugWrite("Starting Hacker Checker Thread", 1);
                 Thread.CurrentThread.Name = "HackerChecker";
 
                 var playerCheckingQueue = new Queue<AdKatsPlayer>();
@@ -7973,20 +7974,20 @@ namespace PRoConEvents {
                 DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
-                        DebugWrite("HCKCHK: Entering Hacker Checker Thread Loop", 7);
+                        DebugWrite("Entering Hacker Checker Thread Loop", 7);
                         if (!_pluginEnabled) {
                             playerCheckingQueue.Clear();
                             repeatCheckingQueue.Clear();
-                            DebugWrite("HCKCHK: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
                         try {
                             //Get all unchecked players
                             if (_HackerCheckerQueue.Count > 0) {
-                                DebugWrite("HCKCHK: Preparing to lock hackerCheckerMutex to retrive new players", 6);
+                                DebugWrite("Preparing to lock hackerCheckerMutex to retrive new players", 6);
                                 lock (_HackerCheckerQueue) {
-                                    DebugWrite("HCKCHK: Inbound players found. Grabbing.", 5);
+                                    DebugWrite("Inbound players found. Grabbing.", 5);
                                     //Grab all players in the queue
                                     playerCheckingQueue = new Queue<AdKatsPlayer>(_HackerCheckerQueue.ToArray());
                                     //Clear the queue for next run  
@@ -7994,7 +7995,7 @@ namespace PRoConEvents {
                                 }
                             }
                             else {
-                                DebugWrite("HCKCHK: No inbound hacker checks. Waiting 10 seconds or for input.", 4);
+                                DebugWrite("No inbound hacker checks. Waiting 10 seconds or for input.", 4);
                                 //Wait for input
                                 if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                     DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
@@ -8061,7 +8062,7 @@ namespace PRoConEvents {
                             //Grab first/next player
                             aPlayer = playerCheckingQueue.Dequeue();
                             if (aPlayer != null) {
-                                DebugWrite("HCKCHK: begin reading player", 4);
+                                DebugWrite("begin reading player", 4);
 
                                 if (!PlayerProtected(aPlayer)) {
                                     FetchPlayerStats(aPlayer);
@@ -8094,7 +8095,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error occured in Hacker Checker thread. Skipping current loop.", e));
                     }
                 }
-                DebugWrite("HCKCHK: Ending Hacker Checker Thread", 1);
+                DebugWrite("Ending Hacker Checker Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e) {
@@ -8222,7 +8223,7 @@ namespace PRoConEvents {
                                 DebugWrite("Starting a ban delay thread.", 5);
                                 try
                                 {
-                                    Thread.CurrentThread.Name = "bandelay";
+                                    Thread.CurrentThread.Name = "BanDelay";
                                     var start = UtcDbTime();
                                     ConsoleInfo(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
                                     OnlineAdminTellMessage(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
@@ -8403,7 +8404,7 @@ namespace PRoConEvents {
                                 DebugWrite("Starting a ban delay thread.", 5);
                                 try
                                 {
-                                    Thread.CurrentThread.Name = "bandelay";
+                                    Thread.CurrentThread.Name = "BanDelay";
                                     var start = UtcDbTime();
                                     ConsoleInfo(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
                                     OnlineAdminTellMessage(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
@@ -8745,7 +8746,7 @@ namespace PRoConEvents {
                     DebugWrite("Starting an online non-admin say thread.", 8);
                     try
                     {
-                        Thread.CurrentThread.Name = "onlineNonAdminSay";
+                        Thread.CurrentThread.Name = "OnlineNonAdminSay";
                         if (displayProconChat)
                         {
                             ProconChatWrite("Say -(Admins" + ((whitelistedPlayers.Any())?(whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.GetVerboseName())):("")) + ") > " + message);
@@ -8793,7 +8794,7 @@ namespace PRoConEvents {
                     DebugWrite("Starting an online non-admin yell thread.", 8);
                     try
                     {
-                        Thread.CurrentThread.Name = "onlineNonAdminYell";
+                        Thread.CurrentThread.Name = "OnlineNonAdminYell";
                         if (displayProconChat)
                         {
                             ProconChatWrite("Yell[" + _YellDuration + "s] (-Admins" + ((whitelistedPlayers.Any()) ? (whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.GetVerboseName())) : ("")) + ") > " + message);
@@ -8842,7 +8843,7 @@ namespace PRoConEvents {
                     DebugWrite("Starting an online non-admin tell thread.", 8);
                     try
                     {
-                        Thread.CurrentThread.Name = "onlineNonAdminTell";
+                        Thread.CurrentThread.Name = "OnlineNonAdminTell";
                         if (displayProconChat)
                         {
                             ProconChatWrite("Tell[" + _YellDuration + "s] (-Admins" + ((whitelistedPlayers.Any()) ? (whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.GetVerboseName())) : ("")) + ") > " + message);
@@ -9095,23 +9096,23 @@ namespace PRoConEvents {
 
         private void MessagingThreadLoop() {
             try {
-                DebugWrite("MESSAGE: Starting Messaging Thread", 1);
-                Thread.CurrentThread.Name = "messaging";
+                DebugWrite("Starting Messaging Thread", 1);
+                Thread.CurrentThread.Name = "Messaging";
                 DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
-                        DebugWrite("MESSAGE: Entering Messaging Thread Loop", 7);
+                        DebugWrite("Entering Messaging Thread Loop", 7);
                         if (!_pluginEnabled) {
-                            DebugWrite("MESSAGE: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
                         //Get all unparsed inbound messages
                         Queue<AdKatsChatMessage> inboundMessages;
                         if (_UnparsedMessageQueue.Count > 0) {
-                            DebugWrite("MESSAGE: Preparing to lock messaging to retrive new messages", 7);
+                            DebugWrite("Preparing to lock messaging to retrive new messages", 7);
                             lock (_UnparsedMessageQueue) {
-                                DebugWrite("MESSAGE: Inbound messages found. Grabbing.", 6);
+                                DebugWrite("Inbound messages found. Grabbing.", 6);
                                 //Grab all messages in the queue
                                 inboundMessages = new Queue<AdKatsChatMessage>(_UnparsedMessageQueue.ToArray());
                                 //Clear the queue for next run
@@ -9119,7 +9120,7 @@ namespace PRoConEvents {
                             }
                         }
                         else {
-                            DebugWrite("MESSAGE: No inbound messages. Waiting for Input.", 6);
+                            DebugWrite("No inbound messages. Waiting for Input.", 6);
                             //Wait for input
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
@@ -9136,7 +9137,7 @@ namespace PRoConEvents {
                             {
                                 break;
                             }
-                            DebugWrite("MESSAGE: begin reading message", 6);
+                            DebugWrite("begin reading message", 6);
                             //Dequeue the first/next message
                             AdKatsChatMessage messageObject = inboundMessages.Dequeue();
 
@@ -9213,7 +9214,7 @@ namespace PRoConEvents {
                             {
                                 lock (_RoundMutedPlayers) {
                                     //Check if the player is muted
-                                    DebugWrite("MESSAGE: Checking for mute case.", 7);
+                                    DebugWrite("Checking for mute case.", 7);
                                     if (_RoundMutedPlayers.ContainsKey(messageObject.Speaker))
                                     {
                                         if (_MutedPlayerIgnoreCommands && isCommand) {
@@ -9221,7 +9222,7 @@ namespace PRoConEvents {
                                         }
                                         else
                                         {
-                                            DebugWrite("MESSAGE: Player is muted and valid. Acting.", 7);
+                                            DebugWrite("Player is muted and valid. Acting.", 7);
                                             //Increment the muted chat count
                                             _RoundMutedPlayers[messageObject.Speaker] = _RoundMutedPlayers[messageObject.Speaker] + 1;
                                             //Create record
@@ -9268,7 +9269,7 @@ namespace PRoConEvents {
                             }
                             else
                             {
-                                DebugWrite("MESSAGE: Message is regular chat. Ignoring.", 7);
+                                DebugWrite("Message is regular chat. Ignoring.", 7);
                             }
                         }
                     }
@@ -9280,7 +9281,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error occured in Messaging thread. Skipping current loop.", e));
                     }
                 }
-                DebugWrite("MESSAGE: Ending Messaging Thread", 1);
+                DebugWrite("Ending Messaging Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e) {
@@ -9334,14 +9335,14 @@ namespace PRoConEvents {
             //assume the max player count per team is 32 if no server info has been provided
             Int32 maxTeamPlayerCount = 32;
             try {
-                DebugWrite("TSWAP: Starting TeamSwap Thread", 1);
+                DebugWrite("Starting TeamSwap Thread", 1);
                 Thread.CurrentThread.Name = "TeamSwap";
                 DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
-                        DebugWrite("TSWAP: Entering TeamSwap Thread Loop", 7);
+                        DebugWrite("Entering TeamSwap Thread Loop", 7);
                         if (!_pluginEnabled) {
-                            DebugWrite("TSWAP: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
                         AdKatsTeam team1;
@@ -9367,7 +9368,7 @@ namespace PRoConEvents {
 
                         //Get players who died that need moving
                         if ((_TeamswapOnDeathMoveDic.Count > 0 && _TeamswapOnDeathCheckingQueue.Count > 0) || _TeamswapForceMoveQueue.Count > 0) {
-                            DebugWrite("TSWAP: Preparing to lock TeamSwap queues", 4);
+                            DebugWrite("Preparing to lock TeamSwap queues", 4);
 
                             _PlayerListUpdateWaitHandle.Reset();
                             //Wait for listPlayers to finish, max 10 seconds
@@ -9499,7 +9500,7 @@ namespace PRoConEvents {
                             } while (false);
                         }
                         else {
-                            DebugWrite("TSWAP: No players to swap. Waiting for Input.", 6);
+                            DebugWrite("No players to swap. Waiting for Input.", 6);
                             //There are no players to swap, wait.
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
@@ -9519,7 +9520,7 @@ namespace PRoConEvents {
                     _TeamswapWaitHandle.Reset();
                     _TeamswapWaitHandle.WaitOne(TimeSpan.FromSeconds(10));
                 }
-                DebugWrite("TSWAP: Ending TeamSwap Thread", 1);
+                DebugWrite("Ending TeamSwap Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e) {
@@ -9990,14 +9991,14 @@ namespace PRoConEvents {
 
         private void CommandParsingThreadLoop() {
             try {
-                DebugWrite("COMMAND: Starting Command Parsing Thread", 1);
+                DebugWrite("Starting Command Parsing Thread", 1);
                 Thread.CurrentThread.Name = "Command";
                 DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
-                        DebugWrite("COMMAND: Entering Command Parsing Thread Loop", 7);
+                        DebugWrite("Entering Command Parsing Thread Loop", 7);
                         if (!_pluginEnabled) {
-                            DebugWrite("COMMAND: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
 
@@ -10006,10 +10007,10 @@ namespace PRoConEvents {
 
                         //Get all unparsed inbound messages
                         if (_UnparsedCommandQueue.Count > 0) {
-                            DebugWrite("COMMAND: Preparing to lock command queue to retrive new commands", 7);
+                            DebugWrite("Preparing to lock command queue to retrive new commands", 7);
                             Queue<AdKatsChatMessage> unparsedCommands;
                             lock (_UnparsedCommandQueue) {
-                                DebugWrite("COMMAND: Inbound commands found. Grabbing.", 6);
+                                DebugWrite("Inbound commands found. Grabbing.", 6);
                                 //Grab all messages in the queue
                                 unparsedCommands = new Queue<AdKatsChatMessage>(_UnparsedCommandQueue.ToArray());
                                 //Clear the queue for next run
@@ -10023,7 +10024,7 @@ namespace PRoConEvents {
                                 {
                                     break;
                                 }
-                                DebugWrite("COMMAND: begin reading command", 6);
+                                DebugWrite("begin reading command", 6);
                                 //Dequeue the first/next command
                                 AdKatsChatMessage commandMessage = unparsedCommands.Dequeue();
 
@@ -10047,7 +10048,7 @@ namespace PRoConEvents {
                             }
                         }
                         else {
-                            DebugWrite("COMMAND: No inbound commands, ready.", 7);
+                            DebugWrite("No inbound commands, ready.", 7);
                             //No commands to parse, ready.
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
@@ -10065,7 +10066,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error occured in Command thread. Skipping current loop.", e));
                     }
                 }
-                DebugWrite("COMMAND: Ending Command Thread", 1);
+                DebugWrite("Ending Command Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e) {
@@ -10085,7 +10086,7 @@ namespace PRoConEvents {
                     return;
                 }
                 String commandString = splitMessage[0].ToLower();
-                DebugWrite("Raw Command: " + commandString, 6);
+                DebugWrite("Raw " + commandString, 6);
                 String remainingMessage = message.TrimStart(splitMessage[0].ToCharArray()).Trim();
 
                 record.server_id = _serverInfo.ServerID;
@@ -12815,7 +12816,7 @@ namespace PRoConEvents {
                                 return;
                             case 1:
                                 record.record_message = GetPreMessage(parameters[0], false);
-                                DebugWrite("message: " + record.record_message, 6);
+                                DebugWrite("" + record.record_message, 6);
                                 record.target_name = "Server";
                                 QueueRecordForProcessing(record);
                                 break;
@@ -12846,7 +12847,7 @@ namespace PRoConEvents {
                                 DebugWrite("target: " + record.target_name, 6);
 
                                 record.record_message = GetPreMessage(parameters[1], false);
-                                DebugWrite("message: " + record.record_message, 6);
+                                DebugWrite("" + record.record_message, 6);
 
                                 CompleteTargetInformation(record, false, false, false);
                                 break;
@@ -12870,7 +12871,7 @@ namespace PRoConEvents {
                                 return;
                             case 1:
                                 record.record_message = GetPreMessage(parameters[0], false);
-                                DebugWrite("message: " + record.record_message, 6);
+                                DebugWrite("" + record.record_message, 6);
                                 record.target_name = "Server";
                                 QueueRecordForProcessing(record);
                                 break;
@@ -12901,7 +12902,7 @@ namespace PRoConEvents {
                                 DebugWrite("target: " + record.target_name, 6);
 
                                 record.record_message = GetPreMessage(parameters[1], false);
-                                DebugWrite("message: " + record.record_message, 6);
+                                DebugWrite("" + record.record_message, 6);
 
                                 CompleteTargetInformation(record, false, false, false);
                                 break;
@@ -12925,7 +12926,7 @@ namespace PRoConEvents {
                                 return;
                             case 1:
                                 record.record_message = GetPreMessage(parameters[0], false);
-                                DebugWrite("message: " + record.record_message, 6);
+                                DebugWrite("" + record.record_message, 6);
                                 record.target_name = "Server";
                                 QueueRecordForProcessing(record);
                                 break;
@@ -12958,7 +12959,7 @@ namespace PRoConEvents {
                                     DebugWrite("target: " + record.target_name, 6);
 
                                     record.record_message = GetPreMessage(parameters[1], false);
-                                    DebugWrite("message: " + record.record_message, 6);
+                                    DebugWrite("" + record.record_message, 6);
 
                                     CompleteTargetInformation(record, false, false, false);
                                     break;
@@ -12997,7 +12998,7 @@ namespace PRoConEvents {
                                     DebugWrite("target: " + record.target_name, 6);
 
                                     record.record_message = GetPreMessage(parameters[1], false);
-                                    DebugWrite("message: " + record.record_message, 6);
+                                    DebugWrite("" + record.record_message, 6);
 
                                     CompleteTargetInformation(record, false, false, false, true);
                                     break;
@@ -13129,7 +13130,7 @@ namespace PRoConEvents {
                                 record.target_name = parameters[0];
                                 DebugWrite("target: " + record.target_name, 6);
                                 record.record_message = GetPreMessage(parameters[1], false);
-                                DebugWrite("message: " + record.record_message, 6);
+                                DebugWrite("" + record.record_message, 6);
                                 CompleteTargetInformation(record, false, false, false);
                                 break;
                             default:
@@ -13165,7 +13166,7 @@ namespace PRoConEvents {
                                 DebugWrite("target: " + record.target_name, 6);
 
                                 record.record_message = GetPreMessage(parameters[1], false);
-                                DebugWrite("message: " + record.record_message, 6);
+                                DebugWrite("" + record.record_message, 6);
 
                                 CompleteTargetInformation(record, false, false, false);
                                 break;
@@ -13202,7 +13203,7 @@ namespace PRoConEvents {
                                 DebugWrite("target: " + record.target_name, 6);
 
                                 record.record_message = GetPreMessage(parameters[1], false);
-                                DebugWrite("message: " + record.record_message, 6);
+                                DebugWrite("" + record.record_message, 6);
 
                                 CompleteTargetInformation(record, false, false, false);
                                 break;
@@ -13239,7 +13240,7 @@ namespace PRoConEvents {
                                 DebugWrite("target: " + record.target_name, 6);
 
                                 record.record_message = GetPreMessage(parameters[1], false);
-                                DebugWrite("message: " + record.record_message, 6);
+                                DebugWrite("" + record.record_message, 6);
 
                                 CompleteTargetInformation(record, false, false, false);
                                 break;
@@ -14015,17 +14016,17 @@ namespace PRoConEvents {
         {
             try
             {
-                DebugWrite("IPAPI: Starting IP API Comm Thread", 1);
+                DebugWrite("Starting IP API Comm Thread", 1);
                 Thread.CurrentThread.Name = "IPAPIComm";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try
                     {
-                        DebugWrite("IPAPI: Entering IP API Comm Thread Loop", 7);
+                        DebugWrite("Entering IP API Comm Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            DebugWrite("IPAPI: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
                         //Sleep for 10ms
@@ -14037,7 +14038,7 @@ namespace PRoConEvents {
                             Queue<AdKatsPlayer> unprocessedPlayers;
                             lock (_IPInfoFetchQueue)
                             {
-                                DebugWrite("IPAPI: Inbound players found. Grabbing.", 6);
+                                DebugWrite("Inbound players found. Grabbing.", 6);
                                 //Grab all items in the queue
                                 unprocessedPlayers = new Queue<AdKatsPlayer>(_IPInfoFetchQueue.ToArray());
                                 //Clear the queue for next run
@@ -14050,7 +14051,7 @@ namespace PRoConEvents {
                                 {
                                     break;
                                 }
-                                DebugWrite("IPAPI: Preparing to fetch IP API info for player", 6);
+                                DebugWrite("Preparing to fetch IP API info for player", 6);
                                 //Dequeue the record
                                 AdKatsPlayer aPlayer = unprocessedPlayers.Dequeue();
                                 //Run the appropriate action
@@ -14059,7 +14060,7 @@ namespace PRoConEvents {
                         }
                         else
                         {
-                            DebugWrite("IPAPI: No inbound players. Waiting.", 6);
+                            DebugWrite("No inbound players. Waiting.", 6);
                             //Wait for new actions
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
@@ -14078,7 +14079,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error occured in IP API comm thread. Skipping current loop.", e));
                     }
                 }
-                DebugWrite("IPAPI: Ending IP API Comm Thread", 1);
+                DebugWrite("Ending IP API Comm Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -14111,17 +14112,17 @@ namespace PRoConEvents {
         {
             try
             {
-                DebugWrite("BTLOG: Starting Battlelog Comm Thread", 1);
+                DebugWrite("Starting Battlelog Comm Thread", 1);
                 Thread.CurrentThread.Name = "BattlelogComm";
                 DateTime loopStart = UtcDbTime();
                 while (true)
                 {
                     try
                     {
-                        DebugWrite("BTLOG: Entering Battlelog Comm Thread Loop", 7);
+                        DebugWrite("Entering Battlelog Comm Thread Loop", 7);
                         if (!_pluginEnabled)
                         {
-                            DebugWrite("BTLOG: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
                         //Sleep for 10ms
@@ -14133,7 +14134,7 @@ namespace PRoConEvents {
                             Queue<AdKatsPlayer> unprocessedPlayers;
                             lock (_BattlelogFetchQueue)
                             {
-                                DebugWrite("BTLOG: Inbound players found. Grabbing.", 6);
+                                DebugWrite("Inbound players found. Grabbing.", 6);
                                 //Grab all items in the queue
                                 unprocessedPlayers = new Queue<AdKatsPlayer>(_BattlelogFetchQueue.ToArray());
                                 //Clear the queue for next run
@@ -14146,7 +14147,7 @@ namespace PRoConEvents {
                                 {
                                     break;
                                 }
-                                DebugWrite("BTLOG: Preparing to fetch battlelog info for player", 6);
+                                DebugWrite("Preparing to fetch battlelog info for player", 6);
                                 //Dequeue the record
                                 AdKatsPlayer aPlayer = unprocessedPlayers.Dequeue();
                                 //Old Tag
@@ -14161,7 +14162,7 @@ namespace PRoConEvents {
                         }
                         else
                         {
-                            DebugWrite("BTLOG: No inbound players. Waiting.", 6);
+                            DebugWrite("No inbound players. Waiting.", 6);
                             //Wait for new actions
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
@@ -14180,7 +14181,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error occured in Battlelog comm thread. Skipping current loop.", e));
                     }
                 }
-                DebugWrite("BTLOG: Ending Battlelog Comm Thread", 1);
+                DebugWrite("Ending Battlelog Comm Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e)
@@ -14208,14 +14209,14 @@ namespace PRoConEvents {
 
         private void ActionHandlingThreadLoop() {
             try {
-                DebugWrite("ACTION: Starting Action Thread", 1);
-                Thread.CurrentThread.Name = "action";
+                DebugWrite("Starting Action Thread", 1);
+                Thread.CurrentThread.Name = "ActionHandling";
                 DateTime loopStart = UtcDbTime();
                 while (true) {
                     try {
-                        DebugWrite("ACTION: Entering Action Thread Loop", 7);
+                        DebugWrite("Entering Action Thread Loop", 7);
                         if (!_pluginEnabled) {
-                            DebugWrite("ACTION: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
                         //Sleep for 10ms
@@ -14225,7 +14226,7 @@ namespace PRoConEvents {
                         if (_UnprocessedActionQueue.Count > 0) {
                             Queue<AdKatsRecord> unprocessedActions;
                             lock (_UnprocessedActionQueue) {
-                                DebugWrite("ACTION: Inbound actions found. Grabbing.", 6);
+                                DebugWrite("Inbound actions found. Grabbing.", 6);
                                 //Grab all messages in the queue
                                 unprocessedActions = new Queue<AdKatsRecord>(_UnprocessedActionQueue.ToArray());
                                 //Clear the queue for next run
@@ -14238,7 +14239,7 @@ namespace PRoConEvents {
                                 {
                                     break;
                                 }
-                                DebugWrite("ACTION: Preparing to Run Actions for record", 6);
+                                DebugWrite("Preparing to Run Actions for record", 6);
                                 //Dequeue the record
                                 AdKatsRecord record = unprocessedActions.Dequeue();
                                 //Run the appropriate action
@@ -14249,12 +14250,12 @@ namespace PRoConEvents {
                                     QueueRecordForProcessing(record);
                                 }
                                 else {
-                                    DebugWrite("ACTION: Record has errors, not re-queueing after action.", 3);
+                                    DebugWrite("Record has errors, not re-queueing after action.", 3);
                                 }
                             }
                         }
                         else {
-                            DebugWrite("ACTION: No inbound actions. Waiting.", 6);
+                            DebugWrite("No inbound actions. Waiting.", 6);
                             //Wait for new actions
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
@@ -14271,7 +14272,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error occured in Action Handling thread. Skipping current loop.", e));
                     }
                 }
-                DebugWrite("ACTION: Ending Action Handling Thread", 1);
+                DebugWrite("Ending Action Handling Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e) {
@@ -14840,7 +14841,7 @@ namespace PRoConEvents {
                 record.record_action_executed = true;
                 String kickReason = GenerateKickReason(record);
                 //Perform Actions
-                DebugWrite("Kick Message: '" + kickReason + "'", 3);
+                DebugWrite("Kick '" + kickReason + "'", 3);
                 if (String.IsNullOrEmpty(record.target_player.player_name) || String.IsNullOrEmpty(kickReason)) {
                     ConsoleError("Item null in 5464");
                 }
@@ -14904,7 +14905,7 @@ namespace PRoConEvents {
                     if (cutLength > 0) {
                         banMessage = banMessage.Substring(0, banMessage.Length - cutLength);
                     }
-                    DebugWrite("Ban Message: '" + banMessage + "'", 3);
+                    DebugWrite("Ban '" + banMessage + "'", 3);
                     if (!String.IsNullOrEmpty(record.target_player.player_guid)) {
                         ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_player.player_guid, "seconds", seconds + "", banMessage);
                         ExecuteCommand("procon.protected.send", "banList.save");
@@ -14972,7 +14973,7 @@ namespace PRoConEvents {
                     if (cutLength > 0) {
                         banMessage = banMessage.Substring(0, banMessage.Length - cutLength);
                     }
-                    DebugWrite("Ban Message: '" + banMessage + "'", 3);
+                    DebugWrite("Ban '" + banMessage + "'", 3);
                     if (!String.IsNullOrEmpty(record.target_player.player_guid)) {
                         ExecuteCommand("procon.protected.send", "banList.add", "guid", record.target_player.player_guid, "perm", banMessage);
                         ExecuteCommand("procon.protected.send", "banList.save");
@@ -15093,7 +15094,7 @@ namespace PRoConEvents {
             try {
                 //Create the total kick message
                 String generatedBanReason = GenerateBanReason(aBan);
-                DebugWrite("Ban Enforce Message: '" + generatedBanReason + "'", 3);
+                DebugWrite("Ban Enforce '" + generatedBanReason + "'", 3);
 
                 //Perform Actions
                 if (_PlayerDictionary.ContainsKey(aBan.ban_record.target_player.player_name) && aBan.ban_startTime < UtcDbTime()) {
@@ -16179,7 +16180,7 @@ namespace PRoConEvents {
             var reportAutoHandler = new Thread(new ThreadStart(delegate {
                 //ConsoleWarn("Starting report auto-handler thread.");
                 try {
-                    Thread.CurrentThread.Name = "reportautohandler";
+                    Thread.CurrentThread.Name = "ReportAutoHandler";
                     //If admins are online, act after 45 seconds. If they are not, act after 5 seconds.
                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds((adminsOnline) ? (45.0) : (5.0)));
                     //Get the reported record
@@ -16367,7 +16368,7 @@ namespace PRoConEvents {
                     DebugWrite("Starting a countdown printer thread.", 5);
                     try
                     {
-                        Thread.CurrentThread.Name = "countdownprinter";
+                        Thread.CurrentThread.Name = "CountdownPrinter";
                         for(Int32 countdown = record.command_numeric; countdown > 0; countdown--)
                         {
                             if (!_pluginEnabled) {
@@ -16991,7 +16992,7 @@ namespace PRoConEvents {
                         DebugWrite("Starting a rule printer thread.", 5);
                         try
                         {
-                            Thread.CurrentThread.Name = "ruleprinter";
+                            Thread.CurrentThread.Name = "RulePrinter";
                             //Wait the rule delay duration
                             _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(_ServerRulesDelay));
                             Int32 ruleIndex = 0;
@@ -17164,7 +17165,7 @@ namespace PRoConEvents {
                             DebugWrite("Starting a round end delay thread.", 5);
                             try
                             {
-                                Thread.CurrentThread.Name = "roundenddelay";
+                                Thread.CurrentThread.Name = "RoundEndDelay";
                                 for (int i = 0; i < 6; i++)
                                 {
                                     AdminTellMessage("Surrender Vote Succeeded. " + winningTeam.TeamName + " wins!");
@@ -17286,7 +17287,7 @@ namespace PRoConEvents {
                     DebugWrite("Starting a command printer thread.", 5);
                     try
                     {
-                        Thread.CurrentThread.Name = "commandprinter";
+                        Thread.CurrentThread.Name = "CommandPrinter";
 
                         var fullCommandList = new List<String>();
                         foreach (AdKatsCommand aCommand in _CommandIDDictionary.Values)
@@ -17376,7 +17377,7 @@ namespace PRoConEvents {
                 var uptimePrinter = new Thread(new ThreadStart(delegate {
                     DebugWrite("Starting a uptime printer thread.", 5);
                     try {
-                        Thread.CurrentThread.Name = "uptimeprinter";
+                        Thread.CurrentThread.Name = "UptimePrinter";
                         SendMessageToSource(record, "Server: " + FormatTimeString(TimeSpan.FromSeconds(_serverInfo.InfoObject.ServerUptime), 10));
                         _threadMasterWaitHandle.WaitOne(3000);
                         SendMessageToSource(record, "Procon: " + FormatTimeString(UtcDbTime() - _proconStartTime, 10));
@@ -17528,7 +17529,7 @@ namespace PRoConEvents {
                     DebugWrite("Starting a player info printer thread.", 5);
                     try
                     {
-                        Thread.CurrentThread.Name = "playerinfoprinter";
+                        Thread.CurrentThread.Name = "PlayerInfoPrinter";
                         if (record.target_player == null)
                         {
                             ConsoleError("Player null in player info printer.");
@@ -17693,7 +17694,7 @@ namespace PRoConEvents {
                     DebugWrite("Starting a player chat printer thread.", 5);
                     try
                     {
-                        Thread.CurrentThread.Name = "playerchatprinter";
+                        Thread.CurrentThread.Name = "PlayerChatPrinter";
                         if (record.target_player != null)
                         {
                             List<KeyValuePair<DateTime, string>> chatList = FetchChat(record.target_player.player_id, record.command_numeric, 30);
@@ -18053,24 +18054,24 @@ namespace PRoConEvents {
 
         private void DatabaseCommunicationThreadLoop() {
             try {
-                DebugWrite("DBCOMM: Starting Database Comm Thread", 1);
-                Thread.CurrentThread.Name = "databasecomm";
+                DebugWrite("Starting Database Comm Thread", 1);
+                Thread.CurrentThread.Name = "DatabaseComm";
                 Boolean firstRun = true;
                 DateTime loopStart;
                 var counter = new Stopwatch();
                 while (true) {
                     loopStart = UtcDbTime();
                     try {
-                        DebugWrite("DBCOMM: Entering Database Comm Thread Loop", 7);
+                        DebugWrite("Entering Database Comm Thread Loop", 7);
                         if (!_pluginEnabled) {
-                            DebugWrite("DBCOMM: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                            DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                             break;
                         }
                         //Check if database connection settings have changed
                         if (_dbSettingsChanged) {
-                            DebugWrite("DBCOMM: DB Settings have changed, calling test.", 6);
+                            DebugWrite("DB Settings have changed, calling test.", 6);
                             if (TestDatabaseConnection()) {
-                                DebugWrite("DBCOMM: Database Connection Good. Continuing Thread.", 6);
+                                DebugWrite("Database Connection Good. Continuing Thread.", 6);
                             }
                             else {
                                 _dbSettingsChanged = true;
@@ -18087,12 +18088,12 @@ namespace PRoConEvents {
                             UpdateDatabase37014000();
 
                             counter.Stop();
-                            //ConsoleWrite("DBCOMM: Initial command fetch took " + counter.ElapsedMilliseconds + "ms");
+                            //ConsoleWrite("Initial command fetch took " + counter.ElapsedMilliseconds + "ms");
                         }
                         counter.Reset();
                         counter.Start();
                         //FeedStatLoggerSettings();
-                        //ConsoleWrite("DBCOMM: FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("FeedStatLoggerSettings took " + counter.ElapsedMilliseconds + "ms");
 
                         //Update server ID
                         if (_serverInfo.ServerID <= 0) {
@@ -18134,44 +18135,44 @@ namespace PRoConEvents {
                             counter.Start();
                             RunPluginOrchestration();
                             counter.Stop();
-                            //ConsoleWrite("DBCOMM: RunPluginOrchestration took " + counter.ElapsedMilliseconds + "ms");
+                            //ConsoleWrite("RunPluginOrchestration took " + counter.ElapsedMilliseconds + "ms");
                             //Run any available SQL Updates
                             counter.Reset();
                             counter.Start();
                             RunSQLUpdates();
                             counter.Stop();
-                            //ConsoleWrite("DBCOMM: RunSQLUpdates took " + counter.ElapsedMilliseconds + "ms");
+                            //ConsoleWrite("RunSQLUpdates took " + counter.ElapsedMilliseconds + "ms");
                         }
 
                         counter.Reset();
                         counter.Start();
                         HandleSettingUploads();
                         counter.Stop();
-                        //ConsoleWrite("DBCOMM: HandleSettingUploads took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("HandleSettingUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleCommandUploads();
                         counter.Stop();
-                        //ConsoleWrite("DBCOMM: HandleCommandUploads took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("HandleCommandUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleRoleUploads();
                         counter.Stop();
-                        //ConsoleWrite("DBCOMM: HandleRoleUploads took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("HandleRoleUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleRoleRemovals();
                         counter.Stop();
-                        //ConsoleWrite("DBCOMM: HandleRoleRemovals took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("HandleRoleRemovals took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
                         HandleStatisticUploads();
                         counter.Stop();
-                        //ConsoleWrite("DBCOMM: HandleStatisticUploads took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("HandleStatisticUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         counter.Reset();
                         counter.Start();
@@ -18180,10 +18181,10 @@ namespace PRoConEvents {
                             RunActionsFromDB();
                         }
                         else {
-                            DebugWrite("DBCOMM: Skipping DB action fetch", 7);
+                            DebugWrite("Skipping DB action fetch", 7);
                         }
                         counter.Stop();
-                        //ConsoleWrite("DBCOMM: RunActionsFromDB took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("RunActionsFromDB took " + counter.ElapsedMilliseconds + "ms");
 
                         HandleUserChanges();
 
@@ -18220,17 +18221,17 @@ namespace PRoConEvents {
                             }
                         }
                         counter.Stop();
-                        //ConsoleWrite("DBCOMM: HandleActiveBanEnforcer took " + counter.ElapsedMilliseconds + "ms");
+                        //ConsoleWrite("HandleActiveBanEnforcer took " + counter.ElapsedMilliseconds + "ms");
 
                         if (_UnprocessedRecordQueue.Count > 0) 
                         {
                             counter.Reset();
                             counter.Start();
-                            DebugWrite("DBCOMM: Unprocessed Record: " + _UnprocessedRecordQueue.Count + " Current: 0", 4);
-                            DebugWrite("DBCOMM: Preparing to lock inbound record queue to retrive new records", 7);
+                            DebugWrite("Unprocessed Record: " + _UnprocessedRecordQueue.Count + " Current: 0", 4);
+                            DebugWrite("Preparing to lock inbound record queue to retrive new records", 7);
                             Queue<AdKatsRecord> inboundRecords;
                             lock (_UnprocessedRecordQueue) {
-                                DebugWrite("DBCOMM: Inbound records found. Grabbing.", 6);
+                                DebugWrite("Inbound records found. Grabbing.", 6);
                                 //Grab all records in the queue
                                 inboundRecords = new Queue<AdKatsRecord>(_UnprocessedRecordQueue.ToArray());
                                 //Clear the queue for next run
@@ -18243,7 +18244,7 @@ namespace PRoConEvents {
                                 {
                                     break;
                                 }
-                                DebugWrite("DBCOMM: Unprocessed Record: " + _UnprocessedRecordQueue.Count + " Current: " + inboundRecords.Count, 4);
+                                DebugWrite("Unprocessed Record: " + _UnprocessedRecordQueue.Count + " Current: " + inboundRecords.Count, 4);
                                 //Pull the next record
                                 AdKatsRecord record = inboundRecords.Dequeue();
                                 //Process the record message
@@ -18259,7 +18260,7 @@ namespace PRoConEvents {
                                     !record.record_action_executed && 
                                     !record.record_orchestrate) {
                                     //Action is only called after initial upload, not after update
-                                    DebugWrite("DBCOMM: Upload success. Attempting to add to action queue.", 6);
+                                    DebugWrite("Upload success. Attempting to add to action queue.", 6);
 
                                     //Only queue the record for action handling if it's not an enforced ban
                                     if (record.command_type.command_key != "banenforcer_enforce") {
@@ -18267,26 +18268,26 @@ namespace PRoConEvents {
                                     }
                                 }
                                 else {
-                                    DebugWrite("DBCOMM: Record does not need action handling by this server.", 6);
+                                    DebugWrite("Record does not need action handling by this server.", 6);
                                     //finalize the record
                                     FinalizeRecord(record);
                                 }
                             }
                             counter.Stop();
-                            //ConsoleWrite("DBCOMM: UnprocessedRecords took " + counter.ElapsedMilliseconds + "ms");
+                            //ConsoleWrite("UnprocessedRecords took " + counter.ElapsedMilliseconds + "ms");
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                         }
                         else {
                             counter.Reset();
                             counter.Start();
-                            DebugWrite("DBCOMM: No unprocessed records. Waiting for input", 7);
+                            DebugWrite("No unprocessed records. Waiting for input", 7);
                             _DbCommunicationWaitHandle.Reset();
                             if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                 DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             _DbCommunicationWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             counter.Stop();
-                            //ConsoleWrite("DBCOMM: Waiting after complete took " + counter.ElapsedMilliseconds + "ms");
+                            //ConsoleWrite("Waiting after complete took " + counter.ElapsedMilliseconds + "ms");
                         }
                     }
                     catch (Exception e) {
@@ -18297,7 +18298,7 @@ namespace PRoConEvents {
                         HandleException(new AdKatsException("Error occured in Database Comm thread. Skipping current loop.", e));
                     }
                 }
-                DebugWrite("DBCOMM: Ending Database Comm Thread", 1);
+                DebugWrite("Ending Database Comm Thread", 1);
                 LogThreadExit();
             }
             catch (Exception e) {
@@ -18414,11 +18415,11 @@ namespace PRoConEvents {
                     Thread.Sleep(250);
                     try
                     {
-                        DebugWrite("DBCOMM: Preparing to lock inbound setting queue to get new settings", 7);
+                        DebugWrite("Preparing to lock inbound setting queue to get new settings", 7);
                         Queue<CPluginVariable> inboundSettingUpload;
                         lock (_SettingUploadQueue)
                         {
-                            DebugWrite("DBCOMM: Inbound settings found. Grabbing.", 6);
+                            DebugWrite("Inbound settings found. Grabbing.", 6);
                             //Grab all settings in the queue
                             inboundSettingUpload = new Queue<CPluginVariable>(_SettingUploadQueue.ToArray());
                             //Clear the queue for next run
@@ -18447,10 +18448,10 @@ namespace PRoConEvents {
         private void HandleCommandUploads() {
             //Handle Inbound Command Uploads
             if (_CommandUploadQueue.Count > 0) {
-                DebugWrite("DBCOMM: Preparing to lock inbound command queue to get new commands", 7);
+                DebugWrite("Preparing to lock inbound command queue to get new commands", 7);
                 Queue<AdKatsCommand> inboundCommandUpload;
                 lock (_CommandUploadQueue) {
-                    DebugWrite("DBCOMM: Inbound commands found. Grabbing.", 6);
+                    DebugWrite("Inbound commands found. Grabbing.", 6);
                     //Grab all commands in the queue
                     inboundCommandUpload = new Queue<AdKatsCommand>(_CommandUploadQueue.ToArray());
                     //Clear the queue for next run
@@ -18470,12 +18471,12 @@ namespace PRoConEvents {
         {
             if (_UnprocessedStatisticQueue.Count > 0)
             {
-                DebugWrite("DBCOMM: Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: 0", 4);
-                DebugWrite("DBCOMM: Preparing to lock inbound statistic queue to retrive new records", 7);
+                DebugWrite("Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: 0", 4);
+                DebugWrite("Preparing to lock inbound statistic queue to retrive new records", 7);
                 Queue<AdKatsStatistic> inboundStats;
                 lock (_UnprocessedStatisticQueue)
                 {
-                    DebugWrite("DBCOMM: Inbound statistics found. Grabbing.", 6);
+                    DebugWrite("Inbound statistics found. Grabbing.", 6);
                     //Grab all statistics in the queue
                     inboundStats = new Queue<AdKatsStatistic>(_UnprocessedStatisticQueue.ToArray());
                     //Clear the queue for next run
@@ -18488,7 +18489,7 @@ namespace PRoConEvents {
                     {
                         break;
                     }
-                    DebugWrite("DBCOMM: Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: " + inboundStats.Count, 4);
+                    DebugWrite("Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: " + inboundStats.Count, 4);
                     //Pull the next statistic
                     AdKatsStatistic aStat = inboundStats.Dequeue();
                     //Upload the statistic
@@ -18500,10 +18501,10 @@ namespace PRoConEvents {
         private void HandleRoleUploads() {
             //Handle Inbound Role Uploads
             if (_RoleUploadQueue.Count > 0) {
-                DebugWrite("DBCOMM: Preparing to lock inbound role queue to get new roles", 7);
+                DebugWrite("Preparing to lock inbound role queue to get new roles", 7);
                 Queue<AdKatsRole> inboundRoleUpload;
                 lock (_RoleUploadQueue) {
-                    DebugWrite("DBCOMM: Inbound roles found. Grabbing.", 6);
+                    DebugWrite("Inbound roles found. Grabbing.", 6);
                     //Grab all roles in the queue
                     inboundRoleUpload = new Queue<AdKatsRole>(_RoleUploadQueue.ToArray());
                     //Clear the queue for next run
@@ -18541,10 +18542,10 @@ namespace PRoConEvents {
         private void HandleRoleRemovals() {
             //Handle Inbound Role Removal
             if (_RoleRemovalQueue.Count > 0) {
-                DebugWrite("DBCOMM: Preparing to lock removal role queue to get new roles", 7);
+                DebugWrite("Preparing to lock removal role queue to get new roles", 7);
                 Queue<AdKatsRole> inboundRoleRemoval;
                 lock (_RoleRemovalQueue) {
-                    DebugWrite("DBCOMM: Inbound roles found. Grabbing.", 6);
+                    DebugWrite("Inbound roles found. Grabbing.", 6);
                     //Grab all roles in the queue
                     inboundRoleRemoval = new Queue<AdKatsRole>(_RoleRemovalQueue.ToArray());
                     //Clear the queue for next run
@@ -18573,7 +18574,7 @@ namespace PRoConEvents {
         private void HandleUserChanges() {
             //Handle access updates
             if (_UserUploadQueue.Count > 0 || _UserRemovalQueue.Count > 0) {
-                DebugWrite("DBCOMM: Inbound access changes found. Grabbing.", 6);
+                DebugWrite("Inbound access changes found. Grabbing.", 6);
                 Queue<AdKatsUser> inboundUserUploads;
                 lock (_UserUploadQueue) {
                     inboundUserUploads = new Queue<AdKatsUser>(_UserUploadQueue.ToArray());
@@ -18601,7 +18602,7 @@ namespace PRoConEvents {
                 FetchAllAccess(true);
             }
             else {
-                DebugWrite("DBCOMM: No inbound user changes.", 7);
+                DebugWrite("No inbound user changes.", 7);
             }
         }
 
@@ -18641,17 +18642,17 @@ namespace PRoConEvents {
                 }
                 else
                 {
-                    DebugWrite("DBCOMM: Skipping DB ban fetch", 7);
+                    DebugWrite("Skipping DB ban fetch", 7);
                 }
 
                 //Handle Inbound Ban Comms
                 if (_BanEnforcerProcessingQueue.Count > 0)
                 {
-                    DebugWrite("DBCOMM: Preparing to lock inbound ban enforcer queue to retrive new bans", 7);
+                    DebugWrite("Preparing to lock inbound ban enforcer queue to retrive new bans", 7);
                     Queue<AdKatsBan> inboundBans;
                     lock (_BanEnforcerProcessingQueue)
                     {
-                        DebugWrite("DBCOMM: Inbound bans found. Grabbing.", 6);
+                        DebugWrite("Inbound bans found. Grabbing.", 6);
                         //Grab all messages in the queue
                         inboundBans = new Queue<AdKatsBan>(_BanEnforcerProcessingQueue.ToArray());
                         //Clear the queue for next run
@@ -18669,7 +18670,7 @@ namespace PRoConEvents {
                         //Grab the ban
                         AdKatsBan aBan = inboundBans.Dequeue();
 
-                        DebugWrite("DBCOMM: Processing Frostbite Ban: " + index++, 6);
+                        DebugWrite("Processing Frostbite Ban: " + index++, 6);
 
                         //Upload the ban
                         UploadBan(aBan);
@@ -18698,7 +18699,7 @@ namespace PRoConEvents {
                     {
                         ConsoleWarn("Do not disable AdKats or change any settings until upload is complete!");
                     }
-                    DebugWrite("DBCOMM: Preparing to lock inbound cBan queue to retrive new cBans", 7);
+                    DebugWrite("Preparing to lock inbound cBan queue to retrive new cBans", 7);
                     Double totalCBans = 0;
                     Double bansImported = 0;
                     Boolean earlyExit = false;
@@ -18706,7 +18707,7 @@ namespace PRoConEvents {
                     Queue<CBanInfo> inboundCBans;
                     lock (_CBanProcessingQueue)
                     {
-                        DebugWrite("DBCOMM: Inbound cBans found. Grabbing.", 6);
+                        DebugWrite("Inbound cBans found. Grabbing.", 6);
                         //Grab all cBans in the queue
                         inboundCBans = new Queue<CBanInfo>(_CBanProcessingQueue.ToArray());
                         totalCBans = inboundCBans.Count;
@@ -20018,7 +20019,7 @@ namespace PRoConEvents {
                 return true;
             }
             try {
-                DebugWrite("DBCOMM: Entering handle record upload", 5);
+                DebugWrite("Entering handle record upload", 5);
                 if (record.record_id != -1 || record.record_action_executed) {
                     //Record already has a record ID, or action has already been taken, it can only be updated
                     if (record.command_type.command_logging != AdKatsCommand.CommandLogging.Ignore &&
@@ -20027,19 +20028,19 @@ namespace PRoConEvents {
                     {
                         if (record.record_exception == null) {
                             //Only call update if the record contained no errors
-                            DebugWrite("DBCOMM: UPDATING record for " + record.command_type, 5);
+                            DebugWrite("UPDATING record for " + record.command_type, 5);
                             //Update Record
                             UpdateRecord(record);
                             return false;
                         }
-                        DebugWrite("DBCOMM: " + record.command_type + " record contained errors, skipping UPDATE", 4);
+                        DebugWrite("" + record.command_type + " record contained errors, skipping UPDATE", 4);
                     }
                     else {
-                        DebugWrite("DBCOMM: Skipping record UPDATE for " + record.command_type, 5);
+                        DebugWrite("Skipping record UPDATE for " + record.command_type, 5);
                     }
                 }
                 else {
-                    DebugWrite("DBCOMM: Record needs full upload, checking.", 5);
+                    DebugWrite("Record needs full upload, checking.", 5);
                     //No record ID. Perform full upload
                     switch (record.command_type.command_key) {
                         //TODO: Add ability for multiple targets
@@ -20051,13 +20052,13 @@ namespace PRoConEvents {
                                 if (iroStatus) {
                                     record.isIRO = true;
                                     //Upload record twice
-                                    DebugWrite("DBCOMM: UPLOADING IRO Punish", 5); //IRO - Immediate Repeat Offence
+                                    DebugWrite("UPLOADING IRO Punish", 5); //IRO - Immediate Repeat Offence
                                     UploadRecord(record);
                                     UploadRecord(record);
                                 }
                                 else {
                                     //Upload record once
-                                    DebugWrite("DBCOMM: UPLOADING Punish", 5);
+                                    DebugWrite("UPLOADING Punish", 5);
                                     UploadRecord(record);
                                 }
                             }
@@ -20070,7 +20071,7 @@ namespace PRoConEvents {
                         case "player_forgive":
                             //Upload for forgive is required
                             //No restriction on forgives/minute
-                            DebugWrite("DBCOMM: UPLOADING Forgive", 5);
+                            DebugWrite("UPLOADING Forgive", 5);
                             UploadRecord(record);
                             break;
                         default:
@@ -20649,7 +20650,7 @@ namespace PRoConEvents {
                                     sourceReputation += (weight * command_count);
                                 }
                                 else {
-                                    ConsoleError("Unable to find source weight for type|action: " + typeAction);
+                                    ConsoleError("Unable to find source weight for type|" + typeAction);
                                 }
                             }
                         }
@@ -20677,7 +20678,7 @@ namespace PRoConEvents {
                                     targetReputation += (weight * command_count);
                                 }
                                 else {
-                                    ConsoleError("Unable to find target weight for type|action: " + typeAction);
+                                    ConsoleError("Unable to find target weight for type|" + typeAction);
                                 }
                             }
                         }
@@ -20716,7 +20717,7 @@ namespace PRoConEvents {
                                 }
                                 else
                                 {
-                                    ConsoleError("Unable to find source weight for type|action: " + typeAction);
+                                    ConsoleError("Unable to find source weight for type|" + typeAction);
                                 }
                                 if (_commandTargetReputationDictionary.TryGetValue(typeAction, out weight))
                                 {
@@ -20724,7 +20725,7 @@ namespace PRoConEvents {
                                 }
                                 else
                                 {
-                                    ConsoleError("Unable to find target weight for type|action: " + typeAction);
+                                    ConsoleError("Unable to find target weight for type|" + typeAction);
                                 }
                             }
                         }
@@ -28256,7 +28257,7 @@ namespace PRoConEvents {
 
         public void DebugWrite(String msg, Int32 level) {
             if (_debugLevel >= level) {
-                ConsoleWrite(msg, ConsoleMessageType.Normal);
+                ConsoleWrite(level + ":(" + ((String.IsNullOrEmpty(Thread.CurrentThread.Name))?("main"):(Thread.CurrentThread.Name)) + ":" + Thread.CurrentThread.ManagedThreadId + ") " + msg, ConsoleMessageType.Normal);
             }
         }
 
@@ -29675,7 +29676,7 @@ namespace PRoConEvents {
                     //This thread will remain running for the duration the layer is online
                     var emailSendingThread = new Thread(new ThreadStart(delegate {
                         try {
-                            Thread.CurrentThread.Name = "emailsending";
+                            Thread.CurrentThread.Name = "EmailSending";
                             String subject = String.Empty;
                             String body = String.Empty;
 
@@ -29835,23 +29836,23 @@ namespace PRoConEvents {
 
             public void EmailProcessingThreadLoop() {
                 try {
-                    Plugin.DebugWrite("EMAIL: Starting Email Handling Thread", 1);
-                    Thread.CurrentThread.Name = "EmailHandling";
+                    Plugin.DebugWrite("Starting Email Handling Thread", 1);
+                    Thread.CurrentThread.Name = "EmailProcessing";
                     DateTime loopStart = Plugin.UtcDbTime();
                     while (true) {
                         try {
-                            Plugin.DebugWrite("EMAIL: Entering Email Handling Thread Loop", 7);
+                            Plugin.DebugWrite("Entering Email Handling Thread Loop", 7);
                             if (!Plugin._pluginEnabled) {
-                                Plugin.DebugWrite("EMAIL: Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
+                                Plugin.DebugWrite("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
                                 break;
                             }
 
                             //Get all unprocessed inbound emails
                             var inboundEmailMessages = new Queue<MailMessage>();
                             if (_EmailProcessingQueue.Any()) {
-                                Plugin.DebugWrite("EMAIL: Preparing to lock inbound mail queue to retrive new mail", 7);
+                                Plugin.DebugWrite("Preparing to lock inbound mail queue to retrive new mail", 7);
                                 lock (_EmailProcessingQueue) {
-                                    Plugin.DebugWrite("EMAIL: Inbound mail found. Grabbing.", 6);
+                                    Plugin.DebugWrite("Inbound mail found. Grabbing.", 6);
                                     //Grab all mail in the queue
                                     inboundEmailMessages = new Queue<MailMessage>(_EmailProcessingQueue.ToArray());
                                     //Clear the queue for next run
@@ -29859,7 +29860,7 @@ namespace PRoConEvents {
                                 }
                             }
                             else {
-                                Plugin.DebugWrite("EMAIL: No inbound mail. Waiting for Input.", 6);
+                                Plugin.DebugWrite("No inbound mail. Waiting for Input.", 6);
                                 //Wait for input
                                 if ((Plugin.UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                                     Plugin.DebugWrite("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((Plugin.UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
@@ -29874,19 +29875,19 @@ namespace PRoConEvents {
                                 if (!Plugin._pluginEnabled) {
                                     break;
                                 }
-                                Plugin.DebugWrite("EMAIL: begin reading mail", 6);
+                                Plugin.DebugWrite("begin reading mail", 6);
                                 MailMessage message = inboundEmailMessages.Dequeue();
                                 if (Plugin._debugLevel >= 5) {
-                                    Plugin.ConsoleWrite("EMAIL: server: " + SMTPServer);
-                                    Plugin.ConsoleWrite("EMAIL: port: " + SMTPPort);
-                                    Plugin.ConsoleWrite("EMAIL: user/pass: " + ((!String.IsNullOrEmpty(SMTPUser) && !String.IsNullOrEmpty(SMTPPassword)) ? "OK" : "INVALID"));
-                                    Plugin.ConsoleWrite("EMAIL: details sender: " + message.Sender);
-                                    Plugin.ConsoleWrite("EMAIL: details from: " + message.From);
-                                    Plugin.ConsoleWrite("EMAIL: details to: " + message.To);
-                                    Plugin.ConsoleWrite("EMAIL: details cc: " + message.CC);
-                                    Plugin.ConsoleWrite("EMAIL: details bcc: " + message.Bcc);
-                                    Plugin.ConsoleWrite("EMAIL: details subject: " + message.Subject);
-                                    Plugin.ConsoleWrite("EMAIL: details body: " + message.Body);
+                                    Plugin.ConsoleWrite("server: " + SMTPServer);
+                                    Plugin.ConsoleWrite("port: " + SMTPPort);
+                                    Plugin.ConsoleWrite("user/pass: " + ((!String.IsNullOrEmpty(SMTPUser) && !String.IsNullOrEmpty(SMTPPassword)) ? "OK" : "INVALID"));
+                                    Plugin.ConsoleWrite("details sender: " + message.Sender);
+                                    Plugin.ConsoleWrite("details from: " + message.From);
+                                    Plugin.ConsoleWrite("details to: " + message.To);
+                                    Plugin.ConsoleWrite("details cc: " + message.CC);
+                                    Plugin.ConsoleWrite("details bcc: " + message.Bcc);
+                                    Plugin.ConsoleWrite("details subject: " + message.Subject);
+                                    Plugin.ConsoleWrite("details body: " + message.Body);
                                 }
                                 //Dequeue the first/next mail
                                 var smtp = new SmtpClient(SMTPServer, SMTPPort) {
@@ -29918,7 +29919,7 @@ namespace PRoConEvents {
                             Plugin.HandleException(new AdKatsException("Error occured in mail processing thread. skipping loop.", e));
                         }
                     }
-                    Plugin.DebugWrite("EMAIL: Ending mail Processing Thread", 1);
+                    Plugin.DebugWrite("Ending mail Processing Thread", 1);
                     Plugin.LogThreadExit();
                 }
                 catch (Exception e) {
