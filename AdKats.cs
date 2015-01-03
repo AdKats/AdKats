@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.1.4
- * 1-JAN-2015
+ * Version 6.0.1.5
+ * 3-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.1.4</version_code>
+ * <version_code>6.0.1.5</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.1.4";
+        private const String PluginVersion = "6.0.1.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -441,7 +441,6 @@ namespace PRoConEvents {
         private Int64 _GUIDBanCount = -1;
         private Int64 _IPBanCount = -1;
         private Int64 _NameBanCount = -1;
-        private readonly DateTime _PermaBanEndTime = DateTime.UtcNow.AddYears(20);
         private TimeSpan _MaxTempBanDuration = TimeSpan.FromDays(3650);
         //Metabans
         private Boolean _useMetabans;
@@ -6252,7 +6251,7 @@ namespace PRoConEvents {
                                             {
                                                 OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
                                             }
-                                            else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1)
+                                            else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                 OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                         }
                                     }
@@ -6300,7 +6299,7 @@ namespace PRoConEvents {
                                             {
                                                 OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
                                             }
-                                            else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1)
+                                            else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                 OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                         }
                                     }
@@ -6349,7 +6348,7 @@ namespace PRoConEvents {
                                                     {
                                                         OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
                                                     }
-                                                    else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1)
+                                                    else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                         OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                                 }
                                             }
@@ -6395,7 +6394,7 @@ namespace PRoConEvents {
                                                     {
                                                         OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
                                                     }
-                                                    else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1)
+                                                    else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                         OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                                 }
                                             }
@@ -10104,8 +10103,8 @@ namespace PRoConEvents {
                     DebugWrite("Command not parsable", 6);
                     if (record.record_source == AdKatsRecord.Sources.ExternalPlugin) {
                         SendMessageToSource(record, "Command not parsable.");
-                        FinalizeRecord(record);
                     }
+                    FinalizeRecord(record);
                     return;
                 }
 
@@ -10186,6 +10185,7 @@ namespace PRoConEvents {
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                FinalizeRecord(record);
                                 return;
                         }
                     }
@@ -10223,6 +10223,7 @@ namespace PRoConEvents {
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                FinalizeRecord(record);
                                 return;
                         }
                     }
@@ -10677,43 +10678,55 @@ namespace PRoConEvents {
                         //Default is minutes
                         Double recordDuration = 0.0;
                         Double durationMultiplier = 1.0;
-                        if (parameters.Length > 0) {
+                        if (parameters.Length > 0)
+                        {
                             String stringDuration = parameters[0].ToLower();
                             DebugWrite("Raw Duration: " + stringDuration, 6);
-                            if (stringDuration.EndsWith("s")) {
+                            if (stringDuration.EndsWith("s"))
+                            {
                                 stringDuration = stringDuration.TrimEnd('s');
                                 durationMultiplier = (1.0 / 60.0);
                             }
-                            else if (stringDuration.EndsWith("m")) {
+                            else if (stringDuration.EndsWith("m"))
+                            {
                                 stringDuration = stringDuration.TrimEnd('m');
                                 durationMultiplier = 1.0;
                             }
-                            else if (stringDuration.EndsWith("h")) {
+                            else if (stringDuration.EndsWith("h"))
+                            {
                                 stringDuration = stringDuration.TrimEnd('h');
                                 durationMultiplier = 60.0;
                             }
-                            else if (stringDuration.EndsWith("d")) {
+                            else if (stringDuration.EndsWith("d"))
+                            {
                                 stringDuration = stringDuration.TrimEnd('d');
                                 durationMultiplier = 1440.0;
                             }
-                            else if (stringDuration.EndsWith("w")) {
+                            else if (stringDuration.EndsWith("w"))
+                            {
                                 stringDuration = stringDuration.TrimEnd('w');
                                 durationMultiplier = 10080.0;
                             }
-                            else if (stringDuration.EndsWith("y")) {
+                            else if (stringDuration.EndsWith("y"))
+                            {
                                 stringDuration = stringDuration.TrimEnd('y');
                                 durationMultiplier = 525949.0;
                             }
-                            if (!Double.TryParse(stringDuration, out recordDuration)) {
-                                SendMessageToSource(record, "Invalid time given, unable to submit.");
+                            if (!Double.TryParse(stringDuration, out recordDuration))
+                            {
+                                SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                FinalizeRecord(record);
                                 return;
                             }
-                            record.command_numeric = (int) (recordDuration * durationMultiplier);
-                            if (record.command_numeric > 5259490.0) {
+                            record.command_numeric = (int)(recordDuration * durationMultiplier);
+                            if (record.command_numeric > 5259490.0)
+                            {
                                 SendMessageToSource(record, "You cannot temp ban for longer than 10 years. Issue a permanent ban instead.");
+                                FinalizeRecord(record);
                                 return;
                             }
-                            if (record.command_numeric > _MaxTempBanDuration.TotalMinutes) {
+                            if (record.command_numeric > _MaxTempBanDuration.TotalMinutes)
+                            {
                                 SendMessageToSource(record, "You cannot temp ban for longer than " + FormatTimeString(_MaxTempBanDuration, 2) + ". Defaulting to max temp ban time.");
                                 record.command_numeric = (int)_MaxTempBanDuration.TotalMinutes;
                             }
@@ -10892,6 +10905,7 @@ namespace PRoConEvents {
                             }
                             if (!Double.TryParse(stringDuration, out recordDuration)) {
                                 SendMessageToSource(record, "Invalid time given, unable to submit.");
+                                FinalizeRecord(record);
                                 return;
                             }
                             record.command_numeric = (int) (recordDuration * durationMultiplier);
@@ -11051,7 +11065,7 @@ namespace PRoConEvents {
                             {
                                 case 1:
                                     record.target_name = parameters[0];
-                                    record.record_message = "Hacker-Checker Whitelist Player";
+                                    record.record_message = "Permanent Hacker-Checker Whitelist";
                                     break;
                                 case 2:
                                     record.target_name = parameters[0];
@@ -11069,13 +11083,6 @@ namespace PRoConEvents {
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
                                     FinalizeRecord(record);
                                     return;
-                            }
-
-                            if (String.IsNullOrEmpty(record.target_name) || record.target_name.Length < 3)
-                            {
-                                SendMessageToSource(record, "Name search must be at least 3 characters.");
-                                FinalizeRecord(record);
-                                return;
                             }
                             CompleteTargetInformation(record, false, true, false);
                         }
@@ -11085,39 +11092,114 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            String defaultReason = "Ping Whitelist";
+
                             //Parse parameters using max param count
-                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                DebugWrite("Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in seconds
+                                    record.command_numeric = 631139040;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
                             switch (parameters.Length)
                             {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
                                 case 1:
-                                    record.target_name = parameters[0];
-                                    record.record_message = "Ping Whitelist Player";
+                                    //time
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
                                     break;
                                 case 2:
-                                    record.target_name = parameters[0];
-
-                                    //attempt to handle via pre-message ID
-                                    record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    DebugWrite("target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
                                         SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
                                         FinalizeRecord(record);
                                         return;
                                     }
+                                    DebugWrite("" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
                                     FinalizeRecord(record);
                                     return;
                             }
-
-                            if (String.IsNullOrEmpty(record.target_name) || record.target_name.Length < 3)
-                            {
-                                SendMessageToSource(record, "Name search must be at least 3 characters.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            CompleteTargetInformation(record, false, true, false);
                         }
                         break;
                     case "player_whitelistaa":
@@ -11125,39 +11207,114 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            String defaultReason = "Admin Assistant Whitelist";
+
                             //Parse parameters using max param count
-                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                DebugWrite("Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in seconds
+                                    record.command_numeric = 631139040;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
                             switch (parameters.Length)
                             {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
                                 case 1:
-                                    record.target_name = parameters[0];
-                                    record.record_message = "Admin Assistant Whitelist Player";
+                                    //time
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
                                     break;
                                 case 2:
-                                    record.target_name = parameters[0];
-
-                                    //attempt to handle via pre-message ID
-                                    record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    DebugWrite("target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
                                         SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
                                         FinalizeRecord(record);
                                         return;
                                     }
+                                    DebugWrite("" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
                                     FinalizeRecord(record);
                                     return;
                             }
-
-                            if (String.IsNullOrEmpty(record.target_name) || record.target_name.Length < 3)
-                            {
-                                SendMessageToSource(record, "Name search must be at least 3 characters.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            CompleteTargetInformation(record, false, true, false);
                         }
                         break;
                     case "player_whitelistspambot":
@@ -11172,39 +11329,114 @@ namespace PRoConEvents {
                                 return;
                             }
 
+                            String defaultReason = "Spambot Whitelist";
+
                             //Parse parameters using max param count
-                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                DebugWrite("Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in seconds
+                                    record.command_numeric = 631139040;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
                             switch (parameters.Length)
                             {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
                                 case 1:
-                                    record.target_name = parameters[0];
-                                    record.record_message = "SpamBot Whitelist Player";
+                                    //time
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
                                     break;
                                 case 2:
-                                    record.target_name = parameters[0];
-
-                                    //attempt to handle via pre-message ID
-                                    record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    DebugWrite("target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
                                         SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
                                         FinalizeRecord(record);
                                         return;
                                     }
+                                    DebugWrite("" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
                                     FinalizeRecord(record);
                                     return;
                             }
-
-                            if (String.IsNullOrEmpty(record.target_name) || record.target_name.Length < 3)
-                            {
-                                SendMessageToSource(record, "Name search must be at least 3 characters.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            CompleteTargetInformation(record, false, true, false);
                         }
                         break;
                     case "player_punish": {
@@ -11466,57 +11698,8 @@ namespace PRoConEvents {
                         CancelSourcePendingAction(record);
 
                         SendMessageToSource(record, "This command has been permanently disabled. - ColColonCleaner");
+                        FinalizeRecord(record);
                         return;
-
-                        if (_serverInfo.ServerType == "OFFICIAL") {
-                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
-                            FinalizeRecord(record);
-                            return;
-                        }
-
-                        //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 2);
-                        switch (parameters.Length) {
-                            case 0:
-                                if (record.record_source != AdKatsRecord.Sources.InGame) {
-                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
-                                    FinalizeRecord(record);
-                                    return;
-                                }
-                                record.record_message = "Self-Inflicted";
-                                record.target_name = record.source_name;
-                                CompleteTargetInformation(record, true, false, false);
-                                break;
-                            case 1:
-                                record.target_name = parameters[0];
-                                //Handle based on report ID as only option
-                                if (!HandleRoundReport(record)) {
-                                    SendMessageToSource(record, "No reason given, unable to submit.");
-                                    FinalizeRecord(record);
-                                }
-                                break;
-                            case 2:
-                                record.target_name = parameters[0];
-
-                                //attempt to handle via pre-message ID
-                                record.record_message = GetPreMessage(parameters[1], false);
-
-                                //Handle based on report ID if possible
-                                if (!HandleRoundReport(record)) {
-                                    if (record.record_message.Length >= _RequiredReasonLength) {
-                                        CompleteTargetInformation(record, false, false, false);
-                                    }
-                                    else {
-                                        SendMessageToSource(record, "Reason too short, unable to submit.");
-                                        FinalizeRecord(record);
-                                    }
-                                }
-                                break;
-                            default:
-                                SendMessageToSource(record, "Invalid parameters, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
-                        }
                     }
                         break;
                     case "player_report": {
@@ -11695,7 +11878,7 @@ namespace PRoConEvents {
                                         record.command_numeric = 5;
                                         CompleteTargetInformation(record, false, false, false);
                                     }
-                                    return;
+                                    break;
                                 case 2:
                                     //Three cases
                                     if (Int32.TryParse(parameters[0], out numeric) && numeric <= 30)
@@ -13114,24 +13297,106 @@ namespace PRoConEvents {
                             return;
                         }
 
+                        String defaultReason = "Autobalancer Dispersion";
+
                         //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 2);
+                        String[] parameters = ParseParameters(remainingMessage, 3);
+
+                        if (parameters.Length > 0)
+                        {
+                            String stringDuration = parameters[0].ToLower();
+                            DebugWrite("Raw Duration: " + stringDuration, 6);
+                            if (stringDuration == "perm")
+                            {
+                                //20 years in seconds
+                                record.command_numeric = 631139040;
+                                defaultReason = "Permanent " + defaultReason;
+                            }
+                            else
+                            {
+                                //Default is minutes
+                                Double recordDuration = 0.0;
+                                Double durationMultiplier = 1.0;
+                                if (stringDuration.EndsWith("s"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('s');
+                                    durationMultiplier = (1.0 / 60.0);
+                                }
+                                else if (stringDuration.EndsWith("m"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('m');
+                                    durationMultiplier = 1.0;
+                                }
+                                else if (stringDuration.EndsWith("h"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('h');
+                                    durationMultiplier = 60.0;
+                                }
+                                else if (stringDuration.EndsWith("d"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('d');
+                                    durationMultiplier = 1440.0;
+                                }
+                                else if (stringDuration.EndsWith("w"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('w');
+                                    durationMultiplier = 10080.0;
+                                }
+                                else if (stringDuration.EndsWith("y"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('y');
+                                    durationMultiplier = 525949.0;
+                                }
+                                if (!Double.TryParse(stringDuration, out recordDuration))
+                                {
+                                    SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                if (record.command_numeric <= 0)
+                                {
+                                    SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                            }
+                        }
+
                         switch (parameters.Length) {
                             case 0:
+                                //No parameters
                                 SendMessageToSource(record, "No parameters given, unable to submit.");
                                 FinalizeRecord(record);
                                 return;
                             case 1:
-                                record.target_name = parameters[0];
-                                record.record_message = "Server Balance";
-                                CompleteTargetInformation(record, false, false, false);
+                                //time
+                                record.target_name = record.source_name;
+                                record.record_message = defaultReason;
+                                CompleteTargetInformation(record, false, true, false);
                                 break;
                             case 2:
-                                record.target_name = parameters[0];
+                                //time
+                                //player
+                                record.target_name = parameters[1];
+                                record.record_message = defaultReason;
+                                CompleteTargetInformation(record, false, true, false);
+                                break;
+                            case 3:
+                                //time
+                                //player
+                                //reason
+                                record.target_name = parameters[1];
                                 DebugWrite("target: " + record.target_name, 6);
-                                record.record_message = GetPreMessage(parameters[1], false);
+                                record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                if (record.record_message == null) {
+                                    SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 DebugWrite("" + record.record_message, 6);
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, true, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -13150,25 +13415,108 @@ namespace PRoConEvents {
                             return;
                         }
 
+                        String defaultReason = "Autobalancer Whitelist";
+
                         //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 2);
-                        switch (parameters.Length) {
+                        String[] parameters = ParseParameters(remainingMessage, 3);
+
+                        if (parameters.Length > 0)
+                        {
+                            String stringDuration = parameters[0].ToLower();
+                            DebugWrite("Raw Duration: " + stringDuration, 6);
+                            if (stringDuration == "perm")
+                            {
+                                //20 years in seconds
+                                record.command_numeric = 631139040;
+                                defaultReason = "Permanent " + defaultReason;
+                            }
+                            else
+                            {
+                                //Default is minutes
+                                Double recordDuration = 0.0;
+                                Double durationMultiplier = 1.0;
+                                if (stringDuration.EndsWith("s"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('s');
+                                    durationMultiplier = (1.0 / 60.0);
+                                }
+                                else if (stringDuration.EndsWith("m"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('m');
+                                    durationMultiplier = 1.0;
+                                }
+                                else if (stringDuration.EndsWith("h"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('h');
+                                    durationMultiplier = 60.0;
+                                }
+                                else if (stringDuration.EndsWith("d"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('d');
+                                    durationMultiplier = 1440.0;
+                                }
+                                else if (stringDuration.EndsWith("w"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('w');
+                                    durationMultiplier = 10080.0;
+                                }
+                                else if (stringDuration.EndsWith("y"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('y');
+                                    durationMultiplier = 525949.0;
+                                }
+                                if (!Double.TryParse(stringDuration, out recordDuration))
+                                {
+                                    SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                if (record.command_numeric <= 0)
+                                {
+                                    SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                            }
+                        }
+
+                        switch (parameters.Length)
+                        {
                             case 0:
+                                //No parameters
                                 SendMessageToSource(record, "No parameters given, unable to submit.");
                                 FinalizeRecord(record);
                                 return;
                             case 1:
-                                SendMessageToSource(record, "No message given, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
+                                //time
+                                record.target_name = record.source_name;
+                                record.record_message = defaultReason;
+                                CompleteTargetInformation(record, false, true, false);
+                                break;
                             case 2:
-                                record.target_name = parameters[0];
+                                //time
+                                //player
+                                record.target_name = parameters[1];
+                                record.record_message = defaultReason;
+                                CompleteTargetInformation(record, false, true, false);
+                                break;
+                            case 3:
+                                //time
+                                //player
+                                //reason
+                                record.target_name = parameters[1];
                                 DebugWrite("target: " + record.target_name, 6);
-
-                                record.record_message = GetPreMessage(parameters[1], false);
+                                record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                if (record.record_message == null)
+                                {
+                                    SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 DebugWrite("" + record.record_message, 6);
-
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, true, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -13187,25 +13535,108 @@ namespace PRoConEvents {
                             return;
                         }
 
+                        String defaultReason = "Reserved Slot";
+
                         //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 2);
-                        switch (parameters.Length) {
+                        String[] parameters = ParseParameters(remainingMessage, 3);
+
+                        if (parameters.Length > 0)
+                        {
+                            String stringDuration = parameters[0].ToLower();
+                            DebugWrite("Raw Duration: " + stringDuration, 6);
+                            if (stringDuration == "perm")
+                            {
+                                //20 years in seconds
+                                record.command_numeric = 631139040;
+                                defaultReason = "Permanent " + defaultReason;
+                            }
+                            else
+                            {
+                                //Default is minutes
+                                Double recordDuration = 0.0;
+                                Double durationMultiplier = 1.0;
+                                if (stringDuration.EndsWith("s"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('s');
+                                    durationMultiplier = (1.0 / 60.0);
+                                }
+                                else if (stringDuration.EndsWith("m"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('m');
+                                    durationMultiplier = 1.0;
+                                }
+                                else if (stringDuration.EndsWith("h"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('h');
+                                    durationMultiplier = 60.0;
+                                }
+                                else if (stringDuration.EndsWith("d"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('d');
+                                    durationMultiplier = 1440.0;
+                                }
+                                else if (stringDuration.EndsWith("w"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('w');
+                                    durationMultiplier = 10080.0;
+                                }
+                                else if (stringDuration.EndsWith("y"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('y');
+                                    durationMultiplier = 525949.0;
+                                }
+                                if (!Double.TryParse(stringDuration, out recordDuration))
+                                {
+                                    SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                if (record.command_numeric <= 0)
+                                {
+                                    SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                            }
+                        }
+
+                        switch (parameters.Length)
+                        {
                             case 0:
+                                //No parameters
                                 SendMessageToSource(record, "No parameters given, unable to submit.");
                                 FinalizeRecord(record);
                                 return;
                             case 1:
-                                SendMessageToSource(record, "No message given, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
+                                //time
+                                record.target_name = record.source_name;
+                                record.record_message = defaultReason;
+                                CompleteTargetInformation(record, false, true, false);
+                                break;
                             case 2:
-                                record.target_name = parameters[0];
+                                //time
+                                //player
+                                record.target_name = parameters[1];
+                                record.record_message = defaultReason;
+                                CompleteTargetInformation(record, false, true, false);
+                                break;
+                            case 3:
+                                //time
+                                //player
+                                //reason
+                                record.target_name = parameters[1];
                                 DebugWrite("target: " + record.target_name, 6);
-
-                                record.record_message = GetPreMessage(parameters[1], false);
+                                record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                if (record.record_message == null)
+                                {
+                                    SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 DebugWrite("" + record.record_message, 6);
-
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, true, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -13224,25 +13655,108 @@ namespace PRoConEvents {
                             return;
                         }
 
+                        String defaultReason = "Spectator Slot";
+
                         //Parse parameters using max param count
-                        String[] parameters = ParseParameters(remainingMessage, 2);
-                        switch (parameters.Length) {
+                        String[] parameters = ParseParameters(remainingMessage, 3);
+
+                        if (parameters.Length > 0)
+                        {
+                            String stringDuration = parameters[0].ToLower();
+                            DebugWrite("Raw Duration: " + stringDuration, 6);
+                            if (stringDuration == "perm")
+                            {
+                                //20 years in seconds
+                                record.command_numeric = 631139040;
+                                defaultReason = "Permanent " + defaultReason;
+                            }
+                            else
+                            {
+                                //Default is minutes
+                                Double recordDuration = 0.0;
+                                Double durationMultiplier = 1.0;
+                                if (stringDuration.EndsWith("s"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('s');
+                                    durationMultiplier = (1.0 / 60.0);
+                                }
+                                else if (stringDuration.EndsWith("m"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('m');
+                                    durationMultiplier = 1.0;
+                                }
+                                else if (stringDuration.EndsWith("h"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('h');
+                                    durationMultiplier = 60.0;
+                                }
+                                else if (stringDuration.EndsWith("d"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('d');
+                                    durationMultiplier = 1440.0;
+                                }
+                                else if (stringDuration.EndsWith("w"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('w');
+                                    durationMultiplier = 10080.0;
+                                }
+                                else if (stringDuration.EndsWith("y"))
+                                {
+                                    stringDuration = stringDuration.TrimEnd('y');
+                                    durationMultiplier = 525949.0;
+                                }
+                                if (!Double.TryParse(stringDuration, out recordDuration))
+                                {
+                                    SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                if (record.command_numeric <= 0)
+                                {
+                                    SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                            }
+                        }
+
+                        switch (parameters.Length)
+                        {
                             case 0:
+                                //No parameters
                                 SendMessageToSource(record, "No parameters given, unable to submit.");
                                 FinalizeRecord(record);
                                 return;
                             case 1:
-                                SendMessageToSource(record, "No message given, unable to submit.");
-                                FinalizeRecord(record);
-                                return;
+                                //time
+                                record.target_name = record.source_name;
+                                record.record_message = defaultReason;
+                                CompleteTargetInformation(record, false, true, false);
+                                break;
                             case 2:
-                                record.target_name = parameters[0];
+                                //time
+                                //player
+                                record.target_name = parameters[1];
+                                record.record_message = defaultReason;
+                                CompleteTargetInformation(record, false, true, false);
+                                break;
+                            case 3:
+                                //time
+                                //player
+                                //reason
+                                record.target_name = parameters[1];
                                 DebugWrite("target: " + record.target_name, 6);
-
-                                record.record_message = GetPreMessage(parameters[1], false);
+                                record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                if (record.record_message == null)
+                                {
+                                    SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 DebugWrite("" + record.record_message, 6);
-
-                                CompleteTargetInformation(record, false, false, false);
+                                CompleteTargetInformation(record, false, true, false);
                                 break;
                             default:
                                 SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -13535,6 +14049,8 @@ namespace PRoConEvents {
                 }
                 if (externalFetchOverFuzzy && externalOnlineFetchOverFuzzy) {
                     ConsoleError("Cannot use both external fetches at the same time.");
+                    resultMessage = "Cannot use both external fetches at the same time.";
+                    return false;
                 }
                 //Check for an exact match
                 if (_PlayerDictionary.TryGetValue(playerNameInput, out aPlayer)) {
@@ -13557,6 +14073,7 @@ namespace PRoConEvents {
                         return true;
                     }
                     ConsoleError("Error fetching player for substring match.");
+                    resultMessage = "Error fetching player for substring match.";
                     return false;
                 }
                 if (subStringMatches.Count > 1)
@@ -13599,7 +14116,8 @@ namespace PRoConEvents {
                     //If the suggestion is still null, something has failed
                     if (suggestion == null)
                     {
-                        ConsoleError("Name suggestion system failed subString match");
+                        ConsoleError("Name suggestion system failed substring match");
+                        resultMessage = "Name suggestion system failed substring match";
                         return false;
                     }
 
@@ -13611,6 +14129,7 @@ namespace PRoConEvents {
                         return true;
                     }
                     ConsoleError("Substring match fetch failed.");
+                    resultMessage = "Substring match fetch failed.";
                     return false;
                 }
                 if (includeLeftPlayers)
@@ -13629,6 +14148,7 @@ namespace PRoConEvents {
                             return true;
                         }
                         ConsoleError("Error fetching player for substring match.");
+                        resultMessage = "Error fetching player for substring match.";
                         return false;
                     }
                     if (subStringLeftMatches.Count > 1)
@@ -13672,6 +14192,7 @@ namespace PRoConEvents {
                         if (suggestion == null)
                         {
                             ConsoleError("Name suggestion system failed subString match");
+                            resultMessage = "Name suggestion system failed subString match";
                             return false;
                         }
 
@@ -13683,11 +14204,17 @@ namespace PRoConEvents {
                             return true;
                         }
                         ConsoleError("Substring match fetch failed.");
+                        resultMessage = "Substring match fetch failed.";
                         return false;
                     }
                 }
                 if (externalFetchOverFuzzy)
                 {
+                    if (playerNameInput.Length < 3)
+                    {
+                        resultMessage = "No matching online player found, offline search must be at least 3 characters long.";
+                        return false;
+                    }
                     //No online or left player found, run external fetch over checking for fuzzy match
                     aPlayer = FetchPlayer(false, true, true, null, -1, playerNameInput, null, null);
                     if (aPlayer == null)
@@ -13729,6 +14256,7 @@ namespace PRoConEvents {
                     if (fuzzyMatch == null)
                     {
                         ConsoleError("Name suggestion system failed fuzzy match");
+                        resultMessage = "Name suggestion system failed fuzzy match";
                         return false;
                     }
                     if (_PlayerDictionary.TryGetValue(fuzzyMatch, out aPlayer))
@@ -13738,6 +14266,7 @@ namespace PRoConEvents {
                         return true;
                     }
                     ConsoleError("Player suggestion found matching player, but it could not be fetched.");
+                    resultMessage = "Player suggestion found matching player, but it could not be fetched.";
                     return false;
                 }
                 if (includeLeftPlayers && leftPlayerNames.Count > 0)
@@ -13759,6 +14288,7 @@ namespace PRoConEvents {
                     if (fuzzyMatch == null)
                     {
                         ConsoleError("Name suggestion system failed fuzzy match");
+                        resultMessage = "Name suggestion system failed fuzzy match";
                         return false;
                     }
                     if (_PlayerLeftDictionary.TryGetValue(fuzzyMatch, out aPlayer))
@@ -13768,9 +14298,11 @@ namespace PRoConEvents {
                         return true;
                     }
                     ConsoleError("Player suggestion found matching player, but it could not be fetched.");
+                    resultMessage = "Player suggestion found matching player, but it could not be fetched.";
                     return false;
                 }
                 ConsoleError("Unable to find a matching player.");
+                resultMessage = "Unable to find a matching player.";
                 return false;
             }
             catch (Exception e)
@@ -15324,7 +15856,7 @@ namespace PRoConEvents {
                             @player_server,
                             @player_identifier,
                             UTC_TIMESTAMP(),
-                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
                         )";
                         if (record.target_player.player_id <= 0) {
                             ConsoleError("Player ID invalid when dispersing. Unable to complete.");
@@ -15335,11 +15867,14 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_identifier", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
-                        if (rowsAffected > 0) {
-                            SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to even dispersion for this server.");
-                            DebugWrite("Player " + record.GetTargetNames() + " added to even dispersion for this server.", 3);
+                        if (rowsAffected > 0)
+                        {
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " autobalance dispersion on this server.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
                             FetchAllAccess(true);
                         }
                         else {
@@ -15385,16 +15920,19 @@ namespace PRoConEvents {
                             @player_server,
 	                        @player_name,
                             UTC_TIMESTAMP(),
-                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
-                        if (rowsAffected > 0) {
-                            SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to autobalance whitelist for this server.");
-                            DebugWrite("Player " + record.GetTargetNames() + " added to autobalance whitelist for this server.", 3);
+                        if (rowsAffected > 0)
+                        {
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " autobalance whitelist on this server.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
                             FetchAllAccess(true);
                         }
                         else {
@@ -15440,16 +15978,18 @@ namespace PRoConEvents {
                             @player_server,
 	                        @player_name,
                             UTC_TIMESTAMP(),
-                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0) {
-                            SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to reserved slot for this server.");
-                            DebugWrite("Player " + record.GetTargetNames() + " added to reserved slot for this server.", 3);
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040)?("permanent"):(FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " reserved slot on this server.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
                             FetchAllAccess(true);
                         }
                         else {
@@ -15500,17 +16040,19 @@ namespace PRoConEvents {
                             @player_server,
 	                        @player_name,
                             UTC_TIMESTAMP(),
-                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to spectator slot for this server.");
-                            DebugWrite("Player " + record.GetTargetNames() + " added to spectator slot for this server.", 3);
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " spectator slot on this server.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -15575,8 +16117,9 @@ namespace PRoConEvents {
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to hacker checker whitelist for all servers.");
-                            DebugWrite("Player " + record.GetTargetNames() + " added to hacker checker whitelist for all servers.", 3);
+                            String message = "Player " + record.GetTargetNames() + " given permanent hacker-checker whitelist for all servers.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -15638,16 +16181,18 @@ namespace PRoConEvents {
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to ping whitelist for all servers.");
-                            DebugWrite("Player " + record.GetTargetNames() + " added to ping whitelist for all servers.", 3);
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " ping whitelist for all servers.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -15708,16 +16253,18 @@ namespace PRoConEvents {
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to Admin Assistant whitelist for all servers.");
-                            DebugWrite("Player " + record.GetTargetNames() + " added to Admin Assistant whitelist for all servers.", 3);
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " admin assistant whitelist for all servers.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -15778,16 +16325,18 @@ namespace PRoConEvents {
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
                         )";
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            SendMessageToSource(record, "Player " + record.GetTargetNames() + " added to SpamBot whitelist for all servers.");
-                            DebugWrite("Player " + record.GetTargetNames() + " added to SpamBot whitelist for all servers.", 3);
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " spambot whitelist for all servers.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
                             FetchAllAccess(true);
                         }
                         else
@@ -20650,7 +21199,7 @@ namespace PRoConEvents {
                                     sourceReputation += (weight * command_count);
                                 }
                                 else {
-                                    ConsoleError("Unable to find source weight for type|" + typeAction);
+                                    ConsoleError("Unable to find source weight for command " + typeAction);
                                 }
                             }
                         }
@@ -20678,7 +21227,7 @@ namespace PRoConEvents {
                                     targetReputation += (weight * command_count);
                                 }
                                 else {
-                                    ConsoleError("Unable to find target weight for type|" + typeAction);
+                                    ConsoleError("Unable to find target weight for command " + typeAction);
                                 }
                             }
                         }
@@ -20717,7 +21266,7 @@ namespace PRoConEvents {
                                 }
                                 else
                                 {
-                                    ConsoleError("Unable to find source weight for type|" + typeAction);
+                                    ConsoleError("Unable to find source weight for command " + typeAction);
                                 }
                                 if (_commandTargetReputationDictionary.TryGetValue(typeAction, out weight))
                                 {
@@ -20725,7 +21274,7 @@ namespace PRoConEvents {
                                 }
                                 else
                                 {
-                                    ConsoleError("Unable to find target weight for type|" + typeAction);
+                                    ConsoleError("Unable to find target weight for command " + typeAction);
                                 }
                             }
                         }
@@ -22087,7 +22636,7 @@ namespace PRoConEvents {
                             command.Parameters.AddWithValue("@ban_sync", "*" + _serverInfo.ServerID + "*");
                             //Handle permaban case
                             if (aBan.ban_record.command_action.command_key.Contains("player_ban_perm")) {
-                                command.Parameters.AddWithValue("@ban_durationMinutes", (Int32) _PermaBanEndTime.Subtract(UtcDbTime()).TotalMinutes);
+                                command.Parameters.AddWithValue("@ban_durationMinutes", (Int32)UtcDbTime().AddYears(20).Subtract(UtcDbTime()).TotalMinutes);
                             }
                             else {
                                 command.Parameters.AddWithValue("@ban_durationMinutes", aBan.ban_record.command_numeric);
