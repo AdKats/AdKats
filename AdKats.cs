@@ -19,14 +19,15 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.2.2
+ * Version 6.0.2.3
  * 4-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.2.2</version_code>
+ * <version_code>6.0.2.3</version_code>
  */
 
 using System;
+using System.ComponentModel;
 using System.Data;
 using System.IO;
 using System.IO.Compression;
@@ -57,7 +58,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.2.2";
+        private const String PluginVersion = "6.0.2.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6294,7 +6295,7 @@ namespace PRoConEvents {
                                             {
                                                 OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
                                             }
-                                            else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
+                                            else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                 OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                         }
                                     }
@@ -6314,7 +6315,14 @@ namespace PRoConEvents {
                                             if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                             {
                                                 _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                if (_surrenderAutoTriggerCountCurrent < requiredTriggers)
+                                                {
+                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                }
+                                                else
+                                                {
+                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                }
                                             }
                                         }
                                     }
@@ -6342,7 +6350,7 @@ namespace PRoConEvents {
                                             {
                                                 OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
                                             }
-                                            else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
+                                            else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                 OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                         }
                                     }
@@ -6362,7 +6370,14 @@ namespace PRoConEvents {
                                             if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                             {
                                                 _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                if (_surrenderAutoTriggerCountCurrent < requiredTriggers)
+                                                {
+                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                }
+                                                else
+                                                {
+                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                }
                                             }
                                         }
                                     }
@@ -6391,7 +6406,7 @@ namespace PRoConEvents {
                                                     {
                                                         OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
                                                     }
-                                                    else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
+                                                    else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                         OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                                 }
                                             }
@@ -6411,7 +6426,14 @@ namespace PRoConEvents {
                                                     if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                                     {
                                                         _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                        if (_surrenderAutoTriggerCountCurrent < _surrenderAutoTriggerCountToSurrender)
+                                                        {
+                                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                        }
+                                                        else
+                                                        {
+                                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                        }
                                                     }
                                                 }
                                             }
@@ -6437,7 +6459,7 @@ namespace PRoConEvents {
                                                     {
                                                         OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
                                                     }
-                                                    else if (_surrenderAutoTriggerCountCurrent % 5 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
+                                                    else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                         OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                                 }
                                             }
@@ -6457,7 +6479,14 @@ namespace PRoConEvents {
                                                     if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                                     {
                                                         _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                        if (_surrenderAutoTriggerCountCurrent < _surrenderAutoTriggerCountToSurrender)
+                                                        {
+                                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                        }
+                                                        else
+                                                        {
+                                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                        }
                                                     }
                                                 }
                                             }
@@ -6702,7 +6731,7 @@ namespace PRoConEvents {
                 }
                 if (_surrenderAutoSucceeded || (_surrenderVoteSucceeded && _surrenderAutoTriggerCountCurrent > 0))
                 {
-                    foreach (AdKatsPlayer aPlayer in WinningPlayers.Take(10).ToList())
+                    foreach (AdKatsPlayer aPlayer in WinningPlayers.Take((Int32)((Double)WinningPlayers.Count / 3.0)).ToList())
                     {
                         QueueStatisticForProcessing(new AdKatsStatistic()
                         {
@@ -24779,7 +24808,7 @@ namespace PRoConEvents {
 	                        `baserape_count` DESC
                         ) AS `InnerResults`
                         WHERE
-	                        `baserape_count` > 5
+	                        `baserape_count` >= 7
                         AND
 	                        `win_count`/REPLACE(`loss_count`, 0, 1) > 1.0
                         ORDER BY
