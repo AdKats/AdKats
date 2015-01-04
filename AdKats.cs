@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.1.6
+ * Version 6.0.1.7
  * 3-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.1.6</version_code>
+ * <version_code>6.0.1.7</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.1.6";
+        private const String PluginVersion = "6.0.1.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1203,7 +1203,7 @@ namespace PRoConEvents {
                                             in
                                                 _CommandNameDictionary.Values
                                             where
-                                                aCommand.command_active == AdKatsCommand.CommandActive.Active
+                                                aCommand.command_active == AdKatsCommand.CommandActive.Active && aCommand.command_key != "command_confirm" && aCommand.command_key != "command_cancel"
                                             where
                                                 aRole.role_key != "guest_default" || !aCommand.command_playerInteraction
                                             let
@@ -2997,6 +2997,23 @@ namespace PRoConEvents {
                                 ConsoleError("Activity setting " + strValue + " was invalid.");
                                 return;
                             }
+                            switch (command.command_key)
+                            {
+                                case "command_confirm":
+                                    if (command.command_active != AdKatsCommand.CommandActive.Active)
+                                    {
+                                        ConsoleWarn("Confirm command must be active. Resetting.");
+                                        command.command_active = AdKatsCommand.CommandActive.Active;
+                                    }
+                                    break;
+                                case "command_cancel":
+                                    if (command.command_active != AdKatsCommand.CommandActive.Active)
+                                    {
+                                        ConsoleWarn("Cancel command must be active. Resetting.");
+                                        command.command_active = AdKatsCommand.CommandActive.Active;
+                                    }
+                                    break;
+                            }
                         }
                         else if (section == "Logging") {
                             //Check for valid value
@@ -3032,6 +3049,23 @@ namespace PRoConEvents {
                                     ConsoleError("Command text cannot be the same as another command.");
                                     return;
                                 }
+                            }
+                            switch (command.command_key)
+                            {
+                                case "command_confirm":
+                                    if (strValue != "yes")
+                                    {
+                                        ConsoleWarn("Confirm command text must be 'yes'. Resetting.");
+                                        strValue = "yes";
+                                    }
+                                    break;
+                                case "command_cancel":
+                                    if (strValue != "no")
+                                    {
+                                        ConsoleWarn("Cancel command text must be 'no'. Resetting.");
+                                        strValue = "no";
+                                    }
+                                    break;
                             }
                             //Assign the command text
                             lock (_CommandIDDictionary) {
@@ -3086,6 +3120,15 @@ namespace PRoConEvents {
                                         QueueRoleForUpload(aRole);
                                         break;
                                     case "deny":
+                                        switch (aCommand.command_key)
+                                        {
+                                            case "command_confirm":
+                                                ConsoleError("Confirm command cannot be denied for any role.");
+                                                return;
+                                            case "command_cancel":
+                                                ConsoleError("Cancel command cannot be denied for any role.");
+                                                return;
+                                        }
                                         lock (aRole.RoleAllowedCommands)
                                         {
                                             aRole.RoleAllowedCommands.Remove(aCommand.command_key);
@@ -11168,6 +11211,12 @@ namespace PRoConEvents {
                                     return;
                                 case 1:
                                     //time
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
                                     CompleteTargetInformation(record, false, true, false);
@@ -11283,6 +11332,12 @@ namespace PRoConEvents {
                                     return;
                                 case 1:
                                     //time
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
                                     CompleteTargetInformation(record, false, true, false);
@@ -11405,6 +11460,12 @@ namespace PRoConEvents {
                                     return;
                                 case 1:
                                     //time
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
                                     CompleteTargetInformation(record, false, true, false);
@@ -13372,6 +13433,12 @@ namespace PRoConEvents {
                                 return;
                             case 1:
                                 //time
+                                if (record.record_source != AdKatsRecord.Sources.InGame)
+                                {
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 record.target_name = record.source_name;
                                 record.record_message = defaultReason;
                                 CompleteTargetInformation(record, false, true, false);
@@ -13491,6 +13558,12 @@ namespace PRoConEvents {
                                 return;
                             case 1:
                                 //time
+                                if (record.record_source != AdKatsRecord.Sources.InGame)
+                                {
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 record.target_name = record.source_name;
                                 record.record_message = defaultReason;
                                 CompleteTargetInformation(record, false, true, false);
@@ -13611,6 +13684,12 @@ namespace PRoConEvents {
                                 return;
                             case 1:
                                 //time
+                                if (record.record_source != AdKatsRecord.Sources.InGame)
+                                {
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 record.target_name = record.source_name;
                                 record.record_message = defaultReason;
                                 CompleteTargetInformation(record, false, true, false);
@@ -13731,6 +13810,12 @@ namespace PRoConEvents {
                                 return;
                             case 1:
                                 //time
+                                if (record.record_source != AdKatsRecord.Sources.InGame)
+                                {
+                                    SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                                 record.target_name = record.source_name;
                                 record.record_message = defaultReason;
                                 CompleteTargetInformation(record, false, true, false);
@@ -13836,10 +13921,10 @@ namespace PRoConEvents {
                             _ActionConfirmDic.Remove(record.source_name);
                             QueueRecordForProcessing(recordAttempt);
                             FinalizeRecord(record);
+                            return;
                         }
-                        DebugWrite("no command to confirm", 6);
+                        SendMessageToSource(record, "No command to confirm.");
                         FinalizeRecord(record);
-                        //This type is not processed
                         break;
                     case "command_cancel":
                         DebugWrite("attempting to cancel command", 6);
@@ -13857,10 +13942,10 @@ namespace PRoConEvents {
                                 AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                             }
                         }
-                        else {
-                            DebugWrite("no command to cancel", 6);
+                        else
+                        {
+                            SendMessageToSource(record, "No command to cancel.");
                         }
-                        //This type is not processed
                         FinalizeRecord(record);
                         break;
                     default:
@@ -15856,28 +15941,34 @@ namespace PRoConEvents {
                             @player_server,
                             @player_identifier,
                             UTC_TIMESTAMP(),
-                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
-                        if (record.target_player.player_id <= 0) {
-                            ConsoleError("Player ID invalid when dispersing. Unable to complete.");
-                            SendMessageToSource(record, "Player ID invalid when dispersing. Unable to complete.");
+                        if (record.target_player.player_id <= 0) 
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
                             FinalizeRecord(record);
                             return;
+                        }
+                        if (record.command_numeric > 631139040) 
+                        {
+                            record.command_numeric = 631139040;
                         }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_identifier", record.target_player.player_name);
-                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " autobalance dispersion on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance dispersion on this server.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
                         }
-                        else {
+                        else 
+                        {
                             ConsoleError("Unable to add player to even dispersion. Error uploading.");
                         }
                     }
@@ -15920,17 +16011,28 @@ namespace PRoConEvents {
                             @player_server,
 	                        @player_name,
                             UTC_TIMESTAMP(),
-                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 631139040)
+                        {
+                            record.command_numeric = 631139040;
+                        }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
-                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " autobalance whitelist on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance whitelist on this server.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -15978,12 +16080,23 @@ namespace PRoConEvents {
                             @player_server,
 	                        @player_name,
                             UTC_TIMESTAMP(),
-                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 631139040)
+                        {
+                            record.command_numeric = 631139040;
+                        }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
-                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0) {
@@ -16040,17 +16153,28 @@ namespace PRoConEvents {
                             @player_server,
 	                        @player_name,
                             UTC_TIMESTAMP(),
-                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 631139040)
+                        {
+                            record.command_numeric = 631139040;
+                        }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
-                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " spectator slot on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spectator slot on this server.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -16181,16 +16305,27 @@ namespace PRoConEvents {
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 631139040)
+                        {
+                            record.command_numeric = 631139040;
+                        }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
-                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " ping whitelist for all servers.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " ping whitelist for all servers.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -16253,16 +16388,27 @@ namespace PRoConEvents {
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 631139040)
+                        {
+                            record.command_numeric = 631139040;
+                        }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
-                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " admin assistant whitelist for all servers.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " admin assistant whitelist for all servers.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -16325,16 +16471,27 @@ namespace PRoConEvents {
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_seconds SECOND)
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 631139040)
+                        {
+                            record.command_numeric = 631139040;
+                        }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
-                        command.Parameters.AddWithValue("@duration_seconds", record.command_numeric);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " spambot whitelist for all servers.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spambot whitelist for all servers.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -24130,7 +24287,8 @@ namespace PRoConEvents {
             if (HandlePossibleDisconnect()) {
                 return;
             }
-            try {
+            try
+            {
                 lock (_CommandIDDictionary) {
                     using (MySqlConnection connection = GetDatabaseConnection()) {
                         using (MySqlCommand sqlcommand = connection.CreateCommand()) {
@@ -24157,13 +24315,13 @@ namespace PRoConEvents {
                                         return;
                                     }
                                     //ID is the immutable element
-                                    int commandID = reader.GetInt32("command_id");
+                                    Int32 commandID = reader.GetInt32("command_id");
                                     var commandActive = (AdKatsCommand.CommandActive) Enum.Parse(typeof (AdKatsCommand.CommandActive), reader.GetString("command_active"));
-                                    string commandKey = reader.GetString("command_key");
+                                    String commandKey = reader.GetString("command_key");
                                     var commandLogging = (AdKatsCommand.CommandLogging) Enum.Parse(typeof (AdKatsCommand.CommandLogging), reader.GetString("command_logging"));
-                                    string commandName = reader.GetString("command_name");
-                                    string commandText = reader.GetString("command_text");
-                                    bool commandPlayerInteraction = reader.GetBoolean("command_playerInteraction");
+                                    String commandName = reader.GetString("command_name");
+                                    String commandText = reader.GetString("command_text");
+                                    Boolean commandPlayerInteraction = reader.GetBoolean("command_playerInteraction");
 
                                     validIDs.Add(commandID);
                                     AdKatsCommand currentCommand;
@@ -24212,6 +24370,41 @@ namespace PRoConEvents {
                                     if (!_commandUsageTimes.ContainsKey(currentCommand.command_key))
                                     {
                                         _commandUsageTimes[currentCommand.command_key] = UtcDbTime();
+                                    }
+                                    //Handle mandatory defaults
+                                    Boolean changed = false;
+                                    switch (currentCommand.command_key) {
+                                        case "command_confirm":
+                                            if (currentCommand.command_active != AdKatsCommand.CommandActive.Active)
+                                            {
+                                                ConsoleWarn("Confirm command must be active. Resetting.");
+                                                currentCommand.command_active = AdKatsCommand.CommandActive.Active;
+                                                changed = true;
+                                            }
+                                            if (currentCommand.command_text != "yes")
+                                            {
+                                                ConsoleWarn("Confirm command text must be 'yes'. Resetting.");
+                                                currentCommand.command_text = "yes";
+                                                changed = true;
+                                            }
+                                            break;
+                                        case "command_cancel":
+                                            if (currentCommand.command_active != AdKatsCommand.CommandActive.Active)
+                                            {
+                                                ConsoleWarn("Cancel command must be active. Resetting.");
+                                                currentCommand.command_active = AdKatsCommand.CommandActive.Active;
+                                                changed = true;
+                                            }
+                                            if (currentCommand.command_text != "no")
+                                            {
+                                                ConsoleWarn("Cancel command text must be 'no'. Resetting.");
+                                                currentCommand.command_text = "no";
+                                                changed = true;
+                                            }
+                                            break;
+                                    }
+                                    if (changed) {
+                                        QueueCommandForUpload(currentCommand);
                                     }
                                 }
                             }
@@ -24880,7 +25073,7 @@ namespace PRoConEvents {
                                                 uploadRequired = true;
                                                 continue;
                                             }
-                                            aRole.RoleAllowedCommands.Add(aCommand.command_key, aCommand);
+                                            aRole.RoleAllowedCommands[aCommand.command_key] = aCommand;
                                         }
                                     }
                                     KeyValuePair<Int64, HashSet<Int64>> element = currentRoleElement;
@@ -24890,9 +25083,37 @@ namespace PRoConEvents {
                                         {
                                             return;
                                         }
+                                        switch (remCommand.command_key)
+                                        {
+                                            case "command_confirm":
+                                                ConsoleError("Confirm command cannot be denied for any role.");
+                                                continue;
+                                            case "command_cancel":
+                                                ConsoleError("Cancel command cannot be denied for any role.");
+                                                continue;
+                                        }
                                         ConsoleInfo("Removing command " + remCommand.command_key + " from role " + aRole.role_key);
                                         aRole.RoleAllowedCommands.Remove(remCommand.command_key);
                                         uploadRequired = true;
+                                    }
+                                    //Confirm required commands
+                                    if (aRole.RoleAllowedCommands.Values.All(aCommand => aCommand.command_key != "command_confirm"))
+                                    {
+                                        var confirmCommand = GetCommandByKey("command_confirm");
+                                        if (confirmCommand != null)
+                                        {
+                                            ConsoleError("Confirm command cannot be denied for any role. Reassigning.");
+                                            aRole.RoleAllowedCommands[confirmCommand.command_key] = confirmCommand;
+                                        }
+                                    }
+                                    if (aRole.RoleAllowedCommands.Values.All(aCommand => aCommand.command_key != "command_cancel"))
+                                    {
+                                        var cancelCommand = GetCommandByKey("command_cancel");
+                                        if (cancelCommand != null)
+                                        {
+                                            ConsoleError("Cancel command cannot be denied for any role. Reassigning.");
+                                            aRole.RoleAllowedCommands[cancelCommand.command_key] = cancelCommand;
+                                        }
                                     }
                                     FillConditionalAllowedCommands(aRole);
                                     //Calculate role power level
