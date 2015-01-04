@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.2.1
- * 3-JAN-2015
+ * Version 6.0.2.2
+ * 4-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.2.1</version_code>
+ * <version_code>6.0.2.2</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.2.1";
+        private const String PluginVersion = "6.0.2.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -163,7 +163,7 @@ namespace PRoConEvents {
         private Boolean _automaticUpdatesDisabled;
         private String _currentFlagMessage;
         private Boolean _populationPopulating;
-        private readonly Dictionary<String, AdKatsPlayer> _populationPopulatingPlayers = new Dictionary<String, AdKatsPlayer>(); 
+        private readonly Dictionary<String, AdKatsPlayer> _populationPopulatingPlayers = new Dictionary<String, AdKatsPlayer>();
         private String _AdKatsLRTExtensionToken = String.Empty;
 
         //Debug
@@ -9702,22 +9702,6 @@ namespace PRoConEvents {
                     DebugWrite("Preparing to check " + record.command_type.command_key + " record for pre-upload processing.", 5);
                     switch (record.command_type.command_key)
                     {
-                        case "player_blacklistdisperse":
-                            {
-                                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player);
-                                if (matchingPlayers.Any())
-                                {
-                                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already under dispersion for this server.");
-                                    FinalizeRecord(record);
-                                    return;
-                                }
-                                DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
-                                if (record.source_name == "DispersionManager")
-                                {
-                                    OnlineAdminSayMessage(record.target_name + " automatically added to dispersion for this server.");
-                                }
-                            }
-                            break;
                         case "self_rules": {
                                 if (record.source_name != record.target_name &&
                                     record.target_player != null)
@@ -9958,6 +9942,168 @@ namespace PRoConEvents {
                                     return;
                                 }
                             }
+                            break;
+                        case "player_whitelistreport":
+                            if (GetMatchingASPlayersOfGroup("whitelist_report", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in the Report whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistspambot":
+                            if (GetMatchingASPlayersOfGroup("whitelist_spambot", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in the SpamBot whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistaa":
+                            if (GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in the Admin Assistant whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistping":
+                            if (GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in the Ping whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelisthackerchecker":
+                            if (GetMatchingASPlayersOfGroup("whitelist_hackerchecker", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in the Hacker-Checker whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_slotspectator":
+                            if (GetMatchingASPlayersOfGroup("slot_spectator", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in spectator slot list for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_slotreserved":
+                            if (GetMatchingASPlayersOfGroup("slot_reserved", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in reserved slot list for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistbalance":
+                            if (GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in the autobalance whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_blacklistdisperse":
+                            if (GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already under autobalance dispersion for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistreport_remove":
+                            if (!GetMatchingASPlayersOfGroup("whitelist_report", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in the Report whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistspambot_remove":
+                            if (!GetMatchingASPlayersOfGroup("whitelist_spambot", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in the SpamBot whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistaa_remove":
+                            if (!GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in the Admin Assistant whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistping_remove":
+                            if (!GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in the Ping whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelisthackerchecker_remove":
+                            if (!GetMatchingASPlayersOfGroup("whitelist_hackerchecker", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in the Hacker-Checker whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_slotspectator_remove":
+                            if (!GetMatchingASPlayersOfGroup("slot_spectator", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in spectator slot list for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_slotreserved_remove":
+                            if (!GetMatchingASPlayersOfGroup("slot_reserved", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in reserved slot list for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistbalance_remove":
+                            if (!GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in the autobalance whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_blacklistdisperse_remove":
+                            if (!GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not under autobalance dispersion for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
                     }
                     //Conditional command replacement (single target only)
@@ -11109,6 +11255,13 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            if (!_UseHackerChecker)
+                            {
+                                SendMessageToSource(record, "Enable Hacker-Checker to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             String defaultReason = "Hacker-Checker Whitelist";
 
                             //Parse parameters using max param count
@@ -11230,6 +11383,13 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            if (!_pingEnforcerSystemEnable)
+                            {
+                                SendMessageToSource(record, "Enable Ping Enforcer to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             String defaultReason = "Ping Whitelist";
 
                             //Parse parameters using max param count
@@ -11350,6 +11510,13 @@ namespace PRoConEvents {
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
+
+                            if (!_EnableAdminAssistants)
+                            {
+                                SendMessageToSource(record, "Enable Admin Assistants to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
 
                             String defaultReason = "Admin Assistant Whitelist";
 
@@ -14066,6 +14233,386 @@ namespace PRoConEvents {
                         }
                     }
                         break;
+                    case "player_whitelistreport_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Report Whitelist";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Report Whitelist";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_whitelistspambot_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_spamBotExcludeAdminsAndWhitelist)
+                            {
+                                SendMessageToSource(record, "'Exclude Admins and Whitelist from Spam' must be enabled to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing SpamBot Whitelist";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing SpamBot Whitelist";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_whitelistaa_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_EnableAdminAssistants)
+                            {
+                                SendMessageToSource(record, "Enable Admin Assistants to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Admin Assistant Whitelist";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Admin Assistant Whitelist";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_whitelistping_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_pingEnforcerSystemEnable)
+                            {
+                                SendMessageToSource(record, "Enable Ping Enforcer to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Ping Whitelist";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Ping Whitelist";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_whitelisthackerchecker_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_UseHackerChecker)
+                            {
+                                SendMessageToSource(record, "Enable Hacker-Checker to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Hacker-Checker Whitelist";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Hacker-Checker Whitelist";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_slotspectator_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_FeedServerSpectatorList)
+                            {
+                                SendMessageToSource(record, "Enable 'Feed Server Spectator Slots' to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Spectator Slot";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Spectator Slot";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_slotreserved_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_FeedServerReservedSlots)
+                            {
+                                SendMessageToSource(record, "Enable 'Feed Server Reserved Slots' to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Reserved Slot";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Reserved Slot";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_whitelistbalance_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_FeedMultiBalancerWhitelist)
+                            {
+                                SendMessageToSource(record, "Enable 'Feed MULTIBalancer Whitelist' to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Autobalance Whitelist";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Autobalance Whitelist";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_blacklistdisperse_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_FeedMultiBalancerDisperseList)
+                            {
+                                SendMessageToSource(record, "Enable 'Feed MULTIBalancer Even Dispersion List' to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Autobalance Dispersion";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Autobalance Dispersion";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "plugin_restart":
                         {
                             //Remove previous commands awaiting confirmationf
@@ -15303,6 +15850,33 @@ namespace PRoConEvents {
                         break;
                     case "player_whitelistspambot":
                         SpamBotWhitelistTarget(record);
+                        break;
+                    case "player_whitelistspambot_remove":
+                        SpamBotWhitelistRemoveTarget(record);
+                        break;
+                    case "player_whitelistreport_remove":
+                        ReportWhitelistRemoveTarget(record);
+                        break;
+                    case "player_whitelistaa_remove":
+                        AAWhitelistRemoveTarget(record);
+                        break;
+                    case "player_whitelistping_remove":
+                        PingWhitelistRemoveTarget(record);
+                        break;
+                    case "player_whitelisthackerchecker_remove":
+                        HackerCheckerWhitelistRemoveTarget(record);
+                        break;
+                    case "player_slotspectator_remove":
+                        SpectatorSlotRemoveTarget(record);
+                        break;
+                    case "player_slotreserved_remove":
+                        ReservedSlotRemoveTarget(record);
+                        break;
+                    case "player_whitelistbalance_remove":
+                        BalanceWhitelistRemoveTarget(record);
+                        break;
+                    case "player_blacklistdisperse_remove":
+                        BalanceDisperseRemoveTarget(record);
                         break;
                     case "player_log":
                         SendMessageToSource(record, "Log saved for " + record.GetTargetNames());
@@ -16828,6 +17402,546 @@ namespace PRoConEvents {
             DebugWrite("Exiting SpamBotWhitelistTarget", 6);
         }
 
+        public void SpamBotWhitelistRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering SpamBotWhitelistRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "SpamBotWhitelistRemoveTarget not available for multiple targets.");
+                    ConsoleError("SpamBotWhitelistRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_spambot", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the SpamBot whitelist for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from SpamBot whitelist.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from SpamBot whitelist. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from SpamBot whitelist.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SpamBotWhitelistRemoveTarget", 6);
+        }
+
+        public void ReportWhitelistRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering ReportWhitelistRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "ReportWhitelistRemoveTarget not available for multiple targets.");
+                    ConsoleError("ReportWhitelistRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_report", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the Report whitelist for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from Report whitelist.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from Report whitelist. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from Report whitelist.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting ReportWhitelistRemoveTarget", 6);
+        }
+
+        public void AAWhitelistRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering AAWhitelistRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "AAWhitelistRemoveTarget not available for multiple targets.");
+                    ConsoleError("AAWhitelistRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_adminassistant", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the Admin Assistant whitelist for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from Admin Assistant whitelist.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from Admin Assistant whitelist. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from Admin Assistant whitelist.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting AAWhitelistRemoveTarget", 6);
+        }
+
+        public void PingWhitelistRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering PingWhitelistRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "PingWhitelistRemoveTarget not available for multiple targets.");
+                    ConsoleError("PingWhitelistRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_ping", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the Ping whitelist for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from Ping whitelist.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from Ping whitelist. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from Ping whitelist.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting PingWhitelistRemoveTarget", 6);
+        }
+
+        public void HackerCheckerWhitelistRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering HackerCheckerWhitelistRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "HackerCheckerWhitelistRemoveTarget not available for multiple targets.");
+                    ConsoleError("HackerCheckerWhitelistRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_hackerchecker", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the Hacker-Checker whitelist for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from Hacker-Checker whitelist.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from Hacker-Checker whitelist. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from Hacker-Checker whitelist.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting HackerCheckerWhitelistRemoveTarget", 6);
+        }
+
+        public void SpectatorSlotRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering SpectatorSlotRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "SpectatorSlotRemoveTarget not available for multiple targets.");
+                    ConsoleError("SpectatorSlotRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("slot_spectator", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the spectator slot list for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from spectator slot list.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from spectator slot list. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from spectator slot list.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SpectatorSlotRemoveTarget", 6);
+        }
+
+        public void ReservedSlotRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering ReservedSlotRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "ReservedSlotRemoveTarget not available for multiple targets.");
+                    ConsoleError("ReservedSlotRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("slot_reserved", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the reserved slot list for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from reserved slot list.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from reserved slot list. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from reserved slot list.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting ReservedSlotRemoveTarget", 6);
+        }
+
+        public void BalanceWhitelistRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering BalanceWhitelistRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "BalanceWhitelistRemoveTarget not available for multiple targets.");
+                    ConsoleError("BalanceWhitelistRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_multibalancer", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the autobalance whitelist for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from autobalance whitelist.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from autobalance whitelist. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from autobalance whitelist.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting BalanceWhitelistRemoveTarget", 6);
+        }
+
+        public void BalanceDisperseRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering BalanceDisperseRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "BalanceDisperseRemoveTarget not available for multiple targets.");
+                    ConsoleError("BalanceDisperseRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not under autobalance dispersion for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from autobalance dispersion.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from autobalance dispersion. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from autobalance dispersion.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting BalanceDisperseRemoveTarget", 6);
+        }
+
         public void MuteTarget(AdKatsRecord record) {
             DebugWrite("Entering muteTarget", 6);
             try
@@ -17877,6 +18991,10 @@ namespace PRoConEvents {
             try
             {
                 record.record_action_executed = true;
+                if (record.source_player != null && !PlayerIsAdmin(record.source_player))
+                {
+                    SendMessageToSource(record, "(MSG)(" + record.source_name + "): " + record.record_message);
+                }
                 OnlineAdminSayMessage("(MSG)(" + record.source_name + "): " + record.record_message);
             }
             catch (Exception e)
@@ -18186,7 +19304,7 @@ namespace PRoConEvents {
                             try
                             {
                                 Thread.CurrentThread.Name = "RoundEndDelay";
-                                for (int i = 0; i < 6; i++)
+                                for (int i = 0; i < 8; i++)
                                 {
                                     AdminTellMessage("Surrender Vote Succeeded. " + winningTeam.TeamName + " wins!");
                                     Thread.Sleep(50);
@@ -21791,8 +22909,14 @@ namespace PRoConEvents {
                                 if (!PlayerIsAdmin(aPlayer))
                                 {
                                     String message = "Your reputation ";
-                                    if (totalReputationConstrained > aPlayer.player_reputation) {
-                                        if (totalReputationConstrained >= 0) {
+                                    if (totalReputationConstrained > aPlayer.player_reputation)
+                                    {
+                                        if (Math.Round(totalReputationConstrained, 2) == 0)
+                                        {
+                                            message += "increased from " + Math.Round(aPlayer.player_reputation, 2) + " to " + Math.Round(totalReputationConstrained, 2) + "!";
+                                        }
+                                        else if (totalReputationConstrained > 0)
+                                        {
                                             message += "increased from " + Math.Round(aPlayer.player_reputation, 2) + " to " + Math.Round(totalReputationConstrained, 2) + "! Thanks for your help!";
                                         }
                                         else {
@@ -24897,7 +26021,7 @@ namespace PRoConEvents {
                                     changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(44)) {
-                                    SendNonQuery("Adding command 44", "REPLACE INTO `adkats_commands` VALUES(44, 'Active', 'player_blacklistdisperse', 'Log', 'Blacklist Disperse Player', 'disperse', TRUE)", true);
+                                    SendNonQuery("Adding command 44", "REPLACE INTO `adkats_commands` VALUES(44, 'Active', 'player_blacklistdisperse', 'Log', 'Autobalance Disperse Player', 'disperse', TRUE)", true);
                                     changed = true;
                                 }
                                 if (!_CommandIDDictionary.ContainsKey(45)) {
@@ -25140,6 +26264,51 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 94", "REPLACE INTO `adkats_commands` VALUES(94, 'Active', 'player_whitelistreport', 'Log', 'Report Whitelist Player', 'rwhitelist', TRUE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(95))
+                                {
+                                    SendNonQuery("Adding command 95", "REPLACE INTO `adkats_commands` VALUES(95, 'Active', 'player_whitelistreport_remove', 'Log', 'Remove Report Whitelist', 'unrwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(96))
+                                {
+                                    SendNonQuery("Adding command 96", "REPLACE INTO `adkats_commands` VALUES(96, 'Active', 'player_whitelistspambot_remove', 'Log', 'Remove SpamBot Whitelist', 'unspamwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(97))
+                                {
+                                    SendNonQuery("Adding command 97", "REPLACE INTO `adkats_commands` VALUES(97, 'Active', 'player_whitelistaa_remove', 'Log', 'Remove AA Whitelist', 'unaawhitelist', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(98))
+                                {
+                                    SendNonQuery("Adding command 98", "REPLACE INTO `adkats_commands` VALUES(98, 'Active', 'player_whitelistping_remove', 'Log', 'Remove Ping Whitelist', 'unpwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(99))
+                                {
+                                    SendNonQuery("Adding command 99", "REPLACE INTO `adkats_commands` VALUES(99, 'Active', 'player_whitelisthackerchecker_remove', 'Log', 'Remove Hacker-Checker Whitelist', 'unhcwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(100))
+                                {
+                                    SendNonQuery("Adding command 100", "REPLACE INTO `adkats_commands` VALUES(100, 'Active', 'player_slotspectator_remove', 'Log', 'Remove Spectator Slot', 'unspectator', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(101))
+                                {
+                                    SendNonQuery("Adding command 101", "REPLACE INTO `adkats_commands` VALUES(101, 'Active', 'player_slotreserved_remove', 'Log', 'Remove Reserved Slot', 'unreserved', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(102))
+                                {
+                                    SendNonQuery("Adding command 102", "REPLACE INTO `adkats_commands` VALUES(102, 'Active', 'player_whitelistbalance_remove', 'Log', 'Remove Autobalance Whitelist', 'unmbwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(103))
+                                {
+                                    SendNonQuery("Adding command 103", "REPLACE INTO `adkats_commands` VALUES(103, 'Active', 'player_blacklistdisperse_remove', 'Log', 'Remove Autobalance Dispersion', 'undisperse', TRUE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -25249,6 +26418,15 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["player_warn"] = "Warns a player. Requires a reason.";
             _CommandDescriptionDictionary["server_countdown"] = "Sends a visible countdown to all players in the given subset.";
             _CommandDescriptionDictionary["player_whitelistreport"] = "Whitelists a player from being reported.";
+            _CommandDescriptionDictionary["player_whitelistreport_remove"] = "Removes a player from report whitelist.";
+            _CommandDescriptionDictionary["player_whitelistspambot_remove"] = "Removes a player from SpamBot whitelist.";
+            _CommandDescriptionDictionary["player_whitelistaa_remove"] = "Removes a player from Admin Assistant whitelist.";
+            _CommandDescriptionDictionary["player_whitelistping_remove"] = "Removes a player from Ping whitelist.";
+            _CommandDescriptionDictionary["player_whitelisthackerchecker_remove"] = "Removes a player from Hacker-Checker whitelist.";
+            _CommandDescriptionDictionary["player_slotspectator_remove"] = "Removes a player from spectator slot list.";
+            _CommandDescriptionDictionary["player_slotreserved_remove"] = "Removes a player from reserved slot list.";
+            _CommandDescriptionDictionary["player_whitelistbalance_remove"] = "Removes a player from autobalance whitelist.";
+            _CommandDescriptionDictionary["player_blacklistdisperse_remove"] = "Removes a player from autobalance dispersion.";
         }
 
         private void UpdateCommandTimeouts() {
