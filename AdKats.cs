@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.1.8
+ * Version 6.0.1.9
  * 3-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.1.8</version_code>
+ * <version_code>6.0.1.9</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.1.8";
+        private const String PluginVersion = "6.0.1.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -3123,10 +3123,10 @@ namespace PRoConEvents {
                                         switch (aCommand.command_key)
                                         {
                                             case "command_confirm":
-                                                ConsoleError("Confirm command cannot be denied for any role.");
+                                                ConsoleError("Confirm command cannot be denied for any role. [M]");
                                                 return;
                                             case "command_cancel":
-                                                ConsoleError("Cancel command cannot be denied for any role.");
+                                                ConsoleError("Cancel command cannot be denied for any role. [M]");
                                                 return;
                                         }
                                         lock (aRole.RoleAllowedCommands)
@@ -25086,10 +25086,12 @@ namespace PRoConEvents {
                                         switch (remCommand.command_key)
                                         {
                                             case "command_confirm":
-                                                ConsoleError("Confirm command cannot be denied for any role.");
+                                                ConsoleError("Confirm command cannot be denied for any role. [R]");
+                                                uploadRequired = true;
                                                 continue;
                                             case "command_cancel":
-                                                ConsoleError("Cancel command cannot be denied for any role.");
+                                                ConsoleError("Cancel command cannot be denied for any role. [R]");
+                                                uploadRequired = true;
                                                 continue;
                                         }
                                         ConsoleInfo("Removing command " + remCommand.command_key + " from role " + aRole.role_key);
@@ -25104,6 +25106,7 @@ namespace PRoConEvents {
                                         {
                                             ConsoleError("Confirm command cannot be denied for any role. Reassigning.");
                                             aRole.RoleAllowedCommands[confirmCommand.command_key] = confirmCommand;
+                                            uploadRequired = true;
                                         }
                                     }
                                     if (aRole.RoleAllowedCommands.Values.All(aCommand => aCommand.command_key != "command_cancel"))
@@ -25113,6 +25116,7 @@ namespace PRoConEvents {
                                         {
                                             ConsoleError("Cancel command cannot be denied for any role. Reassigning.");
                                             aRole.RoleAllowedCommands[cancelCommand.command_key] = cancelCommand;
+                                            uploadRequired = true;
                                         }
                                     }
                                     FillConditionalAllowedCommands(aRole);
