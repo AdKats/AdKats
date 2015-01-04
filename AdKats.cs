@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.1.7
+ * Version 6.0.1.8
  * 3-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.1.7</version_code>
+ * <version_code>6.0.1.8</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.1.7";
+        private const String PluginVersion = "6.0.1.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -11198,7 +11198,7 @@ namespace PRoConEvents {
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
                                 }
                             }
 
@@ -11319,7 +11319,7 @@ namespace PRoConEvents {
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
                                 }
                             }
 
@@ -11447,7 +11447,7 @@ namespace PRoConEvents {
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
                                 }
                             }
 
@@ -13421,7 +13421,7 @@ namespace PRoConEvents {
                                     FinalizeRecord(record);
                                     return;
                                 }
-                                defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                                defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
                             }
                         }
 
@@ -13545,7 +13545,7 @@ namespace PRoConEvents {
                                     FinalizeRecord(record);
                                     return;
                                 }
-                                defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                                defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
                             }
                         }
 
@@ -13671,7 +13671,7 @@ namespace PRoConEvents {
                                     FinalizeRecord(record);
                                     return;
                                 }
-                                defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                                defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
                             }
                         }
 
@@ -13797,7 +13797,7 @@ namespace PRoConEvents {
                                     FinalizeRecord(record);
                                     return;
                                 }
-                                defaultReason = FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2) + " " + defaultReason;
+                                defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
                             }
                         }
 
