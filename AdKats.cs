@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.1.9
+ * Version 6.0.2.0
  * 3-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.1.9</version_code>
+ * <version_code>6.0.2.0</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.1.9";
+        private const String PluginVersion = "6.0.2.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -9778,6 +9778,13 @@ namespace PRoConEvents {
                                         return;
                                     }
                                 }
+                                if (record.target_player != null && 
+                                    GetMatchingASPlayersOfGroup("whitelist_report", record.target_player).Any())
+                                {
+                                    SendMessageToSource(record, record.GetTargetNames() + " is under whitelist from reports.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
                             }
                             break;
                         case "player_pm_send":
@@ -11257,6 +11264,127 @@ namespace PRoConEvents {
                             CancelSourcePendingAction(record);
 
                             String defaultReason = "Admin Assistant Whitelist";
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                DebugWrite("Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in seconds
+                                    record.command_numeric = 631139040;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    //time
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 2:
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    DebugWrite("target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    DebugWrite("" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_whitelistreport":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            String defaultReason = "Report Whitelist";
 
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 3);
@@ -15082,6 +15210,9 @@ namespace PRoConEvents {
                     case "player_whitelistaa":
                         AAWhitelistTarget(record);
                         break;
+                    case "player_whitelistreport":
+                        ReportWhitelistTarget(record);
+                        break;
                     case "player_whitelistspambot":
                         SpamBotWhitelistTarget(record);
                         break;
@@ -16429,6 +16560,89 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting AAWhitelistTarget", 6);
+        }
+
+        public void ReportWhitelistTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering ReportWhitelistTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "ReportWhitelistTarget not available for multiple targets.");
+                    ConsoleError("ReportWhitelistTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_report", record.target_player);
+                if (matchingPlayers.Count > 0)
+                {
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the report whitelist.");
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'whitelist_report',
+	                        @player_id,
+	                        @player_name,
+	                        UTC_TIMESTAMP(),
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                        )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 631139040)
+                        {
+                            record.command_numeric = 631139040;
+                        }
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
+
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0)
+                        {
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " report whitelist for all servers.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
+                            FetchAllAccess(true);
+                        }
+                        else
+                        {
+                            ConsoleError("Unable to add player to Report whitelist. Error uploading.");
+                        }
+                    }
+                }
+                //Fetch the special player cache
+                FetchAllAccess(true);
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for Report Whitelist record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting ReportWhitelistTarget", 6);
         }
 
         public void SpamBotWhitelistTarget(AdKatsRecord record)
@@ -24821,6 +25035,11 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 93", "REPLACE INTO `adkats_commands` VALUES(93, 'Active', 'server_countdown', 'Log', 'Run Countdown', 'cdown', FALSE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(94))
+                                {
+                                    SendNonQuery("Adding command 94", "REPLACE INTO `adkats_commands` VALUES(94, 'Active', 'player_whitelistreport', 'Log', 'Report Whitelist Player', 'rwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -24929,6 +25148,7 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["plugin_update"] = "Updates AdKats.";
             _CommandDescriptionDictionary["player_warn"] = "Warns a player. Requires a reason.";
             _CommandDescriptionDictionary["server_countdown"] = "Sends a visible countdown to all players in the given subset.";
+            _CommandDescriptionDictionary["player_whitelistreport"] = "Whitelists a player from being reported.";
         }
 
         private void UpdateCommandTimeouts() {
