@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.2.0
+ * Version 6.0.2.1
  * 3-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.2.0</version_code>
+ * <version_code>6.0.2.1</version_code>
  */
 
 using System;
@@ -57,7 +57,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.2.0";
+        private const String PluginVersion = "6.0.2.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -11109,32 +11109,120 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            String defaultReason = "Hacker-Checker Whitelist";
+
                             //Parse parameters using max param count
-                            String[] parameters = ParseParameters(remainingMessage, 2);
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                DebugWrite("Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in seconds
+                                    record.command_numeric = 631139040;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
                             switch (parameters.Length)
                             {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
                                 case 1:
-                                    record.target_name = parameters[0];
-                                    record.record_message = "Permanent Hacker-Checker Whitelist";
+                                    //time
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
                                     break;
                                 case 2:
-                                    record.target_name = parameters[0];
-
-                                    //attempt to handle via pre-message ID
-                                    record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    DebugWrite("target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
                                     if (record.record_message == null)
                                     {
                                         SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
                                         FinalizeRecord(record);
                                         return;
                                     }
+                                    DebugWrite("" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, false);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
                                     FinalizeRecord(record);
                                     return;
                             }
-                            CompleteTargetInformation(record, false, true, false);
                         }
                         break;
                     case "player_whitelistping":
@@ -16364,22 +16452,34 @@ namespace PRoConEvents {
 	                        @player_id,
 	                        @player_name,
 	                        UTC_TIMESTAMP(),
-	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL 20 YEAR)
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
                         )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 631139040)
+                        {
+                            record.command_numeric = 631139040;
+                        }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given permanent hacker-checker whitelist for all servers.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " hacker-checker whitelist for all servers.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
                         }
                         else
                         {
-                            ConsoleError("Unable to add player to Hacker-Checker whitelist. Error uploading.");
+                            ConsoleError("Unable to add player to hacker-checker whitelist. Error uploading.");
                         }
                     }
                 }
