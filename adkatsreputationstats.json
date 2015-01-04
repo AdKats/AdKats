@@ -563,5 +563,45 @@
     "command_typeaction": "93|93",
     "target_weight": 0,
     "source_weight": 0
+  },
+  {
+    "command_typeaction": "94|94",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "95|95",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "96|96",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "97|97",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "98|98",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "99|99",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "100|100",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "101|101",
+    "target_weight": 0,
+    "source_weight": 0
   }
 ] 
