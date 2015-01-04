@@ -46,7 +46,7 @@
 			"group_name":"TeamSwap Whitelist"
 		},
 		{
-			"group_id":8,
+			"group_id":9,
 			"group_key":"whitelist_report",
 			"group_name":"Report Whitelist"
 		}
