@@ -1,5 +1,5 @@
 <script>
-    //<latest_stable_release>1.0.4.1</latest_stable_release>
+    //<latest_stable_release>1.0.6.6</latest_stable_release>
 </script>
 <p>
     <a href="https://forum.myrcon.com/showthread.php?9180" name=thread>
@@ -85,7 +85,7 @@
     </li>
     <li>
         <b>Purchase AdKatsLRT, and aquire an extension token.</b>
-        <a href="https://forum.myrcon.com/private.php?do=newpm&u=15312" target="_blank">Private message ColColonCleaner</a> on the MyRCON forums about getting the plugin. Include the names of the servers you will be running the loadout enforcer on, and optionally your Github.com username for access to later updates. AdKatsLRT is $25, one-time fee, with free updates for the duration of the project. Payments accepted through <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=danielgradinjan%40gmail%2ecom&lc=US&item_name=AdKatsLRT%20%2d%20On%2dSpawn%20Loadout%20Enforcer%20for%20Procon%20Frostbite%20%2d%20Purchase&amount=25%2e00&currency_code=USD&no_note=0&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHostedGuest" target="_blank">PayPal Donation</a> or <a href="https://wallet.google.com" target="_blank">Google Wallet</a> (colcoloncleaner@gmail.com).
+        <a href="https://forum.myrcon.com/private.php?do=newpm&u=15312" target="_blank">Private message ColColonCleaner</a> on the MyRCON forums about getting the plugin. Include the names of the servers you will be running the loadout enforcer on, and optionally your Github.com username for access to later updates. AdKatsLRT is $50, one-time fee, with free updates for the duration of the project. Payments accepted through <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=danielgradinjan%40gmail%2ecom&lc=US&item_name=AdKatsLRT%20%2d%20On%2dSpawn%20Loadout%20Enforcer%20for%20Procon%20Frostbite%20%2d%20Purchase&amount=50%2e00&currency_code=USD&no_note=0&bn=PP%2dDonationsBF%3abtn_donateCC_LG%2egif%3aNonHostedGuest" target="_blank">PayPal Donation</a> or <a href="https://wallet.google.com" target="_blank">Google Wallet</a> (colcoloncleaner@gmail.com).
     </li>
     <li>
         <b>Install the plugin. (With AdKats Installed)</b>
