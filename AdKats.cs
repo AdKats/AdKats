@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.2.3
- * 4-JAN-2015
+ * Version 6.0.2.4
+ * 7-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.2.3</version_code>
+ * <version_code>6.0.2.4</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.2.3";
+        private const String PluginVersion = "6.0.2.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -905,7 +905,7 @@ namespace PRoConEvents {
                     if (_UseFirstSpawnMessage)
                     {
                         lstReturn.Add(new CPluginVariable("A12. Messaging Settings|First spawn message text", typeof(String), _FirstSpawnMessage));
-                        lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Use First Spawn Reputation and Infraction Message", typeof(String), _useFirstSpawnRepMessage));
+                        lstReturn.Add(new CPluginVariable("A12. Messaging Settings|Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
                     }
 
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Enable", typeof(Boolean), _spamBotEnabled));
@@ -24751,6 +24751,8 @@ namespace PRoConEvents {
 	                         AND
 		                        `target_id` = `player_id`
 	                         AND
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 7 DAY)
+	                         AND
 		                        (
 			                        `stat_type` = 'player_win'
 			                        OR
@@ -24765,6 +24767,8 @@ namespace PRoConEvents {
 	                         AND
 		                        `target_id` = `player_id`
 	                         AND
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 7 DAY)
+	                         AND
 		                        `stat_type` = 'player_win') AS `win_count`,
 	                        (SELECT
 		                        COUNT(`stat_id`)
@@ -24774,6 +24778,8 @@ namespace PRoConEvents {
 		                        `server_id` = `server`
 	                         AND
 		                        `target_id` = `player_id`
+	                         AND
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 7 DAY)
 	                         AND
 		                        `stat_type` = 'player_loss') AS `loss_count`,
 	                        (SELECT
@@ -24785,13 +24791,13 @@ namespace PRoConEvents {
 	                         AND
 		                        `target_id` = `player_id`
 	                         AND
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 7 DAY)
+	                         AND
 		                        `stat_type` = 'player_baserape') AS `baserape_count`
                         FROM
 	                        `adkats_statistics`
                         WHERE
 	                        `server_id` = @server_id
-                        AND
-	                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 7 DAY)
                         AND
                         (
 	                        `stat_type` = 'player_win'
@@ -24806,7 +24812,7 @@ namespace PRoConEvents {
 	                        `baserape_count` DESC
                         ) AS `InnerResults`
                         WHERE
-	                        `baserape_count` >= 7
+	                        `baserape_count` >= 5
                         AND
 	                        `win_count`/REPLACE(`loss_count`, 0, 1) > 1.0
                         ORDER BY
