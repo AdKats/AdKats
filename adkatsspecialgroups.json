@@ -49,6 +49,16 @@
 			"group_id":9,
 			"group_key":"whitelist_report",
 			"group_name":"Report Whitelist"
+		},
+		{
+			"group_id":10,
+			"group_key":"whitelist_populator",
+			"group_name":"Populator Whitelist"
+		},
+		{
+			"group_id":11,
+			"group_key":"whitelist_teamkill",
+			"group_name":"TeamKillTracker Whitelist"
 		}
 	]
 }
