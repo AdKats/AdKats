@@ -603,5 +603,35 @@
     "command_typeaction": "101|101",
     "target_weight": 0,
     "source_weight": 0
+  },
+  {
+    "command_typeaction": "102|102",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "103|103",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "104|104",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "105|105",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "106|106",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "107|107",
+    "target_weight": 0,
+    "source_weight": 0
   }
 ] 
