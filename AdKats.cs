@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.2.4
- * 7-JAN-2015
+ * Version 6.0.3.3
+ * 10-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.2.4</version_code>
+ * <version_code>6.0.3.3</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.2.4";
+        private const String PluginVersion = "6.0.3.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -366,7 +366,6 @@ namespace PRoConEvents {
         private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
         private readonly Dictionary<String, AdKatsPlayer> _PlayerLeftDictionary = new Dictionary<String, AdKatsPlayer>();
         private readonly Dictionary<Int64, AdKatsPlayer> _FetchedPlayers = new Dictionary<Int64, AdKatsPlayer>();
-        private readonly Dictionary<String, AdKatsPlayer> _baserapeCausingPlayers = new Dictionary<String, AdKatsPlayer>(); 
 
         //Punishment settings
         private readonly List<String> _PunishmentSeverityIndex;
@@ -409,7 +408,7 @@ namespace PRoConEvents {
         private Boolean _AFKIgnoreChat;
 
         //Ping enforcer
-        private Boolean _pingEnforcerSystemEnable;
+        private Boolean _pingEnforcerEnable;
         private Int32 _pingEnforcerTriggerMinimumPlayers = 50;
         private Double _pingEnforcerLowTriggerMS = 300;
         private Double _pingEnforcerMedTriggerMS = 300;
@@ -508,6 +507,8 @@ namespace PRoConEvents {
         private Boolean _FeedMultiBalancerWhitelist;
         private Boolean _FeedMultiBalancerWhitelist_Admins = true;
         private Boolean _FeedMultiBalancerDisperseList;
+        private Boolean _FeedTeamKillTrackerWhitelist;
+        private Boolean _FeedTeamKillTrackerWhitelist_Admins;
         private Boolean _FeedServerReservedSlots;
         private Boolean _FeedServerReservedSlots_Admins = true;
         private Boolean _FeedServerSpectatorList;
@@ -520,6 +521,25 @@ namespace PRoConEvents {
         private Boolean _MULTIBalancerUnswitcherDisabled = false;
         public readonly String[] _subscriptionGroups = {"OnlineSoldiers"};
         private readonly List<AdKatsClient> _subscribedClients = new List<AdKatsClient>();
+        //Baserape Causers
+        private Boolean _PostWinLossBaserapeStatistics = false;
+        private Boolean _BaserapeCausingPlayersMonitor = false;
+        private Int32 _BaserapeCausingPlayersDurationDays = 7;
+        private Int32 _BaserapeCausingPlayersMinimumCount = 5;
+        private readonly Dictionary<String, AdKatsPlayer> _baserapeCausingPlayers = new Dictionary<String, AdKatsPlayer>();
+        private Boolean _FeedBaserapeCausingPlayerDispersion = false;
+        //Populators
+        private Boolean _PopulatorMonitor = false;
+        private Boolean _PopulatorUseSpecifiedPopulatorsOnly = false;
+        private Boolean _PopulatorPopulatingThisServerOnly = false;
+        private Int32 _PopulatorMinimumPopulationCountPastWeek = 5;
+        private Int32 _PopulatorMinimumPopulationCountPast2Weeks = 10;
+        private readonly Dictionary<String, AdKatsPlayer> _populatorPlayers = new Dictionary<String, AdKatsPlayer>();
+        private Boolean _PopulatorPerksEnable = false;
+        private Boolean _PopulatorPerksReservedSlot = false;
+        private Boolean _PopulatorPerksBalanceWhitelist = false;
+        private Boolean _PopulatorPerksPingWhitelist = false;
+        private Boolean _PopulatorPerksTeamKillTrackerWhitelist = false;
 
         //Hacker-checker
         private Boolean _UseHackerChecker;
@@ -910,11 +930,11 @@ namespace PRoConEvents {
 
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Enable", typeof(Boolean), _spamBotEnabled));
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Say List", typeof(String[]), _spamBotSayList.ToArray()));
-                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Say Delay Seconds", typeof(int), _spamBotSayDelaySeconds));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Yell List", typeof(String[]), _spamBotYellList.ToArray()));
-                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Yell Delay Seconds", typeof(int), _spamBotYellDelaySeconds));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Yell Delay Seconds", typeof(Int32), _spamBotYellDelaySeconds));
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Tell List", typeof(String[]), _spamBotTellList.ToArray()));
-                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Tell Delay Seconds", typeof(int), _spamBotTellDelaySeconds));
+                    lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|SpamBot Tell Delay Seconds", typeof(Int32), _spamBotTellDelaySeconds));
                     lstReturn.Add(new CPluginVariable("A12-2. SpamBot Settings|Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
 
                     //Ban Settings
@@ -947,12 +967,18 @@ namespace PRoConEvents {
                     }
 
                     lstReturn.Add(new CPluginVariable("A15. VOIP Settings|Server VOIP Address", typeof(String), _ServerVoipAddress));
-
+                    //MULTIBalancer
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Whitelist", typeof (Boolean), _FeedMultiBalancerWhitelist));
                     if (_FeedMultiBalancerWhitelist) {
                         lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic MULTIBalancer Whitelist for Admins", typeof (Boolean), _FeedMultiBalancerWhitelist_Admins));
                     }
-                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Even Dispersion List", typeof (Boolean), _FeedMultiBalancerDisperseList));
+                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList));
+                    //TeamKillTracker
+                    lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed TeamKillTracker Whitelist", typeof(Boolean), _FeedTeamKillTrackerWhitelist));
+                    if (_FeedTeamKillTrackerWhitelist)
+                    {
+                        lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic TeamKillTracker Whitelist for Admins", typeof(Boolean), _FeedTeamKillTrackerWhitelist_Admins));
+                    }
                     lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Feed Server Reserved Slots", typeof (Boolean), _FeedServerReservedSlots));
                     if (_FeedServerReservedSlots) {
                         lstReturn.Add(new CPluginVariable("A16. Orchestration Settings|Automatic Reserved Slot for Admins", typeof (Boolean), _FeedServerReservedSlots_Admins));
@@ -1020,8 +1046,8 @@ namespace PRoConEvents {
                     }
 
                     //Ping enforcer settings
-                    lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Enforcer Enable", typeof(Boolean), _pingEnforcerSystemEnable));
-                    if (_pingEnforcerSystemEnable)
+                    lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Enforcer Enable", typeof(Boolean), _pingEnforcerEnable));
+                    if (_pingEnforcerEnable)
                     {
                         lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
                         lstReturn.Add(new CPluginVariable("B21. Ping Enforcer Settings|Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
@@ -1108,7 +1134,35 @@ namespace PRoConEvents {
 
                     //Statistics Settings
                     lstReturn.Add(new CPluginVariable("B26. Statistics Settings|Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
+                    lstReturn.Add(new CPluginVariable("B26. Statistics Settings|Post Win/Loss/Baserape Statistics", typeof(Boolean), _PostWinLossBaserapeStatistics));
 
+                    //Player monitor settings
+                    lstReturn.Add(new CPluginVariable("B27. Player Monitor Settings|Monitor Baserape Causing Players", typeof(Boolean), _BaserapeCausingPlayersMonitor));
+                    if (_BaserapeCausingPlayersMonitor)
+                    {
+                        lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Baserape Causing Players (Display)", typeof(String[]), _baserapeCausingPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                        lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
+                        lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
+                        lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
+                    }
+                    lstReturn.Add(new CPluginVariable("B27. Player Monitor Settings|Monitor Populator Players", typeof(Boolean), _PopulatorMonitor));
+                    if (_PopulatorMonitor)
+                    {
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Populator Players (Display)", typeof(String[]), _populatorPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Count to Consider Populator Past Week", typeof(Int32), _PopulatorMinimumPopulationCountPastWeek));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Count to Consider Populator Past 2 Weeks", typeof(Int32), _PopulatorMinimumPopulationCountPast2Weeks));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Enable Populator Perks", typeof(Boolean), _PopulatorPerksEnable));
+                        if (_PopulatorPerksEnable)
+                        {
+                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Populator Perks - Reserved Slot", typeof(Boolean), _PopulatorPerksReservedSlot));
+                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Populator Perks - Autobalance Whitelist", typeof(Boolean), _PopulatorPerksBalanceWhitelist));
+                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Populator Perks - Ping Whitelist", typeof(Boolean), _PopulatorPerksPingWhitelist));
+                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Populator Perks - TeamKillTracker Whitelist", typeof(Boolean), _PopulatorPerksTeamKillTrackerWhitelist));
+                        }
+                    }
+                    
                     //Debug settings
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof(String), _debugSoldierName));
@@ -1170,17 +1224,42 @@ namespace PRoConEvents {
                             }
                         }
                         else {
-                            lstReturn.Add(new CPluginVariable(userSettingsPrefix + "No Users in User List", typeof (String), "Add Users with 'Add User'."));
+                            if (_firstUserListComplete) 
+                            {
+                                lstReturn.Add(new CPluginVariable(userSettingsPrefix + "No Users in User List", typeof (String), "Add Users with 'Add User'."));
+                            }
+                            else
+                            {
+                                lstReturn.Add(new CPluginVariable(userSettingsPrefix + "Please Wait, Fetching User List.", typeof(String), "Please Wait, Fetching User List."));
+                            }
                         }
 
                         //Special Player Settings
-                        if (_isTestingAuthorized)
+                        const string specialPlayerPrefix = "3-2. Special Player Display|";
+                        foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values) 
                         {
-                            const string specialPlayerPrefix = "3-2. Special Player Display|";
-                            if (_baserapeCausingPlayers.Any())
+                            List<String> groupList = new List<String>();
+                            foreach (AdKatsSpecialPlayer asPlayer in GetASPlayersOfGroup(asGroup.group_key)) 
                             {
-                                lstReturn.Add(new CPluginVariable(specialPlayerPrefix + "Baserape Causing Players", typeof(String[]), _baserapeCausingPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                                String playerIdentifier = null;
+                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name)) 
+                                {
+                                    playerIdentifier = asPlayer.player_object.player_name;
+                                }
+                                else 
+                                {
+                                    playerIdentifier = asPlayer.player_identifier;
+                                }
+                                if (String.IsNullOrEmpty(playerIdentifier)) 
+                                {
+                                    continue;
+                                }
+                                if (!groupList.Contains(playerIdentifier))
+                                {
+                                    groupList.Add(playerIdentifier);
+                                }
                             }
+                            lstReturn.Add(new CPluginVariable(specialPlayerPrefix + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
                         }
 
                         //Role Settings
@@ -1247,6 +1326,7 @@ namespace PRoConEvents {
                                                 (aGroup.group_key == "slot_reserved" && _FeedServerReservedSlots_Admins && RoleIsAdmin(aRole)) ||
                                                 (aGroup.group_key == "slot_spectator" && _FeedServerSpectatorList_Admins && RoleIsAdmin(aRole)) ||
                                                 (aGroup.group_key == "whitelist_multibalancer" && _FeedMultiBalancerWhitelist_Admins && RoleIsAdmin(aRole)) ||
+                                                (aGroup.group_key == "whitelist_teamkill" && _FeedTeamKillTrackerWhitelist_Admins && RoleIsAdmin(aRole)) ||
                                                 (aGroup.group_key == "whitelist_spambot" && _spamBotExcludeAdminsAndWhitelist && RoleIsAdmin(aRole))
                                             let
                                                 display = rolePrefix + "GPE" + aGroup.group_id + separator + aGroup.group_name
@@ -1738,18 +1818,18 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Ping Enforcer Enable").Success)
                 {
                     Boolean PingSystemEnable = Boolean.Parse(strValue);
-                    if (PingSystemEnable != _pingEnforcerSystemEnable)
+                    if (PingSystemEnable != _pingEnforcerEnable)
                     {
-                        _pingEnforcerSystemEnable = PingSystemEnable;
+                        _pingEnforcerEnable = PingSystemEnable;
                         //Once setting has been changed, upload the change to database
                         if (_isTestingAuthorized) {
-                            _pingEnforcerSystemEnable = true;
+                            _pingEnforcerEnable = true;
                         }
-                        if (_pingEnforcerSystemEnable) {
+                        if (_pingEnforcerEnable) {
                             //Disable latency manager
                             ExecuteCommand("procon.protected.plugins.enable", "CLatencyManager", "False");
                         }
-                        QueueSettingForUpload(new CPluginVariable(@"Ping Enforcer Enable", typeof(Boolean), _pingEnforcerSystemEnable));
+                        QueueSettingForUpload(new CPluginVariable(@"Ping Enforcer Enable", typeof(Boolean), _pingEnforcerEnable));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Ping Moving Average Duration sec").Success)
@@ -2322,25 +2402,56 @@ namespace PRoConEvents {
                         QueueSettingForUpload(new CPluginVariable(@"Player Lock Automatic Duration Minutes", typeof(Double), _playerLockingAutomaticDuration));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Feed MULTIBalancer Whitelist").Success) {
+                else if (Regex.Match(strVariable, @"Feed MULTIBalancer Whitelist").Success)
+                {
                     Boolean feedMTBWhite = Boolean.Parse(strValue);
-                    if (feedMTBWhite != _FeedMultiBalancerWhitelist) {
+                    if (feedMTBWhite != _FeedMultiBalancerWhitelist)
+                    {
                         _FeedMultiBalancerWhitelist = feedMTBWhite;
-                        if (_FeedMultiBalancerWhitelist) {
+                        if (_FeedMultiBalancerWhitelist)
+                        {
                             SetExternalPluginSetting("MULTIbalancer", "2 - Exclusions|On Whitelist", "True");
                         }
                         FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Whitelist", typeof (Boolean), _FeedMultiBalancerWhitelist));
+                        QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Whitelist", typeof(Boolean), _FeedMultiBalancerWhitelist));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Automatic MULTIBalancer Whitelist for Admins").Success) {
+                else if (Regex.Match(strVariable, @"Automatic MULTIBalancer Whitelist for Admins").Success)
+                {
                     Boolean feedMTBWhiteUser = Boolean.Parse(strValue);
-                    if (feedMTBWhiteUser != _FeedMultiBalancerWhitelist_Admins) {
+                    if (feedMTBWhiteUser != _FeedMultiBalancerWhitelist_Admins)
+                    {
                         _FeedMultiBalancerWhitelist_Admins = feedMTBWhiteUser;
                         FetchAllAccess(true);
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Automatic MULTIBalancer Whitelist for Admins", typeof (Boolean), _FeedMultiBalancerWhitelist_Admins));
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_Admins));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Feed TeamKillTracker Whitelist").Success)
+                {
+                    Boolean FeedTeamKillTrackerWhitelist = Boolean.Parse(strValue);
+                    if (FeedTeamKillTrackerWhitelist != _FeedTeamKillTrackerWhitelist)
+                    {
+                        _FeedTeamKillTrackerWhitelist = FeedTeamKillTrackerWhitelist;
+                        if (_FeedTeamKillTrackerWhitelist)
+                        {
+                            SetExternalPluginSetting("TeamKillTracker", "Who should be protected?", "Whitelist");
+                        }
+                        FetchAllAccess(true);
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Feed TeamKillTracker Whitelist", typeof(Boolean), _FeedTeamKillTrackerWhitelist));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Automatic TeamKillTracker Whitelist for Admins").Success)
+                {
+                    Boolean FeedTeamKillTrackerWhitelist_Admins = Boolean.Parse(strValue);
+                    if (FeedTeamKillTrackerWhitelist_Admins != _FeedTeamKillTrackerWhitelist_Admins)
+                    {
+                        _FeedTeamKillTrackerWhitelist_Admins = FeedTeamKillTrackerWhitelist_Admins;
+                        FetchAllAccess(true);
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic TeamKillTracker Whitelist for Admins", typeof(Boolean), _FeedTeamKillTrackerWhitelist_Admins));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Feed MULTIBalancer Even Dispersion List").Success) {
@@ -2457,8 +2568,445 @@ namespace PRoConEvents {
                     if (PostMapBenefitStatistics != _PostMapBenefitStatistics)
                     {
                         _PostMapBenefitStatistics = PostMapBenefitStatistics;
+                        if (_threadsReady)
+                        {
+                            if (_PostMapBenefitStatistics)
+                            {
+                                ConsoleInfo("Statistics for map benefit/detriment to the server will now be logged.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Statistics for map benefit/detriment to the server will no longer be logged.");
+                            }
+                        }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Post Win/Loss/Baserape Statistics").Success)
+                {
+                    Boolean PostWinLossBaserapeStatistics = Boolean.Parse(strValue);
+                    if (PostWinLossBaserapeStatistics != _PostWinLossBaserapeStatistics)
+                    {
+                        if (PostWinLossBaserapeStatistics && (!_surrenderAutoEnable || _surrenderAutoNukeWinning)) {
+                            ConsoleError("Posting win/loss/baserape statistics cannot be enabled when auto-surrender is disabled, that system is used to detect baserape.");
+                            return;
+                        }
+                        _PostWinLossBaserapeStatistics = PostWinLossBaserapeStatistics;
+                        if (_threadsReady) {
+                            if (_PostWinLossBaserapeStatistics) {
+                                ConsoleInfo("Statistics for player wins, losses, and caused baserapes will now be logged.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Statistics for player wins, losses, and caused baserapes will no longer be logged.");
+                            }
+                        }
+                        if (!_PostWinLossBaserapeStatistics && _FeedBaserapeCausingPlayerDispersion) {
+                            _FeedBaserapeCausingPlayerDispersion = false;
+                            ConsoleWarn("Baserape statistics were disabled. Feed for baserape causing players cannot be enabled when that is not.");
+                        }
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Post Win/Loss/Baserape Statistics", typeof(Boolean), _PostWinLossBaserapeStatistics));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Past Days to Monitor Baserape Causing Players").Success)
+                {
+                    //Initial parse
+                    Int32 BaserapeCausingPlayersDurationDays = Int32.Parse(strValue);
+                    //Check for changed value
+                    if (_BaserapeCausingPlayersDurationDays != BaserapeCausingPlayersDurationDays)
+                    {
+                        //Rejection cases
+                        if (BaserapeCausingPlayersDurationDays < 1)
+                        {
+                            ConsoleError("'Past Days to Monitor Baserape Causing Players' cannot be less than 1.");
+                            BaserapeCausingPlayersDurationDays = 1;
+                        }
+                        //Assignment
+                        _BaserapeCausingPlayersDurationDays = BaserapeCausingPlayersDurationDays;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            ConsoleInfo("Players are now considered baserape causing if they contribute to " + _BaserapeCausingPlayersMinimumCount + " baserapes in the past " + _BaserapeCausingPlayersDurationDays + " days.");
+                        }
+                        FetchAllAccess(true);
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Monitor Baserape Causing Players").Success)
+                {
+                    //Initial parse
+                    Boolean BaserapeCausingPlayersMonitor = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (BaserapeCausingPlayersMonitor != _BaserapeCausingPlayersMonitor)
+                    {
+                        //Rejection cases
+                        if (_threadsReady && !_PostWinLossBaserapeStatistics && BaserapeCausingPlayersMonitor)
+                        {
+                            ConsoleError("Baserape causing players cannot be monitored when not posting win/loss/baserape statistics.");
+                            return;
+                        }
+                        //Assignment
+                        _BaserapeCausingPlayersMonitor = BaserapeCausingPlayersMonitor;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_BaserapeCausingPlayersMonitor)
+                            {
+                                ConsoleInfo("Baserape causing players are now being monitored. Players are considered baserape causing if they contribute to " + _BaserapeCausingPlayersMinimumCount + " baserapes in the past " + _BaserapeCausingPlayersDurationDays + " days.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Baserape causing players are no longer being monitored.");
+                            }
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Monitor Baserape Causing Players", typeof(Boolean), _BaserapeCausingPlayersMonitor));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Count to Consider Baserape Causing").Success)
+                {
+                    //Initial parse
+                    Int32 BaserapeCausingPlayersMinimumCount = Int32.Parse(strValue);
+                    //Check for changed value
+                    if (_BaserapeCausingPlayersMinimumCount != BaserapeCausingPlayersMinimumCount)
+                    {
+                        //Rejection cases
+                        if (BaserapeCausingPlayersMinimumCount < 1)
+                        {
+                            ConsoleError("'Count to Consider Baserape Causing' cannot be less than 1.");
+                            BaserapeCausingPlayersMinimumCount = 1;
+                        }
+                        //Assignment
+                        _BaserapeCausingPlayersMinimumCount = BaserapeCausingPlayersMinimumCount;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            ConsoleInfo("Players are now considered baserape causing if they contribute to " + _BaserapeCausingPlayersMinimumCount + " baserapes in the past " + _BaserapeCausingPlayersDurationDays + " days.");
+
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Automatic Dispersion for Baserape Causing Players").Success)
+                {
+                    //Initial parse
+                    Boolean FeedBaserapeCausingPlayerDispersion = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (_FeedBaserapeCausingPlayerDispersion != FeedBaserapeCausingPlayerDispersion)
+                    {
+                        //Rejection cases
+                        if (_threadsReady && !_FeedMultiBalancerDisperseList && FeedBaserapeCausingPlayerDispersion)
+                        {
+                            ConsoleError("'Automatic Dispersion for Baserape Causing Players' cannot be enabled when 'Feed MULTIBalancer Even Dispersion List' is disabled.");
+                            return;
+                        }
+                        //Assignment
+                        _FeedBaserapeCausingPlayerDispersion = FeedBaserapeCausingPlayerDispersion;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_FeedBaserapeCausingPlayerDispersion)
+                            {
+                                ConsoleInfo("Baserape causing players are now being fed to autobalance dispersion.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Baserape causing players are no longer being fed to autobalance dispersion.");
+                            }
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database 
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Monitor Populator Players").Success)
+                {
+                    //Initial parse
+                    Boolean PopulatorMonitor = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (PopulatorMonitor != _PopulatorMonitor)
+                    {
+                        //Assignment
+                        _PopulatorMonitor = PopulatorMonitor;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_PopulatorMonitor)
+                            {
+                                ConsoleInfo("Populator players are now being monitored.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Populator players are no longer being monitored.");
+                            }
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Monitor Populator Players", typeof(Boolean), _PopulatorMonitor));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Monitor Specified Populators Only").Success)
+                {
+                    //Initial parse
+                    Boolean PopulatorUseSpecifiedPopulatorsOnly = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (PopulatorUseSpecifiedPopulatorsOnly != _PopulatorUseSpecifiedPopulatorsOnly)
+                    {
+                        //Assignment
+                        _PopulatorUseSpecifiedPopulatorsOnly = PopulatorUseSpecifiedPopulatorsOnly;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_PopulatorUseSpecifiedPopulatorsOnly)
+                            {
+                                ConsoleInfo("Only players under whitelist_populator specialplayer group can be considered populators now.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("All players can be considered populators now.");
+                            }
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Monitor Populators of This Server Only").Success)
+                {
+                    //Initial parse
+                    Boolean PopulatorPopulatingThisServerOnly = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (PopulatorPopulatingThisServerOnly != _PopulatorPopulatingThisServerOnly)
+                    {
+                        //Assignment
+                        _PopulatorPopulatingThisServerOnly = PopulatorPopulatingThisServerOnly;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_PopulatorPopulatingThisServerOnly)
+                            {
+                                ConsoleInfo("Only populations of this server will be considered toward a player's populator status on this server.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Populations of all servers will be considered toward a player's population status on this server.");
+                            }
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Count to Consider Populator Past Week").Success)
+                {
+                    //Initial parse
+                    Int32 PopulatorMinimumPopulationCountPastWeek = Int32.Parse(strValue);
+                    //Check for changed value
+                    if (_PopulatorMinimumPopulationCountPastWeek != PopulatorMinimumPopulationCountPastWeek)
+                    {
+                        //Rejection cases
+                        if (PopulatorMinimumPopulationCountPastWeek < 1)
+                        {
+                            ConsoleError("'Count to Consider Populator Past Week' cannot be less than 1.");
+                            PopulatorMinimumPopulationCountPastWeek = 1;
+                        }
+                        //Assignment
+                        _PopulatorMinimumPopulationCountPastWeek = PopulatorMinimumPopulationCountPastWeek;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            ConsoleInfo("Players are now considered populator if they contribute to " + _PopulatorMinimumPopulationCountPastWeek + " populations in the past week, or " + _PopulatorMinimumPopulationCountPast2Weeks + " populations in the past 2 weeks.");
+
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Count to Consider Populator Past Week", typeof(Int32), _PopulatorMinimumPopulationCountPastWeek));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Count to Consider Populator Past 2 Weeks").Success)
+                {
+                    //Initial parse
+                    Int32 PopulatorMinimumPopulationCountPast2Weeks = Int32.Parse(strValue);
+                    //Check for changed value
+                    if (_PopulatorMinimumPopulationCountPast2Weeks != PopulatorMinimumPopulationCountPast2Weeks)
+                    {
+                        //Rejection cases
+                        if (PopulatorMinimumPopulationCountPast2Weeks < 1)
+                        {
+                            ConsoleError("'Count to Consider Populator Past 2 Weeks' cannot be less than 1.");
+                            PopulatorMinimumPopulationCountPast2Weeks = 1;
+                        }
+                        //Assignment
+                        _PopulatorMinimumPopulationCountPast2Weeks = PopulatorMinimumPopulationCountPast2Weeks;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            ConsoleInfo("Players are now considered populator if they contribute to " + _PopulatorMinimumPopulationCountPastWeek + " populations in the past week, or " + _PopulatorMinimumPopulationCountPast2Weeks + " populations in the past 2 weeks.");
+
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Count to Consider Populator Past 2 Weeks", typeof(Int32), _PopulatorMinimumPopulationCountPast2Weeks));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Enable Populator Perks").Success)
+                {
+                    //Initial parse
+                    Boolean PopulatorPerksEnable = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (PopulatorPerksEnable != _PopulatorPerksEnable)
+                    {
+                        //Assignment
+                        _PopulatorPerksEnable = PopulatorPerksEnable;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_PopulatorPerksEnable)
+                            {
+                                ConsoleInfo("Populator perks are now enabled.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Populator perks are now disabled.");
+                            }
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Enable Populator Perks", typeof(Boolean), _PopulatorPerksEnable));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Populator Perks - Reserved Slot").Success)
+                {
+                    //Initial parse
+                    Boolean PopulatorPerksReservedSlot = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (PopulatorPerksReservedSlot != _PopulatorPerksReservedSlot)
+                    {
+                        //Rejection cases
+                        if (_threadsReady && !_FeedServerReservedSlots && PopulatorPerksReservedSlot)
+                        {
+                            ConsoleError("'Populator Perks - Reserved Slot' cannot be enabled when 'Feed Server Reserved Slots' is disabled.");
+                            return;
+                        }
+                        //Assignment
+                        _PopulatorPerksReservedSlot = PopulatorPerksReservedSlot;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_PopulatorPerksReservedSlot)
+                            {
+                                ConsoleInfo("Populator perks now include reserved slot.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Populator perks no longer include reserved slot.");
+                            }
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Populator Perks - Reserved Slot", typeof(Boolean), _PopulatorPerksReservedSlot));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Populator Perks - Autobalance Whitelist").Success)
+                {
+                    //Initial parse
+                    Boolean PopulatorPerksBalanceWhitelist = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (PopulatorPerksBalanceWhitelist != _PopulatorPerksBalanceWhitelist)
+                    {
+                        //Rejection cases
+                        if (_threadsReady && !_FeedMultiBalancerWhitelist && PopulatorPerksBalanceWhitelist)
+                        {
+                            ConsoleError("'Populator Perks - Autobalance Whitelist' cannot be enabled when 'Feed MULTIBalancer Whitelist' is disabled.");
+                            return;
+                        }
+                        //Assignment
+                        _PopulatorPerksBalanceWhitelist = PopulatorPerksBalanceWhitelist;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_PopulatorPerksBalanceWhitelist)
+                            {
+                                ConsoleInfo("Populator perks now include autobalance whitelist.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Populator perks no longer include autobalance whitelist.");
+                            }
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Populator Perks - Autobalance Whitelist", typeof(Boolean), _PopulatorPerksBalanceWhitelist));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Populator Perks - Ping Whitelist").Success)
+                {
+                    //Initial parse
+                    Boolean PopulatorPerksPingWhitelist = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (PopulatorPerksPingWhitelist != _PopulatorPerksPingWhitelist)
+                    {
+                        //Rejection cases
+                        if (_threadsReady && !_pingEnforcerEnable && PopulatorPerksPingWhitelist)
+                        {
+                            ConsoleError("'Populator Perks - Ping Whitelist' cannot be enabled when Ping Enforcer is disabled.");
+                            return;
+                        }
+                        //Assignment
+                        _PopulatorPerksPingWhitelist = PopulatorPerksPingWhitelist;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_PopulatorPerksPingWhitelist)
+                            {
+                                ConsoleInfo("Populator perks now include ping whitelist.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Populator perks no longer include ping whitelist.");
+                            }
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Populator Perks - Ping Whitelist", typeof(Boolean), _PopulatorPerksPingWhitelist));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Populator Perks - TeamKillTracker Whitelist").Success)
+                {
+                    //Initial parse
+                    Boolean PopulatorPerksTeamKillTrackerWhitelist = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (PopulatorPerksTeamKillTrackerWhitelist != _PopulatorPerksTeamKillTrackerWhitelist)
+                    {
+                        //Rejection cases
+                        if (_threadsReady && !_FeedTeamKillTrackerWhitelist && PopulatorPerksTeamKillTrackerWhitelist)
+                        {
+                            ConsoleError("'Populator Perks - TeamKillTracker Whitelist' cannot be enabled when 'Feed TeamKillTracker Whitelist' is disabled.");
+                            return;
+                        }
+                        //Assignment
+                        _PopulatorPerksTeamKillTrackerWhitelist = PopulatorPerksTeamKillTrackerWhitelist;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_PopulatorPerksTeamKillTrackerWhitelist)
+                            {
+                                ConsoleInfo("Populator perks now include TeamKillTracker whitelist.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Populator perks no longer include TeamKillTracker whitelist.");
+                            }
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Populator Perks - TeamKillTracker Whitelist", typeof(Boolean), _PopulatorPerksTeamKillTrackerWhitelist));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Use Experimental Tools").Success) {
@@ -3173,6 +3721,7 @@ namespace PRoConEvents {
                                             }
                                         }
                                         QueueRoleForUpload(aRole);
+                                        FetchAllAccess(true);
                                         break;
                                     case "ignore":
                                         lock (aRole.RoleSetGroups)
@@ -3180,6 +3729,7 @@ namespace PRoConEvents {
                                             aRole.RoleSetGroups.Remove(aGroup.group_key);
                                         }
                                         QueueRoleForUpload(aRole);
+                                        FetchAllAccess(true);
                                         break;
                                     default:
                                         ConsoleError("Unknown setting when changing role group assignment.");
@@ -5271,10 +5821,11 @@ namespace PRoConEvents {
                                         if (_roundState == RoundState.Playing) {
                                             aPlayer.AddPingEntry(ping);
                                             //Automatic ping kick
-                                            if (_pingEnforcerSystemEnable && 
+                                            if (_pingEnforcerEnable && 
                                                 aPlayer.player_type == PlayerType.Player && 
                                                 !PlayerIsAdmin(aPlayer) && 
                                                 !GetMatchingASPlayersOfGroup("whitelist_ping", aPlayer).Any() &&
+                                                !(_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksPingWhitelist && _populatorPlayers.Values.Any(pPlayer => pPlayer.player_id == aPlayer.player_id)) &&
                                                 !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) &&
                                                 !(_pingEnforcerIgnoreUserList && FetchAllUserSoldiers().Any(sPlayer => sPlayer.player_guid == aPlayer.player_guid)))
                                             {
@@ -6583,7 +7134,7 @@ namespace PRoConEvents {
                                 {
                                     _FeedStatLoggerSettings = true;
                                     _PostStatLoggerChatManually = true;
-                                    _pingEnforcerSystemEnable = true;
+                                    _pingEnforcerEnable = true;
                                     _pingEnforcerKickMissingPings = true;
                                     _CMDRManagerEnable = true;
                                     _surrenderVoteEnable = true;
@@ -6801,7 +7352,7 @@ namespace PRoConEvents {
         //Round ended stuff
         public override void OnRoundOverTeamScores(List<TeamScore> teamScores)
         {
-            if (_isTestingAuthorized)
+            if (_PostWinLossBaserapeStatistics)
             {
                 PostPlayerWinLossStatistics();
             }
@@ -7521,10 +8072,10 @@ namespace PRoConEvents {
                                             }
                                         }
                                         PlayerTellMessage(aPlayer.player_name, repMessage);
-                                        if (_baserapeCausingPlayers.Values.Any(dPlayer => dPlayer.player_id == aPlayer.player_id))
+                                        if (_FeedMultiBalancerDisperseList && _FeedBaserapeCausingPlayerDispersion && _baserapeCausingPlayers.Values.Any(dPlayer => dPlayer.player_id == aPlayer.player_id))
                                         {
                                             _threadMasterWaitHandle.WaitOne(5000);
-                                            PlayerTellMessage(aPlayer.player_name, "Baserape monitor has you under temporary autobalance dispersion. You are 1 of " + _baserapeCausingPlayers.Count + " players, stats reset after 1 week.");
+                                            PlayerTellMessage(aPlayer.player_name, "Baserape monitor has you under temporary autobalance dispersion. You are 1 of " + _baserapeCausingPlayers.Count + " players.");
                                         }
                                     }
                                 }
@@ -7909,8 +8460,7 @@ namespace PRoConEvents {
                     asGroup = asPlayer.player_group;
                 }
             }
-            foreach (var aUser in _userCache.Values.Where(sUser => sUser.user_role.RoleSetGroups.ContainsKey(specialPlayerGroup)).ToList())
-            {
+            foreach (var aUser in _userCache.Values.Where(sUser => sUser.user_role.RoleSetGroups.ContainsKey(specialPlayerGroup)).ToList()) {
                 foreach (var aPlayer in aUser.soldierDictionary.Values.ToList())
                 {
                     //Check for existing player
@@ -10051,6 +10601,24 @@ namespace PRoConEvents {
                             }
                             DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
+                        case "player_whitelistpopulator":
+                            if (GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already under populator whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistteamkill":
+                            if (GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already under TeamKillTracker whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
                         case "player_whitelistreport_remove":
                             if (!GetMatchingASPlayersOfGroup("whitelist_report", record.target_player).Any())
                             {
@@ -10127,6 +10695,24 @@ namespace PRoConEvents {
                             if (!GetMatchingASPlayersOfGroup("blacklist_dispersion", record.target_player).Any())
                             {
                                 SendMessageToSource(record, "Matching player not under autobalance dispersion for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistpopulator_remove":
+                            if (!GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not under populator whitelist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_whitelistteamkill_remove":
+                            if (!GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not under TeamKillTracker whitelist for this server.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -10595,9 +11181,9 @@ namespace PRoConEvents {
                             return;
                         }
 
-                        if (_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
+                        if (_FeedMultiBalancerDisperseList && _FeedBaserapeCausingPlayerDispersion && _baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
                         {
-                            SendMessageToSource(record, "You are under dispersion for baserape. You may not use Assist at this time.");
+                            SendMessageToSource(record, "You are under dispersion for baserape, you may not use Assist to bypass it at this time.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -11300,8 +11886,8 @@ namespace PRoConEvents {
                                 DebugWrite("Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
-                                    //20 years in seconds
-                                    record.command_numeric = 631139040;
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
                                     defaultReason = "Permanent " + defaultReason;
                                 }
                                 else
@@ -11410,7 +11996,7 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
-                            if (!_pingEnforcerSystemEnable)
+                            if (!_pingEnforcerEnable)
                             {
                                 SendMessageToSource(record, "Enable Ping Enforcer to use this command.");
                                 FinalizeRecord(record);
@@ -11428,8 +12014,8 @@ namespace PRoConEvents {
                                 DebugWrite("Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
-                                    //20 years in seconds
-                                    record.command_numeric = 631139040;
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
                                     defaultReason = "Permanent " + defaultReason;
                                 }
                                 else
@@ -11556,8 +12142,8 @@ namespace PRoConEvents {
                                 DebugWrite("Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
-                                    //20 years in seconds
-                                    record.command_numeric = 631139040;
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
                                     defaultReason = "Permanent " + defaultReason;
                                 }
                                 else
@@ -11677,8 +12263,8 @@ namespace PRoConEvents {
                                 DebugWrite("Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
-                                    //20 years in seconds
-                                    record.command_numeric = 631139040;
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
                                     defaultReason = "Permanent " + defaultReason;
                                 }
                                 else
@@ -11805,8 +12391,264 @@ namespace PRoConEvents {
                                 DebugWrite("Raw Duration: " + stringDuration, 6);
                                 if (stringDuration == "perm")
                                 {
-                                    //20 years in seconds
-                                    record.command_numeric = 631139040;
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    //time
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 2:
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    DebugWrite("target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    DebugWrite("" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_whitelistpopulator":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_PopulatorMonitor)
+                            {
+                                SendMessageToSource(record, "'Monitor Populator Players' must be enabled to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            String defaultReason = "Populator Whitelist";
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                DebugWrite("Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    //time
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 2:
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    DebugWrite("target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    DebugWrite("" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_whitelistteamkill":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_FeedTeamKillTrackerWhitelist)
+                            {
+                                SendMessageToSource(record, "'Feed TeamKillTracker Whitelist' must be enabled to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            String defaultReason = "TeamKillTracker Whitelist";
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                DebugWrite("Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
                                     defaultReason = "Permanent " + defaultReason;
                                 }
                                 else
@@ -13779,8 +14621,8 @@ namespace PRoConEvents {
                             DebugWrite("Raw Duration: " + stringDuration, 6);
                             if (stringDuration == "perm")
                             {
-                                //20 years in seconds
-                                record.command_numeric = 631139040;
+                                //20 years in minutes
+                                record.command_numeric = 10518984;
                                 defaultReason = "Permanent " + defaultReason;
                             }
                             else
@@ -13903,8 +14745,8 @@ namespace PRoConEvents {
                             DebugWrite("Raw Duration: " + stringDuration, 6);
                             if (stringDuration == "perm")
                             {
-                                //20 years in seconds
-                                record.command_numeric = 631139040;
+                                //20 years in minutes
+                                record.command_numeric = 10518984;
                                 defaultReason = "Permanent " + defaultReason;
                             }
                             else
@@ -14029,8 +14871,8 @@ namespace PRoConEvents {
                             DebugWrite("Raw Duration: " + stringDuration, 6);
                             if (stringDuration == "perm")
                             {
-                                //20 years in seconds
-                                record.command_numeric = 631139040;
+                                //20 years in minutes
+                                record.command_numeric = 10518984;
                                 defaultReason = "Permanent " + defaultReason;
                             }
                             else
@@ -14155,8 +14997,8 @@ namespace PRoConEvents {
                             DebugWrite("Raw Duration: " + stringDuration, 6);
                             if (stringDuration == "perm")
                             {
-                                //20 years in seconds
-                                record.command_numeric = 631139040;
+                                //20 years in minutes
+                                record.command_numeric = 10518984;
                                 defaultReason = "Permanent " + defaultReason;
                             }
                             else
@@ -14387,7 +15229,7 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
-                            if (!_pingEnforcerSystemEnable)
+                            if (!_pingEnforcerEnable)
                             {
                                 SendMessageToSource(record, "Enable Ping Enforcer to use this command.");
                                 FinalizeRecord(record);
@@ -14626,6 +15468,92 @@ namespace PRoConEvents {
                                     break;
                                 case 1:
                                     record.record_message = "Removing Autobalance Dispersion";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_whitelistpopulator_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_PopulatorMonitor)
+                            {
+                                SendMessageToSource(record, "'Monitor Populator Players' must be enabled to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Populator Whitelist";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Populator Whitelist";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_whitelistteamkill_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            if (!_FeedTeamKillTrackerWhitelist)
+                            {
+                                SendMessageToSource(record, "Enable 'Feed TeamKillTracker Whitelist' to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing TeamKillTracker Whitelist";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing TeamKillTracker Whitelist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
@@ -15905,6 +16833,18 @@ namespace PRoConEvents {
                     case "player_blacklistdisperse_remove":
                         BalanceDisperseRemoveTarget(record);
                         break;
+                    case "player_whitelistpopulator":
+                        PopulatorWhitelistTarget(record);
+                        break;
+                    case "player_whitelistpopulator_remove":
+                        PopulatorWhitelistRemoveTarget(record);
+                        break;
+                    case "player_whitelistteamkill":
+                        TeamKillTrackerWhitelistTarget(record);
+                        break;
+                    case "player_whitelistteamkill_remove":
+                        TeamKillTrackerWhitelistRemoveTarget(record);
+                        break;
                     case "player_log":
                         SendMessageToSource(record, "Log saved for " + record.GetTargetNames());
                         break;
@@ -16770,9 +17710,9 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
-                        if (record.command_numeric > 631139040) 
+                        if (record.command_numeric > 10518984) 
                         {
-                            record.command_numeric = 631139040;
+                            record.command_numeric = 10518984;
                         }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
@@ -16782,7 +17722,7 @@ namespace PRoConEvents {
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance dispersion on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance dispersion on this server.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -16840,9 +17780,9 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
-                        if (record.command_numeric > 631139040)
+                        if (record.command_numeric > 10518984)
                         {
-                            record.command_numeric = 631139040;
+                            record.command_numeric = 10518984;
                         }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
@@ -16852,7 +17792,7 @@ namespace PRoConEvents {
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance whitelist on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " autobalance whitelist on this server.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -16909,9 +17849,9 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
-                        if (record.command_numeric > 631139040)
+                        if (record.command_numeric > 10518984)
                         {
-                            record.command_numeric = 631139040;
+                            record.command_numeric = 10518984;
                         }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
@@ -16920,7 +17860,7 @@ namespace PRoConEvents {
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0) {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040)?("permanent"):(FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " reserved slot on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984)?("permanent"):(FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " reserved slot on this server.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -16982,9 +17922,9 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
-                        if (record.command_numeric > 631139040)
+                        if (record.command_numeric > 10518984)
                         {
-                            record.command_numeric = 631139040;
+                            record.command_numeric = 10518984;
                         }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_server", _serverInfo.ServerID);
@@ -16994,7 +17934,7 @@ namespace PRoConEvents {
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spectator slot on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spectator slot on this server.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -17062,9 +18002,9 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
-                        if (record.command_numeric > 631139040)
+                        if (record.command_numeric > 10518984)
                         {
-                            record.command_numeric = 631139040;
+                            record.command_numeric = 10518984;
                         }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
@@ -17073,7 +18013,7 @@ namespace PRoConEvents {
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " hacker-checker whitelist for all servers.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " hacker-checker whitelist for all servers.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -17146,9 +18086,9 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
-                        if (record.command_numeric > 631139040)
+                        if (record.command_numeric > 10518984)
                         {
-                            record.command_numeric = 631139040;
+                            record.command_numeric = 10518984;
                         }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
@@ -17157,7 +18097,7 @@ namespace PRoConEvents {
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " ping whitelist for all servers.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " ping whitelist for all servers.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -17229,9 +18169,9 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
-                        if (record.command_numeric > 631139040)
+                        if (record.command_numeric > 10518984)
                         {
-                            record.command_numeric = 631139040;
+                            record.command_numeric = 10518984;
                         }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
@@ -17240,7 +18180,7 @@ namespace PRoConEvents {
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " admin assistant whitelist for all servers.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " admin assistant whitelist for all servers.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -17312,9 +18252,9 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
-                        if (record.command_numeric > 631139040)
+                        if (record.command_numeric > 10518984)
                         {
-                            record.command_numeric = 631139040;
+                            record.command_numeric = 10518984;
                         }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
@@ -17323,7 +18263,7 @@ namespace PRoConEvents {
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " report whitelist for all servers.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " report whitelist for all servers.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -17395,9 +18335,9 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
-                        if (record.command_numeric > 631139040)
+                        if (record.command_numeric > 10518984)
                         {
-                            record.command_numeric = 631139040;
+                            record.command_numeric = 10518984;
                         }
                         command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
                         command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
@@ -17406,7 +18346,7 @@ namespace PRoConEvents {
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0)
                         {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 631139040) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spambot whitelist for all servers.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spambot whitelist for all servers.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
@@ -17967,6 +18907,295 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting BalanceDisperseRemoveTarget", 6);
+        }
+
+        public void PopulatorWhitelistTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering PopulatorWhitelistTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "PopulatorWhitelistTarget not available for multiple targets.");
+                    ConsoleError("PopulatorWhitelistTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player);
+                if (matchingPlayers.Count > 0)
+                {
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the populator whitelist.");
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'whitelist_populator',
+	                        @player_id,
+	                        @player_name,
+	                        UTC_TIMESTAMP(),
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                        )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 10518984)
+                        {
+                            record.command_numeric = 10518984;
+                        }
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0)
+                        {
+                            String message = "Player " + record.GetTargetNames() + " given " + 
+                                ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + 
+                                " populator whitelist for all servers.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
+                            FetchAllAccess(true);
+                        }
+                        else
+                        {
+                            ConsoleError("Unable to add player to Populator whitelist. Error uploading.");
+                        }
+                    }
+                }
+                //Fetch the special player cache
+                FetchAllAccess(true);
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for Populator Whitelist record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting PopulatorWhitelistTarget", 6);
+        }
+
+        public void PopulatorWhitelistRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering PopulatorWhitelistRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "PopulatorWhitelistRemoveTarget not available for multiple targets.");
+                    ConsoleError("PopulatorWhitelistRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_populator", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the populator whitelist for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from populator whitelist.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from populator whitelist. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from populator whitelist.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting PopulatorWhitelistRemoveTarget", 6);
+        }
+
+        public void TeamKillTrackerWhitelistTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering TeamKillTrackerWhitelistTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "TeamKillTrackerWhitelistTarget not available for multiple targets.");
+                    ConsoleError("TeamKillTrackerWhitelistTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player);
+                if (matchingPlayers.Count > 0)
+                {
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the TeamKillTracker whitelist.");
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'whitelist_teamkill',
+	                        @player_id,
+	                        @player_name,
+	                        UTC_TIMESTAMP(),
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                        )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 10518984)
+                        {
+                            record.command_numeric = 10518984;
+                        }
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
+
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0)
+                        {
+                            String message = "Player " + record.GetTargetNames() + " given " + 
+                                ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) +
+                                " TeamKillTracker whitelist for all servers.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
+                            FetchAllAccess(true);
+                        }
+                        else
+                        {
+                            ConsoleError("Unable to add player to TeamKillTracker whitelist. Error uploading.");
+                        }
+                    }
+                }
+                //Fetch the special player cache
+                FetchAllAccess(true);
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for TeamKillTracker Whitelist record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting TeamKillTrackerWhitelistTarget", 6);
+        }
+
+        public void TeamKillTrackerWhitelistRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering TeamKillTrackerWhitelistRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "TeamKillTrackerWhitelistRemoveTarget not available for multiple targets.");
+                    ConsoleError("TeamKillTrackerWhitelistRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("whitelist_teamkill", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the TeamKillTracker whitelist for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from TeamKillTracker whitelist.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from TeamKillTracker whitelist. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from TeamKillTracker whitelist.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting TeamKillTrackerWhitelistRemoveTarget", 6);
         }
 
         public void MuteTarget(AdKatsRecord record) {
@@ -21789,8 +23018,10 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
                 QueueSettingForUpload(new CPluginVariable(@"Yell Server Rules", typeof(Boolean), _ServerRulesYell));
                 QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Whitelist", typeof (Boolean), _FeedMultiBalancerWhitelist));
-                QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList)); 
-                QueueSettingForUpload(new CPluginVariable(@"Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_Admins));
+                QueueSettingForUpload(new CPluginVariable(@"Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_Admins)); 
+                QueueSettingForUpload(new CPluginVariable(@"Feed TeamKillTracker Whitelist", typeof(Boolean), _FeedTeamKillTrackerWhitelist));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic TeamKillTracker Whitelist for Admins", typeof(Boolean), _FeedTeamKillTrackerWhitelist_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Spectator Slot for Admins", typeof(Boolean), _FeedServerSpectatorList_Admins));
                 QueueSettingForUpload(new CPluginVariable(@"Feed Server Reserved Slots", typeof (Boolean), _FeedServerReservedSlots));
@@ -21800,6 +23031,21 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
                 QueueSettingForUpload(new CPluginVariable(@"Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
                 QueueSettingForUpload(new CPluginVariable(@"Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
+                QueueSettingForUpload(new CPluginVariable(@"Post Win/Loss/Baserape Statistics", typeof(Boolean), _PostWinLossBaserapeStatistics));
+                QueueSettingForUpload(new CPluginVariable(@"Monitor Baserape Causing Players", typeof(Boolean), _BaserapeCausingPlayersMonitor));
+                QueueSettingForUpload(new CPluginVariable(@"Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
+                QueueSettingForUpload(new CPluginVariable(@"Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
+                QueueSettingForUpload(new CPluginVariable(@"Monitor Populator Players", typeof(Boolean), _PopulatorMonitor));
+                QueueSettingForUpload(new CPluginVariable(@"Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
+                QueueSettingForUpload(new CPluginVariable(@"Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
+                QueueSettingForUpload(new CPluginVariable(@"Count to Consider Populator Past Week", typeof(Int32), _PopulatorMinimumPopulationCountPastWeek));
+                QueueSettingForUpload(new CPluginVariable(@"Count to Consider Populator Past 2 Weeks", typeof(Int32), _PopulatorMinimumPopulationCountPast2Weeks));
+                QueueSettingForUpload(new CPluginVariable(@"Enable Populator Perks", typeof(Boolean), _PopulatorPerksEnable));
+                QueueSettingForUpload(new CPluginVariable(@"Populator Perks - Reserved Slot", typeof(Boolean), _PopulatorPerksReservedSlot));
+                QueueSettingForUpload(new CPluginVariable(@"Populator Perks - Autobalance Whitelist", typeof(Boolean), _PopulatorPerksBalanceWhitelist));
+                QueueSettingForUpload(new CPluginVariable(@"Populator Perks - Ping Whitelist", typeof(Boolean), _PopulatorPerksPingWhitelist));
+                QueueSettingForUpload(new CPluginVariable(@"Populator Perks - TeamKillTracker Whitelist", typeof(Boolean), _PopulatorPerksTeamKillTrackerWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof (Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof (Double), _maxRoundTimeMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof (Boolean), _UseWeaponLimiter));
@@ -21891,7 +23137,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"AFK Minimum Players", typeof(Int32), _AFKTriggerMinimumPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore User List", typeof(Boolean), _AFKIgnoreUserList));
                 QueueSettingForUpload(new CPluginVariable(@"AFK Ignore Roles", typeof(String), CPluginVariable.EncodeStringArray(_AFKIgnoreRoles))); 
-                QueueSettingForUpload(new CPluginVariable(@"Ping Enforcer Enable", typeof(Boolean), _pingEnforcerSystemEnable));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Enforcer Enable", typeof(Boolean), _pingEnforcerEnable));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Medium Population Trigger ms", typeof(Double), _pingEnforcerMedTriggerMS));
@@ -24721,9 +25967,55 @@ namespace PRoConEvents {
             return aPlayer;
         }
 
-        private List<AdKatsPlayer> GetBaserapeCausingPlayersPastWeek()
+        private void UpdateBaserapeCausingPlayers()
         {
-            DebugWrite("GetBaserapeCausingPlayersPastWeek starting!", 6);
+            DebugWrite("UpdateBaserapeCausingPlayers starting!", 6);
+            try
+            {
+                List<Int64> validIDs = new List<Int64>();
+                lock (_baserapeCausingPlayers)
+                {
+                    if (!_PostWinLossBaserapeStatistics)
+                    {
+                        _BaserapeCausingPlayersMonitor = false;
+                        _baserapeCausingPlayers.Clear();
+                        return;
+                    }
+                    if (!_BaserapeCausingPlayersMonitor)
+                    {
+                        _baserapeCausingPlayers.Clear();
+                        return;
+                    }
+                    foreach (AdKatsPlayer aPlayer in GetBaserapeCausingPlayers(
+                        TimeSpan.FromDays(_BaserapeCausingPlayersDurationDays), 
+                        _BaserapeCausingPlayersMinimumCount))
+                    {
+                        validIDs.Add(aPlayer.player_id);
+                        if (!_baserapeCausingPlayers.ContainsKey(aPlayer.player_name))
+                        {
+                            if(_threadsReady)
+                                ConsoleInfo("Adding " + aPlayer.player_name + " to baserape causing player list.");
+                        }
+                        _baserapeCausingPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                    foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList())
+                    {
+                        if (_threadsReady)
+                            ConsoleInfo("Removing " + aPlayer.player_name + " from baserape causing player list.");
+                        _baserapeCausingPlayers.Remove(aPlayer.player_name);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching baserape causing players", e));
+            }
+            DebugWrite("UpdateBaserapeCausingPlayers finished!", 6);
+        }
+
+        private List<AdKatsPlayer> GetBaserapeCausingPlayers(TimeSpan duration, Int32 minBaserapes)
+        {
+            DebugWrite("GetBaserapeCausingPlayers starting!", 6);
             List<AdKatsPlayer> resultPlayers = new List<AdKatsPlayer>();
             try
             {
@@ -24751,7 +26043,7 @@ namespace PRoConEvents {
 	                         AND
 		                        `target_id` = `player_id`
 	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 7 DAY)
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
 	                         AND
 		                        (
 			                        `stat_type` = 'player_win'
@@ -24767,7 +26059,7 @@ namespace PRoConEvents {
 	                         AND
 		                        `target_id` = `player_id`
 	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 7 DAY)
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
 	                         AND
 		                        `stat_type` = 'player_win') AS `win_count`,
 	                        (SELECT
@@ -24779,7 +26071,7 @@ namespace PRoConEvents {
 	                         AND
 		                        `target_id` = `player_id`
 	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 7 DAY)
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
 	                         AND
 		                        `stat_type` = 'player_loss') AS `loss_count`,
 	                        (SELECT
@@ -24791,7 +26083,7 @@ namespace PRoConEvents {
 	                         AND
 		                        `target_id` = `player_id`
 	                         AND
-		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL 7 DAY)
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
 	                         AND
 		                        `stat_type` = 'player_baserape') AS `baserape_count`
                         FROM
@@ -24812,7 +26104,7 @@ namespace PRoConEvents {
 	                        `baserape_count` DESC
                         ) AS `InnerResults`
                         WHERE
-	                        `baserape_count` >= 5
+	                        `baserape_count` >= @baserapes_minimum
                         AND
 	                        `win_count`/REPLACE(`loss_count`, 0, 1) > 1.0
                         ORDER BY
@@ -24820,6 +26112,8 @@ namespace PRoConEvents {
 	                        `baserape_count` DESC, 
 	                        `player_name` ASC";
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@duration_minutes", (Int32)duration.TotalMinutes);
+                        command.Parameters.AddWithValue("@baserapes_minimum", minBaserapes);
                         //Attempt to execute the query
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
@@ -24836,10 +26130,173 @@ namespace PRoConEvents {
                     }
                 }
             }
-            catch (Exception e) {
+            catch (Exception e)
+            {
                 HandleException(new AdKatsException("Error while fetching baserape causing players", e));
             }
-            DebugWrite("GetBaserapeCausingPlayersPastWeek finished!", 6);
+            DebugWrite("GetBaserapeCausingPlayers finished!", 6);
+            return resultPlayers;
+        }
+        
+        private void UpdatePopulatorPlayers()
+        {
+            DebugWrite("UpdatePopulatingPlayers starting!", 6);
+            try
+            {
+                //List for current valid populator player IDs
+                List<Int64> validIDs = new List<Int64>();
+                lock (_populatorPlayers)
+                {
+                    //Rejection case
+                    if (!_PopulatorMonitor)
+                    {
+                        _populatorPlayers.Clear();
+                        return;
+                    }
+                    var populatorsPastWeek = GetPopulatingPlayers(TimeSpan.FromDays(7), _PopulatorMinimumPopulationCountPastWeek, _PopulatorPopulatingThisServerOnly);
+                    var populatorsPast2Weeks = GetPopulatingPlayers(TimeSpan.FromDays(14), _PopulatorMinimumPopulationCountPast2Weeks, _PopulatorPopulatingThisServerOnly);
+                    //Find all populators from the past week
+                    foreach (AdKatsPlayer aPlayer in populatorsPastWeek)
+                    {
+                        //If using specified populators only, reject any non-specified populator entries
+                        if (_PopulatorUseSpecifiedPopulatorsOnly && !GetMatchingASPlayersOfGroup("whitelist_populator", aPlayer).Any())
+                        {
+                            continue;
+                        }
+                        //Add the valid ID
+                        if (!validIDs.Contains(aPlayer.player_id))
+                        {
+                            validIDs.Add(aPlayer.player_id);
+                        }
+                        //Add the player
+                        if (!_populatorPlayers.ContainsKey(aPlayer.player_name))
+                        {
+                            if (_threadsReady)
+                                ConsoleInfo("Adding " + aPlayer.player_name + " to current populator players.");
+                        }
+                        _populatorPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                    //Find all populators from the past 2 weeks
+                    foreach (AdKatsPlayer aPlayer in populatorsPast2Weeks)
+                    {
+                        //If using specified populators only, reject any non-specified populator entries
+                        if (_PopulatorUseSpecifiedPopulatorsOnly && !GetMatchingASPlayersOfGroup("whitelist_populator", aPlayer).Any())
+                        {
+                            continue;
+                        }
+                        //Add the valid ID
+                        if (!validIDs.Contains(aPlayer.player_id))
+                        {
+                            validIDs.Add(aPlayer.player_id);
+                        }
+                        //Add the player
+                        if (!_populatorPlayers.ContainsKey(aPlayer.player_name))
+                        {
+                            if (_threadsReady)
+                                ConsoleInfo("Adding " + aPlayer.player_name + " to current populator players.");
+                        }
+                        _populatorPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                    //Remove invalid players
+                    foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList())
+                    {
+                        if (_threadsReady)
+                            ConsoleInfo("Removing " + aPlayer.player_name + " from current populator players.");
+                        _populatorPlayers.Remove(aPlayer.player_name);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching baserape causing players", e));
+            }
+            DebugWrite("UpdatePopulatingPlayers finished!", 6);
+        }
+
+        private List<AdKatsPlayer> GetPopulatingPlayers(TimeSpan duration, Int32 minPopulations, Boolean thisServerOnly)
+        {
+            DebugWrite("GetPopulatingPlayers starting!", 6);
+            List<AdKatsPlayer> resultPlayers = new List<AdKatsPlayer>();
+            try
+            {
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        if (thisServerOnly)
+                        {
+                            command.CommandText = @"
+                            SELECT
+	                            *
+                            FROM
+                            (SELECT 
+	                            `target_id` AS `player_id`, 
+	                            `target_name` AS `player_name`, 
+	                            COUNT(`record_id`) AS `population_count` 
+                            FROM 
+	                            `adkats_records_main` 
+                            WHERE 
+	                            `server_id` = @server_id
+                            AND
+	                            `command_type` = 88
+                            AND 
+	                            DATE_ADD(`record_time`, INTERVAL @duration_minutes MINUTE) > UTC_TIMESTAMP()
+                            GROUP BY
+	                            `target_id`
+                            ORDER BY
+	                            `population_count` DESC, `target_name` ASC) AS InnerResults
+                            WHERE
+	                            `population_count` >= @population_minimum";
+                            command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+                            command.Parameters.AddWithValue("@duration_minutes", (Int32)duration.TotalMinutes);
+                            command.Parameters.AddWithValue("@population_minimum", minPopulations);
+                        }
+                        else
+                        {
+                            command.CommandText = @"
+                            SELECT
+	                            *
+                            FROM
+                            (SELECT 
+	                            `target_id` AS `player_id`, 
+	                            `target_name` AS `player_name`, 
+	                            COUNT(`record_id`) AS `population_count` 
+                            FROM 
+	                            `adkats_records_main` 
+                            WHERE 
+	                            `command_type` = 88
+                            AND 
+	                            DATE_ADD(`record_time`, INTERVAL @duration_minutes MINUTE) > UTC_TIMESTAMP()
+                            GROUP BY
+	                            `target_id`
+                            ORDER BY
+	                            `population_count` DESC, `target_name` ASC) AS InnerResults
+                            WHERE
+	                            `population_count` >= @population_minimum";
+                            command.Parameters.AddWithValue("@duration_minutes", (Int32)duration.TotalMinutes);
+                            command.Parameters.AddWithValue("@population_minimum", minPopulations);
+                        }
+                        //Attempt to execute the query
+                        using (MySqlDataReader reader = SafeExecuteReader(command))
+                        {
+                            //Grab the matching players
+                            while (reader.Read())
+                            {
+                                AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
+                                if (aPlayer != null)
+                                {
+                                    resultPlayers.Add(aPlayer);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching populating players", e));
+            }
+            DebugWrite("GetPopulatingPlayers finished!", 6);
             return resultPlayers;
         }
 
@@ -26342,6 +27799,26 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 103", "REPLACE INTO `adkats_commands` VALUES(103, 'Active', 'player_blacklistdisperse_remove', 'Log', 'Remove Autobalance Dispersion', 'undisperse', TRUE)", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(104))
+                                {
+                                    SendNonQuery("Adding command 104", "REPLACE INTO `adkats_commands` VALUES(104, 'Active', 'player_whitelistpopulator', 'Log', 'Populator Whitelist Player', 'popwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(105))
+                                {
+                                    SendNonQuery("Adding command 105", "REPLACE INTO `adkats_commands` VALUES(105, 'Active', 'player_whitelistpopulator_remove', 'Log', 'Remove Populator Whitelist', 'unpopwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(106))
+                                {
+                                    SendNonQuery("Adding command 106", "REPLACE INTO `adkats_commands` VALUES(106, 'Active', 'player_whitelistteamkill', 'Log', 'TeamKillTracker Whitelist Player', 'tkwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(107))
+                                {
+                                    SendNonQuery("Adding command 107", "REPLACE INTO `adkats_commands` VALUES(107, 'Active', 'player_whitelistteamkill_remove', 'Log', 'Remove TeamKillTracker Whitelist', 'untkwhitelist', TRUE)", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -26460,6 +27937,10 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["player_slotreserved_remove"] = "Removes a player from reserved slot list.";
             _CommandDescriptionDictionary["player_whitelistbalance_remove"] = "Removes a player from autobalance whitelist.";
             _CommandDescriptionDictionary["player_blacklistdisperse_remove"] = "Removes a player from autobalance dispersion.";
+            _CommandDescriptionDictionary["player_whitelistpopulator"] = "Whitelists a player to be considered a populator.";
+            _CommandDescriptionDictionary["player_whitelistpopulator_remove"] = "Removes a player from the populator whitelist.";
+            _CommandDescriptionDictionary["player_whitelistteamkill"] = "Whitelists a player from being acted on by TeamKillTracker.";
+            _CommandDescriptionDictionary["player_whitelistteamkill_remove"] = "Removes a player from TeamKillTracker whitelist.";
         }
 
         private void UpdateCommandTimeouts() {
@@ -27143,8 +28624,17 @@ namespace PRoConEvents {
             _PlayerProcessingWaitHandle.Set();
 
             start = UtcDbTime();
+            if (_BaserapeCausingPlayersMonitor)
+            {
+                UpdateBaserapeCausingPlayers();
+            }
+            if (_PopulatorMonitor)
+            {
+                UpdatePopulatorPlayers();
+            }
             UpdateMULTIBalancerWhitelist();
             UpdateMULTIBalancerDisperseList();
+            UpdateTeamKillTrackerWhitelist();
             ExecuteCommand("procon.protected.send", "reservedSlotsList.list");
             Thread.Sleep(50);
             UpdateReservedSlots();
@@ -27542,8 +29032,8 @@ namespace PRoConEvents {
                         if (whitelistedPlayers.Any()) {
                             foreach (AdKatsSpecialPlayer asPlayer in whitelistedPlayers) {
                                 String playerIdentifier = null;
-                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name)) {
-                                    playerIdentifier = asPlayer.player_object.player_name;
+                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_guid)) {
+                                    playerIdentifier = asPlayer.player_object.player_guid;
                                 }
                                 else {
                                     playerIdentifier = asPlayer.player_identifier;
@@ -27560,25 +29050,35 @@ namespace PRoConEvents {
                         }
                     }
                     //Pull players from user list
-                    if (_userCache.Count > 0 && _FeedMultiBalancerWhitelist_Admins) {
-                        lock (_userCache) {
-                            foreach (AdKatsUser user in _userCache.Values) {
-                                lock (user) {
-                                    lock (user.user_role) {
-                                        lock (user.user_role.RoleAllowedCommands) {
-                                            //Check each user's allowed commands
-                                            foreach (AdKatsCommand command in user.user_role.RoleAllowedCommands.Values) {
-                                                //If the teamswap command is allowed add each of the user's soldiers to the whitelist
-                                                if (command.command_key == "self_teamswap") {
-                                                    foreach (AdKatsPlayer soldier in user.soldierDictionary.Values) {
-                                                        if (!autobalanceWhitelistedPlayers.Contains(soldier.player_guid)) {
-                                                            autobalanceWhitelistedPlayers.Add(soldier.player_guid);
-                                                        }
-                                                    }
-                                                }
-                                            }
+                    if (_userCache.Count > 0 && _FeedMultiBalancerWhitelist_Admins) 
+                    {
+                        lock (_userCache) 
+                        {
+                            foreach (AdKatsUser user in _userCache.Values.Where(UserIsAdmin)) 
+                            {
+                                lock (user.soldierDictionary)
+                                {
+                                    foreach (AdKatsPlayer soldier in user.soldierDictionary.Values)
+                                    {
+                                        if (!autobalanceWhitelistedPlayers.Contains(soldier.player_guid))
+                                        {
+                                            autobalanceWhitelistedPlayers.Add(soldier.player_guid);
                                         }
                                     }
+                                }
+                            }
+                        }
+                    }
+                    //Pull players from perk list
+                    if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksBalanceWhitelist)
+                    {
+                        lock (_populatorPlayers)
+                        {
+                            foreach (AdKatsPlayer soldier in _populatorPlayers.Values)
+                            {
+                                if (!autobalanceWhitelistedPlayers.Contains(soldier.player_guid))
+                                {
+                                    autobalanceWhitelistedPlayers.Add(soldier.player_guid);
                                 }
                             }
                         }
@@ -27617,35 +29117,17 @@ namespace PRoConEvents {
                                 }
                             }
                         }
-                        if (_isTestingAuthorized)
+                        if (_FeedBaserapeCausingPlayerDispersion)
                         {
-                            String baserapeCausingPlayers = "Baserape causing players: ";
-                            List<Int64> validIDs = new List<Int64>();
                             lock (_baserapeCausingPlayers)
                             {
-                                foreach (AdKatsPlayer aPlayer in GetBaserapeCausingPlayersPastWeek())
+                                foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values)
                                 {
-                                    validIDs.Add(aPlayer.player_id);
-                                    if (!_baserapeCausingPlayers.ContainsKey(aPlayer.player_name))
-                                    {
-                                        ConsoleInfo("Adding " + aPlayer.player_name + " to baserape causing player list.");
-                                    }
-                                    _baserapeCausingPlayers[aPlayer.player_name] = aPlayer;
                                     if (!evenDispersionList.Contains(aPlayer.player_guid))
                                     {
                                         evenDispersionList.Add(aPlayer.player_guid);
-                                        baserapeCausingPlayers += aPlayer.player_name + ", ";
-                                    }
-                                    else
-                                    {
-                                        baserapeCausingPlayers += "E[" + aPlayer.player_name + "], ";
                                     }
                                 }
-                                foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
-                                    ConsoleInfo("Removing " + aPlayer.player_name + " from baserape causing player list.");
-                                    _baserapeCausingPlayers.Remove(aPlayer.player_name);
-                                }
-                                ConsoleInfo(baserapeCausingPlayers);
                             }
                         }
                     }
@@ -27654,6 +29136,86 @@ namespace PRoConEvents {
             }
             catch (Exception e) {
                 HandleException(new AdKatsException("Error while updating MULTIBalancer even dispersion list.", e));
+            }
+        }
+
+        private void UpdateTeamKillTrackerWhitelist()
+        {
+            try
+            {
+                if (_FeedTeamKillTrackerWhitelist)
+                {
+                    var teamKillTrackerWhitelistedPlayers = new List<String>();
+                    //Pull players from special player cache
+                    lock (_specialPlayerCache)
+                    {
+                        List<AdKatsSpecialPlayer> whitelistedPlayers = GetASPlayersOfGroup("whitelist_teamkill");
+                        if (whitelistedPlayers.Any())
+                        {
+                            foreach (AdKatsSpecialPlayer asPlayer in whitelistedPlayers)
+                            {
+                                String playerIdentifier = null;
+                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
+                                {
+                                    playerIdentifier = asPlayer.player_object.player_name;
+                                }
+                                else
+                                {
+                                    playerIdentifier = asPlayer.player_identifier;
+                                }
+                                //Skip if no valid info found
+                                if (String.IsNullOrEmpty(playerIdentifier))
+                                {
+                                    ConsoleError("Player under whitelist_teamkill was not valid. Unable to add to TeamKillTracker whitelist.");
+                                    continue;
+                                }
+                                if (!teamKillTrackerWhitelistedPlayers.Contains(playerIdentifier))
+                                {
+                                    teamKillTrackerWhitelistedPlayers.Add(playerIdentifier);
+                                }
+                            }
+                        }
+                    }
+                    //Pull players from user list
+                    if (_userCache.Count > 0 && _FeedTeamKillTrackerWhitelist_Admins)
+                    {
+                        lock (_userCache)
+                        {
+                            foreach (AdKatsUser user in _userCache.Values.Where(UserIsAdmin))
+                            {
+                                lock (user.soldierDictionary)
+                                {
+                                    foreach (AdKatsPlayer soldier in user.soldierDictionary.Values)
+                                    {
+                                        if (!teamKillTrackerWhitelistedPlayers.Contains(soldier.player_name))
+                                        {
+                                            teamKillTrackerWhitelistedPlayers.Add(soldier.player_name);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    //Pull players from perk list
+                    if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksTeamKillTrackerWhitelist)
+                    {
+                        lock (_populatorPlayers)
+                        {
+                            foreach (AdKatsPlayer soldier in _populatorPlayers.Values)
+                            {
+                                if (!teamKillTrackerWhitelistedPlayers.Contains(soldier.player_name))
+                                {
+                                    teamKillTrackerWhitelistedPlayers.Add(soldier.player_name);
+                                }
+                            }
+                        }
+                    }
+                    SetExternalPluginSetting("TeamKillTracker", "Whitelist", CPluginVariable.EncodeStringArray(teamKillTrackerWhitelistedPlayers.ToArray()));
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while updating TeamKillTracker whitelist.", e));
             }
         }
 
@@ -27701,6 +29263,20 @@ namespace PRoConEvents {
                                 if (!allowedReservedSlotPlayers.Contains(soldier.player_name)) {
                                     allowedReservedSlotPlayers.Add(soldier.player_name);
                                 }
+                            }
+                        }
+                    }
+                }
+                //Pull players from perk list
+                if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksReservedSlot)
+                {
+                    lock (_populatorPlayers)
+                    {
+                        foreach (AdKatsPlayer soldier in _populatorPlayers.Values)
+                        {
+                            if (!allowedReservedSlotPlayers.Contains(soldier.player_name))
+                            {
+                                allowedReservedSlotPlayers.Add(soldier.player_name);
                             }
                         }
                     }
