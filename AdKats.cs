@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.3.4
+ * Version 6.0.3.5
  * 10-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.3.4</version_code>
+ * <version_code>6.0.3.5</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.3.4";
+        private const String PluginVersion = "6.0.3.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1236,7 +1236,7 @@ namespace PRoConEvents {
 
                         //Special Player Settings
                         const string specialPlayerPrefix = "3-2. Special Player Display|";
-                        foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values) 
+                        foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name)) 
                         {
                             List<String> groupList = new List<String>();
                             foreach (AdKatsSpecialPlayer asPlayer in GetASPlayersOfGroup(asGroup.group_key)) 
@@ -18002,7 +18002,7 @@ namespace PRoConEvents {
 
                         Int32 rowsAffected = SafeExecuteNonQuery(command);
                         if (rowsAffected > 0) {
-                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984)?("permanent"):(FormatTimeString(TimeSpan.FromSeconds(record.command_numeric), 2))) + " reserved slot on this server.";
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984)?("permanent"):(FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " reserved slot on this server.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
                             FetchAllAccess(true);
