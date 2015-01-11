@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.3.5
+ * Version 6.0.3.6
  * 10-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.3.5</version_code>
+ * <version_code>6.0.3.6</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.3.5";
+        private const String PluginVersion = "6.0.3.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1145,21 +1145,21 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
                         lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
                     }
-                    lstReturn.Add(new CPluginVariable("B27. Player Monitor Settings|Monitor Populator Players", typeof(Boolean), _PopulatorMonitor));
+                    lstReturn.Add(new CPluginVariable("B27. Player Monitor Settings|Monitor Populator Players - Thanks CMWGaming", typeof(Boolean), _PopulatorMonitor));
                     if (_PopulatorMonitor)
                     {
-                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Populator Players (Display)", typeof(String[]), _populatorPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
-                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
-                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
-                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Count to Consider Populator Past Week", typeof(Int32), _PopulatorMinimumPopulationCountPastWeek));
-                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Count to Consider Populator Past 2 Weeks", typeof(Int32), _PopulatorMinimumPopulationCountPast2Weeks));
-                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Enable Populator Perks", typeof(Boolean), _PopulatorPerksEnable));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Populator Players (Display)", typeof(String[]), _populatorPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Count to Consider Populator Past Week", typeof(Int32), _PopulatorMinimumPopulationCountPastWeek));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Count to Consider Populator Past 2 Weeks", typeof(Int32), _PopulatorMinimumPopulationCountPast2Weeks));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Enable Populator Perks", typeof(Boolean), _PopulatorPerksEnable));
                         if (_PopulatorPerksEnable)
                         {
-                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Populator Perks - Reserved Slot", typeof(Boolean), _PopulatorPerksReservedSlot));
-                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Populator Perks - Autobalance Whitelist", typeof(Boolean), _PopulatorPerksBalanceWhitelist));
-                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Populator Perks - Ping Whitelist", typeof(Boolean), _PopulatorPerksPingWhitelist));
-                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings|Populator Perks - TeamKillTracker Whitelist", typeof(Boolean), _PopulatorPerksTeamKillTrackerWhitelist));
+                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Populator Perks - Reserved Slot", typeof(Boolean), _PopulatorPerksReservedSlot));
+                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Populator Perks - Autobalance Whitelist", typeof(Boolean), _PopulatorPerksBalanceWhitelist));
+                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Populator Perks - Ping Whitelist", typeof(Boolean), _PopulatorPerksPingWhitelist));
+                            lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Populator Perks - TeamKillTracker Whitelist", typeof(Boolean), _PopulatorPerksTeamKillTrackerWhitelist));
                         }
                     }
                     
