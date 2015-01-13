@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.3.6
- * 10-JAN-2015
+ * Version 6.0.3.7
+ * 12-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.3.6</version_code>
+ * <version_code>6.0.3.7</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.3.6";
+        private const String PluginVersion = "6.0.3.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4712,66 +4712,77 @@ namespace PRoConEvents {
                             _UserRemovalQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _UserRemovalQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_UserUploadQueue != null)
                             _UserUploadQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _UserUploadQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_TeamswapForceMoveQueue != null)
                             _TeamswapForceMoveQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _TeamswapForceMoveQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_TeamswapOnDeathCheckingQueue != null)
                             _TeamswapOnDeathCheckingQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _TeamswapOnDeathCheckingQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_TeamswapOnDeathMoveDic != null)
                             _TeamswapOnDeathMoveDic.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _TeamswapOnDeathMoveDic: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_UnparsedCommandQueue != null)
                             _UnparsedCommandQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _UnparsedCommandQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_UnparsedMessageQueue != null)
                             _UnparsedMessageQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _UnparsedMessageQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_UnprocessedActionQueue != null)
                             _UnprocessedActionQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _UnprocessedActionQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_UnprocessedRecordQueue != null)
                             _UnprocessedRecordQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _UnprocessedRecordQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_UnprocessedStatisticQueue != null)
                             _UnprocessedStatisticQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _UnprocessedStatisticQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_BanEnforcerCheckingQueue != null)
                             _BanEnforcerCheckingQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _BanEnforcerCheckingQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         _toldCol = false;
@@ -4779,12 +4790,14 @@ namespace PRoConEvents {
                             _Team2MoveQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _Team2MoveQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_Team1MoveQueue != null)
                             _Team1MoveQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _Team1MoveQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_RoundCookers != null)
@@ -4797,30 +4810,35 @@ namespace PRoConEvents {
                             _RoundReports.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _RoundReports: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_RoundReportHistory != null)
                             _RoundReportHistory.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _RoundReportHistory: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_RoundMutedPlayers != null)
                             _RoundMutedPlayers.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _RoundMutedPlayers: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_PlayerDictionary != null)
                             _PlayerDictionary.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _PlayerDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_PlayerLeftDictionary != null)
                             _PlayerLeftDictionary.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _PlayerLeftDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         _firstPlayerListComplete = false;
@@ -4830,69 +4848,81 @@ namespace PRoConEvents {
                             _userCache.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _userCache: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (FrostbitePlayerInfoList != null)
                             FrostbitePlayerInfoList.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After FrostbitePlayerInfoList: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_CBanProcessingQueue != null)
                             _CBanProcessingQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _CBanProcessingQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_BanEnforcerProcessingQueue != null)
                             _BanEnforcerProcessingQueue.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _BanEnforcerProcessingQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_ActOnSpawnDictionary != null)
                             _ActOnSpawnDictionary.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _ActOnSpawnDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_ActOnIsAliveDictionary != null)
                             _ActOnIsAliveDictionary.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _ActOnIsAliveDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_ActionConfirmDic != null)
                             _ActionConfirmDic.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _ActionConfirmDic: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if(_LoadoutConfirmDictionary != null)
                             _LoadoutConfirmDictionary.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _LoadoutConfirmDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         _unmatchedRoundDeathCounts.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _unmatchedRoundDeathCounts: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         _unmatchedRoundDeaths.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _unmatchedRoundDeaths: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         _endingRound = false;
                         _surrenderVoteList.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _surrenderVoteList: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         _nosurrenderVoteList.Clear();
                         if (memDisplay)
                         {
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
                             ConsoleInfo("After _nosurrenderVoteList: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         _surrenderVoteActive = false;
@@ -4904,6 +4934,7 @@ namespace PRoConEvents {
                             _subscribedClients.Clear();
                             if (memDisplay)
                             {
+                                Thread.Sleep(TimeSpan.FromSeconds(10));
                                 ConsoleInfo("After _subscribedClients: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                             }
                         }
@@ -5090,19 +5121,28 @@ namespace PRoConEvents {
                     {
                         try {
                             Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
-                            if (_isTestingAuthorized && MBUsed > 500)
+                            if (_isTestingAuthorized)
                             {
-                                ConsoleWarn(MBUsed + "MB estimated memory used.");
-                                QueueRecordForProcessing(new AdKatsRecord
+                                if (MBUsed > 500)
                                 {
-                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                    server_id = _serverInfo.ServerID,
-                                    command_type = GetCommandByKey("plugin_restart"),
-                                    command_numeric = 0,
-                                    target_name = "AdKats",
-                                    source_name = "MemoryMonitor",
-                                    record_message = MBUsed + "MB estimated memory used"
-                                });
+                                    ConsoleWarn(MBUsed + "MB estimated memory used.");
+                                    QueueRecordForProcessing(new AdKatsRecord
+                                    {
+                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                        server_id = _serverInfo.ServerID,
+                                        command_type = GetCommandByKey("plugin_restart"),
+                                        command_numeric = 0,
+                                        target_name = "AdKats",
+                                        source_name = "MemoryMonitor",
+                                        record_message = MBUsed + "MB estimated memory used"
+                                    });
+                                    Thread.Sleep(TimeSpan.FromSeconds(10));
+                                }
+                                else if(MBUsed > 250)
+                                {
+                                    ConsoleWarn(MBUsed + "MB estimated memory used");
+                                    Thread.Sleep(TimeSpan.FromSeconds(10));
+                                }
                             }
 
                             //Check for unswitcher disable every 20 seconds
