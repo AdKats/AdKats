@@ -75,12 +75,13 @@ CREATE TABLE IF NOT EXISTS `adkats_bans` (
 DROP TABLE IF EXISTS `adkats_commands`;
 CREATE TABLE IF NOT EXISTS `adkats_commands` (
   `command_id` int(11) unsigned NOT NULL,
-  `command_active` enum('Active','Disabled','Invisible') COLLATE utf8_unicode_ci NOT NULL DEFAULT 'Active',
+  `command_active` enum('Active','Disabled','Invisible') CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci' NOT NULL DEFAULT 'Active',
   `command_key` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
   `command_logging` ENUM('Log','Mandatory','Ignore', 'Unable') CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci' NOT NULL DEFAULT 'Log',
   `command_name` varchar(255) COLLATE utf8_unicode_ci NOT NULL,
   `command_text` varchar(100) COLLATE utf8_unicode_ci NOT NULL,
   `command_playerInteraction` BOOLEAN NOT NULL,
+  `command_access` enum('Any','AnyHidden','AnyVisible','GlobalVisible','TeamVisible','SquadVisible') CHARACTER SET 'utf8' COLLATE 'utf8_unicode_ci' NOT NULL DEFAULT 'Any',
   PRIMARY KEY (`command_id`),
   UNIQUE KEY `command_key_UNIQUE` (`command_key`),
   UNIQUE KEY `command_text_UNIQUE` (`command_text`)
