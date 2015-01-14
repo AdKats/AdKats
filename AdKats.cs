@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.3.7
+ * Version 6.0.3.8
  * 12-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.3.7</version_code>
+ * <version_code>6.0.3.8</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.3.7";
+        private const String PluginVersion = "6.0.3.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7860,9 +7860,9 @@ namespace PRoConEvents {
                                             String probString = ((int)probability) + "-" + ((int)milli);
 
                                             //If the player is already on the round cooker list, ban them
-                                            if (_RoundCookers.ContainsKey(cooker.Key.player_name))
+                                            if (_RoundCookers.ContainsKey(cooker.Key.player_name) && _gameVersion == GameVersion.BF3)
                                             {
-                                                //Create the ban record
+                                                //Create the punish record
                                                 var record = new AdKatsRecord
                                                 {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -26157,7 +26157,7 @@ namespace PRoConEvents {
                 List<Int64> validIDs = new List<Int64>();
                 lock (_baserapeCausingPlayers)
                 {
-                    if (!_PostWinLossBaserapeStatistics)
+                    if (_threadsReady && !_PostWinLossBaserapeStatistics)
                     {
                         _BaserapeCausingPlayersMonitor = false;
                         _baserapeCausingPlayers.Clear();
