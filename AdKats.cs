@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.4.4
- * 14-JAN-2015
+ * Version 6.0.4.5
+ * 15-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.4.4</version_code>
+ * <version_code>6.0.4.5</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.4.4";
+        private const String PluginVersion = "6.0.4.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -8127,7 +8127,7 @@ namespace PRoConEvents {
                                         }
                                     }
                                     //This method used for dealing with multiple kills at the same instant i.e twin/triple headshots
-                                    if (sure.Count == 1 && possible.Count == 0)
+                                    if (sure.Count == 1 && possible.Count == 0 && _gameVersion == GameVersion.BF3)
                                     {
                                         AdKatsPlayer player = sure[0].Key;
                                         String probString = sure[0].Value;
