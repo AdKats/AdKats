@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.4.2
+ * Version 6.0.4.3
  * 14-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.4.2</version_code>
+ * <version_code>6.0.4.3</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.4.2";
+        private const String PluginVersion = "6.0.4.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -8469,7 +8469,7 @@ namespace PRoConEvents {
                                                     repMessage += "Thank you for helping the admins! At " + Math.Round(_reputationThresholdGood, 2) + " reputation you receive report auto-contest.";
                                                 }
                                                 else if (aPlayer.player_reputation > 0) {
-                                                    repMessage += "Thank you for helping the admins! At 15 reputation you receive punishment warning.";
+                                                    repMessage += "Thank you for helping the admins! At 15 reputation you receive small perks.";
                                                 }
                                                 else
                                                 {
@@ -11460,7 +11460,7 @@ namespace PRoConEvents {
                             break;
                     }
                 }
-                DebugWrite("Access type " + record.command_type.command_access + " is allowed for " + record.command_type.command_key + ".", 6);
+                DebugWrite("Access type " + record.record_access + " is allowed for " + record.command_type.command_key + ".", 4);
 
                 //GATE 4: Specific data based on command type.
                 switch (record.command_type.command_key) {
