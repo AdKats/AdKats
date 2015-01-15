@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.3.8
- * 12-JAN-2015
+ * Version 6.0.4.2
+ * 14-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.3.8</version_code>
+ * <version_code>6.0.4.2</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.3.8";
+        private const String PluginVersion = "6.0.4.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1361,7 +1361,8 @@ namespace PRoConEvents {
                                             if (command.command_logging != AdKatsCommand.CommandLogging.Mandatory && command.command_logging != AdKatsCommand.CommandLogging.Unable) {
                                                 lstReturn.Add(new CPluginVariable(commandPrefix + "Logging", "enum.commandLoggingEnum(Log|Ignore)", command.command_logging.ToString()));
                                             }
-                                            lstReturn.Add(new CPluginVariable(commandPrefix + "Text", typeof (String), command.command_text));
+                                            lstReturn.Add(new CPluginVariable(commandPrefix + "Text", typeof(String), command.command_text));
+                                            lstReturn.Add(new CPluginVariable(commandPrefix + "Access Method", CreateEnumString(typeof(AdKatsCommand.CommandAccess)), command.command_access.ToString()));
                                         }
                                     }
                                 }
@@ -1577,6 +1578,7 @@ namespace PRoConEvents {
                     }
                     var record = new AdKatsRecord {
                         record_source = AdKatsRecord.Sources.Settings,
+                        record_access = AdKatsRecord.AccessMethod.HiddenExternal,
                         source_name = "SettingsAdmin"
                     };
                     CompleteRecordInformation(record, strValue);
@@ -3619,6 +3621,232 @@ namespace PRoConEvents {
                                 _CommandTextDictionary.Remove(command.command_text);
                                 command.command_text = strValue;
                                 _CommandTextDictionary.Add(command.command_text, command);
+                            }
+                        }
+                        else if (section == "Access Method")
+                        {
+                            if (String.IsNullOrEmpty(strValue))
+                            {
+                                ConsoleError("Command access method cannot be blank.");
+                                return;
+                            }
+                            command.command_access = (AdKatsCommand.CommandAccess)Enum.Parse(typeof(AdKatsCommand.CommandAccess), strValue);
+                            switch (command.command_key)
+                            {
+                                case "command_confirm":
+                                    if (command.command_access != AdKatsCommand.CommandAccess.Any)
+                                    {
+                                        ConsoleWarn("Confirm command access must be 'Any'. Resetting.");
+                                        command.command_access = AdKatsCommand.CommandAccess.Any;
+                                    }
+                                    break;
+                                case "command_cancel":
+                                    if (command.command_access != AdKatsCommand.CommandAccess.Any)
+                                    {
+                                        ConsoleWarn("Confirm command access must be 'Any'. Resetting.");
+                                        command.command_access = AdKatsCommand.CommandAccess.Any;
+                                    }
+                                    break;
+                                case "player_kill":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                        }
+                                    }
+                                    break;
+                                case "player_kick":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                        }
+                                    }
+                                    break;
+                                case "player_ban_temp":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                        }
+                                    }
+                                    break;
+                                case "player_ban_perm":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                        }
+                                    }
+                                    break;
+                                case "player_punish":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                        }
+                                    }
+                                    break;
+                                case "player_mute":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                        }
+                                    }
+                                    break;
+                                case "player_move":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                        }
+                                    }
+                                    break;
+                                case "player_fmove":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                        }
+                                    }
+                                    break;
+                                case "self_kill":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                        }
+                                    }
+                                    break;
+                                case "admin_say":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'AnyHidden'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                        }
+                                    }
+                                    break;
+                                case "player_say":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'AnyHidden'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                        }
+                                    }
+                                    break;
+                                case "admin_yell":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'AnyHidden'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                        }
+                                    }
+                                    break;
+                                case "player_yell":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'AnyHidden'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                        }
+                                    }
+                                    break;
+                                case "admin_tell":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'AnyHidden'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                        }
+                                    }
+                                    break;
+                                case "player_tell":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'AnyHidden'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                        }
+                                    }
+                                    break;
+                                case "player_ban_perm_future":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                        }
+                                    }
+                                    break;
+                                case "player_kill_force":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                        }
+                                    }
+                                    break;
+                                case "player_info":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'AnyHidden'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                        }
+                                    }
+                                    break;
+                                case "player_find":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'AnyHidden'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                        }
+                                    }
+                                    break;
+                                case "self_reportlist":
+                                    if (_isTestingAuthorized)
+                                    {
+                                        if (command.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                        {
+                                            ConsoleWarn(command.command_name + " access must be 'AnyHidden'. Resetting.");
+                                            command.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                        }
+                                    }
+                                    break;
                             }
                         }
                         else {
@@ -9389,6 +9617,7 @@ namespace PRoConEvents {
                     Message = message,
                     OriginalMessage = message,
                     Subset = AdKatsChatMessage.ChatSubset.Global,
+                    Hidden = message.Trim().StartsWith("/"),
                     SubsetTeamID = -1,
                     SubsetSquadID = -1
                 };
@@ -9418,6 +9647,7 @@ namespace PRoConEvents {
                     Message = message,
                     OriginalMessage = message,
                     Subset = AdKatsChatMessage.ChatSubset.Team,
+                    Hidden = message.Trim().StartsWith("/"),
                     SubsetTeamID = teamId,
                     SubsetSquadID = -1
                 };
@@ -9447,6 +9677,7 @@ namespace PRoConEvents {
                     Message = message,
                     OriginalMessage = message,
                     Subset = AdKatsChatMessage.ChatSubset.Global,
+                    Hidden = message.Trim().StartsWith("/"),
                     SubsetTeamID = teamId,
                     SubsetSquadID = squadId
                 };
@@ -11023,6 +11254,7 @@ namespace PRoConEvents {
                                 {
                                     record = new AdKatsRecord {
                                         record_source = AdKatsRecord.Sources.ServerCommand,
+                                        record_access = AdKatsRecord.AccessMethod.HiddenExternal,
                                         source_name = "ProconAdmin"
                                     };
                                 }
@@ -11031,6 +11263,37 @@ namespace PRoConEvents {
                                         record_source = AdKatsRecord.Sources.InGame,
                                         source_name = commandMessage.Speaker
                                     };
+                                    //Assign access method
+                                    if (commandMessage.Hidden) 
+                                    {
+                                        if (commandMessage.Subset == AdKatsChatMessage.ChatSubset.Global) 
+                                        {
+                                            record.record_access = AdKatsRecord.AccessMethod.HiddenGlobal;
+                                        }
+                                        else if (commandMessage.Subset == AdKatsChatMessage.ChatSubset.Team) 
+                                        {
+                                            record.record_access = AdKatsRecord.AccessMethod.HiddenTeam;
+                                        }
+                                        else if (commandMessage.Subset == AdKatsChatMessage.ChatSubset.Squad) 
+                                        {
+                                            record.record_access = AdKatsRecord.AccessMethod.HiddenSquad;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (commandMessage.Subset == AdKatsChatMessage.ChatSubset.Global)
+                                        {
+                                            record.record_access = AdKatsRecord.AccessMethod.PublicGlobal;
+                                        }
+                                        else if (commandMessage.Subset == AdKatsChatMessage.ChatSubset.Team)
+                                        {
+                                            record.record_access = AdKatsRecord.AccessMethod.PublicTeam;
+                                        }
+                                        else if (commandMessage.Subset == AdKatsChatMessage.ChatSubset.Squad)
+                                        {
+                                            record.record_access = AdKatsRecord.AccessMethod.PublicSquad;
+                                        }
+                                    }
                                 }
 
                                 //Complete the record creation
@@ -11127,7 +11390,7 @@ namespace PRoConEvents {
                 if (record.record_source == AdKatsRecord.Sources.InGame) {
                     //Attempt to fetch the source player
                     if (!_PlayerDictionary.TryGetValue(record.source_name, out record.source_player)) {
-                        ConsoleError("Source player not found in server for in-game command, unable to complete command.");
+                        ConsoleError("Source player not found in server for in-game " + record.command_type.command_key + " command, unable to complete command.");
                         FinalizeRecord(record);
                         return;
                     }
@@ -11142,7 +11405,64 @@ namespace PRoConEvents {
                     }
                 }
 
-                //GATE 3: Specific data based on command type.
+                //GATE 3: Command access method
+                if (record.record_source == AdKatsRecord.Sources.InGame) {
+                    switch (record.command_type.command_access) {
+                        case AdKatsCommand.CommandAccess.AnyHidden:
+                            //Require source to be any hidden
+                            if (record.record_access != AdKatsRecord.AccessMethod.HiddenExternal && 
+                                record.record_access != AdKatsRecord.AccessMethod.HiddenGlobal && 
+                                record.record_access != AdKatsRecord.AccessMethod.HiddenTeam && 
+                                record.record_access != AdKatsRecord.AccessMethod.HiddenSquad) {
+                                SendMessageToSource(record, "Use /" + record.command_type.command_text + " to access the " + record.command_type.command_name + " command.");
+                                FinalizeRecord(record);
+                                return;                            
+                            }
+                            break;
+                        case AdKatsCommand.CommandAccess.AnyVisible:
+                            //Require source to be any visible
+                            if (record.record_access != AdKatsRecord.AccessMethod.PublicExternal &&
+                                record.record_access != AdKatsRecord.AccessMethod.PublicGlobal &&
+                                record.record_access != AdKatsRecord.AccessMethod.PublicTeam &&
+                                record.record_access != AdKatsRecord.AccessMethod.PublicSquad)
+                            {
+                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", @" + record.command_type.command_text + ", or ." + record.command_type.command_text + " to access the " + record.command_type.command_name + " command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            break;
+                        case AdKatsCommand.CommandAccess.GlobalVisible:
+                            //Require source to be global visible
+                            if (record.record_access != AdKatsRecord.AccessMethod.PublicGlobal)
+                            {
+                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", @" + record.command_type.command_text + ", or ." + record.command_type.command_text + " in GLOBAL chat to access the " + record.command_type.command_name + " command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            break;
+                        case AdKatsCommand.CommandAccess.TeamVisible:
+                            //Require source to be global visible
+                            if (record.record_access != AdKatsRecord.AccessMethod.PublicTeam)
+                            {
+                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", @" + record.command_type.command_text + ", or ." + record.command_type.command_text + " in TEAM chat to access the " + record.command_type.command_name + " command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            break;
+                        case AdKatsCommand.CommandAccess.SquadVisible:
+                            //Require source to be global visible
+                            if (record.record_access != AdKatsRecord.AccessMethod.PublicSquad)
+                            {
+                                SendMessageToSource(record, "Use !" + record.command_type.command_text + ", @" + record.command_type.command_text + ", or ." + record.command_type.command_text + " in SQUAD chat to access the " + record.command_type.command_name + " command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            break;
+                    }
+                }
+                DebugWrite("Access type " + record.command_type.command_access + " is allowed for " + record.command_type.command_key + ".", 6);
+
+                //GATE 4: Specific data based on command type.
                 switch (record.command_type.command_key) {
                     case "player_move": {
                         //Remove previous commands awaiting confirmation
@@ -19517,7 +19837,7 @@ namespace PRoConEvents {
                         }
                         return;
                     }
-                    if (!record.targetLoadoutValid && !FetchOnlineAdminSoldiers().Any())
+                    if (record.targetLoadoutActed)
                     {
                         SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
@@ -19560,6 +19880,17 @@ namespace PRoConEvents {
                 OnlineAdminSayMessage("R[" + reportID + "] Source: " + sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo);
                 OnlineAdminSayMessage("R[" + reportID + "] Target: " + targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo);
                 OnlineAdminSayMessage("R[" + reportID + "] Reason: " + record.record_message);
+                if (record.isLoadoutChecked) 
+                {
+                    if (record.target_player.loadout_valid) 
+                    {
+                        OnlineAdminSayMessage("R[" + reportID + "] Loadout(VALID): " + record.target_player.loadout_items);
+                    }
+                    else
+                    {
+                        OnlineAdminSayMessage("R[" + reportID + "] Loadout(INVALID): " + record.target_player.loadout_deniedItems);
+                    }
+                }
                 if (_isTestingAuthorized && record.target_player != null && (record.target_player.player_reputation > _reputationThresholdGood || PlayerIsAdmin(record.target_player)))
                 {
                     //Set Contested
@@ -19632,7 +19963,7 @@ namespace PRoConEvents {
                 record.record_action_executed = true;
                 if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
                 {
-                    ConsoleWarn("Running loadout case for report record " + reportID);
+                    ConsoleInfo("Running loadout case for report record " + reportID);
                     if (!record.isLoadoutChecked)
                     {
                         if (!_LoadoutConfirmDictionary.ContainsKey(record.target_player.player_name))
@@ -19641,7 +19972,7 @@ namespace PRoConEvents {
                             {
                                 _LoadoutConfirmDictionary.Add(record.target_player.player_name, record);
                             }
-                            ConsoleWarn("Report record " + reportID + " waiting for loadout confirmation.");
+                            ConsoleInfo("Report record " + reportID + " waiting for loadout confirmation.");
                             ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable{
                                 {"caller_identity", "AdKats"},
                                 {"response_requested", false},
@@ -19651,9 +19982,9 @@ namespace PRoConEvents {
                         }
                         return;
                     }
-                    if (!record.targetLoadoutValid && !FetchOnlineAdminSoldiers().Any())
-                    {
-                        OnlineAdminSayMessage("Report " + reportID + " is being acted on by loadout enforcer.");
+                    if (record.targetLoadoutActed) {
+                        SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
+                        OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
                         record.command_action = GetCommandByKey("player_report_confirm");
                         UpdateRecord(record);
                         return;
@@ -19695,6 +20026,17 @@ namespace PRoConEvents {
                 OnlineAdminSayMessage("A[" + reportID + "] Source: " + sourceAAIdentifier + record.GetSourceName() + sourcePlayerInfo);
                 OnlineAdminSayMessage("A[" + reportID + "] Target: " + targetAAIdentifier + record.GetTargetNames() + targetPlayerInfo);
                 OnlineAdminSayMessage("A[" + reportID + "] Reason: " + record.record_message);
+                if (record.isLoadoutChecked)
+                {
+                    if (record.target_player.loadout_valid)
+                    {
+                        OnlineAdminSayMessage("A[" + reportID + "] Loadout(VALID): " + record.target_player.loadout_items);
+                    }
+                    else
+                    {
+                        OnlineAdminSayMessage("A[" + reportID + "] Loadout(INVALID): " + record.target_player.loadout_deniedItems);
+                    }
+                }
                 if (_InformReportedPlayers)
                 {
                     String mesLow = record.record_message.ToLower();
@@ -21655,7 +21997,15 @@ namespace PRoConEvents {
                             }
                         }
                         //On first run, pull all roles and commands, update database if needed
-                        if (firstRun) {
+                        if (firstRun)
+                        {
+                            //Run any available SQL Updates
+                            counter.Reset();
+                            counter.Start();
+                            RunSQLUpdates(false);
+                            counter.Stop();
+                            //ConsoleWrite("RunSQLUpdates took " + counter.ElapsedMilliseconds + "ms");
+
                             counter.Reset();
                             counter.Start();
 
@@ -21715,7 +22065,7 @@ namespace PRoConEvents {
                             //Run any available SQL Updates
                             counter.Reset();
                             counter.Start();
-                            RunSQLUpdates();
+                            RunSQLUpdates(true);
                             counter.Stop();
                             //ConsoleWrite("RunSQLUpdates took " + counter.ElapsedMilliseconds + "ms");
                         }
@@ -23490,7 +23840,8 @@ namespace PRoConEvents {
 	                        `command_logging`,
 	                        `command_name`,
 	                        `command_text`,
-                            `command_playerInteraction`
+                            `command_playerInteraction`,
+                            `command_access`
                         ) 
                         VALUES 
                         (
@@ -23500,7 +23851,8 @@ namespace PRoConEvents {
 	                        @command_logging,
 	                        @command_name,
 	                        @command_text,
-                            @command_playerInteraction
+                            @command_playerInteraction,
+                            @command_access
                         ) 
                         ON DUPLICATE KEY 
                         UPDATE 
@@ -23508,7 +23860,8 @@ namespace PRoConEvents {
 	                        `command_logging` = @command_logging, 
 	                        `command_name` = @command_name, 
 	                        `command_text` = @command_text,
-                            `command_playerInteraction` = @command_playerInteraction";
+                            `command_playerInteraction` = @command_playerInteraction,
+                            `command_access` = @command_access";
 
                         //Fill the command
                         command.Parameters.AddWithValue("@command_id", aCommand.command_id);
@@ -23518,8 +23871,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@command_name", aCommand.command_name);
                         command.Parameters.AddWithValue("@command_text", aCommand.command_text);
                         command.Parameters.AddWithValue("@command_playerInteraction", aCommand.command_playerInteraction);
-
-                        //Get reference to the command in case of error
+                        command.Parameters.AddWithValue("@command_access", aCommand.command_access.ToString());
                         //Attempt to execute the query
                         if (SafeExecuteNonQuery(command) > 0) {
                         }
@@ -23705,6 +24057,7 @@ namespace PRoConEvents {
                         isDebug = record.isDebug,
                         isIRO = record.isIRO,
                         record_source = record.record_source,
+                        record_access = record.record_access,
                         server_id = record.server_id,
                         command_type = record.command_type,
                         command_action = record.command_action,
@@ -24593,6 +24946,7 @@ namespace PRoConEvents {
 
                                 record = new AdKatsRecord();
                                 record.record_source = AdKatsRecord.Sources.Database;
+                                record.record_access = AdKatsRecord.AccessMethod.HiddenExternal;
                                 record.record_id = reader.GetInt64("record_id");
                                 record.server_id = reader.GetInt64("server_id");
                                 Int32 commandTypeInt = reader.GetInt32("command_type");
@@ -24741,6 +25095,7 @@ namespace PRoConEvents {
                                 var record = new AdKatsRecord();
                                 record = new AdKatsRecord();
                                 record.record_source = AdKatsRecord.Sources.Database;
+                                record.record_access = AdKatsRecord.AccessMethod.HiddenExternal;
                                 record.record_id = reader.GetInt64("record_id");
                                 record.server_id = reader.GetInt64("server_id");
                                 Int32 commandTypeInt = reader.GetInt32("command_type");
@@ -24842,6 +25197,7 @@ namespace PRoConEvents {
                             {
                                 var record = new AdKatsRecord();
                                 record.record_source = AdKatsRecord.Sources.Database;
+                                record.record_access = AdKatsRecord.AccessMethod.HiddenExternal;
                                 record.record_id = reader.GetInt64("record_id");
                                 record.server_id = reader.GetInt64("server_id");
                                 Int32 commandTypeInt = reader.GetInt32("command_type");
@@ -27410,7 +27766,8 @@ namespace PRoConEvents {
 	                            `command_logging`,
 	                            `command_name`,
 	                            `command_text`,
-                                `command_playerInteraction`
+                                `command_playerInteraction`,
+                                `command_access`
                             FROM 
 	                            `adkats_commands`";
                             sqlcommand.CommandText = sql;
@@ -27431,6 +27788,7 @@ namespace PRoConEvents {
                                     var commandLogging = (AdKatsCommand.CommandLogging) Enum.Parse(typeof (AdKatsCommand.CommandLogging), reader.GetString("command_logging"));
                                     String commandName = reader.GetString("command_name");
                                     String commandText = reader.GetString("command_text");
+                                    var commandAccess = (AdKatsCommand.CommandAccess) Enum.Parse(typeof (AdKatsCommand.CommandAccess), reader.GetString("command_access"));
                                     Boolean commandPlayerInteraction = reader.GetBoolean("command_playerInteraction");
 
                                     validIDs.Add(commandID);
@@ -27460,6 +27818,11 @@ namespace PRoConEvents {
                                             ConsoleInfo(currentCommand.command_key + " player interaction state being changed from " + currentCommand.command_playerInteraction + " to " + commandPlayerInteraction);
                                             currentCommand.command_playerInteraction = commandPlayerInteraction;
                                         }
+                                        if (!currentCommand.command_access.Equals(commandAccess))
+                                        {
+                                            ConsoleInfo(currentCommand.command_key + " command access being changed from " + currentCommand.command_access + " to " + commandAccess);
+                                            currentCommand.command_access = commandAccess;
+                                        }
                                     }
                                     else {
                                         currentCommand = new AdKatsCommand {
@@ -27469,7 +27832,8 @@ namespace PRoConEvents {
                                             command_logging = commandLogging,
                                             command_name = commandName,
                                             command_text = commandText,
-                                            command_playerInteraction = commandPlayerInteraction
+                                            command_playerInteraction = commandPlayerInteraction,
+                                            command_access = commandAccess
                                         };
 
                                         _CommandIDDictionary.Add(currentCommand.command_id, currentCommand);
@@ -27497,6 +27861,12 @@ namespace PRoConEvents {
                                                 currentCommand.command_text = "yes";
                                                 changed = true;
                                             }
+                                            if (currentCommand.command_access != AdKatsCommand.CommandAccess.Any)
+                                            {
+                                                ConsoleWarn("Confirm command access must be 'Any'. Resetting.");
+                                                currentCommand.command_access = AdKatsCommand.CommandAccess.Any;
+                                                changed = true;
+                                            }
                                             break;
                                         case "command_cancel":
                                             if (currentCommand.command_active != AdKatsCommand.CommandActive.Active)
@@ -27510,6 +27880,232 @@ namespace PRoConEvents {
                                                 ConsoleWarn("Cancel command text must be 'no'. Resetting.");
                                                 currentCommand.command_text = "no";
                                                 changed = true;
+                                            }
+                                            if (currentCommand.command_access != AdKatsCommand.CommandAccess.Any)
+                                            {
+                                                ConsoleWarn("Confirm command access must be 'Any'. Resetting.");
+                                                currentCommand.command_access = AdKatsCommand.CommandAccess.Any;
+                                                changed = true;
+                                            }
+                                            break;
+                                        case "player_kill":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_kick":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_ban_temp":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_ban_perm":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_punish":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_mute":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_move":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_fmove":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "self_kill":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "admin_say":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_say":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "admin_yell":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_yell":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "admin_tell":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_tell":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_ban_perm_future":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_kill_force":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_info":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "player_find":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                    changed = true;
+                                                }
+                                            }
+                                            break;
+                                        case "self_reportlist":
+                                            if (_isTestingAuthorized)
+                                            {
+                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
+                                                {
+                                                    ConsoleWarn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                    changed = true;
+                                                }
                                             }
                                             break;
                                     }
@@ -29645,6 +30241,7 @@ namespace PRoConEvents {
                 //Create the new record
                 var record = new AdKatsRecord {
                     record_source = AdKatsRecord.Sources.ExternalPlugin,
+                    record_access = AdKatsRecord.AccessMethod.HiddenExternal,
                     server_id = _serverInfo.ServerID,
                     record_time = UtcDbTime()
                 };
@@ -29829,7 +30426,8 @@ namespace PRoConEvents {
 
                 //Create the new record
                 var record = new AdKatsRecord {
-                    record_source = AdKatsRecord.Sources.ExternalPlugin
+                    record_source = AdKatsRecord.Sources.ExternalPlugin,
+                    record_access = AdKatsRecord.AccessMethod.HiddenExternal
                 };
 
                 //Parse information into a record
@@ -30073,7 +30671,7 @@ namespace PRoConEvents {
                     ConsoleWarn(identity + " requested confirmation response for loadout validity, which is unavailable.");
                 }
 
-                //Import the subscription method
+                //Import the player
                 if (!parsedValidityHashtable.ContainsKey("loadout_player"))
                 {
                     ConsoleError("Loadout valididy params for " + identity + " didn't contain loadout_player! Unable to process.");
@@ -30086,7 +30684,7 @@ namespace PRoConEvents {
                     return;
                 }
 
-                //Import the subscription group
+                //Import the full validity
                 if (!parsedValidityHashtable.ContainsKey("loadout_valid"))
                 {
                     ConsoleError("Loadout valididy params for " + identity + " didn't contain loadout_valid! Unable to process.");
@@ -30094,14 +30692,60 @@ namespace PRoConEvents {
                 }
                 Boolean loadoutValid = (Boolean)parsedValidityHashtable["loadout_valid"];
 
+                //Import the spawn validity
+                if (!parsedValidityHashtable.ContainsKey("loadout_spawnValid"))
+                {
+                    ConsoleError("Loadout valididy params for " + identity + " didn't contain loadout_spawnValid! Unable to process.");
+                    return;
+                }
+                Boolean loadoutSpawnValid = (Boolean)parsedValidityHashtable["loadout_spawnValid"];
+
+                //Import the action
+                if (!parsedValidityHashtable.ContainsKey("loadout_acted"))
+                {
+                    ConsoleError("Loadout valididy params for " + identity + " didn't contain loadout_acted! Unable to process.");
+                    return;
+                }
+                Boolean loadoutActed = (Boolean)parsedValidityHashtable["loadout_acted"];
+
+                //Import the loadout
+                if (!parsedValidityHashtable.ContainsKey("loadout_items"))
+                {
+                    ConsoleError("Loadout valididy params for " + identity + " didn't contain loadout_items! Unable to process.");
+                    return;
+                }
+                String loadoutItems = (String)parsedValidityHashtable["loadout_items"];
+
+                //Import the denied items
+                if (!parsedValidityHashtable.ContainsKey("loadout_deniedItems"))
+                {
+                    ConsoleError("Loadout valididy params for " + identity + " didn't contain loadout_deniedItems! Unable to process.");
+                    return;
+                }
+                String loadoutDeniedItems = (String)parsedValidityHashtable["loadout_deniedItems"];
+
                 AdKatsRecord aRecord;
+                AdKatsPlayer aPlayer;
                 if (_LoadoutConfirmDictionary.TryGetValue(loadoutPlayer, out aRecord))
                 {
                     ConsoleSuccess("Report " + aRecord.command_numeric + " loadout checked.");
                     aRecord.isLoadoutChecked = true;
-                    aRecord.targetLoadoutValid = loadoutValid;
+                    aRecord.targetLoadoutActed = loadoutActed;
+                    if (aRecord.target_player != null) {
+                        aRecord.target_player.loadout_valid = loadoutValid;
+                        aRecord.target_player.loadout_spawnValid = loadoutSpawnValid;
+                        aRecord.target_player.loadout_items = loadoutItems;
+                        aRecord.target_player.loadout_deniedItems = loadoutDeniedItems;
+                    }
                     QueueRecordForActionHandling(aRecord);
                     _LoadoutConfirmDictionary.Remove(loadoutPlayer);
+                }
+                else if (_PlayerDictionary.TryGetValue(loadoutPlayer, out aPlayer))
+                {
+                    aPlayer.loadout_valid = loadoutValid;
+                    aPlayer.loadout_spawnValid = loadoutSpawnValid;
+                    aPlayer.loadout_items = loadoutItems;
+                    aPlayer.loadout_deniedItems = loadoutDeniedItems;
                 }
             }
             catch (Exception e) {
@@ -30934,126 +31578,135 @@ namespace PRoConEvents {
             return SpecialGroupsList;
         }
 
-        private void RunSQLUpdates() {
+        private void RunSQLUpdates(Boolean async) {
             DebugWrite("Entering RunSQLUpdates", 7);
             if (_aliveThreads.Values.Any(aThread => aThread.Name == "SQLUpdater"))
             {
                 return;
             }
-            StartAndLogThread(new Thread(new ThreadStart(delegate
+            if (async) {
+                StartAndLogThread(new Thread(new ThreadStart(delegate {
+                    Thread.CurrentThread.Name = "SQLUpdater";
+                    Thread.Sleep(250);
+                    RunSQLUpdates();
+                    LogThreadExit();
+                })));
+            }
+            else {
+                RunSQLUpdates();
+            }
+            DebugWrite("Exiting RunSQLUpdates", 7);
+        }
+
+        private void RunSQLUpdates()
+        {
+            try
             {
-                Thread.CurrentThread.Name = "SQLUpdater";
-                Thread.Sleep(250);
-                try
+                Int32 currentVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
+                foreach (AdKatsSQLUpdate update in FetchSQLUpdates())
                 {
-                    Int32 currentVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
-                    foreach (AdKatsSQLUpdate update in FetchSQLUpdates())
+                    if (!_pluginEnabled)
                     {
-                        if (!_pluginEnabled)
+                        break;
+                    }
+                    if (update == null)
+                    {
+                        ConsoleError("SQL update was null. Skipping.");
+                        continue;
+                    }
+                    try
+                    {
+                        //Check for valid version
+                        if (!String.IsNullOrEmpty(update.version_minimum) && currentVersionInt < Int32.Parse(update.version_minimum.Replace(".", "")))
                         {
-                            break;
-                        }
-                        if (update == null)
-                        {
-                            ConsoleError("SQL update was null. Skipping.");
+                            DebugWrite("Cancelling SQL update '" + update.update_id + "'. Version too early for update.", 5);
                             continue;
                         }
-                        try
+                        if (!String.IsNullOrEmpty(update.version_maximum) && currentVersionInt > Int32.Parse(update.version_maximum.Replace(".", "")))
                         {
-                            //Check for valid version
-                            if (!String.IsNullOrEmpty(update.version_minimum) && currentVersionInt < Int32.Parse(update.version_minimum.Replace(".", "")))
+                            DebugWrite("Cancelling SQL update '" + update.update_id + "'. Version too late for update.", 5);
+                            continue;
+                        }
+                        //Check for valid initial conditions
+                        Boolean invalid = false;
+                        foreach (String icheckSQL in update.update_checks)
+                        {
+                            if (!_pluginEnabled)
                             {
-                                DebugWrite("Cancelling SQL update '" + update.update_id + "'. Version too early for update.", 5);
-                                continue;
+                                break;
                             }
-                            if (!String.IsNullOrEmpty(update.version_maximum) && currentVersionInt > Int32.Parse(update.version_maximum.Replace(".", "")))
+                            String checkSQL = icheckSQL.Replace("%DATABASENAME%", _mySqlSchemaName);
+                            if (SendQuery(checkSQL, false))
                             {
-                                DebugWrite("Cancelling SQL update '" + update.update_id + "'. Version too late for update.", 5);
-                                continue;
-                            }
-                            //Check for valid initial conditions
-                            Boolean invalid = false;
-                            foreach (String icheckSQL in update.update_checks)
-                            {
-                                if (!_pluginEnabled)
+                                if (!update.update_checks_hasResults)
                                 {
-                                    break;
-                                }
-                                String checkSQL = icheckSQL.Replace("%DATABASENAME%", _mySqlSchemaName);
-                                if (SendQuery(checkSQL, false))
-                                {
-                                    if (!update.update_checks_hasResults)
-                                    {
-                                        //Has results, when it shouldn't
-                                        invalid = true;
-                                        break;
-                                    }
-                                }
-                                else
-                                {
-                                    if (update.update_checks_hasResults)
-                                    {
-                                        //Doesn't have results, when it should
-                                        invalid = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            if (invalid)
-                            {
-                                DebugWrite("Cancelling SQL update '" + update.update_id + "', it does not apply to this database.", 5);
-                                continue;
-                            }
-                            //Run the updates
-                            Int32 executeIndex = 0;
-                            Boolean failed = false;
-                            foreach (String iexecuteSQL in update.update_execute)
-                            {
-                                if (!_pluginEnabled)
-                                {
-                                    break;
-                                }
-                                String executeSQL = iexecuteSQL.Replace("%DATABASENAME%", _mySqlSchemaName);
-                                if (!SendNonQuery("Executing SQL Update '" + update.update_id + "' (" + update.message_name + ")" + executeIndex++, executeSQL, false) && update.update_execute_requiresModRows)
-                                {
-                                    failed = true;
+                                    //Has results, when it shouldn't
+                                    invalid = true;
                                     break;
                                 }
                             }
-                            if (failed)
+                            else
                             {
-                                ConsoleError("Cancelling SQL update '" + update.update_id + "'. Update failed execution (" + update.message_failure + "), running failure clause(s). ");
-                                Int32 failureIndex = 0;
-                                foreach (String failureSQL in update.update_failure)
+                                if (update.update_checks_hasResults)
                                 {
-                                    SendNonQuery("Running SQL Update '" + update.update_id + "' Failure Clause " + failureIndex++, failureSQL, false);
-                                }
-                                continue;
-                            }
-                            ConsoleSuccess("SQL Update '" + update.update_id + "' completed execution (" + update.message_success + ").");
-                            Int32 successIndex = 0;
-                            foreach (String successSQL in update.update_success)
-                            {
-                                if (!_pluginEnabled)
-                                {
+                                    //Doesn't have results, when it should
+                                    invalid = true;
                                     break;
                                 }
-                                SendNonQuery("Running SQL Update '" + update.update_id + "' Success Clause " + successIndex++, successSQL, false);
                             }
                         }
-                        catch (Exception e)
+                        if (invalid)
                         {
-                            HandleException(new AdKatsException("Error while running SQL update '" + update.update_id + "'.", e));
+                            DebugWrite("Cancelling SQL update '" + update.update_id + "', it does not apply to this database.", 5);
+                            continue;
+                        }
+                        //Run the updates
+                        Int32 executeIndex = 0;
+                        Boolean failed = false;
+                        foreach (String iexecuteSQL in update.update_execute)
+                        {
+                            if (!_pluginEnabled)
+                            {
+                                break;
+                            }
+                            String executeSQL = iexecuteSQL.Replace("%DATABASENAME%", _mySqlSchemaName);
+                            if (!SendNonQuery("Executing SQL Update '" + update.update_id + "' (" + update.message_name + ")" + executeIndex++, executeSQL, false) && update.update_execute_requiresModRows)
+                            {
+                                failed = true;
+                                break;
+                            }
+                        }
+                        if (failed)
+                        {
+                            ConsoleError("Cancelling SQL update '" + update.update_id + "'. Update failed execution (" + update.message_failure + "), running failure clause(s). ");
+                            Int32 failureIndex = 0;
+                            foreach (String failureSQL in update.update_failure)
+                            {
+                                SendNonQuery("Running SQL Update '" + update.update_id + "' Failure Clause " + failureIndex++, failureSQL, false);
+                            }
+                            continue;
+                        }
+                        ConsoleSuccess("SQL Update '" + update.update_id + "' completed execution (" + update.message_success + ").");
+                        Int32 successIndex = 0;
+                        foreach (String successSQL in update.update_success)
+                        {
+                            if (!_pluginEnabled)
+                            {
+                                break;
+                            }
+                            SendNonQuery("Running SQL Update '" + update.update_id + "' Success Clause " + successIndex++, successSQL, false);
                         }
                     }
+                    catch (Exception e)
+                    {
+                        HandleException(new AdKatsException("Error while running SQL update '" + update.update_id + "'.", e));
+                    }
                 }
-                catch (Exception e)
-                {
-                    HandleException(new AdKatsException("Error while processing SQL updates.", e));
-                }
-                LogThreadExit();
-            })));
-            DebugWrite("Exiting RunSQLUpdates", 7);
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while processing SQL updates.", e));
+            }
         }
 
         private List<AdKatsSQLUpdate> FetchSQLUpdates()
@@ -32857,10 +33510,20 @@ namespace PRoConEvents {
                 Unable
             }
 
+            public enum CommandAccess {
+                Any,
+                AnyHidden,
+                AnyVisible,
+                GlobalVisible,
+                TeamVisible,
+                SquadVisible
+            }
+
             public CommandActive command_active = CommandActive.Active;
+            public CommandLogging command_logging = CommandLogging.Log;
+            public CommandAccess command_access = CommandAccess.Any;
             public Int64 command_id = -1;
             public String command_key = null;
-            public CommandLogging command_logging = CommandLogging.Log;
             public String command_name = null;
             public Boolean command_playerInteraction = true;
             public String command_text = null;
@@ -32942,6 +33605,11 @@ namespace PRoConEvents {
             public IPAPILocation location = null;
             public Boolean update_playerUpdated = true;
             public Boolean player_new = false;
+
+            public Boolean loadout_valid = true;
+            public Boolean loadout_spawnValid = true;
+            public String loadout_items = "Loadout not fetched.";
+            public String loadout_deniedItems = "No denied items.";
 
             private AdKats Plugin;
 
@@ -33162,7 +33830,20 @@ namespace PRoConEvents {
                 HTTP
             }
 
-            //Attributes for the record
+            //Access method of this record
+            public enum AccessMethod {
+                HiddenInternal,
+                HiddenExternal,
+                HiddenGlobal,
+                HiddenTeam,
+                HiddenSquad,
+                PublicExternal,
+                PublicGlobal,
+                PublicTeam,
+                PublicSquad
+            }
+
+            //Command attributes for the record
             public AdKatsCommand command_action = null;
             public Int32 command_numeric = 0;
             public AdKatsCommand command_type = null;
@@ -33171,38 +33852,23 @@ namespace PRoConEvents {
             public List<String> debugMessages;
 
             //Settings for External Plugin commands
-            /*
-             * SENDING:
-             * callerIdentity
-             * recordID
-             * commandType
-             * commandAction
-             * isIRO
-             * commandNumeric
-             * sourceName
-             * targetName
-             * targetID
-             * recordMessage
-             * recordTime
-             * recordError
-             * recordErrorMessages
-             * recordDebugMessages
-             * actionExecuted
-             * */
             public String external_callerIdentity = null;
             public String external_responseClass = null;
             public String external_responseMethod = null;
             public Boolean external_responseRequested;
 
+            //Internal processing
             public Boolean isConfirmed;
             public Boolean isAliveChecked;
             public Boolean isLoadoutChecked;
-            public Boolean targetLoadoutValid;
+            public Boolean targetLoadoutActed;
             public Boolean isContested;
             public Boolean isDebug;
             public Boolean isIRO;
             public Boolean record_action_executed;
             public AdKatsException record_exception = null;
+
+            //record data
             public Int64 record_id = -1;
             public String record_message = null;
             public Sources record_source = Sources.Default;
@@ -33210,13 +33876,10 @@ namespace PRoConEvents {
             public Int64 server_id = -1;
             public String source_name = null;
             public AdKatsPlayer source_player = null;
-
             public String target_name = null;
             public AdKatsPlayer target_player = null;
-
-            //Multiple targets if needed
-            //Not pushed to database
             public DateTime record_creationTime { get; private set; }
+            public AccessMethod record_access = AccessMethod.HiddenInternal;
             public Boolean record_held;
             public Boolean record_orchestrate;
             public List<String> TargetNamesLocal; 
@@ -33302,6 +33965,7 @@ namespace PRoConEvents {
             public String Message;
             public String OriginalMessage;
             public ChatSubset Subset;
+            public Boolean Hidden;
             public Int32 SubsetTeamID;
             public Int32 SubsetSquadID;
         }
