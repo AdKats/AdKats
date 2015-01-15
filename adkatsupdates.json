@@ -90,6 +90,24 @@
 			],
 			"update_success":[],
 			"update_failure":[]
+		},
+		{
+			"update_id":"addCommandAccessMethod",
+			"version_minimum":"6.0.3.0",
+			"version_maximum":null,
+			"message_name":"Adding command access method",
+			"message_success":"Added command access method",
+			"message_failure":"Failed to add command access method",
+			"update_checks_hasResults":false,
+			"update_checks":[
+				"SELECT * FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA` = '%DATABASENAME%' AND `TABLE_NAME`='adkats_commands' AND `COLUMN_NAME` = 'command_access'"
+			],
+			"update_execute_requiresModRows":false,
+			"update_execute":[
+				"ALTER TABLE `%DATABASENAME%`.`adkats_commands` ADD COLUMN `command_access` ENUM('Any', 'AnyHidden', 'AnyVisible', 'GlobalVisible', 'TeamVisible', 'SquadVisible') NOT NULL DEFAULT 'Any' AFTER `command_playerInteraction`;"
+			],
+			"update_success":[],
+			"update_failure":[]
 		}
 	]
 }
