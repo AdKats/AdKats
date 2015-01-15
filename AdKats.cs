@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.4.3
+ * Version 6.0.4.4
  * 14-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.4.3</version_code>
+ * <version_code>6.0.4.4</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.4.3";
+        private const String PluginVersion = "6.0.4.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -9676,7 +9676,7 @@ namespace PRoConEvents {
                     Speaker = speaker,
                     Message = message,
                     OriginalMessage = message,
-                    Subset = AdKatsChatMessage.ChatSubset.Global,
+                    Subset = AdKatsChatMessage.ChatSubset.Squad,
                     Hidden = message.Trim().StartsWith("/"),
                     SubsetTeamID = teamId,
                     SubsetSquadID = squadId
@@ -25114,7 +25114,7 @@ namespace PRoConEvents {
                                     Int64 targetID = reader.GetInt64(6);
                                     AdKatsPlayer tPlayer;
                                     if ((_PlayerDictionary.TryGetValue(record.target_name, out tPlayer) || _PlayerLeftDictionary.TryGetValue(record.target_name, out tPlayer)) && tPlayer.player_id == targetID) {
-                                        DebugWrite("Target player fetched from memory.", 4);
+                                        DebugWrite("Target player fetched from memory.", 7);
                                     }
                                     else {
                                         tPlayer = FetchPlayer(false, true, false, null, targetID, null, null, null);
@@ -25128,7 +25128,7 @@ namespace PRoConEvents {
                                     AdKatsPlayer sPlayer;
                                     if ((_PlayerDictionary.TryGetValue(record.target_name, out sPlayer) || _PlayerLeftDictionary.TryGetValue(record.target_name, out sPlayer)) && sPlayer.player_id == targetID)
                                     {
-                                        DebugWrite("Target player fetched from memory.", 4);
+                                        DebugWrite("Target player fetched from memory.", 7);
                                     }
                                     else
                                     {
@@ -33861,7 +33861,7 @@ namespace PRoConEvents {
             public Boolean isConfirmed;
             public Boolean isAliveChecked;
             public Boolean isLoadoutChecked;
-            public Boolean targetLoadoutActed;
+            public Boolean targetLoadoutActed = false;
             public Boolean isContested;
             public Boolean isDebug;
             public Boolean isIRO;
