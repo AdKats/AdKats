@@ -53,7 +53,7 @@
 		{
 			"group_id":10,
 			"group_key":"whitelist_populator",
-			"group_name":"Populator Whitelist"
+			"group_name":"Approved Populator Whitelist"
 		},
 		{
 			"group_id":11,
