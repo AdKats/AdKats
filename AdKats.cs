@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.4.5
+ * Version 6.0.4.6
  * 15-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.4.5</version_code>
+ * <version_code>6.0.4.6</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.4.5";
+        private const String PluginVersion = "6.0.4.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1486,10 +1486,20 @@ namespace PRoConEvents {
                 else if (Regex.Match(strVariable, @"Settings Locked").Success) {
                     _settingsLocked = Boolean.Parse(strValue);
                 }
-                else if (Regex.Match(strVariable, @"Send Query").Success) {
+                else if (Regex.Match(strVariable, @"Send Query").Success)
+                {
+                    if (HandlePossibleDisconnect())
+                    {
+                        return;
+                    }
                     SendQuery(strValue, true);
                 }
-                else if (Regex.Match(strVariable, @"Send Non-Query").Success) {
+                else if (Regex.Match(strVariable, @"Send Non-Query").Success)
+                {
+                    if (HandlePossibleDisconnect())
+                    {
+                        return;
+                    }
                     SendNonQuery("Experimental Query", strValue, true);
                 }
                 else if (Regex.Match(strVariable, @"Hacker-Check Player").Success) {
@@ -22995,6 +23005,10 @@ namespace PRoConEvents {
 
         private Boolean ConfirmAdKatsTables()
         {
+            if (HandlePossibleDisconnect())
+            {
+                return false;
+            }
             if (!ConfirmTable("adkats_specialplayers"))
             {
                 ConsoleInfo("Special players table not found. Attempting to add.");
@@ -31602,6 +31616,9 @@ namespace PRoConEvents {
         {
             try
             {
+                if (HandlePossibleDisconnect()) {
+                    return;
+                }
                 Int32 currentVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
                 foreach (AdKatsSQLUpdate update in FetchSQLUpdates())
                 {
@@ -33235,7 +33252,9 @@ namespace PRoConEvents {
                                     //Enter loop to check for database reconnection
                                     do {
                                         //If someone manually disables AdKats, exit everything
-                                        if (!_pluginEnabled) {
+                                        if (!_pluginEnabled)
+                                        {
+                                            LogThreadExit();
                                             return;
                                         }
                                         //Wait 15 seconds to retry
