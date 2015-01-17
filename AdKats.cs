@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.4.7
- * 16-JAN-2015
+ * Version 6.0.4.8
+ * 17-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.4.7</version_code>
+ * <version_code>6.0.4.8</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.4.7";
+        private const String PluginVersion = "6.0.4.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -23149,10 +23149,10 @@ namespace PRoConEvents {
                     ConfirmTable("adkats_usersoldiers") &&
                     ConfirmTable("adkats_specialplayers") &&
                     ConfirmTable("adkats_player_reputation") &&
-                    ConfirmTable("adkats_orchestration") &&
+                    ConfirmTable("adkats_orchestration") && 
                     ConfirmTable("adkats_statistics") && 
                     ConfirmTable("adkats_rolegroups") && 
-                    ConfirmTable("tbl_extendedroundstats") &&
+                    ConfirmTable("tbl_extendedroundstats") && 
                     !SendQuery("SELECT `TABLE_NAME` AS `table_name` FROM `INFORMATION_SCHEMA`.`TABLES` WHERE `TABLE_SCHEMA` = '" + _mySqlSchemaName + "' AND `TABLE_NAME` LIKE 'adkats_%' AND ENGINE <> 'InnoDB'", false);
         }
 
@@ -23902,40 +23902,51 @@ namespace PRoConEvents {
             }
         }
 
-        private List<AdKatsPlayer> FetchAdminSoldiers() {
+        private List<AdKatsPlayer> FetchAdminSoldiers()
+        {
             var adminSoldiers = new List<AdKatsPlayer>();
-            //Loop over the user list
-            lock (_userCache) {
-                foreach (AdKatsUser user in _userCache.Values.Where(user => UserIsAdmin(user)))
+            try
+            {
+                //Loop over the user list
+                lock (_userCache)
                 {
-                    adminSoldiers.AddRange(user.soldierDictionary.Values);
+                    foreach (AdKatsUser user in _userCache.Values.Where(UserIsAdmin))
+                    {
+                        adminSoldiers.AddRange(user.soldierDictionary.Values);
+                    }
                 }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while fetching admin soldiers.", e));
             }
             return adminSoldiers;
         }
 
-        private List<AdKatsPlayer> FetchOnlineAdminSoldiers() {
-            var onlineAdminSoldiers = new Dictionary<String, AdKatsPlayer>();
-            foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers()) {
-                AdKatsPlayer adminSoldier;
-                if (_PlayerDictionary.TryGetValue(aPlayer.player_name, out adminSoldier)) {
-                    if (!onlineAdminSoldiers.ContainsKey(aPlayer.player_name)) {
-                        onlineAdminSoldiers.Add(adminSoldier.player_name, adminSoldier);
-                    }
-                }
+        private List<AdKatsPlayer> FetchOnlineAdminSoldiers()
+        {
+            List<AdKatsPlayer> onlineAdminSoldiers = new List<AdKatsPlayer>();
+            try 
+            {
+                onlineAdminSoldiers.AddRange(_PlayerDictionary.Values.Where(PlayerIsAdmin));
             }
-            return onlineAdminSoldiers.Values.ToList();
+            catch (Exception e) 
+            {
+                HandleException(new AdKatsException("Error while fetching online admin soldiers", e));
+            }
+            return onlineAdminSoldiers;
         }
 
-        private List<AdKatsPlayer> FetchOnlineNonAdminSoldiers() {
+        private List<AdKatsPlayer> FetchOnlineNonAdminSoldiers() 
+        {
             List<AdKatsPlayer> nonAdminSoldiers = new List<AdKatsPlayer>();
-            try {
+            try 
+            {
                 nonAdminSoldiers.AddRange(_PlayerDictionary.Values.Where(aPlayer => !PlayerIsAdmin(aPlayer)));
             }
-            catch (Exception e) {
+            catch (Exception e) 
+            {
                 HandleException(new AdKatsException("Error while fetching online non-admin soldiers", e));
             }
-
             return nonAdminSoldiers;
         } 
 
