@@ -5362,9 +5362,9 @@ namespace PRoConEvents {
                     {
                         try {
                             Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
-                            if (_isTestingAuthorized && (UtcDbTime() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
+                            if (_isTestingAuthorized)
                             {
-                                if (MBUsed > 750)
+                                if (MBUsed > 750 && (UtcDbTime() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
                                 {
                                     ConsoleWarn(MBUsed + "MB estimated memory used.");
                                     QueueRecordForProcessing(new AdKatsRecord
