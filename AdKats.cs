@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.4.8
- * 17-JAN-2015
+ * Version 6.0.4.9
+ * 19-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.4.8</version_code>
+ * <version_code>6.0.4.9</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.4.8";
+        private const String PluginVersion = "6.0.4.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5362,9 +5362,9 @@ namespace PRoConEvents {
                     {
                         try {
                             Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
-                            if (_isTestingAuthorized)
+                            if (_isTestingAuthorized && (UtcDbTime() - _AdKatsRunningTime).TotalMinutes > 30 && _firstPlayerListComplete)
                             {
-                                if (MBUsed > 500)
+                                if (MBUsed > 750)
                                 {
                                     ConsoleWarn(MBUsed + "MB estimated memory used.");
                                     QueueRecordForProcessing(new AdKatsRecord
@@ -5379,7 +5379,7 @@ namespace PRoConEvents {
                                     });
                                     Thread.Sleep(TimeSpan.FromSeconds(10));
                                 }
-                                else if(MBUsed > 250)
+                                else if(MBUsed > 100)
                                 {
                                     ConsoleWarn(MBUsed + "MB estimated memory used");
                                     Thread.Sleep(TimeSpan.FromSeconds(10));
