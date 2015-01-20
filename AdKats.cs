@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.4.9
+ * Version 6.0.5.0
  * 19-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.4.9</version_code>
+ * <version_code>6.0.5.0</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.4.9";
+        private const String PluginVersion = "6.0.5.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7242,9 +7242,10 @@ namespace PRoConEvents {
                                 _roundState == RoundState.Playing && 
                                 !_endingRound && 
                                 (UtcDbTime() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9.5 && 
-                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 60 &&
-                                _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) >= _surrenderAutoMinimumPlayers)
+                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 60) 
                             {
+                                var playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
+                                var neededPlayers = _surrenderAutoMinimumPlayers - playerCount;
                                 if (_surrenderAutoUseMetroValues &&
                                     Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100 &&
                                     losingTeam.TeamTicketCount > 100 &&
@@ -7257,18 +7258,28 @@ namespace PRoConEvents {
                                         var resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
                                         if (++_surrenderAutoTriggerCountCurrent >= requiredTriggers)
                                         {
-                                            baserapingTeam = winningTeam;
-                                            baserapedTeam = losingTeam;
+                                            if (neededPlayers <= 0) 
+                                            {
+                                                baserapingTeam = winningTeam;
+                                                baserapedTeam = losingTeam;
+                                            }
+                                            else if (neededPlayers <= 10) 
+                                            {
+                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " ready. " + neededPlayers + " more players needed to fire.");
+                                            }
                                         }
                                         else
                                         {
-                                            var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)requiredTriggers) * 100.0) + "%";
-                                            if (resumed)
+                                            if (neededPlayers <= 10)
                                             {
-                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
+                                                var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)requiredTriggers) * 100.0) + "%";
+                                                if (resumed)
+                                                {
+                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
+                                                }
+                                                else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
+                                                    OnlineAdminSayMessage("Preparing auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                             }
-                                            else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
-                                                OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                         }
                                     }
                                     else
@@ -7312,18 +7323,28 @@ namespace PRoConEvents {
                                         var resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
                                         if (++_surrenderAutoTriggerCountCurrent >= requiredTriggers)
                                         {
-                                            baserapingTeam = winningTeam;
-                                            baserapedTeam = losingTeam;
+                                            if (neededPlayers <= 0)
+                                            {
+                                                baserapingTeam = winningTeam;
+                                                baserapedTeam = losingTeam;
+                                            }
+                                            else if (neededPlayers <= 10)
+                                            {
+                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " ready. " + neededPlayers + " more players needed to fire.");
+                                            }
                                         }
                                         else
                                         {
-                                            var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)requiredTriggers) * 100.0) + "%";
-                                            if (resumed)
+                                            if (neededPlayers <= 10)
                                             {
-                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
+                                                var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)requiredTriggers) * 100.0) + "%";
+                                                if (resumed)
+                                                {
+                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
+                                                }
+                                                else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
+                                                    OnlineAdminSayMessage("Preparing auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                             }
-                                            else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
-                                                OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                         }
                                     }
                                     else
@@ -7366,20 +7387,30 @@ namespace PRoConEvents {
                                             {
                                                 _lastAutoSurrenderTriggerTime = UtcDbTime();
                                                 var resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
-                                                if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender) 
+                                                if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender)
                                                 {
-                                                    baserapingTeam = winningTeam;
-                                                    baserapedTeam = losingTeam;
+                                                    if (neededPlayers <= 0)
+                                                    {
+                                                        baserapingTeam = winningTeam;
+                                                        baserapedTeam = losingTeam;
+                                                    }
+                                                    else if (neededPlayers <= 10)
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " ready. " + neededPlayers + " more players needed to fire.");
+                                                    }
                                                 }
                                                 else
                                                 {
-                                                    var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)_surrenderAutoTriggerCountToSurrender) * 100.0) + "%";
-                                                    if (resumed)
+                                                    if (neededPlayers <= 10)
                                                     {
-                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
+                                                        var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)_surrenderAutoTriggerCountToSurrender) * 100.0) + "%";
+                                                        if (resumed)
+                                                        {
+                                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
+                                                        }
+                                                        else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
+                                                            OnlineAdminSayMessage("Preparing auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                                     }
-                                                    else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
-                                                        OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                                 }
                                             }
                                             else
@@ -7421,18 +7452,28 @@ namespace PRoConEvents {
                                                 var resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
                                                 if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender)
                                                 {
-                                                    baserapingTeam = winningTeam;
-                                                    baserapedTeam = losingTeam;
+                                                    if (neededPlayers <= 0)
+                                                    {
+                                                        baserapingTeam = winningTeam;
+                                                        baserapedTeam = losingTeam;
+                                                    }
+                                                    else if (neededPlayers <= 10)
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " ready. " + neededPlayers + " more players needed to fire.");
+                                                    }
                                                 }
                                                 else
                                                 {
-                                                    var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)_surrenderAutoTriggerCountToSurrender) * 100.0) + "%";
-                                                    if (resumed)
+                                                    if (neededPlayers <= 10)
                                                     {
-                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
+                                                        var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)_surrenderAutoTriggerCountToSurrender) * 100.0) + "%";
+                                                        if (resumed)
+                                                        {
+                                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " resumed at " + completionPercentage + ".");
+                                                        }
+                                                        else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
+                                                            OnlineAdminSayMessage("Preparing auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                                     }
-                                                    else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
-                                                        OnlineAdminSayMessage("Preparing to fire auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                                 }
                                             }
                                             else
