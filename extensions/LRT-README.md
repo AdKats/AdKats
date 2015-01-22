@@ -119,9 +119,9 @@
     Every infantry/Vehicle item in the game (about 3500 items), can be enforced here. The settings are split into several sections; Weapons, Weapon Accessories, Gadgets, and Vehicle Weapons/Unlocks in that order.
 </p>
 <p>
-    <img src="http://i.gyazo.com/fdee6812030b997538c9f1ed4e466cd6.png" alt="AdKatsLRT Setting List">
-    <img src="http://i.gyazo.com/84eb0a158f0aa249aba63b19a2fbd615.png" alt="AdKatsLRT Setting List">
-    <img src="http://i.gyazo.com/c903a4090b83ad8acfa5c64007a5afee.png" alt="AdKatsLRT Setting List">
+    <img src="http://i.gyazo.com/fdee6812030b997538c9f1ed4e466cd6.png" alt="AdKatsLRT Setting List"><br>
+    <img src="http://i.gyazo.com/84eb0a158f0aa249aba63b19a2fbd615.png" alt="AdKatsLRT Setting List"><br>
+    <img src="http://i.gyazo.com/c903a4090b83ad8acfa5c64007a5afee.png" alt="AdKatsLRT Setting List"><br>
     <img src="http://i.gyazo.com/88bee5cd3932406a11c4ffecc216df4c.png" alt="AdKatsLRT Setting List">
 </p>
 <h3>Loadout Processing</h3>
