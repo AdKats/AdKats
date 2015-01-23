@@ -2,7 +2,7 @@
     <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b>
 </p>
 <p>
-    <a href="https://github.com/AdKats/AdKats/blob/master/extensions/LRT-README.md" name=thread>
+    <a href="https://forum.myrcon.com/showthread.php?9373" name=thread>
         <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats_Docs_Loadout.jpg" alt="AdKats Thread">
     </a>
 </p>
