@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.5.0
- * 19-JAN-2015
+ * Version 6.0.5.1
+ * 23-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.5.0</version_code>
+ * <version_code>6.0.5.1</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.5.0";
+        private const String PluginVersion = "6.0.5.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7742,9 +7742,9 @@ namespace PRoConEvents {
                         stat_time = UtcDbTime()
                     });
                 }
-                if (_surrenderAutoSucceeded || (_surrenderVoteSucceeded && _surrenderAutoTriggerCountCurrent > 0))
+                if (_surrenderAutoTriggerCountCurrent > 0)
                 {
-                    foreach (AdKatsPlayer aPlayer in WinningPlayers.Take((Int32)((Double)WinningPlayers.Count / 3.0)).ToList())
+                    foreach (AdKatsPlayer aPlayer in WinningPlayers.Take((Int32)((Double)WinningPlayers.Count / 4.0)).ToList())
                     {
                         QueueStatisticForProcessing(new AdKatsStatistic()
                         {
