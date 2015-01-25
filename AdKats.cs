@@ -3720,26 +3720,6 @@ namespace PRoConEvents {
                                         }
                                     }
                                     break;
-                                case "player_move":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                        {
-                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                        }
-                                    }
-                                    break;
-                                case "player_fmove":
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if (command.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                        {
-                                            ConsoleWarn(command.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                            command.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                        }
-                                    }
-                                    break;
                                 case "self_kill":
                                     if (_isTestingAuthorized)
                                     {
