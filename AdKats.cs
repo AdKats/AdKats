@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.5.1
- * 23-JAN-2015
+ * Version 6.0.5.3
+ * 25-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.5.1</version_code>
+ * <version_code>6.0.5.3</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.5.1";
+        private const String PluginVersion = "6.0.5.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4641,11 +4641,7 @@ namespace PRoConEvents {
                             user_expiration = UtcDbTime().AddYears(20),
                             user_notes = "No Notes"
                         };
-                        Boolean valid = true;
-                        lock (_userCache) {
-                            valid = _userCache.Values.All(iUser => aUser.user_name != iUser.user_name);
-                        }
-                        if (!valid) {
+                        if (_userCache.Values.Any(iUser => aUser.user_name == iUser.user_name)) {
                             ConsoleError("Unable to add " + aUser.user_name + ", a user with that name already exists.");
                             return;
                         }
@@ -6865,11 +6861,6 @@ namespace PRoConEvents {
                     FetchRoles();
                     DebugWrite("Role fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     start = UtcDbTime();
-                    if (!_firstUserListComplete)
-                    {
-                        OnlineAdminSayMessage("Fetching user list.");
-                        ConsoleInfo("Fetching user list.");
-                    }
                     FetchUserList();
                     DebugWrite("User fetch took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     start = UtcDbTime();
@@ -19529,7 +19520,6 @@ namespace PRoConEvents {
                                 " populator whitelist for all servers.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
-                            FetchAllAccess(true);
                         }
                         else
                         {
@@ -19674,7 +19664,6 @@ namespace PRoConEvents {
                                 " TeamKillTracker whitelist for all servers.";
                             SendMessageToSource(record, message);
                             DebugWrite(message, 3);
-                            FetchAllAccess(true);
                         }
                         else
                         {
@@ -22578,7 +22567,7 @@ namespace PRoConEvents {
                 }
                 FetchAllAccess(true);
             }
-            else if (UtcDbTime() > _lastUserFetch.AddSeconds(DbUserFetchFrequency) || _userCache.Count == 0) {
+            else if (UtcDbTime() > _lastUserFetch.AddSeconds(DbUserFetchFrequency) || !_firstUserListComplete) {
                 FetchAllAccess(true);
             }
             else {
@@ -29114,6 +29103,11 @@ namespace PRoConEvents {
             DateTime start = UtcDbTime();
             try
             {
+                if (!_firstUserListComplete)
+                {
+                    OnlineAdminSayMessage("Fetching user list.");
+                    ConsoleInfo("Fetching user list.");
+                }
                 if (!_firstUserListComplete && !SendQuery("SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE ( TABLE_SCHEMA = '" + _mySqlSchemaName + "' AND TABLE_NAME = 'adkats_users' AND COLUMN_NAME = 'user_expiration' )", false))
                 {
                     SendNonQuery("Adding user expiration.", "ALTER TABLE `adkats_users` ADD COLUMN `user_expiration` DATETIME NOT NULL AFTER `user_role`", true);
@@ -29495,6 +29489,10 @@ namespace PRoConEvents {
                 _firstUserListComplete = true;
                 OnlineAdminSayMessage("User fetch complete [" + _userCache.Count + " users, " + _specialPlayerCache.Count + " Special Players]. Fetching player list.");
                 ConsoleSuccess("User fetch complete [" + _userCache.Count + " users, " + _specialPlayerCache.Count + " Special Players].");
+                if (!_userCache.Any())
+                {
+                    ConsoleWarn("No users have been added. Add a new user with 'Add User'.");
+                }
                 ConsoleInfo("Fetching player list.");
                 UpdateSettingPage();
                 //Call player listing immediately
