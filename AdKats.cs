@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.5.4
+ * Version 6.0.5.5
  * 27-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.5.4</version_code>
+ * <version_code>6.0.5.5</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.5.4";
+        private const String PluginVersion = "6.0.5.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7306,7 +7306,7 @@ namespace PRoConEvents {
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "BaserapeMonitor",
-                                                        record_message = "Assist Losing Team"
+                                                        record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]"
                                                     });
                                                 }
                                             }
@@ -7392,7 +7392,7 @@ namespace PRoConEvents {
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "BaserapeMonitor",
-                                                        record_message = "Assist Losing Team"
+                                                        record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]"
                                                     });
                                                 }
                                             }
@@ -7479,7 +7479,7 @@ namespace PRoConEvents {
                                                                 target_name = aPlayer.player_name,
                                                                 target_player = aPlayer,
                                                                 source_name = "BaserapeMonitor",
-                                                                record_message = "Assist Losing Team"
+                                                                record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]"
                                                             });
                                                         }
                                                     }
@@ -7563,7 +7563,7 @@ namespace PRoConEvents {
                                                                 target_name = aPlayer.player_name,
                                                                 target_player = aPlayer,
                                                                 source_name = "BaserapeMonitor",
-                                                                record_message = "Assist Losing Team"
+                                                                record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]"
                                                             });
                                                         }
                                                     }
@@ -16720,7 +16720,7 @@ namespace PRoConEvents {
                     }
                     if (_PlayerDictionary.TryGetValue(fuzzyMatch, out aPlayer))
                     {
-                        resultMessage = "Fuzzy player match found for " + playerNameInput;
+                        resultMessage = "Fuzzy player match found for '" + playerNameInput + "'";
                         confirmNeeded = true;
                         return true;
                     }
@@ -16752,7 +16752,7 @@ namespace PRoConEvents {
                     }
                     if (_PlayerLeftDictionary.TryGetValue(fuzzyMatch, out aPlayer))
                     {
-                        resultMessage = "Fuzzy player match found for " + playerNameInput;
+                        resultMessage = "Fuzzy player match found for '" + playerNameInput + "'";
                         confirmNeeded = true;
                         return true;
                     }
@@ -17646,6 +17646,43 @@ namespace PRoConEvents {
             try
             {
                 record.record_action_executed = true;
+                //Team Info Check
+                AdKatsTeam team1 = _teamDictionary[1];
+                AdKatsTeam team2 = _teamDictionary[2];
+                AdKatsTeam winningTeam, losingTeam;
+                if (team1.TeamTicketCount > team2.TeamTicketCount)
+                {
+                    winningTeam = team1;
+                    losingTeam = team2;
+                }
+                else
+                {
+                    winningTeam = team2;
+                    losingTeam = team1;
+                }
+                AdKatsTeam friendlyTeam, enemyTeam;
+                if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID)
+                {
+                    friendlyTeam = team1;
+                    enemyTeam = team2;
+                }
+                else if (record.target_player.frostbitePlayerInfo.TeamID == team2.TeamID)
+                {
+                    friendlyTeam = team2;
+                    enemyTeam = team1;
+                }
+                else
+                {
+                    SendMessageToSource(record, "Invalid teams when attempting to assist.");
+                    record.record_message += " [Rejected]";
+                    return;
+                }
+                if (friendlyTeam.TeamID == losingTeam.TeamID)
+                {
+                    SendMessageToSource(record, "Player already on losing team, rejecting switch attempt.");
+                    record.record_message += " [Rejected]";
+                    return;
+                }
                 QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
             }
             catch (Exception e) {
