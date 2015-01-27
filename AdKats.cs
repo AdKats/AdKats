@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.5.3
- * 25-JAN-2015
+ * Version 6.0.5.4
+ * 27-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.5.3</version_code>
+ * <version_code>6.0.5.4</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.5.3";
+        private const String PluginVersion = "6.0.5.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -528,6 +528,7 @@ namespace PRoConEvents {
         private Int32 _BaserapeCausingPlayersMinimumCount = 5;
         private readonly Dictionary<String, AdKatsPlayer> _baserapeCausingPlayers = new Dictionary<String, AdKatsPlayer>();
         private Boolean _FeedBaserapeCausingPlayerDispersion = false;
+        private Boolean _AutomaticAssistBaserapeCausingPlayers = false;
         //Populators
         private Boolean _PopulatorMonitor = false;
         private Boolean _PopulatorUseSpecifiedPopulatorsOnly = false;
@@ -1144,6 +1145,7 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
                         lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
                         lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
+                        lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Automatic Assist Trigger for Baserape Causing Players", typeof(Boolean), _AutomaticAssistBaserapeCausingPlayers));
                     }
                     lstReturn.Add(new CPluginVariable("B27. Player Monitor Settings|Monitor Populator Players - Thanks CMWGaming", typeof(Boolean), _PopulatorMonitor));
                     if (_PopulatorMonitor)
@@ -2617,9 +2619,15 @@ namespace PRoConEvents {
                                 ConsoleInfo("Statistics for player wins, losses, and caused baserapes will no longer be logged.");
                             }
                         }
-                        if (!_PostWinLossBaserapeStatistics && _FeedBaserapeCausingPlayerDispersion) {
+                        if (!_PostWinLossBaserapeStatistics && _FeedBaserapeCausingPlayerDispersion)
+                        {
                             _FeedBaserapeCausingPlayerDispersion = false;
                             ConsoleWarn("Baserape statistics were disabled. Feed for baserape causing players cannot be enabled when that is not.");
+                        }
+                        if (!_PostWinLossBaserapeStatistics && _AutomaticAssistBaserapeCausingPlayers)
+                        {
+                            _AutomaticAssistBaserapeCausingPlayers = false;
+                            ConsoleWarn("Baserape statistics were disabled. Automatic assist trigger cannot be enabled when that is not.");
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Post Win/Loss/Baserape Statistics", typeof(Boolean), _PostWinLossBaserapeStatistics));
@@ -2738,6 +2746,38 @@ namespace PRoConEvents {
                         }
                         //Upload change to database 
                         QueueSettingForUpload(new CPluginVariable(@"Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Automatic Assist Trigger for Baserape Causing Players").Success)
+                {
+                    //Initial parse
+                    Boolean AutomaticAssistBaserapeCausingPlayers = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (_AutomaticAssistBaserapeCausingPlayers != AutomaticAssistBaserapeCausingPlayers)
+                    {
+                        //Rejection cases
+                        if (_threadsReady && !_FeedMultiBalancerDisperseList && AutomaticAssistBaserapeCausingPlayers)
+                        {
+                            ConsoleError("'Automatic Dispersion for Baserape Causing Players' cannot be enabled when 'Feed MULTIBalancer Even Dispersion List' is disabled.");
+                            return;
+                        }
+                        //Assignment
+                        _AutomaticAssistBaserapeCausingPlayers = AutomaticAssistBaserapeCausingPlayers;
+                        //Notification
+                        if (_threadsReady)
+                        {
+                            if (_AutomaticAssistBaserapeCausingPlayers)
+                            {
+                                ConsoleInfo("Baserape causing players are now being automatically assisted to weak teams when auto-surrender begins countdown.");
+                            }
+                            else
+                            {
+                                ConsoleInfo("Baserape causing players are no longer being assisted to weak teams when auto-surrender begins countdown.");
+                            }
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database 
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Assist Trigger for Baserape Causing Players", typeof(Boolean), _AutomaticAssistBaserapeCausingPlayers));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Monitor Populator Players").Success)
@@ -7251,6 +7291,25 @@ namespace PRoConEvents {
                                                 else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                     OnlineAdminSayMessage("Preparing auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                             }
+                                            if (_AutomaticAssistBaserapeCausingPlayers && 
+                                                !_Team1MoveQueue.Any() && 
+                                                !_Team2MoveQueue.Any() &&
+                                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 120) {
+                                                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
+                                                    dPlayer =>  dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && 
+                                                                _baserapeCausingPlayers.ContainsKey(dPlayer.player_name))) {
+                                                    QueueRecordForProcessing(new AdKatsRecord
+                                                    {
+                                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                        server_id = _serverInfo.ServerID,
+                                                        command_type = GetCommandByKey("self_assist"),
+                                                        target_name = aPlayer.player_name,
+                                                        target_player = aPlayer,
+                                                        source_name = "BaserapeMonitor",
+                                                        record_message = "Assist Losing Team"
+                                                    });
+                                                }
+                                            }
                                         }
                                     }
                                     else
@@ -7315,6 +7374,27 @@ namespace PRoConEvents {
                                                 }
                                                 else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                     OnlineAdminSayMessage("Preparing auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
+                                            }
+                                            if (_AutomaticAssistBaserapeCausingPlayers &&
+                                                !_Team1MoveQueue.Any() &&
+                                                !_Team2MoveQueue.Any() &&
+                                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 120)
+                                            {
+                                                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
+                                                    dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
+                                                                _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
+                                                {
+                                                    QueueRecordForProcessing(new AdKatsRecord
+                                                    {
+                                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                        server_id = _serverInfo.ServerID,
+                                                        command_type = GetCommandByKey("self_assist"),
+                                                        target_name = aPlayer.player_name,
+                                                        target_player = aPlayer,
+                                                        source_name = "BaserapeMonitor",
+                                                        record_message = "Assist Losing Team"
+                                                    });
+                                                }
                                             }
                                         }
                                     }
@@ -7382,6 +7462,27 @@ namespace PRoConEvents {
                                                         else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                             OnlineAdminSayMessage("Preparing auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
                                                     }
+                                                    if (_AutomaticAssistBaserapeCausingPlayers &&
+                                                        !_Team1MoveQueue.Any() &&
+                                                        !_Team2MoveQueue.Any() &&
+                                                        _serverInfo.GetRoundElapsedTime().TotalSeconds > 120)
+                                                    {
+                                                        foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
+                                                            dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
+                                                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
+                                                        {
+                                                            QueueRecordForProcessing(new AdKatsRecord
+                                                            {
+                                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                                server_id = _serverInfo.ServerID,
+                                                                command_type = GetCommandByKey("self_assist"),
+                                                                target_name = aPlayer.player_name,
+                                                                target_player = aPlayer,
+                                                                source_name = "BaserapeMonitor",
+                                                                record_message = "Assist Losing Team"
+                                                            });
+                                                        }
+                                                    }
                                                 }
                                             }
                                             else
@@ -7444,6 +7545,27 @@ namespace PRoConEvents {
                                                         }
                                                         else if (_surrenderAutoTriggerCountCurrent % 3 == 0 || _surrenderAutoTriggerCountCurrent == 1 || _surrenderAutoNukeWinning || _surrenderAutoTriggerVote)
                                                             OnlineAdminSayMessage("Preparing auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + ". " + completionPercentage + " ready.");
+                                                    }
+                                                    if (_AutomaticAssistBaserapeCausingPlayers &&
+                                                        !_Team1MoveQueue.Any() &&
+                                                        !_Team2MoveQueue.Any() &&
+                                                        _serverInfo.GetRoundElapsedTime().TotalSeconds > 120)
+                                                    {
+                                                        foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
+                                                            dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
+                                                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
+                                                        {
+                                                            QueueRecordForProcessing(new AdKatsRecord
+                                                            {
+                                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                                server_id = _serverInfo.ServerID,
+                                                                command_type = GetCommandByKey("self_assist"),
+                                                                target_name = aPlayer.player_name,
+                                                                target_player = aPlayer,
+                                                                source_name = "BaserapeMonitor",
+                                                                record_message = "Assist Losing Team"
+                                                            });
+                                                        }
                                                     }
                                                 }
                                             }
@@ -8507,10 +8629,17 @@ namespace PRoConEvents {
                                             }
                                         }
                                         PlayerTellMessage(aPlayer.player_name, repMessage);
-                                        if (_FeedMultiBalancerDisperseList && _FeedBaserapeCausingPlayerDispersion && _baserapeCausingPlayers.Values.Any(dPlayer => dPlayer.player_id == aPlayer.player_id))
+                                        if (_baserapeCausingPlayers.Values.Any(dPlayer => dPlayer.player_id == aPlayer.player_id))
                                         {
-                                            _threadMasterWaitHandle.WaitOne(5000);
-                                            PlayerTellMessage(aPlayer.player_name, "Baserape monitor has you under temporary autobalance dispersion. You are 1 of " + _baserapeCausingPlayers.Count + " players.");
+                                            if (_FeedMultiBalancerDisperseList && _FeedBaserapeCausingPlayerDispersion) {
+                                                _threadMasterWaitHandle.WaitOne(5000);
+                                                PlayerSayMessage(aPlayer.player_name, "Baserape monitor has you under temporary autobalance dispersion. You are 1 of " + _baserapeCausingPlayers.Count + " players.");
+                                            }
+                                            else if(_AutomaticAssistBaserapeCausingPlayers)
+                                            {
+                                                _threadMasterWaitHandle.WaitOne(5000);
+                                                PlayerSayMessage(aPlayer.player_name, "Baserape monitor has you under temporary automatic assist. You are 1 of " + _baserapeCausingPlayers.Count + " players.");
+                                            }
                                         }
                                     }
                                 }
@@ -11708,9 +11837,9 @@ namespace PRoConEvents {
                             return;
                         }
 
-                        if (_FeedMultiBalancerDisperseList && _FeedBaserapeCausingPlayerDispersion && _baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
+                        if (_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
                         {
-                            SendMessageToSource(record, "You are under dispersion for baserape, you may not use Assist to bypass it at this time.");
+                            SendMessageToSource(record, "You are under monitoring for baserape, you may not use Assist to bypass it at this time.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -23595,6 +23724,7 @@ namespace PRoConEvents {
                 QueueSettingForUpload(new CPluginVariable(@"Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
                 QueueSettingForUpload(new CPluginVariable(@"Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
                 QueueSettingForUpload(new CPluginVariable(@"Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic Assist Trigger for Baserape Causing Players", typeof(Boolean), _AutomaticAssistBaserapeCausingPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Monitor Populator Players", typeof(Boolean), _PopulatorMonitor));
                 QueueSettingForUpload(new CPluginVariable(@"Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
                 QueueSettingForUpload(new CPluginVariable(@"Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
