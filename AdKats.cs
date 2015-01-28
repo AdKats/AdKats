@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.5.5
- * 27-JAN-2015
+ * Version 6.0.5.6
+ * 28-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.5.5</version_code>
+ * <version_code>6.0.5.6</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.5.5";
+        private const String PluginVersion = "6.0.5.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7294,10 +7294,13 @@ namespace PRoConEvents {
                                             if (_AutomaticAssistBaserapeCausingPlayers && 
                                                 !_Team1MoveQueue.Any() && 
                                                 !_Team2MoveQueue.Any() &&
-                                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 120) {
+                                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
+                                                (!_isTestingAuthorized || losingTeam.TeamTicketCount > 400)) {
                                                 foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
                                                     dPlayer =>  dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && 
                                                                 _baserapeCausingPlayers.ContainsKey(dPlayer.player_name))) {
+                                                    PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
+                                                    Thread.Sleep(2000);
                                                     QueueRecordForProcessing(new AdKatsRecord
                                                     {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -7378,12 +7381,15 @@ namespace PRoConEvents {
                                             if (_AutomaticAssistBaserapeCausingPlayers &&
                                                 !_Team1MoveQueue.Any() &&
                                                 !_Team2MoveQueue.Any() &&
-                                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 120)
+                                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
+                                                (!_isTestingAuthorized || losingTeam.TeamTicketCount > 400))
                                             {
                                                 foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
                                                     dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
                                                                 _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
                                                 {
+                                                    PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
+                                                    Thread.Sleep(2000);
                                                     QueueRecordForProcessing(new AdKatsRecord
                                                     {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -7465,12 +7471,15 @@ namespace PRoConEvents {
                                                     if (_AutomaticAssistBaserapeCausingPlayers &&
                                                         !_Team1MoveQueue.Any() &&
                                                         !_Team2MoveQueue.Any() &&
-                                                        _serverInfo.GetRoundElapsedTime().TotalSeconds > 120)
+                                                        _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
+                                                        (!_isTestingAuthorized || losingTeam.TeamTicketCount > 400))
                                                     {
                                                         foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
                                                             dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
                                                                         _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
                                                         {
+                                                            PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
+                                                            Thread.Sleep(2000);
                                                             QueueRecordForProcessing(new AdKatsRecord
                                                             {
                                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -7549,12 +7558,15 @@ namespace PRoConEvents {
                                                     if (_AutomaticAssistBaserapeCausingPlayers &&
                                                         !_Team1MoveQueue.Any() &&
                                                         !_Team2MoveQueue.Any() &&
-                                                        _serverInfo.GetRoundElapsedTime().TotalSeconds > 120)
+                                                        _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
+                                                        (!_isTestingAuthorized || losingTeam.TeamTicketCount > 400))
                                                     {
                                                         foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
                                                             dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
                                                                         _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
                                                         {
+                                                            PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
+                                                            Thread.Sleep(2000);
                                                             QueueRecordForProcessing(new AdKatsRecord
                                                             {
                                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -8613,7 +8625,7 @@ namespace PRoConEvents {
                                             {
                                                 if (aPlayer.player_reputation > 15)
                                                 {
-                                                    repMessage += "Thank you for helping the admins! At " + Math.Round(_reputationThresholdGood, 2) + " reputation you receive report auto-contest.";
+                                                    repMessage += "Thank you for helping the admins! At " + Math.Round(_reputationThresholdGood, 2) + " reputation you receive large perks.";
                                                 }
                                                 else if (aPlayer.player_reputation > 0) {
                                                     repMessage += "Thank you for helping the admins! At 15 reputation you receive small perks.";
@@ -8625,7 +8637,7 @@ namespace PRoConEvents {
                                             }
                                             else
                                             {
-                                                repMessage += "You have report auto-contest. Thank you.";
+                                                repMessage += "You have report auto-contest and spambot whitelist. Thank you.";
                                             }
                                         }
                                         PlayerTellMessage(aPlayer.player_name, repMessage);
@@ -11837,7 +11849,7 @@ namespace PRoConEvents {
                             return;
                         }
 
-                        if (_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
+                        if (false && _baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
                         {
                             SendMessageToSource(record, "You are under monitoring for baserape, you may not use Assist to bypass it at this time.");
                             FinalizeRecord(record);
