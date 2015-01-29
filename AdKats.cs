@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.5.6
+ * Version 6.0.5.7
  * 28-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.5.6</version_code>
+ * <version_code>6.0.5.7</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.5.6";
+        private const String PluginVersion = "6.0.5.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1600,6 +1600,7 @@ namespace PRoConEvents {
                     if (int.TryParse(strValue, out tmp)) {
                         if (tmp == 8345) {
                             _FetchedPlayers.Clear();
+                            _PlayerLeftDictionary.Clear();
                         }
                         else if (tmp == 3958) {
                             ConsoleInfo("Avg Read: " + _DatabaseReadAverageDuration + " | Avg Write: " + _DatabaseWriteAverageDuration);
@@ -4967,136 +4968,59 @@ namespace PRoConEvents {
                         }
                         if (_UserRemovalQueue != null)
                             _UserRemovalQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _UserRemovalQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_UserUploadQueue != null)
                             _UserUploadQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _UserUploadQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_TeamswapForceMoveQueue != null)
                             _TeamswapForceMoveQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _TeamswapForceMoveQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_TeamswapOnDeathCheckingQueue != null)
                             _TeamswapOnDeathCheckingQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _TeamswapOnDeathCheckingQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_TeamswapOnDeathMoveDic != null)
                             _TeamswapOnDeathMoveDic.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _TeamswapOnDeathMoveDic: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_UnparsedCommandQueue != null)
                             _UnparsedCommandQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _UnparsedCommandQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_UnparsedMessageQueue != null)
                             _UnparsedMessageQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _UnparsedMessageQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_UnprocessedActionQueue != null)
                             _UnprocessedActionQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _UnprocessedActionQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_UnprocessedRecordQueue != null)
                             _UnprocessedRecordQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _UnprocessedRecordQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_UnprocessedStatisticQueue != null)
                             _UnprocessedStatisticQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _UnprocessedStatisticQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_BanEnforcerCheckingQueue != null)
                             _BanEnforcerCheckingQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _BanEnforcerCheckingQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         _toldCol = false;
                         if (_Team2MoveQueue != null)
                             _Team2MoveQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _Team2MoveQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_Team1MoveQueue != null)
                             _Team1MoveQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _Team1MoveQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_RoundCookers != null)
                             _RoundCookers.Clear();
-                        if (memDisplay)
-                        {
-                            ConsoleInfo("After _RoundCookers: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_RoundReports != null)
                             _RoundReports.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _RoundReports: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_RoundReportHistory != null)
                             _RoundReportHistory.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _RoundReportHistory: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_RoundMutedPlayers != null)
                             _RoundMutedPlayers.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _RoundMutedPlayers: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_PlayerDictionary != null)
                             _PlayerDictionary.Clear();
                         if (memDisplay)
                         {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
+                            Thread.Sleep(TimeSpan.FromSeconds(1));
                             ConsoleInfo("After _PlayerDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_PlayerLeftDictionary != null)
                             _PlayerLeftDictionary.Clear();
                         if (memDisplay)
                         {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
+                            Thread.Sleep(TimeSpan.FromSeconds(1));
                             ConsoleInfo("After _PlayerLeftDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
+                        }
+                        if (_FetchedPlayers != null)
+                            _FetchedPlayers.Clear();
+                        if (memDisplay)
+                        {
+                            Thread.Sleep(TimeSpan.FromSeconds(1));
+                            ConsoleInfo("After _FetchedPlayers: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         _firstPlayerListComplete = false;
                         _firstUserListComplete = false;
@@ -5105,83 +5029,33 @@ namespace PRoConEvents {
                             _userCache.Clear();
                         if (memDisplay)
                         {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
+                            Thread.Sleep(TimeSpan.FromSeconds(1));
                             ConsoleInfo("After _userCache: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (FrostbitePlayerInfoList != null)
                             FrostbitePlayerInfoList.Clear();
                         if (memDisplay)
                         {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
+                            Thread.Sleep(TimeSpan.FromSeconds(1));
                             ConsoleInfo("After FrostbitePlayerInfoList: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
                         }
                         if (_CBanProcessingQueue != null)
                             _CBanProcessingQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _CBanProcessingQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_BanEnforcerProcessingQueue != null)
                             _BanEnforcerProcessingQueue.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _BanEnforcerProcessingQueue: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_ActOnSpawnDictionary != null)
                             _ActOnSpawnDictionary.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _ActOnSpawnDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_ActOnIsAliveDictionary != null)
                             _ActOnIsAliveDictionary.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _ActOnIsAliveDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if (_ActionConfirmDic != null)
                             _ActionConfirmDic.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _ActionConfirmDic: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         if(_LoadoutConfirmDictionary != null)
                             _LoadoutConfirmDictionary.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _LoadoutConfirmDictionary: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         _unmatchedRoundDeathCounts.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _unmatchedRoundDeathCounts: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         _unmatchedRoundDeaths.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _unmatchedRoundDeaths: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         _endingRound = false;
                         _surrenderVoteList.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _surrenderVoteList: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         _nosurrenderVoteList.Clear();
-                        if (memDisplay)
-                        {
-                            Thread.Sleep(TimeSpan.FromSeconds(10));
-                            ConsoleInfo("After _nosurrenderVoteList: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                        }
                         _surrenderVoteActive = false;
                         _surrenderVoteSucceeded = false;
                         _slowmo = false;
@@ -5189,11 +5063,6 @@ namespace PRoConEvents {
                         if (_subscribedClients.Any()) {
                             ConsoleWarn("All active subscriptions removed.");
                             _subscribedClients.Clear();
-                            if (memDisplay)
-                            {
-                                Thread.Sleep(TimeSpan.FromSeconds(10));
-                                ConsoleInfo("After _subscribedClients: " + (GC.GetTotalMemory(true) / 1024 / 1024) + "MB");
-                            }
                         }
                         //Now that plugin is disabled, update the settings page to reflect
                         UpdateSettingPage();
@@ -6174,7 +6043,17 @@ namespace PRoConEvents {
                                     aPlayer.ClearPingEntries();
                                     aPlayer.RequiredTeam = null;
                                     DequeuePlayer(aPlayer);
-                                    _PlayerLeftDictionary.Add(aPlayer.player_name, aPlayer);
+                                    //Remove all old values
+                                    List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcDbTime() - pair.Value.player_fetchTime).TotalMinutes > 60).Select(pair => pair.Key).ToList();
+                                    foreach (String removeName in removeNames)
+                                    {
+                                        _PlayerLeftDictionary.Remove(removeName);
+                                    }
+                                    if (_isTestingAuthorized && removeNames.Any())
+                                    {
+                                        ConsoleWarn(removeNames.Count() + " left players removed, " + _PlayerLeftDictionary.Count() + " still in cache.");
+                                    }
+                                    _PlayerLeftDictionary[aPlayer.player_name] = aPlayer;
                                 }
                                 RemovePlayerFromDictionary(playerInfo.SoldierName, false);
                                 removedPlayers.Add(playerInfo.SoldierName);
@@ -6596,7 +6475,17 @@ namespace PRoConEvents {
                                         aPlayer.ClearPingEntries();
                                         aPlayer.RequiredTeam = null;
                                         DequeuePlayer(aPlayer);
-                                        _PlayerLeftDictionary.Add(aPlayer.player_name, aPlayer);
+                                        //Remove all old values
+                                        List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcDbTime() - pair.Value.player_fetchTime).TotalMinutes > 60).Select(pair => pair.Key).ToList();
+                                        foreach (String removeName in removeNames)
+                                        {
+                                            _PlayerLeftDictionary.Remove(removeName);
+                                        }
+                                        if (_isTestingAuthorized && removeNames.Any())
+                                        {
+                                            ConsoleWarn(removeNames.Count() + " left players removed, " + _PlayerLeftDictionary.Count() + " still in cache.");
+                                        }
+                                        _PlayerLeftDictionary[aPlayer.player_name] = aPlayer;
                                     }
                                     _PlayerDictionary.Remove(playerName);
                                 }
@@ -7295,10 +7184,11 @@ namespace PRoConEvents {
                                                 !_Team1MoveQueue.Any() && 
                                                 !_Team2MoveQueue.Any() &&
                                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
-                                                (!_isTestingAuthorized || losingTeam.TeamTicketCount > 400)) {
+                                                (!_isTestingAuthorized || losingTeam.TeamTicketCount > 300)) {
                                                 foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
                                                     dPlayer =>  dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && 
                                                                 _baserapeCausingPlayers.ContainsKey(dPlayer.player_name))) {
+                                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
                                                     PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
                                                     Thread.Sleep(2000);
                                                     QueueRecordForProcessing(new AdKatsRecord
@@ -7382,12 +7272,13 @@ namespace PRoConEvents {
                                                 !_Team1MoveQueue.Any() &&
                                                 !_Team2MoveQueue.Any() &&
                                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
-                                                (!_isTestingAuthorized || losingTeam.TeamTicketCount > 400))
+                                                (!_isTestingAuthorized || losingTeam.TeamTicketCount > 300))
                                             {
                                                 foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
                                                     dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
                                                                 _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
                                                 {
+                                                    OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
                                                     PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
                                                     Thread.Sleep(2000);
                                                     QueueRecordForProcessing(new AdKatsRecord
@@ -7472,12 +7363,13 @@ namespace PRoConEvents {
                                                         !_Team1MoveQueue.Any() &&
                                                         !_Team2MoveQueue.Any() &&
                                                         _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
-                                                        (!_isTestingAuthorized || losingTeam.TeamTicketCount > 400))
+                                                        (!_isTestingAuthorized || losingTeam.TeamTicketCount > 300))
                                                     {
                                                         foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
                                                             dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
                                                                         _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
                                                         {
+                                                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
                                                             PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
                                                             Thread.Sleep(2000);
                                                             QueueRecordForProcessing(new AdKatsRecord
@@ -7559,12 +7451,13 @@ namespace PRoConEvents {
                                                         !_Team1MoveQueue.Any() &&
                                                         !_Team2MoveQueue.Any() &&
                                                         _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
-                                                        (!_isTestingAuthorized || losingTeam.TeamTicketCount > 400))
+                                                        (!_isTestingAuthorized || losingTeam.TeamTicketCount > 300))
                                                     {
                                                         foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
                                                             dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
                                                                         _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
                                                         {
+                                                            OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
                                                             PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
                                                             Thread.Sleep(2000);
                                                             QueueRecordForProcessing(new AdKatsRecord
@@ -26396,6 +26289,7 @@ namespace PRoConEvents {
                             DebugWrite("Attempting to fetch player " + playerID + " from pre-fetch list.", 6);
                             if (_FetchedPlayers.TryGetValue(playerID, out aPlayer)) {
                                 DebugWrite("Player " + playerID + " successfully fetched from pre-fetch list.", 6);
+                                aPlayer.player_fetchTime = UtcDbTime();
                                 return aPlayer;
                             }
                         }
@@ -26665,8 +26559,16 @@ namespace PRoConEvents {
                             }
                         }
                     }
-                    if (aPlayer != null && aPlayer.player_id > 0)
-                    {
+                    if (aPlayer != null && aPlayer.player_id > 0) {
+                        aPlayer.player_fetchTime = UtcDbTime();
+                        //Remove all old values
+                        List<Int64> removeIDs = _FetchedPlayers.Where(pair => (UtcDbTime() - pair.Value.player_fetchTime).TotalMinutes > 60).Select(pair => pair.Key).ToList();
+                        foreach (Int64 removeID in removeIDs) {
+                            _FetchedPlayers.Remove(removeID);
+                        }
+                        if (_isTestingAuthorized && removeIDs.Any()) {
+                            ConsoleWarn(removeIDs.Count() + " fetched players removed, " + _FetchedPlayers.Count() + " still in cache.");
+                        }
                         _FetchedPlayers[aPlayer.player_id] = aPlayer;
                     }
                 }
@@ -33811,6 +33713,7 @@ namespace PRoConEvents {
             public String player_slot = null;
             public Double player_reputation = 0;
             public DateTime player_firstseen = DateTime.UtcNow;
+            public DateTime player_fetchTime = DateTime.UtcNow;
             public AdKatsServer player_server = null;
             public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
             public Boolean player_spawnedOnce = false;
@@ -33849,6 +33752,7 @@ namespace PRoConEvents {
                 RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
                 player_pings = new Queue<KeyValuePair<Double, DateTime>>();
                 TargetedRecords = new List<AdKatsRecord>();
+                player_fetchTime = DateTime.UtcNow;
             }
 
             public String GetVerboseName() {
