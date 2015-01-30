@@ -1,5 +1,5 @@
 <script>
-    //<latest_stable_release>1.0.6.6</latest_stable_release>
+    //<latest_stable_release>2.0.1.0</latest_stable_release>
 </script>
 <p>
     <a href="https://forum.myrcon.com/showthread.php?9180" name=thread>
@@ -8,7 +8,7 @@
 </p>
 <h2>Overview</h2>
 <p>
-    All infantry and vehicle loadouts/equipment in the game can be denied on-spawn using this plugin, with customizable messages for each item. Vehicle loadouts and equipment can be enforced on spawn for everyone, or on kill with specific vehicles. Settings allow for enforcement of problem players only, or all players, with per-item gradation of that severity.
+    All infantry and vehicle loadouts/equipment in Battlefield 4 can be denied on-spawn using this plugin, with customizable messages for each item. Vehicle loadouts and equipment can be enforced on spawn for everyone, or on kill with specific vehicles. Settings allow for enforcement of problem players only, or all players, with per-item gradation of that severity.
 </p>
 <p>
     <a href="http://battlelog.battlefield.com/bf4/servers/show/pc/252b5811-3722-4e7f-803d-5101bf3677a8/ADK-7-24-7-Operation-Metro-NO-EXPLOSIVES-ADKGamers-com/" target="_blank">Visit this server and spawn with smoke/flares/flashbangs to see it in action.</a>
@@ -20,6 +20,9 @@
     </li>
     <li>
         Enforce every vehicle item (primaries, secondaries, countermeasures, optics, and gunner options) in the game, on-spawn.
+    </li>
+    <li>
+        Map/Mode specific enforcement options for mixed-mode servers are available.
     </li>
     <li>
         Any update made to the game's weapons are automatically imported and made available, so if DICE changes or adds weapons, they are immediately enforceable.
@@ -116,7 +119,7 @@
 </p>
 <h3>Item Library</h3>
 <p>
-    Every infantry/Vehicle item in the game (about 3500 items), can be enforced here. The settings are split into several sections; Weapons, Weapon Accessories, Gadgets, and Vehicle Weapons/Unlocks in that order.
+    Every infantry/Vehicle item in the game (about 3500 items), can be enforced here. The settings are split into several sections; Weapons, Weapon Accessories, Gadgets, and Vehicle Weapons/Unlocks, in that order.
 </p>
 <p>
     <img src="http://i.gyazo.com/fdee6812030b997538c9f1ed4e466cd6.png" alt="AdKatsLRT Setting List"><br>
@@ -127,10 +130,13 @@
 <h3>Loadout Processing</h3>
 <h4>Deciding Enforcement Type</h4>
 <p>
-    <b>The gist of it: </b>Deny on trigger denies that weapon/accessory for problem players and players you've manually marked, deny on spawn denies that weapon for everyone except admins and reputable players.
+    <b>The gist of it for infantry: </b>Deny on trigger denies that weapon/accessory for problem players and players you've manually marked, deny on spawn denies that weapon for everyone except admins and reputable players.
 </p>
 <p>
-    <b>Details: </b>Loadouts have several reasons for being checked; A player spawns, gets reported, gets punished, gets marked, or has more than 5 infraction points. Any of these instances will call a loadout check, and the reason for checking them changes the way the enforcement works.
+    <b>The gist of it for vehicles: </b>By default, enforcement is on kill with specific vehicles. This is important because not everyone uses vehicles, so only those players using restricted vehicles should have their loadouts enforced for those vehicles. Optionally you can enforce on spawn for vehicle loadouts, regardless, which is not advised but is available as an option.
+</p>
+<p>
+    <b>Details for infantry: </b>Loadouts have several reasons for being checked; A player spawns, gets reported, gets punished, gets marked, or has more than 5 infraction points. Any of these instances will call a loadout check, and the reason for checking them changes the way the enforcement works.
 </p>
 <p>
     When running loadout enforcement for a specific player, the reason, and action if invalid, is first decided. The following are results for specific reasons, in order of priority:
@@ -188,7 +194,7 @@
     <td><b>Report Player</b></td>
     <td>report</td>
     <td>
-        Reports initiate trigger level enforcement on targeted players. If the reported player has invalid items in their loadout, the report is automatically accepted, and admins notified of such.
+        Reports initiate trigger level enforcement on targeted players with non-positive reputation. If the reported player has invalid items in their loadout, the report is automatically accepted, and admins notified of such.
     </td>
 </tr>
 <tr>
@@ -214,20 +220,20 @@
     </li>
     <li><b>'Trigger Enforce Minimum Infraction Points'</b> - Viewable when integrating with AdKats. Sets the minimum infraction point count to automatically add problem players to trigger level enforcement.
     </li>
-    <li><b>'Spawn Enforce all Vehicles'</b> - When enabled, if any player spawns with a vehicle loadout that is invalid it will slay them. When disabled, it will wait for them to use the vehicle before slaying them.
-    </li>
 </ul>
 <h3>1. Display Settings:</h3>
 <ul>
     <li><b>'Display Preset Settings'</b> - When enabled, the 'Preset Settings' section will be displayed.
     </li>
-    <li><b>'Display Weapon Settings'</b> - When enabled, the 'Weapon Settings' section will be displayed.
+    <li><b>'Display Map/Mode Settings'</b> - When enabled, the 'Map/Mode Settings' section will be displayed.
     </li>
-    <li><b>'Display Weapon Accessory Settings'</b> - When enabled, the 'Weapon Accessory Settings' section will be displayed.
+    <li><b>'Display Weapon Settings'</b> - When enabled, the 'Weapons' section will be displayed.
     </li>
-    <li><b>'Display Gadget Settings'</b> - When enabled, the 'Gadget Settings' section will be displayed.
+    <li><b>'Display Weapon Accessory Settings'</b> - When enabled, the 'Weapon Accessories' section will be displayed.
     </li>
-    <li><b>'Display Vehicle Settings'</b> - When enabled, the 'Vehicle Settings' section will be displayed.
+    <li><b>'Display Gadget Settings'</b> - When enabled, the 'Gadgets' section will be displayed.
+    </li>
+    <li><b>'Display Vehicle Settings'</b> - When enabled, the 'Vehicle Weapons/Unlocks' section will be displayed.
     </li>
 </ul>
 <h3>2. Preset Settings:</h3>
@@ -235,35 +241,43 @@
     <li><b>'Coming Soon'</b> - This setting block will soon contain settings for presets, like 'No Frag Rounds', or 'No Explosives'.
     </li>
 </ul>
-<h3>3. Weapons:</h3>
+<h3>3. Map/Mode Settings:</h3>
+<ul>
+    <li><b>'Enforce on Specific Maps/Modes Only'</b> - When enabled, the Map/Mode selection settings are displayed. Loadout enforcement will only be enabled on the selected maps.
+    </li>
+    <li><b>'*MapModeIdentifier Enforce?'</b> - When enabled, the selected Map/Mode will be included in loadout enforcement.</li>
+</ul>
+<h3>4. Weapons:</h3>
 <ul>
     <li><b>'*WeaponIdentifier Allow on trigger?'</b> - Viewable when integrating with AdKats. Whether this item should be allowed/denied when a player is under trigger level enforcement.</li>
     <li><b>'*WeaponIdentifier Allow on spawn?'</b> - Appears when a weapon is denied under trigger enforcement, or not using AdKats integration. Whether this item should be allowed/denied when a player is under spawn level enforcement.</li>
 </ul>
-<h3>4. Weapon Accessories:</h3>
+<h3>5. Weapon Accessories:</h3>
 <ul>
     <li><b>'*AccessoryIdentifier Allow on trigger?'</b> - Viewable when integrating with AdKats. Whether this item should be allowed/denied when a player is under trigger level enforcement.</li>
     <li><b>'*AccessoryIdentifier Allow on spawn?'</b> - Appears when a weapon is denied under trigger enforcement, or not using AdKats integration. Whether this item should be allowed/denied when a player is under spawn level enforcement.</li>
 </ul>
-<h3>5. Gadgets:</h3>
+<h3>6. Gadgets:</h3>
 <ul>
     <li><b>'*GadgetIdentifier Allow on trigger?'</b> - Viewable when integrating with AdKats. Whether this item should be allowed/denied when a player is under trigger level enforcement.</li>
     <li><b>'*GadgetIdentifier Allow on spawn?'</b> - Appears when a weapon is denied under trigger enforcement, or not using AdKats integration. Whether this item should be allowed/denied when a player is under spawn level enforcement.</li>
 </ul>
-<h3>6. Vehicle Weapons/Unlocks:</h3>
+<h3>7. Vehicle Weapons/Unlocks:</h3>
 <ul>
-    <li><b>'*GadgetIdentifier Allow on kill?'</b> - Whether this item should be allowed/denied when a player kills with the specified vehicle.</li>
-    <li><b>'*GadgetIdentifier Allow on spawn?'</b> - Appears when the 'Spawn Enforce all Vehicles' setting is enabled. Whether this item should be allowed/denied when a player spawns, regardless of where they are.</li>
+    <li><b>'Spawn Enforce all Vehicles'</b> - When enabled, if any player spawns with a vehicle loadout that is invalid it will slay them. When disabled, it will wait for them to use the vehicle before slaying them.
+    </li>
+    <li><b>'*VehicleIdentifier Allow on kill?'</b> - Whether this item should be allowed/denied when a player kills with the specified vehicle.</li>
+    <li><b>'*VehicleIdentifier Allow on spawn?'</b> - Appears when the 'Spawn Enforce all Vehicles' setting is enabled. Whether this item should be allowed/denied when a player spawns, regardless of where they are.</li>
 </ul>
-<h3>7A. Denied Item Kill Messages:</h3>
+<h3>8A. Denied Item Kill Messages:</h3>
 <ul>
     <li><b>'*ItemIdentifier Kill Message'</b> - The specific message sent to players when they are slain for having this item in their loadout.</li>
 </ul>
-<h3>7B. Denied Item Accessory Kill Messages:</h3>
+<h3>8B. Denied Item Accessory Kill Messages:</h3>
 <ul>
     <li><b>'*AccessoryIdentifier Kill Message'</b> - The specific message sent to players when they are slain for having this accessory in their current loadout.</li>
 </ul>
-<h3>7C. Denied Vehicle Item Kill Messages:</h3>
+<h3>8C. Denied Vehicle Item Kill Messages:</h3>
 <ul>
     <li><b>'*VehicleItemIdentifier Kill Message'</b> - The specific message sent to players when they are slain for having this item in their vehicle loadout.</li>
 </ul>
