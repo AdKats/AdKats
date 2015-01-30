@@ -127,7 +127,7 @@
 <h3>Loadout Processing</h3>
 <h4>Deciding Enforcement Type</h4>
 <p>
-    <b>The gist of it: </b>Deny on trigger denies that weapon/accessory for problem players and players you've manually marked, deny on spawn denies that weapon for everyone except admins and repuatable players.
+    <b>The gist of it: </b>Deny on trigger denies that weapon/accessory for problem players and players you've manually marked, deny on spawn denies that weapon for everyone except admins and reputable players.
 </p>
 <p>
     <b>Details: </b>Loadouts have several reasons for being checked; A player spawns, gets reported, gets punished, gets marked, or has more than 5 infraction points. Any of these instances will call a loadout check, and the reason for checking them changes the way the enforcement works.
