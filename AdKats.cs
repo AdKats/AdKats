@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.5.9
+ * Version 6.0.6.0
  * 30-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.5.9</version_code>
+ * <version_code>6.0.6.0</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.5.9";
+        private const String PluginVersion = "6.0.6.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4945,6 +4945,9 @@ namespace PRoConEvents {
                             alive = false;
                             String aliveThreads = "";
                             lock (_aliveThreads) {
+                                foreach (Int32 deadThreadID in _aliveThreads.Values.Where(thread => !thread.IsAlive).Select(thread => thread.ManagedThreadId).ToList()) {
+                                    _aliveThreads.Remove(deadThreadID);
+                                }
                                 foreach (Thread aliveThread in _aliveThreads.Values.ToList()) {
                                     alive = true;
                                     aliveThreads += (aliveThread.Name + "[" + aliveThread.ManagedThreadId + "] ");
@@ -5060,6 +5063,9 @@ namespace PRoConEvents {
                         _surrenderVoteSucceeded = false;
                         _slowmo = false;
                         _pluginUpdateServerInfoChecked = false;
+                        _databaseConnectionCriticalState = false;
+                        _databaseSuccess = 0;
+                        _databaseTimeouts = 0;
                         if (_subscribedClients.Any()) {
                             ConsoleWarn("All active subscriptions removed.");
                             _subscribedClients.Clear();
@@ -5361,6 +5367,12 @@ namespace PRoConEvents {
                                     Enable();
                                 }
 
+                                //Clean dead threads
+                                foreach (Int32 deadThreadID in _aliveThreads.Values.Where(thread => !thread.IsAlive).Select(thread => thread.ManagedThreadId).ToList())
+                                {
+                                    _aliveThreads.Remove(deadThreadID);
+                                }
+                                //Check for thread warning
                                 if (_aliveThreads.Count() >= 20)
                                 {
                                     String aliveThreads = "";
