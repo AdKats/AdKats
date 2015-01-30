@@ -150,10 +150,10 @@
 </p>
 <h4>Informing and Acting</h4>
 <p>
-    If a player is about to be slain for loadout enforcement, regardless of enforcement type, they are shown two messages. The first is a generic message containing all denied weapons they have in their loadout "playername please remove [denied weapons] from your loadout". This messages is sent using player SAY. After that, the specific messages written by the admin for each denied item is displayed. These customizable messages are found in setting sections 5A and 5B, once denied items are selected. These messages are sent using player TELL.
+    If a player is about to be slain for loadout enforcement, regardless of enforcement type, they are shown two messages. The first is a generic message containing all denied weapons they have in their loadout "playername please remove [denied weapons] from your loadout". This messages is sent using private SAY. After that, the specific messages written by the admin for each denied item is displayed. These customizable messages are found in setting sections 8A and 8B, once denied items are selected. These messages are sent using private TELL.
 </p>
 <p>
-    Immediately after informing the player of denied items in their loadout, they are admin killed. If they are under trigger enforcement, admins are notified of their demise, all other messages are private.
+    Immediately after informing the player of denied items in their loadout, they are admin killed. If they are under manual trigger enforcement, admins are notified of their demise, all other messages are private.
 </p>
 <p>
     Thank you messages are given to players who fix their loadouts. If a player is under trigger enforcement, admins are notified that they fixed their loadout.
