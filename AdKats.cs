@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.5.7
- * 28-JAN-2015
+ * Version 6.0.5.8
+ * 29-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.5.7</version_code>
+ * <version_code>6.0.5.8</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.5.7";
+        private const String PluginVersion = "6.0.5.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -11742,13 +11742,6 @@ namespace PRoConEvents {
                             return;
                         }
 
-                        if (false && _baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
-                        {
-                            SendMessageToSource(record, "You are under monitoring for baserape, you may not use Assist to bypass it at this time.");
-                            FinalizeRecord(record);
-                            return;
-                        }
-
                         QueueRecordForProcessing(record);
                     }
                         break;
@@ -14429,6 +14422,13 @@ namespace PRoConEvents {
                                 return;
                             }
 
+                            if (_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
+                            {
+                                SendMessageToSource(record, "You are under monitoring for baserape, you may not use " + record.command_type.command_name + " at this time.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 0);
                             switch (parameters.Length)
@@ -14466,6 +14466,13 @@ namespace PRoConEvents {
                             if (!_surrenderVoteEnable)
                             {
                                 SendMessageToSource(record, "Surrender Vote must be enabled in AdKats settings to use this command.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            if (_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
+                            {
+                                SendMessageToSource(record, "You are under monitoring for baserape, you may not use " + record.command_type.command_name + " at this time.");
                                 FinalizeRecord(record);
                                 return;
                             }
