@@ -16207,20 +16207,9 @@ namespace PRoConEvents {
                             //Remove previous commands awaiting confirmationf
                             CancelSourcePendingAction(record);
 
-                            //Parse parameters using max param count
-                            String[] parameters = ParseParameters(remainingMessage, 1);
-                            switch (parameters.Length)
-                            {
-                                case 0:
-                                    record.target_name = "AdKats";
-                                    record.record_message = "Update AdKats";
-                                    ConfirmActionWithSource(record);
-                                    break;
-                                default:
-                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
-                                    FinalizeRecord(record);
-                                    return;
-                            }
+                            record.target_name = "AdKats";
+                            record.record_message = "Update AdKats";
+                            QueueRecordForProcessing(record);
                         }
                         break;
                     case "server_shutdown":
