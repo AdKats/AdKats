@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.6.1
+ * Version 6.0.6.2
  * 30-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.6.1</version_code>
+ * <version_code>6.0.6.2</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.6.1";
+        private const String PluginVersion = "6.0.6.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -9205,22 +9205,26 @@ namespace PRoConEvents {
             }
         }
 
-        private void RunStatSiteHackCheck(AdKatsPlayer aPlayer, Boolean debug) {
+        private void RunStatSiteHackCheck(AdKatsPlayer aPlayer, Boolean verbose) {
             DebugWrite("HackerChecker running on " + aPlayer.GetVerboseName(), 5);
             Boolean acted = false;
-            if (_UseDpsChecker) {
-                DebugWrite("Preparing to DPS check " + aPlayer.GetVerboseName(), 5);
-                acted = DamageHackCheck(aPlayer, debug);
-            }
-            if (_UseHskChecker && !acted) {
+            if (_UseHskChecker && !acted)
+            {
                 DebugWrite("Preparing to HSK check " + aPlayer.GetVerboseName(), 5);
-                acted = AimbotHackCheck(aPlayer, debug);
+                acted = AimbotHackCheck(aPlayer, verbose);
             }
-            if (_UseKpmChecker && !acted) {
+            if (_UseDpsChecker) 
+            {
+                DebugWrite("Preparing to DPS check " + aPlayer.GetVerboseName(), 5);
+                acted = DamageHackCheck(aPlayer, verbose);
+            }
+            if (_UseKpmChecker && !acted) 
+            {
                 DebugWrite("Preparing to KPM check " + aPlayer.GetVerboseName(), 5);
-                acted = KPMHackCheck(aPlayer, debug);
+                acted = KPMHackCheck(aPlayer, verbose);
             }
-            if (!acted && debug) {
+            if (!acted && verbose) 
+            {
                 ConsoleSuccess(aPlayer.GetVerboseName() + " is clean.");
             }
         }
