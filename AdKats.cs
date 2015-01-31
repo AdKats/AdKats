@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.6.0
+ * Version 6.0.6.1
  * 30-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.6.0</version_code>
+ * <version_code>6.0.6.1</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.6.0";
+        private const String PluginVersion = "6.0.6.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6056,7 +6056,7 @@ namespace PRoConEvents {
                                     aPlayer.RequiredTeam = null;
                                     DequeuePlayer(aPlayer);
                                     //Remove all old values
-                                    List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcDbTime() - pair.Value.player_fetchTime).TotalMinutes > 60).Select(pair => pair.Key).ToList();
+                                    List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcDbTime() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
                                     foreach (String removeName in removeNames)
                                     {
                                         _PlayerLeftDictionary.Remove(removeName);
@@ -6065,6 +6065,7 @@ namespace PRoConEvents {
                                     {
                                         ConsoleWarn(removeNames.Count() + " left players removed, " + _PlayerLeftDictionary.Count() + " still in cache.");
                                     }
+                                    aPlayer.LastUsage = UtcDbTime();
                                     _PlayerLeftDictionary[aPlayer.player_name] = aPlayer;
                                 }
                                 RemovePlayerFromDictionary(playerInfo.SoldierName, false);
@@ -6488,7 +6489,7 @@ namespace PRoConEvents {
                                         aPlayer.RequiredTeam = null;
                                         DequeuePlayer(aPlayer);
                                         //Remove all old values
-                                        List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcDbTime() - pair.Value.player_fetchTime).TotalMinutes > 60).Select(pair => pair.Key).ToList();
+                                        List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcDbTime() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
                                         foreach (String removeName in removeNames)
                                         {
                                             _PlayerLeftDictionary.Remove(removeName);
@@ -6497,6 +6498,7 @@ namespace PRoConEvents {
                                         {
                                             ConsoleWarn(removeNames.Count() + " left players removed, " + _PlayerLeftDictionary.Count() + " still in cache.");
                                         }
+                                        aPlayer.LastUsage = UtcDbTime();
                                         _PlayerLeftDictionary[aPlayer.player_name] = aPlayer;
                                     }
                                     _PlayerDictionary.Remove(playerName);
@@ -16436,10 +16438,14 @@ namespace PRoConEvents {
                     return false;
                 }
                 //Check for an exact match
-                if (_PlayerDictionary.TryGetValue(playerNameInput, out aPlayer)) {
+                if (_PlayerDictionary.TryGetValue(playerNameInput, out aPlayer)) 
+                {
+                    aPlayer.LastUsage = UtcDbTime();
                     return true;
                 }
-                if (includeLeftPlayers && _PlayerLeftDictionary.TryGetValue(playerNameInput, out aPlayer)) {
+                if (includeLeftPlayers && _PlayerLeftDictionary.TryGetValue(playerNameInput, out aPlayer))
+                {
+                    aPlayer.LastUsage = UtcDbTime();
                     return true;
                 }
                 //Check online players for substring match
@@ -16451,7 +16457,9 @@ namespace PRoConEvents {
                 if (subStringMatches.Count == 1)
                 {
                     //Only one subString match, call processing without confirmation if able
-                    if (_PlayerDictionary.TryGetValue(subStringMatches[0], out aPlayer)) {
+                    if (_PlayerDictionary.TryGetValue(subStringMatches[0], out aPlayer))
+                    {
+                        aPlayer.LastUsage = UtcDbTime();
                         resultMessage = "Player match found for '" + playerNameInput + "'";
                         return true;
                     }
@@ -16509,6 +16517,7 @@ namespace PRoConEvents {
                     {
                         resultMessage = msg;
                         confirmNeeded = true;
+                        aPlayer.LastUsage = UtcDbTime();
                         return true;
                     }
                     ConsoleError("Substring match fetch failed.");
@@ -16528,6 +16537,7 @@ namespace PRoConEvents {
                         {
                             resultMessage = "OFFLINE player match found for '" + playerNameInput + "'";
                             confirmNeeded = true;
+                            aPlayer.LastUsage = UtcDbTime();
                             return true;
                         }
                         ConsoleError("Error fetching player for substring match.");
@@ -16584,6 +16594,7 @@ namespace PRoConEvents {
                         {
                             resultMessage = msg;
                             confirmNeeded = true;
+                            aPlayer.LastUsage = UtcDbTime();
                             return true;
                         }
                         ConsoleError("Substring match fetch failed.");
@@ -16608,6 +16619,7 @@ namespace PRoConEvents {
                     aPlayer.player_online = false;
                     aPlayer.player_server = null;
                     confirmNeeded = true;
+                    aPlayer.LastUsage = UtcDbTime();
                     return true;
                 }
                 if (externalOnlineFetchOverFuzzy) {
@@ -16618,6 +16630,7 @@ namespace PRoConEvents {
                     }
                     resultMessage = "Online player found in '" + aPlayer.player_server.ServerName.Substring(0, 20) + "'.";
                     confirmNeeded = true;
+                    aPlayer.LastUsage = UtcDbTime();
                     return true;
                 }
                 //No other option, run fuzzy match
@@ -16646,6 +16659,7 @@ namespace PRoConEvents {
                     {
                         resultMessage = "Fuzzy player match found for '" + playerNameInput + "'";
                         confirmNeeded = true;
+                        aPlayer.LastUsage = UtcDbTime();
                         return true;
                     }
                     ConsoleError("Player suggestion found matching player, but it could not be fetched.");
@@ -16678,6 +16692,7 @@ namespace PRoConEvents {
                     {
                         resultMessage = "Fuzzy player match found for '" + playerNameInput + "'";
                         confirmNeeded = true;
+                        aPlayer.LastUsage = UtcDbTime();
                         return true;
                     }
                     ConsoleError("Player suggestion found matching player, but it could not be fetched.");
@@ -19848,8 +19863,9 @@ namespace PRoConEvents {
                 record.record_action_executed = true;
                 //Get source player
                 AdKatsPlayer sourcePlayer = null;
-                if (_PlayerDictionary.TryGetValue(record.source_name, out sourcePlayer))
+                if (_PlayerDictionary.TryGetValue(record.source_name, out sourcePlayer)) 
                 {
+                    sourcePlayer.LastUsage = UtcDbTime();
                     //If the source has access to move players, then the squad will be unlocked for their entry
                     if (HasAccess(record.source_player, GetCommandByKey("player_move")))
                     {
@@ -24599,18 +24615,19 @@ namespace PRoConEvents {
                         )";
 
                         //Fetch the player from player dictionary
-                        AdKatsPlayer player = null;
-                        if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out player))
+                        AdKatsPlayer aPlayer = null;
+                        if (_PlayerDictionary.TryGetValue(messageObject.Speaker, out aPlayer))
                         {
+                            aPlayer.LastUsage = UtcDbTime();
                             this.DebugWrite("Player found for chat log upload.", 5);
                         }
 
                         //Fill the log
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@log_subset", messageObject.Subset.ToString());
-                        if (player != null && player.player_id > 0)
+                        if (aPlayer != null && aPlayer.player_id > 0)
                         {
-                            command.Parameters.AddWithValue("@log_player_id", player.player_id);
+                            command.Parameters.AddWithValue("@log_player_id", aPlayer.player_id);
                         }
                         else
                         {
@@ -25243,6 +25260,7 @@ namespace PRoConEvents {
                                     Int64 targetID = reader.GetInt64(6);
                                     AdKatsPlayer tPlayer;
                                     if ((_PlayerDictionary.TryGetValue(record.target_name, out tPlayer) || _PlayerLeftDictionary.TryGetValue(record.target_name, out tPlayer)) && tPlayer.player_id == targetID) {
+                                        tPlayer.LastUsage = UtcDbTime();
                                         DebugWrite("Target player fetched from memory.", 7);
                                     }
                                     else {
@@ -25257,6 +25275,7 @@ namespace PRoConEvents {
                                     AdKatsPlayer sPlayer;
                                     if ((_PlayerDictionary.TryGetValue(record.target_name, out sPlayer) || _PlayerLeftDictionary.TryGetValue(record.target_name, out sPlayer)) && sPlayer.player_id == targetID)
                                     {
+                                        sPlayer.LastUsage = UtcDbTime();
                                         DebugWrite("Target player fetched from memory.", 7);
                                     }
                                     else
@@ -25356,6 +25375,7 @@ namespace PRoConEvents {
                                     AdKatsPlayer currentPlayer = null;
                                     if (!String.IsNullOrEmpty(importedPlayer.player_name) && _PlayerDictionary.TryGetValue(importedPlayer.player_name, out currentPlayer))
                                     {
+                                        currentPlayer.LastUsage = UtcDbTime();
                                         DebugWrite("External player is currently in the server, using existing data.", 5);
                                         record.target_player = currentPlayer;
                                     }
@@ -25906,6 +25926,7 @@ namespace PRoConEvents {
                                 return;
                             }
                             foreach (AdKatsPlayer matchingPlayer in matchingPlayers) {
+                                matchingPlayer.LastUsage = UtcDbTime();
                                 bool playerDuplicate = false;
                                 //Make sure the player is not already assigned to another user
                                 lock (_userCache) {
@@ -26293,7 +26314,8 @@ namespace PRoConEvents {
                     game_id = _serverInfo.GameID,
                     player_name = playerName,
                     player_guid = playerGUID,
-                    player_ip = playerIP
+                    player_ip = playerIP,
+                    LastUsage = UtcDbTime()
                 };
                 AssignPlayerRole(aPlayer);
                 return aPlayer;
@@ -26308,7 +26330,7 @@ namespace PRoConEvents {
                             DebugWrite("Attempting to fetch player " + playerID + " from pre-fetch list.", 6);
                             if (_FetchedPlayers.TryGetValue(playerID, out aPlayer)) {
                                 DebugWrite("Player " + playerID + " successfully fetched from pre-fetch list.", 6);
-                                aPlayer.player_fetchTime = UtcDbTime();
+                                aPlayer.LastUsage = UtcDbTime();
                                 return aPlayer;
                             }
                         }
@@ -26579,15 +26601,18 @@ namespace PRoConEvents {
                         }
                     }
                     if (aPlayer != null && aPlayer.player_id > 0) {
-                        aPlayer.player_fetchTime = UtcDbTime();
+                        aPlayer.LastUsage = UtcDbTime();
                         //Remove all old values
-                        List<Int64> removeIDs = _FetchedPlayers.Where(pair => (UtcDbTime() - pair.Value.player_fetchTime).TotalMinutes > 60).Select(pair => pair.Key).ToList();
-                        foreach (Int64 removeID in removeIDs) {
+                        List<Int64> removeIDs = _FetchedPlayers.Where(pair => (UtcDbTime() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
+                        foreach (Int64 removeID in removeIDs) 
+                        {
                             _FetchedPlayers.Remove(removeID);
                         }
-                        if (_isTestingAuthorized && removeIDs.Any()) {
+                        if (_isTestingAuthorized && removeIDs.Any()) 
+                        {
                             ConsoleWarn(removeIDs.Count() + " fetched players removed, " + _FetchedPlayers.Count() + " still in cache.");
                         }
+                        aPlayer.LastUsage = UtcDbTime();
                         _FetchedPlayers[aPlayer.player_id] = aPlayer;
                     }
                 }
@@ -26596,6 +26621,9 @@ namespace PRoConEvents {
                 }
             }
             DebugWrite("fetchPlayer finished!", 6);
+            if (aPlayer != null) {
+                aPlayer.LastUsage = UtcDbTime();
+            }
             return aPlayer;
         }
 
@@ -29377,6 +29405,7 @@ namespace PRoConEvents {
                                             aPlayer.player_name = playerName;
                                             aPlayer.player_guid = playerGUID;
                                             aPlayer.player_ip = playerIP;
+                                            aPlayer.LastUsage = UtcDbTime();
                                         }
                                         else {
                                             aPlayer = new AdKatsPlayer(this) {
@@ -29385,7 +29414,8 @@ namespace PRoConEvents {
                                                 player_clanTag = clanTag,
                                                 player_name = playerName,
                                                 player_guid = playerGUID,
-                                                player_ip = playerIP
+                                                player_ip = playerIP,
+                                                LastUsage = UtcDbTime()
                                             };
                                             aUser.soldierDictionary.Add(playerID, aPlayer);
                                         }
@@ -30532,6 +30562,7 @@ namespace PRoConEvents {
                 record.record_message = recordMessage;
 
                 _PlayerDictionary.TryGetValue(record.source_name, out record.source_player);
+                record.source_player.LastUsage = UtcDbTime();
                 if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player) && record.command_type.command_key.StartsWith("player_")) {
                     if (String.IsNullOrEmpty(target_guid)) {
                         ConsoleError("Target player '" + record.GetTargetNames() + "' was not found in the server. And target_guid was not provided. Unable to process external command.");
@@ -30893,6 +30924,7 @@ namespace PRoConEvents {
                     aPlayer.loadout_spawnValid = loadoutSpawnValid;
                     aPlayer.loadout_items = loadoutItems;
                     aPlayer.loadout_deniedItems = loadoutDeniedItems;
+                    aPlayer.LastUsage = UtcDbTime();
                 }
             }
             catch (Exception e) {
@@ -33732,7 +33764,7 @@ namespace PRoConEvents {
             public String player_slot = null;
             public Double player_reputation = 0;
             public DateTime player_firstseen = DateTime.UtcNow;
-            public DateTime player_fetchTime = DateTime.UtcNow;
+            public DateTime LastUsage = DateTime.UtcNow;
             public AdKatsServer player_server = null;
             public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
             public Boolean player_spawnedOnce = false;
@@ -33771,7 +33803,7 @@ namespace PRoConEvents {
                 RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
                 player_pings = new Queue<KeyValuePair<Double, DateTime>>();
                 TargetedRecords = new List<AdKatsRecord>();
-                player_fetchTime = DateTime.UtcNow;
+                LastUsage = DateTime.UtcNow;
             }
 
             public String GetVerboseName() {
