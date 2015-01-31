@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.6.2
- * 30-JAN-2015
+ * Version 6.0.6.3
+ * 31-JAN-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.6.2</version_code>
+ * <version_code>6.0.6.3</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.6.2";
+        private const String PluginVersion = "6.0.6.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7210,6 +7210,7 @@ namespace PRoConEvents {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                                         server_id = _serverInfo.ServerID,
                                                         command_type = GetCommandByKey("self_assist"),
+                                                        command_action = GetCommandByKey("self_assist_unconfirmed"),
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "BaserapeMonitor",
@@ -7300,6 +7301,7 @@ namespace PRoConEvents {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
                                                         server_id = _serverInfo.ServerID,
                                                         command_type = GetCommandByKey("self_assist"),
+                                                        command_action = GetCommandByKey("self_assist_unconfirmed"),
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "BaserapeMonitor",
@@ -7391,6 +7393,7 @@ namespace PRoConEvents {
                                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                                 server_id = _serverInfo.ServerID,
                                                                 command_type = GetCommandByKey("self_assist"),
+                                                                command_action = GetCommandByKey("self_assist_unconfirmed"),
                                                                 target_name = aPlayer.player_name,
                                                                 target_player = aPlayer,
                                                                 source_name = "BaserapeMonitor",
@@ -7479,6 +7482,7 @@ namespace PRoConEvents {
                                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                                 server_id = _serverInfo.ServerID,
                                                                 command_type = GetCommandByKey("self_assist"),
+                                                                command_action = GetCommandByKey("self_assist_unconfirmed"),
                                                                 target_name = aPlayer.player_name,
                                                                 target_player = aPlayer,
                                                                 source_name = "BaserapeMonitor",
@@ -10567,13 +10571,22 @@ namespace PRoConEvents {
                                             DebugWrite("MULTIBalancer Unswitcher Disabled", 3);
                                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                             _MULTIBalancerUnswitcherDisabled = true;
+                                            PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamName + " to team " + team1.TeamName);
+                                            if (dicPlayer != null && team1.TeamTicketCount <= team2.TeamTicketCount) {
+                                                AdKatsRecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => 
+                                                    record.command_type.command_key == "self_assist" && 
+                                                    record.command_action.command_key == "self_assist_unconfirmed");
+                                                if (assistRecord != null) {
+                                                    assistRecord.command_action = GetCommandByKey("self_assist");
+                                                    QueueRecordForProcessing(assistRecord);
+                                                }
+                                            }
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "1", "1", "true");
                                             dicPlayer.RequiredTeam = _teamDictionary[1];
                                             _LastPlayerMoveIssued = UtcDbTime();
                                             team1.TeamPlayerCount++;
                                             team2.TeamPlayerCount--;
                                         }
-                                        PlayerSayMessage(player.SoldierName, "Swapping you from team " + team2.TeamName + " to team " + team1.TeamName);
                                         movedPlayer = true;
                                         _threadMasterWaitHandle.WaitOne(100);
                                     }
@@ -10596,13 +10609,24 @@ namespace PRoConEvents {
                                             DebugWrite("MULTIBalancer Unswitcher Disabled", 3);
                                             ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "True");
                                             _MULTIBalancerUnswitcherDisabled = true;
+                                            PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamName + " to team " + team2.TeamName);
+                                            if (dicPlayer != null && team2.TeamTicketCount <= team1.TeamTicketCount)
+                                            {
+                                                AdKatsRecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record =>
+                                                    record.command_type.command_key == "self_assist" &&
+                                                    record.command_action.command_key == "self_assist_unconfirmed");
+                                                if (assistRecord != null)
+                                                {
+                                                    assistRecord.command_action = GetCommandByKey("self_assist");
+                                                    QueueRecordForProcessing(assistRecord);
+                                                }
+                                            }
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "2", "1", "true");
                                             dicPlayer.RequiredTeam = _teamDictionary[2];
                                             _LastPlayerMoveIssued = UtcDbTime();
                                             team2.TeamPlayerCount++;
                                             team1.TeamPlayerCount--;
                                         }
-                                        PlayerSayMessage(player.SoldierName, "Swapping you from team " + team1.TeamName + " to team " + team2.TeamName);
                                         movedPlayer = true;
                                     }
                                 }
@@ -11759,6 +11783,9 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
+
+                        //Assist is currently unconfirmed
+                        record.command_action = GetCommandByKey("self_assist_unconfirmed");
 
                         QueueRecordForProcessing(record);
                     }
@@ -17241,6 +17268,7 @@ namespace PRoConEvents {
                         ForceMoveTarget(record);
                         break;
                     case "self_assist":
+                    case "self_assist_unconfirmed":
                         AssistWeakTeam(record);
                         break;
                     case "self_kill":
@@ -26814,7 +26842,11 @@ namespace PRoConEvents {
                         WHERE
 	                        `baserape_count` >= @baserapes_minimum
                         AND
-	                        `win_count`/REPLACE(`loss_count`, 0, 1) > 1.0
+                        (
+	                        `win_count`/REPLACE(`loss_count`, 0, 1) > @winlossratio_minimum
+	                        OR
+	                        `baserape_count`/REPLACE(`round_count`, 0, 1) > @baseraperoundratio_minimum
+                        )
                         ORDER BY
 	                        `InnerResults`.`server` ASC, 
 	                        `baserape_count` DESC, 
@@ -26822,6 +26854,8 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@duration_minutes", (Int32)duration.TotalMinutes);
                         command.Parameters.AddWithValue("@baserapes_minimum", minBaserapes);
+                        command.Parameters.AddWithValue("@winlossratio_minimum", 1.5);
+                        command.Parameters.AddWithValue("@baseraperoundratio_minimum", 0.10);
                         //Attempt to execute the query
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
@@ -28765,6 +28799,11 @@ namespace PRoConEvents {
                                 if (!_CommandIDDictionary.ContainsKey(107))
                                 {
                                     SendNonQuery("Adding command 107", "REPLACE INTO `adkats_commands` VALUES(107, 'Active', 'player_whitelistteamkill_remove', 'Log', 'Remove TeamKillTracker Whitelist', 'untkwhitelist', TRUE, 'Any')", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(108))
+                                {
+                                    SendNonQuery("Adding command 108", "REPLACE INTO `adkats_commands` VALUES(108, 'Invisible', 'self_assist_unconfirmed', 'Log', 'Unconfirmed Assist', 'uassist', FALSE, 'Any')", true);
                                     changed = true;
                                 }
                                 if (changed) {
