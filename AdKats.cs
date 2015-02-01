@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.6.3
- * 31-JAN-2015
+ * Version 6.0.6.4
+ * 1-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.6.3</version_code>
+ * <version_code>6.0.6.4</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.6.3";
+        private const String PluginVersion = "6.0.6.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -14467,7 +14467,7 @@ namespace PRoConEvents {
                                 return;
                             }
 
-                            if (_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
+                            if (record.source_player != null && _baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
                             {
                                 SendMessageToSource(record, "You are under monitoring for baserape, you may not use " + record.command_type.command_name + " at this time.");
                                 FinalizeRecord(record);
@@ -14515,7 +14515,7 @@ namespace PRoConEvents {
                                 return;
                             }
 
-                            if (_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
+                            if (record.source_player != null && _baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.source_player.player_id))
                             {
                                 SendMessageToSource(record, "You are under monitoring for baserape, you may not use " + record.command_type.command_name + " at this time.");
                                 FinalizeRecord(record);
