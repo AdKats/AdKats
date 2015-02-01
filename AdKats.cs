@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.6.4
+ * Version 6.0.6.5
  * 1-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.6.4</version_code>
+ * <version_code>6.0.6.5</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.6.4";
+        private const String PluginVersion = "6.0.6.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6659,7 +6659,8 @@ namespace PRoConEvents {
                                 record_message = _pingEnforcerMessagePrefix + " " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]"))
                             };
                             QueueRecordForProcessing(record);
-                            OnlineAdminSayMessage((++_pingKicksThisRound) + " players kicked for ping during this round. " + Math.Round(++_pingKicksTotal / (UtcDbTime() - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
+                            OnlineAdminSayMessage((++_pingKicksThisRound) + " kicks for ping this round. " + Math.Round(++_pingKicksTotal / (UtcDbTime() - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
+                            AdminSayMessage(record.GetTargetNames() + " KICKED for exceeding ping limit. " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]")));
                         }
 
                         //Update last successful player list time
@@ -17877,7 +17878,7 @@ namespace PRoConEvents {
                 }
                 else {
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_player.player_name, kickReason);
-                    if (record.target_name != record.source_name && record.source_name != "AFKManager") {
+                    if (record.target_name != record.source_name && record.source_name != "AFKManager" && record.source_name != "PingEnforcer") {
                         AdminSayMessage(record.GetTargetNames() + " was KICKED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                     }
                     if (record.target_player.frostbitePlayerInfo != null) {
