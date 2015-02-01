@@ -19967,7 +19967,7 @@ namespace PRoConEvents {
                     _RoundReports.Add(reportID + "", record);
                 }
                 record.record_action_executed = true;
-                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled))
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation <= 0)
                 {
                     ConsoleInfo("Running loadout case for report record " + reportID);
                     if (!record.isLoadoutChecked)
