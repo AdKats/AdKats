@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.6.5
+ * Version 6.0.6.6
  * 1-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.6.5</version_code>
+ * <version_code>6.0.6.6</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.6.5";
+        private const String PluginVersion = "6.0.6.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6659,7 +6659,7 @@ namespace PRoConEvents {
                                 record_message = _pingEnforcerMessagePrefix + " " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]"))
                             };
                             QueueRecordForProcessing(record);
-                            OnlineAdminSayMessage((++_pingKicksThisRound) + " kicks for ping this round. " + Math.Round(++_pingKicksTotal / (UtcDbTime() - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
+                            OnlineAdminSayMessage((++_pingKicksThisRound) + " ping kicks this round. " + Math.Round(++_pingKicksTotal / (UtcDbTime() - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
                             AdminSayMessage(record.GetTargetNames() + " KICKED for exceeding ping limit. " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]")));
                         }
 
@@ -19967,7 +19967,7 @@ namespace PRoConEvents {
                     _RoundReports.Add(reportID + "", record);
                 }
                 record.record_action_executed = true;
-                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled))
                 {
                     ConsoleInfo("Running loadout case for report record " + reportID);
                     if (!record.isLoadoutChecked)
@@ -19988,7 +19988,7 @@ namespace PRoConEvents {
                         }
                         return;
                     }
-                    if (record.targetLoadoutActed)
+                    if (record.targetLoadoutActed && record.target_player.player_reputation < 0)
                     {
                         SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
@@ -26833,9 +26833,9 @@ namespace PRoConEvents {
 	                        `baserape_count` >= @baserapes_minimum
                         AND
                         (
-	                        `win_count`/REPLACE(`loss_count`, 0, 1) > @winlossratio_minimum
+	                        `win_count`/REPLACE(`loss_count`, 0, 1) >= @winlossratio_minimum
 	                        OR
-	                        `baserape_count`/REPLACE(`round_count`, 0, 1) > @baseraperoundratio_minimum
+	                        `baserape_count`/REPLACE(`round_count`, 0, 1) >= @baseraperoundratio_minimum
                         )
                         ORDER BY
 	                        `InnerResults`.`server` ASC, 
@@ -26844,7 +26844,7 @@ namespace PRoConEvents {
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@duration_minutes", (Int32)duration.TotalMinutes);
                         command.Parameters.AddWithValue("@baserapes_minimum", minBaserapes);
-                        command.Parameters.AddWithValue("@winlossratio_minimum", 1.5);
+                        command.Parameters.AddWithValue("@winlossratio_minimum", 1.25);
                         command.Parameters.AddWithValue("@baseraperoundratio_minimum", 0.10);
                         //Attempt to execute the query
                         using (MySqlDataReader reader = SafeExecuteReader(command))
