@@ -355,6 +355,11 @@
     "source_weight": 0.0
   },
   {
+    "command_typeaction": "51|108",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
     "command_typeaction": "52|52",
     "target_weight": -50,
     "source_weight": 5
@@ -631,6 +636,11 @@
   },
   {
     "command_typeaction": "107|107",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "108|108",
     "target_weight": 0,
     "source_weight": 0
   }
