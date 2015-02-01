@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.6.6
+ * Version 6.0.6.7
  * 1-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.6.6</version_code>
+ * <version_code>6.0.6.7</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.6.6";
+        private const String PluginVersion = "6.0.6.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -30595,13 +30595,20 @@ namespace PRoConEvents {
                 record.record_message = recordMessage;
 
                 _PlayerDictionary.TryGetValue(record.source_name, out record.source_player);
-                record.source_player.LastUsage = UtcDbTime();
+                if (record.source_player != null)
+                {
+                    record.source_player.LastUsage = UtcDbTime();
+                }
                 if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player) && record.command_type.command_key.StartsWith("player_")) {
                     if (String.IsNullOrEmpty(target_guid)) {
                         ConsoleError("Target player '" + record.GetTargetNames() + "' was not found in the server. And target_guid was not provided. Unable to process external command.");
                         return;
                     }
                     record.target_player = FetchPlayer(true, false, false, null, -1, record.target_name, target_guid, null);
+                }
+                if (record.target_player != null) 
+                {
+                    record.target_player.LastUsage = UtcDbTime();
                 }
                 QueueRecordForProcessing(record);
             }
