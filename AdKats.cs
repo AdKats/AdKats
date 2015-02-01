@@ -19988,7 +19988,7 @@ namespace PRoConEvents {
                         }
                         return;
                     }
-                    if (record.targetLoadoutActed && record.target_player.player_reputation < 0)
+                    if (record.targetLoadoutActed)
                     {
                         SendMessageToSource(record, "Your report [" + reportID + "] has been acted on. Thank you.");
                         OnlineAdminSayMessage("Report " + reportID + " is being acted on by Loadout Enforcer.");
