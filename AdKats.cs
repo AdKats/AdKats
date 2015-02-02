@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.6.9
- * 1-FEB-2015
+ * Version 6.0.7.0
+ * 2-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.6.9</version_code>
+ * <version_code>6.0.7.0</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.6.9";
+        private const String PluginVersion = "6.0.7.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6041,8 +6041,7 @@ namespace PRoConEvents {
                                         }
                                         aPlayer.conversationPartner = null;
                                     }
-                                    if ((_roundState == RoundState.Loaded || (_roundState == RoundState.Playing && _serverInfo.GetRoundElapsedTime().TotalMinutes < 2)) &&
-                                        !PlayerIsAdmin(aPlayer)) 
+                                    if ((_roundState == RoundState.Loaded || (_roundState == RoundState.Playing && _serverInfo.GetRoundElapsedTime().TotalMinutes < 2)) && !PlayerIsAdmin(aPlayer)) 
                                     {
                                         _mapDetrimentIndex++;
                                     }
@@ -22550,7 +22549,6 @@ namespace PRoConEvents {
                     while (inboundCommandUpload.Count > 0)
                     {
                         AdKatsCommand command = inboundCommandUpload.Dequeue();
-
                         UploadCommand(command);
                     }
                     UpdateSettingPage();
@@ -28210,28 +28208,6 @@ namespace PRoConEvents {
                                             }
                                             break;
                                         case "player_mute":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                                {
-                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
-                                        case "player_move":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
-                                                {
-                                                    ConsoleWarn(currentCommand.command_name + " access must be 'GlobalVisible'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.GlobalVisible;
-                                                    changed = true;
-                                                }
-                                            }
-                                            break;
-                                        case "player_fmove":
                                             if (_isTestingAuthorized)
                                             {
                                                 if (currentCommand.command_access != AdKatsCommand.CommandAccess.GlobalVisible)
