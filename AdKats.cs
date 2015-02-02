@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.6.7
+ * Version 6.0.6.8
  * 1-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.6.7</version_code>
+ * <version_code>6.0.6.8</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.6.7";
+        private const String PluginVersion = "6.0.6.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6355,7 +6355,7 @@ namespace PRoConEvents {
                                             }
                                             else if (aPlayer.player_type == PlayerType.Spectator)
                                             {
-                                                OnlineAdminSayMessage(aPlayer.GetVerboseName() + " is now spectating the server.");
+                                                OnlineAdminSayMessage(((PlayerIsAdmin(aPlayer)) ? ("Admin ") : ("")) + aPlayer.GetVerboseName() + " is now spectating the server.");
                                             }
                                             //If populating, add player
                                             if (_populationPopulating && 
@@ -22479,207 +22479,277 @@ namespace PRoConEvents {
         }
 
         private void HandleSettingUploads() {
-            //Handle Inbound Setting Uploads
-            if (_SettingUploadQueue.Count > 0)
+            try
             {
-                if (_aliveThreads.Values.Any(aThread => aThread.Name == "SettingUploader"))
+                if (_SettingUploadQueue.Count > 0)
                 {
-                    return;
-                }
-                StartAndLogThread(new Thread(new ThreadStart(delegate
-                {
-                    Thread.CurrentThread.Name = "SettingUploader";
-                    Thread.Sleep(250);
-                    try
+                    if (_aliveThreads.Values.Any(aThread => aThread.Name == "SettingUploader"))
                     {
-                        DebugWrite("Preparing to lock inbound setting queue to get new settings", 7);
-                        Queue<CPluginVariable> inboundSettingUpload;
-                        lock (_SettingUploadQueue)
+                        return;
+                    }
+                    StartAndLogThread(new Thread(new ThreadStart(delegate
+                    {
+                        Thread.CurrentThread.Name = "SettingUploader";
+                        Thread.Sleep(250);
+                        try
                         {
-                            DebugWrite("Inbound settings found. Grabbing.", 6);
-                            //Grab all settings in the queue
-                            inboundSettingUpload = new Queue<CPluginVariable>(_SettingUploadQueue.ToArray());
-                            //Clear the queue for next run
-                            _SettingUploadQueue.Clear();
-                        }
-                        //Loop through all settings in order that they came in
-                        while (inboundSettingUpload.Count > 0)
-                        {
-                            if (!_pluginEnabled)
+                            DebugWrite("Preparing to lock inbound setting queue to get new settings", 7);
+                            Queue<CPluginVariable> inboundSettingUpload;
+                            lock (_SettingUploadQueue)
                             {
-                                break;
+                                DebugWrite("Inbound settings found. Grabbing.", 6);
+                                //Grab all settings in the queue
+                                inboundSettingUpload = new Queue<CPluginVariable>(_SettingUploadQueue.ToArray());
+                                //Clear the queue for next run
+                                _SettingUploadQueue.Clear();
                             }
-                            CPluginVariable setting = inboundSettingUpload.Dequeue();
+                            //Loop through all settings in order that they came in
+                            while (inboundSettingUpload.Count > 0)
+                            {
+                                if (!_pluginEnabled)
+                                {
+                                    break;
+                                }
+                                CPluginVariable setting = inboundSettingUpload.Dequeue();
 
-                            UploadSetting(setting);
+                                UploadSetting(setting);
+                            }
                         }
-                    }
-                    catch (Exception e) {
-                        HandleException(new AdKatsException("Error while uploading settings.", e));
-                    }
-                    LogThreadExit();
-                })));
+                        catch (Exception e)
+                        {
+                            HandleException(new AdKatsException("Error while uploading settings.", e));
+                        }
+                        LogThreadExit();
+                    })));
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while handling setting uploads."));
             }
         }
 
-        private void HandleCommandUploads() {
-            //Handle Inbound Command Uploads
-            if (_CommandUploadQueue.Count > 0) {
-                DebugWrite("Preparing to lock inbound command queue to get new commands", 7);
-                Queue<AdKatsCommand> inboundCommandUpload;
-                lock (_CommandUploadQueue) {
-                    DebugWrite("Inbound commands found. Grabbing.", 6);
-                    //Grab all commands in the queue
-                    inboundCommandUpload = new Queue<AdKatsCommand>(_CommandUploadQueue.ToArray());
-                    //Clear the queue for next run
-                    _CommandUploadQueue.Clear();
-                }
-                //Loop through all commands in order that they came in
-                while (inboundCommandUpload.Count > 0) {
-                    AdKatsCommand command = inboundCommandUpload.Dequeue();
+        private void HandleCommandUploads()
+        {
+            try
+            {
+                //Handle Inbound Command Uploads
+                if (_CommandUploadQueue.Count > 0)
+                {
+                    DebugWrite("Preparing to lock inbound command queue to get new commands", 7);
+                    Queue<AdKatsCommand> inboundCommandUpload;
+                    lock (_CommandUploadQueue)
+                    {
+                        DebugWrite("Inbound commands found. Grabbing.", 6);
+                        //Grab all commands in the queue
+                        inboundCommandUpload = new Queue<AdKatsCommand>(_CommandUploadQueue.ToArray());
+                        //Clear the queue for next run
+                        _CommandUploadQueue.Clear();
+                    }
+                    //Loop through all commands in order that they came in
+                    while (inboundCommandUpload.Count > 0)
+                    {
+                        AdKatsCommand command = inboundCommandUpload.Dequeue();
 
-                    UploadCommand(command);
+                        UploadCommand(command);
+                    }
+                    UpdateSettingPage();
                 }
-                UpdateSettingPage();
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while handling command uploads."));
             }
         }
 
         private void HandleStatisticUploads()
         {
-            if (_UnprocessedStatisticQueue.Count > 0)
+            try
             {
-                DebugWrite("Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: 0", 4);
-                DebugWrite("Preparing to lock inbound statistic queue to retrive new records", 7);
-                Queue<AdKatsStatistic> inboundStats;
-                lock (_UnprocessedStatisticQueue)
+                if (_UnprocessedStatisticQueue.Count > 0)
                 {
-                    DebugWrite("Inbound statistics found. Grabbing.", 6);
-                    //Grab all statistics in the queue
-                    inboundStats = new Queue<AdKatsStatistic>(_UnprocessedStatisticQueue.ToArray());
-                    //Clear the queue for next run
-                    _UnprocessedStatisticQueue.Clear();
-                }
-                //Loop through all statistics in order that they came in
-                while (inboundStats.Count > 0)
-                {
-                    if (!_pluginEnabled)
+                    DebugWrite("Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: 0", 4);
+                    DebugWrite("Preparing to lock inbound statistic queue to retrive new records", 7);
+                    Queue<AdKatsStatistic> inboundStats;
+                    lock (_UnprocessedStatisticQueue)
                     {
-                        break;
+                        DebugWrite("Inbound statistics found. Grabbing.", 6);
+                        //Grab all statistics in the queue
+                        inboundStats = new Queue<AdKatsStatistic>(_UnprocessedStatisticQueue.ToArray());
+                        //Clear the queue for next run
+                        _UnprocessedStatisticQueue.Clear();
                     }
-                    DebugWrite("Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: " + inboundStats.Count, 4);
-                    //Pull the next statistic
-                    AdKatsStatistic aStat = inboundStats.Dequeue();
-                    //Upload the statistic
-                    UploadStatistic(aStat);
+                    //Loop through all statistics in order that they came in
+                    while (inboundStats.Count > 0)
+                    {
+                        if (!_pluginEnabled)
+                        {
+                            break;
+                        }
+                        DebugWrite("Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: " + inboundStats.Count, 4);
+                        //Pull the next statistic
+                        AdKatsStatistic aStat = inboundStats.Dequeue();
+                        //Upload the statistic
+                        UploadStatistic(aStat);
+                    }
                 }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while handling statistic uploads."));
             }
         }
 
-        private void HandleRoleUploads() {
-            //Handle Inbound Role Uploads
-            if (_RoleUploadQueue.Count > 0) {
-                DebugWrite("Preparing to lock inbound role queue to get new roles", 7);
-                Queue<AdKatsRole> inboundRoleUpload;
-                lock (_RoleUploadQueue) {
-                    DebugWrite("Inbound roles found. Grabbing.", 6);
-                    //Grab all roles in the queue
-                    inboundRoleUpload = new Queue<AdKatsRole>(_RoleUploadQueue.ToArray());
-                    //Clear the queue for next run
-                    _RoleUploadQueue.Clear();
-                }
-                //Loop through all roles in order that they came in
-                while (inboundRoleUpload.Count > 0) {
-                    AdKatsRole aRole = inboundRoleUpload.Dequeue();
-                    UploadRole(aRole);
-                    lock (_RoleIDDictionary) {
-                        if (_RoleIDDictionary.ContainsKey(aRole.role_id)) {
-                            _RoleIDDictionary[aRole.role_id] = aRole;
-                        }
-                        else {
-                            _RoleIDDictionary.Add(aRole.role_id, aRole);
-                        }
-                        if (_RoleKeyDictionary.ContainsKey(aRole.role_key)) {
-                            _RoleKeyDictionary[aRole.role_key] = aRole;
-                        }
-                        else {
-                            _RoleKeyDictionary.Add(aRole.role_key, aRole);
-                        }
-                        if (_RoleNameDictionary.ContainsKey(aRole.role_name)) {
-                            _RoleNameDictionary[aRole.role_name] = aRole;
-                        }
-                        else {
-                            _RoleNameDictionary.Add(aRole.role_name, aRole);
+        private void HandleRoleUploads()
+        {
+            try
+            {
+                if (_RoleUploadQueue.Count > 0)
+                {
+                    DebugWrite("Preparing to lock inbound role queue to get new roles", 7);
+                    Queue<AdKatsRole> inboundRoleUpload;
+                    lock (_RoleUploadQueue)
+                    {
+                        DebugWrite("Inbound roles found. Grabbing.", 6);
+                        //Grab all roles in the queue
+                        inboundRoleUpload = new Queue<AdKatsRole>(_RoleUploadQueue.ToArray());
+                        //Clear the queue for next run
+                        _RoleUploadQueue.Clear();
+                    }
+                    //Loop through all roles in order that they came in
+                    while (inboundRoleUpload.Count > 0)
+                    {
+                        AdKatsRole aRole = inboundRoleUpload.Dequeue();
+                        UploadRole(aRole);
+                        lock (_RoleIDDictionary)
+                        {
+                            if (_RoleIDDictionary.ContainsKey(aRole.role_id))
+                            {
+                                _RoleIDDictionary[aRole.role_id] = aRole;
+                            }
+                            else
+                            {
+                                _RoleIDDictionary.Add(aRole.role_id, aRole);
+                            }
+                            if (_RoleKeyDictionary.ContainsKey(aRole.role_key))
+                            {
+                                _RoleKeyDictionary[aRole.role_key] = aRole;
+                            }
+                            else
+                            {
+                                _RoleKeyDictionary.Add(aRole.role_key, aRole);
+                            }
+                            if (_RoleNameDictionary.ContainsKey(aRole.role_name))
+                            {
+                                _RoleNameDictionary[aRole.role_name] = aRole;
+                            }
+                            else
+                            {
+                                _RoleNameDictionary.Add(aRole.role_name, aRole);
+                            }
                         }
                     }
+                    UpdateSettingPage();
                 }
-                UpdateSettingPage();
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while handling role uploads."));
             }
         }
 
-        private void HandleRoleRemovals() {
-            //Handle Inbound Role Removal
-            if (_RoleRemovalQueue.Count > 0) {
-                DebugWrite("Preparing to lock removal role queue to get new roles", 7);
-                Queue<AdKatsRole> inboundRoleRemoval;
-                lock (_RoleRemovalQueue) {
-                    DebugWrite("Inbound roles found. Grabbing.", 6);
-                    //Grab all roles in the queue
-                    inboundRoleRemoval = new Queue<AdKatsRole>(_RoleRemovalQueue.ToArray());
-                    //Clear the queue for next run
-                    _RoleRemovalQueue.Clear();
-                }
-                //Loop through all commands in order that they came in
-                while (inboundRoleRemoval.Count > 0) {
-                    AdKatsRole aRole = inboundRoleRemoval.Dequeue();
-                    RemoveRole(aRole);
-                    lock (_RoleIDDictionary) {
-                        if (_RoleIDDictionary.ContainsKey(aRole.role_id)) {
-                            _RoleIDDictionary.Remove(aRole.role_id);
-                        }
-                        if (_RoleKeyDictionary.ContainsKey(aRole.role_key)) {
-                            _RoleKeyDictionary.Remove(aRole.role_key);
-                        }
-                        if (_RoleNameDictionary.ContainsKey(aRole.role_name)) {
-                            _RoleNameDictionary.Remove(aRole.role_name);
+        private void HandleRoleRemovals()
+        {
+            try
+            {
+                if (_RoleRemovalQueue.Count > 0)
+                {
+                    DebugWrite("Preparing to lock removal role queue to get new roles", 7);
+                    Queue<AdKatsRole> inboundRoleRemoval;
+                    lock (_RoleRemovalQueue)
+                    {
+                        DebugWrite("Inbound roles found. Grabbing.", 6);
+                        //Grab all roles in the queue
+                        inboundRoleRemoval = new Queue<AdKatsRole>(_RoleRemovalQueue.ToArray());
+                        //Clear the queue for next run
+                        _RoleRemovalQueue.Clear();
+                    }
+                    //Loop through all commands in order that they came in
+                    while (inboundRoleRemoval.Count > 0)
+                    {
+                        AdKatsRole aRole = inboundRoleRemoval.Dequeue();
+                        RemoveRole(aRole);
+                        lock (_RoleIDDictionary)
+                        {
+                            if (_RoleIDDictionary.ContainsKey(aRole.role_id))
+                            {
+                                _RoleIDDictionary.Remove(aRole.role_id);
+                            }
+                            if (_RoleKeyDictionary.ContainsKey(aRole.role_key))
+                            {
+                                _RoleKeyDictionary.Remove(aRole.role_key);
+                            }
+                            if (_RoleNameDictionary.ContainsKey(aRole.role_name))
+                            {
+                                _RoleNameDictionary.Remove(aRole.role_name);
+                            }
                         }
                     }
+                    UpdateSettingPage();
                 }
-                UpdateSettingPage();
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while handling role removals."));
             }
         }
 
-        private void HandleUserChanges() {
-            //Handle access updates
-            if (_UserUploadQueue.Count > 0 || _UserRemovalQueue.Count > 0) {
-                DebugWrite("Inbound access changes found. Grabbing.", 6);
-                Queue<AdKatsUser> inboundUserUploads;
-                lock (_UserUploadQueue) {
-                    inboundUserUploads = new Queue<AdKatsUser>(_UserUploadQueue.ToArray());
-                    _UserUploadQueue.Clear();
+        private void HandleUserChanges()
+        {
+            try
+            {
+                if (_UserUploadQueue.Count > 0 || _UserRemovalQueue.Count > 0)
+                {
+                    DebugWrite("Inbound access changes found. Grabbing.", 6);
+                    Queue<AdKatsUser> inboundUserUploads;
+                    lock (_UserUploadQueue)
+                    {
+                        inboundUserUploads = new Queue<AdKatsUser>(_UserUploadQueue.ToArray());
+                        _UserUploadQueue.Clear();
+                    }
+                    Queue<AdKatsUser> inboundUserRemoval;
+                    lock (_UserRemovalQueue)
+                    {
+                        inboundUserRemoval = new Queue<AdKatsUser>(_UserRemovalQueue.ToArray());
+                        _UserRemovalQueue.Clear();
+                    }
+                    //Loop through all records in order that they came in
+                    while (inboundUserUploads.Count > 0)
+                    {
+                        AdKatsUser user = inboundUserUploads.Dequeue();
+                        UploadUser(user);
+                    }
+                    //Loop through all records in order that they came in
+                    while (inboundUserRemoval.Count > 0)
+                    {
+                        AdKatsUser user = inboundUserRemoval.Dequeue();
+                        ConsoleInfo("Removing user " + user.user_name);
+                        RemoveUser(user);
+                    }
+                    FetchAllAccess(true);
                 }
-                Queue<AdKatsUser> inboundUserRemoval;
-                lock (_UserRemovalQueue) {
-                    inboundUserRemoval = new Queue<AdKatsUser>(_UserRemovalQueue.ToArray());
-                    _UserRemovalQueue.Clear();
+                else if (UtcDbTime() > _lastUserFetch.AddSeconds(DbUserFetchFrequency) || !_firstUserListComplete)
+                {
+                    FetchAllAccess(true);
                 }
-                //Loop through all records in order that they came in
-                while (inboundUserUploads.Count > 0) {
-                    AdKatsUser user = inboundUserUploads.Dequeue();
-                    UploadUser(user);
+                else
+                {
+                    DebugWrite("No inbound user changes.", 7);
                 }
-                //Loop through all records in order that they came in
-                while (inboundUserRemoval.Count > 0) {
-                    AdKatsUser user = inboundUserRemoval.Dequeue();
-                    ConsoleInfo("Removing user " + user.user_name);
-                    RemoveUser(user);
-                }
-                FetchAllAccess(true);
             }
-            else if (UtcDbTime() > _lastUserFetch.AddSeconds(DbUserFetchFrequency) || !_firstUserListComplete) {
-                FetchAllAccess(true);
-            }
-            else {
-                DebugWrite("No inbound user changes.", 7);
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while handling user changes."));
             }
         }
 
