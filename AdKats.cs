@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.6.8
+ * Version 6.0.6.9
  * 1-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.6.8</version_code>
+ * <version_code>6.0.6.9</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.6.8";
+        private const String PluginVersion = "6.0.6.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -26901,6 +26901,8 @@ namespace PRoConEvents {
                         ) AS `InnerResults`
                         WHERE
 	                        `baserape_count` >= @baserapes_minimum
+                        AND
+	                        `win_count`/REPLACE(`loss_count`, 0, 1) >= 1.0
                         AND
                         (
 	                        `win_count`/REPLACE(`loss_count`, 0, 1) >= @winlossratio_minimum
