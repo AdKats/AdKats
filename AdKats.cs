@@ -10053,7 +10053,6 @@ namespace PRoConEvents {
                         .Select(g => string.Join(" ", g.ToArray()));
                     foreach (var line in lines) 
                     {
-                        ConsoleInfo("Saying: '" + line + "'");
                         ExecuteCommand("procon.protected.send", "admin.say", line, "all");
                         _threadMasterWaitHandle.WaitOne(25);
                     }
