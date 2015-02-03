@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.7.2
+ * Version 6.0.7.3
  * 3-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.7.2</version_code>
+ * <version_code>6.0.7.3</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.7.2";
+        private const String PluginVersion = "6.0.7.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7224,7 +7224,7 @@ namespace PRoConEvents {
                                     {
                                         if (_surrenderAutoResetTriggerCountOnCancel)
                                         {
-                                            if (_surrenderAutoTriggerCountCurrent > 0)
+                                            if (_surrenderAutoTriggerCountCurrent > 0 && neededPlayers <= 10)
                                             {
                                                 OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
                                             }
@@ -7236,13 +7236,16 @@ namespace PRoConEvents {
                                             if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                             {
                                                 _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                if (_surrenderAutoTriggerCountCurrent < requiredTriggers)
+                                                if (neededPlayers <= 10)
                                                 {
-                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
-                                                }
-                                                else
-                                                {
-                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                    if (_surrenderAutoTriggerCountCurrent < requiredTriggers)
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                    }
+                                                    else
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                    }
                                                 }
                                             }
                                         }
@@ -7315,7 +7318,7 @@ namespace PRoConEvents {
                                     {
                                         if (_surrenderAutoResetTriggerCountOnCancel)
                                         {
-                                            if (_surrenderAutoTriggerCountCurrent > 0)
+                                            if (_surrenderAutoTriggerCountCurrent > 0 && neededPlayers <= 10)
                                             {
                                                 OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
                                             }
@@ -7327,13 +7330,16 @@ namespace PRoConEvents {
                                             if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                             {
                                                 _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                if (_surrenderAutoTriggerCountCurrent < requiredTriggers)
+                                                if (neededPlayers <= 10)
                                                 {
-                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
-                                                }
-                                                else
-                                                {
-                                                    OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                    if (_surrenderAutoTriggerCountCurrent < requiredTriggers)
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                    }
+                                                    else
+                                                    {
+                                                        OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                    }
                                                 }
                                             }
                                         }
@@ -7407,7 +7413,7 @@ namespace PRoConEvents {
                                             {
                                                 if (_surrenderAutoResetTriggerCountOnCancel)
                                                 {
-                                                    if (_surrenderAutoTriggerCountCurrent > 0)
+                                                    if (_surrenderAutoTriggerCountCurrent > 0 && neededPlayers <= 10)
                                                     {
                                                         OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
                                                     }
@@ -7419,13 +7425,16 @@ namespace PRoConEvents {
                                                     if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                                     {
                                                         _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                        if (_surrenderAutoTriggerCountCurrent < _surrenderAutoTriggerCountToSurrender)
+                                                        if (neededPlayers <= 10)
                                                         {
-                                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
-                                                        }
-                                                        else
-                                                        {
-                                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                            if (_surrenderAutoTriggerCountCurrent < _surrenderAutoTriggerCountToSurrender)
+                                                            {
+                                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                            }
+                                                            else
+                                                            {
+                                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -7496,7 +7505,7 @@ namespace PRoConEvents {
                                             {
                                                 if (_surrenderAutoResetTriggerCountOnCancel)
                                                 {
-                                                    if (_surrenderAutoTriggerCountCurrent > 0)
+                                                    if (_surrenderAutoTriggerCountCurrent > 0 && neededPlayers <= 10)
                                                     {
                                                         OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
                                                     }
@@ -7508,13 +7517,17 @@ namespace PRoConEvents {
                                                     if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                                     {
                                                         _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
-                                                        if (_surrenderAutoTriggerCountCurrent < _surrenderAutoTriggerCountToSurrender)
+                                                        if (neededPlayers <= 10)
                                                         {
-                                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
-                                                        }
-                                                        else
-                                                        {
-                                                            OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                            if (_surrenderAutoTriggerCountCurrent < _surrenderAutoTriggerCountToSurrender)
+                                                            {
+                                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused at " + completionPercentage + ".");
+                                                            }
+                                                            else
+                                                            {
+                                                                OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " paused.");
+                                                            }
+
                                                         }
                                                     }
                                                 }
@@ -7522,7 +7535,7 @@ namespace PRoConEvents {
                                         }
                                     }
                                     else {
-                                        if (_roundState == RoundState.Playing && _surrenderAutoTriggerCountCurrent > 0)
+                                        if (_roundState == RoundState.Playing && _surrenderAutoTriggerCountCurrent > 0 && neededPlayers <= 10)
                                         {
                                             OnlineAdminSayMessage("Auto-" + ((_surrenderAutoNukeWinning) ? ("nuke") : ("surrender")) + " cancelled.");
                                         }
@@ -10543,25 +10556,25 @@ namespace PRoConEvents {
                                     case 1:
                                         if (!ContainsCPlayerInfo(_Team1MoveQueue, player.SoldierName)) {
                                             _Team1MoveQueue.Enqueue(player);
-                                            PlayerSayMessage(player.SoldierName, "You have been added to the (" + team1.TeamName + " -> " + team2.TeamName + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1) + ".");
+                                            PlayerSayMessage(player.SoldierName, "Added to (" + team1.TeamKey + " -> " + team2.TeamKey + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1) + ".");
                                         }
                                         else {
-                                            PlayerSayMessage(player.SoldierName, team2.TeamName + " Team Full (" + team2.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1));
+                                            PlayerSayMessage(player.SoldierName, team2.TeamKey + " Team Full (" + team2.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team1MoveQueue, player.SoldierName) + 1));
                                         }
                                         break;
                                     case 2:
                                         if (!ContainsCPlayerInfo(_Team2MoveQueue, player.SoldierName)) {
                                             _Team2MoveQueue.Enqueue(player);
-                                            PlayerSayMessage(player.SoldierName, "You have been added to the (" + team2.TeamName + " -> " + team1.TeamName + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1) + ".");
+                                            PlayerSayMessage(player.SoldierName, "Added to (" + team2.TeamKey + " -> " + team1.TeamKey + ") TeamSwap queue in position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1) + ".");
                                         }
                                         else {
-                                            PlayerSayMessage(player.SoldierName, team1.TeamName + " Team Full (" + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1));
+                                            PlayerSayMessage(player.SoldierName, team1.TeamKey + " Team Full (" + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + "). You are in queue position " + (IndexOfCPlayerInfo(_Team2MoveQueue, player.SoldierName) + 1));
                                         }
                                         break;
                                 }
                             }
                         }
-                        DebugWrite("Team Info: " + team1.TeamName + ": " + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + " " + team2.TeamName + ": " + team2.TeamPlayerCount + "/" + maxTeamPlayerCount, 5);
+                        DebugWrite("Team Info: " + team1.TeamKey + ": " + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + " " + team2.TeamKey + ": " + team2.TeamPlayerCount + "/" + maxTeamPlayerCount, 5);
                         if (_Team2MoveQueue.Count > 0 || _Team1MoveQueue.Count > 0) {
                             //Perform player moving
                             do {
