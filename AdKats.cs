@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.7.1
- * 2-FEB-2015
+ * Version 6.0.7.2
+ * 3-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.7.1</version_code>
+ * <version_code>6.0.7.2</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.7.1";
+        private const String PluginVersion = "6.0.7.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -10043,9 +10043,20 @@ namespace PRoConEvents {
                 {
                     ProconChatWrite("Say > " + message);
                 }
-                var lineSplit = message.Split(new string[] { System.Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-                foreach (String line in lineSplit) {
-                    ExecuteCommand("procon.protected.send", "admin.say", line, "all");
+                var messageSplit = message.Split(new string[] { System.Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                var maxLineLength = 127;
+                foreach (String subMessage in messageSplit) 
+                {
+                    var charCount = 0;
+                    var lines = subMessage.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                        .GroupBy(w => (charCount += w.Length + 1) / maxLineLength)
+                        .Select(g => string.Join(" ", g));
+                    foreach (var line in lines) 
+                    {
+                        ConsoleInfo("Saying: '" + line + "'");
+                        ExecuteCommand("procon.protected.send", "admin.say", line, "all");
+                        _threadMasterWaitHandle.WaitOne(25);
+                    }
                 }
             }
             catch (Exception e)
@@ -10070,12 +10081,19 @@ namespace PRoConEvents {
                 {
                     ProconChatWrite("Say > " + target + " > " + message);
                 }
-                for (int count = 0; count < spamCount; count++) {
-                    var lineSplit = message.Split(new string[] { System.Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
-                    foreach (String line in lineSplit) {
+                var messageSplit = message.Split(new string[] { System.Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+                var maxLineLength = 127;
+                foreach (String subMessage in messageSplit)
+                {
+                    var charCount = 0;
+                    var lines = subMessage.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                        .GroupBy(w => (charCount += w.Length + 1) / maxLineLength)
+                        .Select(g => string.Join(" ", g));
+                    foreach (var line in lines)
+                    {
                         ExecuteCommand("procon.protected.send", "admin.say", line, "player", target); 
+                        _threadMasterWaitHandle.WaitOne(25);
                     }
-                    _threadMasterWaitHandle.WaitOne(50);
                 }
             }
             catch (Exception e) {
@@ -10547,12 +10565,10 @@ namespace PRoConEvents {
                         DebugWrite("Team Info: " + team1.TeamName + ": " + team1.TeamPlayerCount + "/" + maxTeamPlayerCount + " " + team2.TeamName + ": " + team2.TeamPlayerCount + "/" + maxTeamPlayerCount, 5);
                         if (_Team2MoveQueue.Count > 0 || _Team1MoveQueue.Count > 0) {
                             //Perform player moving
-                            Boolean movedPlayer;
                             do {
                                 if (!_pluginEnabled) {
                                     break;
                                 }
-                                movedPlayer = false;
                                 if (_Team2MoveQueue.Count > 0) {
                                     if (team1.TeamPlayerCount < maxTeamPlayerCount) {
                                         CPlayerInfo player = _Team2MoveQueue.Dequeue();
@@ -10587,7 +10603,6 @@ namespace PRoConEvents {
                                             team1.TeamPlayerCount++;
                                             team2.TeamPlayerCount--;
                                         }
-                                        movedPlayer = true;
                                         _threadMasterWaitHandle.WaitOne(100);
                                     }
                                 }
@@ -10627,7 +10642,6 @@ namespace PRoConEvents {
                                             team2.TeamPlayerCount++;
                                             team1.TeamPlayerCount--;
                                         }
-                                        movedPlayer = true;
                                     }
                                 }
                             } while (false);
@@ -21636,9 +21650,9 @@ namespace PRoConEvents {
                                     playerLoc += loc.regionName + ", ";
                                 }
                                 playerLoc += loc.country;
-                                IEnumerable<AdKatsRecord> locRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changeip").command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message != "No previous IP on record");
-                                if (locRecords.Count() > 0) {
-                                    playerLoc += " with " + locRecords.Count() + " IP changes.";
+                                List<AdKatsRecord> locRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changeip").command_id, 1000, 50, true, false).Where(aRecord => aRecord.record_message != "No previous IP on record").ToList();
+                                if (locRecords.Any()) {
+                                    playerLoc += " with " + locRecords.GroupBy(locRecord => locRecord.record_message).Select(group => group.First()).Count() + " different IPs.";
                                 }
                             }
                         }
@@ -21720,14 +21734,10 @@ namespace PRoConEvents {
                         _threadMasterWaitHandle.WaitOne(2000);
                         //Previous Names
                         String playerNames = "No previous names.";
-                        List<AdKatsRecord> nameRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changename").command_id, 1000, 50, true, false);
-                        if (nameRecords.Count > 0)
+                        List<AdKatsRecord> nameRecords = FetchRecentRecords(record.target_player.player_id, GetCommandByKey("player_changename").command_id, 1000, 50, true, false).GroupBy(nameRecord => nameRecord.record_message).Select(group => group.First()).ToList();
+                        if (nameRecords.Any())
                         {
-                            playerNames = record.target_name;
-                            foreach (AdKatsRecord nameRecord in nameRecords)
-                            {
-                                playerNames += ", " + nameRecord.record_message;
-                            }
+                            playerNames = nameRecords.Aggregate(record.target_name, (current, nameRecord) => current + (", " + nameRecord.record_message));
                         }
                         SendMessageToSource(record, "Previous names: " + playerNames);
                     }
