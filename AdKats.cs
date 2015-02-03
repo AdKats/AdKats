@@ -10050,7 +10050,7 @@ namespace PRoConEvents {
                     var charCount = 0;
                     var lines = subMessage.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
                         .GroupBy(w => (charCount += w.Length + 1) / maxLineLength)
-                        .Select(g => string.Join(" ", g));
+                        .Select(g => string.Join(" ", g.ToArray()));
                     foreach (var line in lines) 
                     {
                         ConsoleInfo("Saying: '" + line + "'");
@@ -10088,7 +10088,7 @@ namespace PRoConEvents {
                     var charCount = 0;
                     var lines = subMessage.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
                         .GroupBy(w => (charCount += w.Length + 1) / maxLineLength)
-                        .Select(g => string.Join(" ", g));
+                        .Select(g => string.Join(" ", g.ToArray()));
                     foreach (var line in lines)
                     {
                         ExecuteCommand("procon.protected.send", "admin.say", line, "player", target); 
