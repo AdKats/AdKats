@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.7.5
+ * Version 6.0.7.6
  * 5-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.7.5</version_code>
+ * <version_code>6.0.7.6</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.7.5";
+        private const String PluginVersion = "6.0.7.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -33134,8 +33134,7 @@ namespace PRoConEvents {
                                 {
                                     if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false)
                                     {
-                                        if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                            ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { pluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
+                                        ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { pluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
                                     }
                                 }
                                 if (_pluginUpdateCaller != null)
@@ -33267,7 +33266,7 @@ namespace PRoConEvents {
                                 {
                                     try
                                     {
-                                        externalPluginSource = client.DownloadString("https://raw.githubusercontent.com/ColColonCleaner/multi-balancer/master/MULTIbalancer.cs");
+                                        externalPluginSource = client.DownloadString("https://raw.githubusercontent.com/ColColonCleaner/multi-balancer/master/MULTIbalancer.cs").Substring(3);
                                     }
                                     catch (Exception e)
                                     {
@@ -33281,6 +33280,7 @@ namespace PRoConEvents {
                                         return;
                                     }
                                 }
+                                ConsoleInfo("Starting: " + externalPluginSource.Substring(0, 200));
                                 if (String.IsNullOrEmpty(externalPluginSource))
                                 {
                                     if (_pluginUpdateCaller != null)
@@ -33301,8 +33301,7 @@ namespace PRoConEvents {
                                     {
                                         if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false)
                                         {
-                                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                                ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { externalPluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
+                                            ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { externalPluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
                                         }
                                     }
                                     if (_pluginUpdateCaller != null)
@@ -33411,8 +33410,7 @@ namespace PRoConEvents {
                                     {
                                         if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false)
                                         {
-                                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
-                                                ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { extensionFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
+                                            ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { extensionFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
                                         }
                                     }
                                     if (_pluginUpdateCaller != null)
