@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.7.4
+ * Version 6.0.7.5
  * 5-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.7.4</version_code>
+ * <version_code>6.0.7.5</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.7.4";
+        private const String PluginVersion = "6.0.7.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -33257,6 +33257,117 @@ namespace PRoConEvents {
                             }
                             _pluginUpdateProgress = "Patched";
                             _pluginUpdatePatched = true;
+
+                            //Other plugins
+                            //1 - MULTIBalancer - With ColColonCleaner balance mods
+                            if (_isTestingAuthorized && _gameVersion == GameVersion.BF4)
+                            {
+                                String externalPluginSource;
+                                using (var client = new WebClient())
+                                {
+                                    try
+                                    {
+                                        externalPluginSource = client.DownloadString("https://raw.githubusercontent.com/ColColonCleaner/multi-balancer/master/MULTIbalancer.cs");
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        if (_pluginUpdateCaller != null)
+                                        {
+                                            SendMessageToSource(_pluginUpdateCaller, "Unable to install/update MULTIBalancer.");
+                                        }
+                                        ConsoleError("Unable to install/update MULTIBalancer.");
+                                        _pluginUpdateCaller = null;
+                                        LogThreadExit();
+                                        return;
+                                    }
+                                }
+                                if (String.IsNullOrEmpty(externalPluginSource))
+                                {
+                                    if (_pluginUpdateCaller != null)
+                                    {
+                                        SendMessageToSource(_pluginUpdateCaller, "Downloaded MULTIBalancer source was empty. Unable to install/update MULTIBalancer.");
+                                    }
+                                    ConsoleError("Downloaded MULTIBalancer source was empty. Unable to install/update MULTIBalancer.");
+                                    _pluginUpdateCaller = null;
+                                    LogThreadExit();
+                                    return;
+                                }
+                                String externalPluginFileName = "MULTIbalancer.cs";
+                                String externalPluginPath = Path.Combine(dllPath.Trim(new char[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }), externalPluginFileName);
+                                var externalPluginCompileResults = CompilePluginSource(externalPluginSource);
+                                if (externalPluginCompileResults.Errors.HasErrors)
+                                {
+                                    foreach (CompilerError errComp in externalPluginCompileResults.Errors)
+                                    {
+                                        if (String.Compare(errComp.ErrorNumber, "CS0016", StringComparison.Ordinal) != 0 && errComp.IsWarning == false)
+                                        {
+                                            if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
+                                                ConsoleError(String.Format("\t^1{0} (Line: {1}, C: {2}) {3}: {4}", new object[] { externalPluginFileName, errComp.Line, errComp.Column, errComp.ErrorNumber, errComp.ErrorText }));
+                                        }
+                                    }
+                                    if (_pluginUpdateCaller != null)
+                                    {
+                                        SendMessageToSource(_pluginUpdateCaller, "Updated MULTIBalancer source could not compile. Unable to install/update MULTIBalancer.");
+                                    }
+                                    ConsoleError("Updated MULTIBalancer source could not compile. Unable to install/update MULTIBalancer.");
+                                    _pluginUpdateCaller = null;
+                                    LogThreadExit();
+                                    return;
+                                }
+                                Int64 patchedPluginSizeKb = 0;
+                                Boolean externalPluginFileWriteFailed = false;
+                                Int32 externalPluginWriteAttempts = 0;
+                                do
+                                {
+                                    using (FileStream stream = File.Open(externalPluginPath, FileMode.Create))
+                                    {
+                                        if (!stream.CanWrite)
+                                        {
+                                            if (_pluginUpdateCaller != null)
+                                            {
+                                                SendMessageToSource(_pluginUpdateCaller, "Cannot write updates to MULTIBalancer source file. Unable to install/update MULTIBalancer.");
+                                            }
+                                            ConsoleError("Cannot write updates to MULTIBalancer source file. Unable to install/update MULTIBalancer.");
+                                            _pluginUpdateCaller = null;
+                                            LogThreadExit();
+                                            return;
+                                        }
+                                        Byte[] info = new UTF8Encoding(true).GetBytes(externalPluginSource);
+                                        stream.Write(info, 0, info.Length);
+                                    }
+                                    patchedPluginSizeKb = new FileInfo(externalPluginPath).Length / 1024;
+                                    //There is no way the valid plugin can be less than 1 Kb
+                                    if (patchedPluginSizeKb < 1)
+                                    {
+                                        if (_pluginUpdateCaller != null)
+                                        {
+                                            SendMessageToSource(_pluginUpdateCaller, "Write failure on MULTIBalancer update. Attempting write again.");
+                                        }
+                                        ConsoleError("Write failure on MULTIBalancer update. Attempting write again.");
+                                        externalPluginFileWriteFailed = true;
+                                    }
+                                    else
+                                    {
+                                        externalPluginFileWriteFailed = false;
+                                    }
+                                    if (++externalPluginWriteAttempts > 5)
+                                    {
+                                        if (_pluginUpdateCaller != null)
+                                        {
+                                            SendMessageToSource(_pluginUpdateCaller, "Constant failure to write MULTIBalancer update to file. Unable to install/update MULTIBalancer.");
+                                        }
+                                        ConsoleError("Constant failure to write MULTIBalancer update to file. Unable to install/update MULTIBalancer.");
+                                        _pluginUpdateCaller = null;
+                                        LogThreadExit();
+                                        return;
+                                    }
+                                } while (externalPluginFileWriteFailed);
+                                if (_pluginUpdateCaller != null)
+                                {
+                                    SendMessageToSource(_pluginUpdateCaller, "MULTIBalancer installed/updated. Plugin size " + patchedPluginSizeKb + "KB");
+                                }
+                                ConsoleSuccess("MULTIBalancer installed/updated. Plugin size " + patchedPluginSizeKb + "KB");
+                            }
 
                             //Extensions
                             //1 - AdKatsLRT - Private Extension - Token Required
