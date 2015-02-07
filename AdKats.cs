@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.7.6
- * 5-FEB-2015
+ * Version 6.0.7.7
+ * 7-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.7.6</version_code>
+ * <version_code>6.0.7.7</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.7.6";
+        private const String PluginVersion = "6.0.7.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -529,6 +529,7 @@ namespace PRoConEvents {
         private readonly Dictionary<String, AdKatsPlayer> _baserapeCausingPlayers = new Dictionary<String, AdKatsPlayer>();
         private Boolean _FeedBaserapeCausingPlayerDispersion = false;
         private Boolean _AutomaticAssistBaserapeCausingPlayers = false;
+        private Boolean _PlayersAutoAssistedThisRound = false;
         //Populators
         private Boolean _PopulatorMonitor = false;
         private Boolean _PopulatorUseSpecifiedPopulatorsOnly = false;
@@ -7166,7 +7167,12 @@ namespace PRoConEvents {
                                     losingTeam.TeamTicketCount > 100 &&
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0) {
-                                    Int32 requiredTriggers = ((_surrenderAutoNukeWinning || _surrenderAutoTriggerVote) ? (5) : (20)) - ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
+                                    //Set base required triggers
+                                    Int32 requiredTriggers = ((_surrenderAutoNukeWinning || _surrenderAutoTriggerVote) ? (5) : (20));
+                                    //Add modification based on ticket count
+                                    requiredTriggers -= ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
+                                    //Add modification based on automatic assist
+                                    requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < -40 && winningTeam.TeamAdjustedTicketDifferenceRate > -5)) 
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
@@ -7222,6 +7228,7 @@ namespace PRoConEvents {
                                                     OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
                                                     PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
                                                     Thread.Sleep(2000);
+                                                    _PlayersAutoAssistedThisRound = true;
                                                     QueueRecordForProcessing(new AdKatsRecord
                                                     {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -7295,7 +7302,12 @@ namespace PRoConEvents {
                                     winningTeam.TeamTicketDifferenceRate < 0 &&
                                     losingTeam.TeamTicketDifferenceRate < 0)
                                 {
-                                    Int32 requiredTriggers = ((_surrenderAutoNukeWinning || _surrenderAutoTriggerVote) ? (5) : (20)) - ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
+                                    //Set base required triggers
+                                    Int32 requiredTriggers = ((_surrenderAutoNukeWinning || _surrenderAutoTriggerVote) ? (5) : (20));
+                                    //Add modification based on ticket count
+                                    requiredTriggers -= ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
+                                    //Add modification based on automatic assist
+                                    requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
                                     if ((losingTeam.TeamAdjustedTicketDifferenceRate < -50 && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
@@ -7353,6 +7365,7 @@ namespace PRoConEvents {
                                                     OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
                                                     PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
                                                     Thread.Sleep(2000);
+                                                    _PlayersAutoAssistedThisRound = true;
                                                     QueueRecordForProcessing(new AdKatsRecord
                                                     {
                                                         record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -7432,7 +7445,7 @@ namespace PRoConEvents {
                                             {
                                                 _lastAutoSurrenderTriggerTime = UtcDbTime();
                                                 var resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
-                                                if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender)
+                                                if (++_surrenderAutoTriggerCountCurrent >= ((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender)))
                                                 {
                                                     if (neededPlayers <= 0)
                                                     {
@@ -7448,7 +7461,7 @@ namespace PRoConEvents {
                                                 {
                                                     if (neededPlayers <= 10)
                                                     {
-                                                        var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)_surrenderAutoTriggerCountToSurrender) * 100.0) + "%";
+                                                        var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender))) * 100.0) + "%";
                                                         if (resumed)
                                                         {
                                                             if (_surrenderAutoNukeWinning)
@@ -7485,6 +7498,7 @@ namespace PRoConEvents {
                                                             OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
                                                             PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
                                                             Thread.Sleep(2000);
+                                                            _PlayersAutoAssistedThisRound = true;
                                                             QueueRecordForProcessing(new AdKatsRecord
                                                             {
                                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -7519,13 +7533,13 @@ namespace PRoConEvents {
                                                 }
                                                 else
                                                 {
-                                                    var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)_surrenderAutoTriggerCountToSurrender) * 100.0) + "%";
+                                                    var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender))) * 100.0) + "%";
                                                     if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                                     {
                                                         _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
                                                         if (neededPlayers <= 10)
                                                         {
-                                                            if (_surrenderAutoTriggerCountCurrent < _surrenderAutoTriggerCountToSurrender)
+                                                            if (_surrenderAutoTriggerCountCurrent < ((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender)))
                                                             {
                                                                 if (_surrenderAutoNukeWinning)
                                                                 {
@@ -7561,7 +7575,7 @@ namespace PRoConEvents {
                                             {
                                                 _lastAutoSurrenderTriggerTime = UtcDbTime();
                                                 var resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
-                                                if (++_surrenderAutoTriggerCountCurrent >= _surrenderAutoTriggerCountToSurrender)
+                                                if (++_surrenderAutoTriggerCountCurrent >= ((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender)))
                                                 {
                                                     if (neededPlayers <= 0)
                                                     {
@@ -7577,7 +7591,7 @@ namespace PRoConEvents {
                                                 {
                                                     if (neededPlayers <= 10)
                                                     {
-                                                        var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)_surrenderAutoTriggerCountToSurrender) * 100.0) + "%";
+                                                        var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender))) * 100.0) + "%";
                                                         if (resumed)
                                                         {
                                                             if (_surrenderAutoNukeWinning)
@@ -7614,6 +7628,7 @@ namespace PRoConEvents {
                                                             OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
                                                             PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
                                                             Thread.Sleep(2000);
+                                                            _PlayersAutoAssistedThisRound = true;
                                                             QueueRecordForProcessing(new AdKatsRecord
                                                             {
                                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
@@ -7648,13 +7663,13 @@ namespace PRoConEvents {
                                                 }
                                                 else
                                                 {
-                                                    var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)_surrenderAutoTriggerCountToSurrender) * 100.0) + "%";
+                                                    var completionPercentage = Math.Round(((Double)_surrenderAutoTriggerCountCurrent / (Double)((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender))) * 100.0) + "%";
                                                     if (_surrenderAutoTriggerCountCurrent > 0 && _surrenderAutoTriggerCountCurrent != _surrenderAutoTriggerCountPause)
                                                     {
                                                         _surrenderAutoTriggerCountPause = _surrenderAutoTriggerCountCurrent;
                                                         if (neededPlayers <= 10)
                                                         {
-                                                            if (_surrenderAutoTriggerCountCurrent < _surrenderAutoTriggerCountToSurrender)
+                                                            if (_surrenderAutoTriggerCountCurrent < ((_PlayersAutoAssistedThisRound) ? (_surrenderAutoTriggerCountToSurrender * 2) : (_surrenderAutoTriggerCountToSurrender)))
                                                             {
                                                                 if (_surrenderAutoNukeWinning) 
                                                                 {
@@ -7926,9 +7941,9 @@ namespace PRoConEvents {
                         stat_time = UtcDbTime()
                     });
                 }
-                if (_surrenderAutoTriggerCountCurrent > 0)
+                if (_surrenderAutoTriggerCountCurrent > 0 && winningTeam.TeamTicketDifferenceRate > losingTeam.TeamTicketDifferenceRate)
                 {
-                    foreach (AdKatsPlayer aPlayer in WinningPlayers.Take((Int32)((Double)WinningPlayers.Count / 3.0)).ToList())
+                    foreach (AdKatsPlayer aPlayer in WinningPlayers.Take((Int32)((Double)WinningPlayers.Count / 3.5)).ToList())
                     {
                         QueueStatisticForProcessing(new AdKatsStatistic()
                         {
@@ -7971,6 +7986,7 @@ namespace PRoConEvents {
                     _surrenderAutoSucceeded = false;
                     _surrenderAutoTriggerCountCurrent = 0;
                     _surrenderAutoTriggerCountPause = 0;
+                    _PlayersAutoAssistedThisRound = false;
                     _RoundReports.Clear();
                     _RoundReportHistory.Clear();
                     _RoundMutedPlayers.Clear();
