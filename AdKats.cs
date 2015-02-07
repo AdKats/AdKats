@@ -8641,7 +8641,7 @@ namespace PRoConEvents {
                                 {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(15));
-                                    AdminTellMessage("Last take was unacceptable. This is re-take #" + _roundID + " of Operation Metro." + System.Environment.NewLine + "And...ACTION!");
+                                    AdminTellMessage("Welcome to retake #" + _roundID + " of Operation Metro. " + System.Environment.NewLine + "And...ACTION!");
                                     LogThreadExit();
                                 })));
                             }
@@ -8651,7 +8651,7 @@ namespace PRoConEvents {
                                 {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(15));
-                                    AdminTellMessage("Last take was unacceptable. This is re-take #" + _roundID + " of Operation Locker." + System.Environment.NewLine + "And...ACTION!");
+                                    AdminTellMessage("Welcome to retake #" + _roundID + " of Operation Locker. " + System.Environment.NewLine + "And...ACTION!");
                                     LogThreadExit();
                                 })));
                             }
