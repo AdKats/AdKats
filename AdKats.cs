@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.7.7
+ * Version 6.0.7.8
  * 7-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.7.7</version_code>
+ * <version_code>6.0.7.8</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.7.7";
+        private const String PluginVersion = "6.0.7.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -8634,6 +8634,28 @@ namespace PRoConEvents {
                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete) {
                     if (_roundState == RoundState.Loaded) {
                         _roundState = RoundState.Playing;
+                        if (_isTestingAuthorized && _roundID > 0) {
+                            if (_serverInfo.ServerName.Contains("#7"))
+                            {
+                                StartAndLogThread(new Thread(new ThreadStart(delegate
+                                {
+                                    Thread.CurrentThread.Name = "RoundWelcome";
+                                    Thread.Sleep(TimeSpan.FromSeconds(15));
+                                    AdminTellMessage("Last take was unacceptable. This is re-take #" + _roundID + " of Operation Metro." + System.Environment.NewLine + "And...ACTION!");
+                                    LogThreadExit();
+                                })));
+                            }
+                            else if (_serverInfo.ServerName.Contains("#6"))
+                            {
+                                StartAndLogThread(new Thread(new ThreadStart(delegate
+                                {
+                                    Thread.CurrentThread.Name = "RoundWelcome";
+                                    Thread.Sleep(TimeSpan.FromSeconds(15));
+                                    AdminTellMessage("Last take was unacceptable. This is re-take #" + _roundID + " of Operation Locker." + System.Environment.NewLine + "And...ACTION!");
+                                    LogThreadExit();
+                                })));
+                            }
+                        }
                         if (_useRoundTimer) {
                             StartRoundTimer();
                         }
@@ -10571,7 +10593,7 @@ namespace PRoConEvents {
                                     {
                                         if (!PlayerIsAdmin(aPlayer))
                                         {
-                                            PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 when over 50 players. Missing pings are kicked.");
+                                            PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 and missing pings are kicked when the server is full.");
                                             continue;
                                         }
                                     }
@@ -33296,7 +33318,6 @@ namespace PRoConEvents {
                                         return;
                                     }
                                 }
-                                ConsoleInfo("Starting: " + externalPluginSource.Substring(0, 200));
                                 if (String.IsNullOrEmpty(externalPluginSource))
                                 {
                                     if (_pluginUpdateCaller != null)
