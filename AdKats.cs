@@ -8641,7 +8641,7 @@ namespace PRoConEvents {
                                 {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(15));
-                                    AdminTellMessage("Welcome to retake #" + _roundID + " of Operation Metro. " + System.Environment.NewLine + "And...ACTION!");
+                                    AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro");
                                     LogThreadExit();
                                 })));
                             }
@@ -8651,7 +8651,7 @@ namespace PRoConEvents {
                                 {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(15));
-                                    AdminTellMessage("Welcome to retake #" + _roundID + " of Operation Locker. " + System.Environment.NewLine + "And...ACTION!");
+                                    AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Locker");
                                     LogThreadExit();
                                 })));
                             }
