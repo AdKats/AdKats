@@ -1,5 +1,5 @@
 {
-	"SQLUpdates":[
+	"SQLUpdates":[ 
 		{
 			"update_id":"command57adminfix",
 			"version_minimum":"6.0.0.0",
