@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.7.8
+ * Version 6.0.7.9
  * 7-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.7.8</version_code>
+ * <version_code>6.0.7.9</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.7.8";
+        private const String PluginVersion = "6.0.7.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4898,7 +4898,7 @@ namespace PRoConEvents {
                         InitWaitHandles();
                         OpenAllHandles();
                         InitThreads();
-                        StartThreads();
+                        StartThreads(); 
                     }
                     catch (Exception e) {
                         HandleException(new AdKatsException("Error while enabling AdKats.", e));
@@ -6338,6 +6338,20 @@ namespace PRoConEvents {
                                             default:
                                                 ConsoleError("Player type " + aPlayer.frostbitePlayerInfo.Type + " is not valid.");
                                                 break;
+                                        }
+                                        if (GetMatchingASPlayersOfGroup("blacklist_spectator", aPlayer).Any()) {
+                                            var record = new AdKatsRecord
+                                            {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_kick"),
+                                                command_numeric = 0,
+                                                target_name = aPlayer.player_name,
+                                                target_player = aPlayer,
+                                                source_name = "SpectatorManager",
+                                                record_message = "You may not spectate the server at this time."
+                                            };
+                                            QueueRecordForProcessing(record);
                                         }
                                         if (_firstPlayerListComplete)
                                         {
@@ -8994,8 +9008,11 @@ namespace PRoConEvents {
                             if (_PlayerDictionary.ContainsKey(aPlayer.player_name)) {
                                 List<AdKatsBan> aBanList = FetchPlayerBans(aPlayer);
                                 if (aBanList.Count > 0) {
+                                    if (_isTestingAuthorized) {
+                                        ConsoleWarn("Bans detected for " + aPlayer.player_name);
+                                    }
                                     foreach (AdKatsBan aBan in aBanList) {
-                                        if (aBan.ban_record.target_player.player_id == aPlayer.player_id || aBanList.Count <= 5)
+                                        if (aBan.ban_record.target_player.player_id == aPlayer.player_id || aBan.ban_record.target_player.player_ip == aPlayer.player_ip)
                                         {
                                             DebugWrite("BAN ENFORCED on " + aPlayer.GetVerboseName(), 3);
                                             //Create the new record
@@ -11451,6 +11468,24 @@ namespace PRoConEvents {
                             }
                             DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
+                        case "player_blacklistspectator":
+                            if (GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in the spectator blacklist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_blacklistspectator_remove":
+                            if (!GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in the spectator blacklist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            DebugWrite(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
                     }
                     //Conditional command replacement (single target only)
                     if (_isTestingAuthorized &&
@@ -13199,6 +13234,127 @@ namespace PRoConEvents {
                             }
 
                             String defaultReason = "Spambot Whitelist";
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                DebugWrite("Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    //time
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 2:
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    DebugWrite("target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    DebugWrite("" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_blacklistspectator":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            String defaultReason = "Spectator Blacklist";
 
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 3);
@@ -16013,6 +16169,42 @@ namespace PRoConEvents {
                             }
                         }
                         break;
+                    case "player_blacklistspectator_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Spectator Blacklist";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Spectator Blacklist";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "player_whitelistaa_remove":
                         {
                             //Remove previous commands awaiting confirmation
@@ -17644,6 +17836,12 @@ namespace PRoConEvents {
                     case "player_whitelistspambot_remove":
                         SpamBotWhitelistRemoveTarget(record);
                         break;
+                    case "player_blacklistspectator":
+                        SpectatorBlacklistTarget(record);
+                        break;
+                    case "player_blacklistspectator_remove":
+                        SpectatorBlacklistRemoveTarget(record);
+                        break;
                     case "player_whitelistreport_remove":
                         ReportWhitelistRemoveTarget(record);
                         break;
@@ -18096,11 +18294,11 @@ namespace PRoConEvents {
                 }
                 else {
                     ExecuteCommand("procon.protected.send", "admin.kickPlayer", record.target_player.player_name, kickReason);
-                    if (record.target_name != record.source_name && record.source_name != "AFKManager" && record.source_name != "PingEnforcer") {
+                    if (record.target_name != record.source_name && record.source_name != "AFKManager" && record.source_name != "PingEnforcer" && record.source_name != "SpectatorManager")
+                    {
                         AdminSayMessage(record.GetTargetNames() + " was KICKED by " + ((_ShowAdminNameInAnnouncement) ? (record.GetSourceName()) : ("admin")) + " for " + record.record_message);
                     }
                     if (record.target_player.frostbitePlayerInfo != null) {
-                        String teamLocation;
                         SendMessageToSource(record, "You KICKED " + record.GetTargetNames() + " from " + GetPlayerTeamName(record.target_player) + " for " + record.record_message);
                     }
                     else
@@ -19299,6 +19497,149 @@ namespace PRoConEvents {
                 FinalizeRecord(record);
             }
             DebugWrite("Exiting SpamBotWhitelistRemoveTarget", 6);
+        }
+
+        public void SpectatorBlacklistTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering SpectatorBlacklistTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "SpectatorBlacklistTarget not available for multiple targets.");
+                    ConsoleError("SpectatorBlacklistTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player);
+                if (matchingPlayers.Count > 0)
+                {
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the spectator blacklist.");
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'blacklist_spectator',
+	                        @player_id,
+	                        @player_name,
+	                        UTC_TIMESTAMP(),
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                        )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            ConsoleError("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 10518984)
+                        {
+                            record.command_numeric = 10518984;
+                        }
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
+
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0)
+                        {
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " spectator blacklist for all servers.";
+                            SendMessageToSource(record, message);
+                            DebugWrite(message, 3);
+                            FetchAllAccess(true);
+                        }
+                        else
+                        {
+                            ConsoleError("Unable to add player to spectator blacklist. Error uploading.");
+                        }
+                    }
+                }
+                //Fetch the special player cache
+                FetchAllAccess(true);
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for spectator blacklist record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SpectatorBlacklistTarget", 6);
+        }
+
+        public void SpectatorBlacklistRemoveTarget(AdKatsRecord record)
+        {
+            DebugWrite("Entering SpectatorBlacklistRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "SpectatorBlacklistRemoveTarget not available for multiple targets.");
+                    ConsoleError("SpectatorBlacklistRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_spectator", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the spectator blacklist for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from spectator blacklist.";
+                                DebugWrite(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                ConsoleError("Unable to remove player from spectator blacklist. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from spectator blacklist.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            DebugWrite("Exiting SpectatorBlacklistRemoveTarget", 6);
         }
 
         public void ReportWhitelistRemoveTarget(AdKatsRecord record)
@@ -27470,7 +27811,9 @@ namespace PRoConEvents {
 
                         //Assign the query
                         command.CommandText = query;
-
+                        if (_isTestingAuthorized) {
+                            PrintPreparedCommand(command);
+                        }
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
                             while (reader.Read())
@@ -29059,6 +29402,16 @@ namespace PRoConEvents {
                                     SendNonQuery("Adding command 108", "REPLACE INTO `adkats_commands` VALUES(108, 'Invisible', 'self_assist_unconfirmed', 'Log', 'Unconfirmed Assist', 'uassist', FALSE, 'Any')", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(109))
+                                {
+                                    SendNonQuery("Adding command 109", "REPLACE INTO `adkats_commands` VALUES(109, 'Active', 'player_blacklistspectator', 'Log', 'Spectator Blacklist Player', 'specblacklist', TRUE, 'Any')", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(110))
+                                {
+                                    SendNonQuery("Adding command 110", "REPLACE INTO `adkats_commands` VALUES(110, 'Active', 'player_blacklistspectator_remove', 'Log', 'Remove Spectator Blacklist', 'unspecblacklist', TRUE, 'Any')", true);
+                                    changed = true;
+                                }
                                 if (changed) {
                                     FetchCommands();
                                     return;
@@ -29163,7 +29516,7 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["self_reportlist"] = "Lists the latest unused round reports.";
             _CommandDescriptionDictionary["plugin_restart"] = "Reboots AdKats.";
             _CommandDescriptionDictionary["self_nosurrender"] = "Votes against ending the round with surrender.";
-            _CommandDescriptionDictionary["player_whitelistspambot"] = "Whitelists a player for SpamBot avoidance. They will not get any messages from the SpamBot.";
+            _CommandDescriptionDictionary["player_whitelistspambot"] = "Whitelists a player from seeing any messages from the SpamBot.";
             _CommandDescriptionDictionary["plugin_update"] = "Updates AdKats.";
             _CommandDescriptionDictionary["player_warn"] = "Warns a player. Requires a reason.";
             _CommandDescriptionDictionary["server_countdown"] = "Sends a visible countdown to all players in the given subset.";
@@ -29181,6 +29534,8 @@ namespace PRoConEvents {
             _CommandDescriptionDictionary["player_whitelistpopulator_remove"] = "Removes a player from the populator whitelist.";
             _CommandDescriptionDictionary["player_whitelistteamkill"] = "Whitelists a player from being acted on by TeamKillTracker.";
             _CommandDescriptionDictionary["player_whitelistteamkill_remove"] = "Removes a player from TeamKillTracker whitelist.";
+            _CommandDescriptionDictionary["player_blacklistspectator"] = "A player under spectator blacklist cannot join as a spectator.";
+            _CommandDescriptionDictionary["player_blacklistspectator_remove"] = "Removes a player from the spectator blacklist.";
         }
 
         private void UpdateCommandTimeouts() {
