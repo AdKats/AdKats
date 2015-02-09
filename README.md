@@ -1,12 +1,12 @@
 <script>
-    //<latest_stable_release>6.0.0.0</latest_stable_release>
+    //<latest_stable_release>6.5.0.0</latest_stable_release>
 </script>
 <p>
     <a name=adkats />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
 </p>
 <p>
-    <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b> 
+    <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b>
 </p>
 <p>
     <a href="https://forum.myrcon.com/showthread.php?9373-On-Spawn-Loadout-Enforcer-for-Infantry-Vehicles-AdKatsLRT-2-0-0-0" name=thread>
@@ -15,7 +15,7 @@
 </p>
 <h2>Overview</h2>
 <p>
-    Admin Toolset with a plethora of features, ~70 available in-game commands, and many customization options.
+    Admin Toolset with a plethora of features, ~90 available in-game commands, and many customization options.
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any
     setup.
     Includes a cross-server ban enforcer with advanced enforcement features, metabans support, global admin management,
@@ -25,7 +25,7 @@
 <ul>
     <li>
         <b>Extensive In-Game Commands.</b>
-        Commands for player killing, kicking, punishing, banning, unbanning, moving, joining, whitelisting, messaging, etc, etc... ~70 available in-game commands. Commands can be accessed from in-game, Procon's chat window, database, HTTP server, and from other plugins.
+        Commands for player killing, kicking, punishing, banning, unbanning, moving, joining, whitelisting, messaging, etc, etc... ~90 available in-game commands. Commands can be accessed from in-game, Procon's chat window, database, HTTP server, and from other plugins.
     </li>
     <li>
         <b>Editable Ranks and Roles.</b>
@@ -1084,7 +1084,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 </p>
 <p>
     Any action command given with no parameters (e.g. '!kill') will target the speaker.
-    If admins want to kill, kick, or even ban themselves, simply type the command without any parameters.
+    If admins want to kill, kick, or even ban themselves, simply type the action command without any parameters.
     Any action command when given a player name (other than moving players) will require a reason.
 </p>
 <table>
@@ -1099,7 +1099,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <td>yes</td>
     <td>None</td>
     <td>
-        The in-game command used for confirming other commands when needed.
+        The in-game command used for confirming other commands when needed. Must be active. Must be accessible under 'Any'. Must use 'yes' as command text. Cannot be denied for any role.
     </td>
 </tr>
 <tr>
@@ -1107,7 +1107,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <td>no</td>
     <td>None</td>
     <td>
-        The in-game command used to cancel other commands when needed.
+        The in-game command used to cancel other commands when needed. Must be active. Must be accessible under 'Any'. Must use 'no' as command text. Cannot be denied for any role
     </td>
 </tr>
 <tr>
@@ -1156,13 +1156,13 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <td><b>Temp-Ban Player</b></td>
     <td>tban</td>
     <td>
-        [time]<br/>
+        [duration]<br/>
         OR<br/>
-        [time][player][reason]<br/>
+        [duration][player][reason]<br/>
         OR<br/>
-        [time][reportID]<br/>
+        [duration][reportID]<br/>
         OR<br/>
-        [time][reportID][reason]
+        [duration][reportID][reason]
     </td>
     <td>
         The in-game command used for temp-banning players.
@@ -1294,7 +1294,11 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <td><b>Reserved Slot Player</b></td>
     <td>reserved</td>
     <td>
-        [player][reason]
+        [duration or 'perm']<br/>
+        OR<br/>
+        [duration or 'perm'][player]<br/>
+        OR<br/>
+        [duration or 'perm'][player][reason]<br/>
     </td>
     <td>
         The in-game command used for adding a player to reserved slots for the current server. The setting "Feed Server
@@ -1302,10 +1306,25 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </td>
 </tr>
 <tr>
+    <td><b>Un-Reserved Slot Player</b></td>
+    <td>unreserved</td>
+    <td>
+        [player]
+    </td>
+    <td>
+        The in-game command used for removing a player from reserved slots for the current server. The setting "Feed Server
+        Reserved Slots" must be enabled to use this command.
+    </td>
+</tr>
+<tr>
     <td><b>Spectator Slot Player</b></td>
     <td>spectator</td>
     <td>
-        [player][reason]
+        [duration or 'perm']<br/>
+        OR<br/>
+        [duration or 'perm'][player]<br/>
+        OR<br/>
+        [duration or 'perm'][player][reason]<br/>
     </td>
     <td>
         The in-game command used for adding a player to spectator list for the current server. The setting "Feed Server
@@ -1313,46 +1332,97 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </td>
 </tr>
 <tr>
+    <td><b>Un-Spectator Slot Player</b></td>
+    <td>unspectator</td>
+    <td>
+        [player]
+    </td>
+    <td>
+        The in-game command used for removing a player from spectator slots for the current server. The setting "Feed Server
+        Spectator List" must be enabled to use this command.
+    </td>
+</tr>
+<tr>
     <td><b>Ping Whitelist Player</b></td>
     <td>pwhitelist</td>
     <td>
-        [player]
+        [duration or 'perm']<br/>
         OR<br/>
-        [player][reason]<br/>
+        [duration or 'perm'][player]<br/>
+        OR<br/>
+        [duration or 'perm'][player][reason]<br/>
     </td>
     <td>
         The in-game command used for adding a player to the ping kick whitelist for all servers.
     </td>
 </tr>
 <tr>
+    <td><b>Un-Ping Whitelist Player</b></td>
+    <td>unpwhitelist</td>
+    <td>
+        [player]
+    </td>
+    <td>
+        The in-game command used for removing a player from ping kick whitelist for all servers.
+    </td>
+</tr>
+<tr>
     <td><b>AA Whitelist Player</b></td>
     <td>aawhitelist</td>
     <td>
-        [player]
+        [duration or 'perm']<br/>
         OR<br/>
-        [player][reason]<br/>
+        [duration or 'perm'][player]<br/>
+        OR<br/>
+        [duration or 'perm'][player][reason]<br/>
     </td>
     <td>
         The in-game command used for adding a player to the Admin Assistant whitelist for all servers.
     </td>
 </tr>
 <tr>
+    <td><b>Un-AA Whitelist Player</b></td>
+    <td>unaawhitelist</td>
+    <td>
+        [player]
+    </td>
+    <td>
+        The in-game command used for removing a player from Admin Assistant whitelist for all servers.
+    </td>
+</tr>
+<tr>
     <td><b>SpamBot Whitelist Player</b></td>
     <td>spamwhitelist</td>
     <td>
-        [player]
+        [duration or 'perm']<br/>
         OR<br/>
-        [player][reason]<br/>
+        [duration or 'perm'][player]<br/>
+        OR<br/>
+        [duration or 'perm'][player][reason]<br/>
     </td>
     <td>
         The in-game command used for adding a player to the SpamBot whitelist for all servers.
     </td>
 </tr>
 <tr>
-    <td><b>MULTIBalancer Whitelist Player</b></td>
-    <td>blwhitelist</td>
+    <td><b>Un-SpamBot Whitelist Player</b></td>
+    <td>unspamwhitelist</td>
     <td>
-        [player][reason]
+        [player]
+    </td>
+    <td>
+        The in-game command used for removing a player from SpamBot whitelist for all servers.
+    </td>
+</tr>
+<tr>
+    <td><b>MULTIBalancer Whitelist Player</b></td>
+    <td>mbwhitelist</td>
+    <td>
+        [duration or 'perm']<br/>
+        OR<br/>
+        [duration or 'perm'][player]<br/>
+        OR<br/>
+        [duration or 'perm'][player][reason]<br/>
     </td>
     <td>
         The in-game command used for adding a player to MULTIBalancer whitelist for the current server. The setting
@@ -1360,14 +1430,133 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </td>
 </tr>
 <tr>
+    <td><b>Un-MULTIBalancer Whitelist Player</b></td>
+    <td>unmbwhitelist</td>
+    <td>
+        [player]
+    </td>
+    <td>
+        The in-game command used for removing a player from MULTIBalancer whitelist for the current server. "Feed MULTIBalancer Whitelist" must be enabled to use this command.
+    </td>
+</tr>
+<tr>
     <td><b>MULTIBalancer Disperse Player</b></td>
     <td>disperse</td>
     <td>
-        [player][reason]
+        [duration or 'perm']<br/>
+        OR<br/>
+        [duration or 'perm'][player]<br/>
+        OR<br/>
+        [duration or 'perm'][player][reason]<br/>
     </td>
     <td>
-        The in-game command used for adding a player to MULTIBalancer even dispersion for the current server. The
-        setting "Feed MULTIBalancer Even Dispersion List" must be enabled to use this command.
+        The in-game command used for adding a player to MULTIBalancer even dispersion for the current server. The setting "Feed MULTIBalancer Even Dispersion List" must be enabled to use this command.
+    </td>
+</tr>
+<tr>
+    <td><b>Un-MULTIBalancer Disperse Player</b></td>
+    <td>undisperse</td>
+    <td>
+        [player]
+    </td>
+    <td>
+        The in-game command used for removing a player from MULTIBalancer even dispersion for the current server. "Feed MULTIBalancer Even Dispersion List" must be enabled to use this command.
+    </td>
+</tr>
+<tr>
+    <td><b>Spectator Blacklist Player</b></td>
+    <td>specblacklist</td>
+    <td>
+        [duration or 'perm']<br/>
+        OR<br/>
+        [duration or 'perm'][player]<br/>
+        OR<br/>
+        [duration or 'perm'][player][reason]<br/>
+    </td>
+    <td>
+        The in-game command used for adding a player to the Spectator Blacklist for all servers. Players under this group will not be able to enter the server as a spectator.
+    </td>
+</tr>
+<tr>
+    <td><b>Un-Spectator Blacklist Player</b></td>
+    <td>unspecblacklist</td>
+    <td>
+        [player]
+    </td>
+    <td>
+        The in-game command used for removing a player from Spectator Blacklist for all servers.
+    </td>
+</tr>
+<tr>
+    <td><b>Report Whitelist Player</b></td>
+    <td>rwhitelist</td>
+    <td>
+        [duration or 'perm']<br/>
+        OR<br/>
+        [duration or 'perm'][player]<br/>
+        OR<br/>
+        [duration or 'perm'][player][reason]<br/>
+    </td>
+    <td>
+        The in-game command used for adding a player to the Report Whitelist for all servers. Players under this group cannot be reported.
+    </td>
+</tr>
+<tr>
+    <td><b>Un-Report Blacklist Player</b></td>
+    <td>unrwhitelist</td>
+    <td>
+        [player]
+    </td>
+    <td>
+        The in-game command used for removing a player from Report Whitelist for all servers.
+    </td>
+</tr>
+<tr>
+    <td><b>Populator Whitelist Player</b></td>
+    <td>popwhitelist</td>
+    <td>
+        [duration or 'perm']<br/>
+        OR<br/>
+        [duration or 'perm'][player]<br/>
+        OR<br/>
+        [duration or 'perm'][player][reason]<br/>
+    </td>
+    <td>
+        The in-game command used for adding a player to the Populator Whitelist for all servers. Used when only allowing approved populators to be considered for automatic populator perks. Setting section B27-2.
+    </td>
+</tr>
+<tr>
+    <td><b>Un-Populator Blacklist Player</b></td>
+    <td>unpopwhitelist</td>
+    <td>
+        [player]
+    </td>
+    <td>
+        The in-game command used for removing a player from Populator Whitelist for all servers.
+    </td>
+</tr>
+<tr>
+    <td><b>TeamKillTracker Whitelist Player</b></td>
+    <td>tkwhitelist</td>
+    <td>
+        [duration or 'perm']<br/>
+        OR<br/>
+        [duration or 'perm'][player]<br/>
+        OR<br/>
+        [duration or 'perm'][player][reason]<br/>
+    </td>
+    <td>
+        The in-game command used for adding a player to the TeamKillTracker Whitelist for all servers. "Feed TeamKillTracker Whitelist" must be enabled to use this command.
+    </td>
+</tr>
+<tr>
+    <td><b>Un-TeamKillTracker Blacklist Player</b></td>
+    <td>untkwhitelist</td>
+    <td>
+        [player]
+    </td>
+    <td>
+        The in-game command used for removing a player from TeamKillTracker Whitelist for all servers. "Feed TeamKillTracker Whitelist" must be enabled to use this command.
     </td>
 </tr>
 <tr>
@@ -2230,6 +2419,10 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>*Delete Soldier?*</b> - Type delete in this line to remove the listed soldier connection from the user.</li>
     </li>
 </ul>
+<h3>3-2. Special Player Settings:</h3>
+<ul>
+    <li><b>*Special Player Group Name* (Display)</b> - Displays all current players matching the given special player group for either all servers or this server specifically.</li>
+</ul>
 <h3>4. Role Settings:</h3>
 <ul>
     <li><b>'Add Role'</b> - Type a new role name in this line to add a new role. Role names must be unique.</li>
@@ -2260,7 +2453,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
         commands must be prefixed with a / for them to work.
     </li>
     <li><b>'Bypass all command confirmation -DO NOT USE-'</b> - Disables all command confirmation. Do not use this
-        setting unless you want to accidentally kick/ban the wrong people.
+        setting unless you want to kick/ban the wrong people.
     <li><b>'External plugin player commands'</b> - List of commands (witjh prefixes) that general players can access.
         Currently used for the help command.
     <li><b>'External plugin admin commands'</b> - List of commands (with prefixes) that admins can access. Currently
@@ -2270,9 +2463,10 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h3>6. Command List:</h3>
 <ul>
     <li><b>*Active*</b> - Globally disable or enable the given command.</li>
-    <li><b>*Logging*</b> - Set whether usage of this command is logged. All commands log by default, .
+    <li><b>*Logging*</b> - Set whether usage of this command is logged. All commands log by default.
     </li>
     <li><b>*Text*</b> - Globally change the in-game text for this command. Command text must be unique.</li>
+    <li><b>*Access Method*</b> - The method that must be used to access this command from in-game. Either 'Any', 'AnyHidden', 'AnyVisible', 'GlobalVisible', 'TeamVisible', 'SquadVisible'.</li>
 </ul>
 <h3>7. Punishment Settings:</h3>
 <ul>
@@ -2458,8 +2652,11 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Feed MULTIBalancer Even Dispersion List'</b> - When enabled, the adkats_specialplayers table (group:
         blacklist_dispersion) is used to feed MULTIBalancer's even dispersion list.
     </li>
-    <li><b>'Feed Server Reserved Slots'</b> - When enabled, the servers reserved slots will include all AdKats user's
-        soldiers.
+    <li><b>'Feed TeamKillTracker Whitelist'</b> - When enabled, the TeamKillTracker whitelist will include all players in the TeamKillTracker whitelist special player group.
+    </li>
+    <li><b>'Automatic TeamKillTracker Whitelist for Admins'</b> - When enabled, all admins in your User List will be given an automatic TeamKillTracker whitelist.
+    </li>
+    <li><b>'Feed Server Reserved Slots'</b> - When enabled, players in the reserved slot special player group will be assigned a reserved slot. Any modifications of the reserved slot list outside of Adkats will be erased.
     </li>
     <li><b>'Automatic Reserved Slot for Admins'</b> - When enabled, all admins in your User List will be given a
         reserved slot.
@@ -2647,9 +2844,36 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Start Surrender Vote Instead of Surrendering Losing Team'</b> - When an auto-surrender would have been triggered
         on the losing team due to the settings above, instead, simply start a surrender vote, with AutoAdmin giving 1 vote toward surrender.</li>
 </ul>
-<h3>B25. Statistics Settings:</h3>
+<h3>B26. Statistics Settings:</h3>
 <ul>
     <li><b>'Post Map Benefit/Detriment Statistics'</b> - Whether to post statistics on which maps are most beneficial/detrimental to the population of the server. Queries to extract meaning from this information can be aquired in the main AdKats forum thread.</li>
+    <li><b>'Post Win/Loss/Baserape statistics'</b> - Whether to post statistics on wins, losses, and baserape causing players. Requires auto-surrender to be enabled and configured, and only works as intended when not using the auto-nuke or auto-vote settings.</li>
+</ul>
+<h3>B27. Player Monitor Settings:</h3>
+<ul>
+    <li><b>'Monitor Baserape Causing Players'</b> - When enabled, players who cause baserape will be automatically monitored and can be acted on in setting section B27-1. Requires posting win/loss/baserape statistics.</li>
+    <li><b>'Monitor Populator Players - Thanks CMWGaming'</b> - When enabled, players who help populate servers can be automatically monitored and given perks in setting section B27-2.</li>
+</ul>
+<h3>B27-1. Baserape Causing Player Monitor Settings:</h3>
+<ul>
+    <li><b>'Baserape Causing Players (Display)'</b> - Current display of baserape causing players using the below options.</li>
+    <li><b>'Past Days to Monitor Baserape Causing Players'</b> - Past days worth of stats to be considered when calculating baserape causing players.</li>
+    <li><b>'Count to Consider Baserape Causing'</b> - Number of baserapes contributed to in the considered duration in order to be considered baserape causing. Players must meet this stat, and either have a win/loss ratio over 1.25, or have more than 10% of their played matches end with them baseraping.</li>
+    <li><b>'Automatic Dispersion for Baserape Causing Players'</b> - When enabled, players causing baserape are automatically included in the MULTIBalancer dispersion list.</li>
+    <li><b>'Automatic Assist Trigger for Baserape Causing Players'</b> - When enabled, players causing baserape will be automatically sent to the weak team if auto-surrender begins its countdown. Number of auto-surrender triggers are automatically doubled if this case triggers.</li>
+</ul>
+<h3>B27-2. Populator Monitor Settings - Thanks CMWGaming:</h3>
+<ul>
+    <li><b>'Populator Players (Display)'</b> - Current display of populator players using the below options.</li>
+    <li><b>'Monitor Specified Populators Only'</b> - When enabled, players must be placed under populator whitelist in order to be considered for populator status on this server.</li>
+    <li><b>'Monitor Populators of This Server Only'</b> - When enabled, only population counts of this server are used to count toward populator stats on this server.</li>
+    <li><b>'Count to Consider Populator Past Week'</b> - Players will be considered populator if they have this many populations in the past week.</li>
+    <li><b>'Count to Consider Populator Past 2 Weeks'</b> - Players will be considered populator if they have this many populations in the past 2 weeks.</li>
+    <li><b>'Enable Populator Perks.'</b> - When enabled, populator perk options are made visible.</li>
+    <li><b>'Populator Perks - Reserved Slot.'</b> - When enabled, populators are given reserved slots.</li>
+    <li><b>'Populator Perks - Autobalance Whitelist.'</b> - When enabled, populators are given MULTIBalancer whitelist.</li>
+    <li><b>'Populator Perks - Ping Whitelist.'</b> - When enabled, populators are given whitelist from ping kicks.</li>
+    <li><b>'Populator Perks - TeamKillTracker Whitelist.'</b> - When enabled, populators are given a whitelist in TeamKillTracker.</li>
 </ul>
 <h3>D99. Debug Settings:</h3>
 <ul>
