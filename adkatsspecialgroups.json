@@ -59,6 +59,11 @@
 			"group_id":11,
 			"group_key":"whitelist_teamkill",
 			"group_name":"TeamKillTracker Whitelist"
+		},
+		{
+			"group_id":12,
+			"group_key":"blacklist_spectator",
+			"group_name":"Spectator Blacklist"
 		}
 	]
 }
