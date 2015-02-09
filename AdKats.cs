@@ -16654,7 +16654,6 @@ namespace PRoConEvents {
                             FinalizeRecord(record);
                             return;
                         }
-                        SendMessageToSource(record, "No command to confirm.");
                         FinalizeRecord(record);
                         break;
                     case "command_cancel":
@@ -16672,10 +16671,6 @@ namespace PRoConEvents {
                                 AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                                 AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                             }
-                        }
-                        else
-                        {
-                            SendMessageToSource(record, "No command to cancel.");
                         }
                         FinalizeRecord(record);
                         break;
