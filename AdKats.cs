@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.8.0
+ * Version 6.5.0.0
  * 9-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.8.0</version_code>
+ * <version_code>6.5.0.0</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.8.0";
+        private const String PluginVersion = "6.5.0.0";
 
         public enum ConsoleMessageType {
             Normal,
