@@ -1,5 +1,5 @@
 <p> 
-    <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b>
+    <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b> 
 </p>
 <p>
     <a href="https://forum.myrcon.com/showthread.php?9373" name=thread>
