@@ -653,4 +653,91 @@ fine for performance). Right now only Punish and Forgive are required to be logg
 <ul>
     <li><b>No upgrade SQL required.</b></li>
 </ul>
+<h4>6.5.0.0 (9-FEB-2014)</h4>
+<b>Changes</b><br/>
+<ul>
+    <li>Confirm command must be active and use 'yes' as command text.</li>
+    <li>Cancel command must be active and use 'no' as command text.</li>
+    <li>Confirm and cancel commands must be allowed on every role.</li>
+    <li>Changed default auto-surrender message. Will not affect existing settings, just new installs.</li>
+    <li>Changed auto-surrender message spam from 6 messages to 8 messages, ensuring the entire chat window is filled.</li>
+    <li>SpamBot whitelist command now requires a duration as the first parameter. 'perm' for permanent, otherwise duration like standard temp-ban command duration.</li>
+    <li>Reserved slot command now requires a duration as the first parameter. 'perm' for permanent, otherwise duration like standard temp-ban command duration.</li>
+    <li>Spectator slot command now requires a duration as the first parameter. 'perm' for permanent, otherwise duration like standard temp-ban command duration.</li>
+    <li>Admin assistant whitelist command now requires a duration as the first parameter. 'perm' for permanent, otherwise duration like standard temp-ban command duration.</li>
+    <li>Ping whitelist command now requires a duration as the first parameter. 'perm' for permanent, otherwise duration like standard temp-ban command duration.</li>
+    <li>Hacker-Checker whitelist command now requires a duration as the first parameter. 'perm' for permanent, otherwise duration like standard temp-ban command duration.</li>
+    <li>Autobalance whitelist command now requires a duration as the first parameter. 'perm' for permanent, otherwise duration like standard temp-ban command duration.</li>
+    <li>Autobalance dispersion command now requires a duration as the first parameter. 'perm' for permanent, otherwise duration like standard temp-ban command duration.</li>
+    <li>Hacker checker HSK check now takes priority over DPS check because HSK based statistics were hitting DPS triggers incorrectly.</li>
+</ul>
+<b>New Commands</b><br/>
+<ul>
+    <li>Added specblacklist command to add players to the spectator blacklist.</li>
+    <li>Added rwhitelist command to add players to report whitelist.</li>
+    <li>Added popwhitelist command to add players to the populator whitelist specialplayer group.</li>
+    <li>Added tkwhitelist command to add players to the TeamKillTracker whitelist specialplayer group.</li>
+    <li>Added unspecblacklist command to remove players from the spectator blacklist.</li>
+    <li>Added unrwhitelist command to remove players from Report Whitelist.</li>
+    <li>Added unpopwhitelist command to remove players from the populator whitelist.</li>
+    <li>Added untkwhitelist command to remove players from the TeamKillTracker whitelist specialplayer group.</li>
+    <li>Added undisperse command to remove players from Autobalance Dispersion.</li>
+    <li>Added unmbwhitelist command to remove players from Autobalance Whitelist.</li>
+    <li>Added unreserved command to remove players from Reserved Slot.</li>
+    <li>Added unspectator command to remove players from pectator Slot.</li>
+    <li>Added unhcwhitelist command to remove players from Hacker-Checker.</li>
+    <li>Added unpwhitelist command to remove players from Ping Whitelist.</li>
+    <li>Added unaawhitelist command to remove players from Admin Assistant Whitelist.</li>
+    <li>Added unspamwhitelist command to remove players from SpamBot Whitelist.</li>
+</ul>
+<b>Enhancements</b><br/>
+<ul>
+    <li>Added report whitelist specialplayer group.</li>
+    <li>Added spectator blacklist specialplayer group.</li>
+    <li>Added new auto-surrender option to disable cancelling/resetting the trigger count if a team begins making a comeback.</li>
+    <li>Auto-surrender optimal values for metro/lockers greatly improved for all 3 modes of operation (surrender, nuke, and trigger vote).</li>
+    <li>Auto-surrender preparation, pause, and resume messages streamlined.</li>
+    <li>Database connection issue messages only sent when the issue is serious, reducing console spam.</li>
+    <li>All specialplayer interaction commands now use offline/external player fetch over using fuzzy name match on online players.</li>
+    <li>Added duration parameters to several specialplayer interaction commands, details in changes section.
+All debug messages made more informative about what/where the message was issued.</li>
+    <li>Added option to log win/loss/baserape statistics for players. Can only be enabled when using auto-surrender, as it relies on that system.</li>
+    <li>Added option to monitor baserape causing players with automatic dispersal or automatic assist. This option relies on posted win/loss/baserape statistics, and includes options for duration and count to consider baserape causing. And, if feeding MULTIBalancer dispersion list, these players can automatically be placed under dispersion for the server. Players falling under automatic dispersion are notified on first join. Players under automatic dispersion cannot use the Assist command.</li>
+    <li>Added option to monitor populator players. Option will generate a list of players who populate either all or the current server consistently, based on given parameters for the past week or 2 weeks.</li>
+    <li>Added populator whitelist special player group for approved populator status. Players under this group can optionally be exclusively included in populator status.</li>
+    <li>Added option to feed TeamKillTracker whitelist. Whitelist group will be forced to "Whitelist", and the given players pushed to that whitelist.</li>
+    <li>Added TeamKillTracker whitelist specialplayer group. When feeding TeamKillTracker whitelist, these players will be included in that list.</li>
+    <li>Added optional automatic perks for monitored populator players. Optional automatic perks can include reserved slot, MULTIBalancer whitelist, ping whitelist, and TeamKillTracker whitelist.</li>
+    <li>Added setting group 3-2, Special Player Display. This setting group is a display of current specialplayer groups and their contents. Read only.</li>
+    <li>Added access method option to all commands, for restriction of how commands can be executed. Applies only to commands issued by in-game players. Confirm and cancel commands cannot use settings other than 'Any'.</li>
+    <li>Now automatically removing expired special player entries from the database.
+Added small improvements to fuzzy player match response text.</li>
+    <li>Decreased size of ping kick message to reduce chat spam.</li>
+    <li>Improved integration with AdKatsLRT, the loadout enforcer plugin.</li>
+    <li>Added more information to all error messages thrown during plugin auto-update.</li>
+</ul>
+<b>Bugs Fixed</b><br/>
+<ul>
+    <li>Major performance fix for users running orchestration settings.</li>
+    <li>Fixed the 'Disable Automatic Updates' setting, which could not be re-enabled once disabled.</li>
+    <li>Players could be double-checked for suspicious stats in some rare cases.</li>
+    <li>Fixed display error thrown in some cases when editing user lists.</li>
+    <li>Fixed some performance issues when sending AdKats generated player list to other plugins.</li>
+    <li>Fixed integration of player_ban_temp commands from other plugins.</li>
+    <li>'Use First Spawn Reputation and Infraction Message' was not the correct type. The setting type was a string instead of boolean, so you had to type "True" or "False" to get the value set.</li>
+    <li>Automatic assign of specialplayer group to role did not re-fetch access list, so it appeared to be broken until next access fetch.</li>
+    <li>MULTIBalancer whitelist feed was using player names instead of GUIDs.</li>
+    <li>Database disconnects and thread exits were not handled properly in several places.</li>
+    <li>Procon could freeze when editing the user list without users in the list.</li>
+    <li>Fetched players and left players were kept indefinitely, causing memory overflow issues.</li>
+    <li>Orchestration table and extended round stats table were added but not confirmed on startup.</li>
+    <li>Fetching admin soldiers and online admin soldiers could throw errors in rare cases.</li>
+    <li>Assist call via database did not confirm target on winning team before allowing action.</li>
+    <li>Assist command gave reputation even if the player was not moved to the weak team.</li>
+    <li>Multiple upload systems did not have complete error handling.</li>
+</ul>
+<b>Upgrade SQL from 4.0.0.0 - Current</b><br/>
+<ul>
+    <li><b>No upgrade SQL required.</b></li>
+</ul>
 </blockquote>
