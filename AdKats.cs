@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.0.7.9
- * 7-FEB-2015
+ * Version 6.0.8.0
+ * 9-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.0.7.9</version_code>
+ * <version_code>6.0.8.0</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.0.7.9";
+        private const String PluginVersion = "6.0.8.0";
 
         public enum ConsoleMessageType {
             Normal,
@@ -30088,8 +30088,8 @@ namespace PRoConEvents {
                     }
                     DebugWrite("User fetch (User Soldiers) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     start = UtcDbTime();
-                    lock (_specialPlayerCache)
-                    {
+                    lock (_specialPlayerCache) {
+                        SendNonQuery("Deleting expired special players", "DELETE FROM `adkats_specialplayers` WHERE `player_expiration` < UTC_TIMESTAMP()", false);
                         using (MySqlCommand command = connection.CreateCommand()) {
                             command.CommandText = @"
                             SELECT
