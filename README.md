@@ -5,6 +5,7 @@
     <a name=adkats />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
 </p>
+<h2><a href="https://forum.myrcon.com/showthread.php?6045-Advanced-In-Game-Admin-and-Ban-Enforcer-AdKats-6-5-0-0&p=116766&viewfull=1#post116766" target="_blank">UPDATE 6.5.0.0 POSTED! Click here for details</a></h2>
 <p>
     <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b>
 </p>
