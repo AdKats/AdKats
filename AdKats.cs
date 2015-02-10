@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.0.0
- * 9-FEB-2015
+ * Version 6.5.0.1
+ * 10-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.0.0</version_code>
+ * <version_code>6.5.0.1</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.0.0";
+        private const String PluginVersion = "6.5.0.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7161,6 +7161,10 @@ namespace PRoConEvents {
                                     _LastTicketRateDisplay = UtcDbTime();
                                     _currentFlagMessage = flagMessage;
                                     ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
+                                    if (_isTestingAuthorized)
+                                    {
+                                        ProconChatWrite(team1.TeamKey + " Acc: " + Math.Round(team1.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m | " + team2.TeamKey + " Acc: " + Math.Round(team2.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m");
+                                    }
                                 }
                             }
                             if (team1.TeamTicketCount >= 0 && team2.TeamTicketCount >= 0) {
@@ -11937,14 +11941,6 @@ namespace PRoConEvents {
                         if (_roundState != RoundState.Playing)
                         {
                             SendMessageToSource(record, "You can't use assist unless a round is active.");
-                            FinalizeRecord(record);
-                            return;
-                        }
-
-                        //Cannot call this command during surrender
-                        if (_surrenderVoteActive || _endingRound)
-                        {
-                            SendMessageToSource(record, "You can't use assist while a surrender action is active.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -34963,11 +34959,14 @@ namespace PRoConEvents {
             //Ticket Adjustments
             private Int32 TeamTicketAdjustment;
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamAdjustedTicketCounts;
-            public Double TeamAdjustedTicketDifferenceRate { get; private set; }
             public Int32 TeamAdjustedTicketCount { get; private set; }
             public DateTime TeamAdjustedTicketsTime { get; private set; }
             public Boolean TeamAdjustedTicketsAdded { get; private set; }
+            public Double TeamAdjustedTicketDifferenceRate { get; private set; }
+            private readonly Queue<KeyValuePair<Double, DateTime>> TeamAdjustedTicketDifferenceRates;
+            public Double TeamAdjustedTicketAccellerationRate { get; private set; }
 
+            //Score
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamTotalScores;
             public Double TeamScoreDifferenceRate { get; private set; }
             public Double TeamTotalScore { get; private set; }
@@ -34983,6 +34982,7 @@ namespace PRoConEvents {
                 TeamTotalScores = new Queue<KeyValuePair<Double, DateTime>>();
                 TeamTicketCounts = new Queue<KeyValuePair<Double, DateTime>>();
                 TeamAdjustedTicketCounts = new Queue<KeyValuePair<Double, DateTime>>();
+                TeamAdjustedTicketDifferenceRates = new Queue<KeyValuePair<Double, DateTime>>();
             }
 
             public Int32 TeamID { get; private set; }
@@ -35079,28 +35079,15 @@ namespace PRoConEvents {
                     //Get rounded time (floor)
                     DateTime newAdjustedTicketTime = Plugin.UtcDbTime();
                     newAdjustedTicketTime = newAdjustedTicketTime.AddTicks(-(newAdjustedTicketTime.Ticks % TimeSpan.TicksPerSecond));
-                    if (!TeamTicketsAdded)
+                    if (!TeamAdjustedTicketsAdded)
                     {
                         TeamAdjustedTicketDifferenceRate = 0;
+                        TeamAdjustedTicketAccellerationRate = 0;
                         TeamAdjustedTicketCount = (Int32)newAdjustedTicketCount;
                         TeamAdjustedTicketsTime = newAdjustedTicketTime;
                         TeamAdjustedTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(newAdjustedTicketCount, newAdjustedTicketTime));
                         TeamAdjustedTicketsAdded = true;
                         return;
-                    }
-
-                    //Interpolation
-                    DateTime oldTicketTime = TeamAdjustedTicketsTime;
-                    Double oldTicketValue = TeamAdjustedTicketCount;
-                    Double interTimeOldSeconds = 0;
-                    Double interTimeNewSeconds = (newAdjustedTicketTime - oldTicketTime).TotalSeconds;
-                    Double m = (newAdjustedTicketCount - oldTicketValue) / (interTimeNewSeconds);
-                    Double b = oldTicketValue;
-                    for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
-                    {
-                        DateTime subTicketTime = oldTicketTime.AddSeconds(sec);
-                        Double subTicketValue = (m * sec) + b;
-                        TeamAdjustedTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
                     }
 
                     //Remove old values (more than 60 seconds ago)
@@ -35113,26 +35100,66 @@ namespace PRoConEvents {
                             TeamAdjustedTicketCounts.Dequeue();
                             removed = true;
                         }
+                        if (TeamAdjustedTicketDifferenceRates.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketDifferenceRates.Peek().Value).TotalSeconds > 60)
+                        {
+                            TeamAdjustedTicketDifferenceRates.Dequeue();
+                            removed = true;
+                        }
                     } while (removed);
+
+                    //Interpolation
+                    DateTime oldTicketTime = TeamAdjustedTicketsTime;
+                    Double oldTicketValue = TeamAdjustedTicketCount;
+                    Double interTimeOldSeconds = 0;
+                    Double interTimeNewSeconds = (newAdjustedTicketTime - oldTicketTime).TotalSeconds;
+                    Double m = (newAdjustedTicketCount - oldTicketValue) / (interTimeNewSeconds);
+                    Double b = oldTicketValue;
+                    for (Int32 sec = (Int32)interTimeOldSeconds; sec < interTimeNewSeconds; sec++)
+                    {
+                        //Calculate time this datapoint occured
+                        DateTime subTicketTime = oldTicketTime.AddSeconds(sec);
+
+                        //Caclulate and enqueue the new adjusted ticket count
+                        Double subTicketValue = (m * sec) + b;
+                        TeamAdjustedTicketCounts.Enqueue(new KeyValuePair<double, DateTime>(subTicketValue, subTicketTime));
+
+                        //Calculate and enqueue the new adjusted ticket difference rate
+                        List<Double> ticketValues = TeamAdjustedTicketCounts.Select(pair => pair.Key).ToList();
+                        var ticketDifferences = new List<Double>();
+                        for (int i = 0; i < ticketValues.Count - 1; i++)
+                        {
+                            ticketDifferences.Add(ticketValues[i + 1] - ticketValues[i]);
+                        }
+                        ticketDifferences.Sort();
+                        //Convert to tickets/min
+                        TeamAdjustedTicketDifferenceRate = (ticketDifferences.Sum() / ticketDifferences.Count) * 60;
+                        if (Double.IsNaN(TeamAdjustedTicketDifferenceRate) ||
+                            TeamAdjustedTicketDifferenceRate > 0)
+                        {
+                            TeamAdjustedTicketDifferenceRate = 0;
+                        }
+                        TeamAdjustedTicketDifferenceRates.Enqueue(new KeyValuePair<double, DateTime>(TeamAdjustedTicketDifferenceRate, subTicketTime));
+
+                        //Calculate new ticket acceleration
+                        List<Double> accelerationValues = TeamAdjustedTicketDifferenceRates.Select(pair => pair.Key).ToList();
+                        var accelerationDifferences = new List<Double>();
+                        for (int i = 0; i < accelerationValues.Count - 1; i++)
+                        {
+                            accelerationDifferences.Add(accelerationValues[i + 1] - accelerationValues[i]);
+                        }
+                        accelerationDifferences.Sort();
+                        //Convert to tickets/min/min
+                        TeamAdjustedTicketAccellerationRate = (accelerationDifferences.Sum() / accelerationDifferences.Count) * 60;
+                        if (Double.IsNaN(TeamAdjustedTicketAccellerationRate) ||
+                            TeamAdjustedTicketAccellerationRate > 0)
+                        {
+                            TeamAdjustedTicketAccellerationRate = 0;
+                        }
+                    }
 
                     //Set instance vars
                     TeamAdjustedTicketCount = (Int32)newAdjustedTicketCount;
                     TeamAdjustedTicketsTime = newAdjustedTicketTime;
-
-                    List<Double> values = TeamAdjustedTicketCounts.Select(pair => pair.Key).ToList();
-                    var differences = new List<Double>();
-                    for (int i = 0; i < values.Count - 1; i++)
-                    {
-                        differences.Add(values[i + 1] - values[i]);
-                    }
-                    differences.Sort();
-                    //Convert to tickets/min
-                    TeamAdjustedTicketDifferenceRate = (differences.Sum() / differences.Count) * 60;
-                    if (Double.IsNaN(TeamAdjustedTicketDifferenceRate) ||
-                        TeamAdjustedTicketDifferenceRate > 0)
-                    {
-                        TeamAdjustedTicketDifferenceRate = 0;
-                    }
                 }
                 catch (Exception e)
                 {
@@ -35214,8 +35241,10 @@ namespace PRoConEvents {
                     TeamAdjustedTicketCount = 0;
                     TeamTicketCounts.Clear();
                     TeamAdjustedTicketCounts.Clear();
+                    TeamAdjustedTicketDifferenceRates.Clear();
                     TeamTicketDifferenceRate = 0;
                     TeamAdjustedTicketDifferenceRate = 0;
+                    TeamAdjustedTicketAccellerationRate = 0;
                     TeamTicketsAdded = false;
                     TeamAdjustedTicketsAdded = false;
                     TeamTicketAdjustment = 0;
