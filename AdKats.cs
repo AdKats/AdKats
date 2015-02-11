@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.0.1
+ * Version 6.5.0.3
  * 10-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.0.1</version_code>
+ * <version_code>6.5.0.3</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.0.1";
+        private const String PluginVersion = "6.5.0.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7150,6 +7150,20 @@ namespace PRoConEvents {
                                         {
                                             flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by many flags.";
                                         }
+                                        var t1t = team1.TeamAdjustedTicketAccellerationRate - team2.TeamAdjustedTicketAccellerationRate;
+                                        var t2t = team2.TeamAdjustedTicketAccellerationRate - team1.TeamAdjustedTicketAccellerationRate;
+                                        if (Math.Abs(t1t - t2t) < 3)
+                                        {
+                                            flagMessage += " Flags not changing.";
+                                        }
+                                        else if (t1t > t2t)
+                                        {
+                                            flagMessage += " " + team1.TeamKey + " gaining flags.";
+                                        }
+                                        else
+                                        {
+                                            flagMessage += " " + team2.TeamKey + " gaining flags.";
+                                        }
                                     }
                                     else
                                     {
@@ -7163,7 +7177,7 @@ namespace PRoConEvents {
                                     ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
                                     if (_isTestingAuthorized)
                                     {
-                                        ProconChatWrite(team1.TeamKey + " Acc: " + Math.Round(team1.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m | " + team2.TeamKey + " Acc: " + Math.Round(team2.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m");
+                                        ProconChatWrite(BoldMessage(" (" + team1.TeamKey + " Acc: " + Math.Round(team1.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m | " + team2.TeamKey + " Acc: " + Math.Round(team2.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m)"));
                                     }
                                 }
                             }
@@ -7175,7 +7189,8 @@ namespace PRoConEvents {
                                 _roundState == RoundState.Playing && 
                                 !_endingRound && 
                                 (UtcDbTime() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9.5 && 
-                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 60) 
+                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 60 &&
+                                (UtcDbTime() - _AdKatsRunningTime).TotalMinutes > 5) 
                             {
                                 var playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
                                 var neededPlayers = _surrenderAutoMinimumPlayers - playerCount;
@@ -7239,7 +7254,7 @@ namespace PRoConEvents {
                                                 !_Team1MoveQueue.Any() && 
                                                 !_Team2MoveQueue.Any() &&
                                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
-                                                (!_isTestingAuthorized || losingTeam.TeamTicketCount > 300)) {
+                                                (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600))) {
                                                 foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
                                                     dPlayer =>  dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && 
                                                                 _baserapeCausingPlayers.ContainsKey(dPlayer.player_name))) {
@@ -7374,7 +7389,7 @@ namespace PRoConEvents {
                                                 !_Team1MoveQueue.Any() &&
                                                 !_Team2MoveQueue.Any() &&
                                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
-                                                (!_isTestingAuthorized || losingTeam.TeamTicketCount > 300))
+                                                (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
                                             {
                                                 foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
                                                     dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
@@ -35095,12 +35110,12 @@ namespace PRoConEvents {
                     do
                     {
                         removed = false;
-                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 60)
+                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 30)
                         {
                             TeamAdjustedTicketCounts.Dequeue();
                             removed = true;
                         }
-                        if (TeamAdjustedTicketDifferenceRates.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketDifferenceRates.Peek().Value).TotalSeconds > 60)
+                        if (TeamAdjustedTicketDifferenceRates.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketDifferenceRates.Peek().Value).TotalSeconds > 30)
                         {
                             TeamAdjustedTicketDifferenceRates.Dequeue();
                             removed = true;
