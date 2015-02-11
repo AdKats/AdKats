@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.0.4
+ * Version 6.5.0.5
  * 11-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.0.4</version_code>
+ * <version_code>6.5.0.5</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.0.4";
+        private const String PluginVersion = "6.5.0.5";
 
         public enum ConsoleMessageType {
             Normal,
@@ -35165,8 +35165,7 @@ namespace PRoConEvents {
                         accelerationDifferences.Sort();
                         //Convert to tickets/min/min
                         TeamAdjustedTicketAccellerationRate = (accelerationDifferences.Sum() / accelerationDifferences.Count) * 60;
-                        if (Double.IsNaN(TeamAdjustedTicketAccellerationRate) ||
-                            TeamAdjustedTicketAccellerationRate > 0)
+                        if (Double.IsNaN(TeamAdjustedTicketAccellerationRate))
                         {
                             TeamAdjustedTicketAccellerationRate = 0;
                         }
