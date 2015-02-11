@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.0.3
- * 10-FEB-2015
+ * Version 6.5.0.4
+ * 11-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.0.3</version_code>
+ * <version_code>6.5.0.4</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.0.3";
+        private const String PluginVersion = "6.5.0.4";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7108,61 +7108,61 @@ namespace PRoConEvents {
                                     {
                                         if (winRate > -25 && loseRate > -25)
                                         {
-                                            flagMessage = " | Flags appear equal for both teams.";
+                                            flagMessage = " | Flags equal for both teams, ";
                                         }
                                         else if (loseRate <= -25 && loseRate > -34)
                                         {
-                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 1 flag.";
+                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 1 flag, ";
                                         }
                                         else if (loseRate <= -34 && loseRate > -38)
                                         {
-                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 1-3 flags.";
+                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 1-3 flags, ";
                                         }
                                         else if (loseRate <= -38 && loseRate > -44)
                                         {
-                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 3 flags.";
+                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 3 flags, ";
                                         }
                                         else if (loseRate <= -44 && loseRate > -48)
                                         {
-                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 3-5 flags.";
+                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 3-5 flags, ";
                                         }
                                         else if (loseRate <= -48 && loseRate > -54)
                                         {
-                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 5 flags.";
+                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 5 flags, ";
                                         }
                                         else if (loseRate <= -54 && loseRate > -58)
                                         {
-                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 5-7 flags.";
+                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 5-7 flags, ";
                                         }
                                         else if (loseRate <= -58 && loseRate > -64)
                                         {
-                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 7 flags.";
+                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 7 flags, ";
                                         }
                                         else if (loseRate <= -64 && loseRate > -68)
                                         {
-                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 7-9 flags.";
+                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 7-9 flags, ";
                                         }
                                         else if (loseRate <= -68 && loseRate > -74)
                                         {
-                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by 9 flags.";
+                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 9 flags, ";
                                         }
                                         else if (loseRate < -74)
                                         {
-                                            flagMessage = " | Appears " + flagWinningTeam.TeamKey + " is up by many flags.";
+                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by many flags, ";
                                         }
                                         var t1t = team1.TeamAdjustedTicketAccellerationRate - team2.TeamAdjustedTicketAccellerationRate;
                                         var t2t = team2.TeamAdjustedTicketAccellerationRate - team1.TeamAdjustedTicketAccellerationRate;
-                                        if (Math.Abs(t1t - t2t) < 3)
+                                        if (Math.Abs(t1t - t2t) < 6)
                                         {
-                                            flagMessage += " Flags not changing.";
+                                            flagMessage += " not changing.";
                                         }
                                         else if (t1t > t2t)
                                         {
-                                            flagMessage += " " + team1.TeamKey + " gaining flags.";
+                                            flagMessage += team1.TeamKey + " gaining ground.";
                                         }
                                         else
                                         {
-                                            flagMessage += " " + team2.TeamKey + " gaining flags.";
+                                            flagMessage += team2.TeamKey + " gaining ground.";
                                         }
                                     }
                                     else
@@ -35110,12 +35110,12 @@ namespace PRoConEvents {
                     do
                     {
                         removed = false;
-                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 30)
+                        if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 45)
                         {
                             TeamAdjustedTicketCounts.Dequeue();
                             removed = true;
                         }
-                        if (TeamAdjustedTicketDifferenceRates.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketDifferenceRates.Peek().Value).TotalSeconds > 30)
+                        if (TeamAdjustedTicketDifferenceRates.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketDifferenceRates.Peek().Value).TotalSeconds > 45)
                         {
                             TeamAdjustedTicketDifferenceRates.Dequeue();
                             removed = true;
