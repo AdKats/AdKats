@@ -7154,7 +7154,7 @@ namespace PRoConEvents {
                                         var t2t = team2.TeamAdjustedTicketAccellerationRate - team1.TeamAdjustedTicketAccellerationRate;
                                         if (Math.Abs(t1t - t2t) < 10)
                                         {
-                                            flagMessage += " not changing.";
+                                            flagMessage += "not changing.";
                                         }
                                         else if (t1t > t2t)
                                         {
