@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.0.8
- * 11-FEB-2015
+ * Version 6.5.0.9
+ * 12-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.0.8</version_code>
+ * <version_code>6.5.0.9</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.0.8";
+        private const String PluginVersion = "6.5.0.9";
 
         public enum ConsoleMessageType {
             Normal,
@@ -22008,6 +22008,13 @@ namespace PRoConEvents {
             try
             {
                 record.record_action_executed = true;
+                if (record.target_player == null) {
+                    SendMessageToSource(record, "Reputation fetch player not found, unable to continue.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.command_numeric = (Int32) record.target_player.player_reputation;
+                record.record_message = record.target_player.player_name + "'s reputation is " + Math.Round(record.target_player.player_reputation, 2);
                 var isAdmin = PlayerIsAdmin(record.target_player);
                 if (record.source_name == record.target_name) {
                     SendMessageToSource(record, "Your server reputation is " + ((!isAdmin) ? (Math.Round(record.target_player.player_reputation, 2) + "") : (record.target_player.player_role.role_name)) + ((record.target_player.player_reputation > _reputationThresholdBad && (!isAdmin)) ? (", thank you for helping the admins!") : ("")));
