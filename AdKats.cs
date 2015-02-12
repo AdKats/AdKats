@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.0.7
+ * Version 6.5.0.8
  * 11-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.0.7</version_code>
+ * <version_code>6.5.0.8</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.0.7";
+        private const String PluginVersion = "6.5.0.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -6195,7 +6195,7 @@ namespace PRoConEvents {
                                                         }
                                                     }
                                                     //Are they over the limit, or missing
-                                                    if (((aPlayer.player_ping_avg > currentTriggerMS && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0)) && aPlayer.player_pings_full)
+                                                    if (((aPlayer.player_ping_avg > currentTriggerMS && aPlayer.player_ping > aPlayer.player_ping_avg) || (_pingEnforcerKickMissingPings && aPlayer.player_ping_avg < 0 && (UtcDbTime() - aPlayer.JoinTime).TotalSeconds > 60)) && aPlayer.player_pings_full)
                                                     {
                                                         //Are they worse than the current picked player
                                                         if (pingPickedPlayer == null || (aPlayer.player_ping_avg > pingPickedPlayer.player_ping_avg && pingPickedPlayer.player_ping_avg > 0)) {
@@ -6275,6 +6275,7 @@ namespace PRoConEvents {
                                             }
                                         }
                                         aPlayer.player_online = true;
+                                        aPlayer.JoinTime = UtcDbTime();
                                         //Fetch their infraction points
                                         FetchPoints(aPlayer, false, true);
                                         if (aPlayer.location == null || aPlayer.location.status != "success" || aPlayer.location.IP != aPlayer.player_ip)
@@ -7104,53 +7105,63 @@ namespace PRoConEvents {
                                     }
                                     Double winRate = flagWinningTeam.TeamAdjustedTicketDifferenceRate;
                                     Double loseRate = flagLosingTeam.TeamAdjustedTicketDifferenceRate;
-                                    if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" && _gameVersion == GameVersion.BF4)
+                                    if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" && _gameVersion == GameVersion.BF4) 
                                     {
-                                        if ((team1.TeamAdjustedTicketCountsFull && team2.TeamAdjustedTicketCountsFull) || (UtcDbTime() - _AdKatsRunningTime).Minutes > 2)
+                                        Int32 maxFlags = Int32.MaxValue;
+                                        switch (_serverInfo.InfoObject.Map) 
+                                        {
+                                            case "XP0_Metro":
+                                                maxFlags = 3;
+                                                break;
+                                            case "MP_Prison":
+                                                maxFlags = 5;
+                                                break;
+                                        }
+                                        if ((UtcDbTime() - _AdKatsRunningTime).Minutes > 2.5)
                                         {
                                             if (winRate > -20 && loseRate > -20)
                                             {
-                                                flagMessage = " | Flags equal for both teams, ";
+                                                flagMessage = " | Flags equal, ";
                                             }
                                             else if (loseRate <= -20 && loseRate > -34)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 1 flag, ";
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 1 flag, ";
                                             }
                                             else if (loseRate <= -34 && loseRate > -38)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 1-3 flags, ";
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 1-3 flags, ";
                                             }
-                                            else if (loseRate <= -38 && loseRate > -44)
+                                            else if (loseRate <= -38 && loseRate > -44 || maxFlags == 3)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 3 flags, ";
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 3 flags, ";
                                             }
                                             else if (loseRate <= -44 && loseRate > -48)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 3-5 flags, ";
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 3-5 flags, ";
                                             }
-                                            else if (loseRate <= -48 && loseRate > -54)
+                                            else if (loseRate <= -48 && loseRate > -54 || maxFlags == 5)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 5 flags, ";
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 5 flags, ";
                                             }
                                             else if (loseRate <= -54 && loseRate > -58)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 5-7 flags, ";
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 5-7 flags, ";
                                             }
-                                            else if (loseRate <= -58 && loseRate > -64)
+                                            else if (loseRate <= -58 && loseRate > -64 || maxFlags == 7)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 7 flags, ";
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 7 flags, ";
                                             }
                                             else if (loseRate <= -64 && loseRate > -68)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 7-9 flags, ";
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 7-9 flags, ";
                                             }
-                                            else if (loseRate <= -68 && loseRate > -74)
+                                            else if (loseRate <= -68 && loseRate > -74 || maxFlags == 9)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 9 flags, ";
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up 9 flags, ";
                                             }
                                             else if (loseRate < -74)
                                             {
-                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by many flags, ";
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up many flags, ";
                                             }
                                             var t1t = team1.TeamAdjustedTicketAccellerationRate - team2.TeamAdjustedTicketAccellerationRate;
                                             var t2t = team2.TeamAdjustedTicketAccellerationRate - team1.TeamAdjustedTicketAccellerationRate;
@@ -7182,16 +7193,6 @@ namespace PRoConEvents {
                                     _LastTicketRateDisplay = UtcDbTime();
                                     _currentFlagMessage = flagMessage;
                                     ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
-                                    if (_isTestingAuthorized)
-                                    {
-                                        if ((team1.TeamAdjustedTicketCountsFull && team2.TeamAdjustedTicketCountsFull) || (UtcDbTime() - _AdKatsRunningTime).Minutes > 2)
-                                        {
-                                            ProconChatWrite(BoldMessage(" (" + team1.TeamKey + " Acc: " + Math.Round(team1.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m | " + team2.TeamKey + " Acc: " + Math.Round(team2.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m)"));
-                                        }
-                                        else {
-                                            ProconChatWrite(BoldMessage("Calculating ticket acceleration."));
-                                        }
-                                    }
                                 }
                             }
                             if (team1.TeamTicketCount >= 0 && team2.TeamTicketCount >= 0) {
@@ -7203,7 +7204,7 @@ namespace PRoConEvents {
                                 !_endingRound && 
                                 (UtcDbTime() - _lastAutoSurrenderTriggerTime).TotalSeconds > 9.5 && 
                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 60 &&
-                                (UtcDbTime() - _AdKatsRunningTime).TotalMinutes > 5) 
+                                (UtcDbTime() - _AdKatsRunningTime).TotalMinutes > 2.5) 
                             {
                                 var playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
                                 var neededPlayers = _surrenderAutoMinimumPlayers - playerCount;
@@ -10638,11 +10639,19 @@ namespace PRoConEvents {
                                 if (_isTestingAuthorized && _gameVersion == GameVersion.BF4)
                                 {
                                     var lowerM = " " + messageObject.Message.ToLower() + " ";
-                                    if (lowerM.Contains(" ping") || lowerM.Contains(" pings ") || lowerM.Contains(" ping.") || lowerM.Contains(" ping,"))
+                                    if (lowerM.Contains(" ping"))
                                     {
                                         if (!PlayerIsAdmin(aPlayer))
                                         {
                                             PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 and missing pings are kicked when the server is full.");
+                                            continue;
+                                        }
+                                    }
+                                    if (lowerM.Contains(" plng") || lowerM.Contains(" p|ng"))
+                                    {
+                                        if (!PlayerIsAdmin(aPlayer))
+                                        {
+                                            PlayerTellMessage(messageObject.Speaker, "Really? Bypassing the ping message?");
                                             continue;
                                         }
                                     }
@@ -34550,6 +34559,7 @@ namespace PRoConEvents {
             public Double player_reputation = 0;
             public DateTime player_firstseen = DateTime.UtcNow;
             public DateTime LastUsage = DateTime.UtcNow;
+            public DateTime JoinTime = DateTime.UtcNow;
             public AdKatsServer player_server = null;
             public TimeSpan player_serverplaytime = TimeSpan.FromSeconds(0);
             public Boolean player_spawnedOnce = false;
