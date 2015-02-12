@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.0.5
+ * Version 6.5.0.6
  * 11-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.0.5</version_code>
+ * <version_code>6.5.0.6</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.0.5";
+        private const String PluginVersion = "6.5.0.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7106,63 +7106,71 @@ namespace PRoConEvents {
                                     Double loseRate = flagLosingTeam.TeamAdjustedTicketDifferenceRate;
                                     if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" && _gameVersion == GameVersion.BF4)
                                     {
-                                        if (winRate > -25 && loseRate > -25)
+
+                                        if (team1.TeamAdjustedTicketCountsFull && team2.TeamAdjustedTicketCountsFull && (UtcDbTime() - _AdKatsRunningTime).Minutes > 5)
                                         {
-                                            flagMessage = " | Flags equal for both teams, ";
+                                            if (winRate > -20 && loseRate > -20)
+                                            {
+                                                flagMessage = " | Flags equal for both teams, ";
+                                            }
+                                            else if (loseRate <= -20 && loseRate > -34)
+                                            {
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 1 flag, ";
+                                            }
+                                            else if (loseRate <= -34 && loseRate > -38)
+                                            {
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 1-3 flags, ";
+                                            }
+                                            else if (loseRate <= -38 && loseRate > -44)
+                                            {
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 3 flags, ";
+                                            }
+                                            else if (loseRate <= -44 && loseRate > -48)
+                                            {
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 3-5 flags, ";
+                                            }
+                                            else if (loseRate <= -48 && loseRate > -54)
+                                            {
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 5 flags, ";
+                                            }
+                                            else if (loseRate <= -54 && loseRate > -58)
+                                            {
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 5-7 flags, ";
+                                            }
+                                            else if (loseRate <= -58 && loseRate > -64)
+                                            {
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 7 flags, ";
+                                            }
+                                            else if (loseRate <= -64 && loseRate > -68)
+                                            {
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 7-9 flags, ";
+                                            }
+                                            else if (loseRate <= -68 && loseRate > -74)
+                                            {
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by 9 flags, ";
+                                            }
+                                            else if (loseRate < -74)
+                                            {
+                                                flagMessage = " | " + flagWinningTeam.TeamKey + " up by many flags, ";
+                                            }
+                                            var t1t = team1.TeamAdjustedTicketAccellerationRate - team2.TeamAdjustedTicketAccellerationRate;
+                                            var t2t = team2.TeamAdjustedTicketAccellerationRate - team1.TeamAdjustedTicketAccellerationRate;
+                                            if (Math.Abs(t1t - t2t) < 10)
+                                            {
+                                                flagMessage += "not changing.";
+                                            }
+                                            else if (t1t > t2t)
+                                            {
+                                                flagMessage += team1.TeamKey + " gaining ground.";
+                                            }
+                                            else
+                                            {
+                                                flagMessage += team2.TeamKey + " gaining ground.";
+                                            }
                                         }
-                                        else if (loseRate <= -25 && loseRate > -34)
+                                        else 
                                         {
-                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 1 flag, ";
-                                        }
-                                        else if (loseRate <= -34 && loseRate > -38)
-                                        {
-                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 1-3 flags, ";
-                                        }
-                                        else if (loseRate <= -38 && loseRate > -44)
-                                        {
-                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 3 flags, ";
-                                        }
-                                        else if (loseRate <= -44 && loseRate > -48)
-                                        {
-                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 3-5 flags, ";
-                                        }
-                                        else if (loseRate <= -48 && loseRate > -54)
-                                        {
-                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 5 flags, ";
-                                        }
-                                        else if (loseRate <= -54 && loseRate > -58)
-                                        {
-                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 5-7 flags, ";
-                                        }
-                                        else if (loseRate <= -58 && loseRate > -64)
-                                        {
-                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 7 flags, ";
-                                        }
-                                        else if (loseRate <= -64 && loseRate > -68)
-                                        {
-                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 7-9 flags, ";
-                                        }
-                                        else if (loseRate <= -68 && loseRate > -74)
-                                        {
-                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by 9 flags, ";
-                                        }
-                                        else if (loseRate < -74)
-                                        {
-                                            flagMessage = " | " + flagWinningTeam.TeamKey + " up by many flags, ";
-                                        }
-                                        var t1t = team1.TeamAdjustedTicketAccellerationRate - team2.TeamAdjustedTicketAccellerationRate;
-                                        var t2t = team2.TeamAdjustedTicketAccellerationRate - team1.TeamAdjustedTicketAccellerationRate;
-                                        if (Math.Abs(t1t - t2t) < 10)
-                                        {
-                                            flagMessage += "not changing.";
-                                        }
-                                        else if (t1t > t2t)
-                                        {
-                                            flagMessage += team1.TeamKey + " gaining ground.";
-                                        }
-                                        else
-                                        {
-                                            flagMessage += team2.TeamKey + " gaining ground.";
+                                            flagMessage = "Calculating flag state.";
                                         }
                                     }
                                     else
@@ -7177,7 +7185,13 @@ namespace PRoConEvents {
                                     ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
                                     if (_isTestingAuthorized)
                                     {
-                                        ProconChatWrite(BoldMessage(" (" + team1.TeamKey + " Acc: " + Math.Round(team1.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m | " + team2.TeamKey + " Acc: " + Math.Round(team2.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m)"));
+                                        if (team1.TeamAdjustedTicketDifferenceRatesFull && team2.TeamAdjustedTicketDifferenceRatesFull && (UtcDbTime() - _AdKatsRunningTime).Minutes > 5) 
+                                        {
+                                            ProconChatWrite(BoldMessage(" (" + team1.TeamKey + " Acc: " + Math.Round(team1.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m | " + team2.TeamKey + " Acc: " + Math.Round(team2.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m)"));
+                                        }
+                                        else {
+                                            ProconChatWrite(BoldMessage("Calculating ticket acceleration."));
+                                        }
                                     }
                                 }
                             }
@@ -34966,6 +34980,7 @@ namespace PRoConEvents {
             private AdKats Plugin;
 
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamTicketCounts;
+            public Boolean TeamTicketCountsFull { get; private set; }
             public Double TeamTicketDifferenceRate { get; private set; }
             public Int32 TeamTicketCount { get; private set; }
             public DateTime TeamTicketsTime { get; private set; }
@@ -34974,15 +34989,18 @@ namespace PRoConEvents {
             //Ticket Adjustments
             private Int32 TeamTicketAdjustment;
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamAdjustedTicketCounts;
+            public Boolean TeamAdjustedTicketCountsFull { get; private set; }
             public Int32 TeamAdjustedTicketCount { get; private set; }
             public DateTime TeamAdjustedTicketsTime { get; private set; }
             public Boolean TeamAdjustedTicketsAdded { get; private set; }
             public Double TeamAdjustedTicketDifferenceRate { get; private set; }
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamAdjustedTicketDifferenceRates;
+            public Boolean TeamAdjustedTicketDifferenceRatesFull { get; private set; }
             public Double TeamAdjustedTicketAccellerationRate { get; private set; }
 
             //Score
             private readonly Queue<KeyValuePair<Double, DateTime>> TeamTotalScores;
+            public Boolean TeamTotalScoresFull { get; private set; }
             public Double TeamScoreDifferenceRate { get; private set; }
             public Double TeamTotalScore { get; private set; }
             public DateTime TeamTotalScoresTime { get; private set; }
@@ -34995,9 +35013,13 @@ namespace PRoConEvents {
                 TeamName = teamName;
                 TeamDesc = teamDesc;
                 TeamTotalScores = new Queue<KeyValuePair<Double, DateTime>>();
+                TeamTotalScoresFull = false;
                 TeamTicketCounts = new Queue<KeyValuePair<Double, DateTime>>();
+                TeamTicketCountsFull = false;
                 TeamAdjustedTicketCounts = new Queue<KeyValuePair<Double, DateTime>>();
+                TeamAdjustedTicketCountsFull = false;
                 TeamAdjustedTicketDifferenceRates = new Queue<KeyValuePair<Double, DateTime>>();
+                TeamAdjustedTicketDifferenceRatesFull = false;
             }
 
             public Int32 TeamID { get; private set; }
@@ -35058,6 +35080,7 @@ namespace PRoConEvents {
                         if (TeamTicketCounts.Any() && (Plugin.UtcDbTime() - TeamTicketCounts.Peek().Value).TotalSeconds > 60)
                         {
                             TeamTicketCounts.Dequeue();
+                            TeamTicketCountsFull = true;
                             removed = true;
                         }
                     } while (removed);
@@ -35113,11 +35136,13 @@ namespace PRoConEvents {
                         if (TeamAdjustedTicketCounts.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketCounts.Peek().Value).TotalSeconds > 45)
                         {
                             TeamAdjustedTicketCounts.Dequeue();
+                            TeamAdjustedTicketCountsFull = true;
                             removed = true;
                         }
                         if (TeamAdjustedTicketDifferenceRates.Any() && (Plugin.UtcDbTime() - TeamAdjustedTicketDifferenceRates.Peek().Value).TotalSeconds > 45)
                         {
                             TeamAdjustedTicketDifferenceRates.Dequeue();
+                            TeamAdjustedTicketDifferenceRatesFull = true;
                             removed = true;
                         }
                     } while (removed);
@@ -35220,6 +35245,7 @@ namespace PRoConEvents {
                         if (TeamTotalScores.Any() && (Plugin.UtcDbTime() - TeamTotalScores.Peek().Value).TotalSeconds > 60)
                         {
                             TeamTotalScores.Dequeue();
+                            TeamTotalScoresFull = true;
                             removed = true;
                         }
                     } while (removed);
@@ -35266,6 +35292,10 @@ namespace PRoConEvents {
                     TeamTotalScores.Clear();
                     TeamScoreDifferenceRate = 0;
                     TeamTotalScoresAdded = false;
+                    TeamTotalScoresFull = false;
+                    TeamTicketCountsFull = false;
+                    TeamAdjustedTicketCountsFull = false;
+                    TeamAdjustedTicketDifferenceRatesFull = false;
                 }
                 catch (Exception e) {
                     Plugin.HandleException(new AdKatsException("Error while resetting team.", e));
