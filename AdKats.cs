@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.0.6
+ * Version 6.5.0.7
  * 11-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.0.6</version_code>
+ * <version_code>6.5.0.7</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.0.6";
+        private const String PluginVersion = "6.5.0.7";
 
         public enum ConsoleMessageType {
             Normal,
@@ -7106,8 +7106,7 @@ namespace PRoConEvents {
                                     Double loseRate = flagLosingTeam.TeamAdjustedTicketDifferenceRate;
                                     if (_serverInfo.InfoObject.GameMode == "ConquestLarge0" && _gameVersion == GameVersion.BF4)
                                     {
-
-                                        if (team1.TeamAdjustedTicketCountsFull && team2.TeamAdjustedTicketCountsFull && (UtcDbTime() - _AdKatsRunningTime).Minutes > 5)
+                                        if ((team1.TeamAdjustedTicketCountsFull && team2.TeamAdjustedTicketCountsFull) || (UtcDbTime() - _AdKatsRunningTime).Minutes > 2)
                                         {
                                             if (winRate > -20 && loseRate > -20)
                                             {
@@ -7170,7 +7169,7 @@ namespace PRoConEvents {
                                         }
                                         else 
                                         {
-                                            flagMessage = "Calculating flag state.";
+                                            flagMessage = " | Calculating flag state.";
                                         }
                                     }
                                     else
@@ -7185,7 +7184,7 @@ namespace PRoConEvents {
                                     ProconChatWrite(BoldMessage(team1.TeamKey + " Rate: " + Math.Round(team1.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team1.TeamAdjustedTicketDifferenceRate, 2) + ") t/m | " + team2.TeamKey + " Rate: " + Math.Round(team2.TeamTicketDifferenceRate, 2) + " (" + Math.Round(team2.TeamAdjustedTicketDifferenceRate, 2) + ") t/m" + flagMessage));
                                     if (_isTestingAuthorized)
                                     {
-                                        if (team1.TeamAdjustedTicketDifferenceRatesFull && team2.TeamAdjustedTicketDifferenceRatesFull && (UtcDbTime() - _AdKatsRunningTime).Minutes > 5) 
+                                        if ((team1.TeamAdjustedTicketCountsFull && team2.TeamAdjustedTicketCountsFull) || (UtcDbTime() - _AdKatsRunningTime).Minutes > 2)
                                         {
                                             ProconChatWrite(BoldMessage(" (" + team1.TeamKey + " Acc: " + Math.Round(team1.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m | " + team2.TeamKey + " Acc: " + Math.Round(team2.TeamAdjustedTicketAccellerationRate, 2) + " t/m/m)"));
                                         }
