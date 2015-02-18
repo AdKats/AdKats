@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.1.0
- * 12-FEB-2015
+ * Version 6.5.1.1
+ * 18-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.1.0</version_code>
+ * <version_code>6.5.1.1</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.1.0";
+        private const String PluginVersion = "6.5.1.1";
 
         public enum ConsoleMessageType {
             Normal,
@@ -4974,7 +4974,7 @@ namespace PRoConEvents {
                         } while (alive);
                         
                         Int64 MBUsed = (GC.GetTotalMemory(true) / 1024 / 1024);
-                        Boolean memDisplay = _isTestingAuthorized && MBUsed > 250;
+                        Boolean memDisplay = _isTestingAuthorized && MBUsed > 100;
                         //Reset all caches and storage
                         if (memDisplay) {
                             ConsoleInfo("Before any: " + MBUsed + "MB");
@@ -5076,6 +5076,7 @@ namespace PRoConEvents {
                         _databaseConnectionCriticalState = false;
                         _databaseSuccess = 0;
                         _databaseTimeouts = 0;
+                        _pingKicksTotal = 0;
                         if (_subscribedClients.Any()) {
                             ConsoleWarn("All active subscriptions removed.");
                             _subscribedClients.Clear();
@@ -6544,6 +6545,7 @@ namespace PRoConEvents {
                                     ConsoleError(record.record_message);
                                     //Set round ended
                                     _roundState = RoundState.Ended;
+                                    _roundID = 0;
                                     //Clear populators
                                     _populationPopulatingPlayers.Clear();
                                 }
