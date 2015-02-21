@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.1.1
- * 18-FEB-2015
+ * Version 6.5.1.2
+ * 21-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.1.1</version_code>
+ * <version_code>6.5.1.2</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.1.1";
+        private const String PluginVersion = "6.5.1.2";
 
         public enum ConsoleMessageType {
             Normal,
@@ -5653,8 +5653,7 @@ namespace PRoConEvents {
                             //Check for already existing Neutral team
                             if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
                                 _teamDictionary.ContainsKey(targetTeamID) &&
-                                _teamDictionary[targetTeamID].TeamKey == "Neutral" &&
-                                _roundState == RoundState.Playing)
+                                _teamDictionary[targetTeamID].TeamKey == "Neutral")
                             {
                                 DebugWrite("Neutral Team already set for team " + targetTeamID + ", cancelling override.", 4);
                                 break;
@@ -5666,8 +5665,7 @@ namespace PRoConEvents {
                             //Check for already existing US team
                             if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
                                 _teamDictionary.ContainsKey(targetTeamID) &&
-                                _teamDictionary[targetTeamID].TeamKey == "US" &&
-                                _roundState == RoundState.Playing)
+                                _teamDictionary[targetTeamID].TeamKey == "US")
                             {
                                 DebugWrite("Team US already set for team " + targetTeamID + ", cancelling override.", 4);
                                 break;
@@ -5679,8 +5677,7 @@ namespace PRoConEvents {
                             //Check for already existing US team
                             if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 && 
                                 _teamDictionary.ContainsKey(targetTeamID) &&
-                                _teamDictionary[targetTeamID].TeamKey == "RU" &&
-                                _roundState == RoundState.Playing)
+                                _teamDictionary[targetTeamID].TeamKey == "RU")
                             {
                                 DebugWrite("Team RU already set for team " + targetTeamID + ", cancelling override.", 4);
                                 break;
@@ -5692,8 +5689,7 @@ namespace PRoConEvents {
                             //Check for already existing US team
                             if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 
                                 && _teamDictionary.ContainsKey(targetTeamID) &&
-                                _teamDictionary[targetTeamID].TeamKey == "CN" &&
-                                _roundState == RoundState.Playing)
+                                _teamDictionary[targetTeamID].TeamKey == "CN")
                             {
                                 DebugWrite("Team CN already set for team " + targetTeamID + ", cancelling override.", 4);
                                 break;
@@ -9055,13 +9051,37 @@ namespace PRoConEvents {
                                     if (_isTestingAuthorized) {
                                         ConsoleWarn("Bans detected for " + aPlayer.player_name);
                                     }
-                                    foreach (AdKatsBan aBan in aBanList) {
-                                        if (aBan.ban_record.target_player.player_id == aPlayer.player_id || aBan.ban_record.target_player.player_ip == aPlayer.player_ip)
+                                    //Check for specific ban on this player
+                                    AdKatsBan playerBan = aBanList.Where(aBan => aBan.player_id == aPlayer.player_id || (aBan.ban_record.target_player != null && aBan.ban_record.target_player.player_id == aPlayer.player_id)).FirstOrDefault();
+                                    if (playerBan != null)
+                                    {
+                                        //Ensure the ban record has updated player information
+                                        playerBan.ban_record.target_player = aPlayer;
+                                        //Found specific ban
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            source_name = "BanEnforcer",
+                                            isIRO = false,
+                                            server_id = _serverInfo.ServerID,
+                                            target_name = aPlayer.player_name,
+                                            target_player = aPlayer,
+                                            command_type = GetCommandByKey("banenforcer_enforce"),
+                                            command_numeric = (int) playerBan.ban_id,
+                                            record_message = playerBan.ban_record.record_message
+                                        });
+                                    }
+                                    else {
+                                        //No specific ban, use linked bans
+                                        List<String> linkedIDs = (from aBan in aBanList where aBan != null && aBan.ban_record != null && aBan.ban_record.target_player != null select aBan.ban_record.target_player.player_id.ToString()).ToList();
+                                        String strIDs = String.Join(", ", linkedIDs.ToArray());
+                                        //Use the first ban found
+                                        playerBan = aBanList.FirstOrDefault();
+                                        if (playerBan != null)
                                         {
-                                            DebugWrite("BAN ENFORCED on " + aPlayer.GetVerboseName(), 3);
-                                            //Create the new record
-                                            var aRecord = new AdKatsRecord
-                                            {
+                                            //Ensure the ban record has updated player information
+                                            playerBan.ban_record.target_player = aPlayer;
+                                            //Queue record for upload
+                                            QueueRecordForProcessing(new AdKatsRecord {
                                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                                 source_name = "BanEnforcer",
                                                 isIRO = false,
@@ -9069,17 +9089,18 @@ namespace PRoConEvents {
                                                 target_name = aPlayer.player_name,
                                                 target_player = aPlayer,
                                                 command_type = GetCommandByKey("banenforcer_enforce"),
-                                                command_numeric = (int)aBan.ban_id,
-                                                record_message = aBan.ban_record.record_message + ((aBan.ban_record.target_player.player_id != aPlayer.player_id) ? (" [LINKED ACCOUNT " + aBan.ban_record.target_player.player_id + "]") : (""))
-                                            };
-                                            //Queue record for upload
-                                            QueueRecordForProcessing(aRecord);
-                                            //Ensure the ban record has correct player information
-                                            aBan.ban_record.target_player = aPlayer;
-                                            //Enforce the ban
-                                            EnforceBan(aBan, true);
+                                                command_numeric = (int) playerBan.ban_id,
+                                                record_message = playerBan.ban_record.record_message + " [LINKED ACCOUNT " + strIDs + "]"
+                                            });
+                                        }
+                                        else {
+                                            ConsoleError("Error fetching ban details to enforce.");
+                                            continue;
                                         }
                                     }
+                                    DebugWrite("BAN ENFORCED on " + aPlayer.GetVerboseName(), 3);
+                                    //Enforce the ban
+                                    EnforceBan(playerBan, true);
                                 }
                                 else {
                                     DebugWrite("No ban found for player", 5);
@@ -16708,7 +16729,7 @@ namespace PRoConEvents {
                         else if (!_surrenderVoteSucceeded && _surrenderVoteList.Contains(record.source_name)) {
                             if (_surrenderVoteList.Remove(record.source_name))
                             {
-                                SendMessageToSource(record, "Your surrender vote has been removed!");
+                                SendMessageToSource(record, "Your vote has been removed!");
                                 Int32 requiredVotes = (Int32)((_PlayerDictionary.Count / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
                                 OnlineAdminSayMessage(record.GetSourceName() + " removed their surrender vote.");
@@ -21863,7 +21884,7 @@ namespace PRoConEvents {
                 }
                 else
                 {
-                    SendMessageToSource(record, "You voted for round surrender!");
+                    SendMessageToSource(record, "You voted to end the round!");
                     if (voteEnabled) {
                         AdminTellMessage("Surrender Vote started! Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                     }
@@ -21929,7 +21950,7 @@ namespace PRoConEvents {
                 _nosurrenderVoteList.Add(record.source_name);
                 Int32 requiredVotes = (Int32)((_PlayerDictionary.Count / 2.0) * (_surrenderVoteMinimumPlayerPercentage / 100.0));
                 Int32 voteCount = _surrenderVoteList.Count - _nosurrenderVoteList.Count;
-                SendMessageToSource(record, "You voted against round surrender!");
+                SendMessageToSource(record, "You voted against ending the round!");
                 AdminSayMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble. Use @" + GetCommandByKey("self_surrender").command_text + ", @" + GetCommandByKey("self_votenext").command_text + ", or @" + GetCommandByKey("self_nosurrender").command_text + " to vote.");
                 AdminYellMessage((requiredVotes - voteCount) + " votes needed for surrender/scramble");
                 OnlineAdminSayMessage(record.GetSourceName() + " voted against round surrender.");
@@ -34782,7 +34803,7 @@ namespace PRoConEvents {
 
             public TimeSpan GetRoundElapsedTime()
             {
-                if (InfoObject == null)
+                if (InfoObject == null || Plugin._roundState != RoundState.Playing)
                 {
                     return TimeSpan.Zero;
                 }
