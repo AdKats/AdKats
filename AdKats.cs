@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.1.2
+ * Version 6.5.1.3
  * 21-FEB-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.1.2</version_code>
+ * <version_code>6.5.1.3</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.1.2";
+        private const String PluginVersion = "6.5.1.3";
 
         public enum ConsoleMessageType {
             Normal,
@@ -9104,6 +9104,20 @@ namespace PRoConEvents {
                                 }
                                 else {
                                     DebugWrite("No ban found for player", 5);
+                                    if (aPlayer.player_name.ToLower().Contains("fairfight") || aPlayer.player_name.StartsWith("AA_") || aPlayer.player_name.EndsWith("_AA"))
+                                    {
+                                        QueueRecordForProcessing(new AdKatsRecord
+                                        {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_ban_perm"),
+                                            command_numeric = 0,
+                                            target_name = aPlayer.player_name,
+                                            target_player = aPlayer,
+                                            source_name = "AutoAdmin",
+                                            record_message = "Multihack"
+                                        });
+                                    }
                                     //Only call a hack check if the player does not already have a ban
                                     if (_UseHackerChecker) {
                                         QueuePlayerForHackerCheck(aPlayer);
