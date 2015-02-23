@@ -102,7 +102,7 @@
     </li>
     <li>
         <b>Install the plugin. (WITHOUT AdKats Installed)</b>
-        Once purchased, you will be given access to the private repository where AdKatsLRT is hosted. If you want future access for manual updates, supply a Github user name and you will be added that way. If you do not have a Github account, you will be given the source code manually.
+        Once purchased, you will be given access to the private repository where AdKatsLRT is hosted. A github account is required to access the repository, simply send ColColonCleaner your github username and details will be provided at that time. The plugin is installed like any other procon plugin.
     </li>
     <li>
         <b>Enable AdKatsLRT.</b>
