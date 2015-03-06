@@ -64,6 +64,11 @@
 			"group_id":12,
 			"group_key":"blacklist_spectator",
 			"group_name":"Spectator Blacklist" 
+		},
+		{
+			"group_id":13,
+			"group_key":"blacklist_report",
+			"group_name":"Report Target Blacklist" 
 		}
 	]
 }
