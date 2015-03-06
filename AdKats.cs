@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.1.5
- * 21-FEB-2015
+ * Version 6.5.1.6
+ * 5-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.1.5</version_code>
+ * <version_code>6.5.1.6</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.1.5";
+        private const String PluginVersion = "6.5.1.6";
 
         public enum ConsoleMessageType {
             Normal,
@@ -352,9 +352,10 @@ namespace PRoConEvents {
         //Users
         private const Int32 DbUserFetchFrequency = 300;
         private readonly Dictionary<long, AdKatsUser> _userCache = new Dictionary<long, AdKatsUser>();
-        private Dictionary<Int64, AdKatsSpecialGroup> _specialPlayerGroupIDDictionary = new Dictionary<Int64, AdKatsSpecialGroup>();
-        private Dictionary<String, AdKatsSpecialGroup> _specialPlayerGroupKeyDictionary = new Dictionary<String, AdKatsSpecialGroup>();
-        private readonly Dictionary<Int64, AdKatsSpecialPlayer> _specialPlayerCache = new Dictionary<Int64, AdKatsSpecialPlayer>();
+        private readonly Dictionary<Int64, AdKatsSpecialGroup> _specialPlayerGroupIDDictionary = new Dictionary<Int64, AdKatsSpecialGroup>();
+        private readonly Dictionary<String, AdKatsSpecialGroup> _specialPlayerGroupKeyDictionary = new Dictionary<String, AdKatsSpecialGroup>();
+        private readonly Dictionary<Int64, AdKatsSpecialPlayer> _baseSpecialPlayerCache = new Dictionary<Int64, AdKatsSpecialPlayer>();
+        private readonly Dictionary<String, AdKatsSpecialPlayer> _verboseSpecialPlayerCache = new Dictionary<String, AdKatsSpecialPlayer>();
 
         //Games and teams
         private readonly Dictionary<Int64, GameVersion> _gameIDDictionary = new Dictionary<Int64, GameVersion>();
@@ -621,8 +622,7 @@ namespace PRoConEvents {
 
         //Experimental
         private Boolean _useExperimentalTools;
-        private Ping _pingProcessor = new Ping();
-        private Boolean _UsingAwa;
+        private readonly Ping _pingProcessor = new Ping();
         private Boolean _WeaponCodesTableTested;
         private Boolean _WeaponCodesTableConfirmed;
         private Boolean _UseGrenadeCookCatcher;
@@ -797,6 +797,8 @@ namespace PRoConEvents {
 
         public List<CPluginVariable> GetDisplayPluginVariables() {
             try {
+                var timer = new Stopwatch();
+                timer.Start();
                 var lstReturn = new List<CPluginVariable>();
                 const string separator = " | ";
 
@@ -844,6 +846,10 @@ namespace PRoConEvents {
                         }
                         lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof (int), _debugLevel));
                         lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof (String), _debugSoldierName));
+                        timer.Stop();
+                        if (timer.ElapsedMilliseconds > 500 && _isTestingAuthorized) {
+                            DebugWrite("Settings took " + timer.ElapsedMilliseconds + "ms to render.", 5);
+                        }
                         return lstReturn;
                     }
                     //Auto-Enable Settings
@@ -946,9 +952,8 @@ namespace PRoConEvents {
                     }
                     lstReturn.Add(new CPluginVariable("A13. Banning Settings|Procon Ban Admin Name", typeof (String), _CBanAdminName));
                     const string banEnforcerPrefix = "A13-2. Ban Enforcer Settings|";
-                    if (!_UsingAwa) {
-                        lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Use Ban Enforcer", typeof (Boolean), _UseBanEnforcer));
-                    }
+                    
+                    lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
                     if (_UseBanEnforcer) {
                         lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by NAME", typeof (Boolean), _DefaultEnforceName));
                         lstReturn.Add(new CPluginVariable(banEnforcerPrefix + "Enforce New Bans by GUID", typeof (Boolean), _DefaultEnforceGUID));
@@ -964,7 +969,7 @@ namespace PRoConEvents {
 
                     //External Command Settings
                     lstReturn.Add(new CPluginVariable("A14. External Command Settings|AdkatsLRT Extension Token", typeof(String), _AdKatsLRTExtensionToken));
-                    if (!_UseBanEnforcer && !_UsingAwa) {
+                    if (!_UseBanEnforcer) {
                         lstReturn.Add(new CPluginVariable("A14. External Command Settings|Fetch Actions from Database", typeof (Boolean), _fetchActionsFromDb));
                     }
 
@@ -1187,7 +1192,7 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof (Boolean), _UseGrenadeCookCatcher));
                         }
                     }
-                    if (!_UsingAwa) {
+                    if (true) {
                         const string userSettingsPrefix = "3. User Settings|";
                         //User Settings
                         lstReturn.Add(new CPluginVariable(userSettingsPrefix + "Add User", typeof (String), ""));
@@ -1239,6 +1244,7 @@ namespace PRoConEvents {
 
                         //Special Player Settings
                         const string specialPlayerPrefix = "3-2. Special Player Display|";
+                        Boolean anyList = false;
                         foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name)) 
                         {
                             List<String> groupList = new List<String>();
@@ -1262,7 +1268,50 @@ namespace PRoConEvents {
                                     groupList.Add(playerIdentifier);
                                 }
                             }
-                            lstReturn.Add(new CPluginVariable(specialPlayerPrefix + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
+                            if (groupList.Any()) {
+                                anyList = true;
+                                lstReturn.Add(new CPluginVariable(specialPlayerPrefix + "[" + groupList.Count + "] " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
+                            }
+                        }
+                        if (!anyList)
+                        {
+                            lstReturn.Add(new CPluginVariable(specialPlayerPrefix + "All Groups Empty", typeof(String), "All Groups Empty"));
+                        }
+
+                        //Special Player Settings
+                        const string dynamicSpecialPlayerPrefix = "3-3. Verbose Special Player Display|";
+                        Boolean anyVerbostList = false;
+                        foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name)) 
+                        {
+                            List<String> groupList = new List<String>();
+                            foreach (AdKatsSpecialPlayer asPlayer in GetVerboseASPlayersOfGroup(asGroup.group_key)) 
+                            {
+                                String playerIdentifier = null;
+                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name)) 
+                                {
+                                    playerIdentifier = asPlayer.player_object.player_name;
+                                }
+                                else 
+                                {
+                                    playerIdentifier = asPlayer.player_identifier;
+                                }
+                                if (String.IsNullOrEmpty(playerIdentifier)) 
+                                {
+                                    continue;
+                                }
+                                if (!groupList.Contains(playerIdentifier))
+                                {
+                                    groupList.Add(playerIdentifier);
+                                }
+                            }
+                            if (groupList.Any()) {
+                                anyVerbostList = true;
+                                lstReturn.Add(new CPluginVariable(dynamicSpecialPlayerPrefix + "[" + groupList.Count + "] Verbose " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
+                            }
+                        }
+                        if (!anyVerbostList)
+                        {
+                            lstReturn.Add(new CPluginVariable(dynamicSpecialPlayerPrefix + "All Verbose Groups Empty", typeof(String), "All Verbose Groups Empty"));
                         }
 
                         //Role Settings
@@ -1387,6 +1436,11 @@ namespace PRoConEvents {
                         lstReturn.Add(new CPluginVariable(banManagementPrefix + "Ban Search", typeof (String), ""));
                         lstReturn.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(banManagementPrefix + "BAN" + aBan.ban_id + separator + aBan.ban_record.target_player.player_name + separator + aBan.ban_record.source_name + separator + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
                     }
+                } 
+                timer.Stop();
+                if (timer.ElapsedMilliseconds > 500 && _isTestingAuthorized)
+                {
+                    DebugWrite("Settings took " + timer.ElapsedMilliseconds + "ms to render.", 5);
                 }
                 return lstReturn;
             }
@@ -1551,23 +1605,6 @@ namespace PRoConEvents {
                         ConsoleError("Invalid Input for Setting Import");
                     }
                 }
-                else if (Regex.Match(strVariable, @"Using AdKats WebAdmin").Success) {
-                    Boolean tmp = false;
-                    if (Boolean.TryParse(strValue, out tmp)) {
-                        _UsingAwa = tmp;
-
-                        //Update necessary settings for AWA use
-                        if (_UsingAwa) {
-                            _UseBanEnforcer = true;
-                            _fetchActionsFromDb = true;
-                            _DbCommunicationWaitHandle.Set();
-                        }
-                    }
-                    else {
-                        ConsoleError("Invalid Input for Using AdKats WebAdmin");
-                    }
-                }
-
                 else if (Regex.Match(strVariable, @"Command Entry").Success) {
                     if (String.IsNullOrEmpty(strValue)) {
                         return;
@@ -6693,12 +6730,7 @@ namespace PRoConEvents {
                         //Push online player subscription
                         if (playerListFetched && _pluginEnabled)
                         {
-                            foreach (AdKatsClient client in 
-                                    _subscribedClients.Where(aClient => 
-                                        aClient.SubscriptionGroup == "OnlineSoldiers" && 
-                                        aClient.SubscriptionEnabled).ToList()) {
-                                SendOnlineSoldiers(client);
-                            }
+                            SendOnlineSoldiers();
                         }
                         if (!_firstPlayerListComplete && playerListFetched && _pluginEnabled) 
                         {
@@ -9235,40 +9267,48 @@ namespace PRoConEvents {
             DebugWrite("Exiting queuePlayerForHackerCheck", 7);
         }
 
-        public List<AdKatsSpecialPlayer> GetASPlayersOfGroup(String specialPlayerGroup) {
-            Dictionary<Int64, AdKatsSpecialPlayer> tempASPlayers = new Dictionary<Int64, AdKatsSpecialPlayer>();
-            AdKatsSpecialGroup asGroup = null;
-            foreach (var asPlayer in _specialPlayerCache.Values.Where(asPlayer => asPlayer.player_group.group_key == specialPlayerGroup).ToList()) {
-                if (asPlayer.player_object != null) {
-                    tempASPlayers[asPlayer.player_object.player_id] = asPlayer;
-                }
-                else {
-                    tempASPlayers[asPlayer.specialplayer_id] = asPlayer;
-                }
-                if (asGroup == null) {
-                    asGroup = asPlayer.player_group;
-                }
-            }
-            foreach (var aUser in _userCache.Values.Where(sUser => sUser.user_role.RoleSetGroups.ContainsKey(specialPlayerGroup)).ToList()) {
-                foreach (var aPlayer in aUser.soldierDictionary.Values.ToList())
+        public List<AdKatsSpecialPlayer> GetASPlayersOfGroup(String specialPlayerGroup)
+        {
+            DebugWrite("Entering GetAsPlayersOfGroup", 8);
+            try
+            {
+                lock (_baseSpecialPlayerCache)
                 {
-                    //Check for existing player
-                    if (!tempASPlayers.ContainsKey(aPlayer.player_id))
-                    {
-                        tempASPlayers[aPlayer.player_id] = new AdKatsSpecialPlayer()
-                        {
-                            player_game = (int)_serverInfo.GameID,
-                            player_server = (int)_serverInfo.ServerID,
-                            player_group = asGroup,
-                            player_identifier = aPlayer.player_name,
-                            player_object = aPlayer,
-                            player_effective = UtcDbTime(),
-                            player_expiration = aUser.user_expiration
-                        };
-                    }
+                    List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
+                    matchingSpecialPlayers.AddRange(_baseSpecialPlayerCache.Values.Where(asPlayer =>
+                        asPlayer.player_group != null &&
+                        asPlayer.player_group.group_key == specialPlayerGroup));
+                    return matchingSpecialPlayers;
                 }
             }
-            return tempASPlayers.Values.ToList();
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching special players of group.", e));
+            }
+            DebugWrite("Exiting GetAsPlayersOfGroup", 8);
+            return null;
+        }
+
+        public List<AdKatsSpecialPlayer> GetVerboseASPlayersOfGroup(String specialPlayerGroup)
+        {
+            DebugWrite("Entering GetVerboseASPlayersOfGroup", 8);
+            try
+            {
+                lock (_baseSpecialPlayerCache)
+                {
+                    List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
+                    matchingSpecialPlayers.AddRange(_verboseSpecialPlayerCache.Values.Where(asPlayer =>
+                        asPlayer.player_group != null &&
+                        asPlayer.player_group.group_key == specialPlayerGroup));
+                    return matchingSpecialPlayers;
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching verbose special players of group.", e));
+            }
+            DebugWrite("Exiting GetVerboseASPlayersOfGroup", 8);
+            return null;
         }
 
         public List<AdKatsSpecialPlayer> GetMatchingASPlayersOfGroup(String specialPlayerGroup, AdKatsPlayer aPlayer)
@@ -9276,19 +9316,52 @@ namespace PRoConEvents {
             DebugWrite("Entering GetMatchingASPlayersOfGroup", 8);
             try
             {
-                List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
-                matchingSpecialPlayers.AddRange(GetASPlayersOfGroup(specialPlayerGroup).Where(asPlayer => asPlayer.player_object != null &&
-                    (asPlayer.player_object.player_id == aPlayer.player_id ||
-                     asPlayer.player_identifier == aPlayer.player_name ||
-                     asPlayer.player_identifier == aPlayer.player_guid ||
-                     asPlayer.player_identifier == aPlayer.player_ip)));
-                return matchingSpecialPlayers;
+                lock (_baseSpecialPlayerCache)
+                {
+                    List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
+                    matchingSpecialPlayers.AddRange(_baseSpecialPlayerCache.Values.Where(asPlayer =>
+                        asPlayer.player_group != null &&
+                        asPlayer.player_group.group_key == specialPlayerGroup &&
+                        asPlayer.player_object != null &&
+                        (asPlayer.player_object.player_id == aPlayer.player_id ||
+                         asPlayer.player_identifier == aPlayer.player_name ||
+                         asPlayer.player_identifier == aPlayer.player_guid ||
+                         asPlayer.player_identifier == aPlayer.player_ip)));
+                    return matchingSpecialPlayers;
+                }
             }
             catch (Exception e)
             {
                 HandleException(new AdKatsException("Error while fetching matching special players.", e));
             }
             DebugWrite("Exiting GetMatchingASPlayersOfGroup", 8);
+            return null;
+        }
+
+        public List<AdKatsSpecialPlayer> GetMatchingVerboseASPlayersOfGroup(String specialPlayerGroup, AdKatsPlayer aPlayer)
+        {
+            DebugWrite("Entering GetMatchingVerboseASPlayersOfGroup", 8);
+            try
+            {
+                lock (_baseSpecialPlayerCache)
+                {
+                    List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
+                    matchingSpecialPlayers.AddRange(_verboseSpecialPlayerCache.Values.Where(asPlayer =>
+                        asPlayer.player_group != null &&
+                        asPlayer.player_group.group_key == specialPlayerGroup &&
+                        asPlayer.player_object != null &&
+                        (asPlayer.player_object.player_id == aPlayer.player_id ||
+                         asPlayer.player_identifier == aPlayer.player_name ||
+                         asPlayer.player_identifier == aPlayer.player_guid ||
+                         asPlayer.player_identifier == aPlayer.player_ip)));
+                    return matchingSpecialPlayers;
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while fetching matching verbose special players.", e));
+            }
+            DebugWrite("Exiting GetMatchingVerboseASPlayersOfGroup", 8);
             return null;
         }
 
@@ -9299,7 +9372,7 @@ namespace PRoConEvents {
             try
             {
                 List<AdKatsPlayer> onlinePlayerObjects = _PlayerDictionary.Values.ToList();
-                List<AdKatsSpecialPlayer> asPlayerObjects = GetASPlayersOfGroup(specialPlayerGroup);
+                List<AdKatsSpecialPlayer> asPlayerObjects = GetVerboseASPlayersOfGroup(specialPlayerGroup);
                 foreach (AdKatsSpecialPlayer asPlayer in asPlayerObjects)
                 {
                     foreach (AdKatsPlayer aPlayer in onlinePlayerObjects)
@@ -9342,27 +9415,32 @@ namespace PRoConEvents {
 
         public Boolean PlayerProtected(AdKatsPlayer aPlayer) {
             //Pull players from special player cache
-            lock (_specialPlayerCache) {
-                List<AdKatsSpecialPlayer> protectedList = GetASPlayersOfGroup("whitelist_hackerchecker");
-                if (protectedList.Any()) {
-                    foreach (AdKatsSpecialPlayer asPlayer in protectedList) {
-                        if (asPlayer.player_object != null && asPlayer.player_object.player_id == aPlayer.player_id) {
-                            DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by database ID.", 2);
+            List<AdKatsSpecialPlayer> protectedList = GetVerboseASPlayersOfGroup("whitelist_hackerchecker");
+            if (protectedList.Any())
+            {
+                foreach (AdKatsSpecialPlayer asPlayer in protectedList)
+                {
+                    if (asPlayer.player_object != null && asPlayer.player_object.player_id == aPlayer.player_id)
+                    {
+                        DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by database ID.", 2);
+                        return true;
+                    }
+                    if (!String.IsNullOrEmpty(asPlayer.player_identifier))
+                    {
+                        if (aPlayer.player_name == asPlayer.player_identifier)
+                        {
+                            DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by NAME.", 2);
                             return true;
                         }
-                        if (!String.IsNullOrEmpty(asPlayer.player_identifier)) {
-                            if (aPlayer.player_name == asPlayer.player_identifier) {
-                                DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by NAME.", 2);
-                                return true;
-                            }
-                            if (aPlayer.player_guid == asPlayer.player_identifier) {
-                                DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by GUID.", 2);
-                                return true;
-                            }
-                            if (aPlayer.player_ip == asPlayer.player_identifier) {
-                                DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by IP.", 2);
-                                return true;
-                            }
+                        if (aPlayer.player_guid == asPlayer.player_identifier)
+                        {
+                            DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by GUID.", 2);
+                            return true;
+                        }
+                        if (aPlayer.player_ip == asPlayer.player_identifier)
+                        {
+                            DebugWrite(aPlayer.GetVerboseName() + " protected from hacker checker by IP.", 2);
+                            return true;
                         }
                     }
                 }
@@ -30169,7 +30247,7 @@ namespace PRoConEvents {
                     }
                     DebugWrite("User fetch (User Soldiers) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     start = UtcDbTime();
-                    lock (_specialPlayerCache) {
+                    lock (_baseSpecialPlayerCache) {
                         SendNonQuery("Deleting expired special players", "DELETE FROM `adkats_specialplayers` WHERE `player_expiration` < UTC_TIMESTAMP()", false);
                         using (MySqlCommand command = connection.CreateCommand()) {
                             command.CommandText = @"
@@ -30218,7 +30296,7 @@ namespace PRoConEvents {
                                     //ID is valid
                                     validIDs.Add(specialPlayerID);
                                     //Check for player already existing
-                                    if (_specialPlayerCache.TryGetValue(specialPlayerID, out asPlayer)) {
+                                    if (_baseSpecialPlayerCache.TryGetValue(specialPlayerID, out asPlayer)) {
                                         //Special player already cached, do no special processing
                                     }
                                     else
@@ -30270,11 +30348,11 @@ namespace PRoConEvents {
                                         asPlayer.player_expiration = playerExpiration;
 
                                         //Assign to cache
-                                        _specialPlayerCache[specialPlayerID] = asPlayer;
+                                        _baseSpecialPlayerCache[specialPlayerID] = asPlayer;
                                     }
                                 }
                                 List<Int64> removeIDs = new List<Int64>();
-                                foreach (var asPlayerID in _specialPlayerCache.Keys)
+                                foreach (var asPlayerID in _baseSpecialPlayerCache.Keys)
                                 {
                                     if (!_pluginEnabled)
                                     {
@@ -30291,9 +30369,271 @@ namespace PRoConEvents {
                                         return;
                                     }
                                     ConsoleInfo("Removing special player " + asPlayerID + " from cache.");
-                                    _specialPlayerCache.Remove(asPlayerID);
+                                    _baseSpecialPlayerCache.Remove(asPlayerID);
                                 }
                             }
+                        }
+                        //Update the verbose special player cache
+                        List<String> validVerboseSpecialPlayers = new List<String>();
+                        foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name))
+                        {
+                            List<AdKatsSpecialPlayer> tempASPlayers = new List<AdKatsSpecialPlayer>();
+                            //Pull matching players from the special player cache
+                            foreach (var asPlayer in _baseSpecialPlayerCache.Values.Where(asPlayer => asPlayer.player_group.group_key == asGroup.group_key).ToList())
+                            {
+                                if (asPlayer.player_object != null)
+                                {
+                                    //A player object exists, check for duplicates using player ID
+                                    if (!tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == asPlayer.player_object.player_id))
+                                    {
+                                        tempASPlayers.Add(asPlayer);
+                                    }
+                                }
+                                else if (!tempASPlayers.Any(asp => asp.player_identifier == asPlayer.player_identifier))
+                                {
+                                    tempASPlayers.Add(asPlayer);
+                                }
+                            }
+                            //Pull matching players from the user cache
+                            foreach (var aUser in _userCache.Values.Where(sUser => sUser.user_role.RoleSetGroups.ContainsKey(asGroup.group_key)).ToList())
+                            {
+                                foreach (var aPlayer in aUser.soldierDictionary.Values.Where(sPlayer => sPlayer.game_id == _serverInfo.GameID).ToList())
+                                {
+                                    if (!tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id))
+                                    {
+                                        tempASPlayers.Add(new AdKatsSpecialPlayer()
+                                        {
+                                            player_game = (int)_serverInfo.GameID,
+                                            player_server = (int)_serverInfo.ServerID,
+                                            player_group = asGroup,
+                                            player_identifier = aPlayer.player_name,
+                                            player_object = aPlayer,
+                                            player_effective = UtcDbTime(),
+                                            player_expiration = aUser.user_expiration
+                                        });
+                                    }
+                                }
+                            }
+                            //Pull matching players using specific group settings
+                            switch (asGroup.group_key)
+                            {
+                                case "slot_reserved":
+                                    //Pull players from user list
+                                    if (_userCache.Count > 0 && _FeedServerReservedSlots_Admins)
+                                    {
+                                        foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers().Where(aPlayer =>
+                                            aPlayer.game_id == _serverInfo.GameID &&
+                                            !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
+                                        {
+                                            tempASPlayers.Add(new AdKatsSpecialPlayer()
+                                            {
+                                                player_game = (int)_serverInfo.GameID,
+                                                player_server = (int)_serverInfo.ServerID,
+                                                player_group = asGroup,
+                                                player_identifier = aPlayer.player_name,
+                                                player_object = aPlayer,
+                                                player_effective = UtcDbTime(),
+                                                player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                            });
+                                        }
+                                    }
+                                    //Pull players from perk list
+                                    if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksReservedSlot)
+                                    {
+                                        lock (_populatorPlayers)
+                                        {
+                                            foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(aPlayer =>
+                                                aPlayer.game_id == _serverInfo.GameID &&
+                                                !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
+                                            {
+                                                tempASPlayers.Add(new AdKatsSpecialPlayer()
+                                                {
+                                                    player_game = (int)_serverInfo.GameID,
+                                                    player_server = (int)_serverInfo.ServerID,
+                                                    player_group = asGroup,
+                                                    player_identifier = aPlayer.player_name,
+                                                    player_object = aPlayer,
+                                                    player_effective = UtcDbTime(),
+                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                });
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case "slot_spectator":
+                                    //Pull players from user list
+                                    if (_userCache.Count > 0 && _FeedServerSpectatorList_Admins)
+                                    {
+                                        foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers().Where(aPlayer =>
+                                            aPlayer.game_id == _serverInfo.GameID &&
+                                            !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
+                                        {
+                                            tempASPlayers.Add(new AdKatsSpecialPlayer()
+                                            {
+                                                player_game = (int)_serverInfo.GameID,
+                                                player_server = (int)_serverInfo.ServerID,
+                                                player_group = asGroup,
+                                                player_identifier = aPlayer.player_name,
+                                                player_object = aPlayer,
+                                                player_effective = UtcDbTime(),
+                                                player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                            });
+                                        }
+                                    }
+                                    break;
+                                case "whitelist_multibalancer":
+                                    //Pull players from user list
+                                    if (_userCache.Count > 0 && _FeedMultiBalancerWhitelist_Admins)
+                                    {
+                                        foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers().Where(aPlayer =>
+                                            aPlayer.game_id == _serverInfo.GameID &&
+                                            !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
+                                        {
+                                            tempASPlayers.Add(new AdKatsSpecialPlayer()
+                                            {
+                                                player_game = (int)_serverInfo.GameID,
+                                                player_server = (int)_serverInfo.ServerID,
+                                                player_group = asGroup,
+                                                player_identifier = aPlayer.player_name,
+                                                player_object = aPlayer,
+                                                player_effective = UtcDbTime(),
+                                                player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                            });
+                                        }
+                                    }
+                                    //Pull players from perk list
+                                    if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksBalanceWhitelist)
+                                    {
+                                        lock (_populatorPlayers)
+                                        {
+                                            foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(aPlayer =>
+                                                aPlayer.game_id == _serverInfo.GameID &&
+                                                !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
+                                            {
+                                                tempASPlayers.Add(new AdKatsSpecialPlayer()
+                                                {
+                                                    player_game = (int)_serverInfo.GameID,
+                                                    player_server = (int)_serverInfo.ServerID,
+                                                    player_group = asGroup,
+                                                    player_identifier = aPlayer.player_name,
+                                                    player_object = aPlayer,
+                                                    player_effective = UtcDbTime(),
+                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                });
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case "blacklist_dispersion":
+                                    if (_FeedBaserapeCausingPlayerDispersion)
+                                    {
+                                        lock (_baserapeCausingPlayers)
+                                        {
+                                            foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(aPlayer =>
+                                                aPlayer.game_id == _serverInfo.GameID &&
+                                                !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
+                                            {
+                                                tempASPlayers.Add(new AdKatsSpecialPlayer()
+                                                {
+                                                    player_game = (int)_serverInfo.GameID,
+                                                    player_server = (int)_serverInfo.ServerID,
+                                                    player_group = asGroup,
+                                                    player_identifier = aPlayer.player_name,
+                                                    player_object = aPlayer,
+                                                    player_effective = UtcDbTime(),
+                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                });
+                                            }
+                                        }
+                                    }
+                                    break;
+                                case "whitelist_teamkill":
+                                    //Pull players from user list
+                                    if (_userCache.Count > 0 && _FeedTeamKillTrackerWhitelist_Admins)
+                                    {
+                                        foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers().Where(aPlayer =>
+                                            aPlayer.game_id == _serverInfo.GameID &&
+                                            !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
+                                        {
+                                            tempASPlayers.Add(new AdKatsSpecialPlayer()
+                                            {
+                                                player_game = (int)_serverInfo.GameID,
+                                                player_server = (int)_serverInfo.ServerID,
+                                                player_group = asGroup,
+                                                player_identifier = aPlayer.player_name,
+                                                player_object = aPlayer,
+                                                player_effective = UtcDbTime(),
+                                                player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                            });
+                                        }
+                                    }
+                                    //Pull players from perk list
+                                    if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksTeamKillTrackerWhitelist)
+                                    {
+                                        lock (_populatorPlayers)
+                                        {
+                                            foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(aPlayer =>
+                                                aPlayer.game_id == _serverInfo.GameID &&
+                                                !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
+                                            {
+                                                tempASPlayers.Add(new AdKatsSpecialPlayer()
+                                                {
+                                                    player_game = (int)_serverInfo.GameID,
+                                                    player_server = (int)_serverInfo.ServerID,
+                                                    player_group = asGroup,
+                                                    player_identifier = aPlayer.player_name,
+                                                    player_object = aPlayer,
+                                                    player_effective = UtcDbTime(),
+                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                });
+                                            }
+                                        }
+                                    }
+                                    break;
+                            }
+                            foreach (AdKatsSpecialPlayer asPlayer in tempASPlayers)
+                            {
+                                String playerIdentifier = null;
+                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_guid))
+                                {
+                                    playerIdentifier = asPlayer.player_object.player_guid;
+                                }
+                                else
+                                {
+                                    playerIdentifier = asPlayer.player_identifier;
+                                }
+                                if (String.IsNullOrEmpty(playerIdentifier))
+                                {
+                                    continue;
+                                }
+                                //Key is a concatination of group and identifier
+                                String key = asGroup.group_key + playerIdentifier;
+                                if (!validVerboseSpecialPlayers.Contains(key))
+                                {
+                                    validVerboseSpecialPlayers.Add(key);
+                                }
+                                _verboseSpecialPlayerCache[key] = asPlayer;
+                            }
+                        }
+                        List<String> removeVerboseSpecialPlayers = new List<String>();
+                        foreach (var verbPlayerKey in _verboseSpecialPlayerCache.Keys)
+                        {
+                            if (!_pluginEnabled)
+                            {
+                                return;
+                            }
+                            if (!validVerboseSpecialPlayers.Contains(verbPlayerKey))
+                            {
+                                removeVerboseSpecialPlayers.Add(verbPlayerKey);
+                            }
+                        }
+                        foreach (var removeKey in removeVerboseSpecialPlayers)
+                        {
+                            if (!_pluginEnabled)
+                            {
+                                return;
+                            }
+                            _verboseSpecialPlayerCache.Remove(removeKey);
                         }
                         DebugWrite("User fetch (Special Player Fetch) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     }
@@ -30329,8 +30669,8 @@ namespace PRoConEvents {
             _lastUserFetch = UtcDbTime();
             if (!_firstUserListComplete) {
                 _firstUserListComplete = true;
-                OnlineAdminSayMessage("User fetch complete [" + _userCache.Count + " users, " + _specialPlayerCache.Count + " Special Players]. Fetching player list.");
-                ConsoleSuccess("User fetch complete [" + _userCache.Count + " users, " + _specialPlayerCache.Count + " Special Players].");
+                OnlineAdminSayMessage("User fetch complete [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players]. Fetching player list.");
+                ConsoleSuccess("User fetch complete [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players].");
                 if (!_userCache.Any())
                 {
                     ConsoleWarn("No users have been added. Add a new user with 'Add User'.");
@@ -30344,7 +30684,7 @@ namespace PRoConEvents {
             {
                 if (_userCache.Count > 0)
                 {
-                    DebugWrite("User List Fetched from Database. [" + _userCache.Count + " users, " + _specialPlayerCache.Count + " Special Players]", 1);
+                    DebugWrite("User List Fetched from Database. [" + _userCache.Count + " users, " + _baseSpecialPlayerCache.Count + " Special Players]", 1);
                 }
                 else
                 {
@@ -30714,59 +31054,29 @@ namespace PRoConEvents {
                 if (_FeedMultiBalancerWhitelist) {
                     var autobalanceWhitelistedPlayers = new List<String>();
                     //Pull players from special player cache
-                    lock (_specialPlayerCache) {
-                        List<AdKatsSpecialPlayer> whitelistedPlayers = GetASPlayersOfGroup("whitelist_multibalancer");
-                        if (whitelistedPlayers.Any()) {
-                            foreach (AdKatsSpecialPlayer asPlayer in whitelistedPlayers) {
-                                String playerIdentifier = null;
-                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_guid)) {
-                                    playerIdentifier = asPlayer.player_object.player_guid;
-                                }
-                                else {
-                                    playerIdentifier = asPlayer.player_identifier;
-                                }
-                                //Skip if no valid info found
-                                if (String.IsNullOrEmpty(playerIdentifier)) {
-                                    ConsoleError("Player under whitelist_multibalancer was not valid. Unable to add to MULTIBalancer whitelist.");
-                                    continue;
-                                }
-                                if (!autobalanceWhitelistedPlayers.Contains(playerIdentifier)) {
-                                    autobalanceWhitelistedPlayers.Add(playerIdentifier);
-                                }
-                            }
-                        }
-                    }
-                    //Pull players from user list
-                    if (_userCache.Count > 0 && _FeedMultiBalancerWhitelist_Admins) 
+                    List<AdKatsSpecialPlayer> whitelistedPlayers = GetVerboseASPlayersOfGroup("whitelist_multibalancer");
+                    if (whitelistedPlayers.Any())
                     {
-                        lock (_userCache) 
+                        foreach (AdKatsSpecialPlayer asPlayer in whitelistedPlayers)
                         {
-                            foreach (AdKatsUser user in _userCache.Values.Where(UserIsAdmin)) 
+                            String playerIdentifier = null;
+                            if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_guid))
                             {
-                                lock (user.soldierDictionary)
-                                {
-                                    foreach (AdKatsPlayer soldier in user.soldierDictionary.Values)
-                                    {
-                                        if (!autobalanceWhitelistedPlayers.Contains(soldier.player_guid))
-                                        {
-                                            autobalanceWhitelistedPlayers.Add(soldier.player_guid);
-                                        }
-                                    }
-                                }
+                                playerIdentifier = asPlayer.player_object.player_guid;
                             }
-                        }
-                    }
-                    //Pull players from perk list
-                    if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksBalanceWhitelist)
-                    {
-                        lock (_populatorPlayers)
-                        {
-                            foreach (AdKatsPlayer soldier in _populatorPlayers.Values)
+                            else
                             {
-                                if (!autobalanceWhitelistedPlayers.Contains(soldier.player_guid))
-                                {
-                                    autobalanceWhitelistedPlayers.Add(soldier.player_guid);
-                                }
+                                playerIdentifier = asPlayer.player_identifier;
+                            }
+                            //Skip if no valid info found
+                            if (String.IsNullOrEmpty(playerIdentifier))
+                            {
+                                ConsoleError("Player under whitelist_multibalancer was not valid. Unable to add to MULTIBalancer whitelist.");
+                                continue;
+                            }
+                            if (!autobalanceWhitelistedPlayers.Contains(playerIdentifier))
+                            {
+                                autobalanceWhitelistedPlayers.Add(playerIdentifier);
                             }
                         }
                     }
@@ -30783,38 +31093,29 @@ namespace PRoConEvents {
                 if (_FeedMultiBalancerDisperseList) {
                     var evenDispersionList = new List<String>();
                     //Pull players from special player cache
-                    lock (_specialPlayerCache) {
-                        List<AdKatsSpecialPlayer> evenDispersedPlayers = GetASPlayersOfGroup("blacklist_dispersion");
-                        if (evenDispersedPlayers.Any()) {
-                            foreach (AdKatsSpecialPlayer asPlayer in evenDispersedPlayers) {
-                                String playerIdentifier = null;
-                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_guid)) {
-                                    playerIdentifier = asPlayer.player_object.player_guid;
-                                }
-                                else {
-                                    playerIdentifier = asPlayer.player_identifier;
-                                }
-                                //Skip if no valid info found
-                                if (String.IsNullOrEmpty(playerIdentifier)) {
-                                    ConsoleError("Player under blacklist_dispersion was not valid. Unable to add to MULTIBalancer even dispersion list.");
-                                    continue;
-                                }
-                                if (!evenDispersionList.Contains(playerIdentifier)) {
-                                    evenDispersionList.Add(playerIdentifier);
-                                }
-                            }
-                        }
-                        if (_FeedBaserapeCausingPlayerDispersion)
+                    List<AdKatsSpecialPlayer> evenDispersedPlayers = GetVerboseASPlayersOfGroup("blacklist_dispersion");
+                    if (evenDispersedPlayers.Any())
+                    {
+                        foreach (AdKatsSpecialPlayer asPlayer in evenDispersedPlayers)
                         {
-                            lock (_baserapeCausingPlayers)
+                            String playerIdentifier = null;
+                            if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_guid))
                             {
-                                foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values)
-                                {
-                                    if (!evenDispersionList.Contains(aPlayer.player_guid))
-                                    {
-                                        evenDispersionList.Add(aPlayer.player_guid);
-                                    }
-                                }
+                                playerIdentifier = asPlayer.player_object.player_guid;
+                            }
+                            else
+                            {
+                                playerIdentifier = asPlayer.player_identifier;
+                            }
+                            //Skip if no valid info found
+                            if (String.IsNullOrEmpty(playerIdentifier))
+                            {
+                                ConsoleError("Player under blacklist_dispersion was not valid. Unable to add to MULTIBalancer even dispersion list.");
+                                continue;
+                            }
+                            if (!evenDispersionList.Contains(playerIdentifier))
+                            {
+                                evenDispersionList.Add(playerIdentifier);
                             }
                         }
                     }
@@ -30834,66 +31135,29 @@ namespace PRoConEvents {
                 {
                     var teamKillTrackerWhitelistedPlayers = new List<String>();
                     //Pull players from special player cache
-                    lock (_specialPlayerCache)
+                    List<AdKatsSpecialPlayer> whitelistedPlayers = GetVerboseASPlayersOfGroup("whitelist_teamkill");
+                    if (whitelistedPlayers.Any())
                     {
-                        List<AdKatsSpecialPlayer> whitelistedPlayers = GetASPlayersOfGroup("whitelist_teamkill");
-                        if (whitelistedPlayers.Any())
+                        foreach (AdKatsSpecialPlayer asPlayer in whitelistedPlayers)
                         {
-                            foreach (AdKatsSpecialPlayer asPlayer in whitelistedPlayers)
+                            String playerIdentifier = null;
+                            if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
                             {
-                                String playerIdentifier = null;
-                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
-                                {
-                                    playerIdentifier = asPlayer.player_object.player_name;
-                                }
-                                else
-                                {
-                                    playerIdentifier = asPlayer.player_identifier;
-                                }
-                                //Skip if no valid info found
-                                if (String.IsNullOrEmpty(playerIdentifier))
-                                {
-                                    ConsoleError("Player under whitelist_teamkill was not valid. Unable to add to TeamKillTracker whitelist.");
-                                    continue;
-                                }
-                                if (!teamKillTrackerWhitelistedPlayers.Contains(playerIdentifier))
-                                {
-                                    teamKillTrackerWhitelistedPlayers.Add(playerIdentifier);
-                                }
+                                playerIdentifier = asPlayer.player_object.player_name;
                             }
-                        }
-                    }
-                    //Pull players from user list
-                    if (_userCache.Count > 0 && _FeedTeamKillTrackerWhitelist_Admins)
-                    {
-                        lock (_userCache)
-                        {
-                            foreach (AdKatsUser user in _userCache.Values.Where(UserIsAdmin))
+                            else
                             {
-                                lock (user.soldierDictionary)
-                                {
-                                    foreach (AdKatsPlayer soldier in user.soldierDictionary.Values)
-                                    {
-                                        if (!teamKillTrackerWhitelistedPlayers.Contains(soldier.player_name))
-                                        {
-                                            teamKillTrackerWhitelistedPlayers.Add(soldier.player_name);
-                                        }
-                                    }
-                                }
+                                playerIdentifier = asPlayer.player_identifier;
                             }
-                        }
-                    }
-                    //Pull players from perk list
-                    if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksTeamKillTrackerWhitelist)
-                    {
-                        lock (_populatorPlayers)
-                        {
-                            foreach (AdKatsPlayer soldier in _populatorPlayers.Values)
+                            //Skip if no valid info found
+                            if (String.IsNullOrEmpty(playerIdentifier))
                             {
-                                if (!teamKillTrackerWhitelistedPlayers.Contains(soldier.player_name))
-                                {
-                                    teamKillTrackerWhitelistedPlayers.Add(soldier.player_name);
-                                }
+                                ConsoleError("Player under whitelist_teamkill was not valid. Unable to add to TeamKillTracker whitelist.");
+                                continue;
+                            }
+                            if (!teamKillTrackerWhitelistedPlayers.Contains(playerIdentifier))
+                            {
+                                teamKillTrackerWhitelistedPlayers.Add(playerIdentifier);
                             }
                         }
                     }
@@ -30914,57 +31178,35 @@ namespace PRoConEvents {
                 DebugWrite("Checking validity of reserved slotted players.", 6);
                 var allowedReservedSlotPlayers = new List<string>();
                 //Pull players from special player cache
-                lock (_specialPlayerCache) {
-                    List<AdKatsSpecialPlayer> reservedPlayers = GetASPlayersOfGroup("slot_reserved");
-                    if (reservedPlayers.Any()) {
-                        foreach (AdKatsSpecialPlayer asPlayer in reservedPlayers) {
-                            String playerIdentifier = null;
-                            if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name)) {
-                                playerIdentifier = asPlayer.player_object.player_name;
-                            }
-                            else {
-                                if (SoldierNameValid(asPlayer.player_identifier)) {
-                                    playerIdentifier = asPlayer.player_identifier;
-                                }
-                                else {
-                                    ConsoleError("Player under reserved_slot list '" + asPlayer.player_identifier + "' was not a valid soldier name. Unable to add to reserved slot list.");
-                                }
-                            }
-                            //Skip if no valid info found
-                            if (String.IsNullOrEmpty(playerIdentifier)) {
-                                continue;
-                            }
-                            if (!allowedReservedSlotPlayers.Contains(playerIdentifier)) {
-                                allowedReservedSlotPlayers.Add(playerIdentifier);
-                            }
-                        }
-                    }
-                }
-                //Pull players from user list
-                if (_userCache.Count > 0 && _FeedServerReservedSlots_Admins) {
-                    lock (_userCache) {
-                        foreach (AdKatsPlayer soldier in FetchAdminSoldiers()) {
-                            //Only add soldiers for the current game
-                            if (soldier.game_id == _serverInfo.GameID)
-                            {
-                                if (!allowedReservedSlotPlayers.Contains(soldier.player_name)) {
-                                    allowedReservedSlotPlayers.Add(soldier.player_name);
-                                }
-                            }
-                        }
-                    }
-                }
-                //Pull players from perk list
-                if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksReservedSlot)
+                List<AdKatsSpecialPlayer> reservedPlayers = GetVerboseASPlayersOfGroup("slot_reserved");
+                if (reservedPlayers.Any())
                 {
-                    lock (_populatorPlayers)
+                    foreach (AdKatsSpecialPlayer asPlayer in reservedPlayers)
                     {
-                        foreach (AdKatsPlayer soldier in _populatorPlayers.Values)
+                        String playerIdentifier = null;
+                        if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
                         {
-                            if (!allowedReservedSlotPlayers.Contains(soldier.player_name))
+                            playerIdentifier = asPlayer.player_object.player_name;
+                        }
+                        else
+                        {
+                            if (SoldierNameValid(asPlayer.player_identifier))
                             {
-                                allowedReservedSlotPlayers.Add(soldier.player_name);
+                                playerIdentifier = asPlayer.player_identifier;
                             }
+                            else
+                            {
+                                ConsoleError("Player under reserved_slot list '" + asPlayer.player_identifier + "' was not a valid soldier name. Unable to add to reserved slot list.");
+                            }
+                        }
+                        //Skip if no valid info found
+                        if (String.IsNullOrEmpty(playerIdentifier))
+                        {
+                            continue;
+                        }
+                        if (!allowedReservedSlotPlayers.Contains(playerIdentifier))
+                        {
+                            allowedReservedSlotPlayers.Add(playerIdentifier);
                         }
                     }
                 }
@@ -31015,55 +31257,42 @@ namespace PRoConEvents {
                 DebugWrite("Updating spectator list players.", 6);
                 var allowedSpectatorSlotPlayers = new List<string>();
                 //Pull players from special player cache
-                lock (_specialPlayerCache) {
-                    List<AdKatsSpecialPlayer> spectators = GetASPlayersOfGroup("slot_spectator");
-                    if (spectators.Any()) {
-                        foreach (AdKatsSpecialPlayer asPlayer in spectators) {
-                            String playerIdentifier = null;
-                            if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name)) {
-                                playerIdentifier = asPlayer.player_object.player_name;
+                List<AdKatsSpecialPlayer> spectators = GetVerboseASPlayersOfGroup("slot_spectator");
+                if (spectators.Any())
+                {
+                    foreach (AdKatsSpecialPlayer asPlayer in spectators)
+                    {
+                        String playerIdentifier = null;
+                        if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
+                        {
+                            playerIdentifier = asPlayer.player_object.player_name;
+                        }
+                        else
+                        {
+                            if (SoldierNameValid(asPlayer.player_identifier))
+                            {
+                                playerIdentifier = asPlayer.player_identifier;
                             }
-                            else {
-                                if (SoldierNameValid(asPlayer.player_identifier)) {
-                                    playerIdentifier = asPlayer.player_identifier;
-                                }
-                                else {
-                                    ConsoleError("Player under slot_spectator list '" + asPlayer.player_identifier + "' was not a valid soldier name. Unable to add to spectator slot list.");
-                                }
-                            }
-                            //Skip if no valid info found
-                            if (String.IsNullOrEmpty(playerIdentifier)) {
-                                continue;
-                            }
-                            if (!allowedSpectatorSlotPlayers.Contains(playerIdentifier)) {
-                                DebugWrite("Valid slot_spectator " + playerIdentifier + " fetched.", 5);
-                                allowedSpectatorSlotPlayers.Add(playerIdentifier);
+                            else
+                            {
+                                ConsoleError("Player under slot_spectator list '" + asPlayer.player_identifier + "' was not a valid soldier name. Unable to add to spectator slot list.");
                             }
                         }
-                    }
-                    else {
-                        DebugWrite("No players under special player group slot_spectator.", 5);
+                        //Skip if no valid info found
+                        if (String.IsNullOrEmpty(playerIdentifier))
+                        {
+                            continue;
+                        }
+                        if (!allowedSpectatorSlotPlayers.Contains(playerIdentifier))
+                        {
+                            DebugWrite("Valid slot_spectator " + playerIdentifier + " fetched.", 5);
+                            allowedSpectatorSlotPlayers.Add(playerIdentifier);
+                        }
                     }
                 }
-                //Pull players from user list
-                if (_userCache.Count > 0 && _FeedServerSpectatorList_Admins)
+                else
                 {
-                    DebugWrite("Feeding spetators from user cache.", 5);
-                    foreach (AdKatsPlayer soldier in FetchAdminSoldiers())
-                    {
-                        //Only add soldiers for the current game
-                        if (soldier.game_id == _serverInfo.GameID) {
-                            //Only add if players are admins
-                            if (PlayerIsAdmin(soldier))
-                            {
-                                if (!allowedSpectatorSlotPlayers.Contains(soldier.player_name))
-                                {
-                                    DebugWrite("Valid user spectator " + soldier.player_name + " fetched.", 5);
-                                    allowedSpectatorSlotPlayers.Add(soldier.player_name);
-                                }
-                            }
-                        }
-                    }
+                    DebugWrite("No players under special player group slot_spectator.", 5);
                 }
                 //All players fetched, update the server lists
                 //Remove soldiers from the list where needed
@@ -31779,54 +32008,29 @@ namespace PRoConEvents {
             DebugWrite("SubscribeAsClient finished!", 6);
         }
 
-        private Boolean SendOnlineSoldiers(AdKatsClient client)
+        private Boolean SendOnlineSoldiers()
         {
             DebugWrite("SendOnlineSoldiers starting!", 6);
             Stopwatch timer = new Stopwatch();
             try
             {
                 timer.Start();
-                if (client == null) {
-                    ConsoleError("Client was null when sending online soldiers.");
-                    timer.Stop();
-                    if (timer.ElapsedMilliseconds > 500) {
-                        DebugWrite("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
-                    }
-                    return false;
-                }
-                if (String.IsNullOrEmpty(client.ClientName))
-                {
-                    ConsoleError("Client name was empty when sending online players.");
-                    timer.Stop();
-                    if (timer.ElapsedMilliseconds > 500)
-                    {
-                        DebugWrite("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
-                    }
-                    return false;
-                }
-                if (String.IsNullOrEmpty(client.ClientMethod))
-                {
-                    ConsoleError("Client method was empty when sending online players.");
-                    timer.Stop();
-                    if (timer.ElapsedMilliseconds > 500)
-                    {
-                        DebugWrite("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
-                    }
-                    return false;
-                }
 
                 //Get player list
                 List<AdKatsPlayer> playerList = _PlayerDictionary.Values.ToList();
-                
+
+                //TODO: add special player groups
+
                 //Parse player list
                 ArrayList onlineSoldierList = new ArrayList();
-                foreach (AdKatsPlayer aPlayer in playerList) {
+                foreach (AdKatsPlayer aPlayer in playerList)
+                {
                     Hashtable tPlayer = new Hashtable();
                     tPlayer["player_id"] = aPlayer.player_id;
                     tPlayer["player_guid"] = aPlayer.player_guid;
                     tPlayer["player_pbguid"] = aPlayer.player_pbguid;
                     tPlayer["player_ip"] = aPlayer.player_ip;
-                    if (aPlayer.location != null && aPlayer.location.status == "success") 
+                    if (aPlayer.location != null && aPlayer.location.status == "success")
                     {
                         tPlayer["player_country"] = aPlayer.location.countryCode;
                     }
@@ -31876,14 +32080,56 @@ namespace PRoConEvents {
                     tPlayer["player_team"] = (aPlayer.frostbitePlayerInfo == null) ? (0) : (aPlayer.frostbitePlayerInfo.TeamID);
                     onlineSoldierList.Add(tPlayer);
                 }
+                if (timer.ElapsedMilliseconds > 500)
+                {
+                    DebugWrite("SendOnlineSoldiers build took " + timer.ElapsedMilliseconds + "ms.", 4);
+                }
 
-                Hashtable responseHashtable = new Hashtable();
-                responseHashtable.Add("caller_identity", "AdKats");
-                responseHashtable.Add("response_requested", false);
-                responseHashtable.Add("response_type", "OnlineSoldiers");
-                responseHashtable.Add("response_value", onlineSoldierList);
+                foreach (AdKatsClient client in
+                        _subscribedClients.Where(aClient =>
+                            aClient.SubscriptionGroup == "OnlineSoldiers" &&
+                            aClient.SubscriptionEnabled).ToList())
+                {
+                    if (client == null)
+                    {
+                        ConsoleError("Client was null when sending online soldiers.");
+                        timer.Stop();
+                        if (timer.ElapsedMilliseconds > 500)
+                        {
+                            DebugWrite("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                        }
+                        return false;
+                    }
+                    if (String.IsNullOrEmpty(client.ClientName))
+                    {
+                        ConsoleError("Client name was empty when sending online players.");
+                        timer.Stop();
+                        if (timer.ElapsedMilliseconds > 500)
+                        {
+                            DebugWrite("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                        }
+                        return false;
+                    }
+                    if (String.IsNullOrEmpty(client.ClientMethod))
+                    {
+                        ConsoleError("Client method was empty when sending online players.");
+                        timer.Stop();
+                        if (timer.ElapsedMilliseconds > 500)
+                        {
+                            DebugWrite("SendOnlineSoldiers took " + timer.ElapsedMilliseconds + "ms to complete.", 4);
+                        }
+                        return false;
+                    }
 
-                ExecuteCommand("procon.protected.plugins.call", client.ClientName, client.ClientMethod, "AdKats", JSON.JsonEncode(responseHashtable));
+                    Hashtable responseHashtable = new Hashtable();
+                    responseHashtable.Add("caller_identity", "AdKats");
+                    responseHashtable.Add("response_requested", false);
+                    responseHashtable.Add("response_type", "OnlineSoldiers");
+                    responseHashtable.Add("response_value", onlineSoldierList);
+
+                    ExecuteCommand("procon.protected.plugins.call", client.ClientName, client.ClientMethod, "AdKats", JSON.JsonEncode(responseHashtable));
+                }
+
                 timer.Stop();
                 if (timer.ElapsedMilliseconds > 500)
                 {
