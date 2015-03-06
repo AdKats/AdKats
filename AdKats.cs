@@ -19,11 +19,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.1.6
+ * Version 6.5.1.8
  * 5-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.1.6</version_code>
+ * <version_code>6.5.1.8</version_code>
  */
 
 using System;
@@ -56,7 +56,7 @@ using MySql.Data.MySqlClient;
 namespace PRoConEvents {
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.1.6";
+        private const String PluginVersion = "6.5.1.8";
 
         public enum ConsoleMessageType {
             Normal,
@@ -1192,83 +1192,102 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable("X99. Experimental|Use Grenade Cook Catcher", typeof (Boolean), _UseGrenadeCookCatcher));
                         }
                     }
-                    if (true) {
-                        const string userSettingsPrefix = "3. User Settings|";
-                        //User Settings
-                        lstReturn.Add(new CPluginVariable(userSettingsPrefix + "Add User", typeof (String), ""));
-                        if (_userCache.Count > 0) {
-                            //Sort access list by access level, then by id
-                            List<AdKatsUser> tempAccess = _userCache.Values.ToList();
-                            tempAccess.Sort((a1, a2) => (a1.user_role.role_id == a2.user_role.role_id) ? (System.String.CompareOrdinal(a1.user_name, a2.user_name)) : ((a1.user_role.role_id < a2.user_role.role_id) ? (-1) : (1)));
-                            String roleEnum = String.Empty;
-                            if (_RoleKeyDictionary.Count > 0) {
-                                var random = new Random();
-                                foreach (AdKatsRole role in _RoleKeyDictionary.Values.ToList()) {
-                                    if (String.IsNullOrEmpty(roleEnum)) {
-                                        roleEnum += "enum.RoleEnum_" + random.Next(100000, 999999) + "(";
-                                    }
-                                    else {
-                                        roleEnum += "|";
-                                    }
-                                    roleEnum += role.role_name;
-                                }
-                                roleEnum += ")";
-                            }
-                            foreach (AdKatsUser user in tempAccess) {
-                                String userPrefix = userSettingsPrefix + "USR" + user.user_id + separator + user.user_name + separator;
-                                if (_UseEmail) {
-                                    lstReturn.Add(new CPluginVariable(userPrefix + "User Email", typeof (String), user.user_email));
-                                }
-                                lstReturn.Add(new CPluginVariable(userPrefix + "User Expiration", typeof(String), user.user_expiration.ToShortDateString()));
-                                lstReturn.Add(new CPluginVariable(userPrefix + "User Notes", typeof(String), user.user_notes));
-                                //Do not display phone input until that operation is available for use
-                                //lstReturn.Add(new CPluginVariable(userPrefix + "User Phone", typeof(String), user.user_phone));
-                                lstReturn.Add(new CPluginVariable(userPrefix + "User Role", roleEnum, user.user_role.role_name));
-                                lstReturn.Add(new CPluginVariable(userPrefix + "Delete User?", typeof (String), ""));
-                                lstReturn.Add(new CPluginVariable(userPrefix + "Add Soldier?", typeof (String), ""));
-                                String soldierPrefix = userPrefix + "Soldiers" + separator;
-
-                                lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + separator + (_gameIDDictionary.ContainsKey(aPlayer.game_id) ? (_gameIDDictionary[aPlayer.game_id].ToString()) : ("INVALID GAME ID [" + aPlayer.game_id + "]")) + separator + aPlayer.player_name + separator + "Delete Soldier?", typeof (String), "")));
-                            }
-                        }
-                        else {
-                            if (_firstUserListComplete) 
+                    const string userSettingsPrefix = "3. User Settings|";
+                    //User Settings
+                    lstReturn.Add(new CPluginVariable(userSettingsPrefix + "Add User", typeof(String), ""));
+                    if (_userCache.Count > 0)
+                    {
+                        //Sort access list by access level, then by id
+                        List<AdKatsUser> tempAccess = _userCache.Values.ToList();
+                        tempAccess.Sort((a1, a2) => (a1.user_role.role_id == a2.user_role.role_id) ? (System.String.CompareOrdinal(a1.user_name, a2.user_name)) : ((a1.user_role.role_id < a2.user_role.role_id) ? (-1) : (1)));
+                        String roleEnum = String.Empty;
+                        if (_RoleKeyDictionary.Count > 0)
+                        {
+                            var random = new Random();
+                            foreach (AdKatsRole role in _RoleKeyDictionary.Values.ToList())
                             {
-                                lstReturn.Add(new CPluginVariable(userSettingsPrefix + "No Users in User List", typeof (String), "Add Users with 'Add User'."));
+                                if (String.IsNullOrEmpty(roleEnum))
+                                {
+                                    roleEnum += "enum.RoleEnum_" + random.Next(100000, 999999) + "(";
+                                }
+                                else
+                                {
+                                    roleEnum += "|";
+                                }
+                                roleEnum += role.role_name;
                             }
-                            else
-                            {
-                                lstReturn.Add(new CPluginVariable(userSettingsPrefix + "Please Wait, Fetching User List.", typeof(String), "Please Wait, Fetching User List."));
-                            }
+                            roleEnum += ")";
                         }
+                        foreach (AdKatsUser user in tempAccess)
+                        {
+                            String userPrefix = userSettingsPrefix + "USR" + user.user_id + separator + user.user_name + separator;
+                            if (_UseEmail)
+                            {
+                                lstReturn.Add(new CPluginVariable(userPrefix + "User Email", typeof(String), user.user_email));
+                            }
+                            lstReturn.Add(new CPluginVariable(userPrefix + "User Expiration", typeof(String), user.user_expiration.ToShortDateString()));
+                            lstReturn.Add(new CPluginVariable(userPrefix + "User Notes", typeof(String), user.user_notes));
+                            //Do not display phone input until that operation is available for use
+                            //lstReturn.Add(new CPluginVariable(userPrefix + "User Phone", typeof(String), user.user_phone));
+                            lstReturn.Add(new CPluginVariable(userPrefix + "User Role", roleEnum, user.user_role.role_name));
+                            lstReturn.Add(new CPluginVariable(userPrefix + "Delete User?", typeof(String), ""));
+                            lstReturn.Add(new CPluginVariable(userPrefix + "Add Soldier?", typeof(String), ""));
+                            String soldierPrefix = userPrefix + "Soldiers" + separator;
 
+                            lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + separator + (_gameIDDictionary.ContainsKey(aPlayer.game_id) ? (_gameIDDictionary[aPlayer.game_id].ToString()) : ("INVALID GAME ID [" + aPlayer.game_id + "]")) + separator + aPlayer.player_name + separator + "Delete Soldier?", typeof(String), "")));
+                        }
+                    }
+                    else
+                    {
+                        if (_firstUserListComplete)
+                        {
+                            lstReturn.Add(new CPluginVariable(userSettingsPrefix + "No Users in User List", typeof(String), "Add Users with 'Add User'."));
+                        }
+                        else
+                        {
+                            lstReturn.Add(new CPluginVariable(userSettingsPrefix + "Please Wait, Fetching User List.", typeof(String), "Please Wait, Fetching User List."));
+                        }
+                    }
+
+                    if (_firstUserListComplete)
+                    {
                         //Special Player Settings
                         const string specialPlayerPrefix = "3-2. Special Player Display|";
                         Boolean anyList = false;
-                        foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name)) 
+                        foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name))
                         {
                             List<String> groupList = new List<String>();
-                            foreach (AdKatsSpecialPlayer asPlayer in GetASPlayersOfGroup(asGroup.group_key)) 
+                            foreach (AdKatsSpecialPlayer asPlayer in GetASPlayersOfGroup(asGroup.group_key))
                             {
                                 String playerIdentifier = null;
-                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name)) 
+                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
                                 {
                                     playerIdentifier = asPlayer.player_object.player_name;
                                 }
-                                else 
+                                else
                                 {
                                     playerIdentifier = asPlayer.player_identifier;
                                 }
-                                if (String.IsNullOrEmpty(playerIdentifier)) 
+                                if (String.IsNullOrEmpty(playerIdentifier))
                                 {
                                     continue;
+                                }
+                                var duration = (asPlayer.player_expiration - UtcDbTime()).Duration();
+                                if (duration.TotalDays > 3650)
+                                {
+                                    playerIdentifier += " | Permanent";
+                                }
+                                else
+                                {
+                                    playerIdentifier += " | " + FormatTimeString(duration, 3);
                                 }
                                 if (!groupList.Contains(playerIdentifier))
                                 {
                                     groupList.Add(playerIdentifier);
                                 }
                             }
-                            if (groupList.Any()) {
+                            if (groupList.Any())
+                            {
                                 anyList = true;
                                 lstReturn.Add(new CPluginVariable(specialPlayerPrefix + "[" + groupList.Count + "] " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
                             }
@@ -1278,24 +1297,24 @@ namespace PRoConEvents {
                             lstReturn.Add(new CPluginVariable(specialPlayerPrefix + "All Groups Empty", typeof(String), "All Groups Empty"));
                         }
 
-                        //Special Player Settings
+                        //Verbose Special Player Settings
                         const string dynamicSpecialPlayerPrefix = "3-3. Verbose Special Player Display|";
                         Boolean anyVerbostList = false;
-                        foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name)) 
+                        foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name))
                         {
                             List<String> groupList = new List<String>();
-                            foreach (AdKatsSpecialPlayer asPlayer in GetVerboseASPlayersOfGroup(asGroup.group_key)) 
+                            foreach (AdKatsSpecialPlayer asPlayer in GetVerboseASPlayersOfGroup(asGroup.group_key))
                             {
                                 String playerIdentifier = null;
-                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name)) 
+                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
                                 {
                                     playerIdentifier = asPlayer.player_object.player_name;
                                 }
-                                else 
+                                else
                                 {
                                     playerIdentifier = asPlayer.player_identifier;
                                 }
-                                if (String.IsNullOrEmpty(playerIdentifier)) 
+                                if (String.IsNullOrEmpty(playerIdentifier))
                                 {
                                     continue;
                                 }
@@ -1304,7 +1323,8 @@ namespace PRoConEvents {
                                     groupList.Add(playerIdentifier);
                                 }
                             }
-                            if (groupList.Any()) {
+                            if (groupList.Any())
+                            {
                                 anyVerbostList = true;
                                 lstReturn.Add(new CPluginVariable(dynamicSpecialPlayerPrefix + "[" + groupList.Count + "] Verbose " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
                             }
@@ -1313,119 +1333,123 @@ namespace PRoConEvents {
                         {
                             lstReturn.Add(new CPluginVariable(dynamicSpecialPlayerPrefix + "All Verbose Groups Empty", typeof(String), "All Verbose Groups Empty"));
                         }
+                    }
 
-                        //Role Settings
-                        const string roleListPrefix = "4. Role Settings|";
-                        lstReturn.Add(new CPluginVariable(roleListPrefix + "Add Role", typeof(String), ""));
-                        if (_RoleIDDictionary.Count > 0)
+                    //Role Settings
+                    const string roleListPrefix = "4. Role Settings|";
+                    lstReturn.Add(new CPluginVariable(roleListPrefix + "Add Role", typeof(String), ""));
+                    if (_RoleIDDictionary.Count > 0)
+                    {
+                        lock (_RoleIDDictionary)
                         {
-                            lock (_RoleIDDictionary)
+                            foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
                             {
-                                foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
+                                lock (_CommandIDDictionary)
                                 {
-                                    lock (_CommandIDDictionary)
+                                    var random = new Random();
+                                    String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
+                                    lstReturn.AddRange(
+                                        from
+                                            aCommand
+                                        in
+                                            _CommandNameDictionary.Values
+                                        where
+                                            aCommand.command_active == AdKatsCommand.CommandActive.Active && aCommand.command_key != "command_confirm" && aCommand.command_key != "command_cancel"
+                                        where
+                                            aRole.role_key != "guest_default" || !aCommand.command_playerInteraction
+                                        let
+                                            allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key)
+                                        let
+                                            display = rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name + ((allowed && aCommand.command_playerInteraction) ? (" [ADMIN]") : (""))
+                                        select
+                                            new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
+                                    //Do not display the delete option for default guest
+                                    if (aRole.role_key != "guest_default")
                                     {
-                                        var random = new Random();
-                                        String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
-                                        lstReturn.AddRange(
-                                            from
-                                                aCommand
-                                            in
-                                                _CommandNameDictionary.Values
-                                            where
-                                                aCommand.command_active == AdKatsCommand.CommandActive.Active && aCommand.command_key != "command_confirm" && aCommand.command_key != "command_cancel"
-                                            where
-                                                aRole.role_key != "guest_default" || !aCommand.command_playerInteraction
-                                            let
-                                                allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key)
-                                            let
-                                                display = rolePrefix + "CDE" + aCommand.command_id + separator + aCommand.command_name + ((allowed && aCommand.command_playerInteraction) ? (" [ADMIN]") : (""))
-                                            select
-                                                new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
-                                        //Do not display the delete option for default guest
-                                        if (aRole.role_key != "guest_default")
-                                        {
-                                            lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
-                                        }
+                                        lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
                                     }
                                 }
                             }
-                        }
-                        else
-                        {
-                            lstReturn.Add(new CPluginVariable(roleListPrefix + "Role List Empty", typeof(String), "No valid roles found in database."));
-                        }
-
-                        //Role Group Settings
-                        const string roleGroupListPrefix = "4-2. Role Group Settings|";
-                        if (_RoleIDDictionary.Count > 0)
-                        {
-                            lock (_RoleIDDictionary)
-                            {
-                                foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
-                                {
-                                    lock (_specialPlayerGroupKeyDictionary)
-                                    {
-                                        var random = new Random();
-                                        String rolePrefix = roleGroupListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
-                                        lstReturn.AddRange(
-                                            from
-                                                aGroup
-                                            in
-                                                _specialPlayerGroupKeyDictionary.Values
-                                            let
-                                                allowed = aRole.RoleSetGroups.ContainsKey(aGroup.group_key) ||
-                                                (aGroup.group_key == "slot_reserved" && _FeedServerReservedSlots_Admins && RoleIsAdmin(aRole)) ||
-                                                (aGroup.group_key == "slot_spectator" && _FeedServerSpectatorList_Admins && RoleIsAdmin(aRole)) ||
-                                                (aGroup.group_key == "whitelist_multibalancer" && _FeedMultiBalancerWhitelist_Admins && RoleIsAdmin(aRole)) ||
-                                                (aGroup.group_key == "whitelist_teamkill" && _FeedTeamKillTrackerWhitelist_Admins && RoleIsAdmin(aRole)) ||
-                                                (aGroup.group_key == "whitelist_spambot" && _spamBotExcludeAdminsAndWhitelist && RoleIsAdmin(aRole))
-                                            let
-                                                display = rolePrefix + "GPE" + aGroup.group_id + separator + aGroup.group_name
-                                            select
-                                                new CPluginVariable(display, "enum.roleSetGroupEnum(Assign|Ignore)", allowed ? ("Assign") : ("Ignore")));
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            lstReturn.Add(new CPluginVariable(roleGroupListPrefix + "Role List Empty", typeof(String), "No valid roles found in database."));
-                        }
-
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|Bypass all command confirmation -DO NOT USE-", typeof(Boolean), _bypassCommandConfirmation));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin player commands", typeof(String[]), _ExternalPlayerCommands.ToArray()));
-                        lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
-
-                        //Command Settings
-                        const string commandListPrefix = "6. Command List|";
-                        if (_CommandNameDictionary.Count > 0) {
-                            lock (_CommandIDDictionary) {
-                                foreach (AdKatsCommand command in _CommandIDDictionary.Values.ToList()) {
-                                    if (command.command_active != AdKatsCommand.CommandActive.Invisible) {
-                                        String commandPrefix = commandListPrefix + "CDE" + command.command_id + separator + command.command_name + separator;
-                                        lstReturn.Add(new CPluginVariable(commandPrefix + "Active", "enum.commandActiveEnum(Active|Disabled)", command.command_active.ToString()));
-                                        if (command.command_active != AdKatsCommand.CommandActive.Disabled) {
-                                            if (command.command_logging != AdKatsCommand.CommandLogging.Mandatory && command.command_logging != AdKatsCommand.CommandLogging.Unable) {
-                                                lstReturn.Add(new CPluginVariable(commandPrefix + "Logging", "enum.commandLoggingEnum(Log|Ignore)", command.command_logging.ToString()));
-                                            }
-                                            lstReturn.Add(new CPluginVariable(commandPrefix + "Text", typeof(String), command.command_text));
-                                            lstReturn.Add(new CPluginVariable(commandPrefix + "Access Method", CreateEnumString(typeof(AdKatsCommand.CommandAccess)), command.command_access.ToString()));
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else {
-                            lstReturn.Add(new CPluginVariable(commandListPrefix + "Command List Empty", typeof (String), "No valid commands found in database."));
                         }
                     }
-                    else {
-                        lstReturn.Add(new CPluginVariable("3. Player Access Settings|You are using AdKats WebAdmin", typeof (String), "Manage admin settings there."));
+                    else
+                    {
+                        lstReturn.Add(new CPluginVariable(roleListPrefix + "Role List Empty", typeof(String), "No valid roles found in database."));
+                    }
+
+                    //Role Group Settings
+                    const string roleGroupListPrefix = "4-2. Role Group Settings|";
+                    if (_RoleIDDictionary.Count > 0)
+                    {
+                        lock (_RoleIDDictionary)
+                        {
+                            foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
+                            {
+                                lock (_specialPlayerGroupKeyDictionary)
+                                {
+                                    var random = new Random();
+                                    String rolePrefix = roleGroupListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
+                                    lstReturn.AddRange(
+                                        from
+                                            aGroup
+                                        in
+                                            _specialPlayerGroupKeyDictionary.Values
+                                        let
+                                            allowed = aRole.RoleSetGroups.ContainsKey(aGroup.group_key) ||
+                                            (aGroup.group_key == "slot_reserved" && _FeedServerReservedSlots && _FeedServerReservedSlots_Admins && RoleIsAdmin(aRole)) ||
+                                            (aGroup.group_key == "slot_spectator" && _FeedServerSpectatorList && _FeedServerSpectatorList_Admins && RoleIsAdmin(aRole)) ||
+                                            (aGroup.group_key == "whitelist_multibalancer" && _FeedMultiBalancerWhitelist && _FeedMultiBalancerWhitelist_Admins && RoleIsAdmin(aRole)) ||
+                                            (aGroup.group_key == "whitelist_teamkill" && _FeedTeamKillTrackerWhitelist && _FeedTeamKillTrackerWhitelist_Admins && RoleIsAdmin(aRole)) ||
+                                            (aGroup.group_key == "whitelist_spambot" && _spamBotExcludeAdminsAndWhitelist && RoleIsAdmin(aRole))
+                                        let
+                                            display = rolePrefix + "GPE" + aGroup.group_id + separator + aGroup.group_name
+                                        select
+                                            new CPluginVariable(display, "enum.roleSetGroupEnum(Assign|Ignore)", allowed ? ("Assign") : ("Ignore")));
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        lstReturn.Add(new CPluginVariable(roleGroupListPrefix + "Role List Empty", typeof(String), "No valid roles found in database."));
+                    }
+
+                    lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
+                    lstReturn.Add(new CPluginVariable("5. Command Settings|Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
+                    lstReturn.Add(new CPluginVariable("5. Command Settings|Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
+                    lstReturn.Add(new CPluginVariable("5. Command Settings|Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
+                    lstReturn.Add(new CPluginVariable("5. Command Settings|Bypass all command confirmation -DO NOT USE-", typeof(Boolean), _bypassCommandConfirmation));
+                    lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin player commands", typeof(String[]), _ExternalPlayerCommands.ToArray()));
+                    lstReturn.Add(new CPluginVariable("5. Command Settings|External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
+
+                    //Command Settings
+                    const string commandListPrefix = "6. Command List|";
+                    if (_CommandNameDictionary.Count > 0)
+                    {
+                        lock (_CommandIDDictionary)
+                        {
+                            foreach (AdKatsCommand command in _CommandIDDictionary.Values.ToList())
+                            {
+                                if (command.command_active != AdKatsCommand.CommandActive.Invisible)
+                                {
+                                    String commandPrefix = commandListPrefix + "CDE" + command.command_id + separator + command.command_name + separator;
+                                    lstReturn.Add(new CPluginVariable(commandPrefix + "Active", "enum.commandActiveEnum(Active|Disabled)", command.command_active.ToString()));
+                                    if (command.command_active != AdKatsCommand.CommandActive.Disabled)
+                                    {
+                                        if (command.command_logging != AdKatsCommand.CommandLogging.Mandatory && command.command_logging != AdKatsCommand.CommandLogging.Unable)
+                                        {
+                                            lstReturn.Add(new CPluginVariable(commandPrefix + "Logging", "enum.commandLoggingEnum(Log|Ignore)", command.command_logging.ToString()));
+                                        }
+                                        lstReturn.Add(new CPluginVariable(commandPrefix + "Text", typeof(String), command.command_text));
+                                        lstReturn.Add(new CPluginVariable(commandPrefix + "Access Method", CreateEnumString(typeof(AdKatsCommand.CommandAccess)), command.command_access.ToString()));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        lstReturn.Add(new CPluginVariable(commandListPrefix + "Command List Empty", typeof(String), "No valid commands found in database."));
                     }
 
                     if (_UseBanEnforcer) {
@@ -30419,7 +30443,7 @@ namespace PRoConEvents {
                             {
                                 case "slot_reserved":
                                     //Pull players from user list
-                                    if (_userCache.Count > 0 && _FeedServerReservedSlots_Admins)
+                                    if (_userCache.Count > 0 && _FeedServerReservedSlots && _FeedServerReservedSlots_Admins)
                                     {
                                         foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers().Where(aPlayer =>
                                             aPlayer.game_id == _serverInfo.GameID &&
@@ -30462,7 +30486,7 @@ namespace PRoConEvents {
                                     break;
                                 case "slot_spectator":
                                     //Pull players from user list
-                                    if (_userCache.Count > 0 && _FeedServerSpectatorList_Admins)
+                                    if (_userCache.Count > 0 && _FeedServerSpectatorList && _FeedServerSpectatorList_Admins)
                                     {
                                         foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers().Where(aPlayer =>
                                             aPlayer.game_id == _serverInfo.GameID &&
@@ -30483,7 +30507,7 @@ namespace PRoConEvents {
                                     break;
                                 case "whitelist_multibalancer":
                                     //Pull players from user list
-                                    if (_userCache.Count > 0 && _FeedMultiBalancerWhitelist_Admins)
+                                    if (_userCache.Count > 0 && _FeedMultiBalancerWhitelist && _FeedMultiBalancerWhitelist_Admins)
                                     {
                                         foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers().Where(aPlayer =>
                                             aPlayer.game_id == _serverInfo.GameID &&
@@ -30549,7 +30573,7 @@ namespace PRoConEvents {
                                     break;
                                 case "whitelist_teamkill":
                                     //Pull players from user list
-                                    if (_userCache.Count > 0 && _FeedTeamKillTrackerWhitelist_Admins)
+                                    if (_userCache.Count > 0 && _FeedTeamKillTrackerWhitelist && _FeedTeamKillTrackerWhitelist_Admins)
                                     {
                                         foreach (AdKatsPlayer aPlayer in FetchAdminSoldiers().Where(aPlayer =>
                                             aPlayer.game_id == _serverInfo.GameID &&
