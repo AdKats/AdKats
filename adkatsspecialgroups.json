@@ -68,7 +68,12 @@
 		{
 			"group_id":13,
 			"group_key":"blacklist_report",
-			"group_name":"Report Target Blacklist" 
+			"group_name":"Report Source Blacklist" 
+		},
+		{
+			"group_id":14,
+			"group_key":"whitelist_commandtarget",
+			"group_name":"Command Target Whitelist" 
 		}
 	]
 }
