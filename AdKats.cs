@@ -1,4 +1,4 @@
-﻿/* 
+/*
  * AdKats - Advanced In-Game Admin and Ban Enforcer for Procon Frostbite.
  * 
  * Copyright 2014 A Different Kind, LLC
@@ -5864,14 +5864,14 @@ namespace PRoConEvents
                     DebugWrite("Fetching plugin links...", 2);
                     try
                     {
-                        _pluginLinks = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/LINKS.md");
+                        _pluginLinks = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/LINKS.md?nocacherandom=" + Environment.TickCount);
                         DebugWrite("Plugin links fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            _pluginLinks = client.DownloadString("http://api.gamerethos.net/adkats/fetch/links");
+                            _pluginLinks = client.DownloadString("http://api.gamerethos.net/adkats/fetch/links?nocacherandom=" + Environment.TickCount);
                             DebugWrite("Plugin links fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -5883,14 +5883,14 @@ namespace PRoConEvents
                     DebugWrite("Fetching plugin readme...", 2);
                     try
                     {
-                        _pluginDescription = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/README.md");
+                        _pluginDescription = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/README.md?nocacherandom=" + Environment.TickCount);
                         DebugWrite("Plugin readme fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            _pluginDescription = client.DownloadString("http://api.gamerethos.net/adkats/fetch/readme");
+                            _pluginDescription = client.DownloadString("http://api.gamerethos.net/adkats/fetch/readme?nocacherandom=" + Environment.TickCount);
                             DebugWrite("Plugin readme fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -5902,14 +5902,14 @@ namespace PRoConEvents
                     DebugWrite("Fetching plugin changelog...", 2);
                     try
                     {
-                        _pluginChangelog = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/CHANGELOG.md");
+                        _pluginChangelog = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/CHANGELOG.md?nocacherandom=" + Environment.TickCount);
                         DebugWrite("Plugin changelog fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            _pluginChangelog = client.DownloadString("http://api.gamerethos.net/adkats/fetch/changelog");
+                            _pluginChangelog = client.DownloadString("http://api.gamerethos.net/adkats/fetch/changelog?nocacherandom=" + Environment.TickCount);
                             DebugWrite("Plugin changelog fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -26193,14 +26193,14 @@ namespace PRoConEvents
                         DebugWrite("Fetching plugin changelog...", 2);
                         try
                         {
-                            command.CommandText = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkats.sql");
+                            command.CommandText = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkats.sql?nocacherandom=" + Environment.TickCount);
                             DebugWrite("SQL setup script fetched.", 1);
                         }
                         catch (Exception)
                         {
                             try
                             {
-                                command.CommandText = client.DownloadString("http://api.gamerethos.net/adkats/fetch/sqlsetup");
+                                command.CommandText = client.DownloadString("http://api.gamerethos.net/adkats/fetch/sqlsetup?nocacherandom=" + Environment.TickCount);
                                 DebugWrite("SQL setup script fetched from backup location.", 1);
                             }
                             catch (Exception)
@@ -35581,7 +35581,7 @@ namespace PRoConEvents
                         try
                         {
                             DoBattlelogWait();
-                            String response = client.DownloadString("http://battlelog.battlefield.com/bf3/user/" + aPlayer.player_name);
+                            String response = client.DownloadString("http://battlelog.battlefield.com/bf3/user/" + aPlayer.player_name + "?nocacherandom=" + Environment.TickCount);
                             Match pid = Regex.Match(response, @"bf3/soldier/" + aPlayer.player_name + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                             if (!pid.Success)
                             {
@@ -35614,7 +35614,7 @@ namespace PRoConEvents
                         try
                         {
                             DoBattlelogWait();
-                            String personaResponse = client.DownloadString("http://battlelog.battlefield.com/bf4/user/" + aPlayer.player_name);
+                            String personaResponse = client.DownloadString("http://battlelog.battlefield.com/bf4/user/" + aPlayer.player_name + "?nocacherandom=" + Environment.TickCount);
                             Match pid = Regex.Match(personaResponse, @"bf4/soldier/" + aPlayer.player_name + @"/stats/(\d+)", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                             if (!pid.Success)
                             {
@@ -35625,7 +35625,7 @@ namespace PRoConEvents
                             DebugWrite("Persona ID fetched for " + aPlayer.player_name, 4);
 
                             DoBattlelogWait();
-                            String overviewResponse = client.DownloadString("http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_personaID + "/1/");
+                            String overviewResponse = client.DownloadString("http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_personaID + "/1/" + "?nocacherandom=" + Environment.TickCount);
 
                             Hashtable json = (Hashtable)JSON.JsonDecode(overviewResponse);
                             Hashtable data = (Hashtable)json["data"];
@@ -35728,14 +35728,14 @@ namespace PRoConEvents
                 DebugWrite("Fetching reputation definitions...", 2);
                 try
                 {
-                    repInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsreputationstats.json");
+                    repInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsreputationstats.json" + "?nocacherandom=" + Environment.TickCount);
                     DebugWrite("Reputation definitions fetched.", 1);
                 }
                 catch (Exception)
                 {
                     try
                     {
-                        repInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/reputation");
+                        repInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/reputation" + "?nocacherandom=" + Environment.TickCount);
                         DebugWrite("Reputation definitions fetched from backup location.", 1);
                     }
                     catch (Exception)
@@ -35803,14 +35803,14 @@ namespace PRoConEvents
                 DebugWrite("Fetching weapon names...", 2);
                 try
                 {
-                    downloadString = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsweaponnames.json");
+                    downloadString = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsweaponnames.json" + "?nocacherandom=" + Environment.TickCount);
                     DebugWrite("Weapon names fetched.", 1);
                 }
                 catch (Exception)
                 {
                     try
                     {
-                        downloadString = client.DownloadString("http://api.gamerethos.net/adkats/fetch/weaponnames");
+                        downloadString = client.DownloadString("http://api.gamerethos.net/adkats/fetch/weaponnames" + "?nocacherandom=" + Environment.TickCount);
                         DebugWrite("Weapon names fetched from backup location.", 1);
                     }
                     catch (Exception)
@@ -35874,14 +35874,14 @@ namespace PRoConEvents
                 DebugWrite("Fetching special group definitions...", 2);
                 try
                 {
-                    groupInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsspecialgroups.json");
+                    groupInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsspecialgroups.json" + "?nocacherandom=" + Environment.TickCount);
                     DebugWrite("Special group definitions fetched.", 1);
                 }
                 catch (Exception)
                 {
                     try
                     {
-                        groupInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/specialgroups");
+                        groupInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/specialgroups" + "?nocacherandom=" + Environment.TickCount);
                         DebugWrite("Special group definitions fetched from backup location.", 1);
                     }
                     catch (Exception)
@@ -36083,14 +36083,14 @@ namespace PRoConEvents
                     String updateInfo;
                     try
                     {
-                        updateInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsupdates.json");
+                        updateInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsupdates.json" + "?nocacherandom=" + Environment.TickCount);
                         DebugWrite("SQL updates fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            updateInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/sqlupdates");
+                            updateInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/sqlupdates" + "?nocacherandom=" + Environment.TickCount);
                             DebugWrite("SQL updates fetched from backup location.", 1);
                         }
                         catch (Exception)
@@ -37157,8 +37157,8 @@ namespace PRoConEvents
                             {
                                 try
                                 {
-                                    const string stableURL = "https://raw.githubusercontent.com/AdKats/AdKats/master/AdKats.cs";
-                                    const string testURL = "https://raw.githubusercontent.com/AdKats/AdKats/test/AdKats.cs";
+                                    const string stableURL = "https://raw.githubusercontent.com/AdKats/AdKats/master/AdKats.cs" + "?nocacherandom=" + Environment.TickCount;
+                                    const string testURL = "https://raw.githubusercontent.com/AdKats/AdKats/test/AdKats.cs" + "?nocacherandom=" + Environment.TickCount;
                                     if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     {
                                         pluginSource = client.DownloadString(stableURL);
@@ -37347,7 +37347,7 @@ namespace PRoConEvents
                                 {
                                     try
                                     {
-                                        externalPluginSource = client.DownloadString("https://raw.githubusercontent.com/ColColonCleaner/multi-balancer/master/MULTIbalancer.cs").Substring(3);
+                                        externalPluginSource = client.DownloadString("https://raw.githubusercontent.com/ColColonCleaner/multi-balancer/master/MULTIbalancer.cs" + "?nocacherandom=" + Environment.TickCount);
                                     }
                                     catch (Exception e)
                                     {
@@ -37457,7 +37457,7 @@ namespace PRoConEvents
                                 {
                                     try
                                     {
-                                        extensionSource = client.DownloadString("https://raw.githubusercontent.com/AdKats/AdKats-LRT/master/AdKatsLRT.cs?token=" + _AdKatsLRTExtensionToken);
+                                        extensionSource = client.DownloadString("https://raw.githubusercontent.com/AdKats/AdKats-LRT/master/AdKatsLRT.cs?token=" + _AdKatsLRTExtensionToken + "&nocacherandom=" + Environment.TickCount);
                                     }
                                     catch (Exception e)
                                     {
@@ -38114,7 +38114,7 @@ namespace PRoConEvents
                     try
                     {
                         DoIPAPIWait();
-                        response = (Hashtable)JSON.JsonDecode(client.DownloadString("http://ip-api.com/json/" + aPlayer.player_ip));
+                        response = (Hashtable)JSON.JsonDecode(client.DownloadString("http://ip-api.com/json/" + aPlayer.player_ip + "?nocacherandom=" + Environment.TickCount));
                     }
                     catch (Exception e)
                     {
@@ -40186,14 +40186,14 @@ namespace PRoConEvents
                     Plugin.DebugWrite("Fetching weapon statistic definitions...", 2);
                     try
                     {
-                        weaponInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsweaponstats.json");
+                        weaponInfo = client.DownloadString("https://raw.github.com/AdKats/AdKats/master/adkatsweaponstats.json" + "?nocacherandom=" + Environment.TickCount);
                         Plugin.DebugWrite("Weapon statistic definitions fetched.", 1);
                     }
                     catch (Exception)
                     {
                         try
                         {
-                            weaponInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/weapons");
+                            weaponInfo = client.DownloadString("http://api.gamerethos.net/adkats/fetch/weapons" + "?nocacherandom=" + Environment.TickCount);
                             Plugin.DebugWrite("Weapon statistic definitions fetched from backup location.", 1);
                         }
                         catch (Exception)
