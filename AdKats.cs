@@ -37157,8 +37157,8 @@ namespace PRoConEvents
                             {
                                 try
                                 {
-                                    const string stableURL = "https://raw.githubusercontent.com/AdKats/AdKats/master/AdKats.cs" + "?nocacherandom=" + Environment.TickCount;
-                                    const string testURL = "https://raw.githubusercontent.com/AdKats/AdKats/test/AdKats.cs" + "?nocacherandom=" + Environment.TickCount;
+                                    string stableURL = "https://raw.githubusercontent.com/AdKats/AdKats/master/AdKats.cs" + "?nocacherandom=" + Environment.TickCount;
+                                    string testURL = "https://raw.githubusercontent.com/AdKats/AdKats/test/AdKats.cs" + "?nocacherandom=" + Environment.TickCount;
                                     if (_pluginVersionStatus == VersionStatus.OutdatedBuild)
                                     {
                                         pluginSource = client.DownloadString(stableURL);
