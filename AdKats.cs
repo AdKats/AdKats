@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.2.6
+ * Version 6.5.2.7
  * 13-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.2.6</version_code>
+ * <version_code>6.5.2.7</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.2.6";
+        private const String PluginVersion = "6.5.2.7";
 
         public enum ConsoleMessageType
         {
@@ -384,6 +384,7 @@ namespace PRoConEvents
         //Punishment settings
         private readonly List<String> _PunishmentSeverityIndex;
         private Boolean _CombineServerPunishments;
+        private Boolean _AutomaticMonthlyForgives;
         private Boolean _IROActive = true;
         private Boolean _IROOverridesLowPop;
         private Int32 _IROTimeout = 10;
@@ -917,6 +918,7 @@ namespace PRoConEvents
                     //Punishment Settings
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Punishment Hierarchy", typeof(String[]), _PunishmentHierarchy));
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
+                    lstReturn.Add(new CPluginVariable("7. Punishment Settings|Automatic Monthly Forgives", typeof(Boolean), _AutomaticMonthlyForgives));
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Use IRO Punishment", typeof(Boolean), _IROActive));
                     if (_IROActive)
@@ -4736,6 +4738,16 @@ namespace PRoConEvents
                         _CombineServerPunishments = combine;
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Automatic Monthly Forgives").Success)
+                {
+                    Boolean AutomaticMonthlyForgives = Boolean.Parse(strValue);
+                    if (_AutomaticMonthlyForgives != AutomaticMonthlyForgives)
+                    {
+                        _AutomaticMonthlyForgives = AutomaticMonthlyForgives;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Monthly Forgives", typeof(Boolean), _AutomaticMonthlyForgives));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Only Kill Players when Server in low population").Success)
@@ -9929,6 +9941,26 @@ namespace PRoConEvents
                             }
                         }
                     }
+
+                    if (_AutomaticMonthlyForgives && 
+                        aPlayer.player_reputation >= 0 &&
+                        aPlayer.player_infractionPoints > 0 && 
+                        aPlayer.LastPunishment != null && 
+                        (UtcDbTime() - aPlayer.LastPunishment.record_time).TotalDays > 30 && 
+                        (aPlayer.LastForgive == null || (UtcDbTime() - aPlayer.LastForgive.record_time).TotalDays > 30))
+                    {
+                        QueueRecordForProcessing(new AdKatsRecord
+                        {
+                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("player_forgive"),
+                            command_numeric = 0,
+                            target_name = aPlayer.player_name,
+                            target_player = aPlayer,
+                            source_name = "InfractionManager",
+                            record_message = "Auto-Forgiven for Clean Play"
+                        });
+                    }
                 }
             }
             catch (Exception e)
@@ -12564,6 +12596,12 @@ namespace PRoConEvents
                                 if (_isTestingAuthorized && record.target_player != null && FetchPoints(record.target_player, _CombineServerPunishments, true) <= 0)
                                 {
                                     SendMessageToSource(record, record.GetTargetNames() + " does not have any infractions to forgive.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (record.source_name == record.target_name && record.source_name != _debugSoldierName)
+                                {
+                                    SendMessageToSource(record, "You may not issue forgives against yourself, contant another administrator.");
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -27285,6 +27323,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Report Handle Seconds", typeof(Int32), _MinimumReportHandleSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Punishment Hierarchy", typeof(String), CPluginVariable.EncodeStringArray(_PunishmentHierarchy)));
                 QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic Monthly Forgives", typeof(Boolean), _AutomaticMonthlyForgives));
                 QueueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
                 QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                 QueueSettingForUpload(new CPluginVariable(@"High Population Value", typeof(Int32), _highPopulationPlayerCount));
