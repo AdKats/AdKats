@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.2.7
- * 13-MAR-2015
+ * Version 6.5.2.8
+ * 15-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.2.7</version_code>
+ * <version_code>6.5.2.8</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.2.7";
+        private const String PluginVersion = "6.5.2.8";
 
         public enum ConsoleMessageType
         {
@@ -76,14 +76,16 @@ namespace PRoConEvents
         public enum GameVersion
         {
             BF3,
-            BF4
+            BF4,
+            BFH
         };
 
         //Metabans Ref
         internal enum SupportedGames
         {
             BF_3,
-            BF_4
+            BF_4,
+            BF_H
         }
 
         public enum RoundState
@@ -205,6 +207,7 @@ namespace PRoConEvents
         private DateTime _LastPlayerMoveIssued = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastPluginDescFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastVersionTrackingUpdate = DateTime.UtcNow - TimeSpan.FromHours(1);
+        private DateTime _LastWeaponCodePost = DateTime.UtcNow - TimeSpan.FromHours(1);
         private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
@@ -384,7 +387,9 @@ namespace PRoConEvents
         //Punishment settings
         private readonly List<String> _PunishmentSeverityIndex;
         private Boolean _CombineServerPunishments;
-        private Boolean _AutomaticMonthlyForgives;
+        private Boolean _AutomaticForgives;
+        private Int32 _AutomaticForgiveLastPunishDays = 30;
+        private Int32 _AutomaticForgiveLastForgiveDays = 14;
         private Boolean _IROActive = true;
         private Boolean _IROOverridesLowPop;
         private Int32 _IROTimeout = 10;
@@ -654,7 +659,8 @@ namespace PRoConEvents
         private Boolean _UseWeaponLimiter;
         private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
         private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
-        
+        private HashSet<String> _DetectedWeaponCodes = new HashSet<String>(); 
+
         public AdKats()
         {
             //Create the server reference
@@ -918,7 +924,12 @@ namespace PRoConEvents
                     //Punishment Settings
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Punishment Hierarchy", typeof(String[]), _PunishmentHierarchy));
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
-                    lstReturn.Add(new CPluginVariable("7. Punishment Settings|Automatic Monthly Forgives", typeof(Boolean), _AutomaticMonthlyForgives));
+                    lstReturn.Add(new CPluginVariable("7. Punishment Settings|Automatic Forgives", typeof(Boolean), _AutomaticForgives));
+                    if (_AutomaticForgives)
+                    {
+                        lstReturn.Add(new CPluginVariable("7. Punishment Settings|Automatic Forgive Days Since Punished", typeof(Int32), _AutomaticForgiveLastPunishDays));
+                        lstReturn.Add(new CPluginVariable("7. Punishment Settings|Automatic Forgive Days Since Forgiven", typeof(Int32), _AutomaticForgiveLastForgiveDays));
+                    }
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
                     lstReturn.Add(new CPluginVariable("7. Punishment Settings|Use IRO Punishment", typeof(Boolean), _IROActive));
                     if (_IROActive)
@@ -2742,9 +2753,9 @@ namespace PRoConEvents
                     Boolean feedSSL = Boolean.Parse(strValue);
                     if (feedSSL != _FeedServerSpectatorList)
                     {
-                        if (_gameVersion != GameVersion.BF4)
+                        if (_gameVersion == GameVersion.BF3)
                         {
-                            ConsoleError("This feature can only be enabled on BF4 servers.");
+                            ConsoleError("This feature cannot be enabled on BF3 servers.");
                             return;
                         }
                         _FeedServerSpectatorList = feedSSL;
@@ -4073,9 +4084,12 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Command Target Whitelist Commands").Success)
                 {
                     _CommandTargetWhitelistCommands = new List<String>(CPluginVariable.DecodeStringArray(strValue));
-                    if (_firstUserListComplete) {
-                        foreach (var commandText in _CommandTargetWhitelistCommands.ToList()) {
-                            if (!_CommandTextDictionary.ContainsKey(commandText)) {
+                    if (_firstUserListComplete)
+                    {
+                        foreach (var commandText in _CommandTargetWhitelistCommands.ToList())
+                        {
+                            if (!_CommandTextDictionary.ContainsKey(commandText))
+                            {
                                 ConsoleError("Command " + commandText + " not found, removing from command target whitelist commands.");
                                 _CommandTargetWhitelistCommands.Remove(commandText);
                             }
@@ -4740,14 +4754,34 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Automatic Monthly Forgives").Success)
+                else if (Regex.Match(strVariable, @"Automatic Forgives").Success)
                 {
-                    Boolean AutomaticMonthlyForgives = Boolean.Parse(strValue);
-                    if (_AutomaticMonthlyForgives != AutomaticMonthlyForgives)
+                    Boolean AutomaticForgives = Boolean.Parse(strValue);
+                    if (_AutomaticForgives != AutomaticForgives)
                     {
-                        _AutomaticMonthlyForgives = AutomaticMonthlyForgives;
+                        _AutomaticForgives = AutomaticForgives;
                         //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"Automatic Monthly Forgives", typeof(Boolean), _AutomaticMonthlyForgives));
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Forgives", typeof(Boolean), _AutomaticForgives));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Automatic Forgive Days Since Punished").Success)
+                {
+                    Int32 AutomaticForgiveLastPunishDays = Int32.Parse(strValue);
+                    if (AutomaticForgiveLastPunishDays != _AutomaticForgiveLastPunishDays)
+                    {
+                        _AutomaticForgiveLastPunishDays = AutomaticForgiveLastPunishDays;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Forgive Days Since Punished", typeof(Int32), _AutomaticForgiveLastPunishDays));
+                    }
+                }
+                else if (Regex.Match(strVariable, @"Automatic Forgive Days Since Forgiven").Success)
+                {
+                    Int32 AutomaticForgiveLastForgiveDays = Int32.Parse(strValue);
+                    if (AutomaticForgiveLastForgiveDays != _AutomaticForgiveLastForgiveDays)
+                    {
+                        _AutomaticForgiveLastForgiveDays = AutomaticForgiveLastForgiveDays;
+                        //Once setting has been changed, upload the change to database
+                        QueueSettingForUpload(new CPluginVariable(@"Automatic Forgive Days Since Forgiven", typeof(Int32), _AutomaticForgiveLastForgiveDays));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Only Kill Players when Server in low population").Success)
@@ -6098,6 +6132,12 @@ namespace PRoConEvents
                                 PostVersionTracking();
                             }
 
+                            //Post usage stats at interval
+                            if ((UtcDbTime() - _LastWeaponCodePost).TotalHours > 1 && _firstPlayerListComplete)
+                            {
+                                PostWeaponCodes();
+                            }
+
                             //Run SpamBot
                             if (_pluginEnabled && _spamBotEnabled)
                             {
@@ -6161,7 +6201,8 @@ namespace PRoConEvents
                                         var matching = _PlayerDictionary.Values.ToList().Where(dPlayer =>
                                             PercentMatch(client.TsName, dPlayer.player_name) > 60 ||
                                             client.AdvIpAddress == dPlayer.player_ip);
-                                        if (_tsViewer.DbgClients) {
+                                        if (_tsViewer.DbgClients)
+                                        {
                                             ConsoleInfo("TSClient: " + client.TsName + " | " + client.AdvIpAddress + " | " + ((matching.Any()) ? (matching.Count() + " online players match client.") : ("No matching online players.")));
                                         }
                                         onlineTeamspeakPlayers.AddRange(matching);
@@ -6481,6 +6522,9 @@ namespace PRoConEvents
                 case "BF4":
                     _gameVersion = GameVersion.BF4;
                     break;
+                case "BFH":
+                    _gameVersion = GameVersion.BFH;
+                    break;
             }
             DebugWrite("^1Game Version: " + _gameVersion, 1);
             //Initialize the email handler
@@ -6639,7 +6683,7 @@ namespace PRoConEvents
                 OnTeamFactionOverride(3, 0);
                 OnTeamFactionOverride(4, 1);
             }
-            else if (_gameVersion == GameVersion.BF4)
+            else if (_gameVersion == GameVersion.BF4 || _gameVersion == GameVersion.BFH)
             {
                 _teamDictionary[0] = new AdKatsTeam(this, 0, "Spectator", "Spectators", "Server Spectators");
                 DebugWrite("Assigning team ID " + 0 + " to Spectator", 4);
@@ -7656,7 +7700,7 @@ namespace PRoConEvents
                                 }
                             }
                             ConsoleSuccess("AdKats " + GetPluginVersion() + " startup complete [" + FormatTimeString(UtcDbTime() - _AdKatsStartTime, 3) + "]. Commands are now online.");
-                            
+
                             if (_TeamspeakPlayerMonitorEnable)
                             {
                                 _tsViewer.Enable();
@@ -9271,7 +9315,10 @@ namespace PRoConEvents
         {
             try
             {
-                UploadWeaponCode(kKillerVictimDetails.DamageType);
+                if (!_DetectedWeaponCodes.Contains(kKillerVictimDetails.DamageType))
+                {
+                    _DetectedWeaponCodes.Add(kKillerVictimDetails.DamageType);
+                }
                 if (!_firstPlayerListComplete)
                 {
                     return;
@@ -9680,71 +9727,6 @@ namespace PRoConEvents
             DebugWrite("Exiting OnPlayerKilled", 7);
         }
 
-        private void UploadWeaponCode(String weaponCode)
-        {
-            DebugWrite("uploadWeaponCode starting!", 7);
-
-            //Make sure database connection active
-            if (HandlePossibleDisconnect() || !_isTestingAuthorized)
-            {
-                return;
-            }
-            try
-            {
-                Boolean confirmed = _WeaponCodesTableConfirmed;
-                if (!_WeaponCodesTableTested)
-                {
-                    _WeaponCodesTableTested = true;
-                    _WeaponCodesTableConfirmed = ConfirmTable("tbl_weaponcodes");
-                }
-                if (!_WeaponCodesTableConfirmed)
-                {
-                    return;
-                }
-                if (!confirmed)
-                {
-                    ConsoleSuccess("Weapon code table found.");
-                }
-                //Check for length too great
-                if (weaponCode.Length > 100)
-                {
-                    ConsoleError("Weapon name '" + weaponCode + "' too long!!!");
-                    return;
-                }
-
-                using (MySqlConnection connection = GetDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
-                        //Set the insert command structure
-                        command.CommandText = @"
-                        INSERT INTO `tbl_weaponcodes` 
-                        (
-                            `weapon_code`
-                        ) 
-                        VALUES 
-                        (  
-                            '" + weaponCode + @"'
-                        ) 
-                        ON DUPLICATE KEY 
-                        UPDATE 
-                            `weapon_usage_count` = `weapon_usage_count` + 1";
-                        //Attempt to execute the query
-                        if (SafeExecuteNonQuery(command) > 0)
-                        {
-                            DebugWrite("Weapon pushed to database", 7);
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                HandleException(new AdKatsException("Error while uploading weapon to database.", e));
-            }
-
-            DebugWrite("uploadWeaponCode finished!", 7);
-        }
-
         public override void OnPlayerSpawned(String soldierName, Inventory spawnedInventory)
         {
             DebugWrite("Entering OnPlayerSpawned", 7);
@@ -9942,12 +9924,12 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (_AutomaticMonthlyForgives && 
+                    if (_AutomaticForgives &&
                         aPlayer.player_reputation >= 0 &&
-                        aPlayer.player_infractionPoints > 0 && 
-                        aPlayer.LastPunishment != null && 
-                        (UtcDbTime() - aPlayer.LastPunishment.record_time).TotalDays > 30 && 
-                        (aPlayer.LastForgive == null || (UtcDbTime() - aPlayer.LastForgive.record_time).TotalDays > 30))
+                        aPlayer.player_infractionPoints > 0 &&
+                        aPlayer.LastPunishment != null &&
+                        (UtcDbTime() - aPlayer.LastPunishment.record_time).TotalDays > _AutomaticForgiveLastPunishDays &&
+                        (aPlayer.LastForgive == null || (UtcDbTime() - aPlayer.LastForgive.record_time).TotalDays > _AutomaticForgiveLastForgiveDays))
                     {
                         QueueRecordForProcessing(new AdKatsRecord
                         {
@@ -11764,7 +11746,7 @@ namespace PRoConEvents
                 {
                     ProconChatWrite("Yell[" + _YellDuration + "s] > " + message);
                 }
-                ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4) ? (System.Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "all");
+                ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion != GameVersion.BF3) ? (System.Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "all");
             }
             catch (Exception e)
             {
@@ -11794,7 +11776,7 @@ namespace PRoConEvents
                 }
                 for (int count = 0; count < spamCount; count++)
                 {
-                    ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4) ? (System.Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "player", target);
+                    ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion != GameVersion.BF3) ? (System.Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "player", target);
                     _threadMasterWaitHandle.WaitOne(50);
                 }
             }
@@ -12057,7 +12039,7 @@ namespace PRoConEvents
                                         }
                                     }
                                 }
-                                if (_isTestingAuthorized && _gameVersion == GameVersion.BF4)
+                                if (_isTestingAuthorized && _gameVersion != GameVersion.BF3)
                                 {
                                     var lowerM = " " + messageObject.Message.ToLower() + " ";
                                     if (lowerM.Contains(" ping"))
@@ -12507,7 +12489,7 @@ namespace PRoConEvents
                         FinalizeRecord(record);
                         return;
                     }
-                    if (record.target_player != null && 
+                    if (record.target_player != null &&
                         _CommandTargetWhitelistCommands.Contains(record.command_type.command_text) &&
                         GetMatchingASPlayersOfGroup("whitelist_commandtarget", record.target_player).Any())
                     {
@@ -20177,7 +20159,7 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                if (_gameVersion == GameVersion.BF4 && !record.isAliveChecked)
+                if (_gameVersion != GameVersion.BF3 && !record.isAliveChecked)
                 {
                     if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
                     {
@@ -20335,6 +20317,7 @@ namespace PRoConEvents
                             }
                             break;
                         case GameVersion.BF4:
+                        case GameVersion.BFH:
                             if (!record.isAliveChecked)
                             {
                                 if (record.command_type.command_key == "player_punish")
@@ -26362,6 +26345,9 @@ namespace PRoConEvents
                 case GameVersion.BF4:
                     gameType = SupportedGames.BF_4;
                     break;
+                case GameVersion.BFH:
+                    gameType = SupportedGames.BF_H;
+                    break;
                 default:
                     ConsoleError("Invalid game version when posting to metabans.");
                     return;
@@ -26811,6 +26797,9 @@ namespace PRoConEvents
                                                     break;
                                                 case "BF4":
                                                     _gameIDDictionary.Add(gameID, GameVersion.BF4);
+                                                    break;
+                                                case "BFH":
+                                                    _gameIDDictionary.Add(gameID, GameVersion.BFH);
                                                     break;
                                                 default:
                                                     ConsoleError("Game name " + gameName + " not recognized.");
@@ -27323,7 +27312,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Minimum Report Handle Seconds", typeof(Int32), _MinimumReportHandleSeconds));
                 QueueSettingForUpload(new CPluginVariable(@"Punishment Hierarchy", typeof(String), CPluginVariable.EncodeStringArray(_PunishmentHierarchy)));
                 QueueSettingForUpload(new CPluginVariable(@"Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
-                QueueSettingForUpload(new CPluginVariable(@"Automatic Monthly Forgives", typeof(Boolean), _AutomaticMonthlyForgives));
+                QueueSettingForUpload(new CPluginVariable(@"Automatic Forgives", typeof(Boolean), _AutomaticForgives));
                 QueueSettingForUpload(new CPluginVariable(@"Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
                 QueueSettingForUpload(new CPluginVariable(@"Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
                 QueueSettingForUpload(new CPluginVariable(@"High Population Value", typeof(Int32), _highPopulationPlayerCount));
@@ -28190,7 +28179,7 @@ namespace PRoConEvents
             {
                 return success;
             }
-            //comorose BF4 chat handle
+            //comorose BF4/BFH chat handle
             if (messageObject.OriginalMessage.Contains("ID_CHAT") ||
                 messageObject.OriginalMessage.Contains("AdKatsInstanceCheck"))
             {
@@ -36086,6 +36075,30 @@ namespace PRoConEvents
             _LastVersionTrackingUpdate = UtcDbTime();
         }
 
+        private void PostWeaponCodes()
+        {
+            if (!_DetectedWeaponCodes.Any())
+            {
+                return;
+            }
+            try
+            {
+                using (var client = new WebClient())
+                {
+                    var data = new NameValueCollection {
+                        {"game", _gameVersion.ToString()},
+                        {"weapons", String.Join(",", _DetectedWeaponCodes.ToArray())}
+                    };
+                    byte[] response = client.UploadValues("http://api.gamerethos.net/weapons", data);
+                }
+            }
+            catch (Exception e)
+            {
+                //Do nothing
+            }
+            _LastWeaponCodePost = UtcDbTime();
+        }
+
         private Boolean PopulateCommandReputationDictionaries()
         {
             try
@@ -41737,7 +41750,7 @@ namespace PRoConEvents
 
                 //DebugWrite(DbgClients, "[Clients] Result of Teamspeak Client Update:");
                 //foreach (TeamspeakClient tsClient in _mClientTsInfo)
-                    //DebugWrite(DbgClients, "- TS Client [Ip: {0}, Channel: {1}, Name: {2}]", tsClient.AdvIpAddress, tsClient.MedChannelId, tsClient.TsName);
+                //DebugWrite(DbgClients, "- TS Client [Ip: {0}, Channel: {1}, Name: {2}]", tsClient.AdvIpAddress, tsClient.MedChannelId, tsClient.TsName);
             }
 
             private void AddToActionQueue(Commands command, params Object[] arguments)
