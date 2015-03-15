@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.2.8
+ * Version 6.5.2.9
  * 15-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.2.8</version_code>
+ * <version_code>6.5.2.9</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.2.8";
+        private const String PluginVersion = "6.5.2.9";
 
         public enum ConsoleMessageType
         {
@@ -1443,11 +1443,11 @@ namespace PRoConEvents
                     lstReturn.Add(new CPluginVariable(roleListPrefix + "Add Role", typeof(String), ""));
                     if (_RoleIDDictionary.Count > 0)
                     {
-                        lock (_RoleIDDictionary)
+                        DebugWrite("Locking on _RoleIDDictionary", 1); lock (_RoleIDDictionary)
                         {
                             foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
                             {
-                                lock (_CommandIDDictionary)
+                                DebugWrite("Locking on _CommandIDDictionary", 1); lock (_CommandIDDictionary)
                                 {
                                     var random = new Random();
                                     String rolePrefix = roleListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
@@ -1484,11 +1484,11 @@ namespace PRoConEvents
                     const string roleGroupListPrefix = "4-2. Role Group Settings|";
                     if (_RoleIDDictionary.Count > 0)
                     {
-                        lock (_RoleIDDictionary)
+                        DebugWrite("Locking on _RoleIDDictionary", 1); lock (_RoleIDDictionary)
                         {
                             foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
                             {
-                                lock (_specialPlayerGroupKeyDictionary)
+                                DebugWrite("Locking on _specialPlayerGroupKeyDictionary", 1); lock (_specialPlayerGroupKeyDictionary)
                                 {
                                     var random = new Random();
                                     String rolePrefix = roleGroupListPrefix + "RLE" + aRole.role_id + separator + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + separator;
@@ -1530,7 +1530,7 @@ namespace PRoConEvents
                     const string commandListPrefix = "6. Command List|";
                     if (_CommandNameDictionary.Count > 0)
                     {
-                        lock (_CommandIDDictionary)
+                        DebugWrite("Locking on _CommandIDDictionary", 1); lock (_CommandIDDictionary)
                         {
                             foreach (AdKatsCommand command in _CommandIDDictionary.Values.ToList())
                             {
@@ -4012,7 +4012,7 @@ namespace PRoConEvents
                         ConsoleError("Search query must be 3 or more characters.");
                         return;
                     }
-                    lock (_BanEnforcerSearchResults)
+                    DebugWrite("Locking on _BanEnforcerSearchResults", 1); lock (_BanEnforcerSearchResults)
                     {
                         _BanEnforcerSearchResults = FetchMatchingBans(strValue, 5);
                         if (_BanEnforcerSearchResults.Count == 0)
@@ -4318,7 +4318,7 @@ namespace PRoConEvents
                                     break;
                             }
                             //Assign the command text
-                            lock (_CommandIDDictionary)
+                            DebugWrite("Locking on _CommandIDDictionary", 1); lock (_CommandIDDictionary)
                             {
                                 _CommandTextDictionary.Remove(command.command_text);
                                 command.command_text = strValue;
@@ -4570,7 +4570,7 @@ namespace PRoConEvents
                                 switch (strValue.ToLower())
                                 {
                                     case "allow":
-                                        lock (aRole.RoleAllowedCommands)
+                                        DebugWrite("Locking on aRole.RoleAllowedCommands", 1); lock (aRole.RoleAllowedCommands)
                                         {
                                             if (!aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key))
                                             {
@@ -4589,7 +4589,7 @@ namespace PRoConEvents
                                                 ConsoleError("Cancel command cannot be denied for any role. [M]");
                                                 return;
                                         }
-                                        lock (aRole.RoleAllowedCommands)
+                                        DebugWrite("Locking on aRole.RoleAllowedCommands", 1); lock (aRole.RoleAllowedCommands)
                                         {
                                             aRole.RoleAllowedCommands.Remove(aCommand.command_key);
                                         }
@@ -4626,7 +4626,7 @@ namespace PRoConEvents
                                 switch (strValue.ToLower())
                                 {
                                     case "assign":
-                                        lock (aRole.RoleSetGroups)
+                                        DebugWrite("Locking on aRole.RoleSetGroups", 1); lock (aRole.RoleSetGroups)
                                         {
                                             if (!aRole.RoleSetGroups.ContainsKey(aGroup.group_key))
                                             {
@@ -4637,7 +4637,7 @@ namespace PRoConEvents
                                         FetchAllAccess(true);
                                         break;
                                     case "ignore":
-                                        lock (aRole.RoleSetGroups)
+                                        DebugWrite("Locking on aRole.RoleSetGroups", 1); lock (aRole.RoleSetGroups)
                                         {
                                             aRole.RoleSetGroups.Remove(aGroup.group_key);
                                         }
@@ -5472,7 +5472,7 @@ namespace PRoConEvents
                                 role_name = roleName
                             };
                             //By default we should include all commands as allowed
-                            lock (_CommandIDDictionary)
+                            DebugWrite("Locking on _CommandIDDictionary", 1); lock (_CommandIDDictionary)
                             {
                                 foreach (AdKatsCommand aCommand in _RoleKeyDictionary["guest_default"].RoleAllowedCommands.Values)
                                 {
@@ -5747,7 +5747,7 @@ namespace PRoConEvents
                             Thread.Sleep(500);
                             alive = false;
                             String aliveThreads = "";
-                            lock (_aliveThreads)
+                            DebugWrite("Locking on _aliveThreads", 1); lock (_aliveThreads)
                             {
                                 foreach (Int32 deadThreadID in _aliveThreads.Values.Where(thread => !thread.IsAlive).Select(thread => thread.ManagedThreadId).ToList())
                                 {
@@ -6259,7 +6259,7 @@ namespace PRoConEvents
                                 if (_aliveThreads.Count() >= 20)
                                 {
                                     String aliveThreads = "";
-                                    lock (_aliveThreads)
+                                    DebugWrite("Locking on _aliveThreads", 1); lock (_aliveThreads)
                                     {
                                         foreach (Thread value in _aliveThreads.Values.ToList())
                                             aliveThreads = aliveThreads + (value.Name + "[" + value.ManagedThreadId + "] ");
@@ -6548,7 +6548,7 @@ namespace PRoConEvents
         {
             try
             {
-                lock (_teamDictionary)
+                DebugWrite("Locking on _teamDictionary", 1); lock (_teamDictionary)
                 {
                     switch (overrideTeamId)
                     {
@@ -6788,7 +6788,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue player list for processing", 6);
-                    lock (_PlayerListProcessingQueue)
+                    DebugWrite("Locking on _PlayerListProcessingQueue", 1); lock (_PlayerListProcessingQueue)
                     {
                         _PlayerListProcessingQueue.Enqueue(players);
                         DebugWrite("Player list queued for processing", 6);
@@ -6811,7 +6811,7 @@ namespace PRoConEvents
                 if (_pluginEnabled && _firstPlayerListComplete)
                 {
                     DebugWrite("Preparing to queue player list for processing", 6);
-                    lock (_PlayerRemovalProcessingQueue)
+                    DebugWrite("Locking on _PlayerRemovalProcessingQueue", 1); lock (_PlayerRemovalProcessingQueue)
                     {
                         _PlayerRemovalProcessingQueue.Enqueue(player);
                         DebugWrite("Player removal queued for processing", 6);
@@ -6853,7 +6853,7 @@ namespace PRoConEvents
                         if (_PlayerListProcessingQueue.Count > 0 && _firstUserListComplete)
                         {
                             DebugWrite("Preparing to lock player list queues to retrive new player lists", 7);
-                            lock (_PlayerListProcessingQueue)
+                            DebugWrite("Locking on _PlayerListProcessingQueue", 1); lock (_PlayerListProcessingQueue)
                             {
                                 DebugWrite("Inbound player lists found. Grabbing.", 6);
                                 while (_PlayerListProcessingQueue.Any())
@@ -6876,7 +6876,7 @@ namespace PRoConEvents
                         if (_PlayerRemovalProcessingQueue.Count > 0)
                         {
                             DebugWrite("Preparing to lock player removal queue to retrive new player removals", 7);
-                            lock (_PlayerRemovalProcessingQueue)
+                            DebugWrite("Locking on _PlayerRemovalProcessingQueue", 1); lock (_PlayerRemovalProcessingQueue)
                             {
                                 DebugWrite("Inbound player removals found. Grabbing.", 6);
                                 if (_PlayerRemovalProcessingQueue.Any())
@@ -6915,7 +6915,7 @@ namespace PRoConEvents
                         }
 
                         var removedPlayers = new List<string>();
-                        lock (_PlayerDictionary)
+                        DebugWrite("Locking on _PlayerDictionary", 1); lock (_PlayerDictionary)
                         {
                             //Firstly, go through removal queue, remove all names, and log them.
                             while (inboundPlayerRemoval.Any())
@@ -7796,7 +7796,7 @@ namespace PRoConEvents
             }
             else if (_threadsReady)
             {
-                lock (_userCache)
+                DebugWrite("Locking on _userCache", 1); lock (_userCache)
                 {
                     DateTime start = UtcDbTime();
                     FetchCommands();
@@ -8057,7 +8057,7 @@ namespace PRoConEvents
             {
                 if (_pluginEnabled)
                 {
-                    lock (_serverInfo)
+                    DebugWrite("Locking on _serverInfo", 1); lock (_serverInfo)
                     {
                         if (serverInfo != null)
                         {
@@ -9153,7 +9153,7 @@ namespace PRoConEvents
                     return;
                 }
                 AdKatsRecord aRecord;
-                lock (_ActOnIsAliveDictionary)
+                DebugWrite("Locking on _ActOnIsAliveDictionary", 1); lock (_ActOnIsAliveDictionary)
                 {
                     if (_ActOnIsAliveDictionary.TryGetValue(soldierName, out aRecord))
                     {
@@ -9174,7 +9174,7 @@ namespace PRoConEvents
                                         DebugWrite(aRecord.GetTargetNames() + " is dead. Queueing them for kill on-spawn.", 3);
                                         SendMessageToSource(aRecord, aRecord.GetTargetNames() + " is dead. Queueing them for kill on-spawn.");
                                         ExecuteCommand("procon.protected.send", "admin.killPlayer", aRecord.target_player.player_name);
-                                        lock (_ActOnSpawnDictionary)
+                                        DebugWrite("Locking on _ActOnSpawnDictionary", 1); lock (_ActOnSpawnDictionary)
                                         {
                                             aRecord.command_action = GetCommandByKey("player_kill_repeat");
                                             _ActOnSpawnDictionary.Add(aRecord.target_player.player_name, aRecord);
@@ -9217,7 +9217,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue kill for processing", 6);
-                    lock (_KillProcessingQueue)
+                    DebugWrite("Locking on _KillProcessingQueue", 1); lock (_KillProcessingQueue)
                     {
                         _KillProcessingQueue.Enqueue(kKillerVictimDetails);
                         DebugWrite("Kill queued for processing", 6);
@@ -9256,7 +9256,7 @@ namespace PRoConEvents
                         if (_KillProcessingQueue.Count > 0)
                         {
                             DebugWrite("Preparing to lock inbound kill queue to retrive new player kills", 7);
-                            lock (_KillProcessingQueue)
+                            DebugWrite("Locking on _KillProcessingQueue", 1); lock (_KillProcessingQueue)
                             {
                                 DebugWrite("Inbound kills found. Grabbing.", 6);
                                 //Grab all kills in the queue
@@ -9357,7 +9357,7 @@ namespace PRoConEvents
                 //Used for delayed player moving
                 if (_TeamswapOnDeathMoveDic.Count > 0)
                 {
-                    lock (_TeamswapOnDeathCheckingQueue)
+                    DebugWrite("Locking on _TeamswapOnDeathCheckingQueue", 1); lock (_TeamswapOnDeathCheckingQueue)
                     {
                         _TeamswapOnDeathCheckingQueue.Enqueue(kKillerVictimDetails.Victim);
                         _TeamswapWaitHandle.Set();
@@ -9909,7 +9909,7 @@ namespace PRoConEvents
 
                     if (_ActOnSpawnDictionary.Count > 0)
                     {
-                        lock (_ActOnSpawnDictionary)
+                        DebugWrite("Locking on _ActOnSpawnDictionary", 1); lock (_ActOnSpawnDictionary)
                         {
                             AdKatsRecord record;
                             if (_ActOnSpawnDictionary.TryGetValue(soldierName, out record))
@@ -9998,7 +9998,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue setting " + setting.Name + " for upload", 6);
-                    lock (_SettingUploadQueue)
+                    DebugWrite("Locking on _SettingUploadQueue", 1); lock (_SettingUploadQueue)
                     {
                         _SettingUploadQueue.Enqueue(setting);
                         _DbCommunicationWaitHandle.Set();
@@ -10020,7 +10020,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue command " + command.command_key + " for upload", 6);
-                    lock (_CommandUploadQueue)
+                    DebugWrite("Locking on _CommandUploadQueue", 1); lock (_CommandUploadQueue)
                     {
                         _CommandUploadQueue.Enqueue(command);
                         _DbCommunicationWaitHandle.Set();
@@ -10042,7 +10042,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue role " + aRole.role_key + " for upload", 6);
-                    lock (_RoleUploadQueue)
+                    DebugWrite("Locking on _RoleUploadQueue", 1); lock (_RoleUploadQueue)
                     {
                         _RoleUploadQueue.Enqueue(aRole);
                         _DbCommunicationWaitHandle.Set();
@@ -10064,7 +10064,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue role " + aRole.role_key + " for removal", 6);
-                    lock (_RoleRemovalQueue)
+                    DebugWrite("Locking on _RoleRemovalQueue", 1); lock (_RoleRemovalQueue)
                     {
                         _RoleRemovalQueue.Enqueue(aRole);
                         _DbCommunicationWaitHandle.Set();
@@ -10086,7 +10086,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue player for ban check", 6);
-                    lock (_BanEnforcerCheckingQueue)
+                    DebugWrite("Locking on _BanEnforcerCheckingQueue", 1); lock (_BanEnforcerCheckingQueue)
                     {
                         _BanEnforcerCheckingQueue.Enqueue(player);
                         DebugWrite("Player queued for checking", 6);
@@ -10109,7 +10109,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue ban for processing", 6);
-                    lock (_BanEnforcerProcessingQueue)
+                    DebugWrite("Locking on _BanEnforcerProcessingQueue", 1); lock (_BanEnforcerProcessingQueue)
                     {
                         _BanEnforcerProcessingQueue.Enqueue(aBan);
                         DebugWrite("Ban queued for processing", 6);
@@ -10149,7 +10149,7 @@ namespace PRoConEvents
                         if (_BanEnforcerCheckingQueue.Count > 0 && _UseBanEnforcer)
                         {
                             DebugWrite("Preparing to lock banEnforcerMutex to retrive new players", 6);
-                            lock (_BanEnforcerCheckingQueue)
+                            DebugWrite("Locking on _BanEnforcerCheckingQueue", 1); lock (_BanEnforcerCheckingQueue)
                             {
                                 DebugWrite("Inbound players found. Grabbing.", 5);
                                 //Grab all players in the queue
@@ -10331,7 +10331,7 @@ namespace PRoConEvents
                     if (banList.Count > 0)
                     {
                         DebugWrite("Bans found", 3);
-                        lock (_CBanProcessingQueue)
+                        DebugWrite("Locking on _CBanProcessingQueue", 1); lock (_CBanProcessingQueue)
                         {
                             //Only allow queueing of new bans if the processing queue is currently empty
                             if (_CBanProcessingQueue.Count == 0)
@@ -10385,7 +10385,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue " + player.player_name + " for hacker check", 6);
-                    lock (_HackerCheckerQueue)
+                    DebugWrite("Locking on _HackerCheckerQueue", 1); lock (_HackerCheckerQueue)
                     {
                         if (_HackerCheckerQueue.All(qPlayer => qPlayer.player_guid != player.player_guid))
                         {
@@ -10412,7 +10412,7 @@ namespace PRoConEvents
             DebugWrite("Entering GetAsPlayersOfGroup", 8);
             try
             {
-                lock (_baseSpecialPlayerCache)
+                DebugWrite("Locking on _baseSpecialPlayerCache", 1); lock (_baseSpecialPlayerCache)
                 {
                     List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
                     matchingSpecialPlayers.AddRange(_baseSpecialPlayerCache.Values.Where(asPlayer =>
@@ -10434,7 +10434,7 @@ namespace PRoConEvents
             DebugWrite("Entering GetVerboseASPlayersOfGroup", 8);
             try
             {
-                lock (_baseSpecialPlayerCache)
+                DebugWrite("Locking on _baseSpecialPlayerCache", 1); lock (_baseSpecialPlayerCache)
                 {
                     List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
                     matchingSpecialPlayers.AddRange(_verboseSpecialPlayerCache.Values.Where(asPlayer =>
@@ -10456,7 +10456,7 @@ namespace PRoConEvents
             DebugWrite("Entering GetMatchingASPlayersOfGroup", 8);
             try
             {
-                lock (_baseSpecialPlayerCache)
+                DebugWrite("Locking on _baseSpecialPlayerCache", 1); lock (_baseSpecialPlayerCache)
                 {
                     List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
                     matchingSpecialPlayers.AddRange(_baseSpecialPlayerCache.Values.Where(asPlayer =>
@@ -10483,7 +10483,7 @@ namespace PRoConEvents
             DebugWrite("Entering GetMatchingVerboseASPlayersOfGroup", 8);
             try
             {
-                lock (_baseSpecialPlayerCache)
+                DebugWrite("Locking on _baseSpecialPlayerCache", 1); lock (_baseSpecialPlayerCache)
                 {
                     List<AdKatsSpecialPlayer> matchingSpecialPlayers = new List<AdKatsSpecialPlayer>();
                     matchingSpecialPlayers.AddRange(_verboseSpecialPlayerCache.Values.Where(asPlayer =>
@@ -10620,7 +10620,7 @@ namespace PRoConEvents
                             if (_HackerCheckerQueue.Count > 0)
                             {
                                 DebugWrite("Preparing to lock hackerCheckerMutex to retrive new players", 6);
-                                lock (_HackerCheckerQueue)
+                                DebugWrite("Locking on _HackerCheckerQueue", 1); lock (_HackerCheckerQueue)
                                 {
                                     DebugWrite("Inbound players found. Grabbing.", 5);
                                     //Grab all players in the queue
@@ -11825,7 +11825,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue message for parsing", 6);
-                    lock (_UnparsedMessageQueue)
+                    DebugWrite("Locking on _UnparsedMessageQueue", 1); lock (_UnparsedMessageQueue)
                     {
                         _UnparsedMessageQueue.Enqueue(messageObject);
                         DebugWrite("Message queued for parsing.", 6);
@@ -11848,7 +11848,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue command for parsing", 6);
-                    lock (_UnparsedCommandQueue)
+                    DebugWrite("Locking on _UnparsedCommandQueue", 1); lock (_UnparsedCommandQueue)
                     {
                         _UnparsedCommandQueue.Enqueue(chatMessage);
                         DebugWrite("Command sent to unparsed commands.", 6);
@@ -11886,7 +11886,7 @@ namespace PRoConEvents
                         if (_UnparsedMessageQueue.Count > 0)
                         {
                             DebugWrite("Preparing to lock messaging to retrive new messages", 7);
-                            lock (_UnparsedMessageQueue)
+                            DebugWrite("Locking on _UnparsedMessageQueue", 1); lock (_UnparsedMessageQueue)
                             {
                                 DebugWrite("Inbound messages found. Grabbing.", 6);
                                 //Grab all messages in the queue
@@ -11999,7 +11999,7 @@ namespace PRoConEvents
                             //ignore if it's a server call
                             if (messageObject.Speaker != "Server")
                             {
-                                lock (_RoundMutedPlayers)
+                                DebugWrite("Locking on _RoundMutedPlayers", 1); lock (_RoundMutedPlayers)
                                 {
                                     //Check if the player is muted
                                     DebugWrite("Checking for mute case.", 7);
@@ -12097,7 +12097,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to queue player for TeamSwap ", 6);
-                    lock (_TeamswapForceMoveQueue)
+                    DebugWrite("Locking on _TeamswapForceMoveQueue", 1); lock (_TeamswapForceMoveQueue)
                     {
                         _TeamswapForceMoveQueue.Enqueue(player);
                         _TeamswapWaitHandle.Set();
@@ -12120,7 +12120,7 @@ namespace PRoConEvents
                 if (_pluginEnabled)
                 {
                     DebugWrite("Preparing to add player to 'on-death' move dictionary.", 6);
-                    lock (_TeamswapOnDeathCheckingQueue)
+                    DebugWrite("Locking on _TeamswapOnDeathCheckingQueue", 1); lock (_TeamswapOnDeathCheckingQueue)
                     {
                         if (!_TeamswapOnDeathMoveDic.ContainsKey(player.SoldierName))
                         {
@@ -12164,7 +12164,7 @@ namespace PRoConEvents
                         }
                         AdKatsTeam team1;
                         AdKatsTeam team2;
-                        lock (_teamDictionary)
+                        DebugWrite("Locking on _teamDictionary", 1); lock (_teamDictionary)
                         {
                             if (!_teamDictionary.TryGetValue(1, out team1))
                             {
@@ -12200,12 +12200,12 @@ namespace PRoConEvents
 
                             Queue<CPlayerInfo> movingQueue;
                             Queue<CPlayerInfo> checkingQueue;
-                            lock (_TeamswapForceMoveQueue)
+                            DebugWrite("Locking on _TeamswapForceMoveQueue", 1); lock (_TeamswapForceMoveQueue)
                             {
                                 movingQueue = new Queue<CPlayerInfo>(_TeamswapForceMoveQueue.ToArray());
                                 _TeamswapForceMoveQueue.Clear();
                             }
-                            lock (_TeamswapOnDeathCheckingQueue)
+                            DebugWrite("Locking on _TeamswapOnDeathCheckingQueue", 1); lock (_TeamswapOnDeathCheckingQueue)
                             {
                                 checkingQueue = new Queue<CPlayerInfo>(_TeamswapOnDeathCheckingQueue.ToArray());
                                 _TeamswapOnDeathCheckingQueue.Clear();
@@ -13120,7 +13120,7 @@ namespace PRoConEvents
                     }
                 }
                 DebugWrite("Preparing to queue " + record.command_type.command_key + " record for processing", 6);
-                lock (_UnprocessedRecordQueue)
+                DebugWrite("Locking on _UnprocessedRecordQueue", 1); lock (_UnprocessedRecordQueue)
                 {
                     //Queue the record for processing
                     _UnprocessedRecordQueue.Enqueue(record);
@@ -13142,7 +13142,7 @@ namespace PRoConEvents
             try
             {
                 DebugWrite("Preparing to queue statistic for processing", 6);
-                lock (_UnprocessedStatisticQueue)
+                DebugWrite("Locking on _UnprocessedStatisticQueue", 1); lock (_UnprocessedStatisticQueue)
                 {
                     //Queue the statistic for processing
                     _UnprocessedStatisticQueue.Enqueue(aStat);
@@ -13183,7 +13183,7 @@ namespace PRoConEvents
                         {
                             DebugWrite("Preparing to lock command queue to retrive new commands", 7);
                             Queue<AdKatsChatMessage> unparsedCommands;
-                            lock (_UnparsedCommandQueue)
+                            DebugWrite("Locking on _UnparsedCommandQueue", 1); lock (_UnparsedCommandQueue)
                             {
                                 DebugWrite("Inbound commands found. Grabbing.", 6);
                                 //Grab all messages in the queue
@@ -18806,7 +18806,7 @@ namespace PRoConEvents
 
         private AdKatsTeam GetTeamByKey(String teamKey)
         {
-            lock (_teamDictionary)
+            DebugWrite("Locking on _teamDictionary", 1); lock (_teamDictionary)
             {
                 foreach (AdKatsTeam curTeam in _teamDictionary.Values)
                 {
@@ -19278,7 +19278,7 @@ namespace PRoConEvents
                     QueueRecordForProcessing(record);
                     return;
                 }
-                lock (_ActionConfirmDic)
+                DebugWrite("Locking on _ActionConfirmDic", 1); lock (_ActionConfirmDic)
                 {
                     //Cancel any source pending action
                     CancelSourcePendingAction(record);
@@ -19301,7 +19301,7 @@ namespace PRoConEvents
             try
             {
                 DebugWrite("attempting to cancel command", 6);
-                lock (_ActionConfirmDic)
+                DebugWrite("Locking on _ActionConfirmDic", 1); lock (_ActionConfirmDic)
                 {
                     if (_ActionConfirmDic.Remove(record.source_name))
                     {
@@ -19321,7 +19321,7 @@ namespace PRoConEvents
             AdKatsRecord reportedRecord = null;
             try
             {
-                lock (_RoundReports)
+                DebugWrite("Locking on _RoundReports", 1); lock (_RoundReports)
                 {
                     if (_RoundReports.TryGetValue(reportID, out reportedRecord) && remove)
                     {
@@ -19521,7 +19521,7 @@ namespace PRoConEvents
             try
             {
                 DebugWrite("Preparing to queue player for IP info fetch.", 6);
-                lock (_IPInfoFetchQueue)
+                DebugWrite("Locking on _IPInfoFetchQueue", 1); lock (_IPInfoFetchQueue)
                 {
                     _IPInfoFetchQueue.Enqueue(aPlayer);
                     DebugWrite("Player queued for IP info fetch.", 6);
@@ -19559,7 +19559,7 @@ namespace PRoConEvents
                         if (_IPInfoFetchQueue.Count > 0)
                         {
                             Queue<AdKatsPlayer> unprocessedPlayers;
-                            lock (_IPInfoFetchQueue)
+                            DebugWrite("Locking on _IPInfoFetchQueue", 1); lock (_IPInfoFetchQueue)
                             {
                                 DebugWrite("Inbound players found. Grabbing.", 6);
                                 //Grab all items in the queue
@@ -19617,7 +19617,7 @@ namespace PRoConEvents
             try
             {
                 DebugWrite("Preparing to queue player for battlelog info fetch.", 6);
-                lock (_BattlelogFetchQueue)
+                DebugWrite("Locking on _BattlelogFetchQueue", 1); lock (_BattlelogFetchQueue)
                 {
                     _BattlelogFetchQueue.Enqueue(aPlayer);
                     DebugWrite("Player queued for battlelog info fetch.", 6);
@@ -19655,7 +19655,7 @@ namespace PRoConEvents
                         if (_BattlelogFetchQueue.Count > 0)
                         {
                             Queue<AdKatsPlayer> unprocessedPlayers;
-                            lock (_BattlelogFetchQueue)
+                            DebugWrite("Locking on _BattlelogFetchQueue", 1); lock (_BattlelogFetchQueue)
                             {
                                 DebugWrite("Inbound players found. Grabbing.", 6);
                                 //Grab all items in the queue
@@ -19720,7 +19720,7 @@ namespace PRoConEvents
             try
             {
                 DebugWrite("Preparing to queue record for action handling", 6);
-                lock (_UnprocessedActionQueue)
+                DebugWrite("Locking on _UnprocessedActionQueue", 1); lock (_UnprocessedActionQueue)
                 {
                     _UnprocessedActionQueue.Enqueue(record);
                     DebugWrite("Record queued for action handling", 6);
@@ -19759,7 +19759,7 @@ namespace PRoConEvents
                         if (_UnprocessedActionQueue.Count > 0)
                         {
                             Queue<AdKatsRecord> unprocessedActions;
-                            lock (_UnprocessedActionQueue)
+                            DebugWrite("Locking on _UnprocessedActionQueue", 1); lock (_UnprocessedActionQueue)
                             {
                                 DebugWrite("Inbound actions found. Grabbing.", 6);
                                 //Grab all messages in the queue
@@ -20163,7 +20163,7 @@ namespace PRoConEvents
                 {
                     if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
                     {
-                        lock (_ActOnIsAliveDictionary)
+                        DebugWrite("Locking on _ActOnIsAliveDictionary", 1); lock (_ActOnIsAliveDictionary)
                         {
                             _ActOnIsAliveDictionary.Add(record.target_player.player_name, record);
                         }
@@ -20308,7 +20308,7 @@ namespace PRoConEvents
                                 DebugWrite("Queueing player for kill on spawn. (" + seconds + ")&(" + record.command_action + ")", 3);
                                 if (!_ActOnSpawnDictionary.ContainsKey(record.target_player.player_name))
                                 {
-                                    lock (_ActOnSpawnDictionary)
+                                    DebugWrite("Locking on _ActOnSpawnDictionary", 1); lock (_ActOnSpawnDictionary)
                                     {
                                         record.command_action = GetCommandByKey("player_kill_repeat");
                                         _ActOnSpawnDictionary.Add(record.target_player.player_name, record);
@@ -20333,7 +20333,7 @@ namespace PRoConEvents
                                 }
                                 if (!_ActOnIsAliveDictionary.ContainsKey(record.target_player.player_name))
                                 {
-                                    lock (_ActOnIsAliveDictionary)
+                                    DebugWrite("Locking on _ActOnIsAliveDictionary", 1); lock (_ActOnIsAliveDictionary)
                                     {
                                         _ActOnIsAliveDictionary.Add(record.target_player.player_name, record);
                                     }
@@ -20472,25 +20472,25 @@ namespace PRoConEvents
                     _ActOnSpawnDictionary.Remove(aPlayer.player_name);
                 }
                 //Handle teamswap action
-                lock (_Team1MoveQueue)
+                DebugWrite("Locking on _Team1MoveQueue", 1); lock (_Team1MoveQueue)
                 {
                     CPlayerInfo info = _Team1MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
                     if (info != null)
                         _Team1MoveQueue = new Queue<CPlayerInfo>(_Team1MoveQueue.Where(p => p != info));
                 }
-                lock (_Team2MoveQueue)
+                DebugWrite("Locking on _Team2MoveQueue", 1); lock (_Team2MoveQueue)
                 {
                     CPlayerInfo info = _Team2MoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
                     if (info != null)
                         _Team2MoveQueue = new Queue<CPlayerInfo>(_Team2MoveQueue.Where(p => p != info));
                 }
-                lock (_TeamswapForceMoveQueue)
+                DebugWrite("Locking on _TeamswapForceMoveQueue", 1); lock (_TeamswapForceMoveQueue)
                 {
                     CPlayerInfo info = _TeamswapForceMoveQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
                     if (info != null)
                         _TeamswapForceMoveQueue = new Queue<CPlayerInfo>(_TeamswapForceMoveQueue.Where(p => p != info));
                 }
-                lock (_TeamswapOnDeathCheckingQueue)
+                DebugWrite("Locking on _TeamswapOnDeathCheckingQueue", 1); lock (_TeamswapOnDeathCheckingQueue)
                 {
                     CPlayerInfo info = _TeamswapOnDeathCheckingQueue.FirstOrDefault(playerInfo => playerInfo.SoldierName == aPlayer.player_name);
                     if (info != null)
@@ -23160,7 +23160,7 @@ namespace PRoConEvents
                     {
                         if (!_LoadoutConfirmDictionary.ContainsKey(record.target_player.player_name))
                         {
-                            lock (_LoadoutConfirmDictionary)
+                            DebugWrite("Locking on _LoadoutConfirmDictionary", 1); lock (_LoadoutConfirmDictionary)
                             {
                                 _LoadoutConfirmDictionary.Add(record.target_player.player_name, record);
                             }
@@ -23312,7 +23312,7 @@ namespace PRoConEvents
                     {
                         if (!_LoadoutConfirmDictionary.ContainsKey(record.target_player.player_name))
                         {
-                            lock (_LoadoutConfirmDictionary)
+                            DebugWrite("Locking on _LoadoutConfirmDictionary", 1); lock (_LoadoutConfirmDictionary)
                             {
                                 _LoadoutConfirmDictionary.Add(record.target_player.player_name, record);
                             }
@@ -23555,7 +23555,7 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                lock (_PlayerDictionary)
+                DebugWrite("Locking on _PlayerDictionary", 1); lock (_PlayerDictionary)
                 {
                     if (record.source_name == "RoundManager")
                     {
@@ -23600,7 +23600,7 @@ namespace PRoConEvents
                     return;
                 }
                 List<AdKatsPlayer> targetedPlayers = new List<AdKatsPlayer>();
-                lock (_PlayerDictionary)
+                DebugWrite("Locking on _PlayerDictionary", 1); lock (_PlayerDictionary)
                 {
                     switch (record.target_name)
                     {
@@ -23702,7 +23702,7 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                lock (_PlayerDictionary)
+                DebugWrite("Locking on _PlayerDictionary", 1); lock (_PlayerDictionary)
                 {
                     foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(aPlayer => aPlayer.player_type == PlayerType.Player))
                     {
@@ -23726,7 +23726,7 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                lock (_PlayerDictionary)
+                DebugWrite("Locking on _PlayerDictionary", 1); lock (_PlayerDictionary)
                 {
                     foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => player.player_role.role_key == "guest_default"))
                     {
@@ -25360,7 +25360,7 @@ namespace PRoConEvents
             try
             {
                 DebugWrite("Preparing to queue user for access upload.", 6);
-                lock (_UserUploadQueue)
+                DebugWrite("Locking on _UserUploadQueue", 1); lock (_UserUploadQueue)
                 {
                     _UserUploadQueue.Enqueue(user);
                     DebugWrite("User queued for access upload", 6);
@@ -25378,7 +25378,7 @@ namespace PRoConEvents
             try
             {
                 DebugWrite("Preparing to queue user for access removal", 6);
-                lock (_UserRemovalQueue)
+                DebugWrite("Locking on _UserRemovalQueue", 1); lock (_UserRemovalQueue)
                 {
                     _UserRemovalQueue.Enqueue(user);
                     DebugWrite("User queued for access removal", 6);
@@ -25410,9 +25410,9 @@ namespace PRoConEvents
                     ConsoleError("Command was null in hasAccess.");
                     return false;
                 }
-                lock (aPlayer.player_role)
+                DebugWrite("Locking on aPlayer.player_role", 1); lock (aPlayer.player_role)
                 {
-                    lock (aPlayer.player_role.RoleAllowedCommands)
+                    DebugWrite("Locking on aPlayer.player_role.RoleAllowedCommands", 1); lock (aPlayer.player_role.RoleAllowedCommands)
                     {
                         if (aPlayer.player_role.RoleAllowedCommands.ContainsKey(command.command_key))
                         {
@@ -25637,7 +25637,7 @@ namespace PRoConEvents
                             DebugWrite("Unprocessed Record: " + _UnprocessedRecordQueue.Count + " Current: 0", 4);
                             DebugWrite("Preparing to lock inbound record queue to retrive new records", 7);
                             Queue<AdKatsRecord> inboundRecords;
-                            lock (_UnprocessedRecordQueue)
+                            DebugWrite("Locking on _UnprocessedRecordQueue", 1); lock (_UnprocessedRecordQueue)
                             {
                                 DebugWrite("Inbound records found. Grabbing.", 6);
                                 //Grab all records in the queue
@@ -25836,7 +25836,7 @@ namespace PRoConEvents
                         {
                             DebugWrite("Preparing to lock inbound setting queue to get new settings", 7);
                             Queue<CPluginVariable> inboundSettingUpload;
-                            lock (_SettingUploadQueue)
+                            DebugWrite("Locking on _SettingUploadQueue", 1); lock (_SettingUploadQueue)
                             {
                                 DebugWrite("Inbound settings found. Grabbing.", 6);
                                 //Grab all settings in the queue
@@ -25879,7 +25879,7 @@ namespace PRoConEvents
                 {
                     DebugWrite("Preparing to lock inbound command queue to get new commands", 7);
                     Queue<AdKatsCommand> inboundCommandUpload;
-                    lock (_CommandUploadQueue)
+                    DebugWrite("Locking on _CommandUploadQueue", 1); lock (_CommandUploadQueue)
                     {
                         DebugWrite("Inbound commands found. Grabbing.", 6);
                         //Grab all commands in the queue
@@ -25911,7 +25911,7 @@ namespace PRoConEvents
                     DebugWrite("Unprocessed Statistic: " + _UnprocessedStatisticQueue.Count + " Current: 0", 4);
                     DebugWrite("Preparing to lock inbound statistic queue to retrive new records", 7);
                     Queue<AdKatsStatistic> inboundStats;
-                    lock (_UnprocessedStatisticQueue)
+                    DebugWrite("Locking on _UnprocessedStatisticQueue", 1); lock (_UnprocessedStatisticQueue)
                     {
                         DebugWrite("Inbound statistics found. Grabbing.", 6);
                         //Grab all statistics in the queue
@@ -25948,7 +25948,7 @@ namespace PRoConEvents
                 {
                     DebugWrite("Preparing to lock inbound role queue to get new roles", 7);
                     Queue<AdKatsRole> inboundRoleUpload;
-                    lock (_RoleUploadQueue)
+                    DebugWrite("Locking on _RoleUploadQueue", 1); lock (_RoleUploadQueue)
                     {
                         DebugWrite("Inbound roles found. Grabbing.", 6);
                         //Grab all roles in the queue
@@ -25961,7 +25961,7 @@ namespace PRoConEvents
                     {
                         AdKatsRole aRole = inboundRoleUpload.Dequeue();
                         UploadRole(aRole);
-                        lock (_RoleIDDictionary)
+                        DebugWrite("Locking on _RoleIDDictionary", 1); lock (_RoleIDDictionary)
                         {
                             if (_RoleIDDictionary.ContainsKey(aRole.role_id))
                             {
@@ -26006,7 +26006,7 @@ namespace PRoConEvents
                 {
                     DebugWrite("Preparing to lock removal role queue to get new roles", 7);
                     Queue<AdKatsRole> inboundRoleRemoval;
-                    lock (_RoleRemovalQueue)
+                    DebugWrite("Locking on _RoleRemovalQueue", 1); lock (_RoleRemovalQueue)
                     {
                         DebugWrite("Inbound roles found. Grabbing.", 6);
                         //Grab all roles in the queue
@@ -26019,7 +26019,7 @@ namespace PRoConEvents
                     {
                         AdKatsRole aRole = inboundRoleRemoval.Dequeue();
                         RemoveRole(aRole);
-                        lock (_RoleIDDictionary)
+                        DebugWrite("Locking on _RoleIDDictionary", 1); lock (_RoleIDDictionary)
                         {
                             if (_RoleIDDictionary.ContainsKey(aRole.role_id))
                             {
@@ -26052,13 +26052,13 @@ namespace PRoConEvents
                 {
                     DebugWrite("Inbound access changes found. Grabbing.", 6);
                     Queue<AdKatsUser> inboundUserUploads;
-                    lock (_UserUploadQueue)
+                    DebugWrite("Locking on _UserUploadQueue", 1); lock (_UserUploadQueue)
                     {
                         inboundUserUploads = new Queue<AdKatsUser>(_UserUploadQueue.ToArray());
                         _UserUploadQueue.Clear();
                     }
                     Queue<AdKatsUser> inboundUserRemoval;
-                    lock (_UserRemovalQueue)
+                    DebugWrite("Locking on _UserRemovalQueue", 1); lock (_UserRemovalQueue)
                     {
                         inboundUserRemoval = new Queue<AdKatsUser>(_UserRemovalQueue.ToArray());
                         _UserRemovalQueue.Clear();
@@ -26138,7 +26138,7 @@ namespace PRoConEvents
                 {
                     DebugWrite("Preparing to lock inbound ban enforcer queue to retrive new bans", 7);
                     Queue<AdKatsBan> inboundBans;
-                    lock (_BanEnforcerProcessingQueue)
+                    DebugWrite("Locking on _BanEnforcerProcessingQueue", 1); lock (_BanEnforcerProcessingQueue)
                     {
                         DebugWrite("Inbound bans found. Grabbing.", 6);
                         //Grab all messages in the queue
@@ -26193,7 +26193,7 @@ namespace PRoConEvents
                     Boolean earlyExit = false;
                     DateTime startTime = UtcDbTime();
                     Queue<CBanInfo> inboundCBans;
-                    lock (_CBanProcessingQueue)
+                    DebugWrite("Locking on _CBanProcessingQueue", 1); lock (_CBanProcessingQueue)
                     {
                         DebugWrite("Inbound cBans found. Grabbing.", 6);
                         //Grab all cBans in the queue
@@ -26397,7 +26397,7 @@ namespace PRoConEvents
 
         private void UpdateMySqlConnectionStringBuilder()
         {
-            lock (_dbCommStringBuilder)
+            DebugWrite("Locking on _dbCommStringBuilder", 1); lock (_dbCommStringBuilder)
             {
                 UInt32 uintport = 3306;
                 UInt32.TryParse(_mySqlPort, out uintport);
@@ -26776,7 +26776,7 @@ namespace PRoConEvents
                                 `tbl_games`";
                             using (MySqlDataReader reader = SafeExecuteReader(command))
                             {
-                                lock (_gameIDDictionary)
+                                DebugWrite("Locking on _gameIDDictionary", 1); lock (_gameIDDictionary)
                                 {
                                     _gameIDDictionary.Clear();
                                     while (reader.Read())
@@ -27621,7 +27621,7 @@ namespace PRoConEvents
             try
             {
                 //Loop over the user list
-                lock (_userCache)
+                DebugWrite("Locking on _userCache", 1); lock (_userCache)
                 {
                     foreach (AdKatsUser user in _userCache.Values.Where(UserIsAdmin))
                     {
@@ -27668,7 +27668,7 @@ namespace PRoConEvents
         {
             var elevatedSoldiers = new List<AdKatsPlayer>();
             //Loop over the user list
-            lock (_userCache)
+            DebugWrite("Locking on _userCache", 1); lock (_userCache)
             {
                 foreach (AdKatsUser aUser in _userCache.Values.Where(user => !UserIsAdmin(user) && user.user_role.role_key != "guest_default"))
                 {
@@ -27682,7 +27682,7 @@ namespace PRoConEvents
         {
             var roleSoldiers = new List<AdKatsPlayer>();
             //Loop over the user list
-            lock (_userCache)
+            DebugWrite("Locking on _userCache", 1); lock (_userCache)
             {
                 foreach (AdKatsUser user in _userCache.Values.Where(user => user.user_role.role_key == aRole.role_key))
                 {
@@ -27696,7 +27696,7 @@ namespace PRoConEvents
         {
             var userSoldiers = new List<AdKatsPlayer>();
             //Loop over the user list
-            lock (_userCache)
+            DebugWrite("Locking on _userCache", 1); lock (_userCache)
             {
                 foreach (AdKatsUser user in _userCache.Values.Where(aUser => aUser.user_role.role_key != "guest_default"))
                 {
@@ -29703,7 +29703,7 @@ namespace PRoConEvents
                                 matchingPlayer.LastUsage = UtcDbTime();
                                 bool playerDuplicate = false;
                                 //Make sure the player is not already assigned to another user
-                                lock (_userCache)
+                                DebugWrite("Locking on _userCache", 1); lock (_userCache)
                                 {
                                     if (_userCache.Values.Any(innerUser => innerUser.soldierDictionary.ContainsKey(matchingPlayer.player_id)))
                                     {
@@ -29750,9 +29750,9 @@ namespace PRoConEvents
             }
             try
             {
-                lock (aRole)
+                DebugWrite("Locking on aRole", 1); lock (aRole)
                 {
-                    lock (aRole.RoleAllowedCommands)
+                    DebugWrite("Locking on aRole.RoleAllowedCommands", 1); lock (aRole.RoleAllowedCommands)
                     {
                         DebugWrite("Uploading role: " + aRole.role_name, 5);
 
@@ -30536,7 +30536,7 @@ namespace PRoConEvents
             try
             {
                 List<Int64> validIDs = new List<Int64>();
-                lock (_baserapeCausingPlayers)
+                DebugWrite("Locking on _baserapeCausingPlayers", 1); lock (_baserapeCausingPlayers)
                 {
                     if (_threadsReady && !_PostWinLossBaserapeStatistics)
                     {
@@ -30716,7 +30716,7 @@ namespace PRoConEvents
             {
                 //List for current valid populator player IDs
                 List<Int64> validIDs = new List<Int64>();
-                lock (_populatorPlayers)
+                DebugWrite("Locking on _populatorPlayers", 1); lock (_populatorPlayers)
                 {
                     //Rejection case
                     if (!_PopulatorMonitor)
@@ -31908,7 +31908,7 @@ namespace PRoConEvents
             }
             try
             {
-                lock (_CommandIDDictionary)
+                DebugWrite("Locking on _CommandIDDictionary", 1); lock (_CommandIDDictionary)
                 {
                     using (MySqlConnection connection = GetDatabaseConnection())
                     {
@@ -32990,7 +32990,7 @@ namespace PRoConEvents
             }
             try
             {
-                lock (_RoleIDDictionary)
+                DebugWrite("Locking on _RoleIDDictionary", 1); lock (_RoleIDDictionary)
                 {
                     using (MySqlConnection connection = GetDatabaseConnection())
                     {
@@ -33347,7 +33347,7 @@ namespace PRoConEvents
                         var validIDs = new List<Int64>();
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
-                            lock (_userCache)
+                            DebugWrite("Locking on _userCache", 1); lock (_userCache)
                             {
                                 while (reader.Read())
                                 {
@@ -33478,7 +33478,7 @@ namespace PRoConEvents
                         }
                         using (MySqlDataReader reader = SafeExecuteReader(command))
                         {
-                            lock (_userCache)
+                            DebugWrite("Locking on _userCache", 1); lock (_userCache)
                             {
                                 foreach (AdKatsPlayer aPlayer in _userCache.Values.SelectMany(aUser => aUser.soldierDictionary.Values))
                                 {
@@ -33558,7 +33558,7 @@ namespace PRoConEvents
                     }
                     DebugWrite("User fetch (User Soldiers) took " + (UtcDbTime() - start).TotalMilliseconds + "ms.", 4);
                     start = UtcDbTime();
-                    lock (_baseSpecialPlayerCache)
+                    DebugWrite("Locking on _baseSpecialPlayerCache", 1); lock (_baseSpecialPlayerCache)
                     {
                         SendNonQuery("Deleting expired special players", "DELETE FROM `adkats_specialplayers` WHERE `player_expiration` < UTC_TIMESTAMP()", false);
                         using (MySqlCommand command = connection.CreateCommand())
@@ -33760,7 +33760,7 @@ namespace PRoConEvents
                                     //Pull players from perk list
                                     if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksReservedSlot)
                                     {
-                                        lock (_populatorPlayers)
+                                        DebugWrite("Locking on _populatorPlayers", 1); lock (_populatorPlayers)
                                         {
                                             foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(aPlayer =>
                                                 aPlayer.game_id == _serverInfo.GameID &&
@@ -33781,7 +33781,7 @@ namespace PRoConEvents
                                     }
                                     if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksReservedSlot)
                                     {
-                                        lock (_tsPlayers)
+                                        DebugWrite("Locking on _tsPlayers", 1); lock (_tsPlayers)
                                         {
                                             foreach (AdKatsPlayer aPlayer in _tsPlayers.Values.Where(aPlayer =>
                                                 aPlayer.game_id == _serverInfo.GameID &&
@@ -33845,7 +33845,7 @@ namespace PRoConEvents
                                     //Pull players from perk list
                                     if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksBalanceWhitelist)
                                     {
-                                        lock (_populatorPlayers)
+                                        DebugWrite("Locking on _populatorPlayers", 1); lock (_populatorPlayers)
                                         {
                                             foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(aPlayer =>
                                                 aPlayer.game_id == _serverInfo.GameID &&
@@ -33866,7 +33866,7 @@ namespace PRoConEvents
                                     }
                                     if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksBalanceWhitelist)
                                     {
-                                        lock (_tsPlayers)
+                                        DebugWrite("Locking on _tsPlayers", 1); lock (_tsPlayers)
                                         {
                                             foreach (AdKatsPlayer aPlayer in _tsPlayers.Values.Where(aPlayer =>
                                                 aPlayer.game_id == _serverInfo.GameID &&
@@ -33889,7 +33889,7 @@ namespace PRoConEvents
                                 case "blacklist_dispersion":
                                     if (_FeedBaserapeCausingPlayerDispersion)
                                     {
-                                        lock (_baserapeCausingPlayers)
+                                        DebugWrite("Locking on _baserapeCausingPlayers", 1); lock (_baserapeCausingPlayers)
                                         {
                                             foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(aPlayer =>
                                                 aPlayer.game_id == _serverInfo.GameID &&
@@ -33932,7 +33932,7 @@ namespace PRoConEvents
                                     //Pull players from perk list
                                     if (_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksTeamKillTrackerWhitelist)
                                     {
-                                        lock (_populatorPlayers)
+                                        DebugWrite("Locking on _populatorPlayers", 1); lock (_populatorPlayers)
                                         {
                                             foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(aPlayer =>
                                                 aPlayer.game_id == _serverInfo.GameID &&
@@ -33953,7 +33953,7 @@ namespace PRoConEvents
                                     }
                                     if (_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksTeamKillTrackerWhitelist)
                                     {
-                                        lock (_tsPlayers)
+                                        DebugWrite("Locking on _tsPlayers", 1); lock (_tsPlayers)
                                         {
                                             foreach (AdKatsPlayer aPlayer in _tsPlayers.Values.Where(aPlayer =>
                                                 aPlayer.game_id == _serverInfo.GameID &&
@@ -36249,9 +36249,9 @@ namespace PRoConEvents
                 {
                     return false;
                 }
-                lock (_specialPlayerGroupKeyDictionary)
+                DebugWrite("Locking on _specialPlayerGroupKeyDictionary", 1); lock (_specialPlayerGroupKeyDictionary)
                 {
-                    lock (_specialPlayerGroupIDDictionary)
+                    DebugWrite("Locking on _specialPlayerGroupIDDictionary", 1); lock (_specialPlayerGroupIDDictionary)
                     {
                         _specialPlayerGroupIDDictionary.Clear();
                         _specialPlayerGroupKeyDictionary.Clear();
@@ -36993,7 +36993,7 @@ namespace PRoConEvents
                         DebugWrite("Removing " + playerName + " from current player list.", 4);
                         if (lockDictionary)
                         {
-                            lock (_PlayerDictionary)
+                            DebugWrite("Locking on _PlayerDictionary", 1); lock (_PlayerDictionary)
                             {
                                 _PlayerDictionary.Remove(playerName);
                             }
@@ -37462,7 +37462,7 @@ namespace PRoConEvents
 
         protected void LogThreadExit()
         {
-            lock (_aliveThreads)
+            DebugWrite("Locking on _aliveThreads", 1); lock (_aliveThreads)
             {
                 _aliveThreads.Remove(Thread.CurrentThread.ManagedThreadId);
                 //ConsoleWarn("THREAD DEBUG: Stopping [" + Thread.CurrentThread.ManagedThreadId + ":'" + Thread.CurrentThread.Name + "']. " + _aliveThreads.Count + " threads running.");
@@ -37472,7 +37472,7 @@ namespace PRoConEvents
         protected void StartAndLogThread(Thread aThread)
         {
             aThread.Start();
-            lock (_aliveThreads)
+            DebugWrite("Locking on _aliveThreads", 1); lock (_aliveThreads)
             {
                 if (!_aliveThreads.ContainsKey(aThread.ManagedThreadId))
                 {
@@ -38136,7 +38136,7 @@ namespace PRoConEvents
                 }
                 if (_DatabaseReaderDurations.Count < 25000)
                 {
-                    lock (_DatabaseReaderDurations)
+                    DebugWrite("Locking on _DatabaseReaderDurations", 1); lock (_DatabaseReaderDurations)
                     {
                         _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
                         _DatabaseReadAverageDuration = _DatabaseReaderDurations.Average();
@@ -38163,7 +38163,7 @@ namespace PRoConEvents
                         }
                         if (_DatabaseReaderDurations.Count < 25000)
                         {
-                            lock (_DatabaseReaderDurations)
+                            DebugWrite("Locking on _DatabaseReaderDurations", 1); lock (_DatabaseReaderDurations)
                             {
                                 _DatabaseReaderDurations.Add(watch.Elapsed.TotalSeconds);
                                 _DatabaseReadAverageDuration = _DatabaseReaderDurations.Average();
@@ -38207,7 +38207,7 @@ namespace PRoConEvents
                 }
                 if (_DatabaseNonQueryDurations.Count < 25000)
                 {
-                    lock (_DatabaseNonQueryDurations)
+                    DebugWrite("Locking on _DatabaseNonQueryDurations", 1); lock (_DatabaseNonQueryDurations)
                     {
                         _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
                         _DatabaseWriteAverageDuration = _DatabaseNonQueryDurations.Average();
@@ -38234,7 +38234,7 @@ namespace PRoConEvents
                         }
                         if (_DatabaseNonQueryDurations.Count < 25000)
                         {
-                            lock (_DatabaseNonQueryDurations)
+                            DebugWrite("Locking on _DatabaseNonQueryDurations", 1); lock (_DatabaseNonQueryDurations)
                             {
                                 _DatabaseNonQueryDurations.Add(watch.Elapsed.TotalSeconds);
                                 _DatabaseWriteAverageDuration = _DatabaseNonQueryDurations.Average();
@@ -38345,7 +38345,7 @@ namespace PRoConEvents
                                     ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLogger", "True");
 
                                     //Clear the player dinctionary, causing all players to be fetched from the database again
-                                    lock (_PlayerDictionary)
+                                    DebugWrite("Locking on _PlayerDictionary", 1); lock (_PlayerDictionary)
                                     {
                                         _PlayerDictionary.Clear();
                                     }
@@ -39737,7 +39737,7 @@ namespace PRoConEvents
                     email.From = new MailAddress(SenderEmail, "AdKats Report System");
 
                     Boolean someAdded = false;
-                    lock (Plugin._userCache)
+                    Plugin.DebugWrite("Locking on Plugin._userCache", 1); lock (Plugin._userCache)
                     {
                         foreach (AdKatsUser aUser in Plugin._userCache.Values)
                         {
@@ -39798,7 +39798,7 @@ namespace PRoConEvents
                     if (Plugin._pluginEnabled)
                     {
                         Plugin.DebugWrite("Preparing to queue email for processing", 6);
-                        lock (_EmailProcessingQueue)
+                        Plugin.DebugWrite("Locking on _EmailProcessingQueue", 1); lock (_EmailProcessingQueue)
                         {
                             _EmailProcessingQueue.Enqueue(email);
                             Plugin.DebugWrite("Email queued for processing", 6);
@@ -39845,7 +39845,7 @@ namespace PRoConEvents
                             if (_EmailProcessingQueue.Any())
                             {
                                 Plugin.DebugWrite("Preparing to lock inbound mail queue to retrive new mail", 7);
-                                lock (_EmailProcessingQueue)
+                                Plugin.DebugWrite("Locking on _EmailProcessingQueue", 1); lock (_EmailProcessingQueue)
                                 {
                                     Plugin.DebugWrite("Inbound mail found. Grabbing.", 6);
                                     //Grab all mail in the queue
