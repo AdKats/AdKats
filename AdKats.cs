@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.3.0
- * 15-MAR-2015
+ * Version 6.5.3.1
+ * 16-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.3.0</version_code>
+ * <version_code>6.5.3.1</version_code>
  */
 
 using System;
@@ -61,17 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.3.0";
-
-        public enum ConsoleMessageType
-        {
-            Normal,
-            Info,
-            Success,
-            Warning,
-            Error,
-            Exception
-        };
+        private const String PluginVersion = "6.5.3.1";
 
         public enum GameVersion
         {
@@ -180,7 +170,6 @@ namespace PRoConEvents
         private String _AdKatsLRTExtensionToken = String.Empty;
 
         //Debug
-        private volatile Int32 _debugLevel;
         private String _debugSoldierName = "ColColonCleaner";
         private Boolean _toldCol;
 
@@ -709,7 +698,7 @@ namespace PRoConEvents
                 new ExecutionRequirements(ExecutionScope.None),
                 "Useable by other plugins to subscribe to group events.");
             //Debug level is 0 by default
-            _debugLevel = 0;
+            Log.DebugLevel = 0;
 
             //Init the punishment severity index
             _PunishmentSeverityIndex = new List<String> {
@@ -876,7 +865,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable("1. MySQL Settings|MySQL Password", typeof(String), _mySqlPassword));
                     }
                     //Debugging Settings
-                    lstReturn.Add(new CPluginVariable("2. Debugging|Debug level", typeof(Int32), _debugLevel));
+                    lstReturn.Add(new CPluginVariable("2. Debugging|Debug level", typeof(Int32), Log.DebugLevel));
                     //Database Timing
                     if (_dbTimingChecked && !_dbTimingValid)
                     {
@@ -898,7 +887,7 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(banManagementPrefix + "Ban Search", typeof(String), ""));
                             lstReturn.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(banManagementPrefix + "BAN" + aBan.ban_id + separator + aBan.ban_record.target_player.player_name + separator + aBan.ban_record.source_name + separator + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
                         }
-                        lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof(int), _debugLevel));
+                        lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof(int), Log.DebugLevel));
                         lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof(String), _debugSoldierName));
                         timer.Stop();
                         if (timer.ElapsedMilliseconds > 500 && _isTestingAuthorized)
@@ -1275,7 +1264,7 @@ namespace PRoConEvents
                     }
 
                     //Debug settings
-                    lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof(int), _debugLevel));
+                    lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof(int), Log.DebugLevel));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof(String), _debugSoldierName));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
                     lstReturn.Add(new CPluginVariable("D99. Debugging|Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
@@ -1598,7 +1587,7 @@ namespace PRoConEvents
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Username", typeof(String), _mySqlUsername));
             lstReturn.Add(new CPluginVariable("2. MySQL Settings|MySQL Password", typeof(String), _mySqlPassword));
 
-            lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof(Int32), _debugLevel));
+            lstReturn.Add(new CPluginVariable("3. Debugging|Debug level", typeof(Int32), Log.DebugLevel));
             lstReturn.Add(new CPluginVariable("3. Debugging|Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
             lstReturn.Add(new CPluginVariable("3. Debugging|Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
 
@@ -1834,11 +1823,11 @@ namespace PRoConEvents
                                 Log.Write("Server is priviledged for testing during this instance.");
                             }
                         }
-                        else if (tmp != _debugLevel)
+                        else if (tmp != Log.DebugLevel)
                         {
-                            _debugLevel = tmp;
+                            Log.DebugLevel = tmp;
                             //Once setting has been changed, upload the change to database
-                            QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof(int), _debugLevel));
+                            QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof(int), Log.DebugLevel));
                         }
                     }
                 }
@@ -27231,7 +27220,7 @@ namespace PRoConEvents
                 Log.Debug("uploadAllSettings starting!", 6);
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
                 QueueSettingForUpload(new CPluginVariable(@"Override Timing Confirmation", typeof(Boolean), _timingValidOverride));
-                QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof(int), _debugLevel));
+                QueueSettingForUpload(new CPluginVariable(@"Debug level", typeof(int), Log.DebugLevel));
                 QueueSettingForUpload(new CPluginVariable(@"Debug Soldier Name", typeof(String), _debugSoldierName));
                 QueueSettingForUpload(new CPluginVariable(@"Server VOIP Address", typeof(String), _ServerVoipAddress));
                 QueueSettingForUpload(new CPluginVariable(@"Rule Print Delay", typeof(Double), _ServerRulesDelay));
@@ -39934,7 +39923,7 @@ namespace PRoConEvents
                                 }
                                 Plugin.Log.Debug("begin reading mail", 6);
                                 MailMessage message = inboundEmailMessages.Dequeue();
-                                if (Plugin._debugLevel >= 5)
+                                if (Plugin.Log.DebugLevel >= 5)
                                 {
                                     Plugin.Log.Write("server: " + SMTPServer);
                                     Plugin.Log.Write("port: " + SMTPPort);
