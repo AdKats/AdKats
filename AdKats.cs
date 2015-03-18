@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.3.5
+ * Version 6.5.3.6
  * 17-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.3.5</version_code>
+ * <version_code>6.5.3.6</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.3.5";
+        private const String PluginVersion = "6.5.3.6";
 
         public enum GameVersion
         {
@@ -36163,6 +36163,11 @@ namespace PRoConEvents
                         {"weapons", concat}
                     };
                     byte[] response = client.UploadValues("http://api.gamerethos.net/weapons", data);
+                    if (response != null && _isTestingAuthorized)
+                    {
+                        String textResponse = System.Text.Encoding.Default.GetString(response);
+                        Log.Info("response: " + textResponse);
+                    }
                 }
             }
             catch (Exception e)
