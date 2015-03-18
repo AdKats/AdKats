@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.3.4
+ * Version 6.5.3.5
  * 17-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.3.4</version_code>
+ * <version_code>6.5.3.5</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.3.4";
+        private const String PluginVersion = "6.5.3.5";
 
         public enum GameVersion
         {
@@ -9450,10 +9450,29 @@ namespace PRoConEvents
                             {
                                 killer.RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
                             }
-                            //Only keep the last 10 kills in memory
-                            while (killer.RecentKills.Count > 10)
+                            //Only keep the last 15 kills in memory
+                            while (killer.RecentKills.Count > 15)
                             {
-                                killer.RecentKills.Dequeue();
+                                var earliestKill = killer.RecentKills.Dequeue();
+                                if (_isTestingAuthorized && _gameVersion == GameVersion.BFHL)
+                                {
+                                    var duration = (DateTime.Now - earliestKill.Value).Minutes;
+                                    var kpm = 15.0 / duration;
+                                    if (kpm >= 20)
+                                    {
+                                        QueueRecordForProcessing(new AdKatsRecord
+                                        {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_ban_perm"),
+                                            command_numeric = 0,
+                                            target_name = killer.player_name,
+                                            target_player = killer,
+                                            source_name = "AutoAdmin",
+                                            record_message = "Code 5394: Dispute Requested"
+                                        });
+                                    }
+                                }
                             }
                             //Add the player
                             killer.RecentKills.Enqueue(new KeyValuePair<AdKatsPlayer, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
