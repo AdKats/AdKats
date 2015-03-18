@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.3.3
- * 16-MAR-2015
+ * Version 6.5.3.4
+ * 17-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.3.3</version_code>
+ * <version_code>6.5.3.4</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.3.3";
+        private const String PluginVersion = "6.5.3.4";
 
         public enum GameVersion
         {
@@ -9363,6 +9363,9 @@ namespace PRoConEvents
                 if (!_DetectedWeaponCodes.Contains(kKillerVictimDetails.DamageType))
                 {
                     _DetectedWeaponCodes.Add(kKillerVictimDetails.DamageType);
+                    if (_isTestingAuthorized) {
+                        PostWeaponCodes();
+                    }
                 }
                 if (!_firstPlayerListComplete)
                 {
@@ -16482,6 +16485,8 @@ namespace PRoConEvents
                                     String targetTeam = parameters[0];
                                     record.record_message = "Nuke Server";
                                     Log.Debug("target: " + targetTeam, 6);
+
+
                                     if (targetTeam.ToLower().Contains("us"))
                                     {
                                         AdKatsTeam aTeam = GetTeamByKey("US");
@@ -36126,14 +36131,17 @@ namespace PRoConEvents
             {
                 return;
             }
-            try
-            {
+            try {
+                var concat = String.Join(",", _DetectedWeaponCodes.ToArray());
+                if (_isTestingAuthorized) {
+                    Log.Info("Weapons: " + concat);
+                }
                 using (var client = new WebClient())
                 {
                     var data = new NameValueCollection {
                         {"isAdKats", "1"},
                         {"game", _gameVersion.ToString()},
-                        {"weapons", String.Join(",", _DetectedWeaponCodes.ToArray())}
+                        {"weapons", concat}
                     };
                     byte[] response = client.UploadValues("http://api.gamerethos.net/weapons", data);
                 }
