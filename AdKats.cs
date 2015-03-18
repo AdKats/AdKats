@@ -2064,10 +2064,6 @@ namespace PRoConEvents
                     {
                         _pingEnforcerEnable = PingSystemEnable;
                         //Once setting has been changed, upload the change to database
-                        if (_isTestingAuthorized)
-                        {
-                            _pingEnforcerEnable = true;
-                        }
                         if (_pingEnforcerEnable)
                         {
                             //Disable latency manager
@@ -2197,10 +2193,6 @@ namespace PRoConEvents
                     if (pingEnforcerKickMissingPings != _pingEnforcerKickMissingPings)
                     {
                         _pingEnforcerKickMissingPings = pingEnforcerKickMissingPings;
-                        if (_isTestingAuthorized)
-                        {
-                            _pingEnforcerKickMissingPings = true;
-                        }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
                     }
