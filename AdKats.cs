@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.3.6
- * 17-MAR-2015
+ * Version 6.5.3.7
+ * 18-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.3.6</version_code>
+ * <version_code>6.5.3.7</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.3.6";
+        private const String PluginVersion = "6.5.3.7";
 
         public enum GameVersion
         {
@@ -891,10 +891,6 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable("D99. Debugging|Debug level", typeof(int), Log.DebugLevel));
                         lstReturn.Add(new CPluginVariable("D99. Debugging|Debug Soldier Name", typeof(String), _debugSoldierName));
                         timer.Stop();
-                        if (timer.ElapsedMilliseconds > 500 && _isTestingAuthorized)
-                        {
-                            Log.Debug("Settings took " + timer.ElapsedMilliseconds + "ms to render.", 5);
-                        }
                         return lstReturn;
                     }
                     //Auto-Enable Settings
@@ -1563,10 +1559,6 @@ namespace PRoConEvents
                     }
                 }
                 timer.Stop();
-                if (timer.ElapsedMilliseconds > 500 && _isTestingAuthorized)
-                {
-                    Log.Debug("Settings took " + timer.ElapsedMilliseconds + "ms to render.", 5);
-                }
                 return lstReturn;
             }
             catch (Exception e)
@@ -1978,6 +1970,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"AFK System Enable").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean afkSystemEnable = Boolean.Parse(strValue);
                     if (afkSystemEnable != _AFKManagerEnable)
                     {
@@ -1998,6 +1996,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"AFK Auto-Kick Enable").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean afkAutoKickEnable = Boolean.Parse(strValue);
                     if (afkAutoKickEnable != _AFKAutoKickEnable)
                     {
@@ -2059,6 +2063,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Ping Enforcer Enable").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean PingSystemEnable = Boolean.Parse(strValue);
                     if (PingSystemEnable != _pingEnforcerEnable)
                     {
@@ -2234,6 +2244,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Commander Manager Enable").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean CMDRManagerEnable = Boolean.Parse(strValue);
                     if (CMDRManagerEnable != _CMDRManagerEnable)
                     {
@@ -2246,10 +2262,6 @@ namespace PRoConEvents
                         {
                             _CMDRManagerEnable = CMDRManagerEnable;
                             //Once setting has been changed, upload the change to database
-                            if (_isTestingAuthorized)
-                            {
-                                _CMDRManagerEnable = true;
-                            }
                             QueueSettingForUpload(new CPluginVariable(@"Commander Manager Enable", typeof(Boolean), _CMDRManagerEnable));
                         }
                     }
@@ -2271,6 +2283,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Surrender Vote Enable").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean surrenderVoteEnable = Boolean.Parse(strValue);
                     if (surrenderVoteEnable != _surrenderVoteEnable)
                     {
@@ -2391,6 +2409,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Auto-Surrender Enable").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean surrenderAutoEnable = Boolean.Parse(strValue);
                     if (surrenderAutoEnable != _surrenderAutoEnable)
                     {
@@ -2640,6 +2664,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Feed MULTIBalancer Whitelist").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean feedMTBWhite = Boolean.Parse(strValue);
                     if (feedMTBWhite != _FeedMultiBalancerWhitelist)
                     {
@@ -2666,6 +2696,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Feed TeamKillTracker Whitelist").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean FeedTeamKillTrackerWhitelist = Boolean.Parse(strValue);
                     if (FeedTeamKillTrackerWhitelist != _FeedTeamKillTrackerWhitelist)
                     {
@@ -2692,6 +2728,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Feed MULTIBalancer Even Dispersion List").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean feedMTBBlack = Boolean.Parse(strValue);
                     if (feedMTBBlack != _FeedMultiBalancerDisperseList)
                     {
@@ -2952,6 +2994,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Automatic Dispersion for Baserape Causing Players").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     //Initial parse
                     Boolean FeedBaserapeCausingPlayerDispersion = Boolean.Parse(strValue);
                     //Check for changed value
@@ -2984,6 +3032,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Automatic Assist Trigger for Baserape Causing Players").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     //Initial parse
                     Boolean AutomaticAssistBaserapeCausingPlayers = Boolean.Parse(strValue);
                     //Check for changed value
@@ -3597,6 +3651,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Round Timer: Enable").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean useTimer = Boolean.Parse(strValue);
                     if (useTimer != _useRoundTimer)
                     {
@@ -3637,6 +3697,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Use NO EXPLOSIVES Limiter").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean useLimiter = Boolean.Parse(strValue);
                     if (useLimiter != _UseWeaponLimiter)
                     {
@@ -3711,6 +3777,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: Enable").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean useHackChecker = Boolean.Parse(strValue);
                     if (useHackChecker != _UseHackerChecker)
                     {
@@ -3950,6 +4022,12 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Use Ban Enforcer").Success)
                 {
+                    if (_serverInfo.ServerType == "OFFICIAL" && Boolean.Parse(strValue) == true)
+                    {
+                        strValue = "False";
+                        Log.Error("'" + strVariable + "' cannot be enabled on official servers.");
+                        return;
+                    }
                     Boolean use = Boolean.Parse(strValue);
                     if (_UseBanEnforcer != use)
                     {
@@ -6126,7 +6204,7 @@ namespace PRoConEvents
                             }
 
                             //Post usage stats at interval
-                            if (((UtcDbTime() - _LastWeaponCodePost).TotalMinutes > ((_isTestingAuthorized)?(5):(60)) || !_PostedWeaponCodes) && _firstPlayerListComplete)
+                            if (((UtcDbTime() - _LastWeaponCodePost).TotalMinutes > 60 || !_PostedWeaponCodes) && _firstPlayerListComplete)
                             {
                                 PostWeaponCodes();
                             }
@@ -7056,10 +7134,6 @@ namespace PRoConEvents
                                     {
                                         _PlayerLeftDictionary.Remove(removeName);
                                     }
-                                    if (_isTestingAuthorized && removeNames.Any())
-                                    {
-                                        Log.Warn(removeNames.Count() + " left players removed, " + _PlayerLeftDictionary.Count() + " still in cache.");
-                                    }
                                     aPlayer.LastUsage = UtcDbTime();
                                     _PlayerLeftDictionary[aPlayer.player_name] = aPlayer;
                                 }
@@ -7526,10 +7600,6 @@ namespace PRoConEvents
                                         foreach (String removeName in removeNames)
                                         {
                                             _PlayerLeftDictionary.Remove(removeName);
-                                        }
-                                        if (_isTestingAuthorized && removeNames.Any())
-                                        {
-                                            Log.Warn(removeNames.Count() + " left players removed, " + _PlayerLeftDictionary.Count() + " still in cache.");
                                         }
                                         aPlayer.LastUsage = UtcDbTime();
                                         _PlayerLeftDictionary[aPlayer.player_name] = aPlayer;
@@ -8916,10 +8986,14 @@ namespace PRoConEvents
                                 {
                                     _FeedStatLoggerSettings = true;
                                     _PostStatLoggerChatManually = true;
-                                    _pingEnforcerEnable = true;
-                                    _pingEnforcerKickMissingPings = true;
-                                    _CMDRManagerEnable = true;
-                                    _surrenderVoteEnable = true;
+
+                                    if (_serverInfo.ServerType != "OFFICIAL")
+                                    {
+                                        _pingEnforcerEnable = true;
+                                        _pingEnforcerKickMissingPings = true;
+                                        _CMDRManagerEnable = true;
+                                        _surrenderVoteEnable = true;
+                                    }
                                     if (_serverInfo.ServerName.Contains("#7"))
                                     {
                                         _surrenderAutoEnable = true;
@@ -8930,7 +9004,6 @@ namespace PRoConEvents
                                         _surrenderAutoEnable = true;
                                         _surrenderAutoUseLockerValues = true;
                                     }
-                                    _surrenderAutoMinimumPlayers = 32;
                                     _spamBotExcludeAdminsAndWhitelist = true;
                                 }
                                 _DisplayTicketRatesInProconChat = true;
@@ -9446,25 +9519,27 @@ namespace PRoConEvents
                             while (killer.RecentKills.Count > 15)
                             {
                                 var earliestKill = killer.RecentKills.Dequeue();
-                                if (_isTestingAuthorized && _gameVersion == GameVersion.BFHL)
-                                {
-                                    var duration = (DateTime.Now - earliestKill.Value).Minutes;
-                                    var kpm = 15.0 / duration;
-                                    if (kpm >= 20)
+
+                                if (_serverInfo.ServerType != "OFFICIAL")
+                                    if (_isTestingAuthorized && _gameVersion == GameVersion.BFHL)
                                     {
-                                        QueueRecordForProcessing(new AdKatsRecord
+                                        var duration = (DateTime.Now - earliestKill.Value).Minutes;
+                                        var kpm = 15.0 / duration;
+                                        if (kpm >= 20)
                                         {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("player_ban_perm"),
-                                            command_numeric = 0,
-                                            target_name = killer.player_name,
-                                            target_player = killer,
-                                            source_name = "AutoAdmin",
-                                            record_message = "Code 5394: Dispute Requested"
-                                        });
+                                            QueueRecordForProcessing(new AdKatsRecord
+                                            {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_ban_perm"),
+                                                command_numeric = 0,
+                                                target_name = killer.player_name,
+                                                target_player = killer,
+                                                source_name = "AutoAdmin",
+                                                record_message = "Code 5394: Dispute Requested"
+                                            });
+                                        }
                                     }
-                                }
                             }
                             //Add the player
                             killer.RecentKills.Enqueue(new KeyValuePair<AdKatsPlayer, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
@@ -9496,7 +9571,7 @@ namespace PRoConEvents
                                     {
                                         //Get the actual time since cooker value
                                         Double milli = kKillerVictimDetails.TimeOfDeath.Subtract(cooker.Value).TotalMilliseconds;
-
+                                        
                                         //Calculate the percentage probability
                                         Double probability;
                                         if (Math.Abs(milli - fuseTime) < possibleRange)
@@ -9755,10 +9830,13 @@ namespace PRoConEvents
                                                 source_name = "RepManager",
                                                 record_message = "Player killed by restricted weapon " + weapon
                                             };
-                                            QueueRecordForProcessing(repRecord);
+                                            if (_serverInfo.ServerType != "OFFICIAL")
+                                            {
+                                                QueueRecordForProcessing(repRecord);
 
-                                            //Process the record
-                                            QueueRecordForProcessing(record);
+                                                //Process the record
+                                                QueueRecordForProcessing(record);
+                                            }
                                         }
                                         else
                                         {
@@ -9804,7 +9882,7 @@ namespace PRoConEvents
                                 StartAndLogThread(new Thread(new ThreadStart(delegate
                                 {
                                     Thread.CurrentThread.Name = "RoundWelcome";
-                                    Thread.Sleep(TimeSpan.FromSeconds(15));
+                                    Thread.Sleep(TimeSpan.FromSeconds(17));
                                     AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro");
                                     LogThreadExit();
                                 })));
@@ -9814,7 +9892,7 @@ namespace PRoConEvents
                                 StartAndLogThread(new Thread(new ThreadStart(delegate
                                 {
                                     Thread.CurrentThread.Name = "RoundWelcome";
-                                    Thread.Sleep(TimeSpan.FromSeconds(15));
+                                    Thread.Sleep(TimeSpan.FromSeconds(17));
                                     AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Locker");
                                     LogThreadExit();
                                 })));
@@ -10248,10 +10326,6 @@ namespace PRoConEvents
                                 List<AdKatsBan> aBanList = FetchPlayerBans(aPlayer);
                                 if (aBanList.Count > 0)
                                 {
-                                    if (_isTestingAuthorized)
-                                    {
-                                        Log.Warn("Bans detected for " + aPlayer.player_name);
-                                    }
                                     //Check for specific ban on this player
                                     AdKatsBan playerBan = aBanList.Where(aBan => aBan.player_id == aPlayer.player_id || (aBan.ban_record.target_player != null && aBan.ban_record.target_player.player_id == aPlayer.player_id)).FirstOrDefault();
                                     if (playerBan != null)
@@ -10310,24 +10384,27 @@ namespace PRoConEvents
                                 else
                                 {
                                     Log.Debug("No ban found for player", 5);
-                                    if (aPlayer.player_name.ToLower().Contains("fairfight") || aPlayer.player_name.StartsWith("AA_") || aPlayer.player_name.EndsWith("_AA"))
+                                    if (_serverInfo.ServerType != "OFFICIAL")
                                     {
-                                        QueueRecordForProcessing(new AdKatsRecord
+                                        if (aPlayer.player_name.ToLower().Contains("fairfight") || aPlayer.player_name.StartsWith("AA_") || aPlayer.player_name.EndsWith("_AA"))
                                         {
-                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                            server_id = _serverInfo.ServerID,
-                                            command_type = GetCommandByKey("player_ban_perm"),
-                                            command_numeric = 0,
-                                            target_name = aPlayer.player_name,
-                                            target_player = aPlayer,
-                                            source_name = "AutoAdmin",
-                                            record_message = "Multihack"
-                                        });
-                                    }
-                                    //Only call a hack check if the player does not already have a ban
-                                    if (_UseHackerChecker)
-                                    {
-                                        QueuePlayerForHackerCheck(aPlayer);
+                                            QueueRecordForProcessing(new AdKatsRecord
+                                            {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("player_ban_perm"),
+                                                command_numeric = 0,
+                                                target_name = aPlayer.player_name,
+                                                target_player = aPlayer,
+                                                source_name = "AutoAdmin",
+                                                record_message = "Multihack"
+                                            });
+                                        }
+                                        //Only call a hack check if the player does not already have a ban
+                                        if (_UseHackerChecker)
+                                        {
+                                            QueuePlayerForHackerCheck(aPlayer);
+                                        }
                                     }
                                 }
                             }
@@ -11449,8 +11526,6 @@ namespace PRoConEvents
                     //If message contains comorose just return and ignore
                     if (messageObject.Message.Contains("ComoRose:"))
                     {
-                        if (_isTestingAuthorized)
-                            Log.Warn("Message is comarose, returning.");
                         return;
                     }
                     QueueMessageForParsing(messageObject);
@@ -12098,23 +12173,26 @@ namespace PRoConEvents
                                         }
                                     }
                                 }
-                                if (_isTestingAuthorized && _gameVersion != GameVersion.BF3)
+                                if (_serverInfo.ServerType != "OFFICIAL")
                                 {
-                                    var lowerM = " " + messageObject.Message.ToLower() + " ";
-                                    if (lowerM.Contains(" ping"))
+                                    if (_isTestingAuthorized && _gameVersion != GameVersion.BF3)
                                     {
-                                        if (!PlayerIsAdmin(aPlayer))
+                                        var lowerM = " " + messageObject.Message.ToLower() + " ";
+                                        if (lowerM.Contains(" ping"))
                                         {
-                                            PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 and missing pings are kicked when the server is full.");
-                                            continue;
+                                            if (!PlayerIsAdmin(aPlayer))
+                                            {
+                                                PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 and missing pings are kicked when the server is full.");
+                                                continue;
+                                            }
                                         }
-                                    }
-                                    if (lowerM.Contains(" plng") || lowerM.Contains(" p|ng"))
-                                    {
-                                        if (!PlayerIsAdmin(aPlayer))
+                                        if (lowerM.Contains(" plng") || lowerM.Contains(" p|ng"))
                                         {
-                                            PlayerTellMessage(messageObject.Speaker, "Really? Bypassing the ping message?");
-                                            continue;
+                                            if (!PlayerIsAdmin(aPlayer))
+                                            {
+                                                PlayerTellMessage(messageObject.Speaker, "Really? Bypassing the ping message?");
+                                                continue;
+                                            }
                                         }
                                     }
                                 }
@@ -13325,7 +13403,6 @@ namespace PRoConEvents
                             _CommandParsingWaitHandle.Reset();
                             _CommandParsingWaitHandle.WaitOne(TimeSpan.FromSeconds(5));
                             loopStart = UtcDbTime();
-                            continue;
                         }
                     }
                     catch (Exception e)
@@ -14484,6 +14561,13 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            if (_serverInfo.ServerType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             if (!_UseHackerChecker)
                             {
                                 SendMessageToSource(record, "Enable Hacker-Checker to use this command.");
@@ -14611,6 +14695,13 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
+
+                            if (_serverInfo.ServerType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                FinalizeRecord(record);
+                                return;
+                            }
 
                             if (!_pingEnforcerEnable)
                             {
@@ -15117,6 +15208,13 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            if (_serverInfo.ServerType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             String defaultReason = "Spectator Blacklist";
 
                             //Parse parameters using max param count
@@ -15607,6 +15705,13 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
+
+                            if (_serverInfo.ServerType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                FinalizeRecord(record);
+                                return;
+                            }
 
                             if (!_FeedTeamKillTrackerWhitelist)
                             {
@@ -17684,6 +17789,13 @@ namespace PRoConEvents
                         {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
+
+                            if (_serverInfo.ServerType == "OFFICIAL")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                FinalizeRecord(record);
+                                return;
+                            }
 
                             if (!_FeedMultiBalancerDisperseList)
                             {
@@ -30516,10 +30628,6 @@ namespace PRoConEvents
                         foreach (Int64 removeID in removeIDs)
                         {
                             _FetchedPlayers.Remove(removeID);
-                        }
-                        if (_isTestingAuthorized && removeIDs.Any())
-                        {
-                            Log.Warn(removeIDs.Count() + " fetched players removed, " + _FetchedPlayers.Count() + " still in cache.");
                         }
                         aPlayer.LastUsage = UtcDbTime();
                         _FetchedPlayers[aPlayer.player_id] = aPlayer;
