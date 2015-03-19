@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.3.7
+ * Version 6.5.3.8
  * 18-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.3.7</version_code>
+ * <version_code>6.5.3.8</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.3.7";
+        private const String PluginVersion = "6.5.3.8";
 
         public enum GameVersion
         {
@@ -6204,7 +6204,7 @@ namespace PRoConEvents
                             }
 
                             //Post usage stats at interval
-                            if (((UtcDbTime() - _LastWeaponCodePost).TotalMinutes > 60 || !_PostedWeaponCodes) && _firstPlayerListComplete)
+                            if (((UtcDbTime() - _LastWeaponCodePost).TotalMinutes > 20 || !_PostedWeaponCodes) && _firstPlayerListComplete)
                             {
                                 PostWeaponCodes();
                             }
@@ -36206,6 +36206,42 @@ namespace PRoConEvents
                         catch (Exception)
                         {
                             return;
+                        }
+                    }
+                }
+                else if (_gameVersion == GameVersion.BFHL) {
+                    using (var client = new WebClient())
+                    {
+                        try
+                        {
+                            //Get persona
+                            DoBattlelogWait();
+                            String userResponse = client.DownloadString("http://battlelog.battlefield.com/bfh/user/" + aPlayer.player_name + "?nocacherandom=" + Environment.TickCount);
+                            Match pid = Regex.Match(userResponse, @"agent\/" + aPlayer.player_name + @"\/stats\/(\d+)");
+                            if (!pid.Success)
+                            {
+                                Log.Warn("Could not find BFHL persona ID for " + aPlayer.player_name);
+                                return;
+                            }
+                            aPlayer.player_personaID = pid.Groups[1].Value.Trim();
+                            Log.Debug("Persona ID fetched for " + aPlayer.player_name + ":" + aPlayer.player_personaID, 4);
+                            //Get tag
+                            DoBattlelogWait();
+                            String soldierResponse = client.DownloadString("http://battlelog.battlefield.com/bfh/agent/" + aPlayer.player_name + "/stats/" + aPlayer.player_personaID + "/pc/" + "?nocacherandom=" + Environment.TickCount);
+                            Match tag = Regex.Match(soldierResponse, @"\[\s*([a-zA-Z0-9]+)\s*\]\s*</span>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+                            if (!tag.Success || String.IsNullOrEmpty(tag.Groups[1].Value.Trim()))
+                            {
+                                Log.Debug("Could not find BFHL clan tag for " + aPlayer.player_name, 4);
+                            }
+                            else
+                            {
+                                aPlayer.player_clanTag = tag.Groups[1].Value.Trim();
+                                Log.Debug("Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Exception("Error fetching BFHL player info", e);
                         }
                     }
                 }
