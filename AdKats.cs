@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.3.8
- * 18-MAR-2015
+ * Version 6.5.3.9
+ * 19-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.3.8</version_code>
+ * <version_code>6.5.3.9</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.3.8";
+        private const String PluginVersion = "6.5.3.9";
 
         public enum GameVersion
         {
@@ -6659,7 +6659,7 @@ namespace PRoConEvents
                                         Log.Debug("Team Cops already set for team " + targetTeamID + ", cancelling override.", 4);
                                         break;
                                     }
-                                    _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "Cops", "Cops", "Law Enforcement");
+                                    _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "LE", "Cops", "Law Enforcement");
                                     Log.Debug("Assigning team ID " + targetTeamID + " to Cops ", 4);
                                     break;
                             }
@@ -6689,7 +6689,7 @@ namespace PRoConEvents
                                         Log.Debug("Team Crims already set for team " + targetTeamID + ", cancelling override.", 4);
                                         break;
                                     }
-                                    _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "Crims", "Criminals", "Criminals");
+                                    _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "CR", "Crims", "Criminals");
                                     Log.Debug("Assigning team ID " + targetTeamID + " to Crims", 4);
                                     break;
                             }
@@ -16582,6 +16582,13 @@ namespace PRoConEvents
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
+                            if (_roundState != RoundState.Playing && record.source_name != "ProconAdmin")
+                            {
+                                SendMessageToSource(record, record.command_type.command_key + " cannot be used between rounds.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
                                 SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
@@ -16601,64 +16608,22 @@ namespace PRoConEvents
                                     String targetTeam = parameters[0];
                                     record.record_message = "Nuke Server";
                                     Log.Debug("target: " + targetTeam, 6);
-
-
-                                    if (targetTeam.ToLower().Contains("us"))
+                                    List<AdKatsTeam> validTeams = _teamDictionary.Values.Where(aTeam => aTeam.TeamID == 1 || aTeam.TeamID == 2).ToList();
+                                    AdKatsTeam matchingTeam = validTeams.FirstOrDefault(aTeam => aTeam.TeamKey.ToLower() == targetTeam.ToLower());
+                                    if (matchingTeam != null)
                                     {
-                                        AdKatsTeam aTeam = GetTeamByKey("US");
-                                        if (aTeam != null)
-                                        {
-                                            record.target_name = aTeam.TeamName;
-                                            record.command_numeric = aTeam.TeamID;
-                                            record.record_message += " (" + aTeam.TeamName + ")";
-                                        }
-                                        else
-                                        {
-                                            SendMessageToSource(record, "Team US does not exist on this map.");
-                                            FinalizeRecord(record);
-                                            return;
-                                        }
+                                        record.target_name = matchingTeam.TeamName;
+                                        record.command_numeric = matchingTeam.TeamID;
+                                        record.record_message += " (" + matchingTeam.TeamName + ")";
                                     }
-                                    else if (targetTeam.ToLower().Contains("ru"))
-                                    {
-                                        AdKatsTeam aTeam = GetTeamByKey("RU");
-                                        if (aTeam != null)
-                                        {
-                                            record.target_name = aTeam.TeamName;
-                                            record.command_numeric = aTeam.TeamID;
-                                            record.record_message += " (" + aTeam.TeamName + ")";
-                                        }
-                                        else
-                                        {
-                                            SendMessageToSource(record, "Team RU does not exist on this map.");
-                                            FinalizeRecord(record);
-                                            return;
-                                        }
-                                    }
-                                    else if (targetTeam.ToLower().Contains("cn"))
-                                    {
-                                        AdKatsTeam aTeam = GetTeamByKey("CN");
-                                        if (aTeam != null)
-                                        {
-                                            record.target_name = aTeam.TeamName;
-                                            record.command_numeric = aTeam.TeamID;
-                                            record.record_message += " (" + aTeam.TeamName + ")";
-                                        }
-                                        else
-                                        {
-                                            SendMessageToSource(record, "Team CN does not exist on this map.");
-                                            FinalizeRecord(record);
-                                            return;
-                                        }
-                                    }
-                                    else if (targetTeam.ToLower().Contains("all"))
+                                    else if (targetTeam.ToLower() == "all")
                                     {
                                         record.target_name = "Everyone";
                                         record.record_message += " (Everyone)";
                                     }
                                     else
                                     {
-                                        SendMessageToSource(record, "Use 'US', 'RU', 'CN', or 'ALL' as targets.");
+                                        SendMessageToSource(record, "Team " + targetTeam.ToUpper() + " not found. Available: " + String.Join(", ", validTeams.Select(aTeam => aTeam.TeamKey).ToArray()));
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -16815,57 +16780,17 @@ namespace PRoConEvents
                                     String targetTeam = parameters[0];
                                     Log.Debug("target team: " + targetTeam, 6);
                                     record.record_message = "End Round";
-                                    if (targetTeam.ToLower().Contains("us"))
+                                    List<AdKatsTeam> validTeams = _teamDictionary.Values.Where(aTeam => aTeam.TeamID == 1 || aTeam.TeamID == 2).ToList();
+                                    AdKatsTeam matchingTeam = validTeams.FirstOrDefault(aTeam => aTeam.TeamKey.ToLower() == targetTeam.ToLower());
+                                    if (matchingTeam != null)
                                     {
-                                        AdKatsTeam aTeam = GetTeamByKey("US");
-                                        if (aTeam != null)
-                                        {
-                                            record.target_name = aTeam.TeamName;
-                                            record.command_numeric = aTeam.TeamID;
-                                            record.record_message += " (" + aTeam.TeamKey + " Win)";
-                                        }
-                                        else
-                                        {
-                                            SendMessageToSource(record, "Team US does not exist on this map.");
-                                            FinalizeRecord(record);
-                                            return;
-                                        }
-                                    }
-                                    else if (targetTeam.ToLower().Contains("ru"))
-                                    {
-                                        AdKatsTeam aTeam = GetTeamByKey("RU");
-                                        if (aTeam != null)
-                                        {
-                                            record.target_name = aTeam.TeamName;
-                                            record.command_numeric = aTeam.TeamID;
-                                            record.record_message += " (" + aTeam.TeamKey + " Win)";
-                                        }
-                                        else
-                                        {
-                                            SendMessageToSource(record, "Team RU does not exist on this map.");
-                                            FinalizeRecord(record);
-                                            return;
-                                        }
-                                    }
-                                    else if (targetTeam.ToLower().Contains("cn"))
-                                    {
-                                        AdKatsTeam aTeam = GetTeamByKey("CN");
-                                        if (aTeam != null)
-                                        {
-                                            record.target_name = aTeam.TeamName;
-                                            record.command_numeric = aTeam.TeamID;
-                                            record.record_message += " (" + aTeam.TeamKey + " Win)";
-                                        }
-                                        else
-                                        {
-                                            SendMessageToSource(record, "Team CN does not exist on this map.");
-                                            FinalizeRecord(record);
-                                            return;
-                                        }
+                                        record.target_name = matchingTeam.TeamName;
+                                        record.command_numeric = matchingTeam.TeamID;
+                                        record.record_message += " (" + matchingTeam.TeamName + ")";
                                     }
                                     else
                                     {
-                                        SendMessageToSource(record, "Use 'US', 'RU', or 'CN' as team codes to end round");
+                                        SendMessageToSource(record, "Team " + targetTeam.ToUpper() + " not found. Available: " + String.Join(", ", validTeams.Select(aTeam => aTeam.TeamKey).ToArray()));
                                         FinalizeRecord(record);
                                         return;
                                     }
@@ -23711,7 +23636,7 @@ namespace PRoConEvents
             {
                 record.record_action_executed = true;
                 ExecuteCommand("procon.protected.send", "mapList.endRound", record.command_numeric + "");
-                SendMessageToSource(record, "Ended round with " + record.GetTargetNames() + " as winner.");
+                SendMessageToSource(record, "Ended round with " + record.GetTargetNames() + " winning.");
             }
             catch (Exception e)
             {
@@ -23739,11 +23664,11 @@ namespace PRoConEvents
                         ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
                         if (record.source_name != "RoundManager")
                         {
-                            PlayerSayMessage(record.source_name, "Admin Nuke Issued On " + record.GetTargetNames());
+                            PlayerTellMessage(record.source_name, "NUKE issued on team " + record.GetTargetNames());
                         }
                     }
                 }
-                SendMessageToSource(record, "You NUKED " + record.GetTargetNames() + " for " + record.record_message + ".");
+                SendMessageToSource(record, "You NUKED " + record.GetTargetNames() + ".");
             }
             catch (Exception e)
             {
