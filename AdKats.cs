@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.3.9
- * 19-MAR-2015
+ * Version 6.5.4.0
+ * 21-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.3.9</version_code>
+ * <version_code>6.5.4.0</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.3.9";
+        private const String PluginVersion = "6.5.4.0";
 
         public enum GameVersion
         {
@@ -11880,7 +11880,7 @@ namespace PRoConEvents
                 {
                     ProconChatWrite("Yell[" + _YellDuration + "s] > " + message);
                 }
-                ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion != GameVersion.BF3) ? (System.Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "all");
+                ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4) ? (System.Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "all");
             }
             catch (Exception e)
             {
