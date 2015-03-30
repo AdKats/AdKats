@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.4.0
- * 21-MAR-2015
+ * Version 6.5.4.1
+ * 29-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.4.0</version_code>
+ * <version_code>6.5.4.1</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.4.0";
+        private const String PluginVersion = "6.5.4.1";
 
         public enum GameVersion
         {
@@ -368,6 +368,7 @@ namespace PRoConEvents
         private readonly Dictionary<Int32, AdKatsTeam> _teamDictionary = new Dictionary<Int32, AdKatsTeam>();
         private readonly Dictionary<String, Int32> _unmatchedRoundDeathCounts = new Dictionary<String, Int32>();
         private readonly HashSet<String> _unmatchedRoundDeaths = new HashSet<String>();
+        private readonly Dictionary<String, AdKatsPlayer> _roundAssists = new Dictionary<String, AdKatsPlayer>();
 
         //Players
         private readonly Dictionary<String, AdKatsPlayer> _PlayerDictionary = new Dictionary<String, AdKatsPlayer>();
@@ -8398,18 +8399,43 @@ namespace PRoConEvents
                                                     }
                                                 }
                                             }
-                                            if (_AutomaticAssistBaserapeCausingPlayers &&
-                                                !_Team1MoveQueue.Any() &&
-                                                !_Team2MoveQueue.Any() &&
-                                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
-                                                (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
-                                            {
-                                                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
-                                                    dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
-                                                                _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
+                                            if (!_Team1MoveQueue.Any() && 
+                                                !_Team2MoveQueue.Any() && 
+                                                _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 && 
+                                                (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600))) {
+                                                Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
+                                                //Get players from the baserape causing list
+                                                if (_AutomaticAssistBaserapeCausingPlayers)
+                                                {
+                                                    foreach (var aPlayer in _PlayerDictionary.Values.Where(
+                                                        dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && 
+                                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name))) {
+                                                        if (!auaPlayers.ContainsKey(aPlayer.player_name)) {
+                                                            auaPlayers[aPlayer.player_name] = aPlayer;
+                                                        }
+                                                    }
+                                                }
+                                                //Get players from the auto-assist blacklist
+                                                foreach (var aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(
+                                                    aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
+                                                    if (!auaPlayers.ContainsKey(aPlayer.player_name)) {
+                                                        auaPlayers[aPlayer.player_name] = aPlayer;
+                                                    }
+                                                }
+                                                //Get players from those who have assisted to the now winning team
+                                                foreach (var aPlayer in _roundAssists.Values.Where(
+                                                    dPlayer => dPlayer.player_online &&
+                                                        dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                {
+                                                    if (!auaPlayers.ContainsKey(aPlayer.player_name))
+                                                    {
+                                                        auaPlayers[aPlayer.player_name] = aPlayer;
+                                                    }
+                                                }
+                                                foreach (AdKatsPlayer aPlayer in auaPlayers.Values)
                                                 {
                                                     OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
-                                                    PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
+                                                    PlayerTellMessage(aPlayer.player_name, "You are being automatically assisted to the weak team.");
                                                     Thread.Sleep(2000);
                                                     _PlayersAutoAssistedThisRound = true;
                                                     QueueRecordForProcessing(new AdKatsRecord
@@ -8535,18 +8561,48 @@ namespace PRoConEvents
                                                     }
                                                 }
                                             }
-                                            if (_AutomaticAssistBaserapeCausingPlayers &&
-                                                !_Team1MoveQueue.Any() &&
+                                            if (!_Team1MoveQueue.Any() &&
                                                 !_Team2MoveQueue.Any() &&
                                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
                                                 (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
                                             {
-                                                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
-                                                    dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
-                                                                _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
+                                                Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
+                                                //Get players from the baserape causing list
+                                                if (_AutomaticAssistBaserapeCausingPlayers)
+                                                {
+                                                    foreach (var aPlayer in _PlayerDictionary.Values.Where(
+                                                        dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
+                                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
+                                                    {
+                                                        if (!auaPlayers.ContainsKey(aPlayer.player_name))
+                                                        {
+                                                            auaPlayers[aPlayer.player_name] = aPlayer;
+                                                        }
+                                                    }
+                                                }
+                                                //Get players from the auto-assist blacklist
+                                                foreach (var aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(
+                                                    aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                {
+                                                    if (!auaPlayers.ContainsKey(aPlayer.player_name))
+                                                    {
+                                                        auaPlayers[aPlayer.player_name] = aPlayer;
+                                                    }
+                                                }
+                                                //Get players from those who have assisted to the now winning team
+                                                foreach (var aPlayer in _roundAssists.Values.Where(
+                                                    dPlayer => dPlayer.player_online &&
+                                                        dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                {
+                                                    if (!auaPlayers.ContainsKey(aPlayer.player_name))
+                                                    {
+                                                        auaPlayers[aPlayer.player_name] = aPlayer;
+                                                    }
+                                                }
+                                                foreach (AdKatsPlayer aPlayer in auaPlayers.Values)
                                                 {
                                                     OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
-                                                    PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
+                                                    PlayerTellMessage(aPlayer.player_name, "You are being automatically assisted to the weak team.");
                                                     Thread.Sleep(2000);
                                                     _PlayersAutoAssistedThisRound = true;
                                                     QueueRecordForProcessing(new AdKatsRecord
@@ -8669,18 +8725,48 @@ namespace PRoConEvents
                                                             }
                                                         }
                                                     }
-                                                    if (_AutomaticAssistBaserapeCausingPlayers &&
-                                                        !_Team1MoveQueue.Any() &&
+                                                    if (!_Team1MoveQueue.Any() &&
                                                         !_Team2MoveQueue.Any() &&
                                                         _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
-                                                        (!_isTestingAuthorized || losingTeam.TeamTicketCount > 300))
+                                                        (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
                                                     {
-                                                        foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
-                                                            dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
-                                                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
+                                                        Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
+                                                        //Get players from the baserape causing list
+                                                        if (_AutomaticAssistBaserapeCausingPlayers)
+                                                        {
+                                                            foreach (var aPlayer in _PlayerDictionary.Values.Where(
+                                                                dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
+                                                                _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
+                                                            {
+                                                                if (!auaPlayers.ContainsKey(aPlayer.player_name))
+                                                                {
+                                                                    auaPlayers[aPlayer.player_name] = aPlayer;
+                                                                }
+                                                            }
+                                                        }
+                                                        //Get players from the auto-assist blacklist
+                                                        foreach (var aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(
+                                                            aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                        {
+                                                            if (!auaPlayers.ContainsKey(aPlayer.player_name))
+                                                            {
+                                                                auaPlayers[aPlayer.player_name] = aPlayer;
+                                                            }
+                                                        }
+                                                        //Get players from those who have assisted to the now winning team
+                                                        foreach (var aPlayer in _roundAssists.Values.Where(
+                                                            dPlayer => dPlayer.player_online &&
+                                                                dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                        {
+                                                            if (!auaPlayers.ContainsKey(aPlayer.player_name))
+                                                            {
+                                                                auaPlayers[aPlayer.player_name] = aPlayer;
+                                                            }
+                                                        }
+                                                        foreach (AdKatsPlayer aPlayer in auaPlayers.Values)
                                                         {
                                                             OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
-                                                            PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
+                                                            PlayerTellMessage(aPlayer.player_name, "You are being automatically assisted to the weak team.");
                                                             Thread.Sleep(2000);
                                                             _PlayersAutoAssistedThisRound = true;
                                                             QueueRecordForProcessing(new AdKatsRecord
@@ -8799,18 +8885,48 @@ namespace PRoConEvents
                                                             }
                                                         }
                                                     }
-                                                    if (_AutomaticAssistBaserapeCausingPlayers &&
-                                                        !_Team1MoveQueue.Any() &&
+                                                    if (!_Team1MoveQueue.Any() &&
                                                         !_Team2MoveQueue.Any() &&
                                                         _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
-                                                        (!_isTestingAuthorized || losingTeam.TeamTicketCount > 300))
+                                                        (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
                                                     {
-                                                        foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(
-                                                            dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
-                                                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
+                                                        Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
+                                                        //Get players from the baserape causing list
+                                                        if (_AutomaticAssistBaserapeCausingPlayers)
+                                                        {
+                                                            foreach (var aPlayer in _PlayerDictionary.Values.Where(
+                                                                dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
+                                                                _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
+                                                            {
+                                                                if (!auaPlayers.ContainsKey(aPlayer.player_name))
+                                                                {
+                                                                    auaPlayers[aPlayer.player_name] = aPlayer;
+                                                                }
+                                                            }
+                                                        }
+                                                        //Get players from the auto-assist blacklist
+                                                        foreach (var aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(
+                                                            aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                        {
+                                                            if (!auaPlayers.ContainsKey(aPlayer.player_name))
+                                                            {
+                                                                auaPlayers[aPlayer.player_name] = aPlayer;
+                                                            }
+                                                        }
+                                                        //Get players from those who have assisted to the now winning team
+                                                        foreach (var aPlayer in _roundAssists.Values.Where(
+                                                            dPlayer => dPlayer.player_online &&
+                                                                dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                        {
+                                                            if (!auaPlayers.ContainsKey(aPlayer.player_name))
+                                                            {
+                                                                auaPlayers[aPlayer.player_name] = aPlayer;
+                                                            }
+                                                        }
+                                                        foreach (AdKatsPlayer aPlayer in auaPlayers.Values)
                                                         {
                                                             OnlineAdminSayMessage(aPlayer.GetVerboseName() + " being automatically assisted to weak team.");
-                                                            PlayerTellMessage(aPlayer.player_name, "For consistently helping cause baserape, you are being automatically @assist'ed. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
+                                                            PlayerTellMessage(aPlayer.player_name, "You are being automatically assisted to the weak team.");
                                                             Thread.Sleep(2000);
                                                             _PlayersAutoAssistedThisRound = true;
                                                             QueueRecordForProcessing(new AdKatsRecord
@@ -9184,6 +9300,7 @@ namespace PRoConEvents
                     _surrenderAutoSucceeded = false;
                     _surrenderAutoTriggerCountCurrent = 0;
                     _surrenderAutoTriggerCountPause = 0;
+                    _roundAssists.Clear();
                     _PlayersAutoAssistedThisRound = false;
                     _RoundReports.Clear();
                     _RoundReportHistory.Clear();
@@ -13213,6 +13330,24 @@ namespace PRoConEvents
                             }
                             Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
                             break;
+                        case "player_blacklistautoassist":
+                            if (GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player already in the auto-assist blacklist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
+                        case "player_blacklistautoassist_remove":
+                            if (!GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player).Any())
+                            {
+                                SendMessageToSource(record, "Matching player not in the auto-assist blacklist for this server.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            Log.Debug(record.command_type.command_key + " record allowed to continue processing.", 5);
+                            break;
                     }
                     //Conditional command replacement (single target only)
                     if (_isTestingAuthorized &&
@@ -13586,7 +13721,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -13628,7 +13763,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -13671,7 +13806,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -13695,7 +13830,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -13830,7 +13965,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -13855,7 +13990,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -13924,7 +14059,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -13993,7 +14128,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -14062,7 +14197,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -14131,7 +14266,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -14273,7 +14408,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -14342,7 +14477,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -14478,7 +14613,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -14563,7 +14698,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -14698,7 +14833,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -15210,7 +15345,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -15573,6 +15708,127 @@ namespace PRoConEvents
                             }
                         }
                         break;
+                    case "player_blacklistautoassist":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            String defaultReason = "Auto-Assist Blacklist";
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 3);
+
+                            if (parameters.Length > 0)
+                            {
+                                String stringDuration = parameters[0].ToLower();
+                                Log.Debug("Raw Duration: " + stringDuration, 6);
+                                if (stringDuration == "perm")
+                                {
+                                    //20 years in minutes
+                                    record.command_numeric = 10518984;
+                                    defaultReason = "Permanent " + defaultReason;
+                                }
+                                else
+                                {
+                                    //Default is minutes
+                                    Double recordDuration = 0.0;
+                                    Double durationMultiplier = 1.0;
+                                    if (stringDuration.EndsWith("s"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('s');
+                                        durationMultiplier = (1.0 / 60.0);
+                                    }
+                                    else if (stringDuration.EndsWith("m"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('m');
+                                        durationMultiplier = 1.0;
+                                    }
+                                    else if (stringDuration.EndsWith("h"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('h');
+                                        durationMultiplier = 60.0;
+                                    }
+                                    else if (stringDuration.EndsWith("d"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('d');
+                                        durationMultiplier = 1440.0;
+                                    }
+                                    else if (stringDuration.EndsWith("w"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('w');
+                                        durationMultiplier = 10080.0;
+                                    }
+                                    else if (stringDuration.EndsWith("y"))
+                                    {
+                                        stringDuration = stringDuration.TrimEnd('y');
+                                        durationMultiplier = 525949.0;
+                                    }
+                                    if (!Double.TryParse(stringDuration, out recordDuration))
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
+                                    if (record.command_numeric <= 0)
+                                    {
+                                        SendMessageToSource(record, "Invalid duration given, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    defaultReason = FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2) + " " + defaultReason;
+                                }
+                            }
+
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    //No parameters
+                                    SendMessageToSource(record, "No parameters given, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                                case 1:
+                                    //time
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.target_name = record.source_name;
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 2:
+                                    //time
+                                    //player
+                                    record.target_name = parameters[1];
+                                    record.record_message = defaultReason;
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                case 3:
+                                    //time
+                                    //player
+                                    //reason
+                                    record.target_name = parameters[1];
+                                    Log.Debug("target: " + record.target_name, 6);
+                                    record.record_message = GetPreMessage(parameters[2], _RequirePreMessageUse);
+                                    if (record.record_message == null)
+                                    {
+                                        SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    Log.Debug("" + record.record_message, 6);
+                                    CompleteTargetInformation(record, false, true, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "player_whitelistpopulator":
                         {
                             //Remove previous commands awaiting confirmation
@@ -15708,7 +15964,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -15843,14 +16099,14 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
 
                             if (!_dbTimingValid)
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed when database timing is mismatched.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed when database timing is mismatched.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -15981,7 +16237,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16050,7 +16306,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16085,7 +16341,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16591,7 +16847,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16726,7 +16982,7 @@ namespace PRoConEvents
 
                         if (_serverInfo.ServerType == "OFFICIAL")
                         {
-                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -16740,7 +16996,7 @@ namespace PRoConEvents
 
                         if (_serverInfo.ServerType == "OFFICIAL")
                         {
-                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -16763,7 +17019,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -16809,7 +17065,7 @@ namespace PRoConEvents
 
                         if (_serverInfo.ServerType == "OFFICIAL")
                         {
-                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -16823,7 +17079,7 @@ namespace PRoConEvents
 
                         if (_serverInfo.ServerType == "OFFICIAL")
                         {
-                            SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                            SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                             FinalizeRecord(record);
                             return;
                         }
@@ -17717,7 +17973,7 @@ namespace PRoConEvents
 
                             if (_serverInfo.ServerType == "OFFICIAL")
                             {
-                                SendMessageToSource(record, record.command_type.command_key + " cannot be performed on official servers.");
+                                SendMessageToSource(record, record.command_type.command_name + " cannot be performed on official servers.");
                                 FinalizeRecord(record);
                                 return;
                             }
@@ -18402,6 +18658,42 @@ namespace PRoConEvents
                                     break;
                                 case 1:
                                     record.record_message = "Removing Report Target Whitelist";
+                                    record.target_name = parameters[0];
+                                    //Handle based on report ID if possible
+                                    if (!HandleRoundReport(record))
+                                    {
+                                        CompleteTargetInformation(record, false, true, false);
+                                    }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "player_blacklistautoassist_remove":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    if (record.record_source != AdKatsRecord.Sources.InGame)
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    record.record_message = "Removing Auto-Assist Blacklist";
+                                    record.target_name = record.source_name;
+                                    CompleteTargetInformation(record, true, true, false);
+                                    break;
+                                case 1:
+                                    record.record_message = "Removing Auto-Assist Blacklist";
                                     record.target_name = parameters[0];
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
@@ -20137,6 +20429,12 @@ namespace PRoConEvents
                     case "player_whitelistcommand_remove":
                         CommandTargetWhitelistRemoveTarget(record);
                         break;
+                    case "player_blacklistautoassist":
+                        AutoAssistBlacklistTarget(record);
+                        break;
+                    case "player_blacklistautoassist_remove":
+                        AutoAssistBlacklistRemoveTarget(record);
+                        break;
                     case "player_whitelistreport_remove":
                         ReportWhitelistRemoveTarget(record);
                         break;
@@ -20364,6 +20662,9 @@ namespace PRoConEvents
                     SendMessageToSource(record, "Player already on losing team, rejecting switch attempt.");
                     record.record_message += " [Rejected]";
                     return;
+                }
+                if (record.source_name == record.target_name) {
+                    _roundAssists[record.target_player.player_name] = record.target_player;
                 }
                 QueuePlayerForForceMove(record.target_player.frostbitePlayerInfo);
             }
@@ -22357,6 +22658,149 @@ namespace PRoConEvents
             Log.Debug("Exiting CommandTargetWhitelistRemoveTarget", 6);
         }
 
+        public void AutoAssistBlacklistTarget(AdKatsRecord record)
+        {
+            Log.Debug("Entering AutoAssistBlacklistTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "AutoAssistBlacklistTarget not available for multiple targets.");
+                    Log.Error("AutoAssistBlacklistTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                List<AdKatsSpecialPlayer> matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player);
+                if (matchingPlayers.Count > 0)
+                {
+                    SendMessageToSource(record, matchingPlayers.Count + " matching player(s) already in the auto-assist blacklist.");
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    using (MySqlCommand command = connection.CreateCommand())
+                    {
+                        command.CommandText = @"
+                        INSERT INTO
+	                        `adkats_specialplayers`
+                        (
+	                        `player_group`,
+	                        `player_id`,
+	                        `player_identifier`,
+	                        `player_effective`,
+	                        `player_expiration`
+                        )
+                        VALUES
+                        (
+	                        'blacklist_autoassist',
+	                        @player_id,
+	                        @player_name,
+	                        UTC_TIMESTAMP(),
+	                        DATE_ADD(UTC_TIMESTAMP(), INTERVAL @duration_minutes MINUTE)
+                        )";
+                        if (record.target_player.player_id <= 0)
+                        {
+                            Log.Error("Player ID invalid when assigning special player entry. Unable to complete.");
+                            SendMessageToSource(record, "Player ID invalid when assigning special player entry. Unable to complete.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        if (record.command_numeric > 10518984)
+                        {
+                            record.command_numeric = 10518984;
+                        }
+                        command.Parameters.AddWithValue("@player_id", record.target_player.player_id);
+                        command.Parameters.AddWithValue("@player_name", record.target_player.player_name);
+                        command.Parameters.AddWithValue("@duration_minutes", record.command_numeric);
+
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0)
+                        {
+                            String message = "Player " + record.GetTargetNames() + " given " + ((record.command_numeric == 10518984) ? ("permanent") : (FormatTimeString(TimeSpan.FromMinutes(record.command_numeric), 2))) + " auto-assist blacklist for all servers.";
+                            SendMessageToSource(record, message);
+                            Log.Debug(message, 3);
+                            FetchAllAccess(true);
+                        }
+                        else
+                        {
+                            Log.Error("Unable to add player to auto-assist blacklist. Error uploading.");
+                        }
+                    }
+                }
+                //Fetch the special player cache
+                FetchAllAccess(true);
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for command target whitelist.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug("Exiting AutoAssistBlacklistTarget", 6);
+        }
+
+        public void AutoAssistBlacklistRemoveTarget(AdKatsRecord record)
+        {
+            Log.Debug("Entering AutoAssistBlacklistRemoveTarget", 6);
+            try
+            {
+                //Case for multiple targets
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "AutoAssistBlacklistRemoveTarget not available for multiple targets.");
+                    Log.Error("AutoAssistBlacklistRemoveTarget not available for multiple targets.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                record.record_action_executed = true;
+                var matchingPlayers = GetMatchingASPlayersOfGroup("blacklist_autoassist", record.target_player);
+                if (!matchingPlayers.Any())
+                {
+                    SendMessageToSource(record, "Matching player not in the auto-assist blacklist for this server.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                using (MySqlConnection connection = GetDatabaseConnection())
+                {
+                    Boolean updated = false;
+                    foreach (var asPlayer in matchingPlayers)
+                    {
+                        using (MySqlCommand command = connection.CreateCommand())
+                        {
+                            command.CommandText = @"DELETE FROM `adkats_specialplayers` WHERE `specialplayer_id` = @sp_id";
+                            command.Parameters.AddWithValue("@sp_id", asPlayer.specialplayer_id);
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0)
+                            {
+                                String message = "Player " + record.GetTargetNames() + " removed from auto-assist blacklist.";
+                                Log.Debug(message, 3);
+                                updated = true;
+                            }
+                            else
+                            {
+                                Log.Error("Unable to remove player from auto-assist blacklist. Error uploading.");
+                            }
+                        }
+                    }
+                    if (updated)
+                    {
+                        String message = "Player " + record.GetTargetNames() + " removed from auto-assist blacklist.";
+                        SendMessageToSource(record, message);
+                        FetchAllAccess(true);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while taking action for " + record.command_action.command_name + " record.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug("Exiting AutoAssistBlacklistRemoveTarget", 6);
+        }
+
         public void ReportWhitelistRemoveTarget(AdKatsRecord record)
         {
             Log.Debug("Entering ReportWhitelistRemoveTarget", 6);
@@ -24158,7 +24602,7 @@ namespace PRoConEvents
                     }
                     else
                     {
-                        Log.Error("Code 14368: Inform ColColonCleaner");
+                        PlayerSayMessage(sender.player_name, "You are already in a private conversation with " + partner.GetVerboseName() + ". Use /" + GetCommandByKey("player_pm_reply").command_text + " msg to reply.");
                         return;
                     }
                 }
@@ -32929,6 +33373,16 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command 114", "REPLACE INTO `adkats_commands` VALUES(114, 'Active', 'player_whitelistcommand_remove', 'Log', 'Remove Command Target Whitelist', 'uncwhitelist', TRUE, 'Any')", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(115))
+                                {
+                                    SendNonQuery("Adding command 115", "REPLACE INTO `adkats_commands` VALUES(115, 'Active', 'player_blacklistautoassist', 'Log', 'Auto-Assist Blacklist', 'auablacklist', TRUE, 'Any')", true);
+                                    changed = true;
+                                }
+                                if (!_CommandIDDictionary.ContainsKey(116))
+                                {
+                                    SendNonQuery("Adding command 116", "REPLACE INTO `adkats_commands` VALUES(116, 'Active', 'player_blacklistautoassist_remove', 'Log', 'Remove Auto-Assist Blacklist', 'unauablacklist', TRUE, 'Any')", true);
+                                    changed = true;
+                                }
                                 if (changed)
                                 {
                                     FetchCommands();
@@ -33061,6 +33515,8 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_blacklistreport_remove"] = "Removes a player from the report source blacklist.";
             _CommandDescriptionDictionary["player_whitelistcommand"] = "A player under command target whitelist cannot be targeted by certain admin commands.";
             _CommandDescriptionDictionary["player_whitelistcommand_remove"] = "Removes a player from the command target whitelist.";
+            _CommandDescriptionDictionary["player_blacklistautoassist"] = "A player under auto-assist blacklist is automatically @assist'd when baserape starts.";
+            _CommandDescriptionDictionary["player_blacklistautoassist_remove"] = "Removes a player from the auto-assist blacklist.";
         }
 
         private void UpdateCommandTimeouts()
