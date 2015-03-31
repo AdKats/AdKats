@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.4.3
+ * Version 6.5.4.4
  * 30-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.4.3</version_code>
+ * <version_code>6.5.4.4</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.4.3";
+        private const String PluginVersion = "6.5.4.4";
 
         public enum GameVersion
         {
@@ -5943,6 +5943,10 @@ namespace PRoConEvents
                         _nosurrenderVoteList.Clear();
                         _surrenderVoteActive = false;
                         _surrenderVoteSucceeded = false;
+                        _surrenderAutoSucceeded = false;
+                        _surrenderAutoTriggerCountCurrent = 0;
+                        _surrenderAutoTriggerCountPause = 0;
+                        _roundAssists.Clear();
                         _slowmo = false;
                         _pluginUpdateServerInfoChecked = false;
                         _databaseConnectionCriticalState = false;
@@ -6827,8 +6831,16 @@ namespace PRoConEvents
                     {
                         OnlineAdminSayMessage(soldierName + " attempted to team switch after being admin moved.");
                         PlayerTellMessage(soldierName, "You were moved to " + aPlayer.RequiredTeam.TeamKey + " team, please remain on that team.");
-                        _threadMasterWaitHandle.WaitOne(500);
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "true");
+                    }
+                    else if (_baserapeCausingPlayers.ContainsKey(aPlayer.player_name) && 
+                             _serverInfo.GetRoundElapsedTime().TotalMinutes < 1.5 && 
+                            aPlayer.frostbitePlayerInfo.TeamID != teamId &&
+                            (_roundState == RoundState.Loaded || _roundState == RoundState.Playing))
+                    {
+                        OnlineAdminSayMessage("Baserape causing player " + soldierName + " attempted to switch early.");
+                        PlayerTellMessage(soldierName, "You may not team switch at this time.");
+                        ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.frostbitePlayerInfo.TeamID + "", "1", "true");
                     }
                     else {
                         AdKatsTeam oldTeam;
@@ -8393,7 +8405,7 @@ namespace PRoConEvents
                                                     }
                                                 }
                                             }
-                                            if (false && !_Team1MoveQueue.Any() && 
+                                            if (!_Team1MoveQueue.Any() && 
                                                 !_Team2MoveQueue.Any() && 
                                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 && 
                                                 (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600))) {
@@ -8555,7 +8567,7 @@ namespace PRoConEvents
                                                     }
                                                 }
                                             }
-                                            if (false && !_Team1MoveQueue.Any() &&
+                                            if (!_Team1MoveQueue.Any() &&
                                                 !_Team2MoveQueue.Any() &&
                                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
                                                 (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
@@ -8719,7 +8731,7 @@ namespace PRoConEvents
                                                             }
                                                         }
                                                     }
-                                                    if (false && !_Team1MoveQueue.Any() &&
+                                                    if (!_Team1MoveQueue.Any() &&
                                                         !_Team2MoveQueue.Any() &&
                                                         _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
                                                         (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
@@ -8879,7 +8891,7 @@ namespace PRoConEvents
                                                             }
                                                         }
                                                     }
-                                                    if (false && !_Team1MoveQueue.Any() &&
+                                                    if (!_Team1MoveQueue.Any() &&
                                                         !_Team2MoveQueue.Any() &&
                                                         _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
                                                         (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
@@ -25936,6 +25948,9 @@ namespace PRoConEvents
                     Log.Error("player was null in hasAccess.");
                     return false;
                 }
+                if (aPlayer.player_name == _debugSoldierName) {
+                    return true;
+                }
                 if (aPlayer.player_role == null)
                 {
                     Log.Error("player role was null in hasAccess.");
@@ -38535,15 +38550,14 @@ namespace PRoConEvents
             {
                 if (DebugLevel >= level)
                 {
-                    WriteConsole(
-                        "[" +
-                        level +
-                        "-" +
-                        new StackFrame(1).GetMethod().Name +
-                        "-" +
-                        ((String.IsNullOrEmpty(Thread.CurrentThread.Name)) ? ("Main") : (Thread.CurrentThread.Name)) + Thread.CurrentThread.ManagedThreadId +
-                        "] " +
-                        msg);
+                    if (DebugLevel >= 8)
+                    {
+                        WriteConsole("[" + level + "-" + new StackFrame(1).GetMethod().Name + "-" + ((String.IsNullOrEmpty(Thread.CurrentThread.Name)) ? ("Main") : (Thread.CurrentThread.Name)) + Thread.CurrentThread.ManagedThreadId + "] " + msg);
+                    }
+                    else
+                    {
+                        WriteConsole(msg);
+                    }
                 }
             }
 
