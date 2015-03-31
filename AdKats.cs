@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.4.1
- * 29-MAR-2015
+ * Version 6.5.4.2
+ * 30-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.4.1</version_code>
+ * <version_code>6.5.4.2</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.4.1";
+        private const String PluginVersion = "6.5.4.2";
 
         public enum GameVersion
         {
@@ -6830,10 +6830,21 @@ namespace PRoConEvents
                         _threadMasterWaitHandle.WaitOne(500);
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "true");
                     }
-                    else
-                    {
-                        aPlayer.frostbitePlayerInfo.TeamID = teamId;
-                        aPlayer.frostbitePlayerInfo.SquadID = squadId;
+                    else {
+                        AdKatsTeam oldTeam;
+                        if (GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out oldTeam))
+                        {
+                            aPlayer.frostbitePlayerInfo.TeamID = teamId;
+                            aPlayer.frostbitePlayerInfo.SquadID = squadId;
+                            AdKatsTeam newTeam;
+                            if (GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out newTeam))
+                            {
+                                if (_isTestingAuthorized)
+                                {
+                                    Log.Info(aPlayer.GetVerboseName() + " moved from " + oldTeam.TeamKey + " to " + newTeam.TeamKey);
+                                }
+                            }
+                        }
                     }
                 }
                 //When a player changes team, tell teamswap to recheck queues
@@ -8399,7 +8410,7 @@ namespace PRoConEvents
                                                     }
                                                 }
                                             }
-                                            if (!_Team1MoveQueue.Any() && 
+                                            if (false && !_Team1MoveQueue.Any() && 
                                                 !_Team2MoveQueue.Any() && 
                                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 && 
                                                 (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600))) {
@@ -8561,7 +8572,7 @@ namespace PRoConEvents
                                                     }
                                                 }
                                             }
-                                            if (!_Team1MoveQueue.Any() &&
+                                            if (false && !_Team1MoveQueue.Any() &&
                                                 !_Team2MoveQueue.Any() &&
                                                 _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
                                                 (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
@@ -8725,7 +8736,7 @@ namespace PRoConEvents
                                                             }
                                                         }
                                                     }
-                                                    if (!_Team1MoveQueue.Any() &&
+                                                    if (false && !_Team1MoveQueue.Any() &&
                                                         !_Team2MoveQueue.Any() &&
                                                         _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
                                                         (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
@@ -8885,7 +8896,7 @@ namespace PRoConEvents
                                                             }
                                                         }
                                                     }
-                                                    if (!_Team1MoveQueue.Any() &&
+                                                    if (false && !_Team1MoveQueue.Any() &&
                                                         !_Team2MoveQueue.Any() &&
                                                         _serverInfo.GetRoundElapsedTime().TotalSeconds > 120 &&
                                                         (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600)))
