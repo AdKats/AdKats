@@ -6838,8 +6838,11 @@ namespace PRoConEvents
                             aPlayer.frostbitePlayerInfo.TeamID != teamId &&
                             (_roundState == RoundState.Loaded || _roundState == RoundState.Playing))
                     {
-                        OnlineAdminSayMessage("Baserape causing player " + soldierName + " attempted to switch early.");
-                        PlayerTellMessage(soldierName, "You may not team switch at this time.");
+                        if (_roundState == RoundState.Playing)
+                        {
+                            OnlineAdminSayMessage("Baserape causing player " + soldierName + " attempted to switch early.");
+                            PlayerTellMessage(soldierName, "You may not team switch at this time.");
+                        }
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.frostbitePlayerInfo.TeamID + "", "1", "true");
                     }
                     else {
