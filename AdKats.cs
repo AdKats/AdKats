@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.4.2
+ * Version 6.5.4.3
  * 30-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.4.2</version_code>
+ * <version_code>6.5.4.3</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.4.2";
+        private const String PluginVersion = "6.5.4.3";
 
         public enum GameVersion
         {
@@ -6832,6 +6832,7 @@ namespace PRoConEvents
                     }
                     else {
                         AdKatsTeam oldTeam;
+                        Int32 oldSquad = aPlayer.frostbitePlayerInfo.SquadID;
                         if (GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out oldTeam))
                         {
                             aPlayer.frostbitePlayerInfo.TeamID = teamId;
@@ -6841,7 +6842,7 @@ namespace PRoConEvents
                             {
                                 if (_isTestingAuthorized)
                                 {
-                                    Log.Info(aPlayer.GetVerboseName() + " moved from " + oldTeam.TeamKey + " to " + newTeam.TeamKey);
+                                    Log.Info(aPlayer.GetVerboseName() + " moved from " + oldTeam.TeamKey + ":" + oldSquad + " to " + newTeam.TeamKey + ":" + aPlayer.frostbitePlayerInfo.SquadID);
                                 }
                             }
                         }
@@ -6857,27 +6858,9 @@ namespace PRoConEvents
             Log.Debug("Exiting OnPlayerTeamChange", 7);
         }
 
-        public override void OnPlayerSquadChange(string soldierName, int teamId, int squadId)
+        public override void OnPlayerSquadChange(string soldierName, int teamId, int squadId) 
         {
-            Log.Debug("Entering OnPlayerSquadChange", 7);
-            try
-            {
-                if (!_firstPlayerListComplete)
-                {
-                    return;
-                }
-                if (_PlayerDictionary.ContainsKey(soldierName))
-                {
-                    AdKatsPlayer aPlayer = _PlayerDictionary[soldierName];
-                    aPlayer.frostbitePlayerInfo.TeamID = teamId;
-                    aPlayer.frostbitePlayerInfo.SquadID = squadId;
-                }
-            }
-            catch (Exception e)
-            {
-                HandleException(new AdKatsException("Error while handling player squad change.", e));
-            }
-            Log.Debug("Exiting OnPlayerSquadChange", 7);
+            OnPlayerTeamChange(soldierName, teamId, squadId);
         }
 
         public override void OnListPlayers(List<CPlayerInfo> players, CPlayerSubset cpsSubset)
@@ -36680,9 +36663,6 @@ namespace PRoConEvents
             }
             try {
                 var concat = String.Join(",", _DetectedWeaponCodes.ToArray());
-                if (_isTestingAuthorized) {
-                    Log.Info("Weapons: " + concat);
-                }
                 using (var client = new WebClient())
                 {
                     var data = new NameValueCollection {
@@ -36694,16 +36674,11 @@ namespace PRoConEvents
                     if (response != null && _isTestingAuthorized)
                     {
                         String textResponse = System.Text.Encoding.Default.GetString(response);
-                        Log.Info("response: " + textResponse);
                     }
                 }
             }
             catch (Exception e)
             {
-                if (_isTestingAuthorized)
-                {
-                    Log.Exception("Error uploading weapon codes.", e);
-                }
             }
             _PostedWeaponCodes = true;
             _LastWeaponCodePost = UtcDbTime();
