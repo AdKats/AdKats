@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.4.5
- * 30-MAR-2015
+ * Version 6.5.4.6
+ * 31-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.4.5</version_code>
+ * <version_code>6.5.4.6</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.4.5";
+        private const String PluginVersion = "6.5.4.6";
 
         public enum GameVersion
         {
@@ -6824,8 +6824,23 @@ namespace PRoConEvents
                 if (_PlayerDictionary.ContainsKey(soldierName))
                 {
                     AdKatsPlayer aPlayer = _PlayerDictionary[soldierName];
+                    AdKatsTeam oldTeam;
+                    if (!GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out oldTeam)) {
+                        Log.Error("Error fetching old team on team change.");
+                        return;
+                    }
+                    AdKatsTeam newTeam;
+                    if (!GetTeamByID(teamId, out newTeam))
+                    {
+                        Log.Error("Error fetching new team on team change.");
+                        return;
+                    }
+                    if (_isTestingAuthorized)
+                    {
+                        Log.Info(aPlayer.GetVerboseName() + " moved from " + oldTeam.TeamKey + ":" + oldTeam.TeamID + " to " + newTeam.TeamKey + ":" + newTeam.TeamID);
+                    }
                     if (aPlayer.RequiredTeam != null &&
-                        aPlayer.RequiredTeam.TeamID != teamId &&
+                        aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey &&
                         !PlayerIsAdmin(aPlayer) &&
                         _roundState == RoundState.Playing)
                     {
@@ -6836,30 +6851,13 @@ namespace PRoConEvents
                     else if (_baserapeCausingPlayers.ContainsKey(aPlayer.player_name) && 
                              _serverInfo.GetRoundElapsedTime().TotalMinutes < 1.5 && 
                             aPlayer.frostbitePlayerInfo.TeamID != teamId &&
-                            (_roundState == RoundState.Loaded || _roundState == RoundState.Playing))
+                            _roundState == RoundState.Playing)
                     {
-                        if (_roundState == RoundState.Loaded)
-                        {
-                            OnlineAdminSayMessage("Baserape causing player " + soldierName + " attempted to switch early.");
-                            PlayerTellMessage(soldierName, "You may not team switch at this time.");
-                        }
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.frostbitePlayerInfo.TeamID + "", "1", "true");
                     }
                     else {
-                        AdKatsTeam oldTeam;
                         Int32 oldSquad = aPlayer.frostbitePlayerInfo.SquadID;
-                        if (GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out oldTeam))
-                        {
-                            aPlayer.frostbitePlayerInfo.TeamID = teamId;
-                            AdKatsTeam newTeam;
-                            if (GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out newTeam))
-                            {
-                                if (_isTestingAuthorized)
-                                {
-                                    Log.Info(aPlayer.GetVerboseName() + " moved from " + oldTeam.TeamKey + ":" + oldSquad + " to " + newTeam.TeamKey + ":" + aPlayer.frostbitePlayerInfo.SquadID);
-                                }
-                            }
-                        }
+                        aPlayer.frostbitePlayerInfo.TeamID = teamId;
                     }
                 }
                 //When a player changes team, tell teamswap to recheck queues
