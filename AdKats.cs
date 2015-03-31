@@ -6838,7 +6838,7 @@ namespace PRoConEvents
                             aPlayer.frostbitePlayerInfo.TeamID != teamId &&
                             (_roundState == RoundState.Loaded || _roundState == RoundState.Playing))
                     {
-                        if (_roundState == RoundState.Playing)
+                        if (_roundState == RoundState.Loaded)
                         {
                             OnlineAdminSayMessage("Baserape causing player " + soldierName + " attempted to switch early.");
                             PlayerTellMessage(soldierName, "You may not team switch at this time.");
