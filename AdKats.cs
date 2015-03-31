@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.4.4
+ * Version 6.5.4.5
  * 30-MAR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.4.4</version_code>
+ * <version_code>6.5.4.5</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.4.4";
+        private const String PluginVersion = "6.5.4.5";
 
         public enum GameVersion
         {
@@ -6848,7 +6848,6 @@ namespace PRoConEvents
                         if (GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out oldTeam))
                         {
                             aPlayer.frostbitePlayerInfo.TeamID = teamId;
-                            aPlayer.frostbitePlayerInfo.SquadID = squadId;
                             AdKatsTeam newTeam;
                             if (GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out newTeam))
                             {
@@ -6870,9 +6869,31 @@ namespace PRoConEvents
             Log.Debug("Exiting OnPlayerTeamChange", 7);
         }
 
-        public override void OnPlayerSquadChange(string soldierName, int teamId, int squadId) 
+        public override void OnPlayerSquadChange(string soldierName, int teamId, int squadId)
         {
-            OnPlayerTeamChange(soldierName, teamId, squadId);
+            Log.Debug("Entering OnPlayerSquadChange", 7);
+            try
+            {
+                if (!_firstPlayerListComplete)
+                {
+                    return;
+                }
+                if (_PlayerDictionary.ContainsKey(soldierName))
+                {
+                    AdKatsPlayer aPlayer = _PlayerDictionary[soldierName];
+                    Int32 oldSquad = aPlayer.frostbitePlayerInfo.SquadID;
+                    aPlayer.frostbitePlayerInfo.SquadID = squadId;
+                    if (_isTestingAuthorized)
+                    {
+                        Log.Info(aPlayer.GetVerboseName() + " moved from squad " + oldSquad + " to squad " + aPlayer.frostbitePlayerInfo.SquadID);
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                HandleException(new AdKatsException("Error while handling player squad change.", e));
+            }
+            Log.Debug("Exiting OnPlayerSquadChange", 7);
         }
 
         public override void OnListPlayers(List<CPlayerInfo> players, CPlayerSubset cpsSubset)
