@@ -74,6 +74,11 @@
 			"group_id":14,
 			"group_key":"whitelist_commandtarget",
 			"group_name":"Command Target Whitelist" 
+		},
+		{
+			"group_id":15,
+			"group_key":"blacklist_autoassist",
+			"group_name":"Auto-Assist Blacklist" 
 		}
 	]
 }
