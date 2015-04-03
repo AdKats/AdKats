@@ -10162,17 +10162,20 @@ namespace PRoConEvents
                                             }
                                         }
                                         PlayerTellMessage(aPlayer.player_name, repMessage);
-                                        if (_baserapeCausingPlayers.Values.Any(dPlayer => dPlayer.player_id == aPlayer.player_id))
+                                        if (!_isTestingAuthorized)
                                         {
-                                            if (_FeedMultiBalancerDisperseList && _FeedBaserapeCausingPlayerDispersion)
+                                            if (_baserapeCausingPlayers.Values.Any(dPlayer => dPlayer.player_id == aPlayer.player_id))
                                             {
-                                                _threadMasterWaitHandle.WaitOne(5000);
-                                                PlayerSayMessage(aPlayer.player_name, "Baserape monitor has you under temporary autobalance dispersion. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
-                                            }
-                                            else if (_AutomaticAssistBaserapeCausingPlayers)
-                                            {
-                                                _threadMasterWaitHandle.WaitOne(5000);
-                                                PlayerSayMessage(aPlayer.player_name, "Baserape monitor has you under temporary automatic assist. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
+                                                if (_FeedMultiBalancerDisperseList && _FeedBaserapeCausingPlayerDispersion)
+                                                {
+                                                    _threadMasterWaitHandle.WaitOne(5000);
+                                                    PlayerSayMessage(aPlayer.player_name, "Baserape monitor has you under temporary autobalance dispersion. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
+                                                }
+                                                else if (_AutomaticAssistBaserapeCausingPlayers)
+                                                {
+                                                    _threadMasterWaitHandle.WaitOne(5000);
+                                                    PlayerSayMessage(aPlayer.player_name, "Baserape monitor has you under temporary automatic assist. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
+                                                }
                                             }
                                         }
                                     }
