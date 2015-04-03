@@ -707,7 +707,7 @@
       },
       "akm": {
         "max": 36,
-        "min": 25
+        "min": 24
       },
       "aks-74u": {
         "max": 28,
@@ -763,19 +763,19 @@
     "br_standard": {
       "hk51": {
         "max": 43,
-        "min": 24
+        "min": 25
       },
       "scar-h": {
         "max": 43,
-        "min": 24
+        "min": 25
       },
       "hcar": {
         "max": 43,
-        "min": 24
+        "min": 25
       },
       "sa-58-osw": {
         "max": 43,
-        "min": 24
+        "min": 25
       }
     },
     "handguns": {
@@ -866,7 +866,7 @@
         "min": 12
       },
       "fmg9": {
-        "max": 21,
+        "max": 25,
         "min": 12
       },
       "p90": {
@@ -882,8 +882,8 @@
         "min": 15
       },
       "k10": {
-        "max": 34,
-        "min": 12
+        "max": 33,
+        "min": 8
       }
     },
     "sg_enforcer": {
