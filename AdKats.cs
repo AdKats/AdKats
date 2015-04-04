@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.4.7
- * 2-APR-2015
+ * Version 6.5.4.8
+ * 3-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.4.7</version_code>
+ * <version_code>6.5.4.8</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.4.7";
+        private const String PluginVersion = "6.5.4.8";
 
         public enum GameVersion
         {
@@ -11803,6 +11803,18 @@ namespace PRoConEvents
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
+            if (_isTestingAuthorized)
+            {
+                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList())
+                {
+                    if (aPlayer.player_reputation >= _reputationThresholdGood &&
+                        !PlayerIsAdmin(aPlayer) &&
+                        !whitelistedPlayers.ContainsKey(aPlayer.player_name))
+                    {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                }
+            }
             if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
             {
                 var nonAdminSayThread = new Thread(new ThreadStart(delegate
@@ -11852,6 +11864,18 @@ namespace PRoConEvents
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
+            if (_isTestingAuthorized)
+            {
+                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList())
+                {
+                    if (aPlayer.player_reputation >= _reputationThresholdGood &&
+                        !PlayerIsAdmin(aPlayer) &&
+                        !whitelistedPlayers.ContainsKey(aPlayer.player_name))
+                    {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                }
+            }
             if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
             {
                 var nonAdminSayThread = new Thread(new ThreadStart(delegate
