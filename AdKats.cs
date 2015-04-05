@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.4.8
- * 3-APR-2015
+ * Version 6.5.4.9
+ * 4-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.4.8</version_code>
+ * <version_code>6.5.4.9</version_code>
  */
 
 using System;
@@ -61,7 +61,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.4.8";
+        private const String PluginVersion = "6.5.4.9";
 
         public enum GameVersion
         {
@@ -8434,7 +8434,7 @@ namespace PRoConEvents
                                                 (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600))) {
                                                 Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                 //Get players from the baserape causing list
-                                                if (_AutomaticAssistBaserapeCausingPlayers)
+                                                if (_AutomaticAssistBaserapeCausingPlayers || (_isTestingAuthorized && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)))
                                                 {
                                                     foreach (var aPlayer in _PlayerDictionary.Values.Where(
                                                         dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && 
@@ -8541,12 +8541,12 @@ namespace PRoConEvents
                                     losingTeam.TeamTicketDifferenceRate < 0)
                                 {
                                     //Set base required triggers
-                                    Int32 requiredTriggers = ((_surrenderAutoNukeWinning || _surrenderAutoTriggerVote) ? (5) : (20));
+                                    Int32 requiredTriggers = ((_surrenderAutoNukeWinning || _surrenderAutoTriggerVote) ? (5) : ((_isTestingAuthorized)?(25):(20)));
                                     //Add modification based on ticket count
                                     requiredTriggers -= ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
                                     //Add modification based on automatic assist
                                     requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
-                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < -50 && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < ((_isTestingAuthorized)?(-40):(-50)) && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
                                         var resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
@@ -8597,7 +8597,7 @@ namespace PRoConEvents
                                             {
                                                 Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                 //Get players from the baserape causing list
-                                                if (_AutomaticAssistBaserapeCausingPlayers)
+                                                if (_AutomaticAssistBaserapeCausingPlayers || (_isTestingAuthorized && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)))
                                                 {
                                                     foreach (var aPlayer in _PlayerDictionary.Values.Where(
                                                         dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
@@ -8761,7 +8761,7 @@ namespace PRoConEvents
                                                     {
                                                         Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                         //Get players from the baserape causing list
-                                                        if (_AutomaticAssistBaserapeCausingPlayers)
+                                                        if (_AutomaticAssistBaserapeCausingPlayers || (_isTestingAuthorized && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)))
                                                         {
                                                             foreach (var aPlayer in _PlayerDictionary.Values.Where(
                                                                 dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
@@ -8921,7 +8921,7 @@ namespace PRoConEvents
                                                     {
                                                         Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                         //Get players from the baserape causing list
-                                                        if (_AutomaticAssistBaserapeCausingPlayers)
+                                                        if (_AutomaticAssistBaserapeCausingPlayers || (_isTestingAuthorized && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)))
                                                         {
                                                             foreach (var aPlayer in _PlayerDictionary.Values.Where(
                                                                 dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
