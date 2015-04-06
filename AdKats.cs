@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.5.3
+ * Version 6.5.5.4
  * 6-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.5.3</version_code>
+ * <version_code>6.5.5.4</version_code>
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.5.3";
+        private const String PluginVersion = "6.5.5.4";
 
         public enum GameVersion
         {
@@ -9680,6 +9680,8 @@ namespace PRoConEvents
                 {
                     aKill.killer.RecentKills.Dequeue();
                 }
+                //Add the kill
+                aKill.killer.RecentKills.Enqueue(aKill);
                 if (_isTestingAuthorized && _serverInfo.ServerType != "OFFICIAL") {
                     //KPM check
                     var countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
@@ -9741,8 +9743,6 @@ namespace PRoConEvents
                                 _RoundCookers = new Dictionary<String, AdKatsPlayer>();
                             }
                             const double possibleRange = 750.00;
-                            //Add the player
-                            aKill.killer.RecentKills.Enqueue(aKill);
                             //Check for cooked grenade and non-suicide
                             if (aKill.weaponCode.Contains("M67") || aKill.weaponCode.Contains("V40"))
                             {
