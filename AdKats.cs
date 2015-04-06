@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.5.2
- * 5-APR-2015
+ * Version 6.5.5.3
+ * 6-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.5.2</version_code>
+ * <version_code>6.5.5.3</version_code>
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.5.2";
+        private const String PluginVersion = "6.5.5.3";
 
         public enum GameVersion
         {
@@ -8444,7 +8444,11 @@ namespace PRoConEvents
                                                 (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600))) {
                                                 Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                 //Get players from the baserape causing list
-                                                if (_AutomaticAssistBaserapeCausingPlayers || (_isTestingAuthorized && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)))
+
+                                                var lowPopAssist = _isTestingAuthorized && 
+                                                    (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")) && 
+                                                    (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
+                                                if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
                                                 {
                                                     foreach (var aPlayer in _PlayerDictionary.Values.Where(
                                                         dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && 
