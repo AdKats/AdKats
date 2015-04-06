@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.5.1
+ * Version 6.5.5.2
  * 5-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.5.1</version_code>
+ * <version_code>6.5.5.2</version_code>
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.5.1";
+        private const String PluginVersion = "6.5.5.2";
 
         public enum GameVersion
         {
@@ -9679,7 +9679,7 @@ namespace PRoConEvents
                 if (_isTestingAuthorized && _serverInfo.ServerType != "OFFICIAL") {
                     //KPM check
                     var countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
-                    if (countRecent >= 22)
+                    if (countRecent >= 22 && !PlayerProtected(aKill.killer))
                     {
                         QueueRecordForProcessing(new AdKatsRecord
                         {
@@ -9699,9 +9699,9 @@ namespace PRoConEvents
                         dKill.weaponCategory != DamageTypes.SniperRifle && 
                         dKill.weaponCategory != DamageTypes.DMR);
                     var nonSniperHS = nonSniperKills.Where(dKill => dKill.IsHeadshot);
+                    Double nonSniperHSKP = nonSniperHS.Count() / (Double)nonSniperKills.Count() * 100;
                     if (nonSniperKills.Count() >= 20) {
-                        Double nonSniperHSKP = nonSniperHS.Count() / (Double) nonSniperKills.Count() * 100;
-                        if (nonSniperHSKP > 90)
+                        if (nonSniperHSKP > 90 && !PlayerProtected(aKill.killer))
                         {
                             QueueRecordForProcessing(new AdKatsRecord
                             {
@@ -9721,6 +9721,7 @@ namespace PRoConEvents
                             OnlineAdminSayMessage("Warning, " + aKill.killer.GetVerboseName() + " currently has " + Math.Round(nonSniperHSKP) + "% non-sniper HSKP.");
                         }
                     }
+                    Log.Debug(aKill.killer.GetVerboseName() + " kills: " + countRecent + "/60s " + Math.Round(nonSniperHSKP) + "% HSKP on " + nonSniperKills.Count() + " non-sniper.", 3);
                 }
 
                 //Only add the last death if it's not a death by admin
