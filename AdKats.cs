@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.4.9
- * 4-APR-2015
+ * Version 6.5.5.1
+ * 5-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.4.9</version_code>
+ * <version_code>6.5.5.1</version_code>
  */
 
 using System;
@@ -54,6 +54,7 @@ using PRoCon.Core.Plugin.Commands;
 using PRoCon.Core.Players;
 using Microsoft.CSharp;
 using MySql.Data.MySqlClient;
+using PRoCon.Core.Players.Items;
 
 
 namespace PRoConEvents
@@ -61,7 +62,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.4.9";
+        private const String PluginVersion = "6.5.5.1";
 
         public enum GameVersion
         {
@@ -651,6 +652,7 @@ namespace PRoConEvents
         private String _WeaponLimiterExceptionString = "_Flechette|_Slug";
         private String _WeaponLimiterString = "M320|RPG|SMAW|C4|M67|Claymore|FGM-148|FIM92|ROADKILL|Death|_LVG|_HE|_Frag|_XM25|_FLASH|_V40|_M34|_Flashbang|_SMK|_Smoke|_FGM148|_Grenade|_SLAM|_NLAW|_RPG7|_C4|_Claymore|_FIM92|_M67|_SMAW|_SRAW|_Sa18IGLA|_Tomahawk";
         private HashSet<String> _DetectedWeaponCodes = new HashSet<String>();
+        public Dictionary<String, DamageTypes> WeaponTypeDictionary = null;
 
         public readonly Logger Log;
 
@@ -774,6 +776,12 @@ namespace PRoConEvents
 
             //Start up TeamSpeakClientViewer
             _tsViewer = new TeamSpeakClientViewer(this);
+
+            WeaponDictionary dic = GetWeaponDefines();
+            WeaponTypeDictionary = new Dictionary<string, DamageTypes>();
+            foreach (Weapon weapon in dic)
+                if (weapon != null && !WeaponTypeDictionary.ContainsKey(weapon.Name))
+                    WeaponTypeDictionary.Add(weapon.Name, weapon.Damage);
         }
 
         public String GetPluginName()
@@ -7155,6 +7163,7 @@ namespace PRoConEvents
                                     aPlayer.player_online = false;
                                     aPlayer.player_server = null;
                                     aPlayer.player_spawnedOnce = false;
+                                    aPlayer.RecentKills.Clear();
                                     aPlayer.ClearPingEntries();
                                     aPlayer.RequiredTeam = null;
                                     DequeuePlayer(aPlayer);
@@ -7623,6 +7632,7 @@ namespace PRoConEvents
                                         aPlayer.player_server = null;
                                         aPlayer.player_spawnedOnce = false;
                                         aPlayer.ClearPingEntries();
+                                        aPlayer.RecentKills.Clear();
                                         aPlayer.RequiredTeam = null;
                                         DequeuePlayer(aPlayer);
                                         //Remove all old values
@@ -9387,6 +9397,15 @@ namespace PRoConEvents
                 {
                     return;
                 }
+                //Used for delayed player moving
+                if (_TeamswapOnDeathMoveDic.Count > 0)
+                {
+                    Log.Debug("Locking on _TeamswapOnDeathCheckingQueue", 6); lock (_TeamswapOnDeathCheckingQueue)
+                    {
+                        _TeamswapOnDeathCheckingQueue.Enqueue(kKillerVictimDetails.Victim);
+                        _TeamswapWaitHandle.Set();
+                    }
+                }
                 //Otherwise, queue the kill for processing
                 QueueKillForProcessing(kKillerVictimDetails);
             }
@@ -9544,8 +9563,47 @@ namespace PRoConEvents
                             //Dequeue the first/next kill
                             Kill playerKill = inboundPlayerKills.Dequeue();
 
+                            DamageTypes category = DamageTypes.None;
+                            if (playerKill != null && !String.IsNullOrEmpty(playerKill.DamageType))
+                            {
+                                if (!WeaponTypeDictionary.TryGetValue(playerKill.DamageType, out category))
+                                {
+                                    category = DamageTypes.None;
+                                }
+                            }
+                            if (!_DetectedWeaponCodes.Contains(playerKill.DamageType))
+                            {
+                                _DetectedWeaponCodes.Add(playerKill.DamageType);
+                                if (_isTestingAuthorized)
+                                {
+                                    PostWeaponCodes();
+                                }
+                            }
+                            if (!_firstPlayerListComplete)
+                            {
+                                continue;
+                            }
+                            AdKatsPlayer victim = null;
+                            _PlayerDictionary.TryGetValue(playerKill.Victim.SoldierName, out victim);
+                            AdKatsPlayer killer = null;
+                            _PlayerDictionary.TryGetValue(playerKill.Killer.SoldierName, out killer);
+                            if (victim == null || killer == null)
+                            {
+                                continue;
+                            }
+
                             //Call processing on the player kill
-                            ProcessPlayerKill(playerKill);
+                            ProcessPlayerKill(new AdKatsKill() {
+                                killer = killer,
+                                killerCPI = playerKill.Killer,
+                                victim = victim,
+                                victimCPI = playerKill.Victim,
+                                weaponCode = playerKill.DamageType,
+                                weaponCategory = category,
+                                timestamp = playerKill.TimeOfDeath,
+                                IsSuicide = playerKill.IsSuicide,
+                                IsHeadshot = playerKill.Headshot
+                            });
                         }
                     }
                     catch (Exception e)
@@ -9567,37 +9625,17 @@ namespace PRoConEvents
             }
         }
 
-        private void ProcessPlayerKill(Kill kKillerVictimDetails)
+        private void ProcessPlayerKill(AdKatsKill aKill)
         {
             try
             {
-                if (!_DetectedWeaponCodes.Contains(kKillerVictimDetails.DamageType))
-                {
-                    _DetectedWeaponCodes.Add(kKillerVictimDetails.DamageType);
-                    if (_isTestingAuthorized) {
-                        PostWeaponCodes();
-                    }
-                }
-                if (!_firstPlayerListComplete)
-                {
-                    return;
-                }
-                AdKatsPlayer victim = null;
-                _PlayerDictionary.TryGetValue(kKillerVictimDetails.Victim.SoldierName, out victim);
-                AdKatsPlayer killer = null;
-                _PlayerDictionary.TryGetValue(kKillerVictimDetails.Killer.SoldierName, out killer);
-                if (victim == null || killer == null)
-                {
-                    return;
-                }
+                aKill.victim.lastAction = UtcDbTime();
+                aKill.killer.lastAction = UtcDbTime();
 
-                victim.lastAction = UtcDbTime();
-                killer.lastAction = UtcDbTime();
-
-                if (killer.player_type == PlayerType.Spectator)
+                if (aKill.killer.player_type == PlayerType.Spectator)
                 {
                     //Unlock the player
-                    killer.Unlock();
+                    aKill.killer.Unlock();
                     //Create the ban record
                     QueueRecordForProcessing(new AdKatsRecord
                     {
@@ -9605,45 +9643,88 @@ namespace PRoConEvents
                         server_id = _serverInfo.ServerID,
                         command_type = GetCommandByKey("player_ban_perm"),
                         command_numeric = 0,
-                        target_name = killer.player_name,
-                        target_player = killer,
+                        target_name = aKill.killer.player_name,
+                        target_player = aKill.killer,
                         source_name = "AutoAdmin",
                         record_message = "Spectator Hack"
                     });
                     return;
                 }
 
-                //Used for delayed player moving
-                if (_TeamswapOnDeathMoveDic.Count > 0)
-                {
-                    Log.Debug("Locking on _TeamswapOnDeathCheckingQueue", 6); lock (_TeamswapOnDeathCheckingQueue)
-                    {
-                        _TeamswapOnDeathCheckingQueue.Enqueue(kKillerVictimDetails.Victim);
-                        _TeamswapWaitHandle.Set();
-                    }
-                }
-
                 //Add the unmatched unique round death
-                if (!_unmatchedRoundDeaths.Contains(victim.player_name))
+                if (!_unmatchedRoundDeaths.Contains(aKill.victim.player_name))
                 {
-                    _unmatchedRoundDeaths.Add(victim.player_name);
+                    _unmatchedRoundDeaths.Add(aKill.victim.player_name);
                 }
                 //Add the unmatched round death count
-                if (_unmatchedRoundDeathCounts.ContainsKey(victim.player_name))
+                if (_unmatchedRoundDeathCounts.ContainsKey(aKill.victim.player_name))
                 {
-                    _unmatchedRoundDeathCounts[victim.player_name] = _unmatchedRoundDeathCounts[victim.player_name] + 1;
+                    _unmatchedRoundDeathCounts[aKill.victim.player_name] = _unmatchedRoundDeathCounts[aKill.victim.player_name] + 1;
                 }
                 else
                 {
-                    _unmatchedRoundDeathCounts[victim.player_name] = 1;
+                    _unmatchedRoundDeathCounts[aKill.victim.player_name] = 1;
                 }
 
                 Boolean gKillHandled = false;
                 //Update player death information
-                Log.Debug("Setting " + victim.GetVerboseName() + " time of death to " + kKillerVictimDetails.TimeOfDeath, 7);
-                victim.lastDeath = UtcDbTime();
+                Log.Debug("Setting " + aKill.victim.GetVerboseName() + " time of death to " + aKill.timestamp, 7);
+                aKill.victim.lastDeath = UtcDbTime();
+
+                //Only keep the last 50 kills in memory
+                while (aKill.killer.RecentKills.Count > 50)
+                {
+                    aKill.killer.RecentKills.Dequeue();
+                }
+                if (_isTestingAuthorized && _serverInfo.ServerType != "OFFICIAL") {
+                    //KPM check
+                    var countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
+                    if (countRecent >= 22)
+                    {
+                        QueueRecordForProcessing(new AdKatsRecord
+                        {
+                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                            server_id = _serverInfo.ServerID,
+                            command_type = GetCommandByKey("player_ban_perm"),
+                            command_numeric = 0,
+                            target_name = aKill.killer.player_name,
+                            target_player = aKill.killer,
+                            source_name = "AutoAdmin",
+                            record_message = "Code 5394: Dispute Requested"
+                        });
+                        return;
+                    }
+                    var nonSniperKills = aKill.killer.RecentKills.Where(dKill => 
+                        dKill.weaponCategory != DamageTypes.None && 
+                        dKill.weaponCategory != DamageTypes.SniperRifle && 
+                        dKill.weaponCategory != DamageTypes.DMR);
+                    var nonSniperHS = nonSniperKills.Where(dKill => dKill.IsHeadshot);
+                    if (nonSniperKills.Count() >= 20) {
+                        Double nonSniperHSKP = nonSniperHS.Count() / (Double) nonSniperKills.Count() * 100;
+                        if (nonSniperHSKP > 90)
+                        {
+                            QueueRecordForProcessing(new AdKatsRecord
+                            {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("player_ban_perm"),
+                                command_numeric = 0,
+                                target_name = aKill.killer.player_name,
+                                target_player = aKill.killer,
+                                source_name = "AutoAdmin",
+                                record_message = "Code 6249: Dispute Requested"
+                            });
+                            return;
+                        }
+                        if (nonSniperHSKP > 70) 
+                        {
+                            OnlineAdminSayMessage("Warning, " + aKill.killer.GetVerboseName() + " currently has " + Math.Round(nonSniperHSKP) + "% non-sniper HSKP.");
+                        }
+                    }
+                }
+
                 //Only add the last death if it's not a death by admin
-                if (!String.IsNullOrEmpty(kKillerVictimDetails.Killer.SoldierName))
+                if (!String.IsNullOrEmpty(aKill.killer.player_name))
                 {
                     try
                     {
@@ -9655,47 +9736,15 @@ namespace PRoConEvents
                                 _RoundCookers = new Dictionary<String, AdKatsPlayer>();
                             }
                             const double possibleRange = 750.00;
-                            //Update killer information
-                            //Initialize the recent kills queue
-                            if (killer.RecentKills == null)
-                            {
-                                killer.RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
-                            }
-                            //Only keep the last 15 kills in memory
-                            while (killer.RecentKills.Count > 15)
-                            {
-                                var earliestKill = killer.RecentKills.Dequeue();
-
-                                if (_serverInfo.ServerType != "OFFICIAL")
-                                    if (_isTestingAuthorized && _gameVersion == GameVersion.BFHL)
-                                    {
-                                        var duration = (DateTime.Now - earliestKill.Value).Minutes;
-                                        var kpm = 15.0 / duration;
-                                        if (kpm >= 20)
-                                        {
-                                            QueueRecordForProcessing(new AdKatsRecord
-                                            {
-                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("player_ban_perm"),
-                                                command_numeric = 0,
-                                                target_name = killer.player_name,
-                                                target_player = killer,
-                                                source_name = "AutoAdmin",
-                                                record_message = "Code 5394: Dispute Requested"
-                                            });
-                                        }
-                                    }
-                            }
                             //Add the player
-                            killer.RecentKills.Enqueue(new KeyValuePair<AdKatsPlayer, DateTime>(victim, kKillerVictimDetails.TimeOfDeath));
+                            aKill.killer.RecentKills.Enqueue(aKill);
                             //Check for cooked grenade and non-suicide
-                            if (kKillerVictimDetails.DamageType.Contains("M67") || kKillerVictimDetails.DamageType.Contains("V40"))
+                            if (aKill.weaponCode.Contains("M67") || aKill.weaponCode.Contains("V40"))
                             {
                                 if (true)
                                 {
                                     Double fuseTime = 0;
-                                    if (kKillerVictimDetails.DamageType.Contains("M67"))
+                                    if (aKill.weaponCode.Contains("M67"))
                                     {
                                         if (_gameVersion == GameVersion.BF3)
                                         {
@@ -9706,24 +9755,24 @@ namespace PRoConEvents
                                             fuseTime = 3132.00;
                                         }
                                     }
-                                    else if (kKillerVictimDetails.DamageType.Contains("V40"))
+                                    else if (aKill.weaponCode.Contains("V40"))
                                     {
                                         fuseTime = 2865.00;
                                     }
                                     Boolean told = false;
                                     var possible = new List<KeyValuePair<AdKatsPlayer, String>>();
                                     var sure = new List<KeyValuePair<AdKatsPlayer, String>>();
-                                    foreach (var cooker in killer.RecentKills)
+                                    foreach (var cookerKill in aKill.killer.RecentKills.Where(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 10))
                                     {
                                         //Get the actual time since cooker value
-                                        Double milli = kKillerVictimDetails.TimeOfDeath.Subtract(cooker.Value).TotalMilliseconds;
+                                        Double milli = aKill.timestamp.Subtract(cookerKill.timestamp).TotalMilliseconds;
                                         
                                         //Calculate the percentage probability
                                         Double probability;
                                         if (Math.Abs(milli - fuseTime) < possibleRange)
                                         {
                                             probability = (1 - Math.Abs((milli - fuseTime) / possibleRange)) * 100;
-                                            Log.Debug(cooker.Key.GetVerboseName() + " cooking probability: " + probability + "%", 2);
+                                            Log.Debug(cookerKill.victim.GetVerboseName() + " cooking probability: " + probability + "%", 2);
                                         }
                                         else
                                         {
@@ -9733,12 +9782,12 @@ namespace PRoConEvents
                                         //If probability > 60% report the player and add them to the round cookers list
                                         if (probability > 60.00)
                                         {
-                                            Log.Debug(cooker.Key.GetVerboseName() + " in " + killer.GetVerboseName() + "'s recent kills has a " + probability + "% cooking probability.", 2);
+                                            Log.Debug(cookerKill.victim.GetVerboseName() + " in " + aKill.killer.GetVerboseName() + "'s recent kills has a " + probability + "% cooking probability.", 2);
                                             gKillHandled = true;
                                             //Code to avoid spam
-                                            if (killer.lastKill.AddSeconds(2) < UtcDbTime())
+                                            if (aKill.killer.lastKill.AddSeconds(2) < UtcDbTime())
                                             {
-                                                killer.lastKill = UtcDbTime();
+                                                aKill.killer.lastKill = UtcDbTime();
                                             }
                                             else
                                             {
@@ -9749,8 +9798,8 @@ namespace PRoConEvents
                                             if (!told)
                                             {
                                                 //Inform the victim player that they will not be punished
-                                                PlayerTellMessage(killer.player_name, "You appear to be a victim of grenade cooking and will NOT be punished.");
-                                                PlayerTellMessage(victim.player_name, killer.GetVerboseName() + " was a victim of grenade cooking, they did not use explosives.");
+                                                PlayerTellMessage(aKill.killer.player_name, "You appear to be a victim of grenade cooking and will NOT be punished.");
+                                                PlayerTellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " was a victim of grenade cooking, they did not use explosives.");
                                                 told = true;
                                             }
 
@@ -9758,7 +9807,7 @@ namespace PRoConEvents
                                             String probString = ((int)probability) + "-" + ((int)milli);
 
                                             //If the player is already on the round cooker list, ban them
-                                            if (_RoundCookers.ContainsKey(cooker.Key.player_name) && _gameVersion == GameVersion.BF3)
+                                            if (_RoundCookers.ContainsKey(cookerKill.victim.player_name) && _gameVersion == GameVersion.BF3)
                                             {
                                                 //Create the punish record
                                                 var record = new AdKatsRecord
@@ -9767,10 +9816,10 @@ namespace PRoConEvents
                                                     server_id = _serverInfo.ServerID,
                                                     command_type = GetCommandByKey("player_punish"),
                                                     command_numeric = 0,
-                                                    target_name = cooker.Key.player_name,
-                                                    target_player = cooker.Key,
+                                                    target_name = cookerKill.victim.player_name,
+                                                    target_player = cookerKill.victim,
                                                     source_name = "AutoAdmin",
-                                                    record_message = "Rules: Cooking Grenades [" + probString + "-X] [Victim " + killer.GetVerboseName() + " Protected]"
+                                                    record_message = "Rules: Cooking Grenades [" + probString + "-X] [Victim " + aKill.killer.GetVerboseName() + " Protected]"
                                                 };
                                                 //Process the record
                                                 QueueRecordForProcessing(record);
@@ -9781,18 +9830,18 @@ namespace PRoConEvents
                                             //else if probability > 92.5% add them to the SURE list, and round cooker list
                                             if (probability > 92.5)
                                             {
-                                                _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
-                                                Log.Debug(cooker.Key.GetVerboseName() + " added to round cooker list.", 2);
+                                                _RoundCookers.Add(cookerKill.victim.player_name, cookerKill.victim);
+                                                Log.Debug(cookerKill.victim.GetVerboseName() + " added to round cooker list.", 2);
                                                 //Add to SURE
-                                                sure.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
+                                                sure.Add(new KeyValuePair<AdKatsPlayer, String>(cookerKill.victim, probString));
                                             }
                                             //Otherwise add them to the round cooker list, and add to POSSIBLE list
                                             else
                                             {
-                                                _RoundCookers.Add(cooker.Key.player_name, cooker.Key);
-                                                Log.Debug(cooker.Key.GetVerboseName() + " added to round cooker list.", 2);
+                                                _RoundCookers.Add(cookerKill.victim.player_name, cookerKill.victim);
+                                                Log.Debug(cookerKill.victim.GetVerboseName() + " added to round cooker list.", 2);
                                                 //Add to POSSIBLE
-                                                possible.Add(new KeyValuePair<AdKatsPlayer, String>(cooker.Key, probString));
+                                                possible.Add(new KeyValuePair<AdKatsPlayer, String>(cookerKill.victim, probString));
                                             }
                                         }
                                     }
@@ -9811,7 +9860,7 @@ namespace PRoConEvents
                                             target_name = player.player_name,
                                             target_player = player,
                                             source_name = "AutoAdmin",
-                                            record_message = "Rules: Cooking Grenades [" + probString + "] [Victim " + killer.GetVerboseName() + " Protected]"
+                                            record_message = "Rules: Cooking Grenades [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]"
                                         };
                                         //Process the record
                                         QueueRecordForProcessing(record);
@@ -9836,7 +9885,7 @@ namespace PRoConEvents
                                                 target_name = player.player_name,
                                                 target_player = player,
                                                 source_name = "AutoAdmin",
-                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.GetVerboseName() + " Protected]"
+                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]"
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
@@ -9856,7 +9905,7 @@ namespace PRoConEvents
                                                 target_name = player.player_name,
                                                 target_player = player,
                                                 source_name = "AutoAdmin",
-                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + killer.GetVerboseName() + " Protected]"
+                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]"
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
@@ -9877,10 +9926,10 @@ namespace PRoConEvents
                 {
                     if (_isTestingAuthorized &&
                        _serverInfo.ServerName.Contains("#7") &&
-                       kKillerVictimDetails.Killer.TeamID == kKillerVictimDetails.Victim.TeamID &&
-                       !kKillerVictimDetails.IsSuicide)
+                       aKill.killerCPI.TeamID == aKill.victimCPI.TeamID &&
+                       !aKill.IsSuicide)
                     {
-                        if (kKillerVictimDetails.DamageType == "DamageArea")
+                        if (aKill.weaponCode == "DamageArea")
                         {
                             //Slay the teamkiller
                             var aRecord = new AdKatsRecord
@@ -9889,39 +9938,39 @@ namespace PRoConEvents
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_kill_force"),
                                 command_numeric = 0,
-                                target_name = killer.player_name,
-                                target_player = killer,
+                                target_name = aKill.killer.player_name,
+                                target_player = aKill.killer,
                                 source_name = "AutoAdmin",
-                                record_message = "Teamkilling " + victim.GetVerboseName() + " with a damage area"
+                                record_message = "Teamkilling " + aKill.victim.GetVerboseName() + " with a damage area"
                             };
                             QueueRecordForProcessing(aRecord);
                             //Inform the victim
-                            PlayerTellMessage(victim.player_name, killer.GetVerboseName() + " was slain for teamkilling you");
+                            PlayerTellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " was slain for teamkilling you");
                         }
-                        else if (kKillerVictimDetails.DamageType == "Medkit" || kKillerVictimDetails.DamageType == "U_PortableMedicpack" || kKillerVictimDetails.DamageType == "U_Medkit")
+                        else if (aKill.weaponCode == "Medkit" || aKill.weaponCode == "U_PortableMedicpack" || aKill.weaponCode == "U_Medkit")
                         {
-                            PlayerSayMessage(killer.player_name, victim.GetVerboseName() + " denied your revive!");
-                            PlayerTellMessage(victim.player_name, "You denied " + killer.GetVerboseName() + "'s revive!");
+                            PlayerSayMessage(aKill.killer.player_name, aKill.victim.GetVerboseName() + " denied your revive!");
+                            PlayerTellMessage(aKill.victim.player_name, "You denied " + aKill.killer.GetVerboseName() + "'s revive!");
                         }
                     }
                     else if (_UseWeaponLimiter && !gKillHandled)
                     {
                         //Check for restricted weapon
-                        if (Regex.Match(kKillerVictimDetails.DamageType, @"(?:" + _WeaponLimiterString + ")", RegexOptions.IgnoreCase).Success)
+                        if (Regex.Match(aKill.weaponCode, @"(?:" + _WeaponLimiterString + ")", RegexOptions.IgnoreCase).Success)
                         {
                             //Check for exception type
-                            if (!Regex.Match(kKillerVictimDetails.DamageType, @"(?:" + _WeaponLimiterExceptionString + ")", RegexOptions.IgnoreCase).Success)
+                            if (!Regex.Match(aKill.weaponCode, @"(?:" + _WeaponLimiterExceptionString + ")", RegexOptions.IgnoreCase).Success)
                             {
                                 //Check if suicide
-                                if (kKillerVictimDetails.Killer.SoldierName != kKillerVictimDetails.Victim.SoldierName)
+                                if (!aKill.IsSuicide)
                                 {
                                     //Get player from the dictionary
-                                    if (killer != null)
+                                    if (aKill.killer != null)
                                     {
                                         //Code to avoid spam
-                                        if (killer.lastKill.AddSeconds(2) < UtcDbTime())
+                                        if (aKill.killer.lastKill.AddSeconds(2) < UtcDbTime())
                                         {
-                                            killer.lastKill = UtcDbTime();
+                                            aKill.killer.lastKill = UtcDbTime();
                                             //Create the punish record
                                             var record = new AdKatsRecord
                                             {
@@ -9929,14 +9978,14 @@ namespace PRoConEvents
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("player_punish"),
                                                 command_numeric = 0,
-                                                target_name = killer.player_name,
-                                                target_player = killer,
+                                                target_name = aKill.killer.player_name,
+                                                target_player = aKill.killer,
                                                 source_name = "AutoAdmin"
                                             };
                                             const string removeWeapon = "Weapons/";
                                             const string removeGadgets = "Gadgets/";
                                             const string removePrefix = "U_";
-                                            String weapon = GetShortWeaponNameByCode(kKillerVictimDetails.DamageType);
+                                            String weapon = GetShortWeaponNameByCode(aKill.weaponCode);
                                             Int32 index = weapon.IndexOf(removeWeapon, StringComparison.Ordinal);
                                             weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeWeapon.Length));
                                             index = weapon.IndexOf(removeGadgets, StringComparison.Ordinal);
@@ -9962,7 +10011,7 @@ namespace PRoConEvents
                                             {
                                                 record.record_message = "Rules: Using Explosives [" + weapon + "]";
                                             }
-                                            PlayerYellMessage(victim.player_name, killer.GetVerboseName() + " was punished for killing you with " + weapon);
+                                            PlayerYellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " was punished for killing you with " + weapon);
 
                                             //Custom record to boost rep for victim
                                             var repRecord = new AdKatsRecord
@@ -9971,8 +10020,8 @@ namespace PRoConEvents
                                                 server_id = _serverInfo.ServerID,
                                                 command_type = GetCommandByKey("player_repboost"),
                                                 command_numeric = 0,
-                                                target_name = victim.player_name,
-                                                target_player = victim,
+                                                target_name = aKill.victim.player_name,
+                                                target_player = aKill.victim,
                                                 source_name = "RepManager",
                                                 record_message = "Player killed by restricted weapon " + weapon
                                             };
@@ -19619,6 +19668,7 @@ namespace PRoConEvents
                     }
                     resultMessage = "Offline player found.";
                     aPlayer.player_online = false;
+                    aPlayer.RecentKills.Clear();
                     aPlayer.player_server = null;
                     confirmNeeded = true;
                     aPlayer.LastUsage = UtcDbTime();
@@ -39383,10 +39433,22 @@ namespace PRoConEvents
             }
         }
 
+        public class AdKatsKill {
+            public String weaponCode;
+            public DamageTypes weaponCategory;
+            public AdKatsPlayer killer;
+            public AdKatsPlayer victim;
+            public CPlayerInfo killerCPI;
+            public CPlayerInfo victimCPI;
+            public Boolean IsSuicide;
+            public Boolean IsHeadshot;
+            public DateTime timestamp;
+        }
+
         public class AdKatsPlayer
         {
             public CPunkbusterInfo PBPlayerInfo = null;
-            public Queue<KeyValuePair<AdKatsPlayer, DateTime>> RecentKills = null;
+            public Queue<AdKatsKill> RecentKills = null;
             public List<AdKatsRecord> TargetedRecords = null;
             public String player_clanTag = null;
             public CPlayerInfo frostbitePlayerInfo = null;
@@ -39447,7 +39509,7 @@ namespace PRoConEvents
             public AdKatsPlayer(AdKats plugin)
             {
                 Plugin = plugin;
-                RecentKills = new Queue<KeyValuePair<AdKatsPlayer, DateTime>>();
+                RecentKills = new Queue<AdKatsKill>();
                 player_pings = new Queue<KeyValuePair<Double, DateTime>>();
                 TargetedRecords = new List<AdKatsRecord>();
                 LastUsage = DateTime.UtcNow;
