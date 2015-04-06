@@ -776,12 +776,6 @@ namespace PRoConEvents
 
             //Start up TeamSpeakClientViewer
             _tsViewer = new TeamSpeakClientViewer(this);
-
-            WeaponDictionary dic = GetWeaponDefines();
-            WeaponTypeDictionary = new Dictionary<string, DamageTypes>();
-            foreach (Weapon weapon in dic)
-                if (weapon != null && !WeaponTypeDictionary.ContainsKey(weapon.Name))
-                    WeaponTypeDictionary.Add(weapon.Name, weapon.Damage);
         }
 
         public String GetPluginName()
@@ -5674,6 +5668,12 @@ namespace PRoConEvents
                                 _threadMasterWaitHandle.WaitOne(1000);
                             }
                         }
+
+                        WeaponDictionary dic = GetWeaponDefines();
+                        WeaponTypeDictionary = new Dictionary<string, DamageTypes>();
+                        foreach (Weapon weapon in dic)
+                            if (weapon != null && !WeaponTypeDictionary.ContainsKey(weapon.Name))
+                                WeaponTypeDictionary.Add(weapon.Name, weapon.Damage);
 
                         //Make sure the default in-game admin is disabled
                         ExecuteCommand("procon.protected.plugins.enable", "CInGameAdmin", "False");
