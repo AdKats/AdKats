@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.5.5
+ * Version 6.5.5.6
  * 6-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.5.5</version_code>
+ * <version_code>6.5.5.6</version_code>
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.5.5";
+        private const String PluginVersion = "6.5.5.6";
 
         public enum GameVersion
         {
@@ -9681,6 +9681,7 @@ namespace PRoConEvents
                 if (_isTestingAuthorized && _serverInfo.ServerType != "OFFICIAL") {
                     //KPM check
                     var countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
+                    var countBan = ((_gameVersion == GameVersion.BF3)?(25):(20));
                     if (countRecent >= 22 && !PlayerProtected(aKill.killer))
                     {
                         QueueRecordForProcessing(new AdKatsRecord
@@ -9702,8 +9703,10 @@ namespace PRoConEvents
                         dKill.weaponCategory != DamageTypes.DMR);
                     var nonSniperHS = nonSniperKills.Where(dKill => dKill.IsHeadshot);
                     Double nonSniperHSKP = nonSniperHS.Count() / (Double)nonSniperKills.Count() * 100;
-                    if (nonSniperKills.Count() >= 20) {
-                        if (nonSniperHSKP > 90 && !PlayerProtected(aKill.killer))
+                    var nskc = nonSniperKills.Count();
+                    if (nskc >= 20) {
+                        if ((nonSniperHSKP >= 90 || (nskc >= 45 && nonSniperHSKP >= 75))
+                            && !PlayerProtected(aKill.killer))
                         {
                             QueueRecordForProcessing(new AdKatsRecord
                             {
@@ -9718,7 +9721,7 @@ namespace PRoConEvents
                             });
                             return;
                         }
-                        if (nonSniperHSKP > 67)
+                        if (nonSniperHSKP >= 70 || (nskc >= 45 && nonSniperHSKP >= 60))
                         {
                             //Create the report record
                             QueueRecordForProcessing(new AdKatsRecord
