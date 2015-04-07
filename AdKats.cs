@@ -9587,24 +9587,9 @@ namespace PRoConEvents
                             _PlayerDictionary.TryGetValue(playerKill.Victim.SoldierName, out victim);
                             AdKatsPlayer killer = null;
                             _PlayerDictionary.TryGetValue(playerKill.Killer.SoldierName, out killer);
-                            if (victim == null) {
-                                if (_isTestingAuthorized)
-                                {
-                                    Log.Info("victim null, skipping processing kill");
-                                }
-                                continue;
-                            }
-                            if (killer == null)
+                            if (killer == null || victim == null)
                             {
-                                if (_isTestingAuthorized)
-                                {
-                                    Log.Info("killer null, skipping processing kill");
-                                }
                                 continue;
-                            }
-
-                            if (_isTestingAuthorized) {
-                                Log.Info(killer.GetVerboseName() + " killed " + victim.GetVerboseName() + " with " + category.ToString());
                             }
 
                             //Call processing on the player kill
