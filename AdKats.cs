@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.5.4
+ * Version 6.5.5.5
  * 6-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.5.4</version_code>
+ * <version_code>6.5.5.5</version_code>
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.5.4";
+        private const String PluginVersion = "6.5.5.5";
 
         public enum GameVersion
         {
@@ -9578,10 +9578,6 @@ namespace PRoConEvents
                             if (!_DetectedWeaponCodes.Contains(playerKill.DamageType))
                             {
                                 _DetectedWeaponCodes.Add(playerKill.DamageType);
-                                if (_isTestingAuthorized)
-                                {
-                                    PostWeaponCodes();
-                                }
                             }
                             if (!_firstPlayerListComplete)
                             {
@@ -9591,9 +9587,24 @@ namespace PRoConEvents
                             _PlayerDictionary.TryGetValue(playerKill.Victim.SoldierName, out victim);
                             AdKatsPlayer killer = null;
                             _PlayerDictionary.TryGetValue(playerKill.Killer.SoldierName, out killer);
-                            if (victim == null || killer == null)
-                            {
+                            if (victim == null) {
+                                if (_isTestingAuthorized)
+                                {
+                                    Log.Info("victim null, skipping processing kill");
+                                }
                                 continue;
+                            }
+                            if (killer == null)
+                            {
+                                if (_isTestingAuthorized)
+                                {
+                                    Log.Info("killer null, skipping processing kill");
+                                }
+                                continue;
+                            }
+
+                            if (_isTestingAuthorized) {
+                                Log.Info(killer.GetVerboseName() + " killed " + victim.GetVerboseName() + " with " + category.ToString());
                             }
 
                             //Call processing on the player kill
@@ -9675,13 +9686,13 @@ namespace PRoConEvents
                 Log.Debug("Setting " + aKill.victim.GetVerboseName() + " time of death to " + aKill.timestamp, 7);
                 aKill.victim.lastDeath = UtcDbTime();
 
+                //Add the kill
+                aKill.killer.RecentKills.Enqueue(aKill);
                 //Only keep the last 50 kills in memory
                 while (aKill.killer.RecentKills.Count > 50)
                 {
                     aKill.killer.RecentKills.Dequeue();
                 }
-                //Add the kill
-                aKill.killer.RecentKills.Enqueue(aKill);
                 if (_isTestingAuthorized && _serverInfo.ServerType != "OFFICIAL") {
                     //KPM check
                     var countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
@@ -9722,9 +9733,20 @@ namespace PRoConEvents
                             });
                             return;
                         }
-                        if (nonSniperHSKP > 70) 
+                        if (nonSniperHSKP > 67)
                         {
-                            OnlineAdminSayMessage("Warning, " + aKill.killer.GetVerboseName() + " currently has " + Math.Round(nonSniperHSKP) + "% non-sniper HSKP.");
+                            //Create the report record
+                            QueueRecordForProcessing(new AdKatsRecord
+                            {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("player_report"),
+                                command_numeric = 0,
+                                target_name = aKill.killer.player_name,
+                                target_player = aKill.killer,
+                                source_name = "AutoAdmin",
+                                record_message = Math.Round(nonSniperHSKP) + "% non-sniper HSKP"
+                            });
                         }
                     }
                     Log.Debug(aKill.killer.GetVerboseName() + " kills: " + countRecent + "/60s " + Math.Round(nonSniperHSKP) + "% HSKP on " + nonSniperKills.Count() + " non-sniper.", 3);
