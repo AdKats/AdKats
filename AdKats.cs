@@ -21,7 +21,7 @@
  * 
  * AdKats.cs
  * Version 6.5.5.7
- * 6-APR-2015
+ * 7-APR-2015
  * 
  * Automatic Update Information
  * <version_code>6.5.5.7</version_code>
@@ -8457,7 +8457,6 @@ namespace PRoConEvents
                                                 (!_isTestingAuthorized || (losingTeam.TeamTicketCount > 300 && winningTeam.TeamTicketCount > 600))) {
                                                 Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                 //Get players from the baserape causing list
-
                                                 var lowPopAssist = _isTestingAuthorized && 
                                                     (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")) && 
                                                     (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
@@ -8625,7 +8624,10 @@ namespace PRoConEvents
                                             {
                                                 Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                 //Get players from the baserape causing list
-                                                if (_AutomaticAssistBaserapeCausingPlayers || (_isTestingAuthorized && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)))
+                                                var lowPopAssist = _isTestingAuthorized && 
+                                                    (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")) && 
+                                                    (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
+                                                if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
                                                 {
                                                     foreach (var aPlayer in _PlayerDictionary.Values.Where(
                                                         dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
@@ -8790,7 +8792,10 @@ namespace PRoConEvents
                                                     {
                                                         Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                         //Get players from the baserape causing list
-                                                        if (_AutomaticAssistBaserapeCausingPlayers || (_isTestingAuthorized && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)))
+                                                        var lowPopAssist = _isTestingAuthorized && 
+                                                            (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")) && 
+                                                            (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
+                                                        if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
                                                         {
                                                             foreach (var aPlayer in _PlayerDictionary.Values.Where(
                                                                 dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
@@ -8951,7 +8956,10 @@ namespace PRoConEvents
                                                     {
                                                         Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                         //Get players from the baserape causing list
-                                                        if (_AutomaticAssistBaserapeCausingPlayers || (_isTestingAuthorized && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium)))
+                                                        var lowPopAssist = _isTestingAuthorized && 
+                                                            (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")) && 
+                                                            (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
+                                                        if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
                                                         {
                                                             foreach (var aPlayer in _PlayerDictionary.Values.Where(
                                                                 dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
