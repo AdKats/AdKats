@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.5.6
+ * Version 6.5.5.7
  * 6-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.5.6</version_code>
+ * <version_code>6.5.5.7</version_code>
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.5.6";
+        private const String PluginVersion = "6.5.5.7";
 
         public enum GameVersion
         {
@@ -1787,7 +1787,8 @@ namespace PRoConEvents
                     {
                         record_source = AdKatsRecord.Sources.Settings,
                         record_access = AdKatsRecord.AccessMethod.HiddenExternal,
-                        source_name = "SettingsAdmin"
+                        source_name = "SettingsAdmin",
+                        record_time = UtcDbTime()
                     };
                     CompleteRecordInformation(record, strValue);
                 }
@@ -6182,7 +6183,8 @@ namespace PRoConEvents
                                         command_numeric = 0,
                                         target_name = "AdKats",
                                         source_name = "MemoryMonitor",
-                                        record_message = MBUsed + "MB estimated memory used"
+                                        record_message = MBUsed + "MB estimated memory used",
+                                        record_time = UtcDbTime()
                                     });
                                     Thread.Sleep(TimeSpan.FromSeconds(10));
                                 }
@@ -6382,7 +6384,8 @@ namespace PRoConEvents
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
                                             source_name = "AFKManager",
-                                            record_message = "AFK time exceeded [" + afkTime + "/" + GetPlayerTeamKey(aPlayer) + "]. Please rejoin once you return."
+                                            record_message = "AFK time exceeded [" + afkTime + "/" + GetPlayerTeamKey(aPlayer) + "]. Please rejoin once you return.",
+                                            record_time = UtcDbTime()
                                         };
                                         QueueRecordForProcessing(record);
                                         //Only take one
@@ -7143,7 +7146,8 @@ namespace PRoConEvents
                                                 target_player = partner,
                                                 source_name = aPlayer.player_name,
                                                 source_player = aPlayer,
-                                                record_message = aPlayer.GetVerboseName() + " has left their server. Private conversation closed."
+                                                record_message = aPlayer.GetVerboseName() + " has left their server. Private conversation closed.",
+                                                record_time = UtcDbTime()
                                             });
                                         }
                                         else
@@ -7344,7 +7348,8 @@ namespace PRoConEvents
                                                 target_name = aPlayer.player_name,
                                                 target_player = aPlayer,
                                                 source_name = "CMDRManager",
-                                                record_message = "Commanders not allowed until " + _CMDRMinimumPlayers + " active players"
+                                                record_message = "Commanders not allowed until " + _CMDRMinimumPlayers + " active players",
+                                                record_time = UtcDbTime()
                                             };
                                             QueueRecordForProcessing(record);
                                         }
@@ -7373,7 +7378,8 @@ namespace PRoConEvents
                                                     target_name = aPlayer.player_name,
                                                     target_player = aPlayer,
                                                     source_name = "AdKats",
-                                                    record_message = aPlayer.player_name_previous
+                                                    record_message = aPlayer.player_name_previous,
+                                                    record_time = UtcDbTime()
                                                 };
                                                 QueueRecordForProcessing(record);
                                                 Log.Debug(aPlayer.player_name_previous + " changed their name to " + playerInfo.SoldierName + ". Updating the database.", 2);
@@ -7478,7 +7484,8 @@ namespace PRoConEvents
                                                 target_name = aPlayer.player_name,
                                                 target_player = aPlayer,
                                                 source_name = "SpectatorManager",
-                                                record_message = "You may not spectate the server at this time."
+                                                record_message = "You may not spectate the server at this time.",
+                                                record_time = UtcDbTime()
                                             };
                                             QueueRecordForProcessing(record);
                                         }
@@ -7572,7 +7579,8 @@ namespace PRoConEvents
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
                                             source_name = "CMDRManager",
-                                            record_message = "Commanders not allowed until " + _CMDRMinimumPlayers + " active players"
+                                            record_message = "Commanders not allowed until " + _CMDRMinimumPlayers + " active players",
+                                            record_time = UtcDbTime()
                                         };
                                         QueueRecordForProcessing(record);
                                     }
@@ -7615,7 +7623,8 @@ namespace PRoConEvents
                                                     target_player = partner,
                                                     source_name = aPlayer.player_name,
                                                     source_player = aPlayer,
-                                                    record_message = aPlayer.GetVerboseName() + " has left their server. Private conversation closed."
+                                                    record_message = aPlayer.GetVerboseName() + " has left their server. Private conversation closed.",
+                                                    record_time = UtcDbTime()
                                                 });
                                             }
                                             else
@@ -7658,7 +7667,8 @@ namespace PRoConEvents
                                         target_name = "Server",
                                         target_player = null,
                                         source_name = "AdKats",
-                                        record_message = "Server Crashed (" + dicCount + " Players Lost)"
+                                        record_message = "Server Crashed (" + dicCount + " Players Lost)",
+                                        record_time = UtcDbTime()
                                     };
                                     //Process the record
                                     QueueRecordForProcessing(record);
@@ -7781,7 +7791,8 @@ namespace PRoConEvents
                                                 target_name = popPlayer.player_name,
                                                 target_player = popPlayer,
                                                 source_name = "PopulationManager",
-                                                record_message = "Populated Server " + _serverInfo.ServerID
+                                                record_message = "Populated Server " + _serverInfo.ServerID,
+                                                record_time = UtcDbTime()
                                             });
                                         }
                                         _populationPopulatingPlayers.Clear();
@@ -7804,7 +7815,8 @@ namespace PRoConEvents
                                 target_name = pingPickedPlayer.player_name,
                                 target_player = pingPickedPlayer,
                                 source_name = "PingEnforcer",
-                                record_message = _pingEnforcerMessagePrefix + " " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]"))
+                                record_message = _pingEnforcerMessagePrefix + " " + ((pingPickedPlayer.player_ping_avg > 0) ? ("Cur:[" + Math.Round(pingPickedPlayer.player_ping) + "ms] Avg:[" + Math.Round(pingPickedPlayer.player_ping_avg) + "ms]") : ("[Missing]")),
+                                record_time = UtcDbTime()
                             };
                             QueueRecordForProcessing(record);
                             OnlineAdminSayMessage((++_pingKicksThisRound) + " ping kicks this round. " + Math.Round(++_pingKicksTotal / (UtcDbTime() - _AdKatsRunningTime).TotalHours, 2) + " kicks/hour.");
@@ -7902,7 +7914,8 @@ namespace PRoConEvents
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
                                 source_name = "AdKats",
-                                record_message = aPlayer.player_ip
+                                record_message = aPlayer.player_ip,
+                                record_time = UtcDbTime()
                             };
                             QueueRecordForProcessing(record);
                         }
@@ -8490,7 +8503,8 @@ namespace PRoConEvents
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "BaserapeMonitor",
-                                                        record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]"
+                                                        record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
+                                                        record_time = UtcDbTime()
                                                     });
                                                 }
                                             }
@@ -8657,7 +8671,8 @@ namespace PRoConEvents
                                                         target_name = aPlayer.player_name,
                                                         target_player = aPlayer,
                                                         source_name = "BaserapeMonitor",
-                                                        record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]"
+                                                        record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
+                                                        record_time = UtcDbTime()
                                                     });
                                                 }
                                             }
@@ -8821,7 +8836,8 @@ namespace PRoConEvents
                                                                 target_name = aPlayer.player_name,
                                                                 target_player = aPlayer,
                                                                 source_name = "BaserapeMonitor",
-                                                                record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]"
+                                                                record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
+                                                                record_time = UtcDbTime()
                                                             });
                                                         }
                                                     }
@@ -8981,7 +8997,8 @@ namespace PRoConEvents
                                                                 target_name = aPlayer.player_name,
                                                                 target_player = aPlayer,
                                                                 source_name = "BaserapeMonitor",
-                                                                record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]"
+                                                                record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
+                                                                record_time = UtcDbTime()
                                                             });
                                                         }
                                                     }
@@ -9070,7 +9087,8 @@ namespace PRoConEvents
                                             command_numeric = baserapingTeam.TeamID,
                                             target_name = baserapingTeam.TeamName,
                                             source_name = "RoundManager",
-                                            record_message = autoNukeMessage
+                                            record_message = autoNukeMessage,
+                                            record_time = UtcDbTime()
                                         });
                                     }
                                     else if (_surrenderAutoTriggerVote)
@@ -9083,7 +9101,8 @@ namespace PRoConEvents
                                             command_numeric = 0,
                                             target_name = "RoundManager",
                                             source_name = "RoundManager",
-                                            record_message = "Auto-Starting Surrender Vote"
+                                            record_message = "Auto-Starting Surrender Vote",
+                                            record_time = UtcDbTime()
                                         });
                                     }
                                     else if (!_endingRound)
@@ -9111,7 +9130,8 @@ namespace PRoConEvents
                                                     command_numeric = baserapingTeam.TeamID,
                                                     target_name = baserapingTeam.TeamName,
                                                     source_name = "RoundManager",
-                                                    record_message = "Auto-Surrender (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")"
+                                                    record_message = "Auto-Surrender (" + baserapingTeam.TeamKey + " Win)(" + baserapingTeam.TeamTicketCount + ":" + baserapedTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + ")",
+                                                    record_time = UtcDbTime()
                                                 };
                                                 QueueRecordForProcessing(repRecord);
                                             }
@@ -9646,7 +9666,8 @@ namespace PRoConEvents
                         target_name = aKill.killer.player_name,
                         target_player = aKill.killer,
                         source_name = "AutoAdmin",
-                        record_message = "Spectator Hack"
+                        record_message = "Spectator Hack",
+                        record_time = UtcDbTime()
                     });
                     return;
                 }
@@ -9682,7 +9703,7 @@ namespace PRoConEvents
                     //KPM check
                     var countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
                     var countBan = ((_gameVersion == GameVersion.BF3)?(25):(20));
-                    if (countRecent >= 22 && !PlayerProtected(aKill.killer))
+                    if (countRecent >= countBan && !PlayerProtected(aKill.killer))
                     {
                         QueueRecordForProcessing(new AdKatsRecord
                         {
@@ -9693,7 +9714,8 @@ namespace PRoConEvents
                             target_name = aKill.killer.player_name,
                             target_player = aKill.killer,
                             source_name = "AutoAdmin",
-                            record_message = "Code 5394: Dispute Requested"
+                            record_message = "Code 5394: Dispute Requested",
+                            record_time = UtcDbTime()
                         });
                         return;
                     }
@@ -9717,11 +9739,12 @@ namespace PRoConEvents
                                 target_name = aKill.killer.player_name,
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
-                                record_message = "Code 6249: Dispute Requested"
+                                record_message = "Code 6249: Dispute Requested",
+                                record_time = UtcDbTime()
                             });
                             return;
                         }
-                        if (nonSniperHSKP >= 70 || (nskc >= 45 && nonSniperHSKP >= 60))
+                        if (nonSniperHSKP >= 70 && !aKill.killer.TargetedRecords.Any(aRecord => aRecord.record_message.Contains("non-sniper HSKP")))
                         {
                             //Create the report record
                             QueueRecordForProcessing(new AdKatsRecord
@@ -9733,7 +9756,8 @@ namespace PRoConEvents
                                 target_name = aKill.killer.player_name,
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
-                                record_message = Math.Round(nonSniperHSKP) + "% non-sniper HSKP"
+                                record_message = Math.Round(nonSniperHSKP) + "% non-sniper HSKP",
+                                record_time = UtcDbTime()
                             });
                         }
                     }
@@ -9834,7 +9858,8 @@ namespace PRoConEvents
                                                     target_name = cookerKill.victim.player_name,
                                                     target_player = cookerKill.victim,
                                                     source_name = "AutoAdmin",
-                                                    record_message = "Rules: Cooking Grenades [" + probString + "-X] [Victim " + aKill.killer.GetVerboseName() + " Protected]"
+                                                    record_message = "Rules: Cooking Grenades [" + probString + "-X] [Victim " + aKill.killer.GetVerboseName() + " Protected]",
+                                                    record_time = UtcDbTime()
                                                 };
                                                 //Process the record
                                                 QueueRecordForProcessing(record);
@@ -9875,7 +9900,8 @@ namespace PRoConEvents
                                             target_name = player.player_name,
                                             target_player = player,
                                             source_name = "AutoAdmin",
-                                            record_message = "Rules: Cooking Grenades [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]"
+                                            record_message = "Rules: Cooking Grenades [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]",
+                                            record_time = UtcDbTime()
                                         };
                                         //Process the record
                                         QueueRecordForProcessing(record);
@@ -9900,7 +9926,8 @@ namespace PRoConEvents
                                                 target_name = player.player_name,
                                                 target_player = player,
                                                 source_name = "AutoAdmin",
-                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]"
+                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]",
+                                                record_time = UtcDbTime()
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
@@ -9920,7 +9947,8 @@ namespace PRoConEvents
                                                 target_name = player.player_name,
                                                 target_player = player,
                                                 source_name = "AutoAdmin",
-                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]"
+                                                record_message = "Possible Grenade Cooker [" + probString + "] [Victim " + aKill.killer.GetVerboseName() + " Protected]",
+                                                record_time = UtcDbTime()
                                             };
                                             //Process the record
                                             QueueRecordForProcessing(record);
@@ -9956,7 +9984,8 @@ namespace PRoConEvents
                                 target_name = aKill.killer.player_name,
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
-                                record_message = "Teamkilling " + aKill.victim.GetVerboseName() + " with a damage area"
+                                record_message = "Teamkilling " + aKill.victim.GetVerboseName() + " with a damage area",
+                                record_time = UtcDbTime()
                             };
                             QueueRecordForProcessing(aRecord);
                             //Inform the victim
@@ -9995,7 +10024,8 @@ namespace PRoConEvents
                                                 command_numeric = 0,
                                                 target_name = aKill.killer.player_name,
                                                 target_player = aKill.killer,
-                                                source_name = "AutoAdmin"
+                                                source_name = "AutoAdmin",
+                                                record_time = UtcDbTime()
                                             };
                                             const string removeWeapon = "Weapons/";
                                             const string removeGadgets = "Gadgets/";
@@ -10038,7 +10068,8 @@ namespace PRoConEvents
                                                 target_name = aKill.victim.player_name,
                                                 target_player = aKill.victim,
                                                 source_name = "RepManager",
-                                                record_message = "Player killed by restricted weapon " + weapon
+                                                record_message = "Player killed by restricted weapon " + weapon,
+                                                record_time = UtcDbTime()
                                             };
                                             if (_serverInfo.ServerType != "OFFICIAL")
                                             {
@@ -10290,7 +10321,8 @@ namespace PRoConEvents
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
                             source_name = "InfractionManager",
-                            record_message = "Auto-Forgiven for Clean Play"
+                            record_message = "Auto-Forgiven for Clean Play",
+                            record_time = UtcDbTime()
                         });
                     }
                 }
@@ -10556,7 +10588,8 @@ namespace PRoConEvents
                                             target_player = aPlayer,
                                             command_type = GetCommandByKey("banenforcer_enforce"),
                                             command_numeric = (int)playerBan.ban_id,
-                                            record_message = playerBan.ban_record.record_message
+                                            record_message = playerBan.ban_record.record_message,
+                                            record_time = UtcDbTime()
                                         });
                                     }
                                     else
@@ -10581,7 +10614,8 @@ namespace PRoConEvents
                                                 target_player = aPlayer,
                                                 command_type = GetCommandByKey("banenforcer_enforce"),
                                                 command_numeric = (int)playerBan.ban_id,
-                                                record_message = playerBan.ban_record.record_message + " [LINKED ACCOUNT " + strIDs + "]"
+                                                record_message = playerBan.ban_record.record_message + " [LINKED ACCOUNT " + strIDs + "]",
+                                                record_time = UtcDbTime()
                                             });
                                         }
                                         else
@@ -10610,7 +10644,8 @@ namespace PRoConEvents
                                                 target_name = aPlayer.player_name,
                                                 target_player = aPlayer,
                                                 source_name = "AutoAdmin",
-                                                record_message = "Multihack"
+                                                record_message = "Multihack",
+                                                record_time = UtcDbTime()
                                             });
                                         }
                                         //Only call a hack check if the player does not already have a ban
@@ -11293,7 +11328,8 @@ namespace PRoConEvents
                                             target_name = aPlayer.player_name,
                                             target_player = aPlayer,
                                             source_name = "AutoAdmin",
-                                            record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                                            record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
+                                            record_time = UtcDbTime()
                                         };
                                         //Process the record
                                         QueueRecordForProcessing(record);
@@ -11326,7 +11362,8 @@ namespace PRoConEvents
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
                                 source_name = "AutoAdmin",
-                                record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                                record_message = _HackerCheckerDPSBanMessage + " [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
+                                record_time = UtcDbTime()
                             };
                             //Process the record
                             QueueRecordForProcessing(record);
@@ -11486,7 +11523,8 @@ namespace PRoConEvents
                                             target_name = banPlayer.player_name,
                                             target_player = banPlayer,
                                             source_name = "AutoAdmin",
-                                            record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                                            record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
+                                            record_time = UtcDbTime()
                                         };
                                         //Process the record
                                         QueueRecordForProcessing(record);
@@ -11519,7 +11557,8 @@ namespace PRoConEvents
                                 target_name = aPlayer.player_name,
                                 target_player = aPlayer,
                                 source_name = "AutoAdmin",
-                                record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                                record_message = _HackerCheckerHSKBanMessage + " [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
+                                record_time = UtcDbTime()
                             };
                             //Process the record
                             QueueRecordForProcessing(record);
@@ -11626,7 +11665,8 @@ namespace PRoConEvents
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
                             source_name = "AutoAdmin",
-                            record_message = _HackerCheckerKPMBanMessage + " [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]"
+                            record_message = _HackerCheckerKPMBanMessage + " [" + formattedName + "-" + String.Format("{0:0.00}", actedWeapon.KPM) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "]",
+                            record_time = UtcDbTime()
                         };
                         //Process the record
                         QueueRecordForProcessing(record);
@@ -12387,6 +12427,7 @@ namespace PRoConEvents
                                             _RoundMutedPlayers[messageObject.Speaker] = _RoundMutedPlayers[messageObject.Speaker] + 1;
                                             //Create record
                                             var record = new AdKatsRecord();
+                                            record.record_time = UtcDbTime();
                                             record.record_source = AdKatsRecord.Sources.InternalAutomated;
                                             record.server_id = _serverInfo.ServerID;
                                             record.source_name = "PlayerMuteSystem";
@@ -13497,6 +13538,11 @@ namespace PRoConEvents
                             record.command_action = GetCommandByKey("player_kick");
                         }
                     }
+                    if (record.target_player != null)
+                    {
+                        //Add the record to the player's targeted records
+                        record.target_player.TargetedRecords.Add(record);
+                    }
                 }
                 if (_pluginVersionStatus == VersionStatus.OutdatedBuild &&
                     !record.record_action_executed &&
@@ -13602,7 +13648,8 @@ namespace PRoConEvents
                                     {
                                         record_source = AdKatsRecord.Sources.ServerCommand,
                                         record_access = AdKatsRecord.AccessMethod.HiddenExternal,
-                                        source_name = "ProconAdmin"
+                                        source_name = "ProconAdmin",
+                                        record_time = UtcDbTime()
                                     };
                                 }
                                 else
@@ -13610,7 +13657,8 @@ namespace PRoConEvents
                                     record = new AdKatsRecord
                                     {
                                         record_source = AdKatsRecord.Sources.InGame,
-                                        source_name = commandMessage.Speaker
+                                        source_name = commandMessage.Speaker,
+                                        record_time = UtcDbTime()
                                     };
                                     //Assign access method
                                     if (commandMessage.Hidden)
@@ -22418,7 +22466,8 @@ namespace PRoConEvents
                         target_name = record.target_player.player_name,
                         target_player = record.target_player,
                         source_name = "SpectatorManager",
-                        record_message = "You may not spectate the server at this time."
+                        record_message = "You may not spectate the server at this time.",
+                        record_time = UtcDbTime()
                     });
                 }
                 //Fetch the special player cache
@@ -23937,7 +23986,8 @@ namespace PRoConEvents
                         target_name = record.source_player.player_name,
                         target_player = record.source_player,
                         source_name = "RepManager",
-                        record_message = "Player reported from Spectator Mode"
+                        record_message = "Player reported from Spectator Mode",
+                        record_time = UtcDbTime()
                     };
                     UploadRecord(repRecord);
                 }
@@ -24134,7 +24184,8 @@ namespace PRoConEvents
                                 target_name = reportedRecord.target_player.player_name,
                                 target_player = reportedRecord.target_player,
                                 source_name = "ProconAdmin",
-                                record_message = reportedRecord.record_message
+                                record_message = reportedRecord.record_message,
+                                record_time = UtcDbTime()
                             };
                             //Inform the reporter that they helped the admins
                             SendMessageToSource(reportedRecord, "Your report [" + reportedRecord.command_numeric + "] has been acted on. Thank you.");
@@ -24509,7 +24560,8 @@ namespace PRoConEvents
                             target_player = oldPartner,
                             source_name = sender.player_name,
                             source_player = sender,
-                            record_message = sender.GetVerboseName() + " has left the private conversation."
+                            record_message = sender.GetVerboseName() + " has left the private conversation.",
+                            record_time = UtcDbTime()
                         });
                     }
                     else
@@ -24536,7 +24588,8 @@ namespace PRoConEvents
                         target_player = partner,
                         source_name = sender.player_name,
                         source_player = sender,
-                        record_message = record.record_message
+                        record_message = record.record_message,
+                        record_time = UtcDbTime()
                     });
                 }
                 else
@@ -24580,7 +24633,8 @@ namespace PRoConEvents
                                     target_player = oldPartner,
                                     source_name = sender.player_name,
                                     source_player = sender,
-                                    record_message = partner.GetVerboseName() + " has left the private conversation."
+                                    record_message = partner.GetVerboseName() + " has left the private conversation.",
+                                    record_time = UtcDbTime()
                                 });
                             }
                             else
@@ -24636,7 +24690,8 @@ namespace PRoConEvents
                         target_player = partner,
                         source_name = sender.player_name,
                         source_player = sender,
-                        record_message = record.record_message
+                        record_message = record.record_message,
+                        record_time = UtcDbTime()
                     });
                 }
                 else
@@ -24712,7 +24767,8 @@ namespace PRoConEvents
                                 target_player = oldPartner,
                                 source_name = sender.player_name,
                                 source_player = sender,
-                                record_message = partner.GetVerboseName() + " has left the private conversation."
+                                record_message = partner.GetVerboseName() + " has left the private conversation.",
+                                record_time = UtcDbTime()
                             });
                         }
                         else
@@ -24800,7 +24856,8 @@ namespace PRoConEvents
                             target_player = sender,
                             source_name = partner.player_name,
                             source_player = partner,
-                            record_message = partner.GetVerboseName() + " is not in a private conversation with you."
+                            record_message = partner.GetVerboseName() + " is not in a private conversation with you.",
+                            record_time = UtcDbTime()
                         });
                     }
                     else
@@ -25169,7 +25226,8 @@ namespace PRoConEvents
                                     command_numeric = winningTeam.TeamID,
                                     target_name = winningTeam.TeamName,
                                     source_name = "RoundManager",
-                                    record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")"
+                                    record_message = "Surrender Vote (" + winningTeam.TeamKey + " Win)(" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + ")(" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + ")",
+                                    record_time = UtcDbTime()
                                 };
                                 QueueRecordForProcessing(repRecord);
                             }
@@ -25949,7 +26007,8 @@ namespace PRoConEvents
                             target_name = aPlayer.player_name,
                             target_player = aPlayer,
                             source_name = "AFKManager",
-                            record_message = "AFK time exceeded [" + afkTime + "/" + GetPlayerTeamKey(aPlayer) + "]. Please rejoin once you return."
+                            record_message = "AFK time exceeded [" + afkTime + "/" + GetPlayerTeamKey(aPlayer) + "]. Please rejoin once you return.",
+                            record_time = UtcDbTime()
                         };
                         QueueRecordForProcessing(kickRecord);
                     }
@@ -26325,11 +26384,6 @@ namespace PRoConEvents
                                 record.record_message = ReplacePlayerInformation(record.record_message, record.target_player);
                                 //Upload the record
                                 Boolean success = HandleRecordUpload(record);
-                                if (record.target_player != null)
-                                {
-                                    //Assign the record to the user's recent records
-                                    record.target_player.TargetedRecords.Add(record);
-                                }
                                 //Check for action handling needs
                                 if (success &&
                                     !record.record_action_executed &&
@@ -26886,6 +26940,7 @@ namespace PRoConEvents
 
                         //Create the record
                         var record = new AdKatsRecord();
+                        record.record_time = UtcDbTime();
                         record.record_source = AdKatsRecord.Sources.InternalAutomated;
                         //Permabans and Temp bans longer than 1 year will be defaulted to permaban
                         switch (cBan.BanLength.Subset)
@@ -29595,7 +29650,6 @@ namespace PRoConEvents
                             {
                                 success = true;
                                 var record = new AdKatsRecord();
-                                record = new AdKatsRecord();
                                 record.record_source = AdKatsRecord.Sources.Database;
                                 record.record_access = AdKatsRecord.AccessMethod.HiddenExternal;
                                 record.record_id = reader.GetInt64("record_id");
@@ -31030,7 +31084,8 @@ namespace PRoConEvents
                                     target_name = aPlayer.player_name,
                                     target_player = aPlayer,
                                     source_name = "AdKats",
-                                    record_message = aPlayer.player_name_previous
+                                    record_message = aPlayer.player_name_previous,
+                                    record_time = UtcDbTime()
                                 };
                                 QueueRecordForProcessing(record);
                                 Log.Debug(aPlayer.player_name_previous + " changed their name to " + playerName + ". Updating the database.", 2);
@@ -31722,7 +31777,8 @@ namespace PRoConEvents
                                         target_name = player.player_name,
                                         target_player = player,
                                         source_name = "BanEnforcer",
-                                        record_message = "Name-Banned player has changed their name. (" + player.player_name_previous + " -> " + player.player_name + ")"
+                                        record_message = "Name-Banned player has changed their name. (" + player.player_name_previous + " -> " + player.player_name + ")",
+                                        record_time = UtcDbTime()
                                     };
                                     QueueRecordForProcessing(record);
                                 }
@@ -31904,7 +31960,8 @@ namespace PRoConEvents
                                         isDebug = false,
                                         target_player = FetchPlayer(false, true, false, null, aBan.player_id, null, null, null),
                                         source_name = "AdKats",
-                                        record_message = "Ban Reason Expunged"
+                                        record_message = "Ban Reason Expunged",
+                                        record_time = UtcDbTime()
                                     };
                                     aBan.ban_record.target_name = aBan.ban_record.target_player.player_name;
                                 }
@@ -32174,6 +32231,7 @@ namespace PRoConEvents
 
                     //Create the record
                     var record = new AdKatsRecord();
+                    record.record_time = UtcDbTime();
                     //Fetch the player
                     record.target_player = FetchPlayer(true, true, false, null, -1, bbmBan.soldiername, bbmBan.eaguid, null);
 
@@ -33645,7 +33703,6 @@ namespace PRoConEvents
 
         private void UpdateCommandTimeouts()
         {
-            //Add rules timeout
             _commandTimeoutDictionary["self_rules"] = (plugin => (plugin._ServerRulesList.Count() * plugin._ServerRulesInterval));
             _commandTimeoutDictionary["player_punish"] = (plugin => (18));
             _commandTimeoutDictionary["player_kick"] = (plugin => (30));
@@ -33653,6 +33710,7 @@ namespace PRoConEvents
             _commandTimeoutDictionary["player_ban_temp"] = (plugin => (30));
             _commandTimeoutDictionary["player_ban_perm"] = (plugin => (30));
             _commandTimeoutDictionary["player_ban_perm_future"] = (plugin => (30));
+            _commandTimeoutDictionary["player_report"] = (plugin => (10));
         }
 
         private void FetchRoles()
@@ -35753,7 +35811,8 @@ namespace PRoConEvents
                 var record = new AdKatsRecord
                 {
                     record_source = AdKatsRecord.Sources.ExternalPlugin,
-                    record_access = AdKatsRecord.AccessMethod.HiddenExternal
+                    record_access = AdKatsRecord.AccessMethod.HiddenExternal,
+                    record_time = UtcDbTime()
                 };
 
                 //Parse information into a record
@@ -38883,7 +38942,8 @@ namespace PRoConEvents
                         target_name = "AdKats",
                         target_player = null,
                         source_name = "AdKats",
-                        record_message = aException.ToString()
+                        record_message = aException.ToString(),
+                        record_time = UtcDbTime()
                     };
                     //Process the record
                     QueueRecordForProcessing(record);
@@ -39131,7 +39191,8 @@ namespace PRoConEvents
                                         target_name = "Database",
                                         target_player = null,
                                         source_name = "AdKats",
-                                        record_message = "Critical Database Disconnect Handled (" + String.Format("{0:0.00}", disconnectTimer.Elapsed.TotalMinutes) + " minutes). AdKats on server " + _serverInfo.ServerID + " functioning normally again."
+                                        record_message = "Critical Database Disconnect Handled (" + String.Format("{0:0.00}", disconnectTimer.Elapsed.TotalMinutes) + " minutes). AdKats on server " + _serverInfo.ServerID + " functioning normally again.",
+                                        record_time = UtcDbTime()
                                     };
                                     //Process the record
                                     QueueRecordForProcessing(record);
