@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.5.8
+ * Version 6.5.5.9
  * 7-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.5.8</version_code>
+ * <version_code>6.5.5.9</version_code>
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.5.8";
+        private const String PluginVersion = "6.5.5.9";
 
         public enum GameVersion
         {
@@ -28499,6 +28499,7 @@ namespace PRoConEvents
                             else
                             {
                                 SendMessageToSource(record, record.GetTargetNames() + " already acted on in the last 20 seconds.");
+                                FinalizeRecord(record);
                                 return false;
                             }
                             break;
@@ -32329,7 +32330,8 @@ namespace PRoConEvents
                 record.target_player.TargetedRecords.Any(
                     aRecord =>
                         aRecord.command_type.command_key == "player_punish" &&
-                        (UtcDbTime() - aRecord.record_time).TotalSeconds < duration))
+                        (UtcDbTime() - aRecord.record_time).TotalSeconds < duration && 
+                        aRecord.record_action_executed == true))
             {
                 return false;
             }
