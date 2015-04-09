@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.5.9
- * 7-APR-2015
+ * Version 6.5.6.0
+ * 9-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.5.9</version_code>
+ * <version_code>6.5.6.0</version_code>
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.5.9";
+        private const String PluginVersion = "6.5.6.0";
 
         public enum GameVersion
         {
@@ -9709,7 +9709,7 @@ namespace PRoConEvents
                 }
                 if (_isTestingAuthorized && _serverInfo.ServerType != "OFFICIAL") {
                     //KPM check
-                    var countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
+                    Int32 countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
                     var countBan = ((_gameVersion == GameVersion.BF3)?(25):(20));
                     if (countRecent >= countBan && !PlayerProtected(aKill.killer))
                     {
@@ -9722,7 +9722,7 @@ namespace PRoConEvents
                             target_name = aKill.killer.player_name,
                             target_player = aKill.killer,
                             source_name = "AutoAdmin",
-                            record_message = "Code 5394: Dispute Requested",
+                            record_message = "Code 5394:" + countRecent + " Dispute Requested",
                             record_time = UtcDbTime()
                         });
                         return;
@@ -9733,7 +9733,7 @@ namespace PRoConEvents
                         dKill.weaponCategory != DamageTypes.DMR);
                     var nonSniperHS = nonSniperKills.Where(dKill => dKill.IsHeadshot);
                     Double nonSniperHSKP = nonSniperHS.Count() / (Double)nonSniperKills.Count() * 100;
-                    var nskc = nonSniperKills.Count();
+                    Int32 nskc = nonSniperKills.Count();
                     if (nskc >= 20) {
                         if ((nonSniperHSKP >= 90 || (nskc >= 45 && nonSniperHSKP >= 75))
                             && !PlayerProtected(aKill.killer))
@@ -9747,7 +9747,7 @@ namespace PRoConEvents
                                 target_name = aKill.killer.player_name,
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
-                                record_message = "Code 6249: Dispute Requested",
+                                record_message = "Code 6249:" + nskc + " Dispute Requested",
                                 record_time = UtcDbTime()
                             });
                             return;
