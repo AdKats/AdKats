@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.6.2
+ * Version 6.5.6.3
  * 9-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.6.2</version_code>
+ * <version_code>6.5.6.3</version_code>
  */
 
 using System;
@@ -62,7 +62,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.6.2";
+        private const String PluginVersion = "6.5.6.3";
 
         public enum GameVersion
         {
@@ -9722,7 +9722,7 @@ namespace PRoConEvents
                             target_name = aKill.killer.player_name,
                             target_player = aKill.killer,
                             source_name = "AutoAdmin",
-                            record_message = "Code 5394:" + countRecent + " Dispute Requested",
+                            record_message = "Code 5-" + countRecent + " Dispute Requested",
                             record_time = UtcDbTime()
                         });
                         return;
@@ -9747,12 +9747,15 @@ namespace PRoConEvents
                                 target_name = aKill.killer.player_name,
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
-                                record_message = "Code 6249:" + nskc + " Dispute Requested",
+                                record_message = "Code 6-" + nskc + " Dispute Requested",
                                 record_time = UtcDbTime()
                             });
                             return;
                         }
-                        if (nonSniperHSKP >= 70 && !aKill.killer.TargetedRecords.Any(aRecord => aRecord.record_message.Contains("non-sniper HSKP")))
+                        if (nonSniperHSKP >= 70 && 
+                            !aKill.killer.TargetedRecords.Any(aRecord => 
+                                aRecord.record_message.Contains("non-sniper HSKP") && 
+                                (UtcDbTime() - aRecord.record_time).TotalMinutes < 30))
                         {
                             //Create the report record
                             QueueRecordForProcessing(new AdKatsRecord
