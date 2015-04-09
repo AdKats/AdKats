@@ -14089,9 +14089,9 @@ namespace PRoConEvents
                             {
                                 enemyStrong = Math.Abs(team1.TeamTicketDifferenceRate) < Math.Abs(team2.TeamTicketDifferenceRate);
                             }
-                            if (_isTestingAuthorized && _serverInfo.GetRoundElapsedTime().TotalSeconds < 120)
+                            if (_isTestingAuthorized && _serverInfo.GetRoundElapsedTime().TotalSeconds < 180)
                             {
-                                SendMessageToSource(record, "Please wait at least 2 minutes into the round to use assist. [" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "]");
+                                SendMessageToSource(record, "Please wait at least 3 minutes into the round to use assist. [" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "]");
                                 FinalizeRecord(record);
                                 return;
                             }
