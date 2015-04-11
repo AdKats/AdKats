@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.6.7
+ * Version 6.5.6.8
  * 11-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.6.7</version_code>
+ * <version_code>6.5.6.8</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.6.7";
+        private const String PluginVersion = "6.5.6.8";
 
         public enum GameVersion
         {
@@ -8244,7 +8244,11 @@ namespace PRoConEvents
                             }
                             if (!(_teamDictionary.ContainsKey(1) && _teamDictionary.ContainsKey(2)))
                             {
-                                Log.Error("Unable to process server info. Teams not loaded.");
+                                if (_roundState == RoundState.Playing)
+                                {
+                                    //Only error out if the round is playing and for some reason teams are not loaded yet
+                                    Log.Error("Unable to process server info. Teams not loaded.");
+                                }
                                 return;
                             }
                             AdKatsTeam team1 = _teamDictionary[1];
@@ -9420,11 +9424,14 @@ namespace PRoConEvents
                                 if (randomBRCPlayers.Count > 1) {
                                     Boolean team1Set = true;
                                     foreach (var aPlayer in randomBRCPlayers) {
-                                        aPlayer.RequiredTeam = ((team1Set)?(team1):(team2));
+                                        aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
                                         ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "true");
                                         Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                         team1Set = !team1Set;
                                     }
+                                }
+                                else {
+                                    Log.Info("Not enough BRC players online to do splitting.");
                                 }
                             }
                             LogThreadExit();
