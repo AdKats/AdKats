@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.6.8
+ * Version 6.5.6.9
  * 11-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.6.8</version_code>
+ * <version_code>6.5.6.9</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.6.8";
+        private const String PluginVersion = "6.5.6.9";
 
         public enum GameVersion
         {
@@ -9433,6 +9433,7 @@ namespace PRoConEvents
                                 else {
                                     Log.Info("Not enough BRC players online to do splitting.");
                                 }
+                                break;
                             }
                             LogThreadExit();
                         })));
