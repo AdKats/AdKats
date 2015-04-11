@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.6.5
- * 10-APR-2015
+ * Version 6.5.6.6
+ * 11-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.6.5</version_code>
+ * <version_code>6.5.6.6</version_code>
  */
 
 using System;
@@ -40,6 +40,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.Collections.ObjectModel;
+using System.Security.Cryptography;
 using System.Windows.Forms;
 using System.CodeDom.Compiler;
 using System.Linq;
@@ -62,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.6.5";
+        private const String PluginVersion = "6.5.6.6";
 
         public enum GameVersion
         {
@@ -6804,7 +6805,6 @@ namespace PRoConEvents
             }
         }
 
-
         public void UpdateFactions()
         {
             if (_gameVersion == GameVersion.BF3)
@@ -6816,6 +6816,7 @@ namespace PRoConEvents
             }
             else if (_gameVersion == GameVersion.BF4 || _gameVersion == GameVersion.BFHL)
             {
+                _teamDictionary.Clear();
                 _teamDictionary[0] = new AdKatsTeam(this, 0, "Spectator", "Spectators", "Server Spectators");
                 Log.Debug("Assigning team ID " + 0 + " to Spectator", 4);
                 ExecuteCommand("procon.protected.send", "vars.teamFactionOverride");
@@ -6852,11 +6853,12 @@ namespace PRoConEvents
                     }
                     if (aPlayer.RequiredTeam != null &&
                         aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey &&
-                        !PlayerIsAdmin(aPlayer) &&
-                        _roundState == RoundState.Playing)
+                        !PlayerIsAdmin(aPlayer))
                     {
-                        OnlineAdminSayMessage(soldierName + " attempted to team switch after being admin moved.");
-                        PlayerTellMessage(soldierName, "You were moved to " + aPlayer.RequiredTeam.TeamKey + " team, please remain on that team.");
+                        if (_roundState == RoundState.Playing && !_baserapeCausingPlayers.ContainsKey(aPlayer.player_name)) {
+                            OnlineAdminSayMessage(soldierName + " attempted to team switch after being admin moved.");
+                            PlayerTellMessage(soldierName, "You were moved to " + aPlayer.RequiredTeam.TeamKey + " team, please remain on that team.");
+                        }
                         ExecuteCommand("procon.protected.send", "admin.movePlayer", soldierName, aPlayer.RequiredTeam.TeamID + "", "1", "true");
                     }
                     else {
@@ -9383,6 +9385,54 @@ namespace PRoConEvents
                     foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList())
                     {
                         aPlayer.RequiredTeam = null;
+                    }
+                    if (_isTestingAuthorized && _FeedBaserapeCausingPlayerDispersion) {
+                        StartAndLogThread(new Thread(new ThreadStart(delegate
+                        {
+                            Thread.CurrentThread.Name = "BRCPlayerAssignment";
+                            Thread.Sleep(TimeSpan.FromSeconds(1));
+                            DateTime starting = UtcDbTime();
+                            while (true) {
+                                if ((UtcDbTime() - starting).TotalSeconds > 30) {
+                                    Log.Warn("BRC player assignment took too long.");
+                                    break;
+                                }
+                                if (!_teamDictionary.ContainsKey(1) || !_teamDictionary.ContainsKey(2)) {
+                                    Log.Info("Teams not set yet, waiting.");
+                                    Thread.Sleep(TimeSpan.FromSeconds(1));
+                                    continue;
+                                }
+                                AdKatsTeam team1;
+                                AdKatsTeam team2;
+                                Log.Debug("Locking on _teamDictionary", 6); lock (_teamDictionary)
+                                {
+                                    if (!_teamDictionary.TryGetValue(1, out team1))
+                                    {
+                                        Log.Info("Team 1 was not found, waiting.");
+                                        continue;
+                                    }
+                                    if (!_teamDictionary.TryGetValue(2, out team2))
+                                    {
+                                        Log.Info("Team 2 was not found, waiting.");
+                                        continue;
+                                    }
+                                }
+                                //Update team assignment of baserape causing players
+                                var randomBRCPlayers = Shuffle(
+                                    _PlayerDictionary.Values.Where(dPlayer => 
+                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
+                                if (randomBRCPlayers.Count > 1) {
+                                    Boolean team1Set = true;
+                                    foreach (var aPlayer in randomBRCPlayers) {
+                                        aPlayer.RequiredTeam = ((team1Set)?(team1):(team2));
+                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "true");
+                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                        team1Set = !team1Set;
+                                    }
+                                }
+                            }
+                            LogThreadExit();
+                        })));
                     }
                 }
             }
@@ -41477,6 +41527,24 @@ namespace PRoConEvents
             public Double damage_max = -1;
             public Double damage_min = -1;
             public String id = null;
+        }
+
+        public List<T> Shuffle<T>(List<T> list)
+        {
+            RNGCryptoServiceProvider provider = new RNGCryptoServiceProvider();
+            int n = list.Count;
+            while (n > 1)
+            {
+                byte[] box = new byte[1];
+                do provider.GetBytes(box);
+                while (!(box[0] < n * (Byte.MaxValue / n)));
+                int k = (box[0] % n);
+                n--;
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
+            return list;
         }
 
         //Directly pulled from TeamSpeak3Sync and adapted into inline library
