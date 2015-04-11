@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.6.9
+ * Version 6.5.7.0
  * 11-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.6.9</version_code>
+ * <version_code>6.5.7.0</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.6.9";
+        private const String PluginVersion = "6.5.7.0";
 
         public enum GameVersion
         {
@@ -6849,7 +6849,7 @@ namespace PRoConEvents
                     }
                     if (_isTestingAuthorized)
                     {
-                        Log.Info(aPlayer.GetVerboseName() + " moved from " + oldTeam.TeamKey + ":" + oldTeam.TeamID + " to " + newTeam.TeamKey + ":" + newTeam.TeamID);
+                        Log.Write(aPlayer.GetVerboseName() + " moved from " + oldTeam.TeamKey + ":" + oldTeam.TeamID + " to " + newTeam.TeamKey + ":" + newTeam.TeamID);
                     }
                     if (aPlayer.RequiredTeam != null &&
                         aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey &&
@@ -6892,7 +6892,7 @@ namespace PRoConEvents
                     aPlayer.frostbitePlayerInfo.SquadID = squadId;
                     if (_isTestingAuthorized)
                     {
-                        Log.Info(aPlayer.GetVerboseName() + " moved from squad " + oldSquad + " to squad " + aPlayer.frostbitePlayerInfo.SquadID);
+                        Log.Write(aPlayer.GetVerboseName() + " moved from squad " + oldSquad + " to squad " + aPlayer.frostbitePlayerInfo.SquadID);
                     }
                 }
             }
@@ -9425,7 +9425,7 @@ namespace PRoConEvents
                                     Boolean team1Set = true;
                                     foreach (var aPlayer in randomBRCPlayers) {
                                         aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
-                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", "1", "true");
+                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
                                         Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
                                         team1Set = !team1Set;
                                     }
@@ -9433,6 +9433,7 @@ namespace PRoConEvents
                                 else {
                                     Log.Info("Not enough BRC players online to do splitting.");
                                 }
+                                FetchAllAccess(true);
                                 break;
                             }
                             LogThreadExit();
@@ -9826,7 +9827,6 @@ namespace PRoConEvents
                             });
                         }
                     }
-                    Log.Debug(aKill.killer.GetVerboseName() + " kills: " + countRecent + "/60s " + Math.Round(nonSniperHSKP) + "% HSKP on " + nonSniperKills.Count() + " non-sniper.", 3);
                 }
 
                 //Only add the last death if it's not a death by admin
@@ -35335,14 +35335,14 @@ namespace PRoConEvents
                     var evenDispersionList = new List<String>();
                     //Pull players from special player cache
                     List<AdKatsSpecialPlayer> evenDispersedPlayers = GetVerboseASPlayersOfGroup("blacklist_dispersion");
-                    if (evenDispersedPlayers.Any())
-                    {
+                    if (evenDispersedPlayers.Any()) {
+                        var onlineBRCPlayers = _PlayerDictionary.Values.Where(dPlayer => _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList();
                         foreach (AdKatsSpecialPlayer asPlayer in evenDispersedPlayers)
                         {
                             String playerIdentifier = null;
-                            if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_guid))
-                            {
-                                playerIdentifier = asPlayer.player_object.player_guid;
+                            if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_guid)) {
+                                var brcPlayer = onlineBRCPlayers.FirstOrDefault(bPlayer => bPlayer.player_id == asPlayer.player_object.player_id && bPlayer.RequiredTeam != null);
+                                playerIdentifier = ((brcPlayer != null)?(brcPlayer.RequiredTeam.TeamID + " "):("")) + asPlayer.player_object.player_guid;
                             }
                             else
                             {
