@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.7.0
+ * Version 6.5.7.1
  * 11-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.7.0</version_code>
+ * <version_code>6.5.7.1</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.7.0";
+        private const String PluginVersion = "6.5.7.1";
 
         public enum GameVersion
         {
@@ -9422,7 +9422,7 @@ namespace PRoConEvents
                                     _PlayerDictionary.Values.Where(dPlayer => 
                                         _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
                                 if (randomBRCPlayers.Count > 1) {
-                                    Boolean team1Set = true;
+                                    Boolean team1Set = false;
                                     foreach (var aPlayer in randomBRCPlayers) {
                                         aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
                                         ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
@@ -14146,7 +14146,7 @@ namespace PRoConEvents
                             {
                                 enemyStrong = Math.Abs(team1.TeamTicketDifferenceRate) < Math.Abs(team2.TeamTicketDifferenceRate);
                             }
-                            Int32 minAssistMinutes = ((_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.target_player.player_id))?(5):(2));
+                            Int32 minAssistMinutes = ((_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.target_player.player_id))?(4):(2));
                             if (_isTestingAuthorized && _serverInfo.GetRoundElapsedTime().TotalMinutes < minAssistMinutes)
                             {
                                 SendMessageToSource(record, "Please wait at least " + minAssistMinutes + " minutes into the round to use assist. [" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "]");
