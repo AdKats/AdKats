@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.6.6
+ * Version 6.5.6.7
  * 11-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.6.6</version_code>
+ * <version_code>6.5.6.7</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.6.6";
+        private const String PluginVersion = "6.5.6.7";
 
         public enum GameVersion
         {
@@ -9382,10 +9382,6 @@ namespace PRoConEvents
                     //Update the factions 
                     UpdateFactions();
                     StartRoundTicketLogger(0);
-                    foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList())
-                    {
-                        aPlayer.RequiredTeam = null;
-                    }
                     if (_isTestingAuthorized && _FeedBaserapeCausingPlayerDispersion) {
                         StartAndLogThread(new Thread(new ThreadStart(delegate
                         {
@@ -9450,12 +9446,20 @@ namespace PRoConEvents
             {
                 PostPlayerWinLossStatistics();
             }
+            foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList())
+            {
+                aPlayer.RequiredTeam = null;
+            }
             _roundState = RoundState.Ended;
             _pingKicksThisRound = 0;
         }
 
         public override void OnRunNextLevel()
         {
+            foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList())
+            {
+                aPlayer.RequiredTeam = null;
+            }
             _roundState = RoundState.Ended;
             _pingKicksThisRound = 0;
         }
