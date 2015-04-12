@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.7.1
+ * Version 6.5.7.2
  * 11-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.7.1</version_code>
+ * <version_code>6.5.7.2</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.7.1";
+        private const String PluginVersion = "6.5.7.2";
 
         public enum GameVersion
         {
@@ -8460,8 +8460,9 @@ namespace PRoConEvents
                                                     (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
                                                 if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
                                                 {
-                                                    foreach (var aPlayer in _PlayerDictionary.Values.Where(
-                                                        dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && 
+                                                    foreach (var aPlayer in _PlayerDictionary.Values.Where(dPlayer =>
+                                                        dPlayer.player_type == PlayerType.Player && 
+                                                        dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && 
                                                         _baserapeCausingPlayers.ContainsKey(dPlayer.player_name))) {
                                                         if (!auaPlayers.ContainsKey(aPlayer.player_name)) {
                                                             auaPlayers[aPlayer.player_name] = aPlayer;
@@ -8627,8 +8628,9 @@ namespace PRoConEvents
                                                     (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
                                                 if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
                                                 {
-                                                    foreach (var aPlayer in _PlayerDictionary.Values.Where(
-                                                        dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
+                                                    foreach (var aPlayer in _PlayerDictionary.Values.Where(dPlayer =>
+                                                        dPlayer.player_type == PlayerType.Player && 
+                                                        dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
                                                         _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
                                                     {
                                                         if (!auaPlayers.ContainsKey(aPlayer.player_name))
@@ -8795,8 +8797,9 @@ namespace PRoConEvents
                                                             (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
                                                         if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
                                                         {
-                                                            foreach (var aPlayer in _PlayerDictionary.Values.Where(
-                                                                dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
+                                                            foreach (var aPlayer in _PlayerDictionary.Values.Where(dPlayer =>
+                                                                dPlayer.player_type == PlayerType.Player &&
+                                                                dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
                                                                 _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
                                                             {
                                                                 if (!auaPlayers.ContainsKey(aPlayer.player_name))
@@ -8959,8 +8962,9 @@ namespace PRoConEvents
                                                             (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
                                                         if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
                                                         {
-                                                            foreach (var aPlayer in _PlayerDictionary.Values.Where(
-                                                                dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
+                                                            foreach (var aPlayer in _PlayerDictionary.Values.Where(dPlayer =>
+                                                                dPlayer.player_type == PlayerType.Player &&
+                                                                dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID &&
                                                                 _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
                                                             {
                                                                 if (!auaPlayers.ContainsKey(aPlayer.player_name))
@@ -9420,6 +9424,7 @@ namespace PRoConEvents
                                 //Update team assignment of baserape causing players
                                 var randomBRCPlayers = Shuffle(
                                     _PlayerDictionary.Values.Where(dPlayer => 
+                                        dPlayer.player_type == PlayerType.Player &&
                                         _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
                                 if (randomBRCPlayers.Count > 1) {
                                     Boolean team1Set = false;
@@ -35336,7 +35341,9 @@ namespace PRoConEvents
                     //Pull players from special player cache
                     List<AdKatsSpecialPlayer> evenDispersedPlayers = GetVerboseASPlayersOfGroup("blacklist_dispersion");
                     if (evenDispersedPlayers.Any()) {
-                        var onlineBRCPlayers = _PlayerDictionary.Values.Where(dPlayer => _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList();
+                        var onlineBRCPlayers = _PlayerDictionary.Values.Where(dPlayer =>
+                                        dPlayer.player_type == PlayerType.Player && 
+                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList();
                         foreach (AdKatsSpecialPlayer asPlayer in evenDispersedPlayers)
                         {
                             String playerIdentifier = null;
