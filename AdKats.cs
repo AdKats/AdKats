@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.7.2
- * 11-APR-2015
+ * Version 6.5.7.3
+ * 12-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.7.2</version_code>
+ * <version_code>6.5.7.3</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.7.2";
+        private const String PluginVersion = "6.5.7.3";
 
         public enum GameVersion
         {
@@ -534,6 +534,11 @@ namespace PRoConEvents
         private Boolean _MULTIBalancerUnswitcherDisabled = false;
         public readonly String[] _subscriptionGroups = { "OnlineSoldiers" };
         private readonly List<AdKatsClient> _subscribedClients = new List<AdKatsClient>();
+        //Round leaders
+        private Boolean _RoundLeadersMonitor = false;
+        private Int32 _RoundLeadersTopCount = 5;
+        private Int32 _RoundLeadersTopDays = 30;
+        private readonly Dictionary<String, AdKatsPlayer> _RoundLeaderPlayers = new Dictionary<String, AdKatsPlayer>();
         //Baserape Causers
         private Boolean _PostWinLossBaserapeStatistics = false;
         private Boolean _BaserapeCausingPlayersMonitor = false;
@@ -13304,6 +13309,16 @@ namespace PRoConEvents
                                 if (record.source_player != null && record.source_player.player_type == PlayerType.Spectator && !PlayerIsAdmin(record.source_player))
                                 {
                                     SendMessageToSource(record, "You cannot use !" + GetCommandByKey("self_nosurrender").command_text + " as a spectator.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                            }
+                            break;
+                        case "self_assist": {
+                                if (record.source_player != null &&
+                                    _baserapeCausingPlayers.ContainsKey(record.source_player.player_name))
+                                {
+                                    SendMessageToSource(record, "You may not use assist at this time.");
                                     FinalizeRecord(record);
                                     return;
                                 }
