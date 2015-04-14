@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.7.3
- * 12-APR-2015
+ * Version 6.5.7.4
+ * 13-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.7.3</version_code>
+ * <version_code>6.5.7.4</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.7.3";
+        private const String PluginVersion = "6.5.7.4";
 
         public enum GameVersion
         {
@@ -9427,13 +9427,18 @@ namespace PRoConEvents
                                     }
                                 }
                                 //Update team assignment of baserape causing players
-                                var randomBRCPlayers = Shuffle(
-                                    _PlayerDictionary.Values.Where(dPlayer => 
+//                                var randomBRCPlayers = Shuffle(
+//                                    _PlayerDictionary.Values.Where(dPlayer => 
+//                                        dPlayer.player_type == PlayerType.Player &&
+//                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
+                                var taggedBRCPlayers = _PlayerDictionary.Values.Where(dPlayer =>
                                         dPlayer.player_type == PlayerType.Player &&
-                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
-                                if (randomBRCPlayers.Count > 1) {
+                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).OrderBy(dPlayer => dPlayer.player_clanTag).ToList();
+                                if (taggedBRCPlayers.Count > 1)
+                                {
                                     Boolean team1Set = false;
-                                    foreach (var aPlayer in randomBRCPlayers) {
+                                    foreach (var aPlayer in taggedBRCPlayers)
+                                    {
                                         aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
                                         ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
                                         Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
@@ -11931,6 +11936,10 @@ namespace PRoConEvents
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
+                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 3.0)
+                    {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                    }
                 }
             }
             if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
@@ -11992,6 +12001,10 @@ namespace PRoConEvents
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
+                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 3.0)
+                    {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                    }
                 }
             }
             if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
@@ -12050,6 +12063,10 @@ namespace PRoConEvents
                     if (aPlayer.player_reputation >= _reputationThresholdGood &&
                         !PlayerIsAdmin(aPlayer) &&
                         !whitelistedPlayers.ContainsKey(aPlayer.player_name))
+                    {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 3.0)
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
