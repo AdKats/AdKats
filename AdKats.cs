@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.7.4
- * 13-APR-2015
+ * Version 6.5.7.5
+ * 14-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.7.4</version_code>
+ * <version_code>6.5.7.5</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.7.4";
+        private const String PluginVersion = "6.5.7.5";
 
         public enum GameVersion
         {
@@ -11936,7 +11936,7 @@ namespace PRoConEvents
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
-                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 3.0)
+                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0)
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
@@ -12001,7 +12001,7 @@ namespace PRoConEvents
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
-                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 3.0)
+                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0)
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
@@ -12066,7 +12066,7 @@ namespace PRoConEvents
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
-                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 3.0)
+                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0)
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
