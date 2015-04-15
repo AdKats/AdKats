@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.7.6
+ * Version 6.5.7.7
  * 14-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.7.6</version_code>
+ * <version_code>6.5.7.7</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.7.6";
+        private const String PluginVersion = "6.5.7.7";
 
         public enum GameVersion
         {
@@ -11936,7 +11936,11 @@ namespace PRoConEvents
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
-                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0)
+                    else if (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0)
+                    {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                    else if (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High)
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
@@ -11952,7 +11956,7 @@ namespace PRoConEvents
                         Thread.CurrentThread.Name = "OnlineNonAdminSay";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Say -(Admins" + ((whitelistedPlayers.Any()) ? (whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.GetVerboseName())) : ("")) + ") > " + message);
+                            ProconChatWrite("Say (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -12001,7 +12005,11 @@ namespace PRoConEvents
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
-                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0)
+                    else if (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0)
+                    {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                    else if (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High)
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
@@ -12017,7 +12025,7 @@ namespace PRoConEvents
                         Thread.CurrentThread.Name = "OnlineNonAdminYell";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Yell[" + _YellDuration + "s] (-Admins" + ((whitelistedPlayers.Any()) ? (whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.GetVerboseName())) : ("")) + ") > " + message);
+                            ProconChatWrite("Yell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -12066,7 +12074,11 @@ namespace PRoConEvents
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
-                    else if (_isTestingAuthorized && message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0)
+                    else if (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0)
+                    {
+                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                    else if (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High)
                     {
                         whitelistedPlayers[aPlayer.player_name] = aPlayer;
                     }
@@ -12082,7 +12094,7 @@ namespace PRoConEvents
                         Thread.CurrentThread.Name = "OnlineNonAdminTell";
                         if (displayProconChat)
                         {
-                            ProconChatWrite("Tell[" + _YellDuration + "s] (-Admins" + ((whitelistedPlayers.Any()) ? (whitelistedPlayers.Values.Aggregate("", (current, aPlayer) => current + ", " + aPlayer.GetVerboseName())) : ("")) + ") > " + message);
+                            ProconChatWrite("Tell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
