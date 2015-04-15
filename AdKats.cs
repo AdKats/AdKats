@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.7.7
- * 14-APR-2015
+ * Version 6.5.7.8
+ * 15-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.7.7</version_code>
+ * <version_code>6.5.7.8</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.7.7";
+        private const String PluginVersion = "6.5.7.8";
 
         public enum GameVersion
         {
@@ -9436,7 +9436,8 @@ namespace PRoConEvents
                                         _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).OrderBy(dPlayer => dPlayer.player_clanTag).ToList();
                                 if (taggedBRCPlayers.Count > 1)
                                 {
-                                    Boolean team1Set = false;
+                                    Random rand = new Random();
+                                    Boolean team1Set = rand.NextDouble() >= 0.5;
                                     foreach (var aPlayer in taggedBRCPlayers)
                                     {
                                         aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
