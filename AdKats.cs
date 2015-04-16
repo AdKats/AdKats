@@ -37732,7 +37732,7 @@ namespace PRoConEvents
                 {
                     Log.Error("Teams not loaded when they should be.");
                 }
-                return;
+                return false;
             }
             if (!GetTeamByID(2, out team2))
             {
@@ -37740,7 +37740,7 @@ namespace PRoConEvents
                 {
                     Log.Error("Teams not loaded when they should be.");
                 }
-                return;
+                return false;
             }
             AdKatsTeam winningTeam, losingTeam;
             if (team1.TeamTicketCount > team2.TeamTicketCount)
