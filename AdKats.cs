@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.7.8
- * 15-APR-2015
+ * Version 6.5.7.9
+ * 16-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.7.8</version_code>
+ * <version_code>6.5.7.9</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.7.8";
+        private const String PluginVersion = "6.5.7.9";
 
         public enum GameVersion
         {
@@ -6824,6 +6824,7 @@ namespace PRoConEvents
                 _teamDictionary.Clear();
                 _teamDictionary[0] = new AdKatsTeam(this, 0, "Spectator", "Spectators", "Server Spectators");
                 Log.Debug("Assigning team ID " + 0 + " to Spectator", 4);
+                Thread.Sleep(500);
                 ExecuteCommand("procon.protected.send", "vars.teamFactionOverride");
             }
         }
@@ -7591,10 +7592,23 @@ namespace PRoConEvents
                                     }
                                 }
 
-                                _teamDictionary[1].UpdatePlayerCount(team1PC);
-                                _teamDictionary[2].UpdatePlayerCount(team2PC);
-                                _teamDictionary[3].UpdatePlayerCount(team3PC);
-                                _teamDictionary[4].UpdatePlayerCount(team4PC);
+                                AdKatsTeam team1, team2, team3, team4;
+                                if (GetTeamByID(1, out team1))
+                                {
+                                    team1.UpdatePlayerCount(team1PC);
+                                }
+                                if (GetTeamByID(2, out team2))
+                                {
+                                    team2.UpdatePlayerCount(team1PC);
+                                }
+                                if (GetTeamByID(3, out team3))
+                                {
+                                    team3.UpdatePlayerCount(team1PC);
+                                }
+                                if (GetTeamByID(4, out team4))
+                                {
+                                    team4.UpdatePlayerCount(team1PC);
+                                }
                                 //Make sure the player dictionary is clean of any straglers
                                 Int32 straglerCount = 0;
                                 Int32 dicCount = _PlayerDictionary.Count;
@@ -8069,8 +8083,6 @@ namespace PRoConEvents
                             {
                                 break;
                             }
-                            AdKatsTeam team1 = _teamDictionary[1];
-                            AdKatsTeam team2 = _teamDictionary[2];
                             watch.Reset();
                             watch.Start();
                             if (_roundState == RoundState.Loaded)
@@ -8078,6 +8090,8 @@ namespace PRoConEvents
                                 _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(2));
                                 continue;
                             }
+                            AdKatsTeam team1 = _teamDictionary[1];
+                            AdKatsTeam team2 = _teamDictionary[2];
                             if (_roundState == RoundState.Ended ||
                                 !_pluginEnabled ||
                                 (team1.TeamPlayerCount == 0 && team1.Populated && team2.TeamPlayerCount == 0 && team2.Populated))
@@ -8231,15 +8245,16 @@ namespace PRoConEvents
                                     foreach (TeamScore score in listCurrTeamScore)
                                     {
                                         AdKatsTeam currentTeam;
-                                        if (_teamDictionary.TryGetValue(score.TeamID, out currentTeam))
+                                        if (!GetTeamByID(score.TeamID, out currentTeam))
                                         {
-                                            currentTeam.UpdateTicketCount(score.Score);
-                                            currentTeam.UpdateTotalScore(_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == score.TeamID).Aggregate<AdKatsPlayer, double>(0, (current, aPlayer) => current + aPlayer.frostbitePlayerInfo.Score));
+                                            if (_roundState == RoundState.Playing)
+                                            {
+                                                Log.Error("Teams not loaded when they should be.");
+                                            }
+                                            continue;
                                         }
-                                        else
-                                        {
-                                            Log.Error("Team ID " + score.TeamID + " could not be recognized.");
-                                        }
+                                        currentTeam.UpdateTicketCount(score.Score);
+                                        currentTeam.UpdateTotalScore(_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == score.TeamID).Aggregate<AdKatsPlayer, double>(0, (current, aPlayer) => current + aPlayer.frostbitePlayerInfo.Score));
                                     }
                                 }
                                 else
@@ -8247,17 +8262,23 @@ namespace PRoConEvents
                                     Log.Debug("Server info fired while changing rounds, no teams to parse.", 5);
                                 }
                             }
-                            if (!(_teamDictionary.ContainsKey(1) && _teamDictionary.ContainsKey(2)))
+                            AdKatsTeam team1, team2;
+                            if (!GetTeamByID(1, out team1))
                             {
                                 if (_roundState == RoundState.Playing)
                                 {
-                                    //Only error out if the round is playing and for some reason teams are not loaded yet
-                                    Log.Error("Unable to process server info. Teams not loaded.");
+                                    Log.Error("Teams not loaded when they should be.");
                                 }
                                 return;
                             }
-                            AdKatsTeam team1 = _teamDictionary[1];
-                            AdKatsTeam team2 = _teamDictionary[2];
+                            if (!GetTeamByID(2, out team2))
+                            {
+                                if (_roundState == RoundState.Playing)
+                                {
+                                    Log.Error("Teams not loaded when they should be.");
+                                }
+                                return;
+                            }
                             AdKatsTeam winningTeam = null;
                             AdKatsTeam losingTeam = null;
                             AdKatsTeam baserapingTeam = null;
@@ -9278,8 +9299,23 @@ namespace PRoConEvents
                 {
                     return;
                 }
-                AdKatsTeam team1 = _teamDictionary[1];
-                AdKatsTeam team2 = _teamDictionary[2];
+                AdKatsTeam team1, team2;
+                if (!GetTeamByID(1, out team1))
+                {
+                    if (_roundState == RoundState.Playing)
+                    {
+                        Log.Error("Teams not loaded when they should be.");
+                    }
+                    return;
+                }
+                if (!GetTeamByID(2, out team2))
+                {
+                    if (_roundState == RoundState.Playing)
+                    {
+                        Log.Error("Teams not loaded when they should be.");
+                    }
+                    return;
+                }
                 AdKatsTeam winningTeam, losingTeam;
                 if (team1.TeamTicketCount > team2.TeamTicketCount)
                 {
@@ -12688,13 +12724,19 @@ namespace PRoConEvents
                         {
                             if (!_teamDictionary.TryGetValue(1, out team1))
                             {
-                                Log.Debug("Team 1 description was not found. Unable to continue.", 1);
+                                if (_roundState == RoundState.Playing)
+                                {
+                                    Log.Debug("Team 1 was not found. Unable to continue.", 1);
+                                }
                                 _threadMasterWaitHandle.WaitOne(5000);
                                 continue;
                             }
                             if (!_teamDictionary.TryGetValue(2, out team2))
                             {
-                                Log.Debug("Team 2 description was not found. Unable to continue.", 1);
+                                if (_roundState == RoundState.Playing)
+                                {
+                                    Log.Debug("Team 2 was not found. Unable to continue.", 1);
+                                }
                                 _threadMasterWaitHandle.WaitOne(5000);
                                 continue;
                             }
@@ -12831,7 +12873,7 @@ namespace PRoConEvents
                                                 }
                                             }
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "1", "1", "true");
-                                            dicPlayer.RequiredTeam = _teamDictionary[1];
+                                            dicPlayer.RequiredTeam = team1;
                                             _LastPlayerMoveIssued = UtcDbTime();
                                             team1.TeamPlayerCount++;
                                             team2.TeamPlayerCount--;
@@ -12875,7 +12917,7 @@ namespace PRoConEvents
                                                 }
                                             }
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", player.SoldierName, "2", "1", "true");
-                                            dicPlayer.RequiredTeam = _teamDictionary[2];
+                                            dicPlayer.RequiredTeam = team2;
                                             _LastPlayerMoveIssued = UtcDbTime();
                                             team2.TeamPlayerCount++;
                                             team1.TeamPlayerCount--;
@@ -13246,8 +13288,23 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    AdKatsTeam team1 = _teamDictionary[1];
-                                    AdKatsTeam team2 = _teamDictionary[2];
+                                    AdKatsTeam team1, team2;
+                                    if (!GetTeamByID(1, out team1))
+                                    {
+                                        if (_roundState == RoundState.Playing)
+                                        {
+                                            Log.Error("Teams not loaded when they should be.");
+                                        }
+                                        return;
+                                    }
+                                    if (!GetTeamByID(2, out team2))
+                                    {
+                                        if (_roundState == RoundState.Playing)
+                                        {
+                                            Log.Error("Teams not loaded when they should be.");
+                                        }
+                                        return;
+                                    }
                                     Int32 ticketGap = Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount);
                                     if (ticketGap < _surrenderVoteMinimumTicketGap)
                                     {
@@ -14153,8 +14210,23 @@ namespace PRoConEvents
                             }
 
                             //Team Info Check
-                            AdKatsTeam team1 = _teamDictionary[1];
-                            AdKatsTeam team2 = _teamDictionary[2];
+                            AdKatsTeam team1, team2;
+                            if (!GetTeamByID(1, out team1))
+                            {
+                                if (_roundState == RoundState.Playing)
+                                {
+                                    Log.Error("Teams not loaded when they should be.");
+                                }
+                                return;
+                            }
+                            if (!GetTeamByID(2, out team2))
+                            {
+                                if (_roundState == RoundState.Playing)
+                                {
+                                    Log.Error("Teams not loaded when they should be.");
+                                }
+                                return;
+                            }
                             AdKatsTeam winningTeam, losingTeam;
                             if (team1.TeamTicketCount > team2.TeamTicketCount)
                             {
@@ -20912,8 +20984,23 @@ namespace PRoConEvents
             {
                 record.record_action_executed = true;
                 //Team Info Check
-                AdKatsTeam team1 = _teamDictionary[1];
-                AdKatsTeam team2 = _teamDictionary[2];
+                AdKatsTeam team1, team2;
+                if (!GetTeamByID(1, out team1))
+                {
+                    if (_roundState == RoundState.Playing)
+                    {
+                        Log.Error("Teams not loaded when they should be.");
+                    }
+                    return;
+                }
+                if (!GetTeamByID(2, out team2))
+                {
+                    if (_roundState == RoundState.Playing)
+                    {
+                        Log.Error("Teams not loaded when they should be.");
+                    }
+                    return;
+                }
                 AdKatsTeam winningTeam, losingTeam;
                 if (team1.TeamTicketCount > team2.TeamTicketCount)
                 {
@@ -25237,8 +25324,23 @@ namespace PRoConEvents
                     return;
                 }
                 var voteEnabled = false;
-                AdKatsTeam team1 = _teamDictionary[1];
-                AdKatsTeam team2 = _teamDictionary[2];
+                AdKatsTeam team1, team2;
+                if (!GetTeamByID(1, out team1))
+                {
+                    if (_roundState == RoundState.Playing)
+                    {
+                        Log.Error("Teams not loaded when they should be.");
+                    }
+                    return;
+                }
+                if (!GetTeamByID(2, out team2))
+                {
+                    if (_roundState == RoundState.Playing)
+                    {
+                        Log.Error("Teams not loaded when they should be.");
+                    }
+                    return;
+                }
                 AdKatsTeam winningTeam, losingTeam;
                 if (team1.TeamTicketCount > team2.TeamTicketCount)
                 {
@@ -37623,8 +37725,23 @@ namespace PRoConEvents
                 return false;
             }
             //Team Info Check
-            AdKatsTeam team1 = _teamDictionary[1];
-            AdKatsTeam team2 = _teamDictionary[2];
+            AdKatsTeam team1, team2;
+            if (!GetTeamByID(1, out team1))
+            {
+                if (_roundState == RoundState.Playing)
+                {
+                    Log.Error("Teams not loaded when they should be.");
+                }
+                return;
+            }
+            if (!GetTeamByID(2, out team2))
+            {
+                if (_roundState == RoundState.Playing)
+                {
+                    Log.Error("Teams not loaded when they should be.");
+                }
+                return;
+            }
             AdKatsTeam winningTeam, losingTeam;
             if (team1.TeamTicketCount > team2.TeamTicketCount)
             {
@@ -37726,7 +37843,10 @@ namespace PRoConEvents
             {
                 return true;
             }
-            HandleException(new AdKatsException("Team not found for ID " + teamID + " in dictionary of " + _teamDictionary.Count + " teams."));
+            if (_roundState == RoundState.Playing) 
+            {
+                HandleException(new AdKatsException("Team not found for ID " + teamID + " in dictionary of " + _teamDictionary.Count + " teams."));
+            }
             return false;
         }
 
@@ -39402,7 +39522,26 @@ namespace PRoConEvents
                                 //Sleep for 1 second
                                 _threadMasterWaitHandle.WaitOne(1000);
                             }
-                            if (_teamDictionary[1].TeamTicketCount < _teamDictionary[2].TeamTicketCount)
+                            AdKatsTeam team1, team2;
+                            if (!GetTeamByID(1, out team1))
+                            {
+                                if (_roundState == RoundState.Playing)
+                                {
+                                    Log.Error("Teams not loaded when they should be.");
+                                }
+                                LogThreadExit();
+                                return;
+                            }
+                            if (!GetTeamByID(2, out team2))
+                            {
+                                if (_roundState == RoundState.Playing)
+                                {
+                                    Log.Error("Teams not loaded when they should be.");
+                                }
+                                LogThreadExit();
+                                return;
+                            }
+                            if (team1.TeamTicketCount < team2.TeamTicketCount)
                             {
                                 ExecuteCommand("procon.protected.send", "mapList.endRound", "2");
                                 Log.Debug("Ended Round (2)", 4);
