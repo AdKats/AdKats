@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.8.1
+ * Version 6.5.8.2
  * 17-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.8.1</version_code>
+ * <version_code>6.5.8.2</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.8.1";
+        private const String PluginVersion = "6.5.8.2";
 
         public enum GameVersion
         {
@@ -368,6 +368,7 @@ namespace PRoConEvents
         //Games and teams
         private readonly Dictionary<Int64, GameVersion> _gameIDDictionary = new Dictionary<Int64, GameVersion>();
         private readonly Dictionary<Int32, AdKatsTeam> _teamDictionary = new Dictionary<Int32, AdKatsTeam>();
+        private Boolean _acceptingTeamUpdates = false;
         private readonly Dictionary<String, Int32> _unmatchedRoundDeathCounts = new Dictionary<String, Int32>();
         private readonly HashSet<String> _unmatchedRoundDeaths = new HashSet<String>();
         private readonly Dictionary<String, AdKatsPlayer> _roundAssists = new Dictionary<String, AdKatsPlayer>();
@@ -6624,14 +6625,6 @@ namespace PRoConEvents
             Log.Debug("^1Game Version: " + _gameVersion, 1);
             //Initialize the email handler
             _EmailHandler = new EmailHandler(this);
-            //Update faction info
-            //Load initial factions
-            OnTeamFactionOverride(0, -1);
-            OnTeamFactionOverride(1, 0);
-            OnTeamFactionOverride(2, 1);
-            OnTeamFactionOverride(3, 0);
-            OnTeamFactionOverride(4, 1);
-            UpdateFactions();
         }
 
         public override void OnVersion(String serverType, String version)
@@ -6641,6 +6634,9 @@ namespace PRoConEvents
 
         public override void OnTeamFactionOverride(Int32 targetTeamID, Int32 overrideTeamId)
         {
+            if (!_acceptingTeamUpdates) {
+                return;
+            }
             try
             {
                 switch (overrideTeamId)
@@ -6812,8 +6808,8 @@ namespace PRoConEvents
 
         public void UpdateFactions()
         {
-            try
-            {
+            try {
+                _acceptingTeamUpdates = true;
                 _teamDictionary.Clear();
                 if (_gameVersion == GameVersion.BF3)
                 {
@@ -6821,6 +6817,7 @@ namespace PRoConEvents
                     OnTeamFactionOverride(2, 1);
                     OnTeamFactionOverride(3, 0);
                     OnTeamFactionOverride(4, 1);
+                    _acceptingTeamUpdates = false;
                 }
                 else if (_gameVersion == GameVersion.BF4 || _gameVersion == GameVersion.BFHL)
                 {
@@ -6829,75 +6826,79 @@ namespace PRoConEvents
                     Thread.Sleep(500);
                     ExecuteCommand("procon.protected.send", "vars.teamFactionOverride");
                     //Wait for proper team overrides to complete
-                    StartAndLogThread(new Thread(new ThreadStart(delegate
+                    if (_aliveThreads.Values.All(thread => thread.Name != "TeamAssignmentConfirmation"))
                     {
-                        Thread.CurrentThread.Name = "TeamAssignmentConfirmation";
-                        Thread.Sleep(TimeSpan.FromSeconds(1));
-                        DateTime starting = UtcDbTime();
-                        while (true)
+                        StartAndLogThread(new Thread(new ThreadStart(delegate
                         {
-                            if ((UtcDbTime() - starting).TotalSeconds > 30)
+                            Thread.CurrentThread.Name = "TeamAssignmentConfirmation";
+                            Thread.Sleep(TimeSpan.FromSeconds(1));
+                            DateTime starting = UtcDbTime();
+                            while (true)
                             {
-                                Log.Warn("TeamAssignmentConfirmation took too long.");
+                                if ((UtcDbTime() - starting).TotalSeconds > 30)
+                                {
+                                    Log.Warn("TeamAssignmentConfirmation took too long.");
+                                    break;
+                                }
+                                if (!_teamDictionary.ContainsKey(1) ||
+                                    !_teamDictionary.ContainsKey(2) ||
+                                    !_teamDictionary.ContainsKey(3) ||
+                                    !_teamDictionary.ContainsKey(4))
+                                {
+                                    if (_isTestingAuthorized)
+                                        Log.Info("Teams not set yet, waiting.");
+                                    Thread.Sleep(TimeSpan.FromSeconds(1));
+                                    continue;
+                                }
+                                if (_isTestingAuthorized)
+                                    Log.Success("Teams updated.");
+                                _acceptingTeamUpdates = false;
+                                if (_isTestingAuthorized &&
+                                    _FeedBaserapeCausingPlayerDispersion &&
+                                    _firstPlayerListComplete)
+                                {
+                                    //Update team assignment of baserape causing players
+                                    var randomBRCPlayers = Shuffle(
+                                        _PlayerDictionary.Values.Where(dPlayer =>
+                                            dPlayer.player_type == PlayerType.Player &&
+                                            _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
+                                    //                            var taggedBRCPlayers = _PlayerDictionary.Values.Where(dPlayer =>
+                                    //                                    dPlayer.player_type == PlayerType.Player &&
+                                    //                                    _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).OrderBy(dPlayer => dPlayer.player_clanTag).ToList();
+                                    if (randomBRCPlayers.Count > 1)
+                                    {
+                                        AdKatsTeam team1;
+                                        AdKatsTeam team2;
+                                        if (!_teamDictionary.TryGetValue(1, out team1))
+                                        {
+                                            Log.Info("Team 1 was not found, waiting.");
+                                            continue;
+                                        }
+                                        if (!_teamDictionary.TryGetValue(2, out team2))
+                                        {
+                                            Log.Info("Team 2 was not found, waiting.");
+                                            continue;
+                                        }
+                                        Random rand = new Random();
+                                        Boolean team1Set = rand.NextDouble() >= 0.5;
+                                        foreach (var aPlayer in randomBRCPlayers)
+                                        {
+                                            aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
+                                            ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                            Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                            team1Set = !team1Set;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Log.Info("Not enough BRC players online to do splitting.");
+                                    }
+                                    FetchAllAccess(true);
+                                }
                                 break;
                             }
-                            if (!_teamDictionary.ContainsKey(1) ||
-                                !_teamDictionary.ContainsKey(2) ||
-                                !_teamDictionary.ContainsKey(3) ||
-                                !_teamDictionary.ContainsKey(4))
-                            {
-                                if (_isTestingAuthorized)
-                                    Log.Info("Teams not set yet, waiting.");
-                                Thread.Sleep(TimeSpan.FromSeconds(1));
-                                continue;
-                            }
-                            if (_isTestingAuthorized)
-                            {
-                                //Update team assignment of baserape causing players
-                                var randomBRCPlayers = Shuffle(
-                                    _PlayerDictionary.Values.Where(dPlayer =>
-                                        dPlayer.player_type == PlayerType.Player &&
-                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
-                                //                            var taggedBRCPlayers = _PlayerDictionary.Values.Where(dPlayer =>
-                                //                                    dPlayer.player_type == PlayerType.Player &&
-                                //                                    _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).OrderBy(dPlayer => dPlayer.player_clanTag).ToList();
-                                if (randomBRCPlayers.Count > 1)
-                                {
-                                    AdKatsTeam team1;
-                                    AdKatsTeam team2;
-                                    if (!_teamDictionary.TryGetValue(1, out team1))
-                                    {
-                                        Log.Info("Team 1 was not found, waiting.");
-                                        continue;
-                                    }
-                                    if (!_teamDictionary.TryGetValue(2, out team2))
-                                    {
-                                        Log.Info("Team 2 was not found, waiting.");
-                                        continue;
-                                    }
-                                    Random rand = new Random();
-                                    Boolean team1Set = rand.NextDouble() >= 0.5;
-                                    foreach (var aPlayer in randomBRCPlayers)
-                                    {
-                                        aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
-                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
-                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                        team1Set = !team1Set;
-                                    }
-                                }
-                                else
-                                {
-                                    Log.Info("Not enough BRC players online to do splitting.");
-                                }
-                                FetchAllAccess(true);
-                            }
-                            break;
-                        }
-                        LogThreadExit();
-                    })));
-                    if (_isTestingAuthorized &&
-                        _FeedBaserapeCausingPlayerDispersion)
-                    {
+                            LogThreadExit();
+                        })));
                     }
                 }
             }
