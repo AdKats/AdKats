@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.8.2
+ * Version 6.5.8.3
  * 17-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.8.2</version_code>
+ * <version_code>6.5.8.3</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.8.2";
+        private const String PluginVersion = "6.5.8.3";
 
         public enum GameVersion
         {
@@ -34825,6 +34825,27 @@ namespace PRoConEvents
                                         Log.Debug("Locking on _tsPlayers", 6); lock (_tsPlayers)
                                         {
                                             foreach (AdKatsPlayer aPlayer in _tsPlayers.Values.Where(aPlayer =>
+                                                aPlayer.game_id == _serverInfo.GameID &&
+                                                !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
+                                            {
+                                                tempASPlayers.Add(new AdKatsSpecialPlayer()
+                                                {
+                                                    player_game = (int)_serverInfo.GameID,
+                                                    player_server = (int)_serverInfo.ServerID,
+                                                    player_group = asGroup,
+                                                    player_identifier = aPlayer.player_name,
+                                                    player_object = aPlayer,
+                                                    player_effective = UtcDbTime(),
+                                                    player_expiration = UtcDbTime().Add(TimeSpan.FromDays(7300))
+                                                });
+                                            }
+                                        }
+                                    }
+                                    if (_isTestingAuthorized && _FeedBaserapeCausingPlayerDispersion)
+                                    {
+                                        Log.Debug("Locking on _baserapeCausingPlayers", 6); lock (_baserapeCausingPlayers)
+                                        {
+                                            foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(aPlayer =>
                                                 aPlayer.game_id == _serverInfo.GameID &&
                                                 !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
                                             {
