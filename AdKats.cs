@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.8.3
+ * Version 6.5.8.4
  * 17-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.8.3</version_code>
+ * <version_code>6.5.8.4</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.8.3";
+        private const String PluginVersion = "6.5.8.4";
 
         public enum GameVersion
         {
@@ -6819,7 +6819,7 @@ namespace PRoConEvents
                     OnTeamFactionOverride(4, 1);
                     _acceptingTeamUpdates = false;
                 }
-                else if (_gameVersion == GameVersion.BF4 || _gameVersion == GameVersion.BFHL)
+                else if (_gameVersion == GameVersion.BF4)
                 {
                     _teamDictionary[0] = new AdKatsTeam(this, 0, "Spectator", "Spectators", "Server Spectators");
                     Log.Debug("Assigning team ID " + 0 + " to Spectator", 4);
@@ -6899,6 +6899,48 @@ namespace PRoConEvents
                             }
                             LogThreadExit();
                         })));
+                    }
+                }
+                else if (_gameVersion == GameVersion.BFHL)
+                {
+                    _teamDictionary[0] = new AdKatsTeam(this, 0, "Spectator", "Spectators", "Server Spectators");
+                    Log.Debug("Assigning team ID " + 0 + " to Spectator", 4);
+                    OnTeamFactionOverride(1, 0);
+                    OnTeamFactionOverride(2, 1);
+                    _acceptingTeamUpdates = false;
+                    if (_isTestingAuthorized &&
+                        _FeedBaserapeCausingPlayerDispersion &&
+                        _firstPlayerListComplete)
+                    {
+                        //Update team assignment of baserape causing players
+                        var randomBRCPlayers = Shuffle(
+                            _PlayerDictionary.Values.Where(dPlayer =>
+                                dPlayer.player_type == PlayerType.Player &&
+                                _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
+                        //                            var taggedBRCPlayers = _PlayerDictionary.Values.Where(dPlayer =>
+                        //                                    dPlayer.player_type == PlayerType.Player &&
+                        //                                    _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).OrderBy(dPlayer => dPlayer.player_clanTag).ToList();
+                        if (randomBRCPlayers.Count > 1)
+                        {
+                            AdKatsTeam team1;
+                            AdKatsTeam team2;
+                            _teamDictionary.TryGetValue(1, out team1);
+                            _teamDictionary.TryGetValue(2, out team2);
+                            Random rand = new Random();
+                            Boolean team1Set = rand.NextDouble() >= 0.5;
+                            foreach (var aPlayer in randomBRCPlayers)
+                            {
+                                aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
+                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                team1Set = !team1Set;
+                            }
+                        }
+                        else
+                        {
+                            Log.Info("Not enough BRC players online to do splitting.");
+                        }
+                        FetchAllAccess(true);
                     }
                 }
             }
