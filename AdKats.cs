@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.7.9
- * 16-APR-2015
+ * Version 6.5.8.0
+ * 17-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.7.9</version_code>
+ * <version_code>6.5.8.0</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.7.9";
+        private const String PluginVersion = "6.5.8.0";
 
         public enum GameVersion
         {
@@ -6641,106 +6641,104 @@ namespace PRoConEvents
         {
             try
             {
-                Log.Debug("Locking on _teamDictionary", 6); lock (_teamDictionary)
+                switch (overrideTeamId)
                 {
-                    switch (overrideTeamId)
-                    {
-                        case -1:
-                            //Check for already existing Neutral team
-                            if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
-                                _teamDictionary.ContainsKey(targetTeamID) &&
-                                _teamDictionary[targetTeamID].TeamKey == "Neutral")
-                            {
-                                Log.Debug("Neutral Team already set for team " + targetTeamID + ", cancelling override.", 4);
+                    case -1:
+                        //Check for already existing Neutral team
+                        if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
+                            _teamDictionary.ContainsKey(targetTeamID) &&
+                            _teamDictionary[targetTeamID].TeamKey == "Neutral")
+                        {
+                            Log.Debug("Neutral Team already set for team " + targetTeamID + ", cancelling override.", 4);
+                            break;
+                        }
+                        _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "Neutral", "Neutral Team", "Neutral Team");
+                        Log.Debug("Assigning team ID " + targetTeamID + " to Neutral ", 4);
+                        break;
+                    case 0:
+                        switch (_gameVersion)
+                        {
+                            case GameVersion.BF3:
+                            case GameVersion.BF4:
+                                //Check for already existing US team
+                                if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
+                                    _teamDictionary.ContainsKey(targetTeamID) &&
+                                    _teamDictionary[targetTeamID].TeamKey == "US")
+                                {
+                                    Log.Debug("Team US already set for team " + targetTeamID + ", cancelling override.", 4);
+                                    break;
+                                }
+                                _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "US", "US Army", "United States Army");
+                                Log.Debug("Assigning team ID " + targetTeamID + " to US ", 4);
                                 break;
-                            }
-                            _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "Neutral", "Neutral Team", "Neutral Team");
-                            Log.Debug("Assigning team ID " + targetTeamID + " to Neutral ", 4);
-                            break;
-                        case 0:
-                            switch (_gameVersion) {
-                                case GameVersion.BF3:
-                                case GameVersion.BF4:
-                                    //Check for already existing US team
-                                    if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
-                                        _teamDictionary.ContainsKey(targetTeamID) &&
-                                        _teamDictionary[targetTeamID].TeamKey == "US")
-                                    {
-                                        Log.Debug("Team US already set for team " + targetTeamID + ", cancelling override.", 4);
-                                        break;
-                                    }
-                                    _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "US", "US Army", "United States Army");
-                                    Log.Debug("Assigning team ID " + targetTeamID + " to US ", 4);
+                            case GameVersion.BFHL:
+                                //Check for already existing US team
+                                if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
+                                    _teamDictionary.ContainsKey(targetTeamID) &&
+                                    _teamDictionary[targetTeamID].TeamKey == "Cops")
+                                {
+                                    Log.Debug("Team Cops already set for team " + targetTeamID + ", cancelling override.", 4);
                                     break;
-                                case GameVersion.BFHL:
-                                    //Check for already existing US team
-                                    if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
-                                        _teamDictionary.ContainsKey(targetTeamID) &&
-                                        _teamDictionary[targetTeamID].TeamKey == "Cops")
-                                    {
-                                        Log.Debug("Team Cops already set for team " + targetTeamID + ", cancelling override.", 4);
-                                        break;
-                                    }
-                                    _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "LE", "Cops", "Law Enforcement");
-                                    Log.Debug("Assigning team ID " + targetTeamID + " to Cops ", 4);
+                                }
+                                _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "LE", "Cops", "Law Enforcement");
+                                Log.Debug("Assigning team ID " + targetTeamID + " to Cops ", 4);
+                                break;
+                        }
+                        break;
+                    case 1:
+                        switch (_gameVersion)
+                        {
+                            case GameVersion.BF3:
+                            case GameVersion.BF4:
+                                //Check for already existing RU team
+                                if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
+                                    _teamDictionary.ContainsKey(targetTeamID) &&
+                                    _teamDictionary[targetTeamID].TeamKey == "RU")
+                                {
+                                    Log.Debug("Team RU already set for team " + targetTeamID + ", cancelling override.", 4);
                                     break;
-                            }
-                            break;
-                        case 1:
-                            switch (_gameVersion)
-                            {
-                                case GameVersion.BF3:
-                                case GameVersion.BF4:
-                                    //Check for already existing RU team
-                                    if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
-                                        _teamDictionary.ContainsKey(targetTeamID) &&
-                                        _teamDictionary[targetTeamID].TeamKey == "RU")
-                                    {
-                                        Log.Debug("Team RU already set for team " + targetTeamID + ", cancelling override.", 4);
-                                        break;
-                                    }
-                                    _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "RU", "Russian Army", "Russian Federation Army");
-                                    Log.Debug("Assigning team ID " + targetTeamID + " to RU", 4);
+                                }
+                                _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "RU", "Russian Army", "Russian Federation Army");
+                                Log.Debug("Assigning team ID " + targetTeamID + " to RU", 4);
+                                break;
+                            case GameVersion.BFHL:
+                                //Check for already existing RU team
+                                if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
+                                    _teamDictionary.ContainsKey(targetTeamID) &&
+                                    _teamDictionary[targetTeamID].TeamKey == "Crims")
+                                {
+                                    Log.Debug("Team Crims already set for team " + targetTeamID + ", cancelling override.", 4);
                                     break;
-                                case GameVersion.BFHL:
-                                    //Check for already existing RU team
-                                    if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20 &&
-                                        _teamDictionary.ContainsKey(targetTeamID) &&
-                                        _teamDictionary[targetTeamID].TeamKey == "Crims")
-                                    {
-                                        Log.Debug("Team Crims already set for team " + targetTeamID + ", cancelling override.", 4);
-                                        break;
-                                    }
-                                    _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "CR", "Crims", "Criminals");
-                                    Log.Debug("Assigning team ID " + targetTeamID + " to Crims", 4);
+                                }
+                                _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "CR", "Crims", "Criminals");
+                                Log.Debug("Assigning team ID " + targetTeamID + " to Crims", 4);
+                                break;
+                        }
+                        break;
+                    case 2:
+                        switch (_gameVersion)
+                        {
+                            case GameVersion.BF3:
+                            case GameVersion.BF4:
+                                //Check for already existing CN team
+                                if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20
+                                    && _teamDictionary.ContainsKey(targetTeamID) &&
+                                    _teamDictionary[targetTeamID].TeamKey == "CN")
+                                {
+                                    Log.Debug("Team CN already set for team " + targetTeamID + ", cancelling override.", 4);
                                     break;
-                            }
-                            break;
-                        case 2:
-                            switch (_gameVersion)
-                            {
-                                case GameVersion.BF3:
-                                case GameVersion.BF4:
-                                    //Check for already existing CN team
-                                    if (_serverInfo.GetRoundElapsedTime().TotalSeconds > 20
-                                        && _teamDictionary.ContainsKey(targetTeamID) &&
-                                        _teamDictionary[targetTeamID].TeamKey == "CN")
-                                    {
-                                        Log.Debug("Team CN already set for team " + targetTeamID + ", cancelling override.", 4);
-                                        break;
-                                    }
-                                    _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "CN", "Chinese Army", "Chinese People's Liberation Army");
-                                    Log.Debug("Assigning team ID " + targetTeamID + " to CN", 4);
-                                    break;
-                                default:
-                                    Log.Error("Attempted to use team key 2 on non-BF3/BF4 server.");
-                                    break;
-                            }
-                            break;
-                        default:
-                            Log.Error("Team ID " + overrideTeamId + " was not understood.");
-                            break;
-                    }
+                                }
+                                _teamDictionary[targetTeamID] = new AdKatsTeam(this, targetTeamID, "CN", "Chinese Army", "Chinese People's Liberation Army");
+                                Log.Debug("Assigning team ID " + targetTeamID + " to CN", 4);
+                                break;
+                            default:
+                                Log.Error("Attempted to use team key 2 on non-BF3/BF4 server.");
+                                break;
+                        }
+                        break;
+                    default:
+                        Log.Error("Team ID " + overrideTeamId + " was not understood.");
+                        break;
                 }
             }
             catch (Exception e)
@@ -6812,20 +6810,97 @@ namespace PRoConEvents
 
         public void UpdateFactions()
         {
-            if (_gameVersion == GameVersion.BF3)
-            {
-                OnTeamFactionOverride(1, 0);
-                OnTeamFactionOverride(2, 1);
-                OnTeamFactionOverride(3, 0);
-                OnTeamFactionOverride(4, 1);
-            }
-            else if (_gameVersion == GameVersion.BF4 || _gameVersion == GameVersion.BFHL)
+            try
             {
                 _teamDictionary.Clear();
-                _teamDictionary[0] = new AdKatsTeam(this, 0, "Spectator", "Spectators", "Server Spectators");
-                Log.Debug("Assigning team ID " + 0 + " to Spectator", 4);
-                Thread.Sleep(500);
-                ExecuteCommand("procon.protected.send", "vars.teamFactionOverride");
+                if (_gameVersion == GameVersion.BF3)
+                {
+                    OnTeamFactionOverride(1, 0);
+                    OnTeamFactionOverride(2, 1);
+                    OnTeamFactionOverride(3, 0);
+                    OnTeamFactionOverride(4, 1);
+                }
+                else if (_gameVersion == GameVersion.BF4 || _gameVersion == GameVersion.BFHL)
+                {
+                    _teamDictionary[0] = new AdKatsTeam(this, 0, "Spectator", "Spectators", "Server Spectators");
+                    Log.Debug("Assigning team ID " + 0 + " to Spectator", 4);
+                    Thread.Sleep(500);
+                    ExecuteCommand("procon.protected.send", "vars.teamFactionOverride");
+                    //Wait for proper team overrides to complete
+                    StartAndLogThread(new Thread(new ThreadStart(delegate
+                    {
+                        Thread.CurrentThread.Name = "TeamAssignmentConfirmation";
+                        Thread.Sleep(TimeSpan.FromSeconds(1));
+                        DateTime starting = UtcDbTime();
+                        while (true)
+                        {
+                            if ((UtcDbTime() - starting).TotalSeconds > 30)
+                            {
+                                Log.Warn("TeamAssignmentConfirmation took too long.");
+                                break;
+                            }
+                            if (!_teamDictionary.ContainsKey(1) ||
+                                !_teamDictionary.ContainsKey(2) ||
+                                !_teamDictionary.ContainsKey(3) ||
+                                !_teamDictionary.ContainsKey(4))
+                            {
+                                if (_isTestingAuthorized)
+                                    Log.Info("Teams not set yet, waiting.");
+                                Thread.Sleep(TimeSpan.FromSeconds(1));
+                                continue;
+                            }
+                            if (_isTestingAuthorized)
+                            {
+                                //Update team assignment of baserape causing players
+                                var randomBRCPlayers = Shuffle(
+                                    _PlayerDictionary.Values.Where(dPlayer =>
+                                        dPlayer.player_type == PlayerType.Player &&
+                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
+                                //                            var taggedBRCPlayers = _PlayerDictionary.Values.Where(dPlayer =>
+                                //                                    dPlayer.player_type == PlayerType.Player &&
+                                //                                    _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).OrderBy(dPlayer => dPlayer.player_clanTag).ToList();
+                                if (randomBRCPlayers.Count > 1)
+                                {
+                                    AdKatsTeam team1;
+                                    AdKatsTeam team2;
+                                    if (!_teamDictionary.TryGetValue(1, out team1))
+                                    {
+                                        Log.Info("Team 1 was not found, waiting.");
+                                        continue;
+                                    }
+                                    if (!_teamDictionary.TryGetValue(2, out team2))
+                                    {
+                                        Log.Info("Team 2 was not found, waiting.");
+                                        continue;
+                                    }
+                                    Random rand = new Random();
+                                    Boolean team1Set = rand.NextDouble() >= 0.5;
+                                    foreach (var aPlayer in randomBRCPlayers)
+                                    {
+                                        aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
+                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                        team1Set = !team1Set;
+                                    }
+                                }
+                                else
+                                {
+                                    Log.Info("Not enough BRC players online to do splitting.");
+                                }
+                                FetchAllAccess(true);
+                            }
+                            break;
+                        }
+                        LogThreadExit();
+                    })));
+                    if (_isTestingAuthorized &&
+                        _FeedBaserapeCausingPlayerDispersion)
+                    {
+                    }
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error while running faction updates.", e));
             }
         }
 
@@ -9431,66 +9506,6 @@ namespace PRoConEvents
                     //Update the factions 
                     UpdateFactions();
                     StartRoundTicketLogger(0);
-                    if (_isTestingAuthorized && _FeedBaserapeCausingPlayerDispersion) {
-                        StartAndLogThread(new Thread(new ThreadStart(delegate
-                        {
-                            Thread.CurrentThread.Name = "BRCPlayerAssignment";
-                            Thread.Sleep(TimeSpan.FromSeconds(1));
-                            DateTime starting = UtcDbTime();
-                            while (true) {
-                                if ((UtcDbTime() - starting).TotalSeconds > 30) {
-                                    Log.Warn("BRC player assignment took too long.");
-                                    break;
-                                }
-                                if (!_teamDictionary.ContainsKey(1) || !_teamDictionary.ContainsKey(2)) {
-                                    Log.Info("Teams not set yet, waiting.");
-                                    Thread.Sleep(TimeSpan.FromSeconds(1));
-                                    continue;
-                                }
-                                AdKatsTeam team1;
-                                AdKatsTeam team2;
-                                Log.Debug("Locking on _teamDictionary", 6); lock (_teamDictionary)
-                                {
-                                    if (!_teamDictionary.TryGetValue(1, out team1))
-                                    {
-                                        Log.Info("Team 1 was not found, waiting.");
-                                        continue;
-                                    }
-                                    if (!_teamDictionary.TryGetValue(2, out team2))
-                                    {
-                                        Log.Info("Team 2 was not found, waiting.");
-                                        continue;
-                                    }
-                                }
-                                //Update team assignment of baserape causing players
-//                                var randomBRCPlayers = Shuffle(
-//                                    _PlayerDictionary.Values.Where(dPlayer => 
-//                                        dPlayer.player_type == PlayerType.Player &&
-//                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
-                                var taggedBRCPlayers = _PlayerDictionary.Values.Where(dPlayer =>
-                                        dPlayer.player_type == PlayerType.Player &&
-                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).OrderBy(dPlayer => dPlayer.player_clanTag).ToList();
-                                if (taggedBRCPlayers.Count > 1)
-                                {
-                                    Random rand = new Random();
-                                    Boolean team1Set = rand.NextDouble() >= 0.5;
-                                    foreach (var aPlayer in taggedBRCPlayers)
-                                    {
-                                        aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
-                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
-                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                        team1Set = !team1Set;
-                                    }
-                                }
-                                else {
-                                    Log.Info("Not enough BRC players online to do splitting.");
-                                }
-                                FetchAllAccess(true);
-                                break;
-                            }
-                            LogThreadExit();
-                        })));
-                    }
                 }
             }
             catch (Exception e)
@@ -12720,26 +12735,23 @@ namespace PRoConEvents
                         }
                         AdKatsTeam team1;
                         AdKatsTeam team2;
-                        Log.Debug("Locking on _teamDictionary", 6); lock (_teamDictionary)
+                        if (!_teamDictionary.TryGetValue(1, out team1))
                         {
-                            if (!_teamDictionary.TryGetValue(1, out team1))
+                            if (_roundState == RoundState.Playing)
                             {
-                                if (_roundState == RoundState.Playing)
-                                {
-                                    Log.Debug("Team 1 was not found. Unable to continue.", 1);
-                                }
-                                _threadMasterWaitHandle.WaitOne(5000);
-                                continue;
+                                Log.Debug("Team 1 was not found. Unable to continue.", 1);
                             }
-                            if (!_teamDictionary.TryGetValue(2, out team2))
+                            _threadMasterWaitHandle.WaitOne(5000);
+                            continue;
+                        }
+                        if (!_teamDictionary.TryGetValue(2, out team2))
+                        {
+                            if (_roundState == RoundState.Playing)
                             {
-                                if (_roundState == RoundState.Playing)
-                                {
-                                    Log.Debug("Team 2 was not found. Unable to continue.", 1);
-                                }
-                                _threadMasterWaitHandle.WaitOne(5000);
-                                continue;
+                                Log.Debug("Team 2 was not found. Unable to continue.", 1);
                             }
+                            _threadMasterWaitHandle.WaitOne(5000);
+                            continue;
                         }
 
                         //Refresh Max Player Count, needed for responsive server size
@@ -19550,20 +19562,8 @@ namespace PRoConEvents
             }
         }
 
-        private AdKatsTeam GetTeamByKey(String teamKey)
-        {
-            Log.Debug("Locking on _teamDictionary", 6); lock (_teamDictionary)
-            {
-                foreach (AdKatsTeam curTeam in _teamDictionary.Values)
-                {
-                    if (String.Equals(curTeam.TeamKey, teamKey, StringComparison.CurrentCultureIgnoreCase))
-                    {
-                        //Team found
-                        return curTeam;
-                    }
-                }
-            }
-            return null;
+        private AdKatsTeam GetTeamByKey(String teamKey) {
+            return _teamDictionary.Values.FirstOrDefault(dTeam => dTeam.TeamKey == teamKey);
         }
 
         public void FinalizeRecord(AdKatsRecord record)
