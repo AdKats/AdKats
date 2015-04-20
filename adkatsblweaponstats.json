@@ -690,6 +690,10 @@
       "xbow-scoped": {
         "max": 100,
         "min": 0
+      },
+      "m26-mass": {
+        "max": 100,
+        "min": 0
       }
     }
   },
