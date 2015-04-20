@@ -369,7 +369,7 @@
         "max": 20,
         "min": 11.2
       },
-      "as val": {
+      "as-val": {
         "max": 30,
         "min": 16
       },
@@ -677,7 +677,7 @@
       }
     }
   },
-  "BFH": {
+  "BFHL": {
     "assault_rifles": {
       "acwr": {
         "max": 25,
