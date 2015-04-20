@@ -691,6 +691,10 @@
         "max": 100,
         "min": 0
       },
+      "xbow": {
+        "max": 100,
+        "min": 0
+      },
       "xbow-scoped": {
         "max": 100,
         "min": 0
