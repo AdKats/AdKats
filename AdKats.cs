@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.9.2
+ * Version 6.5.9.3
  * 19-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.9.2</version_code>
+ * <version_code>6.5.9.3</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.9.2";
+        private const String PluginVersion = "6.5.9.3";
 
         public enum GameVersion
         {
@@ -11163,7 +11163,7 @@ namespace PRoConEvents
                                         if (_UseHackerChecker) {
                                             RunStatSiteHackCheck(aPlayer, false);
                                             playersWithStats++;
-                                            Log.Info(aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (playersWithStats / checkedPlayers.Count) * 100) + "% of players checked)");
+                                            Log.Debug(aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (playersWithStats / checkedPlayers.Count) * 100) + "% of " + checkedPlayers.Count + " players checked)", 2);
                                         }
                                         else {
                                             Log.Debug("Player skipped after disabling hacker checker.", 2);
