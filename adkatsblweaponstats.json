@@ -812,7 +812,7 @@
         "min": 34
       },
       "410-jury": {
-        "max": 0,
+        "max": 100,
         "min": 0
       },
       "g17": {
@@ -880,7 +880,7 @@
     },
     "shotguns": {
       "870p-magnum": {
-        "max": 0,
+        "max": 100,
         "min": 0
       }
     },
@@ -916,15 +916,15 @@
     },
     "sg_enforcer": {
       "double-barrel-shotgun": {
-        "max": 0,
+        "max": 100,
         "min": 0
       },
       "37-stakeout": {
-        "max": 0,
+        "max": 100,
         "min": 0
       },
       "spas-12": {
-        "max": 0,
+        "max": 100,
         "min": 0
       }
     },
