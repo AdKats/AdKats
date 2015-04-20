@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.5.9.4
+ * Version 6.5.9.5
  * 19-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.5.9.4</version_code>
+ * <version_code>6.5.9.5</version_code>
  */
 
 using System;
@@ -63,7 +63,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.5.9.4";
+        private const String PluginVersion = "6.5.9.5";
 
         public enum GameVersion
         {
@@ -6178,7 +6178,7 @@ namespace PRoConEvents
                             }
 
                             //Run SpamBot
-                            if (_pluginEnabled && _spamBotEnabled)
+                            if (_pluginEnabled && _spamBotEnabled && _firstPlayerListComplete)
                             {
                                 if ((UtcDbTime() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds)
                                 {
@@ -11091,7 +11091,7 @@ namespace PRoConEvents
         public void HackerCheckerThreadLoop()
         {
             HashSet<String> checkedPlayers = new HashSet<String>();
-            Double playersWithStats = 0;
+            HashSet<String> checkedPlayersStats = new HashSet<String>();
             try
             {
                 Log.Debug("Starting Hacker Checker Thread", 1);
@@ -11165,8 +11165,8 @@ namespace PRoConEvents
                                     if (aPlayer.stats != null && aPlayer.stats.StatsException == null) {
                                         if (_UseHackerChecker) {
                                             RunStatSiteHackCheck(aPlayer, false);
-                                            playersWithStats++;
-                                            Log.Debug(aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (playersWithStats / checkedPlayers.Count) * 100) + "% of " + checkedPlayers.Count + " players checked)", 2);
+                                            checkedPlayersStats.Add(aPlayer.player_guid);
+                                            Log.Debug(aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (checkedPlayersStats.Count / (Double) checkedPlayers.Count) * 100) + "% of " + checkedPlayers.Count + " players checked)", 2);
                                         }
                                         else {
                                             Log.Debug("Player skipped after disabling hacker checker.", 2);
