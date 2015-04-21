@@ -1,13 +1,12 @@
 <script>
-    //<latest_stable_release>6.5.0.0</latest_stable_release>
+    //<latest_stable_release>6.6.0.0</latest_stable_release>
 </script>
 <p>
     <a name=adkats />
     <img src="https://raw.githubusercontent.com/ColColonCleaner/AdKats/master/images/AdKats.jpg" alt="AdKats Advanced In-Game Admin Tools">
 </p>
-<h2><a href="https://forum.myrcon.com/showthread.php?6045-Advanced-In-Game-Admin-and-Ban-Enforcer-AdKats-6-5-0-0&p=116766&viewfull=1#post116766" target="_blank">UPDATE 6.5.0.0 POSTED! Click here for details</a></h2>
 <p>
-    <b>New Extension! Click below for ability to enforce loadouts on-spawn!</b>
+    <b>New Extension! Click below to enforce BF4 loadouts on-spawn!</b>
 </p>
 <p>
     <a href="https://forum.myrcon.com/showthread.php?9373-On-Spawn-Loadout-Enforcer-for-Infantry-Vehicles-AdKatsLRT-2-0-0-0" name=thread>
@@ -16,7 +15,7 @@
 </p>
 <h2>Overview</h2>
 <p>
-    Admin Toolset with a plethora of features, ~90 available in-game commands, and many customization options.
+    Admin Toolset with a plethora of features, ~100 available in-game commands, and many customization options.
     AdKats focuses on making in-game admins more efficient and accurate at their jobs, with flexibility for almost any
     setup.
     Includes a cross-server ban enforcer with advanced enforcement features, metabans support, global admin management,
@@ -737,8 +736,7 @@ it happen.
 <p>
     Special player list table "adkats_specialplayers" has been added.
     In this table, players can be added to any desired group accepted by AdKats.
-    Valid groups are currently slot_reserved, slot_spectator, whitelist_multibalancer, blacklist_dispersion, and
-    whitelist_hackerchecker.
+    Valid groups can be seen on github, in the adkatsspecialgroups.json file.
     Players can be added by ID, or by identifier (name, guid, or IP), and can be assigned a game and server to apply
     them to.
     If you use player IDs then you wont need to update player names if they change their names,
@@ -818,13 +816,13 @@ it happen.
     KPM Automatic Ban [WEAPONNAME-KPM-KILLS-HEADSHOTS]
 </p>
 <p>
-    <ul>
-        <li>DPS bans take priority over HSK bans, and HSK over KPM.</li>
-        <li>Whitelisting can either be done using the hcwhitelist command, or by entering their player ID, name, guid,
-            or IP in the adkats_specialplayers table using the group "whitelist_hackerchecker"</li>
-        <li>If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes
-            while they are in the server, stopping if they leave.</li>
-    </ul>
+<ul>
+    <li>DPS bans take priority over HSK bans, and HSK over KPM.</li>
+    <li>Whitelisting can either be done using the hcwhitelist command, or by entering their player ID, name, guid,
+        or IP in the adkats_specialplayers table using the group "whitelist_hackerchecker"</li>
+    <li>If a player is not found on BF3Stats or BF4Stats, AdKats will keep checking for stats every couple minutes
+        while they are in the server, stopping if they leave.</li>
+</ul>
 </p>
 <p>
     Additional info posts about the calculations:<br/>
@@ -1089,1048 +1087,1048 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     Any action command when given a player name (other than moving players) will require a reason.
 </p>
 <table>
-<tr>
-    <td><b>Command</b></td>
-    <td><b>Default Text</b></td>
-    <td><b>Params</b></td>
-    <td><b>Description</b></td>
-</tr>
-<tr>
-    <td><b>Confirm Command</b></td>
-    <td>yes</td>
-    <td>None</td>
-    <td>
-        The in-game command used for confirming other commands when needed. Must be active. Must be accessible under 'Any'. Must use 'yes' as command text. Cannot be denied for any role.
-    </td>
-</tr>
-<tr>
-    <td><b>Cancel Command</b></td>
-    <td>no</td>
-    <td>None</td>
-    <td>
-        The in-game command used to cancel other commands when needed. Must be active. Must be accessible under 'Any'. Must use 'no' as command text. Cannot be denied for any role
-    </td>
-</tr>
-<tr>
-    <td><b>Kill Player</b></td>
-    <td>kill</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [player][reason]<br/>
-        OR<br/>
-        [reportID]<br/>
-        OR<br/>
-        [reportID][reason]
-    </td>
-    <td>The in-game command used for killing players. If the player is dead, they will be killed on spawn.</td>
-</tr>
-<tr>
-    <td><b>Kill Player (Force)</b></td>
-    <td>fkill</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [player][reason]<br/>
-        OR<br/>
-        [reportID]<br/>
-        OR<br/>
-        [reportID][reason]
-    </td>
-    <td>Bypasses all extra functionality of the regular kill command, issuing admin kill on them immediately.</td>
-</tr>
-<tr>
-    <td><b>Kick Player</b></td>
-    <td>kick</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [player][reason]<br/>
-        OR<br/>
-        [reportID]<br/>
-        OR<br/>
-        [reportID][reason]
-    </td>
-    <td>The in-game command used for kicking players.</td>
-</tr>
-<tr>
-    <td><b>Temp-Ban Player</b></td>
-    <td>tban</td>
-    <td>
-        [duration]<br/>
-        OR<br/>
-        [duration][player][reason]<br/>
-        OR<br/>
-        [duration][reportID]<br/>
-        OR<br/>
-        [duration][reportID][reason]
-    </td>
-    <td>
-        The in-game command used for temp-banning players.
-        Default time is in minutes, but the number can have a letter after it designating the units. e.g. 2h for 2
-        hours. Valid suffixes are m, h, d, w, and y.
-    </td>
-</tr>
-<tr>
-    <td><b>Perma-Ban Player</b></td>
-    <td>ban</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [player][reason]<br/>
-        OR<br/>
-        [reportID]<br/>
-        OR<br/>
-        [reportID][reason]
-    </td>
-    <td>The in-game command used for perma-banning players.</td>
-</tr>
-<tr>
-    <td><b>Future Perma-Ban Player</b></td>
-    <td>fban</td>
-    <td>
-        [time]<br/>
-        OR<br/>
-        [time][player][reason]<br/>
-        OR<br/>
-        [time][reportID]<br/>
-        OR<br/>
-        [time][reportID][reason]
-    </td>
-    <td>
-        The in-game command used for future-banning players.
-        Default time is in minutes, but the number can have a letter after it designating the units. e.g. 2h for 2
-        hours. Valid suffixes are m, h, d, w, and y.
-        <br/><br/>
-        Future ban is the exact opposite of a temp-ban.
-        Enter the time the player has until they are permabanned.
-        This is used for requesting action/videos/etc from players, giving them a time frame to do so.
-        Ban is enforced on-join only, not during gameplay.
-        This command can only be used when ban enforcer is enabled.
-    </td>
-</tr>
-<tr>
-    <td><b>Unban Player</b></td>
-    <td>unban</td>
-    <td>
-        [player]
-        OR<br/>
-        [player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for unbanning players. This command can only be used when ban enforcer is enabled.
-    </td>
-</tr>
-<tr>
-    <td><b>Punish Player</b></td>
-    <td>punish</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [player][reason]<br/>
-        OR<br/>
-        [reportID]<br/>
-        OR<br/>
-        [reportID][reason]
-    </td>
-    <td>
-        The in-game command used for punishing players.
-        Will add a Punish record to the database,
-        increasing a player's total points according to your settings,
-        and issue the configured action for that point value.
-    </td>
-</tr>
-<tr>
-    <td><b>Forgive Player</b></td>
-    <td>forgive</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [player][reason]<br/>
-        OR<br/>
-        [reportID]<br/>
-        OR<br/>
-        [reportID][reason]
-    </td>
-    <td>
-        The in-game command used for forgiving players.
-        Will add a Forgive record to the database, decreasing a player's total points by 1.
-    </td>
-</tr>
-<tr>
-    <td><b>Warn Player</b></td>
-    <td>warn</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [player][reason]<br/>
-        OR<br/>
-        [reportID]<br/>
-        OR<br/>
-        [reportID][reason]
-    </td>
-    <td>
-        The in-game command used for warning players. This will give them a verbal warning across their screen, and log that they were warned.
-    </td>
-</tr>
-<tr>
-    <td><b>Mute Player</b></td>
-    <td>mute</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [player][reason]<br/>
-        OR<br/>
-        [reportID]<br/>
-        OR<br/>
-        [reportID][reason]
-    </td>
-    <td>
-        The in-game command used for muting players.
-        Players will be muted till the end of the round, X kills then kick if they keep talking.
-        Admins cannot be muted.
-    </td>
-</tr>
-<tr>
-    <td><b>Reserved Slot Player</b></td>
-    <td>reserved</td>
-    <td>
-        [duration or 'perm']<br/>
-        OR<br/>
-        [duration or 'perm'][player]<br/>
-        OR<br/>
-        [duration or 'perm'][player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for adding a player to reserved slots for the current server. The setting "Feed Server
-        Reserved Slots" must be enabled to use this command.
-    </td>
-</tr>
-<tr>
-    <td><b>Un-Reserved Slot Player</b></td>
-    <td>unreserved</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        The in-game command used for removing a player from reserved slots for the current server. The setting "Feed Server
-        Reserved Slots" must be enabled to use this command.
-    </td>
-</tr>
-<tr>
-    <td><b>Spectator Slot Player</b></td>
-    <td>spectator</td>
-    <td>
-        [duration or 'perm']<br/>
-        OR<br/>
-        [duration or 'perm'][player]<br/>
-        OR<br/>
-        [duration or 'perm'][player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for adding a player to spectator list for the current server. The setting "Feed Server
-        Spectator List" must be enabled to use this command.
-    </td>
-</tr>
-<tr>
-    <td><b>Un-Spectator Slot Player</b></td>
-    <td>unspectator</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        The in-game command used for removing a player from spectator slots for the current server. The setting "Feed Server
-        Spectator List" must be enabled to use this command.
-    </td>
-</tr>
-<tr>
-    <td><b>Ping Whitelist Player</b></td>
-    <td>pwhitelist</td>
-    <td>
-        [duration or 'perm']<br/>
-        OR<br/>
-        [duration or 'perm'][player]<br/>
-        OR<br/>
-        [duration or 'perm'][player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for adding a player to the ping kick whitelist for all servers.
-    </td>
-</tr>
-<tr>
-    <td><b>Un-Ping Whitelist Player</b></td>
-    <td>unpwhitelist</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        The in-game command used for removing a player from ping kick whitelist for all servers.
-    </td>
-</tr>
-<tr>
-    <td><b>AA Whitelist Player</b></td>
-    <td>aawhitelist</td>
-    <td>
-        [duration or 'perm']<br/>
-        OR<br/>
-        [duration or 'perm'][player]<br/>
-        OR<br/>
-        [duration or 'perm'][player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for adding a player to the Admin Assistant whitelist for all servers.
-    </td>
-</tr>
-<tr>
-    <td><b>Un-AA Whitelist Player</b></td>
-    <td>unaawhitelist</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        The in-game command used for removing a player from Admin Assistant whitelist for all servers.
-    </td>
-</tr>
-<tr>
-    <td><b>SpamBot Whitelist Player</b></td>
-    <td>spamwhitelist</td>
-    <td>
-        [duration or 'perm']<br/>
-        OR<br/>
-        [duration or 'perm'][player]<br/>
-        OR<br/>
-        [duration or 'perm'][player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for adding a player to the SpamBot whitelist for all servers.
-    </td>
-</tr>
-<tr>
-    <td><b>Un-SpamBot Whitelist Player</b></td>
-    <td>unspamwhitelist</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        The in-game command used for removing a player from SpamBot whitelist for all servers.
-    </td>
-</tr>
-<tr>
-    <td><b>MULTIBalancer Whitelist Player</b></td>
-    <td>mbwhitelist</td>
-    <td>
-        [duration or 'perm']<br/>
-        OR<br/>
-        [duration or 'perm'][player]<br/>
-        OR<br/>
-        [duration or 'perm'][player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for adding a player to MULTIBalancer whitelist for the current server. The setting
-        "Feed MULTIBalancer Whitelist" must be enabled to use this command.
-    </td>
-</tr>
-<tr>
-    <td><b>Un-MULTIBalancer Whitelist Player</b></td>
-    <td>unmbwhitelist</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        The in-game command used for removing a player from MULTIBalancer whitelist for the current server. "Feed MULTIBalancer Whitelist" must be enabled to use this command.
-    </td>
-</tr>
-<tr>
-    <td><b>MULTIBalancer Disperse Player</b></td>
-    <td>disperse</td>
-    <td>
-        [duration or 'perm']<br/>
-        OR<br/>
-        [duration or 'perm'][player]<br/>
-        OR<br/>
-        [duration or 'perm'][player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for adding a player to MULTIBalancer even dispersion for the current server. The setting "Feed MULTIBalancer Even Dispersion List" must be enabled to use this command.
-    </td>
-</tr>
-<tr>
-    <td><b>Un-MULTIBalancer Disperse Player</b></td>
-    <td>undisperse</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        The in-game command used for removing a player from MULTIBalancer even dispersion for the current server. "Feed MULTIBalancer Even Dispersion List" must be enabled to use this command.
-    </td>
-</tr>
-<tr>
-    <td><b>Spectator Blacklist Player</b></td>
-    <td>specblacklist</td>
-    <td>
-        [duration or 'perm']<br/>
-        OR<br/>
-        [duration or 'perm'][player]<br/>
-        OR<br/>
-        [duration or 'perm'][player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for adding a player to the Spectator Blacklist for all servers. Players under this group will not be able to enter the server as a spectator.
-    </td>
-</tr>
-<tr>
-    <td><b>Un-Spectator Blacklist Player</b></td>
-    <td>unspecblacklist</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        The in-game command used for removing a player from Spectator Blacklist for all servers.
-    </td>
-</tr>
-<tr>
-    <td><b>Report Whitelist Player</b></td>
-    <td>rwhitelist</td>
-    <td>
-        [duration or 'perm']<br/>
-        OR<br/>
-        [duration or 'perm'][player]<br/>
-        OR<br/>
-        [duration or 'perm'][player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for adding a player to the Report Whitelist for all servers. Players under this group cannot be reported.
-    </td>
-</tr>
-<tr>
-    <td><b>Un-Report Blacklist Player</b></td>
-    <td>unrwhitelist</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        The in-game command used for removing a player from Report Whitelist for all servers.
-    </td>
-</tr>
-<tr>
-    <td><b>Populator Whitelist Player</b></td>
-    <td>popwhitelist</td>
-    <td>
-        [duration or 'perm']<br/>
-        OR<br/>
-        [duration or 'perm'][player]<br/>
-        OR<br/>
-        [duration or 'perm'][player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for adding a player to the Populator Whitelist for all servers. Used when only allowing approved populators to be considered for automatic populator perks. Setting section B27-2.
-    </td>
-</tr>
-<tr>
-    <td><b>Un-Populator Blacklist Player</b></td>
-    <td>unpopwhitelist</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        The in-game command used for removing a player from Populator Whitelist for all servers.
-    </td>
-</tr>
-<tr>
-    <td><b>TeamKillTracker Whitelist Player</b></td>
-    <td>tkwhitelist</td>
-    <td>
-        [duration or 'perm']<br/>
-        OR<br/>
-        [duration or 'perm'][player]<br/>
-        OR<br/>
-        [duration or 'perm'][player][reason]<br/>
-    </td>
-    <td>
-        The in-game command used for adding a player to the TeamKillTracker Whitelist for all servers. "Feed TeamKillTracker Whitelist" must be enabled to use this command.
-    </td>
-</tr>
-<tr>
-    <td><b>Un-TeamKillTracker Blacklist Player</b></td>
-    <td>untkwhitelist</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        The in-game command used for removing a player from TeamKillTracker Whitelist for all servers. "Feed TeamKillTracker Whitelist" must be enabled to use this command.
-    </td>
-</tr>
-<tr>
-    <td><b>On-Death Move Player</b></td>
-    <td>move</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [player]<br/>
-        OR<br/>
-        [reportID]
-    </td>
-    <td>
-        The in-game command used for moving players between teams.
-        Will add players to the "on-death" move list, when they die they will be sent to TeamSwap.
-        If the player is already dead, this command automatically changes to force move.
-    </td>
-</tr>
-<tr>
-    <td><b>Force-Move Player</b></td>
-    <td>fmove</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [player]<br/>
-        OR<br/>
-        [reportID]
-    </td>
-    <td>
-        The in-game command used for force-moving players between teams.
-        Will immediately send the given player to TeamSwap.
-    </td>
-</tr>
-<tr>
-    <td><b>Join Player</b></td>
-    <td>join</td>
-    <td>
-        [player]<br/>
-        OR<br/>
-        [reportID]
-    </td>
-    <td>
-        The in-game command used for joining player's squads.
-        Will immediately send the speaker to the target if possible, within access limitations.
-    </td>
-</tr>
-<tr>
-    <td><b>Pull Player</b></td>
-    <td>pull</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        Pulls a player to your current squad, killing them in the process.
-    </td>
-</tr>
-<tr>
-    <td><b>Mark Player</b></td>
-    <td>mark</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        Marks a player for admin notification if they leave the server.
-    </td>
-</tr>
-<tr>
-    <td><b>Lock Player</b></td>
-    <td>lock</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        Locks a player from admin commands for 10 minutes. Only the locking admin will be able to act on them.
-    </td>
-</tr>
-<tr>
-    <td><b>Unlock Player</b></td>
-    <td>unlock</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        Allows the locking admin to unlock a currently locked player.
-    </td>
-</tr>
-<tr>
-    <td><b>TeamSwap Self</b></td>
-    <td>moveme</td>
-    <td>None</td>
-    <td>
-        The in-game command used for moving yourself between teams.
-        Will immediately send the speaker to TeamSwap.
-    </td>
-</tr>
-<tr>
-    <td><b>Report Player</b></td>
-    <td>report</td>
-    <td>[player][reason]</td>
-    <td>
-        The in-game command used for reporting players.
-        Must have a reason, and will inform a player otherwise when used incorrectly.
-        Will log a Report in the database (External GCP pulls from there for external admin notifications), and notify
-        all in-game admins.
-        Informs the reporter and admins of the report ID, which the punish system can use.
-    </td>
-</tr>
-<tr>
-    <td><b>Call Admin</b></td>
-    <td>admin</td>
-    <td>[player][reason]</td>
-    <td>
-        The in-game command used for calling admin attention to a player.
-        Same deal as report, but used for a different reason.
-        Informs the reporter and admins of the report ID, which the punish system can use.
-    </td>
-</tr>
-<tr>
-    <td><b>Accept Round Report</b></td>
-    <td>accept</td>
-    <td>
-        [reportID]
-    </td>
-    <td>
-        The in-game command used for accepting reports as confirmed.
-    </td>
-</tr>
-<tr>
-    <td><b>Deny Round Report</b></td>
-    <td>deny</td>
-    <td>
-        [reportID]
-    </td>
-    <td>
-        The in-game command used for denying reports.
-    </td>
-</tr>
-<tr>
-    <td><b>Ignore Round Report</b></td>
-    <td>ignore</td>
-    <td>
-        [reportID]
-    </td>
-    <td>
-        The in-game command used for ignoring reports.
-    </td>
-</tr>
-<tr>
-    <td><b>Contest Report</b></td>
-    <td>contest</td>
-    <td>
-        None
-    </td>
-    <td>
-        Usable by players to contest round reports before admins act on them.
-    </td>
-</tr>
-<tr>
-    <td><b>Admin Say</b></td>
-    <td>say</td>
-    <td>
-        [message]<br/>
-        OR<br/>
-        [preMessageID]
-    </td>
-    <td>
-        The in-game command used to send a message through admin chat to the whole server.
-    </td>
-</tr>
-<tr>
-    <td><b>Player Say</b></td>
-    <td>psay</td>
-    <td>
-        [player][message]<br/>
-        OR<br/>
-        [player][preMessageID]
-    </td>
-    <td>
-        The in-game command used for sending a message through admin chat to only a specific player.
-    </td>
-</tr>
-<tr>
-    <td><b>Admin Yell</b></td>
-    <td>yell</td>
-    <td>
-        [message]<br/>
-        OR<br/>
-        [preMessageID]
-    </td>
-    <td>
-        The in-game command used for to send a message through admin yell to the whole server.
-    </td>
-</tr>
-<tr>
-    <td><b>Player Yell</b></td>
-    <td>pyell</td>
-    <td>
-        [player][message]<br/>
-        OR<br/>
-        [player][preMessageID]
-    </td>
-    <td>
-        The in-game command used for sending a message through admin yell to only a specific player.
-    </td>
-</tr>
-<tr>
-    <td><b>Admin Tell</b></td>
-    <td>tell</td>
-    <td>
-        [message]<br/>
-        OR<br/>
-        [preMessageID]
-    </td>
-    <td>
-        The in-game command used for to send a message through both admin say and admin yell to the whole server.
-    </td>
-</tr>
-<tr>
-    <td><b>Player Tell</b></td>
-    <td>ptell</td>
-    <td>
-        [player][message]<br/>
-        OR<br/>
-        [player][preMessageID]
-    </td>
-    <td>
-        The in-game command used for sending a message through both admin say and admin yell to only a specific player.
-    </td>
-</tr>
-<tr>
-    <td><b>Log Player Information</b></td>
-    <td>log</td>
-    <td>
-        [player][message]
-    </td>
-    <td>
-        The in-game command used for logging a message on a player's record. Does not affect their gameplay in any way.
-    </td>
-</tr>
-<tr>
-    <td><b>Player Private Message</b></td>
-    <td>msg</td>
-    <td>
-        [player][message]
-    </td>
-    <td>
-        Opens a conversation with the given player. The player can either be in the current server, or any other
-        BF3/BF4 server on your database.
-    </td>
-</tr>
-<tr>
-    <td><b>Player Private Reply</b></td>
-    <td>r</td>
-    <td>
-        [message]
-    </td>
-    <td>
-        Replies to a currently open conversation with the given message.
-    </td>
-</tr>
-<tr>
-    <td><b>Admin Private Message</b></td>
-    <td>adminmsg</td>
-    <td>
-        [message]
-    </td>
-    <td>
-        Sends a message to all online admins in the server. They can then open a private message with the sender to
-        reply to the admin message.
-    </td>
-</tr>
-<tr>
-    <td><b>What Is</b></td>
-    <td>whatis</td>
-    <td>
-        [commandName]<br/>
-        OR<br/>
-        [preMessageID]
-    </td>
-    <td>
-        The in-game command used for finding out what a particular preMessage ID, or command name, means.
-    </td>
-</tr>
-<tr>
-    <td><b>Lead Current Squad</b></td>
-    <td>lead</td>
-    <td>
-        none<br/>
-        OR<br/>
-        [player]
-    </td>
-    <td>
-        The in-game command used to the speaker to leader of their current squad. When targeted at a player, that player
-        will be given leader of their current squad. Only available in BF4.
-    </td>
-</tr>
-<tr>
-    <td><b>Request Rules</b></td>
-    <td>rules</td>
-    <td>
-        none<br/>
-        OR<br/>
-        [player]
-    </td>
-    <td>
-        The in-game command used to request the server rules. When targeted at a player, that player will be told the
-        server rules. When targeted at a player, the command goes on timeout for that player.
-    </td>
-</tr>
-<tr>
-    <td><b>Request Reputation</b></td>
-    <td>rep</td>
-    <td>
-        none<br/>
-        OR<br/>
-        [player]
-    </td>
-    <td>
-        The in-game command used to request the server reputation. When targeted at a player, you will be told that
-        player's reputation. Requesting a player's reputation other than your own is admin only.
-    </td>
-</tr>
-<tr>
-    <td><b>Vote Surrender</b></td>
-    <td>surrender</td>
-    <td>
-        none
-    </td>
-    <td>
-        The in-game command used for starting/voting for a round surrender. Losing team specific, but either surrender
-        or votenext can be used.
-    </td>
-</tr>
-<tr>
-    <td><b>Vote Next Round</b></td>
-    <td>votenext</td>
-    <td>
-        none
-    </td>
-    <td>
-        The in-game command used for starting/voting for a round surrender. Losing team specific, but either surrender
-        or votenext can be used.
-    </td>
-</tr>
-<tr>
-    <td><b>Vote Against Surrender</b></td>
-    <td>nosurrender</td>
-    <td>
-        none
-    </td>
-    <td>
-        The in-game command used for voting AGAINST a currently active round surrender. This command may only be
-        used by the losing team.
-    </td>
-</tr>
-<tr>
-    <td><b>Assist Losing Team</b></td>
-    <td>assist</td>
-    <td>
-        none
-    </td>
-    <td>
-        The in-game command used to join the weak/losing team.
-    </td>
-</tr>
-<tr>
-    <td><b>Request Online Admins</b></td>
-    <td>admins</td>
-    <td>
-        none
-    </td>
-    <td>
-        The in-game command used to get the list of current online admins.
-    </td>
-</tr>
-<tr>
-    <td><b>Request Uptimes</b></td>
-    <td>uptime</td>
-    <td>
-        none
-    </td>
-    <td>
-        The in-game command used to get the uptime of the server, procon/layer, AdKats, and several other things.
-    </td>
-</tr>
-<tr>
-    <td><b>List Round Reports</b></td>
-    <td>reportlist</td>
-    <td>
-        none
-    </td>
-    <td>
-        The in-game command used to get the latest 6 unanswered round reports.
-    </td>
-</tr>
-<tr>
-    <td><b>VOIP</b></td>
-    <td>voip</td>
-    <td>None</td>
-    <td>
-        The in-game command used for sending VOIP server info to the speaker.
-    </td>
-</tr>
-<tr>
-    <td><b>Kill Self</b></td>
-    <td>killme</td>
-    <td>None</td>
-    <td>
-        The in-game command used for killing the speaker.
-    </td>
-</tr>
-<tr>
-    <td><b>Restart Current Round</b></td>
-    <td>restart</td>
-    <td>None</td>
-    <td>
-        The in-game command used for restarting the round.
-    </td>
-</tr>
-<tr>
-    <td><b>Run Next Round</b></td>
-    <td>nextlevel</td>
-    <td>None</td>
-    <td>
-        The in-game command used for running the next map in current rotation, but keep all points and KDRs from this
-        round.
-    </td>
-</tr>
-<tr>
-    <td><b>Restart AdKats</b></td>
-    <td>prestart</td>
-    <td>none</td>
-    <td>
-        The in-game command used for rebooting the AdKats instance. Requires confirmation.
-    </td>
-</tr>
-<tr>
-    <td><b>Shutdown Server</b></td>
-    <td>shutdown</td>
-    <td>none</td>
-    <td>
-        The in-game command used for shutting down/rebooting the Battlefield server. Requires confirmation.
-    </td>
-</tr>
-<tr>
-    <td><b>End Current Round</b></td>
-    <td>endround</td>
-    <td>[US/RU]</td>
-    <td>
-        The in-game command used for ending the current round with a winning team. Either US or RU.
-    </td>
-</tr>
-<tr>
-    <td><b>Server Nuke</b></td>
-    <td>nuke</td>
-    <td>[US/RU/ALL]</td>
-    <td>
-        The in-game command used for killing all players in a subset. US, RU, or ALL will work.
-    </td>
-</tr>
-<tr>
-    <td><b>Server Countdown</b></td>
-    <td>cdown</td>
-    <td>[squad/team/all] [seconds] [reason]</td>
-    <td>
-        The in-game command used for issuing countdowns on a subset of players.
-    </td>
-</tr>
-<tr>
-    <td><b>SwapNuke Server</b></td>
-    <td>swapnuke</td>
-    <td>none</td>
-    <td>
-        The in-game command used for team-switching all players in the server.
-        THIS IS EXPERIMENTAL, AND SHOULD BE USED WITH CAUTION.
-        MULTIBalancer unswitcher is automatically disabled when using this command, and re-enabled once complete.
-    </td>
-</tr>
-<tr>
-    <td><b>Kick All Guests</b></td>
-    <td>kickall</td>
-    <td>None</td>
-    <td>
-        The in-game command used for kicking all players except admins.
-    </td>
-</tr>
-<tr>
-    <td><b>Fetch Player Info</b></td>
-    <td>pinfo</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        Fetches extended information about the player.
-        Player name, ID, role, team name, team posision, current score, time first seen, amount of time spent on current
-        server, city location, IP change count, reports from/against during current round, infraction points, last
-        punishment time/reason, reputation, and previous names.
-    </td>
-</tr>
-<tr>
-    <td><b>Fetch Player Chat</b></td>
-    <td>pchat</td>
-    <td>
-        None<br/>
-        OR<br/>
-        [chatLines]<br/>
-        OR<br/>
-        [player]<br/>
-        OR<br/>
-        [chatLines][player]<br/>
-        OR<br/>
-        self [player]<br/>
-        OR<br/>
-        [chatLines] self [player]<br/>
-        OR<br/>
-        [player1][player2]<br/>
-        OR<br/>
-        [chatLines][player1][player2]
-    </td>
-    <td>
-        Fetches chat history or conversation history between players.
-    </td>
-</tr>
-<tr>
-    <td><b>Dequeue Player Action</b></td>
-    <td>deq</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        Canceles all queued actions on the target player. Moves, kills, etc.
-    </td>
-</tr>
-<tr>
-    <td><b>Request Server Commands</b></td>
-    <td>help</td>
-    <td>
-        None
-    </td>
-    <td>
-        Lists the server commands you can access.
-    </td>
-</tr>
-<tr>
-    <td><b>Find Player</b></td>
-    <td>find</td>
-    <td>
-        [player]
-    </td>
-    <td>
-        Returns the team, position, and score, of the targeted player.
-    </td>
-</tr>
-<tr>
-    <td><b>Manage AFK Players</b></td>
-    <td>afk</td>
-    <td>
-        None
-    </td>
-    <td>
-        Calls the AFK Management functionality manually. Cannot be used if AFK payers are being managed automatically.
-    </td>
-</tr>
-<tr>
-    <td><b>Plugin Update</b></td>
-    <td>pupdate</td>
-    <td>
-        None
-    </td>
-    <td>
-        Calls manual update of AdKats source and any connected extensions to their latest versions.
-    </td>
-</tr>
+    <tr>
+        <td><b>Command</b></td>
+        <td><b>Default Text</b></td>
+        <td><b>Params</b></td>
+        <td><b>Description</b></td>
+    </tr>
+    <tr>
+        <td><b>Confirm Command</b></td>
+        <td>yes</td>
+        <td>None</td>
+        <td>
+            The in-game command used for confirming other commands when needed. Must be active. Must be accessible under 'Any'. Must use 'yes' as command text. Cannot be denied for any role.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Cancel Command</b></td>
+        <td>no</td>
+        <td>None</td>
+        <td>
+            The in-game command used to cancel other commands when needed. Must be active. Must be accessible under 'Any'. Must use 'no' as command text. Cannot be denied for any role
+        </td>
+    </tr>
+    <tr>
+        <td><b>Kill Player</b></td>
+        <td>kill</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>The in-game command used for killing players. If the player is dead, they will be killed on spawn.</td>
+    </tr>
+    <tr>
+        <td><b>Kill Player (Force)</b></td>
+        <td>fkill</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>Bypasses all extra functionality of the regular kill command, issuing admin kill on them immediately.</td>
+    </tr>
+    <tr>
+        <td><b>Kick Player</b></td>
+        <td>kick</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>The in-game command used for kicking players.</td>
+    </tr>
+    <tr>
+        <td><b>Temp-Ban Player</b></td>
+        <td>tban</td>
+        <td>
+            [duration]<br/>
+            OR<br/>
+            [duration][player][reason]<br/>
+            OR<br/>
+            [duration][reportID]<br/>
+            OR<br/>
+            [duration][reportID][reason]
+        </td>
+        <td>
+            The in-game command used for temp-banning players.
+            Default time is in minutes, but the number can have a letter after it designating the units. e.g. 2h for 2
+            hours. Valid suffixes are m, h, d, w, and y.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Perma-Ban Player</b></td>
+        <td>ban</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>The in-game command used for perma-banning players.</td>
+    </tr>
+    <tr>
+        <td><b>Future Perma-Ban Player</b></td>
+        <td>fban</td>
+        <td>
+            [time]<br/>
+            OR<br/>
+            [time][player][reason]<br/>
+            OR<br/>
+            [time][reportID]<br/>
+            OR<br/>
+            [time][reportID][reason]
+        </td>
+        <td>
+            The in-game command used for future-banning players.
+            Default time is in minutes, but the number can have a letter after it designating the units. e.g. 2h for 2
+            hours. Valid suffixes are m, h, d, w, and y.
+            <br/><br/>
+            Future ban is the exact opposite of a temp-ban.
+            Enter the time the player has until they are permabanned.
+            This is used for requesting action/videos/etc from players, giving them a time frame to do so.
+            Ban is enforced on-join only, not during gameplay.
+            This command can only be used when ban enforcer is enabled.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Unban Player</b></td>
+        <td>unban</td>
+        <td>
+            [player]
+            OR<br/>
+            [player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for unbanning players. This command can only be used when ban enforcer is enabled.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Punish Player</b></td>
+        <td>punish</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>
+            The in-game command used for punishing players.
+            Will add a Punish record to the database,
+            increasing a player's total points according to your settings,
+            and issue the configured action for that point value.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Forgive Player</b></td>
+        <td>forgive</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>
+            The in-game command used for forgiving players.
+            Will add a Forgive record to the database, decreasing a player's total points by 1.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Warn Player</b></td>
+        <td>warn</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>
+            The in-game command used for warning players. This will give them a verbal warning across their screen, and log that they were warned.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Mute Player</b></td>
+        <td>mute</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player][reason]<br/>
+            OR<br/>
+            [reportID]<br/>
+            OR<br/>
+            [reportID][reason]
+        </td>
+        <td>
+            The in-game command used for muting players.
+            Players will be muted till the end of the round, X kills then kick if they keep talking.
+            Admins cannot be muted.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Reserved Slot Player</b></td>
+        <td>reserved</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to reserved slots for the current server. The setting "Feed Server
+            Reserved Slots" must be enabled to use this command.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-Reserved Slot Player</b></td>
+        <td>unreserved</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from reserved slots for the current server. The setting "Feed Server
+            Reserved Slots" must be enabled to use this command.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Spectator Slot Player</b></td>
+        <td>spectator</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to spectator list for the current server. The setting "Feed Server
+            Spectator List" must be enabled to use this command.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-Spectator Slot Player</b></td>
+        <td>unspectator</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from spectator slots for the current server. The setting "Feed Server
+            Spectator List" must be enabled to use this command.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Ping Whitelist Player</b></td>
+        <td>pwhitelist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the ping kick whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-Ping Whitelist Player</b></td>
+        <td>unpwhitelist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from ping kick whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>AA Whitelist Player</b></td>
+        <td>aawhitelist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the Admin Assistant whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-AA Whitelist Player</b></td>
+        <td>unaawhitelist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from Admin Assistant whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>SpamBot Whitelist Player</b></td>
+        <td>spamwhitelist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the SpamBot whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-SpamBot Whitelist Player</b></td>
+        <td>unspamwhitelist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from SpamBot whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>MULTIBalancer Whitelist Player</b></td>
+        <td>mbwhitelist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to MULTIBalancer whitelist for the current server. The setting
+            "Feed MULTIBalancer Whitelist" must be enabled to use this command.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-MULTIBalancer Whitelist Player</b></td>
+        <td>unmbwhitelist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from MULTIBalancer whitelist for the current server. "Feed MULTIBalancer Whitelist" must be enabled to use this command.
+        </td>
+    </tr>
+    <tr>
+        <td><b>MULTIBalancer Disperse Player</b></td>
+        <td>disperse</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to MULTIBalancer even dispersion for the current server. The setting "Feed MULTIBalancer Even Dispersion List" must be enabled to use this command.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-MULTIBalancer Disperse Player</b></td>
+        <td>undisperse</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from MULTIBalancer even dispersion for the current server. "Feed MULTIBalancer Even Dispersion List" must be enabled to use this command.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Spectator Blacklist Player</b></td>
+        <td>specblacklist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the Spectator Blacklist for all servers. Players under this group will not be able to enter the server as a spectator.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-Spectator Blacklist Player</b></td>
+        <td>unspecblacklist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from Spectator Blacklist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Report Whitelist Player</b></td>
+        <td>rwhitelist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the Report Whitelist for all servers. Players under this group cannot be reported.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-Report Blacklist Player</b></td>
+        <td>unrwhitelist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from Report Whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Populator Whitelist Player</b></td>
+        <td>popwhitelist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the Populator Whitelist for all servers. Used when only allowing approved populators to be considered for automatic populator perks. Setting section B27-2.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-Populator Blacklist Player</b></td>
+        <td>unpopwhitelist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from Populator Whitelist for all servers.
+        </td>
+    </tr>
+    <tr>
+        <td><b>TeamKillTracker Whitelist Player</b></td>
+        <td>tkwhitelist</td>
+        <td>
+            [duration or 'perm']<br/>
+            OR<br/>
+            [duration or 'perm'][player]<br/>
+            OR<br/>
+            [duration or 'perm'][player][reason]<br/>
+        </td>
+        <td>
+            The in-game command used for adding a player to the TeamKillTracker Whitelist for all servers. "Feed TeamKillTracker Whitelist" must be enabled to use this command.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Un-TeamKillTracker Blacklist Player</b></td>
+        <td>untkwhitelist</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            The in-game command used for removing a player from TeamKillTracker Whitelist for all servers. "Feed TeamKillTracker Whitelist" must be enabled to use this command.
+        </td>
+    </tr>
+    <tr>
+        <td><b>On-Death Move Player</b></td>
+        <td>move</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player]<br/>
+            OR<br/>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for moving players between teams.
+            Will add players to the "on-death" move list, when they die they will be sent to TeamSwap.
+            If the player is already dead, this command automatically changes to force move.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Force-Move Player</b></td>
+        <td>fmove</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [player]<br/>
+            OR<br/>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for force-moving players between teams.
+            Will immediately send the given player to TeamSwap.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Join Player</b></td>
+        <td>join</td>
+        <td>
+            [player]<br/>
+            OR<br/>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for joining player's squads.
+            Will immediately send the speaker to the target if possible, within access limitations.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Pull Player</b></td>
+        <td>pull</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Pulls a player to your current squad, killing them in the process.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Mark Player</b></td>
+        <td>mark</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Marks a player for admin notification if they leave the server.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Lock Player</b></td>
+        <td>lock</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Locks a player from admin commands for 10 minutes. Only the locking admin will be able to act on them.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Unlock Player</b></td>
+        <td>unlock</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Allows the locking admin to unlock a currently locked player.
+        </td>
+    </tr>
+    <tr>
+        <td><b>TeamSwap Self</b></td>
+        <td>moveme</td>
+        <td>None</td>
+        <td>
+            The in-game command used for moving yourself between teams.
+            Will immediately send the speaker to TeamSwap.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Report Player</b></td>
+        <td>report</td>
+        <td>[player][reason]</td>
+        <td>
+            The in-game command used for reporting players.
+            Must have a reason, and will inform a player otherwise when used incorrectly.
+            Will log a Report in the database (External GCP pulls from there for external admin notifications), and notify
+            all in-game admins.
+            Informs the reporter and admins of the report ID, which the punish system can use.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Call Admin</b></td>
+        <td>admin</td>
+        <td>[player][reason]</td>
+        <td>
+            The in-game command used for calling admin attention to a player.
+            Same deal as report, but used for a different reason.
+            Informs the reporter and admins of the report ID, which the punish system can use.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Accept Round Report</b></td>
+        <td>accept</td>
+        <td>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for accepting reports as confirmed.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Deny Round Report</b></td>
+        <td>deny</td>
+        <td>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for denying reports.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Ignore Round Report</b></td>
+        <td>ignore</td>
+        <td>
+            [reportID]
+        </td>
+        <td>
+            The in-game command used for ignoring reports.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Contest Report</b></td>
+        <td>contest</td>
+        <td>
+            None
+        </td>
+        <td>
+            Usable by players to contest round reports before admins act on them.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Admin Say</b></td>
+        <td>say</td>
+        <td>
+            [message]<br/>
+            OR<br/>
+            [preMessageID]
+        </td>
+        <td>
+            The in-game command used to send a message through admin chat to the whole server.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Player Say</b></td>
+        <td>psay</td>
+        <td>
+            [player][message]<br/>
+            OR<br/>
+            [player][preMessageID]
+        </td>
+        <td>
+            The in-game command used for sending a message through admin chat to only a specific player.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Admin Yell</b></td>
+        <td>yell</td>
+        <td>
+            [message]<br/>
+            OR<br/>
+            [preMessageID]
+        </td>
+        <td>
+            The in-game command used for to send a message through admin yell to the whole server.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Player Yell</b></td>
+        <td>pyell</td>
+        <td>
+            [player][message]<br/>
+            OR<br/>
+            [player][preMessageID]
+        </td>
+        <td>
+            The in-game command used for sending a message through admin yell to only a specific player.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Admin Tell</b></td>
+        <td>tell</td>
+        <td>
+            [message]<br/>
+            OR<br/>
+            [preMessageID]
+        </td>
+        <td>
+            The in-game command used for to send a message through both admin say and admin yell to the whole server.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Player Tell</b></td>
+        <td>ptell</td>
+        <td>
+            [player][message]<br/>
+            OR<br/>
+            [player][preMessageID]
+        </td>
+        <td>
+            The in-game command used for sending a message through both admin say and admin yell to only a specific player.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Log Player Information</b></td>
+        <td>log</td>
+        <td>
+            [player][message]
+        </td>
+        <td>
+            The in-game command used for logging a message on a player's record. Does not affect their gameplay in any way.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Player Private Message</b></td>
+        <td>msg</td>
+        <td>
+            [player][message]
+        </td>
+        <td>
+            Opens a conversation with the given player. The player can either be in the current server, or any other
+            BF3/BF4 server on your database.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Player Private Reply</b></td>
+        <td>r</td>
+        <td>
+            [message]
+        </td>
+        <td>
+            Replies to a currently open conversation with the given message.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Admin Private Message</b></td>
+        <td>adminmsg</td>
+        <td>
+            [message]
+        </td>
+        <td>
+            Sends a message to all online admins in the server. They can then open a private message with the sender to
+            reply to the admin message.
+        </td>
+    </tr>
+    <tr>
+        <td><b>What Is</b></td>
+        <td>whatis</td>
+        <td>
+            [commandName]<br/>
+            OR<br/>
+            [preMessageID]
+        </td>
+        <td>
+            The in-game command used for finding out what a particular preMessage ID, or command name, means.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Lead Current Squad</b></td>
+        <td>lead</td>
+        <td>
+            none<br/>
+            OR<br/>
+            [player]
+        </td>
+        <td>
+            The in-game command used to the speaker to leader of their current squad. When targeted at a player, that player
+            will be given leader of their current squad. Only available in BF4.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Request Rules</b></td>
+        <td>rules</td>
+        <td>
+            none<br/>
+            OR<br/>
+            [player]
+        </td>
+        <td>
+            The in-game command used to request the server rules. When targeted at a player, that player will be told the
+            server rules. When targeted at a player, the command goes on timeout for that player.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Request Reputation</b></td>
+        <td>rep</td>
+        <td>
+            none<br/>
+            OR<br/>
+            [player]
+        </td>
+        <td>
+            The in-game command used to request the server reputation. When targeted at a player, you will be told that
+            player's reputation. Requesting a player's reputation other than your own is admin only.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Vote Surrender</b></td>
+        <td>surrender</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used for starting/voting for a round surrender. Losing team specific, but either surrender
+            or votenext can be used.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Vote Next Round</b></td>
+        <td>votenext</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used for starting/voting for a round surrender. Losing team specific, but either surrender
+            or votenext can be used.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Vote Against Surrender</b></td>
+        <td>nosurrender</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used for voting AGAINST a currently active round surrender. This command may only be
+            used by the losing team.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Assist Losing Team</b></td>
+        <td>assist</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used to join the weak/losing team.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Request Online Admins</b></td>
+        <td>admins</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used to get the list of current online admins.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Request Uptimes</b></td>
+        <td>uptime</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used to get the uptime of the server, procon/layer, AdKats, and several other things.
+        </td>
+    </tr>
+    <tr>
+        <td><b>List Round Reports</b></td>
+        <td>reportlist</td>
+        <td>
+            none
+        </td>
+        <td>
+            The in-game command used to get the latest 6 unanswered round reports.
+        </td>
+    </tr>
+    <tr>
+        <td><b>VOIP</b></td>
+        <td>voip</td>
+        <td>None</td>
+        <td>
+            The in-game command used for sending VOIP server info to the speaker.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Kill Self</b></td>
+        <td>killme</td>
+        <td>None</td>
+        <td>
+            The in-game command used for killing the speaker.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Restart Current Round</b></td>
+        <td>restart</td>
+        <td>None</td>
+        <td>
+            The in-game command used for restarting the round.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Run Next Round</b></td>
+        <td>nextlevel</td>
+        <td>None</td>
+        <td>
+            The in-game command used for running the next map in current rotation, but keep all points and KDRs from this
+            round.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Restart AdKats</b></td>
+        <td>prestart</td>
+        <td>none</td>
+        <td>
+            The in-game command used for rebooting the AdKats instance. Requires confirmation.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Shutdown Server</b></td>
+        <td>shutdown</td>
+        <td>none</td>
+        <td>
+            The in-game command used for shutting down/rebooting the Battlefield server. Requires confirmation.
+        </td>
+    </tr>
+    <tr>
+        <td><b>End Current Round</b></td>
+        <td>endround</td>
+        <td>[US/RU]</td>
+        <td>
+            The in-game command used for ending the current round with a winning team. Either US or RU.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Server Nuke</b></td>
+        <td>nuke</td>
+        <td>[US/RU/ALL]</td>
+        <td>
+            The in-game command used for killing all players in a subset. US, RU, or ALL will work.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Server Countdown</b></td>
+        <td>cdown</td>
+        <td>[squad/team/all] [seconds] [reason]</td>
+        <td>
+            The in-game command used for issuing countdowns on a subset of players.
+        </td>
+    </tr>
+    <tr>
+        <td><b>SwapNuke Server</b></td>
+        <td>swapnuke</td>
+        <td>none</td>
+        <td>
+            The in-game command used for team-switching all players in the server.
+            THIS IS EXPERIMENTAL, AND SHOULD BE USED WITH CAUTION.
+            MULTIBalancer unswitcher is automatically disabled when using this command, and re-enabled once complete.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Kick All Guests</b></td>
+        <td>kickall</td>
+        <td>None</td>
+        <td>
+            The in-game command used for kicking all players except admins.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Fetch Player Info</b></td>
+        <td>pinfo</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Fetches extended information about the player.
+            Player name, ID, role, team name, team posision, current score, time first seen, amount of time spent on current
+            server, city location, IP change count, reports from/against during current round, infraction points, last
+            punishment time/reason, reputation, and previous names.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Fetch Player Chat</b></td>
+        <td>pchat</td>
+        <td>
+            None<br/>
+            OR<br/>
+            [chatLines]<br/>
+            OR<br/>
+            [player]<br/>
+            OR<br/>
+            [chatLines][player]<br/>
+            OR<br/>
+            self [player]<br/>
+            OR<br/>
+            [chatLines] self [player]<br/>
+            OR<br/>
+            [player1][player2]<br/>
+            OR<br/>
+            [chatLines][player1][player2]
+        </td>
+        <td>
+            Fetches chat history or conversation history between players.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Dequeue Player Action</b></td>
+        <td>deq</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Canceles all queued actions on the target player. Moves, kills, etc.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Request Server Commands</b></td>
+        <td>help</td>
+        <td>
+            None
+        </td>
+        <td>
+            Lists the server commands you can access.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Find Player</b></td>
+        <td>find</td>
+        <td>
+            [player]
+        </td>
+        <td>
+            Returns the team, position, and score, of the targeted player.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Manage AFK Players</b></td>
+        <td>afk</td>
+        <td>
+            None
+        </td>
+        <td>
+            Calls the AFK Management functionality manually. Cannot be used if AFK payers are being managed automatically.
+        </td>
+    </tr>
+    <tr>
+        <td><b>Plugin Update</b></td>
+        <td>pupdate</td>
+        <td>
+            None
+        </td>
+        <td>
+            Calls manual update of AdKats source and any connected extensions to their latest versions.
+        </td>
+    </tr>
 </table>
 <HR>
 <p>
@@ -2420,9 +2418,13 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>*Delete Soldier?*</b> - Type delete in this line to remove the listed soldier connection from the user.</li>
     </li>
 </ul>
-<h3>3-2. Special Player Settings:</h3>
+<h3>3-2. Special Player Display:</h3>
 <ul>
-    <li><b>*Special Player Group Name* (Display)</b> - Displays all current players matching the given special player group for either all servers or this server specifically.</li>
+    <li><b>*Special Player Group Name* (Display)</b> - Displays all imperical players matching the given special player group for either all servers or this server specifically.</li>
+</ul>
+<h3>3-3. Verbose Special Player Display:</h3>
+<ul>
+    <li><b>*Verbose Special Player Group Name* (Display)</b> - Same as section 3-2 but includes all players part of these groups because of extraneous cases, not being explicitly added to the group.</li>
 </ul>
 <h3>4. Role Settings:</h3>
 <ul>
@@ -2460,6 +2462,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'External plugin admin commands'</b> - List of commands (with prefixes) that admins can access. Currently
         used for the help command.
     </li>
+    <li><b>'Command Target Whitelist Commands'</b> - List of commands that will be blocked when attempted to issue
+        on command whitelisted players.
+    </li>
 </ul>
 <h3>6. Command List:</h3>
 <ul>
@@ -2476,6 +2481,15 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     </li>
     <li><b>'Combine Server Punishments'</b> - Whether to make punishes from all servers on this database affect players
         on this server. Default is false.
+    </li>
+    <li><b>'Automatic Forgives'</b> - Whether to enable automatic forgives on players who have positive reputation
+        but still have infractions on the current server.
+    </li>
+    <li><b>'Automatic Forgive Days Since Punished'</b> - The number of days since last punished required for an
+        automatic forgive to be issued.
+    </li>
+    <li><b>'Automatic Forgive Days Since Forgiven'</b> - The number of days since last forgiven required for an
+        automatic forgive to be issued.
     </li>
     <li><b>'Only Kill Players when Server in low population'</b> - When server population is below 'Low Server Pop
         Value', only kill players, so server does not empty. Player points will be incremented normally.
@@ -2634,8 +2648,6 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <h3>A14. External Command Settings:</h3>
 <ul>
     <li><b>'AdKatsLRT Extension Token'</b> - Usable with AdKatsLRT - OnSpawn Loadout Enforcer plugin. Once that plugin is purchased, the token can be placed here for automatic install/updates.
-    </li>
-    <li><b>'Fetch Actions from Database'</b> - When activated, AdKats will check the database every few seconds for new records added which are targeted at that particular server. It will run the action for new records and mark them read.
     </li>
 </ul>
 <h3>A15. VOIP Settings:</h3>
@@ -2854,6 +2866,9 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
 <ul>
     <li><b>'Monitor Baserape Causing Players'</b> - When enabled, players who cause baserape will be automatically monitored and can be acted on in setting section B27-1. Requires posting win/loss/baserape statistics.</li>
     <li><b>'Monitor Populator Players - Thanks CMWGaming'</b> - When enabled, players who help populate servers can be automatically monitored and given perks in setting section B27-2.</li>
+    <li><b>'Monitor Teamspeak Players - Thanks CMWGaming'</b> - When enabled, the teamspeak player monitor settings
+        will be displayed in setting section B27-3.
+    </li>
 </ul>
 <h3>B27-1. Baserape Causing Player Monitor Settings:</h3>
 <ul>
@@ -2875,6 +2890,26 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Populator Perks - Autobalance Whitelist.'</b> - When enabled, populators are given MULTIBalancer whitelist.</li>
     <li><b>'Populator Perks - Ping Whitelist.'</b> - When enabled, populators are given whitelist from ping kicks.</li>
     <li><b>'Populator Perks - TeamKillTracker Whitelist.'</b> - When enabled, populators are given a whitelist in TeamKillTracker.</li>
+</ul>
+<h3>B27-3. Populator Monitor Settings - Thanks CMWGaming:</h3>
+<ul>
+    <li><b>'Teamspeak Players (Display)'</b> - Current display of teamspeak players using the below options.</li>
+    <li><b>'Enable Teamspeak Player Monitor'</b> - When enabled, the below settings will be used to monitor
+        players in the targeted teamspeak server.</li>
+    <li><b>'Teamspeak Server IP'</b> - IP address of the teamspeak server.</li>
+    <li><b>'Teamspeak Server Port'</b> - Public port number of the teamspeak server.</li>
+    <li><b>'Teamspeak Server Query Port'</b> - Query port number of the teamspeak server.</li>
+    <li><b>'Teamspeak Server Query Username'</b> - Username to use for teamspeak connection.</li>
+    <li><b>'Teamspeak Server Query Password'</b> - Password to use for teamspeak connection.</li>
+    <li><b>'Teamspeak Server Query Nickname'</b> - Nickname to use for the teamspeak connection.</li>
+    <li><b>'Teamspeak Main Channel Name'</b> - Main channel to grab players from. Must be set on connection start, cannot be modified afterwards.</li>
+    <li><b>'Teamspeak Secondary Channel Names'</b> - Any additional channels to pull players from.</li>
+    <li><b>'Debug Display Teamspeak Clients'</b> - Disply console debug when relevant events happen.</li>
+    <li><b>'Enable Teamspeak Player Perks'</b> - Whether to give players in teamspeak any automatic perks.</li>
+    <li><b>'Teamspeak Player Perks - Reserved Slot'</b> - When enabled, teamspeak players are given reserved slots. (used to avoid agressive kicks as well).</li>
+    <li><b>'Teamspeak Player Perks - Autobalance Whitelist'</b> - When enabled, teamspeak players are given MULTIBalancer whitelist.</li>
+    <li><b>'Teamspeak Player Perks - Ping Whitelist'</b> - When enabled, teamspeak players are given whitelist from ping kicks.</li>
+    <li><b>'Teamspeak Player Perks - TeamKillTracker Whitelist'</b> - When enabled, teamspeak players are given a whitelist in TeamKillTracker.</li>
 </ul>
 <h3>D99. Debug Settings:</h3>
 <ul>
