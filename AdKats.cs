@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.0.0
+ * Version 6.6.0.1
  * 21-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.0.0</version_code>
+ * <version_code>6.6.0.1</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.0.0";
+        private const String PluginVersion = "6.6.0.1";
 
         public enum GameVersion
         {
@@ -38396,6 +38396,10 @@ namespace PRoConEvents
                                         }
                                         //Patched version is newer than an already patched version
                                         Log.Success("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
+                                        if (_isTestingAuthorized) 
+                                        {
+                                            Environment.Exit(4533);
+                                        }
                                     }
                                     else if (!_pluginUpdatePatched && patchedVersionInt > _currentPluginVersionInt)
                                     {
@@ -38406,6 +38410,10 @@ namespace PRoConEvents
                                         //User not notified of patch yet
                                         Log.Success("Plugin updated to version " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                         Log.Success("Updated plugin file located at: " + pluginPath);
+                                        if (_isTestingAuthorized)
+                                        {
+                                            Environment.Exit(4533);
+                                        }
                                     }
                                     else
                                     {
