@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.0.1
+ * Version 6.6.0.2
  * 21-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.0.1</version_code>
+ * <version_code>6.6.0.2</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.0.1";
+        private const String PluginVersion = "6.6.0.2";
 
         public enum GameVersion
         {
@@ -6124,7 +6124,7 @@ namespace PRoConEvents
                             }
 
                             //Check for plugin updates at interval
-                            if ((UtcDbTime() - _LastPluginDescFetch).TotalHours > 1 || (_isTestingAuthorized && (UtcDbTime() - _LastPluginDescFetch).TotalMinutes > 20))
+                            if ((UtcDbTime() - _LastPluginDescFetch).TotalHours > 1 || (_isTestingAuthorized && (UtcDbTime() - _LastPluginDescFetch).TotalMinutes > 10))
                             {
                                 FetchPluginDocumentation();
                             }
