@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.0.2
+ * Version 6.6.0.3
  * 21-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.0.2</version_code>
+ * <version_code>6.6.0.3</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.0.2";
+        private const String PluginVersion = "6.6.0.3";
 
         public enum GameVersion
         {
@@ -9711,6 +9711,100 @@ namespace PRoConEvents
                                 record_message = Math.Round(nonSniperHSKP) + "% non-sniper HSKP",
                                 record_time = UtcDbTime()
                             });
+                        }
+                    }
+
+                    if (_gameVersion == GameVersion.BF4)
+                    {
+                        //Death check
+                        IEnumerable<AdKatsKill> deathHeadshots = aKill.killer.RecentKills.Where(dKill => dKill.weaponCode == "Death" && dKill.IsHeadshot);
+                        if (deathHeadshots.Count() > 5)
+                        {
+                            QueueRecordForProcessing(new AdKatsRecord
+                            {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("player_ban_perm"),
+                                command_numeric = 0,
+                                target_name = aKill.killer.player_name,
+                                target_player = aKill.killer,
+                                source_name = "AutoAdmin",
+                                record_message = "Code 7-" + deathHeadshots.Count() + ": Dispute Requested",
+                                record_time = UtcDbTime()
+                            });
+                            return;
+                        }
+
+                        //Special weapons
+                        String actedCode = null;
+                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "U_PortableAmmopack"))
+                        {
+                            actedCode = "1";
+                        }
+                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "U_RadioBeacon"))
+                        {
+                            actedCode = "2";
+                        }
+                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "Gameplay/Gadgets/SOFLAM/SOFLAM_Projectile"))
+                        {
+                            actedCode = "3";
+                        }
+                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "U_Motionsensor"))
+                        {
+                            actedCode = "4";
+                        }
+                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "U_M18"))
+                        {
+                            actedCode = "5";
+                        }
+                        if (!String.IsNullOrEmpty(actedCode))
+                        {
+                            QueueRecordForProcessing(new AdKatsRecord
+                            {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("player_ban_perm"),
+                                command_numeric = 0,
+                                target_name = aKill.killer.player_name,
+                                target_player = aKill.killer,
+                                source_name = "AutoAdmin",
+                                record_message = "Code 8-" + actedCode + ": Dispute Requested",
+                                record_time = UtcDbTime()
+                            });
+                            return;
+                        }
+                    }
+                    if (_gameVersion == GameVersion.BF3)
+                    {
+                        //Special weapons
+                        String actedCode = null;
+                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "AmmoBag"))
+                        {
+                            actedCode = "1";
+                        }
+                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "Weapons/Gadgets/RadioBeacon/Radio_Beacon"))
+                        {
+                            actedCode = "2";
+                        }
+                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "Weapons/Gadgets/SOFLAM/SOFLAM_PDA"))
+                        {
+                            actedCode = "3";
+                        }
+                        if (!String.IsNullOrEmpty(actedCode))
+                        {
+                            QueueRecordForProcessing(new AdKatsRecord
+                            {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("player_ban_perm"),
+                                command_numeric = 0,
+                                target_name = aKill.killer.player_name,
+                                target_player = aKill.killer,
+                                source_name = "AutoAdmin",
+                                record_message = "Code 8-" + actedCode + ": Dispute Requested",
+                                record_time = UtcDbTime()
+                            });
+                            return;
                         }
                     }
                 }
