@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.0.4
+ * Version 6.6.0.5
  * 21-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.0.4</version_code>
+ * <version_code>6.6.0.5</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.0.4";
+        private const String PluginVersion = "6.6.0.5";
 
         public enum GameVersion
         {
@@ -6769,9 +6769,6 @@ namespace PRoConEvents
                                 {
                                     //Update team assignment of baserape causing players
                                     List<AdKatsPlayer> randomBRCPlayers = Shuffle(_PlayerDictionary.Values.Where(dPlayer => dPlayer.player_type == PlayerType.Player && _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
-                                    //                            var taggedBRCPlayers = _PlayerDictionary.Values.Where(dPlayer =>
-                                    //                                    dPlayer.player_type == PlayerType.Player &&
-                                    //                                    _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).OrderBy(dPlayer => dPlayer.player_clanTag).ToList();
                                     if (randomBRCPlayers.Count > 1)
                                     {
                                         AdKatsTeam team1;
@@ -7519,6 +7516,43 @@ namespace PRoConEvents
                                             if ((_roundState == RoundState.Playing || _roundState == RoundState.Loaded) && !PlayerIsAdmin(aPlayer))
                                             {
                                                 _mapBenefitIndex++;
+                                            }
+                                            //BRC player processing
+                                            //Disabled until full server case is solved.
+                                            if (false && _isTestingAuthorized && _baserapeCausingPlayers.ContainsKey(aPlayer.player_name)) {
+                                                AdKatsTeam t1, t2;
+                                                if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2))
+                                                {
+                                                    var team1BRCCount = _PlayerDictionary.Values.Count(
+                                                        dPlayer => 
+                                                            dPlayer.player_type == PlayerType.Player && 
+                                                            _baserapeCausingPlayers.ContainsKey(dPlayer.player_name) && 
+                                                            dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID);
+                                                    var team2BRCCount = _PlayerDictionary.Values.Count(
+                                                        dPlayer => 
+                                                            dPlayer.player_type == PlayerType.Player && 
+                                                            _baserapeCausingPlayers.ContainsKey(dPlayer.player_name) && 
+                                                            dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID);
+                                                    if (team1BRCCount > team2BRCCount) 
+                                                    {
+                                                        aPlayer.RequiredTeam = t2;
+                                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                                    }
+                                                    else if (team2BRCCount > team1BRCCount)
+                                                    {
+                                                        aPlayer.RequiredTeam = t2;
+                                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    if (_roundState == RoundState.Playing)
+                                                    {
+                                                        Log.Error("Teams not loaded when they should be.");
+                                                    }
+                                                }
                                             }
                                         }
                                         //Set their last death/spawn times
@@ -13988,7 +14022,7 @@ namespace PRoConEvents
                             }
 
                             //May only call this command from in-game
-                            if (record.record_source != AdKatsRecord.Sources.InGame)
+                            if (record.record_source != AdKatsRecord.Sources.InGame || record.source_player == null)
                             {
                                 SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
                                 FinalizeRecord(record);
@@ -14017,6 +14051,13 @@ namespace PRoConEvents
                             if (record.source_player.player_type != PlayerType.Player)
                             {
                                 SendMessageToSource(record, "You must be a player to use assist.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
+                            if (_baserapeCausingPlayers.ContainsKey(record.source_player.player_name))
+                            {
+                                SendMessageToSource(record, "You may not use assist at this time.");
                                 FinalizeRecord(record);
                                 return;
                             }
