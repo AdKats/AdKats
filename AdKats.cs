@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.0.7
- * 23-APR-2015
+ * Version 6.6.0.8
+ * 25-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.0.7</version_code>
+ * <version_code>6.6.0.8</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.0.7";
+        private const String PluginVersion = "6.6.0.8";
 
         public enum GameVersion
         {
@@ -11638,6 +11638,7 @@ namespace PRoConEvents
                     default:
                         return false;
                 }
+                //Wow, i wrote this before knowing linq, this looks terrible
                 List<AdKatsWeaponStats> topWeapons = aPlayer.stats.WeaponStats.Values.ToList();
                 topWeapons.Sort(delegate(AdKatsWeaponStats a1, AdKatsWeaponStats a2)
                 {
@@ -11658,8 +11659,10 @@ namespace PRoConEvents
                     {
                         break;
                     }
-                    //Only count certain weapon categories
-                    if (allowedCategories.Contains(weaponStat.Category))
+                    //Only count certain weapon categories, and ignore gadgets/sidearms (shotgun issue with BF4)
+                    if (allowedCategories.Contains(weaponStat.Category) && 
+                        weaponStat.CategorySID != "WARSAW_ID_P_CAT_GADGET" && 
+                        weaponStat.CategorySID != "WARSAW_ID_P_CAT_SIDEARM")
                     {
                         //Only take weapons with more than 100 kills
                         if (weaponStat.Kills > 100)
@@ -12774,6 +12777,10 @@ namespace PRoConEvents
                                                 AdKatsRecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => record.command_type.command_key == "self_assist" && record.command_action.command_key == "self_assist_unconfirmed");
                                                 if (assistRecord != null)
                                                 {
+                                                    if (_isTestingAuthorized)
+                                                    {
+                                                        AdminSayMessage(assistRecord.source_player.GetVerboseName() + ", thank you for assisting the weak team!");
+                                                    }
                                                     assistRecord.command_action = GetCommandByKey("self_assist");
                                                     QueueRecordForProcessing(assistRecord);
                                                 }
@@ -14143,10 +14150,6 @@ namespace PRoConEvents
                                     return;
                                 }
                                 SendMessageToSource(record, "Queuing you to assist the weak team. Thank you. " + debug);
-                                if (_isTestingAuthorized)
-                                {
-                                    AdminSayMessage(record.source_player.GetVerboseName() + ", thank you for helping the weak team!");
-                                }
                             }
                             else
                             {
@@ -36575,6 +36578,8 @@ namespace PRoConEvents
                                                     weapon.ServiceStarsProgress = (Double)currentWeapon["serviceStarsProgress"];
                                                     //category
                                                     weapon.Category = ((String)currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
+                                                    //category
+                                                    weapon.CategorySID = (String)currentWeapon["categorySID"];
                                                     //slug
                                                     weapon.ID = ((String)currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
                                                     //name
@@ -40484,6 +40489,8 @@ namespace PRoConEvents
             public Double ServiceStarsProgress = 0;
             //category
             public String Category;
+            //categorySID
+            public String CategorySID;
             //slug
             public String ID;
             //name
