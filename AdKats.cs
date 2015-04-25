@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.0.8
+ * Version 6.6.0.9
  * 25-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.0.8</version_code>
+ * <version_code>6.6.0.9</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.0.8";
+        private const String PluginVersion = "6.6.0.9";
 
         public enum GameVersion
         {
@@ -9362,6 +9362,16 @@ namespace PRoConEvents
                     //Update the factions 
                     UpdateFactions();
                     StartRoundTicketLogger(0);
+                    //Re-check players for updated stats 30 seconds after round end
+                    StartAndLogThread(new Thread(new ThreadStart(delegate
+                    {
+                        Thread.CurrentThread.Name = "HackerCheckerRecheck";
+                        Thread.Sleep(TimeSpan.FromSeconds(30));
+                        foreach (var aPlayer in _PlayerDictionary.Values.Where(dPlayer => dPlayer.frostbitePlayerInfo.Rank <= 100).ToList()) {
+                            QueuePlayerForHackerCheck(aPlayer);
+                        }
+                        LogThreadExit();
+                    })));
                 }
             }
             catch (Exception e)
@@ -36552,7 +36562,7 @@ namespace PRoConEvents
                                 //Fetch stats
                                 AdKatsPlayerStats stats = new AdKatsPlayerStats();
                                 DoBattlelogWait();
-                                String weaponResponse = client.DownloadString("http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_personaID + "/1/");
+                                String weaponResponse = client.DownloadString("http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_personaID + "/1/?nocacherandom=" + Environment.TickCount);
                                 Hashtable responseData = (Hashtable)JSON.JsonDecode(weaponResponse);
 
                                 if (responseData.ContainsKey("type") && (String)responseData["type"] == "success" && responseData.ContainsKey("message") && (String)responseData["message"] == "OK" && responseData.ContainsKey("data"))
@@ -36578,8 +36588,11 @@ namespace PRoConEvents
                                                     weapon.ServiceStarsProgress = (Double)currentWeapon["serviceStarsProgress"];
                                                     //category
                                                     weapon.Category = ((String)currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
-                                                    //category
-                                                    weapon.CategorySID = (String)currentWeapon["categorySID"];
+                                                    //categorySID
+                                                    if (currentWeapon.ContainsKey("categorySID"))
+                                                    {
+                                                        weapon.CategorySID = (String)currentWeapon["categorySID"];
+                                                    }
                                                     //slug
                                                     weapon.ID = ((String)currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
                                                     //name
@@ -36657,7 +36670,7 @@ namespace PRoConEvents
                             Log.Debug("Persona ID fetched for " + aPlayer.player_name, 4);
 
                             DoBattlelogWait();
-                            String overviewResponse = client.DownloadString("http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_personaID + "/1/" + "?nocacherandom=" + Environment.TickCount);
+                            String overviewResponse = client.DownloadString("http://battlelog.battlefield.com/bf4/warsawoverviewpopulate/" + aPlayer.player_personaID + "/1/?nocacherandom=" + Environment.TickCount);
                             Hashtable json = (Hashtable)JSON.JsonDecode(overviewResponse);
                             Hashtable data = (Hashtable)json["data"];
                             Hashtable info = null;
@@ -36711,6 +36724,11 @@ namespace PRoConEvents
                                                     weapon.ServiceStarsProgress = (Double)currentWeapon["serviceStarsProgress"];
                                                     //category
                                                     weapon.Category = ((String)currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
+                                                    //categorySID
+                                                    if (currentWeapon.ContainsKey("categorySID"))
+                                                    {
+                                                        weapon.CategorySID = (String)currentWeapon["categorySID"];
+                                                    }
                                                     //slug
                                                     weapon.ID = ((String)currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
                                                     //name
@@ -36815,7 +36833,7 @@ namespace PRoConEvents
                             {
                                 //Get tag
                                 DoBattlelogWait();
-                                String soldierResponse = client.DownloadString("http://battlelog.battlefield.com/bfh/agent/" + aPlayer.player_name + "/stats/" + aPlayer.player_personaID + "/pc/" + "?nocacherandom=" + Environment.TickCount);
+                                String soldierResponse = client.DownloadString("http://battlelog.battlefield.com/bfh/agent/" + aPlayer.player_name + "/stats/" + aPlayer.player_personaID + "/pc/?nocacherandom=" + Environment.TickCount);
                                 Match tag = Regex.Match(soldierResponse, @"\[\s*([a-zA-Z0-9]+)\s*\]\s*</span>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
                                 if (!tag.Success || String.IsNullOrEmpty(tag.Groups[1].Value.Trim()))
                                 {
@@ -36830,7 +36848,7 @@ namespace PRoConEvents
                                 //Fetch stats
                                 AdKatsPlayerStats stats = new AdKatsPlayerStats();
                                 DoBattlelogWait();
-                                String weaponResponse = client.DownloadString("http://battlelog.battlefield.com/bfh/BFHWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
+                                String weaponResponse = client.DownloadString("http://battlelog.battlefield.com/bfh/BFHWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/?nocacherandom=" + Environment.TickCount);
                                 Hashtable responseData = (Hashtable)JSON.JsonDecode(weaponResponse);
 
                                 if (responseData.ContainsKey("type") && (String)responseData["type"] == "success" && responseData.ContainsKey("message") && (String)responseData["message"] == "OK" && responseData.ContainsKey("data"))
@@ -36856,6 +36874,11 @@ namespace PRoConEvents
                                                     weapon.ServiceStarsProgress = (Double)currentWeapon["serviceStarsProgress"];
                                                     //category
                                                     weapon.Category = ((String)currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
+                                                    //categorySID
+                                                    if (currentWeapon.ContainsKey("categorySID"))
+                                                    {
+                                                        weapon.CategorySID = (String)currentWeapon["categorySID"];
+                                                    }
                                                     //slug
                                                     weapon.ID = ((String)currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
                                                     //name
