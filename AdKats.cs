@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.1.3
+ * Version 6.6.1.4
  * 25-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.1.3</version_code>
+ * <version_code>6.6.1.4</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.1.3";
+        private const String PluginVersion = "6.6.1.4";
 
         public enum GameVersion
         {
@@ -9413,6 +9413,8 @@ namespace PRoConEvents
                         Thread.CurrentThread.Name = "HackerCheckerRecheck";
                         Thread.Sleep(TimeSpan.FromSeconds(30));
                         foreach (var aPlayer in _PlayerDictionary.Values.Where(dPlayer => dPlayer.frostbitePlayerInfo.Rank <= 100).ToList()) {
+                            aPlayer.blInfoFetched = false;
+                            QueuePlayerForBattlelogInfoFetch(aPlayer);
                             QueuePlayerForHackerCheck(aPlayer);
                         }
                         LogThreadExit();
@@ -20306,18 +20308,18 @@ namespace PRoConEvents
                         //Handle Inbound player fetches
                         if (_BattlelogFetchQueue.Count > 0)
                         {
-                            Queue<AdKatsPlayer> unprocessedPlayers;
+                            Queue<AdKatsPlayer> unprocessedBattlelogFetchPlayers;
                             Log.Debug("Locking on _BattlelogFetchQueue", 6);
                             lock (_BattlelogFetchQueue)
                             {
                                 Log.Debug("Inbound players found. Grabbing.", 6);
                                 //Grab all items in the queue
-                                unprocessedPlayers = new Queue<AdKatsPlayer>(_BattlelogFetchQueue.ToArray());
+                                unprocessedBattlelogFetchPlayers = new Queue<AdKatsPlayer>(_BattlelogFetchQueue.ToArray());
                                 //Clear the queue for next run
                                 _BattlelogFetchQueue.Clear();
                             }
                             //Loop through all players in order that they came in
-                            while (unprocessedPlayers.Count > 0)
+                            while (unprocessedBattlelogFetchPlayers.Count > 0)
                             {
                                 if (!_pluginEnabled)
                                 {
@@ -20325,7 +20327,7 @@ namespace PRoConEvents
                                 }
                                 Log.Debug("Preparing to fetch battlelog info for player", 6);
                                 //Dequeue the record
-                                AdKatsPlayer aPlayer = unprocessedPlayers.Dequeue();
+                                AdKatsPlayer aPlayer = unprocessedBattlelogFetchPlayers.Dequeue();
                                 //Old Tag
                                 String oldTag = aPlayer.player_clanTag;
                                 //Run the appropriate action
