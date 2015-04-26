@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.2.6
+ * Version 6.6.2.7
  * 26-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.2.6</version_code>
+ * <version_code>6.6.2.7</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.2.6";
+        private const String PluginVersion = "6.6.2.7";
 
         public enum GameVersion
         {
@@ -7256,10 +7256,6 @@ namespace PRoConEvents
                                     AdKatsPlayer aPlayer = null;
                                     if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer))
                                     {
-                                        if (_isTestingAuthorized)
-                                        {
-                                            Log.Info("Already online.");
-                                        }
                                         //They are
                                         if (aPlayer.frostbitePlayerInfo.Score != playerInfo.Score || aPlayer.frostbitePlayerInfo.Kills != playerInfo.Kills || aPlayer.frostbitePlayerInfo.Deaths != playerInfo.Deaths)
                                         {
@@ -7378,10 +7374,6 @@ namespace PRoConEvents
                                                 record_time = UtcDbTime()
                                             };
                                             QueueRecordForProcessing(record);
-                                        }
-                                        if (_isTestingAuthorized)
-                                        {
-                                            Log.Info("Already online. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
                                         }
                                     }
                                     else
