@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.1.0
+ * Version 6.6.1.1
  * 25-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.1.0</version_code>
+ * <version_code>6.6.1.1</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.1.0";
+        private const String PluginVersion = "6.6.1.1";
 
         public enum GameVersion
         {
@@ -6234,8 +6234,10 @@ namespace PRoConEvents
                                                 winningTeam = team2;
                                                 losingTeam = team1;
                                             }
-                                            foreach (var aPlayer in onlineAUAPlayers.Values.Where(dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) 
+                                            foreach (var aPlayer in onlineAUAPlayers.Values.Where(dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
                                             {
+                                                Thread.Sleep(2000);
+                                                _PlayersAutoAssistedThisRound = true;
                                                 QueueRecordForProcessing(new AdKatsRecord
                                                 {
                                                     record_source = AdKatsRecord.Sources.InternalAutomated,
