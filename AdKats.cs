@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.1.6
+ * Version 6.6.1.7
  * 26-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.1.6</version_code>
+ * <version_code>6.6.1.7</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.1.6";
+        private const String PluginVersion = "6.6.1.7";
 
         public enum GameVersion
         {
@@ -10455,7 +10455,13 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (_AutomaticForgives && aPlayer.player_reputation >= 0 && aPlayer.player_infractionPoints > 0 && aPlayer.LastPunishment != null && (UtcDbTime() - aPlayer.LastPunishment.record_time).TotalDays > _AutomaticForgiveLastPunishDays && (aPlayer.LastForgive == null || (UtcDbTime() - aPlayer.LastForgive.record_time).TotalDays > _AutomaticForgiveLastForgiveDays))
+                    if (aPlayer != null && 
+                        _AutomaticForgives && 
+                        aPlayer.player_reputation >= 0 && 
+                        aPlayer.player_infractionPoints > 0 && 
+                        aPlayer.LastPunishment != null && 
+                        (UtcDbTime() - aPlayer.LastPunishment.record_time).TotalDays > _AutomaticForgiveLastPunishDays && 
+                        (aPlayer.LastForgive == null || (UtcDbTime() - aPlayer.LastForgive.record_time).TotalDays > _AutomaticForgiveLastForgiveDays))
                     {
                         QueueRecordForProcessing(new AdKatsRecord
                         {
