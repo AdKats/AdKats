@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.1.2
+ * Version 6.6.1.3
  * 25-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.1.2</version_code>
+ * <version_code>6.6.1.3</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.1.2";
+        private const String PluginVersion = "6.6.1.3";
 
         public enum GameVersion
         {
@@ -635,6 +635,8 @@ namespace PRoConEvents
         //Weapon stats
         private readonly Dictionary<String, AdKatsWeaponName> _weaponNames = new Dictionary<String, AdKatsWeaponName>();
         private StatLibrary _StatLibrary;
+        HashSet<String> _hackerCheckedPlayers = new HashSet<String>();
+        HashSet<String> _hackerCheckedPlayersStats = new HashSet<String>();
 
         //Experimental
         private Boolean _useExperimentalTools;
@@ -5865,6 +5867,8 @@ namespace PRoConEvents
                         {
                             _LoadoutConfirmDictionary.Clear();
                         }
+                        _hackerCheckedPlayers.Clear();
+                        _hackerCheckedPlayersStats.Clear();
                         _unmatchedRoundDeathCounts.Clear();
                         _unmatchedRoundDeaths.Clear();
                         _endingRound = false;
@@ -9811,7 +9815,7 @@ namespace PRoConEvents
                     {
                         //Death check
                         IEnumerable<AdKatsKill> deathHeadshots = aKill.killer.RecentKills.Where(dKill => dKill.weaponCode == "Death" && dKill.IsHeadshot);
-                        if (deathHeadshots.Count() > 5)
+                        if (deathHeadshots.Count() > 5 && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")))
                         {
                             QueueRecordForProcessing(new AdKatsRecord
                             {
@@ -10904,26 +10908,27 @@ namespace PRoConEvents
             Log.Debug("Ban list loaded", 5);
         }
 
-        private void QueuePlayerForHackerCheck(AdKatsPlayer player)
+        private void QueuePlayerForHackerCheck(AdKatsPlayer aPlayer)
         {
             Log.Debug("Entering queuePlayerForHackerCheck", 7);
             try
             {
                 if (_pluginEnabled)
                 {
-                    Log.Debug("Preparing to queue " + player.player_name + " for hacker check", 6);
+                    Log.Debug("Preparing to queue " + aPlayer.player_name + " for hacker check", 6);
+                    _hackerCheckedPlayersStats.Remove(aPlayer.player_guid);
                     Log.Debug("Locking on _HackerCheckerQueue", 6);
                     lock (_HackerCheckerQueue)
                     {
-                        if (_HackerCheckerQueue.All(qPlayer => qPlayer.player_guid != player.player_guid))
+                        if (_HackerCheckerQueue.All(qPlayer => qPlayer.player_guid != aPlayer.player_guid))
                         {
-                            _HackerCheckerQueue.Enqueue(player);
-                            Log.Debug(player.player_name + " queued for hacker check", 6);
+                            _HackerCheckerQueue.Enqueue(aPlayer);
+                            Log.Debug(aPlayer.player_name + " queued for hacker check", 6);
                             _HackerCheckerWaitHandle.Set();
                         }
                         else
                         {
-                            Log.Debug(player.player_name + " hacker check cancelled; player already in queue.", 6);
+                            Log.Debug(aPlayer.player_name + " hacker check cancelled; player already in queue.", 6);
                         }
                     }
                 }
@@ -11107,8 +11112,6 @@ namespace PRoConEvents
 
         public void HackerCheckerThreadLoop()
         {
-            HashSet<String> checkedPlayers = new HashSet<String>();
-            HashSet<String> checkedPlayersStats = new HashSet<String>();
             try
             {
                 Log.Debug("Starting Hacker Checker Thread", 1);
@@ -11181,14 +11184,14 @@ namespace PRoConEvents
 
                                 if (!PlayerProtected(aPlayer))
                                 {
-                                    checkedPlayers.Add(aPlayer.player_guid);
+                                    _hackerCheckedPlayers.Add(aPlayer.player_guid);
                                     if (aPlayer.stats != null && aPlayer.stats.StatsException == null)
                                     {
                                         if (_UseHackerChecker)
                                         {
                                             RunStatSiteHackCheck(aPlayer, false);
-                                            checkedPlayersStats.Add(aPlayer.player_guid);
-                                            Log.Debug(aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (checkedPlayersStats.Count / (Double)checkedPlayers.Count) * 100) + "% of " + checkedPlayers.Count + " players checked)", 2);
+                                            _hackerCheckedPlayersStats.Add(aPlayer.player_guid);
+                                            Log.Debug(aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double)_hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 2);
                                         }
                                         else
                                         {
