@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.2.4
+ * Version 6.6.2.5
  * 26-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.2.4</version_code>
+ * <version_code>6.6.2.5</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.2.4";
+        private const String PluginVersion = "6.6.2.5";
 
         public enum GameVersion
         {
@@ -7307,10 +7307,17 @@ namespace PRoConEvents
                                         continue;
                                     }
                                     validPlayers.Add(playerInfo.SoldierName);
+                                    if (_isTestingAuthorized) {
+                                        Log.Info("Starting add. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
+                                    }
                                     //Check if the player is already in the player dictionary
                                     AdKatsPlayer aPlayer = null;
                                     if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer))
                                     {
+                                        if (_isTestingAuthorized)
+                                        {
+                                            Log.Info("Already online.");
+                                        }
                                         //They are
                                         if (aPlayer.frostbitePlayerInfo.Score != playerInfo.Score || aPlayer.frostbitePlayerInfo.Kills != playerInfo.Kills || aPlayer.frostbitePlayerInfo.Deaths != playerInfo.Deaths)
                                         {
@@ -7430,6 +7437,10 @@ namespace PRoConEvents
                                             };
                                             QueueRecordForProcessing(record);
                                         }
+                                        if (_isTestingAuthorized)
+                                        {
+                                            Log.Info("Already online. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
+                                        }
                                     }
                                     else
                                     {
@@ -7438,6 +7449,10 @@ namespace PRoConEvents
                                         aPlayer = _PlayerLeftDictionary.Values.FirstOrDefault(oPlayer => oPlayer.player_guid == playerInfo.GUID);
                                         if (aPlayer != null)
                                         {
+                                            if (_isTestingAuthorized)
+                                            {
+                                                Log.Info("Rejoining.");
+                                            }
                                             Log.Debug("Player " + playerInfo.SoldierName + " rejoined the server.", 3);
                                             //Remove them from the left dictionary
                                             _PlayerLeftDictionary.Remove(playerInfo.SoldierName);
@@ -7470,15 +7485,29 @@ namespace PRoConEvents
                                             {
                                                 OnlineAdminSayMessage("Kicked player " + aPlayer.GetVerboseName() + " rejoined the server.");
                                             }
+
+                                            if (_isTestingAuthorized)
+                                            {
+                                                Log.Info("Rejoining. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
+                                            }
                                         }
                                         else
                                         {
-                                            //If they aren't in the list, fetch their profile from the database
+                                            if (_isTestingAuthorized)
+                                            {
+                                                Log.Info("New player.");
+                                            }
+                                            //If they aren't in the list, fetch their information from the database
                                             aPlayer = FetchPlayer(true, false, false, null, -1, playerInfo.SoldierName, playerInfo.GUID, null);
                                             if (aPlayer == null)
                                             {
                                                 //Do not handle the player if not returned
                                                 continue;
+                                            }
+
+                                            if (_isTestingAuthorized)
+                                            {
+                                                Log.Info("New player. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
                                             }
                                         }
                                         aPlayer.player_online = true;
@@ -7565,6 +7594,11 @@ namespace PRoConEvents
                                             };
                                             QueueRecordForProcessing(record);
                                         }
+
+                                        if (_isTestingAuthorized)
+                                        {
+                                            Log.Info("Pre-complete. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
+                                        }
                                         if (_firstPlayerListComplete)
                                         {
                                             bool isAdmin = PlayerIsAdmin(aPlayer);
@@ -7631,6 +7665,10 @@ namespace PRoConEvents
                                                 }
                                             }
                                         }
+                                        if (_isTestingAuthorized)
+                                        {
+                                            Log.Info("pre-complete list. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
+                                        }
                                         //Set their last death/spawn times
                                         aPlayer.lastDeath = UtcDbTime();
                                         aPlayer.lastSpawn = UtcDbTime();
@@ -7689,6 +7727,10 @@ namespace PRoConEvents
                                             record_time = UtcDbTime()
                                         };
                                         QueueRecordForProcessing(record);
+                                    }
+                                    if (_isTestingAuthorized)
+                                    {
+                                        Log.Info("Complete. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
                                     }
                                     timer.Stop();
                                     durations.Add(timer.Elapsed.TotalSeconds);
