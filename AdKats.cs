@@ -9815,7 +9815,7 @@ namespace PRoConEvents
                     {
                         //Death check
                         IEnumerable<AdKatsKill> deathHeadshots = aKill.killer.RecentKills.Where(dKill => dKill.weaponCode == "Death" && dKill.IsHeadshot);
-                        if (deathHeadshots.Count() > 5 && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")))
+                        if (deathHeadshots.Count() > 5 && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6") || _serverInfo.ServerName.Contains("#5")))
                         {
                             QueueRecordForProcessing(new AdKatsRecord
                             {
