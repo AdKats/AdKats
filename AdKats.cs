@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.2.0
+ * Version 6.6.2.1
  * 26-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.2.0</version_code>
+ * <version_code>6.6.2.1</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.2.0";
+        private const String PluginVersion = "6.6.2.1";
 
         public enum GameVersion
         {
@@ -7003,6 +7003,10 @@ namespace PRoConEvents
                     {
                         _PlayerListProcessingQueue.Enqueue(players);
                         Log.Debug("Player list queued for processing", 6);
+                        if (_isTestingAuthorized)
+                        {
+                            Log.Warn("Player list queued for processing.");
+                        }
                         _PlayerProcessingWaitHandle.Set();
                     }
                 }
@@ -7026,6 +7030,10 @@ namespace PRoConEvents
                     {
                         _PlayerRemovalProcessingQueue.Enqueue(player);
                         Log.Debug("Player removal queued for processing", 6);
+                        if (_isTestingAuthorized)
+                        {
+                            Log.Warn("Player removal queued for processing.");
+                        }
                         _PlayerProcessingWaitHandle.Set();
                     }
                 }
@@ -7049,6 +7057,10 @@ namespace PRoConEvents
                     try
                     {
                         Log.Debug("Entering Player Listing Thread Loop", 7);
+                        if (_isTestingAuthorized) 
+                        {
+                            Log.Warn("Entering player listing thread loop.");
+                        }
                         if (!_pluginEnabled)
                         {
                             Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
@@ -7064,6 +7076,10 @@ namespace PRoConEvents
                         if (_PlayerListProcessingQueue.Count > 0 && _firstUserListComplete)
                         {
                             Log.Debug("Preparing to lock player list queues to retrive new player lists", 7);
+                            if (_isTestingAuthorized)
+                            {
+                                Log.Warn("Locking player list processing queue.");
+                            }
                             lock (_PlayerListProcessingQueue)
                             {
                                 Log.Debug("Inbound player lists found. Grabbing.", 6);
@@ -7087,6 +7103,10 @@ namespace PRoConEvents
                         if (_PlayerRemovalProcessingQueue.Count > 0)
                         {
                             Log.Debug("Preparing to lock player removal queue to retrive new player removals", 7);
+                            if (_isTestingAuthorized)
+                            {
+                                Log.Warn("Locking player removal processing queue.");
+                            }
                             lock (_PlayerRemovalProcessingQueue)
                             {
                                 Log.Debug("Inbound player removals found. Grabbing.", 6);
@@ -7103,18 +7123,30 @@ namespace PRoConEvents
                             inboundPlayerRemoval = new Queue<CPlayerInfo>();
                         }
 
-                        if (!inboundPlayerList.Any() && !inboundPlayerRemoval.Any() && !_PlayerRoleRefetch && !playerListFetched)
+                        if (!inboundPlayerList.Any() && 
+                            !inboundPlayerRemoval.Any() && 
+                            !_PlayerRoleRefetch && 
+                            !playerListFetched)
                         {
-                            Log.Debug("No inbound player lists or removals found. Waiting for Input.", 5);
+                            Log.Debug("No inbound player listing actions. Waiting for Input.", 5);
+                            if (_isTestingAuthorized)
+                            {
+                                Log.Warn("No inbound player listing actions, waiting for input.");
+                            }
                             //Wait for input
                             if (!_firstPlayerListStarted)
                             {
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                                 Thread.Sleep(1000);
                             }
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000 || _isTestingAuthorized)
                             {
-                                Log.Debug("Warning. " + Thread.CurrentThread.Name + " thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                if (_isTestingAuthorized)
+                                {
+                                    Log.Warn("Warning. PlayerListing thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
+                                }
+                                else
+                                    Log.Debug("Warning. PlayerListing thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _PlayerProcessingWaitHandle.Reset();
                             _PlayerProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(60));
@@ -7128,6 +7160,10 @@ namespace PRoConEvents
                         }
 
                         List<string> removedPlayers = new List<string>();
+                        if (_isTestingAuthorized)
+                        {
+                            Log.Warn("Locking player dictionary.");
+                        }
                         lock (_PlayerDictionary)
                         {
                             //Firstly, go through removal queue, remove all names, and log them.
@@ -7230,6 +7266,10 @@ namespace PRoConEvents
                             if (inboundPlayerList.Count > 0)
                             {
                                 Log.Debug("Listing Players", 5);
+                                if (_isTestingAuthorized)
+                                {
+                                    Log.Warn("Listing players.");
+                                }
                                 //Reset the player counts of all teams and recount everything
                                 //Loop over all players in the list
                                 Int32 team1PC = 0;
