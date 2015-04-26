@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.2.1
+ * Version 6.6.2.2
  * 26-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.2.1</version_code>
+ * <version_code>6.6.2.2</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.2.1";
+        private const String PluginVersion = "6.6.2.2";
 
         public enum GameVersion
         {
@@ -7123,6 +7123,11 @@ namespace PRoConEvents
                             inboundPlayerRemoval = new Queue<CPlayerInfo>();
                         }
 
+                        if (_isTestingAuthorized)
+                        {
+                            Log.Warn("PlayerListing thread loop completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
+                        }
+
                         if (!inboundPlayerList.Any() && 
                             !inboundPlayerRemoval.Any() && 
                             !_PlayerRoleRefetch && 
@@ -7139,14 +7144,9 @@ namespace PRoConEvents
                                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
                                 Thread.Sleep(1000);
                             }
-                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000 || _isTestingAuthorized)
+                            if ((UtcDbTime() - loopStart).TotalMilliseconds > 1000)
                             {
-                                if (_isTestingAuthorized)
-                                {
-                                    Log.Warn("Warning. PlayerListing thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
-                                }
-                                else
-                                    Log.Debug("Warning. PlayerListing thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
+                                Log.Debug("Warning. PlayerListing thread processing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms", 4);
                             }
                             _PlayerProcessingWaitHandle.Reset();
                             _PlayerProcessingWaitHandle.WaitOne(TimeSpan.FromSeconds(60));
@@ -7261,6 +7261,11 @@ namespace PRoConEvents
                                 }
                                 RemovePlayerFromDictionary(playerInfo.SoldierName, false);
                                 removedPlayers.Add(playerInfo.SoldierName);
+                            }
+
+                            if (_isTestingAuthorized)
+                            {
+                                Log.Warn("Removals completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
                             }
                             List<string> validPlayers = new List<String>();
                             if (inboundPlayerList.Count > 0)
@@ -7692,6 +7697,11 @@ namespace PRoConEvents
                                     }
                                 }
 
+                                if (_isTestingAuthorized)
+                                {
+                                    Log.Warn("Listing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
+                                }
+
                                 AdKatsTeam team1, team2, team3, team4;
                                 if (GetTeamByID(1, out team1))
                                 {
@@ -7904,6 +7914,11 @@ namespace PRoConEvents
                                 }
                                 _populationUpdateTime = UtcDbTime();
                             }
+
+                            if (_isTestingAuthorized)
+                            {
+                                Log.Warn("Cleanups completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
+                            }
                         }
 
                         if (pingPickedPlayer != null)
@@ -7976,6 +7991,11 @@ namespace PRoConEvents
                             break;
                         }
                         HandleException(new AdKatsException("Error occured in player listing thread. Skipping loop.", e));
+                    }
+
+                    if (_isTestingAuthorized)
+                    {
+                        Log.Warn("Finalizer completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
                     }
                 }
                 Log.Debug("Ending Player Listing Thread", 1);
