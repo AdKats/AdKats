@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.1.1
+ * Version 6.6.1.2
  * 25-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.1.1</version_code>
+ * <version_code>6.6.1.2</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.1.1";
+        private const String PluginVersion = "6.6.1.2";
 
         public enum GameVersion
         {
@@ -12830,7 +12830,7 @@ namespace PRoConEvents
                                                 {
                                                     if (_isTestingAuthorized)
                                                     {
-                                                        AdminSayMessage(assistRecord.source_player.GetVerboseName() + ", thank you for assisting the weak team!");
+                                                        AdminSayMessage(assistRecord.target_player.GetVerboseName() + ", thank you for assisting the weak team!");
                                                     }
                                                     assistRecord.command_action = GetCommandByKey("self_assist");
                                                     QueueRecordForProcessing(assistRecord);
