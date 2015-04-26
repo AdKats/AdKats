@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.1.5
- * 25-APR-2015
+ * Version 6.6.1.6
+ * 26-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.1.5</version_code>
+ * <version_code>6.6.1.6</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.1.5";
+        private const String PluginVersion = "6.6.1.6";
 
         public enum GameVersion
         {
@@ -9411,8 +9411,18 @@ namespace PRoConEvents
                     StartAndLogThread(new Thread(new ThreadStart(delegate
                     {
                         Thread.CurrentThread.Name = "HackerCheckerRecheck";
+                        var onlineLowPlayers = _PlayerDictionary.Values.Where(dPlayer => dPlayer.frostbitePlayerInfo.Rank <= 100).ToList();
+                        if (_isTestingAuthorized) 
+                        {
+                            Log.Warn("Preparing to requeue " + onlineLowPlayers.Count + " players for blog/hc check.");
+                        }
                         Thread.Sleep(TimeSpan.FromSeconds(30));
-                        foreach (var aPlayer in _PlayerDictionary.Values.Where(dPlayer => dPlayer.frostbitePlayerInfo.Rank <= 100).ToList()) {
+                        foreach (var aPlayer in onlineLowPlayers)
+                        {
+                            if (_isTestingAuthorized)
+                            {
+                                Log.Warn("Requeuing " + aPlayer.player_name + " for blog/hc check.");
+                            }
                             aPlayer.blInfoFetched = false;
                             QueuePlayerForBattlelogInfoFetch(aPlayer);
                             QueuePlayerForHackerCheck(aPlayer);
@@ -36568,7 +36578,7 @@ namespace PRoConEvents
         {
             try
             {
-                if (!String.IsNullOrEmpty(aPlayer.player_personaID))
+                if (aPlayer.blInfoFetched)
                 {
                     return;
                 }
