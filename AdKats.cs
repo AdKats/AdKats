@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.2.5
+ * Version 6.6.2.6
  * 26-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.2.5</version_code>
+ * <version_code>6.6.2.6</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.2.5";
+        private const String PluginVersion = "6.6.2.6";
 
         public enum GameVersion
         {
@@ -6788,16 +6788,8 @@ namespace PRoConEvents
                                 }
                                 if (!_teamDictionary.ContainsKey(1) || !_teamDictionary.ContainsKey(2) || !_teamDictionary.ContainsKey(3) || !_teamDictionary.ContainsKey(4))
                                 {
-                                    if (_isTestingAuthorized)
-                                    {
-                                        Log.Info("Teams not set yet, waiting.");
-                                    }
                                     Thread.Sleep(TimeSpan.FromSeconds(1));
                                     continue;
-                                }
-                                if (_isTestingAuthorized)
-                                {
-                                    Log.Success("Teams updated.");
                                 }
                                 _acceptingTeamUpdates = false;
                                 if (_isTestingAuthorized && _FeedBaserapeCausingPlayerDispersion && _firstPlayerListComplete)
@@ -6951,10 +6943,6 @@ namespace PRoConEvents
                     AdKatsPlayer aPlayer = _PlayerDictionary[soldierName];
                     Int32 oldSquad = aPlayer.frostbitePlayerInfo.SquadID;
                     aPlayer.frostbitePlayerInfo.SquadID = squadId;
-                    if (_isTestingAuthorized)
-                    {
-                        Log.Write(aPlayer.GetVerboseName() + " moved from squad " + oldSquad + " to squad " + aPlayer.frostbitePlayerInfo.SquadID);
-                    }
                 }
             }
             catch (Exception e)
@@ -7003,10 +6991,6 @@ namespace PRoConEvents
                     {
                         _PlayerListProcessingQueue.Enqueue(players);
                         Log.Debug("Player list queued for processing", 6);
-                        if (_isTestingAuthorized)
-                        {
-                            Log.Warn("Player list queued for processing.");
-                        }
                         _PlayerProcessingWaitHandle.Set();
                     }
                 }
@@ -7030,10 +7014,6 @@ namespace PRoConEvents
                     {
                         _PlayerRemovalProcessingQueue.Enqueue(player);
                         Log.Debug("Player removal queued for processing", 6);
-                        if (_isTestingAuthorized)
-                        {
-                            Log.Warn("Player removal queued for processing.");
-                        }
                         _PlayerProcessingWaitHandle.Set();
                     }
                 }
@@ -7057,10 +7037,6 @@ namespace PRoConEvents
                     try
                     {
                         Log.Debug("Entering Player Listing Thread Loop", 7);
-                        if (_isTestingAuthorized) 
-                        {
-                            Log.Warn("Entering player listing thread loop.");
-                        }
                         if (!_pluginEnabled)
                         {
                             Log.Debug("Detected AdKats not enabled. Exiting thread " + Thread.CurrentThread.Name, 6);
@@ -7076,10 +7052,6 @@ namespace PRoConEvents
                         if (_PlayerListProcessingQueue.Count > 0 && _firstUserListComplete)
                         {
                             Log.Debug("Preparing to lock player list queues to retrive new player lists", 7);
-                            if (_isTestingAuthorized)
-                            {
-                                Log.Warn("Locking player list processing queue.");
-                            }
                             lock (_PlayerListProcessingQueue)
                             {
                                 Log.Debug("Inbound player lists found. Grabbing.", 6);
@@ -7103,10 +7075,6 @@ namespace PRoConEvents
                         if (_PlayerRemovalProcessingQueue.Count > 0)
                         {
                             Log.Debug("Preparing to lock player removal queue to retrive new player removals", 7);
-                            if (_isTestingAuthorized)
-                            {
-                                Log.Warn("Locking player removal processing queue.");
-                            }
                             lock (_PlayerRemovalProcessingQueue)
                             {
                                 Log.Debug("Inbound player removals found. Grabbing.", 6);
@@ -7123,22 +7091,12 @@ namespace PRoConEvents
                             inboundPlayerRemoval = new Queue<CPlayerInfo>();
                         }
 
-                        if (_isTestingAuthorized)
-                        {
-                            Log.Warn("PlayerListing thread loop completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
-                            loopStart = UtcDbTime();
-                        }
-
                         if (!inboundPlayerList.Any() && 
                             !inboundPlayerRemoval.Any() && 
                             !_PlayerRoleRefetch && 
                             !playerListFetched)
                         {
                             Log.Debug("No inbound player listing actions. Waiting for Input.", 5);
-                            if (_isTestingAuthorized)
-                            {
-                                Log.Warn("No inbound player listing actions, waiting for input.");
-                            }
                             //Wait for input
                             if (!_firstPlayerListStarted)
                             {
@@ -7161,10 +7119,6 @@ namespace PRoConEvents
                         }
 
                         List<string> removedPlayers = new List<string>();
-                        if (_isTestingAuthorized)
-                        {
-                            Log.Warn("Locking player dictionary.");
-                        }
                         lock (_PlayerDictionary)
                         {
                             //Firstly, go through removal queue, remove all names, and log them.
@@ -7263,19 +7217,10 @@ namespace PRoConEvents
                                 RemovePlayerFromDictionary(playerInfo.SoldierName, false);
                                 removedPlayers.Add(playerInfo.SoldierName);
                             }
-
-                            if (_isTestingAuthorized)
-                            {
-                                Log.Warn("Removals completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
-                            }
                             List<string> validPlayers = new List<String>();
                             if (inboundPlayerList.Count > 0)
                             {
                                 Log.Debug("Listing Players", 5);
-                                if (_isTestingAuthorized)
-                                {
-                                    Log.Warn("Listing players.");
-                                }
                                 //Reset the player counts of all teams and recount everything
                                 //Loop over all players in the list
                                 Int32 team1PC = 0;
@@ -7307,9 +7252,6 @@ namespace PRoConEvents
                                         continue;
                                     }
                                     validPlayers.Add(playerInfo.SoldierName);
-                                    if (_isTestingAuthorized) {
-                                        Log.Info("Starting add. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
-                                    }
                                     //Check if the player is already in the player dictionary
                                     AdKatsPlayer aPlayer = null;
                                     if (_PlayerDictionary.TryGetValue(playerInfo.SoldierName, out aPlayer))
@@ -7349,7 +7291,7 @@ namespace PRoConEvents
                                             PingReply reply = null;
                                             try
                                             {
-                                                reply = _pingProcessor.Send(aPlayer.player_ip);
+                                                reply = _pingProcessor.Send(aPlayer.player_ip, 1000);
                                             }
                                             catch (Exception e)
                                             {
@@ -7449,10 +7391,6 @@ namespace PRoConEvents
                                         aPlayer = _PlayerLeftDictionary.Values.FirstOrDefault(oPlayer => oPlayer.player_guid == playerInfo.GUID);
                                         if (aPlayer != null)
                                         {
-                                            if (_isTestingAuthorized)
-                                            {
-                                                Log.Info("Rejoining.");
-                                            }
                                             Log.Debug("Player " + playerInfo.SoldierName + " rejoined the server.", 3);
                                             //Remove them from the left dictionary
                                             _PlayerLeftDictionary.Remove(playerInfo.SoldierName);
@@ -7485,29 +7423,15 @@ namespace PRoConEvents
                                             {
                                                 OnlineAdminSayMessage("Kicked player " + aPlayer.GetVerboseName() + " rejoined the server.");
                                             }
-
-                                            if (_isTestingAuthorized)
-                                            {
-                                                Log.Info("Rejoining. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
-                                            }
                                         }
                                         else
                                         {
-                                            if (_isTestingAuthorized)
-                                            {
-                                                Log.Info("New player.");
-                                            }
                                             //If they aren't in the list, fetch their information from the database
                                             aPlayer = FetchPlayer(true, false, false, null, -1, playerInfo.SoldierName, playerInfo.GUID, null);
                                             if (aPlayer == null)
                                             {
                                                 //Do not handle the player if not returned
                                                 continue;
-                                            }
-
-                                            if (_isTestingAuthorized)
-                                            {
-                                                Log.Info("New player. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
                                             }
                                         }
                                         aPlayer.player_online = true;
@@ -7594,11 +7518,6 @@ namespace PRoConEvents
                                             };
                                             QueueRecordForProcessing(record);
                                         }
-
-                                        if (_isTestingAuthorized)
-                                        {
-                                            Log.Info("Pre-complete. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
-                                        }
                                         if (_firstPlayerListComplete)
                                         {
                                             bool isAdmin = PlayerIsAdmin(aPlayer);
@@ -7665,10 +7584,6 @@ namespace PRoConEvents
                                                 }
                                             }
                                         }
-                                        if (_isTestingAuthorized)
-                                        {
-                                            Log.Info("pre-complete list. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
-                                        }
                                         //Set their last death/spawn times
                                         aPlayer.lastDeath = UtcDbTime();
                                         aPlayer.lastSpawn = UtcDbTime();
@@ -7728,21 +7643,12 @@ namespace PRoConEvents
                                         };
                                         QueueRecordForProcessing(record);
                                     }
-                                    if (_isTestingAuthorized)
-                                    {
-                                        Log.Info("Complete. " + Math.Round(timer.Elapsed.TotalMilliseconds) + "ms");
-                                    }
                                     timer.Stop();
                                     durations.Add(timer.Elapsed.TotalSeconds);
-                                    if (!_firstPlayerListComplete || _isTestingAuthorized)
+                                    if (!_firstPlayerListComplete)
                                     {
                                         Log.Write(index + "/" + trimmedInboundPlayers.Count() + " players loaded (" + aPlayer.player_name + "). " + Math.Round(durations.Sum() / durations.Count, 2) + "s per player.");
                                     }
-                                }
-
-                                if (_isTestingAuthorized)
-                                {
-                                    Log.Warn("Listing completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
                                 }
 
                                 AdKatsTeam team1, team2, team3, team4;
@@ -7957,11 +7863,6 @@ namespace PRoConEvents
                                 }
                                 _populationUpdateTime = UtcDbTime();
                             }
-
-                            if (_isTestingAuthorized)
-                            {
-                                Log.Warn("Cleanups completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
-                            }
                         }
 
                         if (pingPickedPlayer != null)
@@ -8034,11 +7935,6 @@ namespace PRoConEvents
                             break;
                         }
                         HandleException(new AdKatsException("Error occured in player listing thread. Skipping loop.", e));
-                    }
-
-                    if (_isTestingAuthorized)
-                    {
-                        Log.Warn("Finalizer completed in " + ((int)((UtcDbTime() - loopStart).TotalMilliseconds)) + "ms");
                     }
                 }
                 Log.Debug("Ending Player Listing Thread", 1);
