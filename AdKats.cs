@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.3.0
+ * Version 6.6.3.1
  * 27-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.3.0</version_code>
+ * <version_code>6.6.3.1</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.3.0";
+        private const String PluginVersion = "6.6.3.1";
 
         public enum GameVersion
         {
@@ -11312,9 +11312,9 @@ namespace PRoConEvents
                                             Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
                                             Double hitDiff = weaponStat.Hits - previousWeaponStat.Hits;
                                             Double diffDPS = (killDiff / hitDiff) * 100;
-                                            Double percDiff = (diffDPS - weapon.DamageMax) / diffDPS;
+                                            Double percDiff = (weaponStat.DPS - weapon.DamageMax) / weapon.DamageMax;
                                             if (_isTestingAuthorized) {
-                                                Log.Info("StatDiff - " + aPlayer.GetVerboseName() + ": " + weaponStat.ID + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + Math.Round(percDiff * 100) + "%]");
+                                                Log.Info("StatDiff - " + aPlayer.GetVerboseName() + ": " + weaponStat.ID + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
                                                 //Check for damage hack
                                                 if (killDiff >= 10 &&
                                                     diffDPS > weapon.DamageMax && 
@@ -11334,7 +11334,7 @@ namespace PRoConEvents
                                     if (weaponStat.DPS > weapon.DamageMax)
                                     {
                                         //Get the percentage over normal
-                                        Double percDiff = (weaponStat.DPS - weapon.DamageMax) / weaponStat.DPS;
+                                        Double percDiff = (weaponStat.DPS - weapon.DamageMax) / weapon.DamageMax;
                                         if (percDiff > (_DpsTriggerLevel / 100))
                                         {
                                             if (percDiff > actedPerc)
