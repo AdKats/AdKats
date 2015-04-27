@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.3.1
+ * Version 6.6.3.3
  * 27-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.3.1</version_code>
+ * <version_code>6.6.3.3</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.3.1";
+        private const String PluginVersion = "6.6.3.3";
 
         public enum GameVersion
         {
@@ -11311,8 +11311,9 @@ namespace PRoConEvents
                                         if (weaponStat.Kills > previousWeaponStat.Kills) {
                                             Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
                                             Double hitDiff = weaponStat.Hits - previousWeaponStat.Hits;
+                                            Double HSDiff = weaponStat.Headshots - previousWeaponStat.Headshots;
                                             Double diffDPS = (killDiff / hitDiff) * 100;
-                                            Double percDiff = (weaponStat.DPS - weapon.DamageMax) / weapon.DamageMax;
+                                            Double percDiff = (diffDPS - weapon.DamageMax) / weapon.DamageMax;
                                             if (_isTestingAuthorized) {
                                                 Log.Info("StatDiff - " + aPlayer.GetVerboseName() + ": " + weaponStat.ID + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
                                                 //Check for damage hack
@@ -11320,7 +11321,24 @@ namespace PRoConEvents
                                                     diffDPS > weapon.DamageMax && 
                                                     percDiff > 2.0)
                                                 {
-                                                    Log.Success("Ban issued.");
+                                                    String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
+                                                    Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int)diffDPS + "-" + (int)killDiff + "-" + (int)HSDiff + "]");
+                                                    if (!debugMode)
+                                                    {
+                                                        //Create the ban record
+                                                        QueueRecordForProcessing(new AdKatsRecord
+                                                        {
+                                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                            server_id = _serverInfo.ServerID,
+                                                            command_type = GetCommandByKey("player_ban_perm"),
+                                                            command_numeric = 0,
+                                                            target_name = aPlayer.player_name,
+                                                            target_player = aPlayer,
+                                                            source_name = "AutoAdmin",
+                                                            record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int)diffDPS + "-" + (int)killDiff + "-" + (int)HSDiff + "]",
+                                                            record_time = UtcDbTime()
+                                                        });
+                                                    }
                                                     return true;
                                                 }
                                             }
