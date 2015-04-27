@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.3.3
+ * Version 6.6.3.4
  * 27-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.3.3</version_code>
+ * <version_code>6.6.3.4</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.3.3";
+        private const String PluginVersion = "6.6.3.4";
 
         public enum GameVersion
         {
@@ -11317,9 +11317,10 @@ namespace PRoConEvents
                                             if (_isTestingAuthorized) {
                                                 Log.Info("StatDiff - " + aPlayer.GetVerboseName() + ": " + weaponStat.ID + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
                                                 //Check for damage hack
-                                                if (killDiff >= 10 &&
+                                                //Require at least 8 kills difference, and +100% (double) normal weapon damage.
+                                                if (killDiff >= 8 &&
                                                     diffDPS > weapon.DamageMax && 
-                                                    percDiff > 2.0)
+                                                    percDiff > 1.00)
                                                 {
                                                     String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
                                                     Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int)diffDPS + "-" + (int)killDiff + "-" + (int)HSDiff + "]");
