@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.2.8
- * 26-APR-2015
+ * Version 6.6.2.9
+ * 27-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.2.8</version_code>
+ * <version_code>6.6.2.9</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.2.8";
+        private const String PluginVersion = "6.6.2.9";
 
         public enum GameVersion
         {
@@ -11288,26 +11288,13 @@ namespace PRoConEvents
                     default:
                         return false;
                 }
-                List<AdKatsWeaponStats> topWeapons = aPlayer.stats.WeaponStats.Values.ToList();
-                topWeapons.Sort(delegate(AdKatsWeaponStats a1, AdKatsWeaponStats a2)
-                {
-                    if (Math.Abs(a1.Kills - a2.Kills) < 0.001)
-                    {
-                        return 0;
-                    }
-                    return (a1.Kills < a2.Kills) ? (1) : (-1);
-                });
+                List<AdKatsWeaponStats> topWeapons = aPlayer.stats.WeaponStats.Values.OrderByDescending(aStat => aStat.Kills).ToList();
 
                 AdKatsWeaponStats actedWeapon = null;
                 Double actedPerc = -1;
                 Int32 index = 0;
                 foreach (AdKatsWeaponStats weaponStat in topWeapons)
                 {
-                    //Break after 15th top weapon
-                    if (index++ > 15)
-                    {
-                        break;
-                    }
                     //Only count certain weapon categories
                     if (allowedCategories.Contains(weaponStat.Category))
                     {
@@ -11317,7 +11304,20 @@ namespace PRoConEvents
                             //Only handle weapons that do < 50 max dps
                             if (weapon.DamageMax < 50)
                             {
-                                //Only take weapons with more than 50 kills
+                                //For live stat check, look for previous round stat difference
+                                if (aPlayer.stats_previous != null) {
+                                    AdKatsWeaponStats previousWeaponStat;
+                                    if (aPlayer.stats_previous.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
+                                        if (weaponStat.Kills > previousWeaponStat.Kills) {
+                                            Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
+                                            Double hitDiff = weaponStat.Hits - previousWeaponStat.Hits;
+                                            if (_isTestingAuthorized) {
+                                                Log.Warn("StatDiff - " + aPlayer.GetVerboseName() + ": " + weaponStat.ID + " (" + killDiff + "/" + hitDiff + ")");
+                                            }
+                                        }
+                                    }
+                                }
+                                //For full stat check only take weapons with more than 50 kills
                                 if (weaponStat.Kills > 50)
                                 {
                                     //Check for damage hack
@@ -11498,11 +11498,6 @@ namespace PRoConEvents
                 Int32 index = 0;
                 foreach (AdKatsWeaponStats weaponStat in topWeapons)
                 {
-                    //Break after 15th top weapon
-                    if (index++ > 15)
-                    {
-                        break;
-                    }
                     //Only count certain weapon categories
                     if (allowedCategories.Contains(weaponStat.Category))
                     {
@@ -11695,11 +11690,6 @@ namespace PRoConEvents
                 Int32 index = 0;
                 foreach (AdKatsWeaponStats weaponStat in topWeapons)
                 {
-                    //Break after 15th top weapon
-                    if (index++ > 15)
-                    {
-                        break;
-                    }
                     //Only count certain weapon categories, and ignore gadgets/sidearms (shotgun issue with BF4)
                     if (allowedCategories.Contains(weaponStat.Category) && 
                         weaponStat.CategorySID != "WARSAW_ID_P_CAT_GADGET" && 
@@ -36602,6 +36592,7 @@ namespace PRoConEvents
                                     Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                                 }
                                 //Assign loaded stats to the player
+                                aPlayer.stats_previous = aPlayer.stats;
                                 aPlayer.stats = stats;
                             }
                         }
@@ -36744,6 +36735,7 @@ namespace PRoConEvents
                                     Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                                 }
                                 //Assign loaded stats to the player
+                                aPlayer.stats_previous = aPlayer.stats;
                                 aPlayer.stats = stats;
                             }
                         }
@@ -36894,6 +36886,7 @@ namespace PRoConEvents
                                     Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                                 }
                                 //Assign loaded stats to the player
+                                aPlayer.stats_previous = aPlayer.stats;
                                 aPlayer.stats = stats;
                             }
                         }
@@ -39701,6 +39694,7 @@ namespace PRoConEvents
             public AdKatsPlayer conversationPartner = null;
 
             public AdKatsPlayerStats stats = null;
+            public AdKatsPlayerStats stats_previous = null;
             public IPAPILocation location = null;
             public Boolean update_playerUpdated = true;
             public Boolean player_new = false;
