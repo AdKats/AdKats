@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.3.4
+ * Version 6.6.3.5
  * 27-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.3.4</version_code>
+ * <version_code>6.6.3.5</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.3.4";
+        private const String PluginVersion = "6.6.3.5";
 
         public enum GameVersion
         {
@@ -9410,7 +9410,16 @@ namespace PRoConEvents
                                     }
                                     aPlayer.blInfoFetched = false;
                                     QueuePlayerForBattlelogInfoFetch(aPlayer);
-                                    QueuePlayerForHackerCheck(aPlayer);
+                                    //If using ban enforcer, check the player's ban status
+                                    if (_UseBanEnforcer)
+                                    {
+                                        QueuePlayerForBanCheck(aPlayer);
+                                    }
+                                    else if (_UseHackerChecker)
+                                    {
+                                        //Queue the player for a hacker check
+                                        QueuePlayerForHackerCheck(aPlayer);
+                                    }
                                 }
                                 LogThreadExit();
                             })));
@@ -10783,6 +10792,7 @@ namespace PRoConEvents
                                                 record_message = "Multihack",
                                                 record_time = UtcDbTime()
                                             });
+                                            continue;
                                         }
                                         //Only call a hack check if the player does not already have a ban
                                         if (_UseHackerChecker)
@@ -11296,8 +11306,13 @@ namespace PRoConEvents
                 foreach (AdKatsWeaponStats weaponStat in topWeapons)
                 {
                     //Only count certain weapon categories
-                    if (allowedCategories.Contains(weaponStat.Category))
-                    {
+                    if (allowedCategories.Contains(weaponStat.Category)) {
+                        Boolean isSidearm = 
+                            weaponStat.Category == "handheld_weapons" || 
+                            weaponStat.Category == "handguns" || 
+                            weaponStat.Category == "pistols" || 
+                            weaponStat.Category == "machine_pistols" || 
+                            weaponStat.Category == "revolvers";
                         StatLibraryWeapon weapon;
                         if (_StatLibrary.Weapons.TryGetValue(weaponStat.ID, out weapon))
                         {
@@ -11317,10 +11332,10 @@ namespace PRoConEvents
                                             if (_isTestingAuthorized) {
                                                 Log.Info("StatDiff - " + aPlayer.GetVerboseName() + ": " + weaponStat.ID + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
                                                 //Check for damage hack
-                                                //Require at least 8 kills difference, and +100% (double) normal weapon damage.
-                                                if (killDiff >= 8 &&
+                                                //Require at least 10 kills difference, +100% (double) normal weapon damage for non-sidearm weapons, and +200% (triple) normal weapon damage for sidearms.
+                                                if (killDiff >= 10 &&
                                                     diffDPS > weapon.DamageMax && 
-                                                    percDiff > 1.00)
+                                                    (percDiff > 2.00 || (!isSidearm && percDiff > 1.00)))
                                                 {
                                                     String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
                                                     Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int)diffDPS + "-" + (int)killDiff + "-" + (int)HSDiff + "]");
@@ -11354,7 +11369,7 @@ namespace PRoConEvents
                                     {
                                         //Get the percentage over normal
                                         Double percDiff = (weaponStat.DPS - weapon.DamageMax) / weapon.DamageMax;
-                                        if (percDiff > (_DpsTriggerLevel / 100))
+                                        if (percDiff > ((isSidearm)?(1.5):(1.0)) * _DpsTriggerLevel / 100)
                                         {
                                             if (percDiff > actedPerc)
                                             {
