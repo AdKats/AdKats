@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.2.9
+ * Version 6.6.3.0
  * 27-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.2.9</version_code>
+ * <version_code>6.6.3.0</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.2.9";
+        private const String PluginVersion = "6.6.3.0";
 
         public enum GameVersion
         {
@@ -11311,8 +11311,18 @@ namespace PRoConEvents
                                         if (weaponStat.Kills > previousWeaponStat.Kills) {
                                             Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
                                             Double hitDiff = weaponStat.Hits - previousWeaponStat.Hits;
+                                            Double diffDPS = (killDiff / hitDiff) * 100;
+                                            Double percDiff = (diffDPS - weapon.DamageMax) / diffDPS;
                                             if (_isTestingAuthorized) {
-                                                Log.Warn("StatDiff - " + aPlayer.GetVerboseName() + ": " + weaponStat.ID + " (" + killDiff + "/" + hitDiff + ")");
+                                                Log.Info("StatDiff - " + aPlayer.GetVerboseName() + ": " + weaponStat.ID + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + Math.Round(percDiff * 100) + "%]");
+                                                //Check for damage hack
+                                                if (killDiff >= 10 &&
+                                                    diffDPS > weapon.DamageMax && 
+                                                    percDiff > 2.0)
+                                                {
+                                                    Log.Success("Ban issued.");
+                                                    return true;
+                                                }
                                             }
                                         }
                                     }
