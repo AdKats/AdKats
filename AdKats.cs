@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.3.7
+ * Version 6.6.3.8
  * 27-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.3.7</version_code>
+ * <version_code>6.6.3.8</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.3.7";
+        private const String PluginVersion = "6.6.3.8";
 
         public enum GameVersion
         {
@@ -11371,11 +11371,15 @@ namespace PRoConEvents
                                 if (weaponStat.Kills > 50)
                                 {
                                     //Check for damage hack
-                                    if (weaponStat.DPS > weapon.DamageMax)
+                                    if (weaponStat.DPS > weapon.DamageMax && (!_UseHskChecker || weaponStat.HSKR < (_HskTriggerLevel / 100)))
                                     {
                                         //Get the percentage over normal
                                         Double percDiff = (weaponStat.DPS - weapon.DamageMax) / weapon.DamageMax;
-                                        if (percDiff > ((isSidearm)?(1.5):(1.0)) * _DpsTriggerLevel / 100)
+                                        if (_isTestingAuthorized) 
+                                        {
+                                            _DpsTriggerLevel = 75;
+                                        }
+                                        if (percDiff > ((isSidearm)?(1.5):(1.0)) * (_DpsTriggerLevel / 100))
                                         {
                                             if (percDiff > actedPerc)
                                             {
