@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.3.5
+ * Version 6.6.3.6
  * 27-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.3.5</version_code>
+ * <version_code>6.6.3.6</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.3.5";
+        private const String PluginVersion = "6.6.3.6";
 
         public enum GameVersion
         {
@@ -11329,15 +11329,16 @@ namespace PRoConEvents
                                             Double HSDiff = weaponStat.Headshots - previousWeaponStat.Headshots;
                                             Double diffDPS = (killDiff / hitDiff) * 100;
                                             Double percDiff = (diffDPS - weapon.DamageMax) / weapon.DamageMax;
-                                            if (_isTestingAuthorized) {
-                                                Log.Info("StatDiff - " + aPlayer.GetVerboseName() + ": " + weaponStat.ID + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
+                                            if (_isTestingAuthorized)
+                                            {
+                                                String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
+                                                Log.Info("StatDiff - " + aPlayer.GetVerboseName() + ": " + formattedName + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
                                                 //Check for damage hack
-                                                //Require at least 10 kills difference, +100% (double) normal weapon damage for non-sidearm weapons, and +200% (triple) normal weapon damage for sidearms.
-                                                if (killDiff >= 10 &&
+                                                //Require at least 15 kills difference, +100% (double) normal weapon damage for non-sidearm weapons, and 80 DPS weapon damage for sidearms.
+                                                if (killDiff >= 15 &&
                                                     diffDPS > weapon.DamageMax && 
-                                                    (percDiff > 2.00 || (!isSidearm && percDiff > 1.00)))
+                                                    (diffDPS >= 85 || (!isSidearm && percDiff > 1.00)))
                                                 {
-                                                    String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
                                                     Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int)diffDPS + "-" + (int)killDiff + "-" + (int)HSDiff + "]");
                                                     if (!debugMode)
                                                     {
@@ -11391,7 +11392,7 @@ namespace PRoConEvents
                 {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    if (_isTestingAuthorized)
+                    if (_isTestingAuthorized && _roundState == RoundState.Playing)
                     {
                         if (!aPlayer.IsLocked())
                         {
@@ -11573,7 +11574,7 @@ namespace PRoConEvents
                 {
                     acted = true;
                     String formattedName = actedWeapon.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                    if (_isTestingAuthorized)
+                    if (_isTestingAuthorized && _roundState == RoundState.Playing)
                     {
                         if (!aPlayer.IsLocked())
                         {
@@ -11589,7 +11590,7 @@ namespace PRoConEvents
                                     DateTime start = UtcDbTime();
                                     Log.Info(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
                                     OnlineAdminTellMessage(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
-                                    while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
+                                    while (_roundState == RoundState.Playing && banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
                                     {
                                         if (!_pluginEnabled)
                                         {
