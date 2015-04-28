@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.3.9
+ * Version 6.6.4.0
  * 28-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.3.9</version_code>
+ * <version_code>6.6.4.0</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.3.9";
+        private const String PluginVersion = "6.6.4.0";
 
         public enum GameVersion
         {
@@ -11375,17 +11375,22 @@ namespace PRoConEvents
                                     {
                                         //Get the percentage over normal
                                         Double percDiff = (weaponStat.DPS - weapon.DamageMax) / weapon.DamageMax;
-                                        if (_isTestingAuthorized) 
+                                        Double triggerLevel = _DpsTriggerLevel / 100;
+                                        //Increase trigger level for kill counts under 100
+                                        if (weaponStat.Kills < 100) 
                                         {
-                                            _DpsTriggerLevel = 50;
+                                            triggerLevel = triggerLevel * 1.5;
                                         }
-                                        if (percDiff > ((isSidearm)?(1.5):(1.0)) * (_DpsTriggerLevel / 100))
+                                        //Increase trigger level for sidearms
+                                        if (isSidearm) 
                                         {
-                                            if (percDiff > actedPerc)
-                                            {
-                                                actedPerc = percDiff;
-                                                actedWeapon = weaponStat;
-                                            }
+                                            triggerLevel = triggerLevel * 1.5;
+                                        }
+                                        if (percDiff > triggerLevel && percDiff > actedPerc)
+                                        {
+                                            //Act on the weapon
+                                            actedPerc = percDiff;
+                                            actedWeapon = weaponStat;
                                         }
                                     }
                                 }
