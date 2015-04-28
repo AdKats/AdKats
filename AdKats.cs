@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.3.6
+ * Version 6.6.3.7
  * 27-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.3.6</version_code>
+ * <version_code>6.6.3.7</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.3.6";
+        private const String PluginVersion = "6.6.3.7";
 
         public enum GameVersion
         {
@@ -9387,44 +9387,6 @@ namespace PRoConEvents
                     _unmatchedRoundDeaths.Clear();
                     //Update the factions 
                     UpdateFactions();
-                    //Stat refresh
-                    if (_roundID > 0) {
-                        HashSet<Int64> roundPlayers;
-                        if (_RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers)) {
-                            //Get players who where online this round
-                            var roundPlayerObjects = _FetchedPlayers.Values.Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
-                            if (_isTestingAuthorized) 
-                            {
-                                Log.Warn("Preparing to requeue " + roundPlayerObjects.Count + " players for stats check in 30 seconds.");
-                            }
-                            //Queue players for stats refresh
-                            StartAndLogThread(new Thread(new ThreadStart(delegate
-                            {
-                                Thread.CurrentThread.Name = "StatRefetch";
-                                Thread.Sleep(TimeSpan.FromSeconds(30));
-                                foreach (var aPlayer in roundPlayerObjects)
-                                {
-                                    if (_isTestingAuthorized)
-                                    {
-                                        Log.Warn("Requeuing " + aPlayer.player_name + " for stats check.");
-                                    }
-                                    aPlayer.blInfoFetched = false;
-                                    QueuePlayerForBattlelogInfoFetch(aPlayer);
-                                    //If using ban enforcer, check the player's ban status
-                                    if (_UseBanEnforcer)
-                                    {
-                                        QueuePlayerForBanCheck(aPlayer);
-                                    }
-                                    else if (_UseHackerChecker)
-                                    {
-                                        //Queue the player for a hacker check
-                                        QueuePlayerForHackerCheck(aPlayer);
-                                    }
-                                }
-                                LogThreadExit();
-                            })));
-                        }
-                    }
                     StartRoundTicketLogger(0);
                 }
             }
@@ -9446,6 +9408,49 @@ namespace PRoConEvents
             {
                 aPlayer.RequiredTeam = null;
             }
+            //Stat refresh
+            List<AdKatsPlayer> roundPlayerObjects;
+            HashSet<Int64> roundPlayers;
+            if (_roundID > 0 && _RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers))
+            {
+                //Get players who where online this round
+                roundPlayerObjects = _FetchedPlayers.Values.Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
+            }
+            else
+            {
+                //Get current online players
+                roundPlayerObjects = _PlayerDictionary.Values.Where(dPlayer => dPlayer.blInfoFetched).ToList();
+            }
+            if (_isTestingAuthorized)
+            {
+                Log.Warn("Preparing to requeue " + roundPlayerObjects.Count + " players for stats check in 30 seconds.");
+            }
+            //Queue players for stats refresh
+            StartAndLogThread(new Thread(new ThreadStart(delegate
+            {
+                Thread.CurrentThread.Name = "StatRefetch";
+                Thread.Sleep(TimeSpan.FromSeconds(30));
+                foreach (var aPlayer in roundPlayerObjects)
+                {
+                    if (_isTestingAuthorized)
+                    {
+                        Log.Warn("Requeuing " + aPlayer.player_name + " for stats check.");
+                    }
+                    aPlayer.blInfoFetched = false;
+                    QueuePlayerForBattlelogInfoFetch(aPlayer);
+                    //If using ban enforcer, check the player's ban status
+                    if (_UseBanEnforcer)
+                    {
+                        QueuePlayerForBanCheck(aPlayer);
+                    }
+                    else if (_UseHackerChecker)
+                    {
+                        //Queue the player for a hacker check
+                        QueuePlayerForHackerCheck(aPlayer);
+                    }
+                }
+                LogThreadExit();
+            })));
             _roundState = RoundState.Ended;
             _pingKicksThisRound = 0;
         }
@@ -11232,12 +11237,12 @@ namespace PRoConEvents
         {
             Log.Debug("HackerChecker running on " + aPlayer.GetVerboseName(), 5);
             Boolean acted = false;
-            if (_UseHskChecker && !acted)
+            if (_UseHskChecker)
             {
                 Log.Debug("Preparing to HSK check " + aPlayer.GetVerboseName(), 5);
                 acted = AimbotHackCheck(aPlayer, verbose);
             }
-            if (_UseDpsChecker)
+            if (_UseDpsChecker && !acted)
             {
                 Log.Debug("Preparing to DPS check " + aPlayer.GetVerboseName(), 5);
                 acted = DamageHackCheck(aPlayer, verbose);
