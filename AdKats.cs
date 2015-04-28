@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.3.8
- * 27-APR-2015
+ * Version 6.6.3.9
+ * 28-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.3.8</version_code>
+ * <version_code>6.6.3.9</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.3.8";
+        private const String PluginVersion = "6.6.3.9";
 
         public enum GameVersion
         {
@@ -11377,7 +11377,7 @@ namespace PRoConEvents
                                         Double percDiff = (weaponStat.DPS - weapon.DamageMax) / weapon.DamageMax;
                                         if (_isTestingAuthorized) 
                                         {
-                                            _DpsTriggerLevel = 75;
+                                            _DpsTriggerLevel = 50;
                                         }
                                         if (percDiff > ((isSidearm)?(1.5):(1.0)) * (_DpsTriggerLevel / 100))
                                         {
