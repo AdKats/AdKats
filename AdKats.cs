@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.4.0
+ * Version 6.6.4.1
  * 28-APR-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.4.0</version_code>
+ * <version_code>6.6.4.1</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.4.0";
+        private const String PluginVersion = "6.6.4.1";
 
         public enum GameVersion
         {
@@ -11371,10 +11371,12 @@ namespace PRoConEvents
                                 if (weaponStat.Kills > 50)
                                 {
                                     //Check for damage hack
-                                    if (weaponStat.DPS > weapon.DamageMax && (!_UseHskChecker || weaponStat.HSKR < (_HskTriggerLevel / 100)))
+                                    if (weaponStat.DPS > weapon.DamageMax && (!_UseHskChecker || weaponStat.HSKR < (_HskTriggerLevel / 100))) 
                                     {
+                                        //Account for hsk ratio with the weapon
+                                        Double expectedDmg = weapon.DamageMax * (1 + weaponStat.HSKR);
                                         //Get the percentage over normal
-                                        Double percDiff = (weaponStat.DPS - weapon.DamageMax) / weapon.DamageMax;
+                                        Double percDiff = (weaponStat.DPS - expectedDmg) / expectedDmg;
                                         Double triggerLevel = _DpsTriggerLevel / 100;
                                         //Increase trigger level for kill counts under 100
                                         if (weaponStat.Kills < 100) 
