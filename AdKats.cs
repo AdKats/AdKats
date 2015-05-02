@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.5.2
+ * Version 6.6.5.3
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.5.2</version_code>
+ * <version_code>6.6.5.3</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.5.2";
+        private const String PluginVersion = "6.6.5.3";
 
         public enum GameVersion
         {
@@ -11215,7 +11215,6 @@ namespace PRoConEvents
                                         Thread.Sleep(TimeSpan.FromSeconds(0.50));
                                         QueuePlayerForHackerCheck(aPlayer);
                                     }
-                                    Log.Debug("(" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players stat checked)", 2);
                                 }
                             }
                         }
@@ -11269,6 +11268,7 @@ namespace PRoConEvents
                         var logString = "KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + liveKillDiff + "|" + statKillDiff + ") " + killDiff + " Unaccounted Kills";
                         if (killDiff > 0) {
                             Log.Warn(logString);
+                            Log.Warn(String.Join(", ", aPlayer.RecentKills.Select(aKill => aKill.weaponCode).ToArray()));
                         }
                         else {
                             Log.Info(logString);
