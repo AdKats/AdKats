@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.4.8
+ * Version 6.6.4.9
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.4.8</version_code>
+ * <version_code>6.6.4.9</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.4.8";
+        private const String PluginVersion = "6.6.4.9";
 
         public enum GameVersion
         {
@@ -9413,20 +9413,6 @@ namespace PRoConEvents
                     //Update the factions 
                     UpdateFactions();
                     StartRoundTicketLogger(0);
-
-                    //Confirm uploaded stats
-                    List<AdKatsPlayer> roundPlayerObjects;
-                    HashSet<Int64> roundPlayers;
-                    if (_roundID > 0 && _RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers)) {
-                        //Get players who where online this round
-                        roundPlayerObjects = _FetchedPlayers.Values.Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
-                    } else {
-                        //Get current online players
-                        roundPlayerObjects = _PlayerDictionary.Values.Where(dPlayer => dPlayer.blInfoFetched).ToList();
-                    }
-//                    foreach (var aPlayer in roundPlayerObjects) {
-//                        if(aPlayer.)
-//                    }
                 }
             }
             catch (Exception e)
@@ -9454,42 +9440,27 @@ namespace PRoConEvents
             {
                 //Get players who where online this round
                 roundPlayerObjects = _FetchedPlayers.Values.Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
-            }
-            else
-            {
-                //Get current online players
-                roundPlayerObjects = _PlayerDictionary.Values.Where(dPlayer => dPlayer.blInfoFetched).ToList();
-            }
-            if (_isTestingAuthorized)
-            {
-                Log.Warn("Preparing to requeue " + roundPlayerObjects.Count + " players for stats check in 30 seconds.");
-            }
-            //Queue players for stats refresh
-            StartAndLogThread(new Thread(new ThreadStart(delegate
-            {
-                Thread.CurrentThread.Name = "StatRefetch";
-                Thread.Sleep(TimeSpan.FromSeconds(30));
-                foreach (var aPlayer in roundPlayerObjects)
-                {
-                    if (_isTestingAuthorized)
-                    {
-                        Log.Warn("Requeuing " + aPlayer.player_name + " for stats check.");
-                    }
-                    aPlayer.blInfoFetched = false;
-                    QueuePlayerForBattlelogInfoFetch(aPlayer);
-                    //If using ban enforcer, check the player's ban status
-                    if (_UseBanEnforcer)
-                    {
-                        QueuePlayerForBanCheck(aPlayer);
-                    }
-                    else if (_UseHackerChecker)
-                    {
-                        //Queue the player for a hacker check
-                        QueuePlayerForHackerCheck(aPlayer);
-                    }
+                if (_isTestingAuthorized) {
+                    Log.Warn("Preparing to requeue " + roundPlayerObjects.Count + " players for stats check in 30 seconds.");
                 }
-                LogThreadExit();
-            })));
+                //Queue players for stats refresh
+                StartAndLogThread(new Thread(new ThreadStart(delegate {
+                    Thread.CurrentThread.Name = "StatRefetch";
+                    Thread.Sleep(TimeSpan.FromSeconds(30));
+                    foreach (var aPlayer in roundPlayerObjects) {
+                        if (_isTestingAuthorized) {
+                            Log.Warn("Requeuing " + aPlayer.player_name + " for stats check.");
+                        }
+                        if (_UseBanEnforcer) {
+                            QueuePlayerForBanCheck(aPlayer);
+                        } else if (_UseHackerChecker) {
+                            //Queue the player for a hacker check
+                            QueuePlayerForHackerCheck(aPlayer);
+                        }
+                    }
+                    LogThreadExit();
+                })));
+            }
             _roundState = RoundState.Ended;
             _pingKicksThisRound = 0;
         }
@@ -11160,6 +11131,13 @@ namespace PRoConEvents
 
                         try
                         {
+                            if (_roundID <= 0) {
+                                _HackerCheckerWaitHandle.Reset();
+                                //Either loop when handle is set, or after 3 minutes
+                                _HackerCheckerWaitHandle.WaitOne(TimeSpan.FromMinutes(3));
+                                loopStart = UtcDbTime();
+                                continue;
+                            }
                             //Get all unchecked players
                             if (_HackerCheckerQueue.Count > 0)
                             {
@@ -11185,6 +11163,7 @@ namespace PRoConEvents
                                 //Either loop when handle is set, or after 3 minutes
                                 _HackerCheckerWaitHandle.WaitOne(TimeSpan.FromMinutes(3));
                                 loopStart = UtcDbTime();
+                                continue;
                             }
                         }
                         catch (Exception e)
@@ -11207,33 +11186,24 @@ namespace PRoConEvents
                             if (aPlayer != null)
                             {
                                 Log.Debug("begin reading player", 4);
-
-                                if (!PlayerProtected(aPlayer))
-                                {
+                                if (!PlayerProtected(aPlayer)) {
                                     _hackerCheckedPlayers.Add(aPlayer.player_guid);
-                                    if (aPlayer.stats != null && aPlayer.stats.StatsException == null && aPlayer.blInfoFetched)
-                                    {
-                                        if (_UseHackerChecker)
-                                        {
+                                    if (!String.IsNullOrEmpty(aPlayer.player_name) && 
+                                        !String.IsNullOrEmpty(aPlayer.player_personaID) && 
+                                        FetchPlayerStatInformation(aPlayer)) {
+                                        if (_UseHackerChecker) {
                                             RunStatSiteHackCheck(aPlayer, false);
                                             _hackerCheckedPlayersStats.Add(aPlayer.player_guid);
-                                            Log.Debug(aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double)_hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 2);
-                                        }
-                                        else
-                                        {
+                                            Log.Debug(aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 2);
+                                        } else {
                                             Log.Debug("Player skipped after disabling hacker checker.", 2);
                                         }
-                                    }
-                                    else if (!aPlayer.blInfoFetched)
-                                    {
+                                    } else {
                                         //No stats found, requeue them for checking
                                         Thread.Sleep(TimeSpan.FromSeconds(0.50));
                                         QueuePlayerForHackerCheck(aPlayer);
                                     }
-                                    else
-                                    {
-                                        Log.Warn("Unable to run stat check on " + aPlayer.GetVerboseName());
-                                    }
+                                    Log.Debug("(" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players stat checked)", 2);
                                 }
                             }
                         }
@@ -20406,14 +20376,7 @@ namespace PRoConEvents
                                 //Old Tag
                                 String oldTag = aPlayer.player_clanTag;
                                 //Run the appropriate action
-                                if (_roundState != RoundState.Ended) {
-                                    FetchPlayerBattlelogInformation(aPlayer);
-                                }
-                                else {
-                                    //Round is in ended state, reports are being uploaded to battlelog, wait
-                                    QueuePlayerForBattlelogInfoFetch(aPlayer);
-                                    Thread.Sleep(1000);
-                                }
+                                FetchPlayerBattlelogInformation(aPlayer);
                                 //Update database with clan tag
                                 if (!String.IsNullOrEmpty(aPlayer.player_clanTag) && (String.IsNullOrEmpty(oldTag) || aPlayer.player_clanTag != oldTag))
                                 {
@@ -36631,98 +36594,6 @@ namespace PRoConEvents
                                 aPlayer.player_clanTag = tag.Groups[1].Value.Trim();
                                 Log.Debug("Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
                             }
-
-                            if (!String.IsNullOrEmpty(aPlayer.player_personaID) && _roundID > 0)
-                            {
-                                //Fetch stats
-                                AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
-                                DoBattlelogWait();
-                                String weaponResponse = client.DownloadString("http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_personaID + "/1/?nocacherandom=" + Environment.TickCount);
-                                Hashtable responseData = (Hashtable)JSON.JsonDecode(weaponResponse);
-
-                                if (responseData.ContainsKey("type") && (String)responseData["type"] == "success" && responseData.ContainsKey("message") && (String)responseData["message"] == "OK" && responseData.ContainsKey("data"))
-                                {
-                                    Hashtable statsData = (Hashtable)responseData["data"];
-                                    if (statsData != null && statsData.ContainsKey("mainWeaponStats"))
-                                    {
-                                        ArrayList weaponData = (ArrayList)statsData["mainWeaponStats"];
-                                        try
-                                        {
-                                            //Get Weapons
-                                            if (weaponData != null && weaponData.Count > 0)
-                                            {
-                                                stats.WeaponStats = new Dictionary<String, AdKatsWeaponStat>();
-                                                foreach (Hashtable currentWeapon in weaponData)
-                                                {
-                                                    //Create new construct
-                                                    AdKatsWeaponStat weapon = new AdKatsWeaponStat();
-
-                                                    //serviceStars
-                                                    weapon.ServiceStars = (Double)currentWeapon["serviceStars"];
-                                                    //serviceStarsProgress
-                                                    weapon.ServiceStarsProgress = (Double)currentWeapon["serviceStarsProgress"];
-                                                    //category
-                                                    weapon.Category = ((String)currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
-                                                    //categorySID
-                                                    if (currentWeapon.ContainsKey("categorySID"))
-                                                    {
-                                                        weapon.CategorySID = (String)currentWeapon["categorySID"];
-                                                    }
-                                                    //slug
-                                                    weapon.ID = ((String)currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
-                                                    //name
-                                                    weapon.WarsawID = (String)currentWeapon["name"];
-                                                    //kills
-                                                    weapon.Kills = (Double)currentWeapon["kills"];
-
-                                                    //shotsFired
-                                                    weapon.Shots = (Double)currentWeapon["shotsFired"];
-                                                    //shotsHit
-                                                    weapon.Hits = (Double)currentWeapon["shotsHit"];
-                                                    //accuracy
-                                                    weapon.Accuracy = (Double)currentWeapon["accuracy"];
-                                                    //headshots
-                                                    weapon.Headshots = (Double)currentWeapon["headshots"];
-                                                    //timeEquipped
-                                                    weapon.Time = TimeSpan.FromSeconds((Double)currentWeapon["timeEquipped"]);
-
-                                                    //Calculate values
-                                                    weapon.HSKR = weapon.Headshots / weapon.Kills;
-                                                    if (weapon.Time.TotalMinutes > 0)
-                                                    {
-                                                        weapon.KPM = weapon.Kills / weapon.Time.TotalMinutes;
-                                                    }
-                                                    weapon.DPS = weapon.Kills / weapon.Hits * 100;
-
-                                                    //Assign the construct
-                                                    stats.WeaponStats.Add(weapon.ID, weapon);
-                                                }
-                                            }
-                                            else
-                                            {
-                                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats data.");
-                                            }
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            HandleException(new AdKatsException("Error while parsing player weapon data.", e));
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats construct.");
-                                    }
-                                }
-                                else
-                                {
-                                    Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
-                                }
-                                //Assign loaded stats to the player
-                                if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
-                                    aPlayer.stats_previous = aPlayer.stats;
-                                }
-                                aPlayer.stats = stats;
-                            }
                         }
                         catch (Exception)
                         {
@@ -36774,158 +36645,6 @@ namespace PRoConEvents
                                     Log.Debug("Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
                                 }
                             }
-                            if (!String.IsNullOrEmpty(aPlayer.player_personaID) && _roundID > 0)
-                            {
-                                //Fetch stats
-                                AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
-                                DoBattlelogWait();
-                                String response = client.DownloadString("http://battlelog.battlefield.com/bf4/warsawWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
-                                Hashtable responseData = (Hashtable)JSON.JsonDecode(response);
-
-                                if (responseData.ContainsKey("type") && (String)responseData["type"] == "success" && responseData.ContainsKey("message") && (String)responseData["message"] == "OK" && responseData.ContainsKey("data"))
-                                {
-                                    Hashtable statsData = (Hashtable)responseData["data"];
-                                    if (statsData != null && statsData.ContainsKey("mainWeaponStats"))
-                                    {
-                                        ArrayList weaponData = (ArrayList)statsData["mainWeaponStats"];
-                                        try
-                                        {
-                                            //Get Weapons
-                                            if (weaponData != null && weaponData.Count > 0)
-                                            {
-                                                stats.WeaponStats = new Dictionary<String, AdKatsWeaponStat>();
-                                                foreach (Hashtable currentWeapon in weaponData)
-                                                {
-                                                    //Create new construct
-                                                    AdKatsWeaponStat weapon = new AdKatsWeaponStat();
-
-                                                    //serviceStars
-                                                    weapon.ServiceStars = (Double)currentWeapon["serviceStars"];
-                                                    //serviceStarsProgress
-                                                    weapon.ServiceStarsProgress = (Double)currentWeapon["serviceStarsProgress"];
-                                                    //category
-                                                    weapon.Category = ((String)currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
-                                                    //categorySID
-                                                    if (currentWeapon.ContainsKey("categorySID"))
-                                                    {
-                                                        weapon.CategorySID = (String)currentWeapon["categorySID"];
-                                                    }
-                                                    //slug
-                                                    weapon.ID = ((String)currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
-                                                    //name
-                                                    weapon.WarsawID = (String)currentWeapon["name"];
-                                                    //kills
-                                                    weapon.Kills = (Double)currentWeapon["kills"];
-
-                                                    if (weapon.Category != "special")
-                                                    {
-                                                        //shotsFired
-                                                        weapon.Shots = (Double)currentWeapon["shotsFired"];
-                                                        //shotsHit
-                                                        weapon.Hits = (Double)currentWeapon["shotsHit"];
-                                                        //accuracy
-                                                        weapon.Accuracy = (Double)currentWeapon["accuracy"];
-                                                        //headshots
-                                                        weapon.Headshots = (Double)currentWeapon["headshots"];
-                                                        //timeEquipped
-                                                        weapon.Time = TimeSpan.FromSeconds((Double)currentWeapon["timeEquipped"]);
-
-                                                        //Calculate values
-                                                        weapon.HSKR = weapon.Headshots / weapon.Kills;
-                                                        if (weapon.Time.TotalMinutes > 0)
-                                                        {
-                                                            weapon.KPM = weapon.Kills / weapon.Time.TotalMinutes;
-                                                        }
-                                                        weapon.DPS = weapon.Kills / weapon.Hits * 100;
-                                                    }
-
-                                                    //Assign the construct
-                                                    stats.WeaponStats.Add(weapon.ID, weapon);
-                                                }
-                                            }
-                                            else
-                                            {
-                                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats data.");
-                                            }
-                                        }
-                                        catch (Exception e)
-                                        {
-                                            HandleException(new AdKatsException("Error while parsing player weapon data.", e));
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats construct.");
-                                    }
-                                }
-                                else
-                                {
-                                    Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
-                                }
-
-                                //Fetch vehicle stats
-                                DoBattlelogWait();
-                                String vehicleResponse = client.DownloadString("http://battlelog.battlefield.com/bf4/en/warsawvehiclesPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
-                                Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
-
-                                if (vehicleResponseData.ContainsKey("type") && 
-                                    (String) vehicleResponseData["type"] == "success" && 
-                                    vehicleResponseData.ContainsKey("message") && 
-                                    (String) vehicleResponseData["message"] == "OK" && 
-                                    vehicleResponseData.ContainsKey("data")) {
-                                    Hashtable statsData = (Hashtable) vehicleResponseData["data"];
-                                    if (statsData != null && statsData.ContainsKey("mainVehicleStats")) {
-                                        ArrayList vehicleData = (ArrayList) statsData["mainVehicleStats"];
-                                        try {
-                                            //Get Vehicles
-                                            if (vehicleData != null && vehicleData.Count > 0) {
-                                                stats.VehicleStats = new Dictionary<String, AdKatsVehicleStat>();
-                                                foreach (Hashtable currentWeapon in vehicleData) {
-                                                    //Create new construct
-                                                    AdKatsVehicleStat vehicle = new AdKatsVehicleStat();
-
-                                                    //serviceStars
-                                                    vehicle.ServiceStars = (Double) currentWeapon["serviceStars"];
-                                                    //serviceStarsProgress
-                                                    vehicle.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
-                                                    //category
-                                                    vehicle.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
-                                                    //slug
-                                                    vehicle.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
-                                                    //name
-                                                    vehicle.WarsawID = (String) currentWeapon["name"];
-                                                    //kills
-                                                    vehicle.Kills = (Double) currentWeapon["kills"];
-                                                    //timeIn
-                                                    vehicle.TimeIn = TimeSpan.FromSeconds((Double) currentWeapon["timeIn"]);
-
-                                                    //Calculate values
-                                                    if (vehicle.TimeIn.TotalMinutes > 0) {
-                                                        vehicle.KPM = vehicle.Kills / vehicle.TimeIn.TotalMinutes;
-                                                    }
-
-                                                    //Assign the construct
-                                                    stats.VehicleStats.Add(vehicle.ID, vehicle);
-                                                }
-                                            } else {
-                                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats data.");
-                                            }
-                                        } catch (Exception e) {
-                                            HandleException(new AdKatsException("Error while parsing player vehicle data.", e));
-                                        }
-                                    } else {
-                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats construct.");
-                                    }
-                                } else {
-                                    Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
-                                }
-
-                                //Assign loaded stats to the player
-                                if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
-                                    aPlayer.stats_previous = aPlayer.stats;
-                                }
-                                aPlayer.stats = stats;
-                            }
                         }
                         catch (Exception e)
                         {
@@ -36974,97 +36693,17 @@ namespace PRoConEvents
                                 }
                             }
 
-                            if (!String.IsNullOrEmpty(aPlayer.player_personaID))
-                            {
+                            if (!String.IsNullOrEmpty(aPlayer.player_personaID)) {
                                 //Get tag
                                 DoBattlelogWait();
                                 String soldierResponse = client.DownloadString("http://battlelog.battlefield.com/bfh/agent/" + aPlayer.player_name + "/stats/" + aPlayer.player_personaID + "/pc/?nocacherandom=" + Environment.TickCount);
                                 Match tag = Regex.Match(soldierResponse, @"\[\s*([a-zA-Z0-9]+)\s*\]\s*</span>", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-                                if (!tag.Success || String.IsNullOrEmpty(tag.Groups[1].Value.Trim()))
-                                {
+                                if (!tag.Success || String.IsNullOrEmpty(tag.Groups[1].Value.Trim())) {
                                     Log.Debug("Could not find BFHL clan tag for " + aPlayer.player_name, 4);
                                 }
-                                else
-                                {
+                                else {
                                     aPlayer.player_clanTag = tag.Groups[1].Value.Trim();
                                     Log.Debug("Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
-                                }
-
-                                if (_roundID > 0) {
-                                    //Fetch stats
-                                    AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
-                                    DoBattlelogWait();
-                                    String weaponResponse = client.DownloadString("http://battlelog.battlefield.com/bfh/BFHWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/?nocacherandom=" + Environment.TickCount);
-                                    Hashtable responseData = (Hashtable) JSON.JsonDecode(weaponResponse);
-
-                                    if (responseData.ContainsKey("type") && (String) responseData["type"] == "success" && responseData.ContainsKey("message") && (String) responseData["message"] == "OK" && responseData.ContainsKey("data")) {
-                                        Hashtable statsData = (Hashtable) responseData["data"];
-                                        if (statsData != null && statsData.ContainsKey("mainWeaponStats")) {
-                                            ArrayList weaponData = (ArrayList) statsData["mainWeaponStats"];
-                                            try {
-                                                //Get Weapons
-                                                if (weaponData != null && weaponData.Count > 0) {
-                                                    stats.WeaponStats = new Dictionary<String, AdKatsWeaponStat>();
-                                                    foreach (Hashtable currentWeapon in weaponData) {
-                                                        //Create new construct
-                                                        AdKatsWeaponStat weapon = new AdKatsWeaponStat();
-
-                                                        //serviceStars
-                                                        weapon.ServiceStars = (Double) currentWeapon["serviceStars"];
-                                                        //serviceStarsProgress
-                                                        weapon.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
-                                                        //category
-                                                        weapon.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
-                                                        //categorySID
-                                                        if (currentWeapon.ContainsKey("categorySID")) {
-                                                            weapon.CategorySID = (String) currentWeapon["categorySID"];
-                                                        }
-                                                        //slug
-                                                        weapon.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
-                                                        //name
-                                                        weapon.WarsawID = (String) currentWeapon["name"];
-                                                        //kills
-                                                        weapon.Kills = (Double) currentWeapon["kills"];
-
-                                                        //shotsFired
-                                                        weapon.Shots = (Double) currentWeapon["shotsFired"];
-                                                        //shotsHit
-                                                        weapon.Hits = (Double) currentWeapon["shotsHit"];
-                                                        //accuracy
-                                                        weapon.Accuracy = (Double) currentWeapon["accuracy"];
-                                                        //headshots
-                                                        weapon.Headshots = (Double) currentWeapon["headshots"];
-                                                        //timeEquipped
-                                                        weapon.Time = TimeSpan.FromSeconds((Double) currentWeapon["timeEquipped"]);
-
-                                                        //Calculate values
-                                                        weapon.HSKR = weapon.Headshots / weapon.Kills;
-                                                        if (weapon.Time.TotalMinutes > 0) {
-                                                            weapon.KPM = weapon.Kills / weapon.Time.TotalMinutes;
-                                                        }
-                                                        weapon.DPS = weapon.Kills / weapon.Hits * 100;
-
-                                                        //Assign the construct
-                                                        stats.WeaponStats.Add(weapon.ID, weapon);
-                                                    }
-                                                } else {
-                                                    Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats data.");
-                                                }
-                                            } catch (Exception e) {
-                                                HandleException(new AdKatsException("Error while parsing player weapon data.", e));
-                                            }
-                                        } else {
-                                            Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats construct.");
-                                        }
-                                    } else {
-                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
-                                    }
-
-                                    //Assign loaded stats to the player
-                                    if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
-                                        aPlayer.stats_previous = aPlayer.stats;
-                                    }
-                                    aPlayer.stats = stats;
                                 }
                             }
                         }
@@ -37075,22 +36714,348 @@ namespace PRoConEvents
                     }
                 }
                 aPlayer.blInfoFetched = true;
-                if (_roundID > 0 && aPlayer.stats != null)
-                {
-                    //Store stats for this player in the current round
-                    Dictionary<Int64, AdKatsPlayerStats> roundPlayerStats;
-                    if (!_roundStats.TryGetValue(_roundID, out roundPlayerStats))
-                    {
-                        roundPlayerStats = new Dictionary<Int64, AdKatsPlayerStats>();
-                        _roundStats[_roundID] = roundPlayerStats;
-                    }
-                    roundPlayerStats[aPlayer.player_id] = aPlayer.stats;
-                }
             }
             catch (Exception e)
             {
                 HandleException(new AdKatsException("Error while fetching battlelog information for " + aPlayer.player_name, e));
             }
+        }
+
+        public Boolean FetchPlayerStatInformation(AdKatsPlayer aPlayer) {
+            if (aPlayer == null || String.IsNullOrEmpty(aPlayer.player_name) || String.IsNullOrEmpty(aPlayer.player_personaID)) {
+                Log.Error("Attempted to fetch player stats info without needed info.");
+                return false;
+            }
+            if (_roundID <= 0) {
+                return false;
+            }
+            if (_gameVersion == GameVersion.BF3) {
+                using (WebClient client = new WebClient()) {
+                    try {
+                        //Fetch stats
+                        AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
+                        DoBattlelogWait();
+                        String weaponResponse = client.DownloadString("http://battlelog.battlefield.com/bf3/weaponsPopulateStats/" + aPlayer.player_personaID + "/1/?nocacherandom=" + Environment.TickCount);
+                        Hashtable responseData = (Hashtable) JSON.JsonDecode(weaponResponse);
+
+                        if (responseData.ContainsKey("type") && (String) responseData["type"] == "success" && responseData.ContainsKey("message") && (String) responseData["message"] == "OK" && responseData.ContainsKey("data")) {
+                            Hashtable statsData = (Hashtable) responseData["data"];
+                            if (statsData != null && statsData.ContainsKey("mainWeaponStats")) {
+                                ArrayList weaponData = (ArrayList) statsData["mainWeaponStats"];
+                                try {
+                                    //Get Weapons
+                                    if (weaponData != null && weaponData.Count > 0) {
+                                        stats.WeaponStats = new Dictionary<String, AdKatsWeaponStat>();
+                                        foreach (Hashtable currentWeapon in weaponData) {
+                                            //Create new construct
+                                            AdKatsWeaponStat weapon = new AdKatsWeaponStat();
+
+                                            //serviceStars
+                                            weapon.ServiceStars = (Double) currentWeapon["serviceStars"];
+                                            //serviceStarsProgress
+                                            weapon.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
+                                            //category
+                                            weapon.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
+                                            //categorySID
+                                            if (currentWeapon.ContainsKey("categorySID")) {
+                                                weapon.CategorySID = (String) currentWeapon["categorySID"];
+                                            }
+                                            //slug
+                                            weapon.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
+                                            //name
+                                            weapon.WarsawID = (String) currentWeapon["name"];
+                                            //kills
+                                            weapon.Kills = (Double) currentWeapon["kills"];
+
+                                            //shotsFired
+                                            weapon.Shots = (Double) currentWeapon["shotsFired"];
+                                            //shotsHit
+                                            weapon.Hits = (Double) currentWeapon["shotsHit"];
+                                            //accuracy
+                                            weapon.Accuracy = (Double) currentWeapon["accuracy"];
+                                            //headshots
+                                            weapon.Headshots = (Double) currentWeapon["headshots"];
+                                            //timeEquipped
+                                            weapon.Time = TimeSpan.FromSeconds((Double) currentWeapon["timeEquipped"]);
+
+                                            //Calculate values
+                                            weapon.HSKR = weapon.Headshots / weapon.Kills;
+                                            if (weapon.Time.TotalMinutes > 0) {
+                                                weapon.KPM = weapon.Kills / weapon.Time.TotalMinutes;
+                                            }
+                                            weapon.DPS = weapon.Kills / weapon.Hits * 100;
+
+                                            //Assign the construct
+                                            stats.WeaponStats.Add(weapon.ID, weapon);
+                                        }
+                                    } else {
+                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats data.");
+                                    }
+                                } catch (Exception e) {
+                                    HandleException(new AdKatsException("Error while parsing player weapon data.", e));
+                                }
+                            } else {
+                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats construct.");
+                            }
+                        } else {
+                            Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
+                        }
+                        //Assign loaded stats to the player
+                        if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
+                            aPlayer.stats_previous = aPlayer.stats;
+                        }
+                        aPlayer.stats = stats;
+                        //Store stats for this player in the current round
+                        Dictionary<Int64, AdKatsPlayerStats> roundPlayerStats;
+                        if (!_roundStats.TryGetValue(_roundID, out roundPlayerStats)) {
+                            roundPlayerStats = new Dictionary<Int64, AdKatsPlayerStats>();
+                            _roundStats[_roundID] = roundPlayerStats;
+                        }
+                        roundPlayerStats[aPlayer.player_id] = aPlayer.stats;
+                        return true;
+                    } catch (Exception) {
+                        return false;
+                    }
+                }
+            } else if (_gameVersion == GameVersion.BF4) {
+                using (WebClient client = new WebClient()) {
+                    try {
+                        //Fetch stats
+                        AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
+                        DoBattlelogWait();
+                        String response = client.DownloadString("http://battlelog.battlefield.com/bf4/warsawWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
+                        Hashtable responseData = (Hashtable) JSON.JsonDecode(response);
+
+                        if (responseData.ContainsKey("type") && (String) responseData["type"] == "success" && responseData.ContainsKey("message") && (String) responseData["message"] == "OK" && responseData.ContainsKey("data")) {
+                            Hashtable statsData = (Hashtable) responseData["data"];
+                            if (statsData != null && statsData.ContainsKey("mainWeaponStats")) {
+                                ArrayList weaponData = (ArrayList) statsData["mainWeaponStats"];
+                                try {
+                                    //Get Weapons
+                                    if (weaponData != null && weaponData.Count > 0) {
+                                        stats.WeaponStats = new Dictionary<String, AdKatsWeaponStat>();
+                                        foreach (Hashtable currentWeapon in weaponData) {
+                                            //Create new construct
+                                            AdKatsWeaponStat weapon = new AdKatsWeaponStat();
+
+                                            //serviceStars
+                                            weapon.ServiceStars = (Double) currentWeapon["serviceStars"];
+                                            //serviceStarsProgress
+                                            weapon.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
+                                            //category
+                                            weapon.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
+                                            //categorySID
+                                            if (currentWeapon.ContainsKey("categorySID")) {
+                                                weapon.CategorySID = (String) currentWeapon["categorySID"];
+                                            }
+                                            //slug
+                                            weapon.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
+                                            //name
+                                            weapon.WarsawID = (String) currentWeapon["name"];
+                                            //kills
+                                            weapon.Kills = (Double) currentWeapon["kills"];
+
+                                            if (weapon.Category != "special") {
+                                                //shotsFired
+                                                weapon.Shots = (Double) currentWeapon["shotsFired"];
+                                                //shotsHit
+                                                weapon.Hits = (Double) currentWeapon["shotsHit"];
+                                                //accuracy
+                                                weapon.Accuracy = (Double) currentWeapon["accuracy"];
+                                                //headshots
+                                                weapon.Headshots = (Double) currentWeapon["headshots"];
+                                                //timeEquipped
+                                                weapon.Time = TimeSpan.FromSeconds((Double) currentWeapon["timeEquipped"]);
+
+                                                //Calculate values
+                                                weapon.HSKR = weapon.Headshots / weapon.Kills;
+                                                if (weapon.Time.TotalMinutes > 0) {
+                                                    weapon.KPM = weapon.Kills / weapon.Time.TotalMinutes;
+                                                }
+                                                weapon.DPS = weapon.Kills / weapon.Hits * 100;
+                                            }
+
+                                            //Assign the construct
+                                            stats.WeaponStats.Add(weapon.ID, weapon);
+                                        }
+                                    } else {
+                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats data.");
+                                    }
+                                } catch (Exception e) {
+                                    HandleException(new AdKatsException("Error while parsing player weapon data.", e));
+                                }
+                            } else {
+                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats construct.");
+                            }
+                        } else {
+                            Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
+                        }
+
+                        //Fetch vehicle stats
+                        DoBattlelogWait();
+                        String vehicleResponse = client.DownloadString("http://battlelog.battlefield.com/bf4/en/warsawvehiclesPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
+                        Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
+
+                        if (vehicleResponseData.ContainsKey("type") &&
+                            (String) vehicleResponseData["type"] == "success" &&
+                            vehicleResponseData.ContainsKey("message") &&
+                            (String) vehicleResponseData["message"] == "OK" &&
+                            vehicleResponseData.ContainsKey("data")) {
+                            Hashtable statsData = (Hashtable) vehicleResponseData["data"];
+                            if (statsData != null && statsData.ContainsKey("mainVehicleStats")) {
+                                ArrayList vehicleData = (ArrayList) statsData["mainVehicleStats"];
+                                try {
+                                    //Get Vehicles
+                                    if (vehicleData != null && vehicleData.Count > 0) {
+                                        stats.VehicleStats = new Dictionary<String, AdKatsVehicleStat>();
+                                        foreach (Hashtable currentWeapon in vehicleData) {
+                                            //Create new construct
+                                            AdKatsVehicleStat vehicle = new AdKatsVehicleStat();
+
+                                            //serviceStars
+                                            vehicle.ServiceStars = (Double) currentWeapon["serviceStars"];
+                                            //serviceStarsProgress
+                                            vehicle.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
+                                            //category
+                                            vehicle.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
+                                            //slug
+                                            vehicle.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
+                                            //name
+                                            vehicle.WarsawID = (String) currentWeapon["name"];
+                                            //kills
+                                            vehicle.Kills = (Double) currentWeapon["kills"];
+                                            //timeIn
+                                            vehicle.TimeIn = TimeSpan.FromSeconds((Double) currentWeapon["timeIn"]);
+
+                                            //Calculate values
+                                            if (vehicle.TimeIn.TotalMinutes > 0) {
+                                                vehicle.KPM = vehicle.Kills / vehicle.TimeIn.TotalMinutes;
+                                            }
+
+                                            //Assign the construct
+                                            stats.VehicleStats.Add(vehicle.ID, vehicle);
+                                        }
+                                    } else {
+                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats data.");
+                                    }
+                                } catch (Exception e) {
+                                    HandleException(new AdKatsException("Error while parsing player vehicle data.", e));
+                                }
+                            } else {
+                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats construct.");
+                            }
+                        } else {
+                            Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
+                        }
+
+                        //Assign loaded stats to the player
+                        if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
+                            aPlayer.stats_previous = aPlayer.stats;
+                        }
+                        aPlayer.stats = stats;
+                        //Store stats for this player in the current round
+                        Dictionary<Int64, AdKatsPlayerStats> roundPlayerStats;
+                        if (!_roundStats.TryGetValue(_roundID, out roundPlayerStats)) {
+                            roundPlayerStats = new Dictionary<Int64, AdKatsPlayerStats>();
+                            _roundStats[_roundID] = roundPlayerStats;
+                        }
+                        roundPlayerStats[aPlayer.player_id] = aPlayer.stats;
+                        return true;
+                    } catch (Exception e) {
+                        HandleException(new AdKatsException("Error while parsing player stats data.", e));
+                    }
+                }
+            } else if (_gameVersion == GameVersion.BFHL) {
+                using (WebClient client = new WebClient()) {
+                    try {
+                        //Fetch stats
+                        AdKatsPlayerStats stats = new AdKatsPlayerStats(_roundID);
+                        DoBattlelogWait();
+                        String weaponResponse = client.DownloadString("http://battlelog.battlefield.com/bfh/BFHWeaponsPopulateStats/" + aPlayer.player_personaID + "/1/stats/?nocacherandom=" + Environment.TickCount);
+                        Hashtable responseData = (Hashtable) JSON.JsonDecode(weaponResponse);
+
+                        if (responseData.ContainsKey("type") && (String) responseData["type"] == "success" && responseData.ContainsKey("message") && (String) responseData["message"] == "OK" && responseData.ContainsKey("data")) {
+                            Hashtable statsData = (Hashtable) responseData["data"];
+                            if (statsData != null && statsData.ContainsKey("mainWeaponStats")) {
+                                ArrayList weaponData = (ArrayList) statsData["mainWeaponStats"];
+                                try {
+                                    //Get Weapons
+                                    if (weaponData != null && weaponData.Count > 0) {
+                                        stats.WeaponStats = new Dictionary<String, AdKatsWeaponStat>();
+                                        foreach (Hashtable currentWeapon in weaponData) {
+                                            //Create new construct
+                                            AdKatsWeaponStat weapon = new AdKatsWeaponStat();
+
+                                            //serviceStars
+                                            weapon.ServiceStars = (Double) currentWeapon["serviceStars"];
+                                            //serviceStarsProgress
+                                            weapon.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
+                                            //category
+                                            weapon.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
+                                            //categorySID
+                                            if (currentWeapon.ContainsKey("categorySID")) {
+                                                weapon.CategorySID = (String) currentWeapon["categorySID"];
+                                            }
+                                            //slug
+                                            weapon.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
+                                            //name
+                                            weapon.WarsawID = (String) currentWeapon["name"];
+                                            //kills
+                                            weapon.Kills = (Double) currentWeapon["kills"];
+
+                                            //shotsFired
+                                            weapon.Shots = (Double) currentWeapon["shotsFired"];
+                                            //shotsHit
+                                            weapon.Hits = (Double) currentWeapon["shotsHit"];
+                                            //accuracy
+                                            weapon.Accuracy = (Double) currentWeapon["accuracy"];
+                                            //headshots
+                                            weapon.Headshots = (Double) currentWeapon["headshots"];
+                                            //timeEquipped
+                                            weapon.Time = TimeSpan.FromSeconds((Double) currentWeapon["timeEquipped"]);
+
+                                            //Calculate values
+                                            weapon.HSKR = weapon.Headshots / weapon.Kills;
+                                            if (weapon.Time.TotalMinutes > 0) {
+                                                weapon.KPM = weapon.Kills / weapon.Time.TotalMinutes;
+                                            }
+                                            weapon.DPS = weapon.Kills / weapon.Hits * 100;
+
+                                            //Assign the construct
+                                            stats.WeaponStats.Add(weapon.ID, weapon);
+                                        }
+                                    } else {
+                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats data.");
+                                    }
+                                } catch (Exception e) {
+                                    HandleException(new AdKatsException("Error while parsing player weapon data.", e));
+                                }
+                            } else {
+                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain weapon stats construct.");
+                            }
+                        } else {
+                            Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
+                        }
+
+                        //Assign loaded stats to the player
+                        if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
+                            aPlayer.stats_previous = aPlayer.stats;
+                        }
+                        aPlayer.stats = stats;
+                        //Store stats for this player in the current round
+                        Dictionary<Int64, AdKatsPlayerStats> roundPlayerStats;
+                        if (!_roundStats.TryGetValue(_roundID, out roundPlayerStats)) {
+                            roundPlayerStats = new Dictionary<Int64, AdKatsPlayerStats>();
+                            _roundStats[_roundID] = roundPlayerStats;
+                        }
+                        roundPlayerStats[aPlayer.player_id] = aPlayer.stats;
+                        return true;
+                    } catch (Exception e) {
+                        Log.Exception("Error fetching BFHL player info", e, 0);
+                    }
+                }
+            }
+            return false;
         }
 
         private void PostVersionTracking()
@@ -40088,7 +40053,6 @@ namespace PRoConEvents
 
         public class AdKatsPlayerStats {
             public Int64 RoundID;
-            public AdKatsException StatsException = null;
             public Dictionary<String, AdKatsWeaponStat> WeaponStats = null;
             public Dictionary<String, AdKatsVehicleStat> VehicleStats = null;
             public CPlayerInfo LiveStats = null;
