@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.5.5
+ * Version 6.6.5.6
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.5.5</version_code>
+ * <version_code>6.6.5.6</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.5.5";
+        private const String PluginVersion = "6.6.5.6";
 
         public enum GameVersion
         {
@@ -7276,16 +7276,16 @@ namespace PRoConEvents
                                             aPlayer.stats_previous = aPlayer.stats;
                                             aPlayer.stats = null;
                                             if (_isTestingAuthorized) {
-                                                Log.Info("Assigned previous stats to " + aPlayer.GetVerboseName());
+                                                Log.Info("[Listing] Assigned previous stats to " + aPlayer.GetVerboseName());
                                             }
                                         }
                                         if (_roundState == RoundState.Playing &&
-                                            aPlayer.stats != null && 
+                                            aPlayer.stats != null &&
                                             (aPlayer.stats.LiveStats == null || aPlayer.stats.LiveStats.Score < aPlayer.frostbitePlayerInfo.Score)) {
-                                            aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
-                                            if (_isTestingAuthorized) {
+                                            if (_isTestingAuthorized && aPlayer.stats.LiveStats == null) {
                                                 Log.Info("Assigned live stats to " + aPlayer.GetVerboseName());
                                             }
+                                            aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
                                         }
                                         switch (aPlayer.frostbitePlayerInfo.Type)
                                         {
@@ -7485,16 +7485,16 @@ namespace PRoConEvents
                                             aPlayer.stats_previous = aPlayer.stats;
                                             aPlayer.stats = null;
                                             if (_isTestingAuthorized) {
-                                                Log.Info("Assigned previous stats to " + aPlayer.GetVerboseName());
+                                                Log.Info("[Listing] Assigned previous stats to " + aPlayer.GetVerboseName());
                                             }
                                         }
                                         if (_roundState == RoundState.Playing &&
                                             aPlayer.stats != null &&
                                             (aPlayer.stats.LiveStats == null || aPlayer.stats.LiveStats.Score < aPlayer.frostbitePlayerInfo.Score)) {
-                                            aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
-                                            if (_isTestingAuthorized) {
+                                            if (_isTestingAuthorized && aPlayer.stats.LiveStats == null) {
                                                 Log.Info("Assigned live stats to " + aPlayer.GetVerboseName());
                                             }
+                                            aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
                                         }
                                         String joinLocation = String.Empty;
                                         AdKatsTeam playerTeam = null;
@@ -36814,7 +36814,7 @@ namespace PRoConEvents
                         if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
                             aPlayer.stats_previous = aPlayer.stats;
                             if (_isTestingAuthorized) {
-                                Log.Info("Assigned previous stats to " + aPlayer.GetVerboseName());
+                                Log.Info("[HC] Assigned previous stats to " + aPlayer.GetVerboseName());
                             }
                         }
                         aPlayer.stats = stats;
@@ -36965,7 +36965,7 @@ namespace PRoConEvents
                         if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
                             aPlayer.stats_previous = aPlayer.stats;
                             if (_isTestingAuthorized) {
-                                Log.Info("Assigned previous stats to " + aPlayer.GetVerboseName());
+                                Log.Info("[HC] Assigned previous stats to " + aPlayer.GetVerboseName());
                             }
                         }
                         aPlayer.stats = stats;
@@ -37057,7 +37057,7 @@ namespace PRoConEvents
                         if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
                             aPlayer.stats_previous = aPlayer.stats;
                             if (_isTestingAuthorized) {
-                                Log.Info("Assigned previous stats to " + aPlayer.GetVerboseName());
+                                Log.Info("[HC] Assigned previous stats to " + aPlayer.GetVerboseName());
                             }
                         }
                         aPlayer.stats = stats;
