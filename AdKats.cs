@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.6.0
+ * Version 6.6.6.1
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.6.0</version_code>
+ * <version_code>6.6.6.1</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.6.0";
+        private const String PluginVersion = "6.6.6.1";
 
         public enum GameVersion
         {
@@ -8110,11 +8110,12 @@ namespace PRoConEvents
                                 Int32 oldRoundID = reader.GetInt32("max_round_id");
                                 if (increment) {
                                     _roundID = oldRoundID + 1;
+                                    Log.Debug("New round. Round ID is " + _roundID, 2);
                                 }
                                 else {
                                     _roundID = oldRoundID;
+                                    Log.Debug("Current round. Round ID is " + _roundID, 2);
                                 }
-                                Log.Debug("Current round. Round ID is " + _roundID, 2);
                             } else {
                                 _roundID = 1;
                             }
@@ -8131,7 +8132,7 @@ namespace PRoConEvents
         {
             try
             {
-                if (!_pluginEnabled || !_threadsReady || !_firstPlayerListComplete)
+                if (!_pluginEnabled || !_threadsReady || !_firstPlayerListComplete || _roundID <= 0)
                 {
                     return;
                 }
@@ -8143,8 +8144,7 @@ namespace PRoConEvents
                         Int32 TPCSCounter = 0;
                         Boolean TPCSActionTaken = false;
                         Int32 roundTimeSeconds = startingSeconds;
-                        FetchRoundID(false);
-                        ProconChatWrite(Log.FBold("New Round. ExtendedRoundID is " + _roundID));
+                        ProconChatWrite(Log.FBold("Ticket logging started on round " + _roundID));
 
                         Stopwatch watch = new Stopwatch();
                         while (true)
