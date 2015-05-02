@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.6.2
+ * Version 6.6.6.3
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.6.2</version_code>
+ * <version_code>6.6.6.3</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.6.2";
+        private const String PluginVersion = "6.6.6.3";
 
         public enum GameVersion
         {
@@ -24488,7 +24488,8 @@ namespace PRoConEvents
                             //Check for specific team targeting
                             var teamTarget = GetTeamByKey(record.target_name);
                             if (teamTarget != null) {
-                                targetedPlayers.AddRange(_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == teamTarget.TeamID).ToList());
+                                //Send to target and neutral team
+                                targetedPlayers.AddRange(_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == teamTarget.TeamID || aPlayer.frostbitePlayerInfo.TeamID == 0).ToList());
                             } else {
                                 SendMessageToSource(record, "Invalid target, must be Squad, Team, or All. Unable to Act.");
                                 FinalizeRecord(record);
@@ -24504,8 +24505,9 @@ namespace PRoConEvents
                     try
                     {
                         Thread.CurrentThread.Name = "CountdownPrinter";
-                        for (Int32 countdown = record.command_numeric; countdown > 0; countdown--)
-                        {
+                        for (Int32 countdown = record.command_numeric; countdown > 0; countdown--) {
+                            Stopwatch timer = new Stopwatch();
+                            timer.Start();
                             if (!_pluginEnabled)
                             {
                                 LogThreadExit();
@@ -24513,26 +24515,30 @@ namespace PRoConEvents
                             }
                             if (record.target_name == "All")
                             {
-                                AdminTellMessage(record.record_message + " in " + countdown + "...");
+                                AdminTellMessage(record.record_message + " in " + countdown + "...", false);
                             }
                             else
                             {
                                 foreach (AdKatsPlayer aPlayer in targetedPlayers)
                                 {
-                                    PlayerTellMessage(aPlayer.player_name, record.record_message + " in " + countdown + "...");
+                                    PlayerTellMessage(aPlayer.player_name, record.record_message + " in " + countdown + "...", false, 1);
                                 }
                             }
-                            _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
+                            timer.Stop();
+                            if (_isTestingAuthorized) {
+                                Log.Info("Message took " + timer.ElapsedMilliseconds + "ms to display.");
+                            }
+                            _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(0.95));
                         }
                         if (record.target_name == "All")
                         {
-                            AdminTellMessage(record.record_message + " NOW!");
+                            AdminTellMessage(record.record_message + " NOW!", false);
                         }
                         else
                         {
                             foreach (AdKatsPlayer aPlayer in targetedPlayers)
                             {
-                                PlayerTellMessage(aPlayer.player_name, record.record_message + " NOW!");
+                                PlayerTellMessage(aPlayer.player_name, record.record_message + " NOW!", false, 1);
                             }
                         }
                     }
