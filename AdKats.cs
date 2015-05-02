@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.5.9
+ * Version 6.6.6.0
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.5.9</version_code>
+ * <version_code>6.6.6.0</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.5.9";
+        private const String PluginVersion = "6.6.6.0";
 
         public enum GameVersion
         {
@@ -7663,17 +7663,6 @@ namespace PRoConEvents
                                         aPlayer.RoundStats[_roundID].LiveStats = aPlayer.frostbitePlayerInfo;
                                     }
                                 }
-                                if (_isTestingAuthorized) {
-                                    Double liveStatCount = _PlayerDictionary.Values.Count(
-                                        dPlayer => 
-                                            dPlayer.player_type == PlayerType.Player && 
-                                            dPlayer.RoundStats.ContainsKey(_roundID) && 
-                                            dPlayer.RoundStats[_roundID].LiveStats != null);
-                                    Double playerCount = _PlayerDictionary.Values.Count(
-                                        dPlayer => 
-                                            dPlayer.player_type == PlayerType.Player);
-                                    Log.Info(Math.Round(liveStatCount / playerCount * 100, 2) + "% players with live stats.");
-                                }
 
                                 AdKatsTeam team1, team2, team3, team4;
                                 if (GetTeamByID(1, out team1))
@@ -8142,7 +8131,7 @@ namespace PRoConEvents
         {
             try
             {
-                if (!_pluginEnabled || !_threadsReady)
+                if (!_pluginEnabled || !_threadsReady || !_firstPlayerListComplete)
                 {
                     return;
                 }
@@ -8154,7 +8143,7 @@ namespace PRoConEvents
                         Int32 TPCSCounter = 0;
                         Boolean TPCSActionTaken = false;
                         Int32 roundTimeSeconds = startingSeconds;
-                        FetchRoundID(true);
+                        FetchRoundID(false);
                         ProconChatWrite(Log.FBold("New Round. ExtendedRoundID is " + _roundID));
 
                         Stopwatch watch = new Stopwatch();
@@ -9446,10 +9435,10 @@ namespace PRoConEvents
                 StartAndLogThread(new Thread(new ThreadStart(delegate {
                     Thread.CurrentThread.Name = "StatRefetch";
                     Thread.Sleep(TimeSpan.FromSeconds(30));
+                    if (_isTestingAuthorized) {
+                        Log.Warn("Requeuing " + roundPlayerObjects.Count + " players for stats check.");
+                    }
                     foreach (var aPlayer in roundPlayerObjects) {
-                        if (_isTestingAuthorized) {
-                            Log.Warn("Requeuing " + aPlayer.player_name + " for stats check.");
-                        }
                         if (_UseBanEnforcer) {
                             QueuePlayerForBanCheck(aPlayer);
                         } else if (_UseHackerChecker) {
@@ -9460,6 +9449,7 @@ namespace PRoConEvents
                     LogThreadExit();
                 })));
             }
+            FetchRoundID(true);
             _roundState = RoundState.Ended;
             _pingKicksThisRound = 0;
         }
@@ -11355,7 +11345,7 @@ namespace PRoConEvents
                             //Only handle weapons that do < 50 max dps
                             if (weapon.DamageMax < 50) {
                                 //For live stat check, look for previous round stat difference
-                                if (previousStats != null) {
+                                if (previousStats != null && previousStats.WeaponStats != null) {
                                     AdKatsWeaponStat previousWeaponStat;
                                     if (previousStats.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
                                         if (weaponStat.Kills > previousWeaponStat.Kills) {
