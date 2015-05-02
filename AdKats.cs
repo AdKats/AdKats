@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.5.4
+ * Version 6.6.5.5
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.5.4</version_code>
+ * <version_code>6.6.5.5</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.5.4";
+        private const String PluginVersion = "6.6.5.5";
 
         public enum GameVersion
         {
@@ -7275,11 +7275,17 @@ namespace PRoConEvents
                                             _roundID > aPlayer.stats.RoundID) {
                                             aPlayer.stats_previous = aPlayer.stats;
                                             aPlayer.stats = null;
+                                            if (_isTestingAuthorized) {
+                                                Log.Info("Assigned previous stats to " + aPlayer.GetVerboseName());
+                                            }
                                         }
                                         if (_roundState == RoundState.Playing &&
                                             aPlayer.stats != null && 
                                             (aPlayer.stats.LiveStats == null || aPlayer.stats.LiveStats.Score < aPlayer.frostbitePlayerInfo.Score)) {
                                             aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
+                                            if (_isTestingAuthorized) {
+                                                Log.Info("Assigned live stats to " + aPlayer.GetVerboseName());
+                                            }
                                         }
                                         switch (aPlayer.frostbitePlayerInfo.Type)
                                         {
@@ -7478,11 +7484,17 @@ namespace PRoConEvents
                                             _roundID > aPlayer.stats.RoundID) {
                                             aPlayer.stats_previous = aPlayer.stats;
                                             aPlayer.stats = null;
+                                            if (_isTestingAuthorized) {
+                                                Log.Info("Assigned previous stats to " + aPlayer.GetVerboseName());
+                                            }
                                         }
                                         if (_roundState == RoundState.Playing &&
                                             aPlayer.stats != null &&
                                             (aPlayer.stats.LiveStats == null || aPlayer.stats.LiveStats.Score < aPlayer.frostbitePlayerInfo.Score)) {
                                             aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
+                                            if (_isTestingAuthorized) {
+                                                Log.Info("Assigned live stats to " + aPlayer.GetVerboseName());
+                                            }
                                         }
                                         String joinLocation = String.Empty;
                                         AdKatsTeam playerTeam = null;
@@ -36801,6 +36813,9 @@ namespace PRoConEvents
                         //Assign loaded stats to the player
                         if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
                             aPlayer.stats_previous = aPlayer.stats;
+                            if (_isTestingAuthorized) {
+                                Log.Info("Assigned previous stats to " + aPlayer.GetVerboseName());
+                            }
                         }
                         aPlayer.stats = stats;
                         //Store stats for this player in the current round
@@ -36949,6 +36964,9 @@ namespace PRoConEvents
                         //Assign loaded stats to the player
                         if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
                             aPlayer.stats_previous = aPlayer.stats;
+                            if (_isTestingAuthorized) {
+                                Log.Info("Assigned previous stats to " + aPlayer.GetVerboseName());
+                            }
                         }
                         aPlayer.stats = stats;
                         //Store stats for this player in the current round
@@ -37038,6 +37056,9 @@ namespace PRoConEvents
                         //Assign loaded stats to the player
                         if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
                             aPlayer.stats_previous = aPlayer.stats;
+                            if (_isTestingAuthorized) {
+                                Log.Info("Assigned previous stats to " + aPlayer.GetVerboseName());
+                            }
                         }
                         aPlayer.stats = stats;
                         //Store stats for this player in the current round
