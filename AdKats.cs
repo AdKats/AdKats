@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.5.1
+ * Version 6.6.5.2
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.5.1</version_code>
+ * <version_code>6.6.5.2</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.5.1";
+        private const String PluginVersion = "6.6.5.2";
 
         public enum GameVersion
         {
@@ -8113,6 +8113,40 @@ namespace PRoConEvents
             }
         }
 
+        private void FetchRoundID(Boolean increment) {
+            try {
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        command.CommandText = @"
+                            SELECT
+	                            IFNULL(MAX(`round_id`), 0) AS `max_round_id`
+                            FROM
+	                            `tbl_extendedroundstats`
+                            WHERE 
+                                `server_id` = @server_id";
+                        command.Parameters.AddWithValue("server_id", _serverInfo.ServerID);
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
+                            if (reader.Read()) {
+                                Int32 oldRoundID = reader.GetInt32("max_round_id");
+                                if (increment) {
+                                    _roundID = oldRoundID + 1;
+                                }
+                                else {
+                                    _roundID = oldRoundID;
+                                }
+                                Log.Debug("Current round. Round ID is " + _roundID, 2);
+                            } else {
+                                _roundID = 1;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error fetching round ID", e));
+            }
+        }
+
         private void StartRoundTicketLogger(Int32 startingSeconds)
         {
             try
@@ -8129,33 +8163,7 @@ namespace PRoConEvents
                         Int32 TPCSCounter = 0;
                         Boolean TPCSActionTaken = false;
                         Int32 roundTimeSeconds = startingSeconds;
-                        using (MySqlConnection connection = GetDatabaseConnection())
-                        {
-                            using (MySqlCommand command = connection.CreateCommand())
-                            {
-                                command.CommandText = @"
-                                SELECT
-	                                IFNULL(MAX(`round_id`), 0) AS `max_round_id`
-                                FROM
-	                                `tbl_extendedroundstats`
-                                WHERE 
-                                    `server_id` = @server_id";
-                                command.Parameters.AddWithValue("server_id", _serverInfo.ServerID);
-                                using (MySqlDataReader reader = SafeExecuteReader(command))
-                                {
-                                    if (reader.Read())
-                                    {
-                                        Int32 oldRoundID = reader.GetInt32("max_round_id");
-                                        _roundID = oldRoundID + 1;
-                                        Log.Debug("New Round. ExtendedRoundID is " + _roundID, 2);
-                                    }
-                                    else
-                                    {
-                                        _roundID = 1;
-                                    }
-                                }
-                            }
-                        }
+                        FetchRoundID(true);
                         ProconChatWrite(Log.FBold("New Round. ExtendedRoundID is " + _roundID));
 
                         Stopwatch watch = new Stopwatch();
@@ -26456,6 +26464,9 @@ namespace PRoConEvents
                         {
                             //Set the start time
                             _AdKatsStartTime = UtcDbTime();
+
+                            //Import round ID
+                            FetchRoundID(false);
 
                             //Start other threads
                             StartAndLogThread(_PlayerListingThread);
