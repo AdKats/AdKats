@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.5.3
+ * Version 6.6.5.4
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.5.3</version_code>
+ * <version_code>6.6.5.4</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.5.3";
+        private const String PluginVersion = "6.6.5.4";
 
         public enum GameVersion
         {
@@ -7271,8 +7271,7 @@ namespace PRoConEvents
                                             aPlayer.lastAction = UtcDbTime();
                                         }
                                         aPlayer.frostbitePlayerInfo = playerInfo;
-                                        if (_roundID > 0 &&
-                                            aPlayer.stats != null && 
+                                        if (aPlayer.stats != null && 
                                             _roundID > aPlayer.stats.RoundID) {
                                             aPlayer.stats_previous = aPlayer.stats;
                                             aPlayer.stats = null;
@@ -7475,8 +7474,7 @@ namespace PRoConEvents
                                         aPlayer.player_server = _serverInfo;
                                         //Add the frostbite player info
                                         aPlayer.frostbitePlayerInfo = playerInfo;
-                                        if (_roundID > 0 &&
-                                            aPlayer.stats != null &&
+                                        if (aPlayer.stats != null &&
                                             _roundID > aPlayer.stats.RoundID) {
                                             aPlayer.stats_previous = aPlayer.stats;
                                             aPlayer.stats = null;
@@ -7667,14 +7665,12 @@ namespace PRoConEvents
                                         QueueRecordForProcessing(record);
                                     }
                                     //Update them to round players
-                                    if (_roundID > 0) {
-                                        HashSet<Int64> roundPlayers;
-                                        if (!_RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers)) {
-                                            roundPlayers = new HashSet<Int64>();
-                                            _RoundPlayerIDs[_roundID] = roundPlayers;
-                                        }
-                                        roundPlayers.Add(aPlayer.player_id);
+                                    HashSet<Int64> roundPlayers;
+                                    if (!_RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers)) {
+                                        roundPlayers = new HashSet<Int64>();
+                                        _RoundPlayerIDs[_roundID] = roundPlayers;
                                     }
+                                    roundPlayers.Add(aPlayer.player_id);
                                     timer.Stop();
                                     durations.Add(timer.Elapsed.TotalSeconds);
                                     if (!_firstPlayerListComplete)
@@ -7771,7 +7767,6 @@ namespace PRoConEvents
                                     Log.Error(record.record_message);
                                     //Set round ended
                                     _roundState = RoundState.Ended;
-                                    _roundID = 0;
                                     //Clear populators
                                     _populationPopulatingPlayers.Clear();
                                 }
@@ -9299,10 +9294,6 @@ namespace PRoConEvents
             Log.Debug("Entering PostPlayerWinLossStatistics", 7);
             try
             {
-                if (_roundID < 1)
-                {
-                    return;
-                }
                 AdKatsTeam team1, team2;
                 if (!GetTeamByID(1, out team1))
                 {
@@ -10276,7 +10267,7 @@ namespace PRoConEvents
                     if (_roundState == RoundState.Loaded)
                     {
                         _roundState = RoundState.Playing;
-                        if (_isTestingAuthorized && _roundID > 0)
+                        if (_isTestingAuthorized)
                         {
                             if (_serverInfo.ServerName.Contains("#7") && _gameVersion == GameVersion.BF4)
                             {
@@ -11143,13 +11134,6 @@ namespace PRoConEvents
 
                         try
                         {
-                            if (_roundID <= 0) {
-                                _HackerCheckerWaitHandle.Reset();
-                                //Either loop when handle is set, or after 3 minutes
-                                _HackerCheckerWaitHandle.WaitOne(TimeSpan.FromMinutes(3));
-                                loopStart = UtcDbTime();
-                                continue;
-                            }
                             //Get all unchecked players
                             if (_HackerCheckerQueue.Count > 0)
                             {
@@ -36741,9 +36725,6 @@ namespace PRoConEvents
         public Boolean FetchPlayerStatInformation(AdKatsPlayer aPlayer) {
             if (aPlayer == null || String.IsNullOrEmpty(aPlayer.player_name) || String.IsNullOrEmpty(aPlayer.player_personaID)) {
                 Log.Error("Attempted to fetch player stats info without needed info.");
-                return false;
-            }
-            if (_roundID <= 0) {
                 return false;
             }
             if (_gameVersion == GameVersion.BF3) {
