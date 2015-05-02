@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.6.1
+ * Version 6.6.6.2
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.6.1</version_code>
+ * <version_code>6.6.6.2</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.6.1";
+        private const String PluginVersion = "6.6.6.2";
 
         public enum GameVersion
         {
@@ -17233,34 +17233,38 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    switch (targetSubset)
-                                    {
-                                        case "squad":
-                                            if (record.source_player == null || !record.source_player.player_online || !_PlayerDictionary.ContainsKey(record.source_player.player_name) || record.source_player.player_type == PlayerType.Spectator)
-                                            {
-                                                SendMessageToSource(record, "Must be a player to use squad option. Unable to submit.");
+                                    Log.Debug("target: " + targetSubset, 6);
+                                    List<AdKatsTeam> validTeams = _teamDictionary.Values.Where(aTeam => aTeam.TeamID == 1 || aTeam.TeamID == 2).ToList();
+                                    AdKatsTeam matchingTeam = validTeams.FirstOrDefault(aTeam => aTeam.TeamKey.ToLower() == targetSubset.ToLower());
+                                    if (matchingTeam != null) {
+                                        record.target_name = matchingTeam.TeamKey;
+                                    } else {
+                                        switch (targetSubset) {
+                                            case "squad":
+                                                if (record.source_player == null || !record.source_player.player_online || !_PlayerDictionary.ContainsKey(record.source_player.player_name) || record.source_player.player_type == PlayerType.Spectator) {
+                                                    SendMessageToSource(record, "Must be a player to use squad option. Unable to submit.");
+                                                    FinalizeRecord(record);
+                                                    return;
+                                                }
+                                                record.target_name = "Squad";
+                                                break;
+                                            case "team":
+                                                if (record.source_player == null || !record.source_player.player_online || !_PlayerDictionary.ContainsKey(record.source_player.player_name) || record.source_player.player_type == PlayerType.Spectator) {
+                                                    SendMessageToSource(record, "Must be a player to use team option. Unable to submit.");
+                                                    FinalizeRecord(record);
+                                                    return;
+                                                }
+                                                record.target_name = "Team";
+                                                break;
+                                            case "all":
+                                                record.target_name = "All";
+                                                break;
+                                            default:
+                                                SendMessageToSource(record, "Invalid target, must be squad, team, or all. Unable to submit.");
                                                 FinalizeRecord(record);
                                                 return;
-                                            }
-                                            record.target_name = "Squad";
-                                            break;
-                                        case "team":
-                                            if (record.source_player == null || !record.source_player.player_online || !_PlayerDictionary.ContainsKey(record.source_player.player_name) || record.source_player.player_type == PlayerType.Spectator)
-                                            {
-                                                SendMessageToSource(record, "Must be a player to use team option. Unable to submit.");
-                                                FinalizeRecord(record);
-                                                return;
-                                            }
-                                            record.target_name = "Team";
-                                            break;
-                                        case "all":
-                                            record.target_name = "All";
-                                            break;
-                                        default:
-                                            SendMessageToSource(record, "Invalid target, must be squad, team, or all. Unable to submit.");
-                                            FinalizeRecord(record);
-                                            return;
-                                            break;
+                                                break;
+                                        }
                                     }
                                     //Max 30 seconds
                                     Int32 countdownSeconds;
@@ -24481,9 +24485,16 @@ namespace PRoConEvents
                             //All players, so include spectators and commanders
                             break;
                         default:
-                            SendMessageToSource(record, "Invalid target, must be Squad, Team, or All. Unable to Act.");
-                            FinalizeRecord(record);
-                            return;
+                            //Check for specific team targeting
+                            var teamTarget = GetTeamByKey(record.target_name);
+                            if (teamTarget != null) {
+                                targetedPlayers.AddRange(_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == teamTarget.TeamID).ToList());
+                            } else {
+                                SendMessageToSource(record, "Invalid target, must be Squad, Team, or All. Unable to Act.");
+                                FinalizeRecord(record);
+                                return;
+                            }
+                            break;
                     }
                 }
                 //Start the thread
