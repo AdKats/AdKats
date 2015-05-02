@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.4.6
+ * Version 6.6.4.7
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.4.6</version_code>
+ * <version_code>6.6.4.7</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.4.6";
+        private const String PluginVersion = "6.6.4.7";
 
         public enum GameVersion
         {
@@ -6893,13 +6893,16 @@ namespace PRoConEvents
                     AdKatsTeam oldTeam;
                     if (!GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out oldTeam))
                     {
-                        Log.Error("Error fetching old team on team change.");
+                        if (_roundState == RoundState.Playing) {
+                            Log.Error("Error fetching old team on team change.");
+                        }
                         return;
                     }
                     AdKatsTeam newTeam;
-                    if (!GetTeamByID(teamId, out newTeam))
-                    {
-                        Log.Error("Error fetching new team on team change.");
+                    if (!GetTeamByID(teamId, out newTeam)) {
+                        if (_roundState == RoundState.Playing) {
+                            Log.Error("Error fetching new team on team change.");
+                        }
                         return;
                     }
                     if (_isTestingAuthorized)
@@ -9398,6 +9401,20 @@ namespace PRoConEvents
                     //Update the factions 
                     UpdateFactions();
                     StartRoundTicketLogger(0);
+
+                    //Confirm uploaded stats
+                    List<AdKatsPlayer> roundPlayerObjects;
+                    HashSet<Int64> roundPlayers;
+                    if (_roundID > 0 && _RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers)) {
+                        //Get players who where online this round
+                        roundPlayerObjects = _FetchedPlayers.Values.Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
+                    } else {
+                        //Get current online players
+                        roundPlayerObjects = _PlayerDictionary.Values.Where(dPlayer => dPlayer.blInfoFetched).ToList();
+                    }
+//                    foreach (var aPlayer in roundPlayerObjects) {
+//                        if(aPlayer.)
+//                    }
                 }
             }
             catch (Exception e)
@@ -11230,6 +11247,12 @@ namespace PRoConEvents
 
         private void RunStatSiteHackCheck(AdKatsPlayer aPlayer, Boolean verbose)
         {
+            try {
+
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error running stat site hack check.", e));
+            }
             Log.Debug("HackerChecker running on " + aPlayer.GetVerboseName(), 5);
             Boolean acted = false;
             if (_UseHskChecker)
@@ -11268,12 +11291,12 @@ namespace PRoConEvents
                     QueueRecordForProcessing(new AdKatsRecord {
                         record_source = AdKatsRecord.Sources.InternalAutomated,
                         server_id = _serverInfo.ServerID,
-                        command_type = GetCommandByKey("player_ban_perm"),
+                        command_type = GetCommandByKey("player_report"),
                         command_numeric = 0,
                         target_name = aPlayer.player_name,
                         target_player = aPlayer,
                         source_name = "AutoAdmin",
-                        record_message = "Code 7-" + killDiff + ": Dispute Requested",
+                        record_message = "Code 7-" + killDiff + "",
                         record_time = UtcDbTime()
                     });
                     acted = true;
@@ -29205,7 +29228,7 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    Log.Error("Unable to find source weight for command " + typeAction);
+                                    Log.Warn("Unable to find source weight for command " + typeAction);
                                 }
                             }
                         }
@@ -29238,7 +29261,7 @@ namespace PRoConEvents
                                 }
                                 else
                                 {
-                                    Log.Error("Unable to find target weight for command " + typeAction);
+                                    Log.Warn("Unable to find target weight for command " + typeAction);
                                 }
                             }
                         }
@@ -44085,7 +44108,7 @@ namespace PRoConEvents
                     {
                         tNew.Enqueue(_mActions.Dequeue());
                     }
-
+                    
                     Boolean tRelease = tNew.Count == 0;
 
                     tNew.Clear();
