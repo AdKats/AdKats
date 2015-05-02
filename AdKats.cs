@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.4.4
+ * Version 6.6.4.5
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.4.4</version_code>
+ * <version_code>6.6.4.5</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.4.4";
+        private const String PluginVersion = "6.6.4.5";
 
         public enum GameVersion
         {
@@ -11263,15 +11263,22 @@ namespace PRoConEvents
                 acted = KPMHackCheck(aPlayer, verbose);
             }
             if (_isTestingAuthorized && _gameVersion == GameVersion.BF4 && aPlayer.stats_previous != null) {
-                var liveKillDiff = aPlayer.stats_previous.LiveStats.Kills;
-                var previousKillCount = 
-                    aPlayer.stats_previous.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + 
-                    aPlayer.stats_previous.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
-                var currentKillCount = 
-                    aPlayer.stats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + 
-                    aPlayer.stats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
-                var statKillDiff = currentKillCount - previousKillCount;
-                Log.Info("KILLDIFF - " + aPlayer.GetVerboseName() + " - " + Math.Round(liveKillDiff - statKillDiff, 2) + " Unaccounted Kills");
+                Int32 liveKillDiff = aPlayer.stats_previous.LiveStats.Kills;
+                Int32 previousKillCount = 
+                    (Int32) aPlayer.stats_previous.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + 
+                    (Int32) aPlayer.stats_previous.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                Int32 currentKillCount =
+                    (Int32) aPlayer.stats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
+                    (Int32) aPlayer.stats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                Int32 statKillDiff = currentKillCount - previousKillCount;
+                Int32 killDiff = liveKillDiff - statKillDiff;
+                var logString = "KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + liveKillDiff + "|" + statKillDiff + ") " + killDiff + " Unaccounted Kills";
+                if (killDiff > 0) {
+                    Log.Warn(logString);
+                }
+                else {
+                    Log.Info(logString);
+                }
             }
             if (!acted && verbose)
             {
