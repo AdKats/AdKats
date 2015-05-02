@@ -11262,7 +11262,7 @@ namespace PRoConEvents
                 Log.Debug("Preparing to KPM check " + aPlayer.GetVerboseName(), 5);
                 acted = KPMHackCheck(aPlayer, verbose);
             }
-            if (_isTestingAuthorized && aPlayer.stats_previous != null) {
+            if (_isTestingAuthorized && _gameVersion == GameVersion.BF4 && aPlayer.stats_previous != null) {
                 var liveKillDiff = aPlayer.stats_previous.LiveStats.Kills;
                 var previousKillCount = 
                     aPlayer.stats_previous.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + 
