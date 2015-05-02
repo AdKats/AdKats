@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.4.1
- * 28-APR-2015
+ * Version 6.6.4.2
+ * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.4.1</version_code>
+ * <version_code>6.6.4.2</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.4.1";
+        private const String PluginVersion = "6.6.4.2";
 
         public enum GameVersion
         {
@@ -204,7 +204,7 @@ namespace PRoConEvents
         private DateTime _LastTicketRateDisplay = DateTime.UtcNow - TimeSpan.FromSeconds(30);
         private DateTime _lastAutoSurrenderTriggerTime = DateTime.UtcNow - TimeSpan.FromSeconds(10);
         private DateTime _LastBattlelogAction = DateTime.UtcNow - TimeSpan.FromSeconds(2);
-        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(1);
+        private readonly TimeSpan _BattlelogWaitDuration = TimeSpan.FromSeconds(1.1);
         private DateTime _LastIPAPIAction = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private readonly TimeSpan _IPAPIWaitDuration = TimeSpan.FromSeconds(5);
         private DateTime _LastGoogleAction = DateTime.UtcNow - TimeSpan.FromSeconds(0.3);
@@ -7264,6 +7264,11 @@ namespace PRoConEvents
                                             aPlayer.lastAction = UtcDbTime();
                                         }
                                         aPlayer.frostbitePlayerInfo = playerInfo;
+                                        if (_roundState == RoundState.Playing &&
+                                            aPlayer.stats != null && 
+                                            (aPlayer.stats.LiveStats == null || aPlayer.stats.LiveStats.Score < aPlayer.frostbitePlayerInfo.Score)) {
+                                            aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
+                                        }
                                         switch (aPlayer.frostbitePlayerInfo.Type)
                                         {
                                             case 0:
@@ -7457,6 +7462,11 @@ namespace PRoConEvents
                                         aPlayer.player_server = _serverInfo;
                                         //Add the frostbite player info
                                         aPlayer.frostbitePlayerInfo = playerInfo;
+                                        if (_roundState == RoundState.Playing &&
+                                            aPlayer.stats != null &&
+                                            (aPlayer.stats.LiveStats == null || aPlayer.stats.LiveStats.Score < aPlayer.frostbitePlayerInfo.Score)) {
+                                            aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
+                                        }
                                         String joinLocation = String.Empty;
                                         AdKatsTeam playerTeam = null;
                                         if (aPlayer.frostbitePlayerInfo != null)
@@ -11252,6 +11262,17 @@ namespace PRoConEvents
                 Log.Debug("Preparing to KPM check " + aPlayer.GetVerboseName(), 5);
                 acted = KPMHackCheck(aPlayer, verbose);
             }
+            if (_isTestingAuthorized && aPlayer.stats_previous != null) {
+                var liveKillDiff = aPlayer.stats_previous.LiveStats.Kills;
+                var previousKillCount = 
+                    aPlayer.stats_previous.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + 
+                    aPlayer.stats_previous.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                var currentKillCount = 
+                    aPlayer.stats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + 
+                    aPlayer.stats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                var statKillDiff = currentKillCount - previousKillCount;
+                Log.Info("KILLDIFF - " + aPlayer.GetVerboseName() + " - " + Math.Round(liveKillDiff - statKillDiff, 2) + " Unaccounted Kills");
+            }
             if (!acted && verbose)
             {
                 Log.Success(aPlayer.GetVerboseName() + " is clean.");
@@ -11303,12 +11324,12 @@ namespace PRoConEvents
                     default:
                         return false;
                 }
-                List<AdKatsWeaponStats> topWeapons = aPlayer.stats.WeaponStats.Values.OrderByDescending(aStat => aStat.Kills).ToList();
+                List<AdKatsWeaponStat> topWeapons = aPlayer.stats.WeaponStats.Values.OrderByDescending(aStat => aStat.Kills).ToList();
 
-                AdKatsWeaponStats actedWeapon = null;
+                AdKatsWeaponStat actedWeapon = null;
                 Double actedPerc = -1;
                 Int32 index = 0;
-                foreach (AdKatsWeaponStats weaponStat in topWeapons)
+                foreach (AdKatsWeaponStat weaponStat in topWeapons)
                 {
                     //Only count certain weapon categories
                     if (allowedCategories.Contains(weaponStat.Category)) {
@@ -11326,7 +11347,7 @@ namespace PRoConEvents
                             {
                                 //For live stat check, look for previous round stat difference
                                 if (aPlayer.stats_previous != null) {
-                                    AdKatsWeaponStats previousWeaponStat;
+                                    AdKatsWeaponStat previousWeaponStat;
                                     if (aPlayer.stats_previous.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
                                         if (weaponStat.Kills > previousWeaponStat.Kills) {
                                             Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
@@ -11334,22 +11355,20 @@ namespace PRoConEvents
                                             Double HSDiff = weaponStat.Headshots - previousWeaponStat.Headshots;
                                             Double diffDPS = (killDiff / hitDiff) * 100;
                                             Double percDiff = (diffDPS - weapon.DamageMax) / weapon.DamageMax;
-                                            if (_isTestingAuthorized)
-                                            {
+                                            if (_isTestingAuthorized) {
                                                 String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                                                Log.Info("StatDiff - " + aPlayer.GetVerboseName() + ": " + formattedName + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
+                                                if (Math.Round(percDiff) > 0) {
+                                                    Log.Info("STATDIFF - " + aPlayer.GetVerboseName() + " - " + formattedName + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
+                                                }
                                                 //Check for damage hack
-                                                //Require at least 15 kills difference, +100% (double) normal weapon damage for non-sidearm weapons, and 80 DPS weapon damage for sidearms.
-                                                if (killDiff >= 15 &&
-                                                    diffDPS > weapon.DamageMax && 
-                                                    (diffDPS >= 85 || (!isSidearm && percDiff > 1.00)))
-                                                {
-                                                    Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int)diffDPS + "-" + (int)killDiff + "-" + (int)HSDiff + "]");
-                                                    if (!debugMode)
-                                                    {
+                                                //Require at least 12 kills difference, +100% (double) normal weapon damage for non-sidearm weapons, and 85 DPS weapon damage for sidearms.
+                                                if (killDiff >= 12 &&
+                                                    diffDPS > weapon.DamageMax &&
+                                                    (diffDPS >= 85 || (!isSidearm && percDiff > 1.00))) {
+                                                    Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int) diffDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]");
+                                                    if (!debugMode) {
                                                         //Create the ban record
-                                                        QueueRecordForProcessing(new AdKatsRecord
-                                                        {
+                                                        QueueRecordForProcessing(new AdKatsRecord {
                                                             record_source = AdKatsRecord.Sources.InternalAutomated,
                                                             server_id = _serverInfo.ServerID,
                                                             command_type = GetCommandByKey("player_ban_perm"),
@@ -11357,7 +11376,7 @@ namespace PRoConEvents
                                                             target_name = aPlayer.player_name,
                                                             target_player = aPlayer,
                                                             source_name = "AutoAdmin",
-                                                            record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int)diffDPS + "-" + (int)killDiff + "-" + (int)HSDiff + "]",
+                                                            record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int) diffDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]",
                                                             record_time = UtcDbTime()
                                                         });
                                                     }
@@ -11544,8 +11563,8 @@ namespace PRoConEvents
                     default:
                         return false;
                 }
-                List<AdKatsWeaponStats> topWeapons = aPlayer.stats.WeaponStats.Values.ToList();
-                topWeapons.Sort(delegate(AdKatsWeaponStats a1, AdKatsWeaponStats a2)
+                List<AdKatsWeaponStat> topWeapons = aPlayer.stats.WeaponStats.Values.ToList();
+                topWeapons.Sort(delegate(AdKatsWeaponStat a1, AdKatsWeaponStat a2)
                 {
                     if (Math.Abs(a1.Kills - a2.Kills) < 0.001)
                     {
@@ -11554,10 +11573,10 @@ namespace PRoConEvents
                     return (a1.Kills < a2.Kills) ? (1) : (-1);
                 });
 
-                AdKatsWeaponStats actedWeapon = null;
+                AdKatsWeaponStat actedWeapon = null;
                 Double actedHskr = -1;
                 Int32 index = 0;
-                foreach (AdKatsWeaponStats weaponStat in topWeapons)
+                foreach (AdKatsWeaponStat weaponStat in topWeapons)
                 {
                     //Only count certain weapon categories
                     if (allowedCategories.Contains(weaponStat.Category))
@@ -11736,8 +11755,8 @@ namespace PRoConEvents
                         return false;
                 }
                 //Wow, i wrote this before knowing linq, this looks terrible
-                List<AdKatsWeaponStats> topWeapons = aPlayer.stats.WeaponStats.Values.ToList();
-                topWeapons.Sort(delegate(AdKatsWeaponStats a1, AdKatsWeaponStats a2)
+                List<AdKatsWeaponStat> topWeapons = aPlayer.stats.WeaponStats.Values.ToList();
+                topWeapons.Sort(delegate(AdKatsWeaponStat a1, AdKatsWeaponStat a2)
                 {
                     if (a1.Kills == a2.Kills)
                     {
@@ -11746,10 +11765,10 @@ namespace PRoConEvents
                     return (a1.Kills < a2.Kills) ? (1) : (-1);
                 });
 
-                AdKatsWeaponStats actedWeapon = null;
+                AdKatsWeaponStat actedWeapon = null;
                 Double actedKpm = -1;
                 Int32 index = 0;
-                foreach (AdKatsWeaponStats weaponStat in topWeapons)
+                foreach (AdKatsWeaponStat weaponStat in topWeapons)
                 {
                     //Only count certain weapon categories, and ignore gadgets/sidearms (shotgun issue with BF4)
                     if (allowedCategories.Contains(weaponStat.Category) && 
@@ -21463,6 +21482,7 @@ namespace PRoConEvents
                 //Cancel call if not using ban enforcer
                 if (!_UseBanEnforcer || !_UseBanEnforcerPreviousState)
                 {
+                    Log.Error("Attempted to issue unban when ban enforcer is disabled.");
                     return;
                 }
                 if (record.target_player == null)
@@ -36586,11 +36606,11 @@ namespace PRoConEvents
                                             //Get Weapons
                                             if (weaponData != null && weaponData.Count > 0)
                                             {
-                                                stats.WeaponStats = new Dictionary<String, AdKatsWeaponStats>();
+                                                stats.WeaponStats = new Dictionary<String, AdKatsWeaponStat>();
                                                 foreach (Hashtable currentWeapon in weaponData)
                                                 {
                                                     //Create new construct
-                                                    AdKatsWeaponStats weapon = new AdKatsWeaponStats();
+                                                    AdKatsWeaponStat weapon = new AdKatsWeaponStat();
 
                                                     //serviceStars
                                                     weapon.ServiceStars = (Double)currentWeapon["serviceStars"];
@@ -36726,11 +36746,11 @@ namespace PRoConEvents
                                             //Get Weapons
                                             if (weaponData != null && weaponData.Count > 0)
                                             {
-                                                stats.WeaponStats = new Dictionary<String, AdKatsWeaponStats>();
+                                                stats.WeaponStats = new Dictionary<String, AdKatsWeaponStat>();
                                                 foreach (Hashtable currentWeapon in weaponData)
                                                 {
                                                     //Create new construct
-                                                    AdKatsWeaponStats weapon = new AdKatsWeaponStats();
+                                                    AdKatsWeaponStat weapon = new AdKatsWeaponStat();
 
                                                     //serviceStars
                                                     weapon.ServiceStars = (Double)currentWeapon["serviceStars"];
@@ -36795,6 +36815,64 @@ namespace PRoConEvents
                                 {
                                     Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                                 }
+
+                                //Fetch vehicle stats
+                                DoBattlelogWait();
+                                String vehicleResponse = client.DownloadString("http://battlelog.battlefield.com/bf4/en/warsawvehiclesPopulateStats/" + aPlayer.player_personaID + "/1/stats/");
+                                Hashtable vehicleResponseData = (Hashtable) JSON.JsonDecode(vehicleResponse);
+
+                                if (vehicleResponseData.ContainsKey("type") && 
+                                    (String) vehicleResponseData["type"] == "success" && 
+                                    vehicleResponseData.ContainsKey("message") && 
+                                    (String) vehicleResponseData["message"] == "OK" && 
+                                    vehicleResponseData.ContainsKey("data")) {
+                                    Hashtable statsData = (Hashtable) vehicleResponseData["data"];
+                                    if (statsData != null && statsData.ContainsKey("mainWeaponStats")) {
+                                        ArrayList vehicleData = (ArrayList) statsData["mainVehicleStats"];
+                                        try {
+                                            //Get Vehicles
+                                            if (vehicleData != null && vehicleData.Count > 0) {
+                                                stats.VehicleStats = new Dictionary<String, AdKatsVehicleStat>();
+                                                foreach (Hashtable currentWeapon in vehicleData) {
+                                                    //Create new construct
+                                                    AdKatsVehicleStat vehicle = new AdKatsVehicleStat();
+
+                                                    //serviceStars
+                                                    vehicle.ServiceStars = (Double) currentWeapon["serviceStars"];
+                                                    //serviceStarsProgress
+                                                    vehicle.ServiceStarsProgress = (Double) currentWeapon["serviceStarsProgress"];
+                                                    //category
+                                                    vehicle.Category = ((String) currentWeapon["category"]).Trim().ToLower().Replace(' ', '_');
+                                                    //slug
+                                                    vehicle.ID = ((String) currentWeapon["slug"]).Trim().ToLower().Replace(' ', '_');
+                                                    //name
+                                                    vehicle.WarsawID = (String) currentWeapon["name"];
+                                                    //kills
+                                                    vehicle.Kills = (Double) currentWeapon["kills"];
+                                                    //timeIn
+                                                    vehicle.TimeIn = TimeSpan.FromSeconds((Double) currentWeapon["timeIn"]);
+
+                                                    //Calculate values
+                                                    if (vehicle.TimeIn.TotalMinutes > 0) {
+                                                        vehicle.KPM = vehicle.Kills / vehicle.TimeIn.TotalMinutes;
+                                                    }
+
+                                                    //Assign the construct
+                                                    stats.VehicleStats.Add(vehicle.ID, vehicle);
+                                                }
+                                            } else {
+                                                Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats data.");
+                                            }
+                                        } catch (Exception e) {
+                                            HandleException(new AdKatsException("Error while parsing player vehicle data.", e));
+                                        }
+                                    } else {
+                                        Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Stats response did not contain vehicle stats construct.");
+                                    }
+                                } else {
+                                    Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
+                                }
+
                                 //Assign loaded stats to the player
                                 aPlayer.stats_previous = aPlayer.stats;
                                 aPlayer.stats = stats;
@@ -36880,11 +36958,11 @@ namespace PRoConEvents
                                             //Get Weapons
                                             if (weaponData != null && weaponData.Count > 0)
                                             {
-                                                stats.WeaponStats = new Dictionary<String, AdKatsWeaponStats>();
+                                                stats.WeaponStats = new Dictionary<String, AdKatsWeaponStat>();
                                                 foreach (Hashtable currentWeapon in weaponData)
                                                 {
                                                     //Create new construct
-                                                    AdKatsWeaponStats weapon = new AdKatsWeaponStats();
+                                                    AdKatsWeaponStat weapon = new AdKatsWeaponStat();
 
                                                     //serviceStars
                                                     weapon.ServiceStars = (Double)currentWeapon["serviceStars"];
@@ -39971,7 +40049,9 @@ namespace PRoConEvents
         public class AdKatsPlayerStats
         {
             public AdKatsException StatsException = null;
-            public Dictionary<String, AdKatsWeaponStats> WeaponStats = null;
+            public Dictionary<String, AdKatsWeaponStat> WeaponStats = null;
+            public Dictionary<String, AdKatsVehicleStat> VehicleStats = null;
+            public CPlayerInfo LiveStats = null;
         }
 
         public class AdKatsRecord
@@ -40525,7 +40605,7 @@ namespace PRoConEvents
             }
         }
 
-        public class AdKatsWeaponStats
+        public class AdKatsWeaponStat
         {
             //serviceStars
             public Double ServiceStars = 0;
@@ -40556,6 +40636,28 @@ namespace PRoConEvents
             public Double HSKR = 0;
             public Double KPM = 0;
             public Double DPS = 0;
+        }
+
+        public class AdKatsVehicleStat {
+            //serviceStars
+            public Double ServiceStars = 0;
+            //serviceStarsProgress
+            public Double ServiceStarsProgress = 0;
+            //slug
+            public String ID;
+            //name
+            public String WarsawID;
+            //kills
+            public Double Kills = 0;
+            //timeIn
+            public TimeSpan TimeIn = TimeSpan.FromSeconds(0);
+            //category
+            public String Category;
+            //destroyXinY
+            public Double DestroyXInY;
+
+            //Calculated Values
+            public Double KPM = 0;
         }
 
         public class AdKatsSQLUpdate
