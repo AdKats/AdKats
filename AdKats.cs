@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.4.9
+ * Version 6.6.5.0
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.4.9</version_code>
+ * <version_code>6.6.5.0</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.4.9";
+        private const String PluginVersion = "6.6.5.0";
 
         public enum GameVersion
         {
@@ -11248,34 +11248,36 @@ namespace PRoConEvents
                     _gameVersion == GameVersion.BF4 && 
                     aPlayer.stats_previous != null && 
                     aPlayer.stats != null) {
-                    Int32 liveKillDiff = aPlayer.stats_previous.LiveStats.Kills;
-                    Int32 previousKillCount =
-                        (Int32) aPlayer.stats_previous.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
-                        (Int32) aPlayer.stats_previous.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
-                    Int32 currentKillCount =
-                        (Int32) aPlayer.stats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
-                        (Int32) aPlayer.stats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
-                    Int32 statKillDiff = currentKillCount - previousKillCount;
-                    Int32 killDiff = liveKillDiff - statKillDiff;
-                    var logString = "KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + liveKillDiff + "|" + statKillDiff + ") " + killDiff + " Unaccounted Kills";
-                    if (killDiff > 0) {
-                        Log.Warn(logString);
-                    } else {
-                        Log.Info(logString);
+                    if (aPlayer.stats_previous.LiveStats != null) {
+                        Int32 liveKillDiff = aPlayer.stats_previous.LiveStats.Kills;
+                        Int32 previousKillCount = (Int32) aPlayer.stats_previous.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + (Int32) aPlayer.stats_previous.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                        Int32 currentKillCount = (Int32) aPlayer.stats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + (Int32) aPlayer.stats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                        Int32 statKillDiff = currentKillCount - previousKillCount;
+                        Int32 killDiff = liveKillDiff - statKillDiff;
+                        var logString = "KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + liveKillDiff + "|" + statKillDiff + ") " + killDiff + " Unaccounted Kills";
+                        if (killDiff > 0) {
+                            Log.Warn(logString);
+                        }
+                        else {
+                            Log.Info(logString);
+                        }
+                        if (killDiff > 5 && !PlayerProtected(aPlayer)) {
+                            QueueRecordForProcessing(new AdKatsRecord {
+                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                server_id = _serverInfo.ServerID,
+                                command_type = GetCommandByKey("player_report"),
+                                command_numeric = 0,
+                                target_name = aPlayer.player_name,
+                                target_player = aPlayer,
+                                source_name = "AutoAdmin",
+                                record_message = "Code 7-" + killDiff + " TEST",
+                                record_time = UtcDbTime()
+                            });
+                            acted = true;
+                        }
                     }
-                    if (killDiff > 5 && !PlayerProtected(aPlayer)) {
-                        QueueRecordForProcessing(new AdKatsRecord {
-                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                            server_id = _serverInfo.ServerID,
-                            command_type = GetCommandByKey("player_report"),
-                            command_numeric = 0,
-                            target_name = aPlayer.player_name,
-                            target_player = aPlayer,
-                            source_name = "AutoAdmin",
-                            record_message = "Code 7-" + killDiff + " TEST",
-                            record_time = UtcDbTime()
-                        });
-                        acted = true;
+                    else {
+                        Log.Warn(aPlayer.GetVerboseName() + " has no live stats to use.");
                     }
                 }
                 if (!acted && verbose) {
