@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.4.3
+ * Version 6.6.4.4
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.4.3</version_code>
+ * <version_code>6.6.4.4</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.4.3";
+        private const String PluginVersion = "6.6.4.4";
 
         public enum GameVersion
         {
@@ -36827,7 +36827,7 @@ namespace PRoConEvents
                                     (String) vehicleResponseData["message"] == "OK" && 
                                     vehicleResponseData.ContainsKey("data")) {
                                     Hashtable statsData = (Hashtable) vehicleResponseData["data"];
-                                    if (statsData != null && statsData.ContainsKey("mainWeaponStats")) {
+                                    if (statsData != null && statsData.ContainsKey("mainVehicleStats")) {
                                         ArrayList vehicleData = (ArrayList) statsData["mainVehicleStats"];
                                         try {
                                             //Get Vehicles
