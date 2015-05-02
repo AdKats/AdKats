@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.5.7
+ * Version 6.6.5.8
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.5.7</version_code>
+ * <version_code>6.6.5.8</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.5.7";
+        private const String PluginVersion = "6.6.5.8";
 
         public enum GameVersion
         {
@@ -7673,11 +7673,11 @@ namespace PRoConEvents
                                         }
                                         aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
                                     }
-                                    if (_isTestingAuthorized) {
-                                        Double liveStatCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && dPlayer.stats != null && dPlayer.stats.LiveStats != null);
-                                        Double playerCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player);
-                                        Log.Info(Math.Round(liveStatCount/playerCount * 100, 2) + "% players with live stats.");
-                                    }
+                                }
+                                if (_isTestingAuthorized) {
+                                    Double liveStatCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && dPlayer.stats != null && dPlayer.stats.LiveStats != null);
+                                    Double playerCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player);
+                                    Log.Info(Math.Round(liveStatCount / playerCount * 100, 2) + "% players with live stats.");
                                 }
 
                                 AdKatsTeam team1, team2, team3, team4;
