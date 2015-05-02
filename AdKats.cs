@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.5.6
+ * Version 6.6.5.7
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.5.6</version_code>
+ * <version_code>6.6.5.7</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.5.6";
+        private const String PluginVersion = "6.6.5.7";
 
         public enum GameVersion
         {
@@ -7271,22 +7271,6 @@ namespace PRoConEvents
                                             aPlayer.lastAction = UtcDbTime();
                                         }
                                         aPlayer.frostbitePlayerInfo = playerInfo;
-                                        if (aPlayer.stats != null && 
-                                            _roundID > aPlayer.stats.RoundID) {
-                                            aPlayer.stats_previous = aPlayer.stats;
-                                            aPlayer.stats = null;
-                                            if (_isTestingAuthorized) {
-                                                Log.Info("[Listing] Assigned previous stats to " + aPlayer.GetVerboseName());
-                                            }
-                                        }
-                                        if (_roundState == RoundState.Playing &&
-                                            aPlayer.stats != null &&
-                                            (aPlayer.stats.LiveStats == null || aPlayer.stats.LiveStats.Score < aPlayer.frostbitePlayerInfo.Score)) {
-                                            if (_isTestingAuthorized && aPlayer.stats.LiveStats == null) {
-                                                Log.Info("Assigned live stats to " + aPlayer.GetVerboseName());
-                                            }
-                                            aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
-                                        }
                                         switch (aPlayer.frostbitePlayerInfo.Type)
                                         {
                                             case 0:
@@ -7480,22 +7464,6 @@ namespace PRoConEvents
                                         aPlayer.player_server = _serverInfo;
                                         //Add the frostbite player info
                                         aPlayer.frostbitePlayerInfo = playerInfo;
-                                        if (aPlayer.stats != null &&
-                                            _roundID > aPlayer.stats.RoundID) {
-                                            aPlayer.stats_previous = aPlayer.stats;
-                                            aPlayer.stats = null;
-                                            if (_isTestingAuthorized) {
-                                                Log.Info("[Listing] Assigned previous stats to " + aPlayer.GetVerboseName());
-                                            }
-                                        }
-                                        if (_roundState == RoundState.Playing &&
-                                            aPlayer.stats != null &&
-                                            (aPlayer.stats.LiveStats == null || aPlayer.stats.LiveStats.Score < aPlayer.frostbitePlayerInfo.Score)) {
-                                            if (_isTestingAuthorized && aPlayer.stats.LiveStats == null) {
-                                                Log.Info("Assigned live stats to " + aPlayer.GetVerboseName());
-                                            }
-                                            aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
-                                        }
                                         String joinLocation = String.Empty;
                                         AdKatsTeam playerTeam = null;
                                         if (aPlayer.frostbitePlayerInfo != null)
@@ -7688,6 +7656,27 @@ namespace PRoConEvents
                                     if (!_firstPlayerListComplete)
                                     {
                                         Log.Write(index + "/" + trimmedInboundPlayers.Count() + " players loaded (" + aPlayer.player_name + "). " + Math.Round(durations.Sum() / durations.Count, 2) + "s per player.");
+                                    }
+                                    if (aPlayer.stats != null &&
+                                        _roundID > aPlayer.stats.RoundID) {
+                                        aPlayer.stats_previous = aPlayer.stats;
+                                        aPlayer.stats = null;
+                                        if (_isTestingAuthorized) {
+                                            Log.Info("[Listing] Assigned previous stats to " + aPlayer.GetVerboseName());
+                                        }
+                                    }
+                                    if (_roundState == RoundState.Playing &&
+                                        aPlayer.stats != null &&
+                                        (aPlayer.stats.LiveStats == null || aPlayer.stats.LiveStats.Score < aPlayer.frostbitePlayerInfo.Score)) {
+                                        if (_isTestingAuthorized && aPlayer.stats.LiveStats == null) {
+                                            Log.Info("Assigned live stats to " + aPlayer.GetVerboseName());
+                                        }
+                                        aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
+                                    }
+                                    if (_isTestingAuthorized) {
+                                        Double liveStatCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && dPlayer.stats != null && dPlayer.stats.LiveStats != null);
+                                        Double playerCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player);
+                                        Log.Info(Math.Round(liveStatCount/playerCount * 100, 2) + "% players with live stats.");
                                     }
                                 }
 
