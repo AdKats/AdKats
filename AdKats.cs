@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.4.5
+ * Version 6.6.4.6
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.4.5</version_code>
+ * <version_code>6.6.4.6</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.4.5";
+        private const String PluginVersion = "6.6.4.6";
 
         public enum GameVersion
         {
@@ -9692,7 +9692,8 @@ namespace PRoConEvents
                                 weaponCategory = category,
                                 timestamp = playerKill.TimeOfDeath,
                                 IsSuicide = playerKill.IsSuicide,
-                                IsHeadshot = playerKill.Headshot
+                                IsHeadshot = playerKill.Headshot,
+                                IsTeamkill = (playerKill.Killer.TeamID == playerKill.Victim.TeamID)
                             });
                         }
                     }
@@ -9832,46 +9833,28 @@ namespace PRoConEvents
 
                     if (_gameVersion == GameVersion.BF4)
                     {
-                        //Death check
-                        IEnumerable<AdKatsKill> deathHeadshots = aKill.killer.RecentKills.Where(dKill => dKill.weaponCode == "Death" && dKill.IsHeadshot);
-                        if (deathHeadshots.Count() > 5 && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6") || _serverInfo.ServerName.Contains("#5")))
-                        {
-                            QueueRecordForProcessing(new AdKatsRecord
-                            {
-                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
-                                command_type = GetCommandByKey("player_ban_perm"),
-                                command_numeric = 0,
-                                target_name = aKill.killer.player_name,
-                                target_player = aKill.killer,
-                                source_name = "AutoAdmin",
-                                record_message = "Code 7-" + deathHeadshots.Count() + ": Dispute Requested",
-                                record_time = UtcDbTime()
-                            });
-                            return;
-                        }
-
                         //Special weapons
                         String actedCode = null;
-                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "U_PortableAmmopack"))
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_PortableAmmopack") >= 5)
                         {
                             actedCode = "1";
                         }
-                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "U_RadioBeacon"))
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_RadioBeacon") >= 5)
                         {
                             actedCode = "2";
                         }
-                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "Gameplay/Gadgets/SOFLAM/SOFLAM_Projectile"))
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Gameplay/Gadgets/SOFLAM/SOFLAM_Projectile") >= 5)
                         {
                             actedCode = "3";
                         }
-                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "U_Motionsensor"))
-                        {
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_Motionsensor") >= 5) {
                             actedCode = "4";
                         }
-                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "U_M18"))
-                        {
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_PortableMedicpack" && !dKill.IsTeamkill) >= 5) {
                             actedCode = "5";
+                        }
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_Medkit" && !dKill.IsTeamkill) >= 5) {
+                            actedCode = "6";
                         }
                         if (!String.IsNullOrEmpty(actedCode))
                         {
@@ -9894,17 +9877,19 @@ namespace PRoConEvents
                     {
                         //Special weapons
                         String actedCode = null;
-                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "AmmoBag"))
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "AmmoBag") >= 5)
                         {
                             actedCode = "1";
                         }
-                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "Weapons/Gadgets/RadioBeacon/Radio_Beacon"))
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/RadioBeacon/Radio_Beacon") >= 5)
                         {
                             actedCode = "2";
                         }
-                        if (aKill.killer.RecentKills.Any(dKill => dKill.weaponCode == "Weapons/Gadgets/SOFLAM/SOFLAM_PDA"))
-                        {
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/SOFLAM/SOFLAM_PDA") >= 5) {
                             actedCode = "3";
+                        }
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Medkit" && !dKill.IsTeamkill) >= 5) {
+                            actedCode = "4";
                         }
                         if (!String.IsNullOrEmpty(actedCode))
                         {
@@ -11278,6 +11263,20 @@ namespace PRoConEvents
                 }
                 else {
                     Log.Info(logString);
+                }
+                if (killDiff > 5) {
+                    QueueRecordForProcessing(new AdKatsRecord {
+                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                        server_id = _serverInfo.ServerID,
+                        command_type = GetCommandByKey("player_ban_perm"),
+                        command_numeric = 0,
+                        target_name = aPlayer.player_name,
+                        target_player = aPlayer,
+                        source_name = "AutoAdmin",
+                        record_message = "Code 7-" + killDiff + ": Dispute Requested",
+                        record_time = UtcDbTime()
+                    });
+                    acted = true;
                 }
             }
             if (!acted && verbose)
@@ -39786,6 +39785,7 @@ namespace PRoConEvents
             public CPlayerInfo victimCPI;
             public Boolean IsSuicide;
             public Boolean IsHeadshot;
+            public Boolean IsTeamkill;
             public DateTime timestamp;
         }
 
