@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.5.8
+ * Version 6.6.5.9
  * 1-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.5.8</version_code>
+ * <version_code>6.6.5.9</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.5.8";
+        private const String PluginVersion = "6.6.5.9";
 
         public enum GameVersion
         {
@@ -572,7 +572,6 @@ namespace PRoConEvents
         private String _HackerCheckerDPSBanMessage = "DPS Automatic Ban";
         private String _HackerCheckerHSKBanMessage = "HSK Automatic Ban";
         private String _HackerCheckerKPMBanMessage = "KPM Automatic Ban";
-        private readonly Dictionary<Int64, Dictionary<Int64, AdKatsPlayerStats>> _roundStats = new Dictionary<Int64, Dictionary<Int64, AdKatsPlayerStats>>(); 
 
         //External commands
         private readonly String _instanceKey = GetRandom32BitHashCode();
@@ -7657,26 +7656,22 @@ namespace PRoConEvents
                                     {
                                         Log.Write(index + "/" + trimmedInboundPlayers.Count() + " players loaded (" + aPlayer.player_name + "). " + Math.Round(durations.Sum() / durations.Count, 2) + "s per player.");
                                     }
-                                    if (aPlayer.stats != null &&
-                                        _roundID > aPlayer.stats.RoundID) {
-                                        aPlayer.stats_previous = aPlayer.stats;
-                                        aPlayer.stats = null;
-                                        if (_isTestingAuthorized) {
-                                            Log.Info("[Listing] Assigned previous stats to " + aPlayer.GetVerboseName());
-                                        }
+                                    if (!aPlayer.RoundStats.ContainsKey(_roundID)) {
+                                        aPlayer.RoundStats[_roundID] = new AdKatsPlayerStats(_roundID);
                                     }
-                                    if (_roundState == RoundState.Playing &&
-                                        aPlayer.stats != null &&
-                                        (aPlayer.stats.LiveStats == null || aPlayer.stats.LiveStats.Score < aPlayer.frostbitePlayerInfo.Score)) {
-                                        if (_isTestingAuthorized && aPlayer.stats.LiveStats == null) {
-                                            Log.Info("Assigned live stats to " + aPlayer.GetVerboseName());
-                                        }
-                                        aPlayer.stats.LiveStats = aPlayer.frostbitePlayerInfo;
+                                    if (_roundState == RoundState.Playing) {
+                                        aPlayer.RoundStats[_roundID].LiveStats = aPlayer.frostbitePlayerInfo;
                                     }
                                 }
                                 if (_isTestingAuthorized) {
-                                    Double liveStatCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player && dPlayer.stats != null && dPlayer.stats.LiveStats != null);
-                                    Double playerCount = _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player);
+                                    Double liveStatCount = _PlayerDictionary.Values.Count(
+                                        dPlayer => 
+                                            dPlayer.player_type == PlayerType.Player && 
+                                            dPlayer.RoundStats.ContainsKey(_roundID) && 
+                                            dPlayer.RoundStats[_roundID].LiveStats != null);
+                                    Double playerCount = _PlayerDictionary.Values.Count(
+                                        dPlayer => 
+                                            dPlayer.player_type == PlayerType.Player);
                                     Log.Info(Math.Round(liveStatCount / playerCount * 100, 2) + "% players with live stats.");
                                 }
 
@@ -11242,39 +11237,46 @@ namespace PRoConEvents
                 }
                 if (_isTestingAuthorized && 
                     _gameVersion == GameVersion.BF4 && 
-                    aPlayer.stats_previous != null && 
-                    aPlayer.stats != null) {
-                    if (aPlayer.stats_previous.LiveStats != null) {
-                        Int32 liveKillDiff = aPlayer.stats_previous.LiveStats.Kills;
-                        Int32 previousKillCount = (Int32) aPlayer.stats_previous.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + (Int32) aPlayer.stats_previous.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
-                        Int32 currentKillCount = (Int32) aPlayer.stats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + (Int32) aPlayer.stats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
-                        Int32 statKillDiff = currentKillCount - previousKillCount;
-                        Int32 killDiff = liveKillDiff - statKillDiff;
-                        var logString = "KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + liveKillDiff + "|" + statKillDiff + ") " + killDiff + " Unaccounted Kills";
-                        if (killDiff > 0) {
-                            Log.Warn(logString);
-                            Log.Warn(String.Join(", ", aPlayer.RecentKills.Select(aKill => aKill.weaponCode).ToArray()));
+                    aPlayer.RoundStats.ContainsKey(_roundID - 1) &&
+                    aPlayer.RoundStats.ContainsKey(_roundID)) {
+                    AdKatsPlayerStats previousStats;
+                    AdKatsPlayerStats currentStats;
+                    if (aPlayer.RoundStats.TryGetValue(_roundID, out currentStats) &&
+                        aPlayer.RoundStats.TryGetValue(_roundID - 1, out previousStats)) {
+                        if (previousStats.LiveStats != null) {
+                            Int32 liveKillDiff = previousStats.LiveStats.Kills;
+                            Int32 previousKillCount = 
+                                (Int32) previousStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
+                                (Int32) previousStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                            Int32 currentKillCount = 
+                                (Int32) currentStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) + 
+                                (Int32) currentStats.VehicleStats.Values.Sum(aVehicle => aVehicle.Kills);
+                            Int32 statKillDiff = currentKillCount - previousKillCount;
+                            Int32 killDiff = liveKillDiff - statKillDiff;
+                            var logString = "KILLDIFF - " + aPlayer.GetVerboseName() + " - (" + liveKillDiff + "|" + statKillDiff + ") " + killDiff + " Unaccounted Kills";
+                            if (killDiff > 0) {
+                                Log.Warn(logString);
+                                Log.Warn(String.Join(", ", aPlayer.RecentKills.Select(aKill => aKill.weaponCode).ToArray()));
+                            } else {
+                                Log.Info(logString);
+                            }
+                            if (killDiff > 5 && !PlayerProtected(aPlayer)) {
+                                QueueRecordForProcessing(new AdKatsRecord {
+                                    record_source = AdKatsRecord.Sources.InternalAutomated,
+                                    server_id = _serverInfo.ServerID,
+                                    command_type = GetCommandByKey("player_report"),
+                                    command_numeric = 0,
+                                    target_name = aPlayer.player_name,
+                                    target_player = aPlayer,
+                                    source_name = "AutoAdmin",
+                                    record_message = "Code 7-" + killDiff + " TEST",
+                                    record_time = UtcDbTime()
+                                });
+                                acted = true;
+                            }
+                        } else {
+                            Log.Warn(aPlayer.GetVerboseName() + " has no live stats to use.");
                         }
-                        else {
-                            Log.Info(logString);
-                        }
-                        if (killDiff > 5 && !PlayerProtected(aPlayer)) {
-                            QueueRecordForProcessing(new AdKatsRecord {
-                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                server_id = _serverInfo.ServerID,
-                                command_type = GetCommandByKey("player_report"),
-                                command_numeric = 0,
-                                target_name = aPlayer.player_name,
-                                target_player = aPlayer,
-                                source_name = "AutoAdmin",
-                                record_message = "Code 7-" + killDiff + " TEST",
-                                record_time = UtcDbTime()
-                            });
-                            acted = true;
-                        }
-                    }
-                    else {
-                        Log.Warn(aPlayer.GetVerboseName() + " has no live stats to use.");
                     }
                 }
                 if (!acted && verbose) {
@@ -11289,12 +11291,13 @@ namespace PRoConEvents
         private Boolean DamageHackCheck(AdKatsPlayer aPlayer, Boolean debugMode)
         {
             Boolean acted = false;
-            try
-            {
-                if (aPlayer == null || aPlayer.stats == null || aPlayer.stats.WeaponStats == null)
-                {
+            try {
+                AdKatsPlayerStats stats;
+                if (aPlayer == null || !aPlayer.RoundStats.TryGetValue(_roundID, out stats) || stats.WeaponStats == null) {
                     return false;
                 }
+                AdKatsPlayerStats previousStats;
+                aPlayer.RoundStats.TryGetValue(_roundID - 1, out previousStats);
                 List<String> allowedCategories;
                 switch (_gameVersion)
                 {
@@ -11331,7 +11334,7 @@ namespace PRoConEvents
                     default:
                         return false;
                 }
-                List<AdKatsWeaponStat> topWeapons = aPlayer.stats.WeaponStats.Values.OrderByDescending(aStat => aStat.Kills).ToList();
+                List<AdKatsWeaponStat> topWeapons = stats.WeaponStats.Values.OrderByDescending(aStat => aStat.Kills).ToList();
 
                 AdKatsWeaponStat actedWeapon = null;
                 Double actedPerc = -1;
@@ -11350,12 +11353,11 @@ namespace PRoConEvents
                         if (_StatLibrary.Weapons.TryGetValue(weaponStat.ID, out weapon))
                         {
                             //Only handle weapons that do < 50 max dps
-                            if (weapon.DamageMax < 50)
-                            {
+                            if (weapon.DamageMax < 50) {
                                 //For live stat check, look for previous round stat difference
-                                if (aPlayer.stats_previous != null) {
+                                if (previousStats != null) {
                                     AdKatsWeaponStat previousWeaponStat;
-                                    if (aPlayer.stats_previous.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
+                                    if (previousStats.WeaponStats.TryGetValue(weaponStat.ID, out previousWeaponStat)) {
                                         if (weaponStat.Kills > previousWeaponStat.Kills) {
                                             Double killDiff = weaponStat.Kills - previousWeaponStat.Kills;
                                             Double hitDiff = weaponStat.Hits - previousWeaponStat.Hits;
@@ -11533,12 +11535,13 @@ namespace PRoConEvents
         private Boolean AimbotHackCheck(AdKatsPlayer aPlayer, Boolean debugMode)
         {
             Boolean acted = false;
-            try
-            {
-                if (aPlayer == null || aPlayer.stats == null || aPlayer.stats.WeaponStats == null)
-                {
+            try {
+                AdKatsPlayerStats stats;
+                if (aPlayer == null || !aPlayer.RoundStats.TryGetValue(_roundID, out stats) || stats.WeaponStats == null) {
                     return false;
                 }
+                AdKatsPlayerStats previousStats;
+                aPlayer.RoundStats.TryGetValue(_roundID - 1, out previousStats);
                 List<String> allowedCategories;
                 switch (_gameVersion)
                 {
@@ -11570,7 +11573,7 @@ namespace PRoConEvents
                     default:
                         return false;
                 }
-                List<AdKatsWeaponStat> topWeapons = aPlayer.stats.WeaponStats.Values.ToList();
+                List<AdKatsWeaponStat> topWeapons = stats.WeaponStats.Values.ToList();
                 topWeapons.Sort(delegate(AdKatsWeaponStat a1, AdKatsWeaponStat a2)
                 {
                     if (Math.Abs(a1.Kills - a2.Kills) < 0.001)
@@ -11718,12 +11721,13 @@ namespace PRoConEvents
         private Boolean KPMHackCheck(AdKatsPlayer aPlayer, Boolean debugMode)
         {
             Boolean acted = false;
-            try
-            {
-                if (aPlayer == null || aPlayer.stats == null || aPlayer.stats.WeaponStats == null)
-                {
+            try {
+                AdKatsPlayerStats stats;
+                if (aPlayer == null || !aPlayer.RoundStats.TryGetValue(_roundID, out stats) || stats.WeaponStats == null) {
                     return false;
                 }
+                AdKatsPlayerStats previousStats;
+                aPlayer.RoundStats.TryGetValue(_roundID - 1, out previousStats);
                 List<String> allowedCategories;
                 switch (_gameVersion)
                 {
@@ -11762,7 +11766,7 @@ namespace PRoConEvents
                         return false;
                 }
                 //Wow, i wrote this before knowing linq, this looks terrible
-                List<AdKatsWeaponStat> topWeapons = aPlayer.stats.WeaponStats.Values.ToList();
+                List<AdKatsWeaponStat> topWeapons = stats.WeaponStats.Values.ToList();
                 topWeapons.Sort(delegate(AdKatsWeaponStat a1, AdKatsWeaponStat a2)
                 {
                     if (a1.Kills == a2.Kills)
@@ -36799,21 +36803,7 @@ namespace PRoConEvents
                         } else {
                             Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
-                        //Assign loaded stats to the player
-                        if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
-                            aPlayer.stats_previous = aPlayer.stats;
-                            if (_isTestingAuthorized) {
-                                Log.Info("[HC] Assigned previous stats to " + aPlayer.GetVerboseName());
-                            }
-                        }
-                        aPlayer.stats = stats;
-                        //Store stats for this player in the current round
-                        Dictionary<Int64, AdKatsPlayerStats> roundPlayerStats;
-                        if (!_roundStats.TryGetValue(_roundID, out roundPlayerStats)) {
-                            roundPlayerStats = new Dictionary<Int64, AdKatsPlayerStats>();
-                            _roundStats[_roundID] = roundPlayerStats;
-                        }
-                        roundPlayerStats[aPlayer.player_id] = aPlayer.stats;
+                        aPlayer.RoundStats[_roundID] = stats;
                         return true;
                     } catch (Exception) {
                         return false;
@@ -36949,22 +36939,7 @@ namespace PRoConEvents
                         } else {
                             Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
-
-                        //Assign loaded stats to the player
-                        if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
-                            aPlayer.stats_previous = aPlayer.stats;
-                            if (_isTestingAuthorized) {
-                                Log.Info("[HC] Assigned previous stats to " + aPlayer.GetVerboseName());
-                            }
-                        }
-                        aPlayer.stats = stats;
-                        //Store stats for this player in the current round
-                        Dictionary<Int64, AdKatsPlayerStats> roundPlayerStats;
-                        if (!_roundStats.TryGetValue(_roundID, out roundPlayerStats)) {
-                            roundPlayerStats = new Dictionary<Int64, AdKatsPlayerStats>();
-                            _roundStats[_roundID] = roundPlayerStats;
-                        }
-                        roundPlayerStats[aPlayer.player_id] = aPlayer.stats;
+                        aPlayer.RoundStats[_roundID] = stats;
                         return true;
                     } catch (Exception e) {
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
@@ -37041,22 +37016,7 @@ namespace PRoConEvents
                         } else {
                             Log.Error("Error processing battlelog stats for " + aPlayer.GetVerboseName() + ". Improper format of stats response.");
                         }
-
-                        //Assign loaded stats to the player
-                        if (aPlayer.stats != null && aPlayer.stats.RoundID < stats.RoundID) {
-                            aPlayer.stats_previous = aPlayer.stats;
-                            if (_isTestingAuthorized) {
-                                Log.Info("[HC] Assigned previous stats to " + aPlayer.GetVerboseName());
-                            }
-                        }
-                        aPlayer.stats = stats;
-                        //Store stats for this player in the current round
-                        Dictionary<Int64, AdKatsPlayerStats> roundPlayerStats;
-                        if (!_roundStats.TryGetValue(_roundID, out roundPlayerStats)) {
-                            roundPlayerStats = new Dictionary<Int64, AdKatsPlayerStats>();
-                            _roundStats[_roundID] = roundPlayerStats;
-                        }
-                        roundPlayerStats[aPlayer.player_id] = aPlayer.stats;
+                        aPlayer.RoundStats[_roundID] = stats;
                         return true;
                     } catch (Exception e) {
                         Log.Exception("Error fetching BFHL player info", e, 0);
@@ -39845,8 +39805,7 @@ namespace PRoConEvents
             public Boolean player_ping_added { get; private set; }
             public AdKatsPlayer conversationPartner = null;
 
-            public AdKatsPlayerStats stats = null;
-            public AdKatsPlayerStats stats_previous = null;
+            public Dictionary<Int64, AdKatsPlayerStats> RoundStats;
             public IPAPILocation location = null;
             public Boolean update_playerUpdated = true;
             public Boolean player_new = false;
@@ -39861,6 +39820,7 @@ namespace PRoConEvents
             public AdKatsPlayer(AdKats plugin)
             {
                 Plugin = plugin;
+                RoundStats = new Dictionary<Int64, AdKatsPlayerStats>();
                 RecentKills = new Queue<AdKatsKill>();
                 player_pings = new Queue<KeyValuePair<Double, DateTime>>();
                 TargetedRecords = new List<AdKatsRecord>();
