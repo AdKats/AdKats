@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.6.5
+ * Version 6.6.6.6
  * 2-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.6.5</version_code>
+ * <version_code>6.6.6.6</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.6.5";
+        private const String PluginVersion = "6.6.6.6";
 
         public enum GameVersion
         {
@@ -11233,7 +11233,9 @@ namespace PRoConEvents
                     AdKatsPlayerStats currentStats;
                     if (aPlayer.RoundStats.TryGetValue(_roundID, out currentStats) &&
                         aPlayer.RoundStats.TryGetValue(_roundID - 1, out previousStats)) {
-                        if (previousStats.LiveStats != null) {
+                        if (previousStats.LiveStats != null && 
+                            previousStats.WeaponStats != null && 
+                            previousStats.VehicleStats != null) {
                             Int32 liveKillDiff = previousStats.LiveStats.Kills;
                             Int32 previousKillCount = 
                                 (Int32) previousStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
@@ -17717,6 +17719,47 @@ namespace PRoConEvents
                             }
                         }
                         break;
+                    case "player_isadmin":
+                        {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length)
+                            {
+                                case 0:
+                                    record.target_name = record.source_name;
+                                    record.record_message = "Requesting Admin Status";
+                                    if (record.record_source == AdKatsRecord.Sources.InGame)
+                                    {
+                                        if (!_PlayerDictionary.TryGetValue(record.target_name, out record.target_player))
+                                        {
+                                            SendMessageToSource(record, "Source player not found, unable to submit.");
+                                            FinalizeRecord(record);
+                                            return;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        SendMessageToSource(record, "You can't use a self-targeted command from outside the game.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    QueueRecordForProcessing(record);
+                                    break;
+                                case 1:
+                                    record.target_name = parameters[0];
+                                    record.record_message = "Requesting Player Admin Status";
+                                    CompleteTargetInformation(record, false, false, false);
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
                     case "self_uptime":
                         {
                             //Remove previous commands awaiting confirmation
@@ -20801,6 +20844,9 @@ namespace PRoConEvents
                         break;
                     case "self_rep":
                         SendTargetRep(record);
+                        break;
+                    case "player_isadmin":
+                        SendTargetIsAdmin(record);
                         break;
                     case "self_uptime":
                         SendUptime(record);
@@ -25592,6 +25638,36 @@ namespace PRoConEvents
             Log.Debug("Exiting SendTargetRep", 6);
         }
 
+        public void SendTargetIsAdmin(AdKatsRecord record)
+        {
+            Log.Debug("Entering SendTargetIsAdmin", 6);
+            try
+            {
+                record.record_action_executed = true;
+                if (record.target_player == null)
+                {
+                    SendMessageToSource(record, "Player not found, unable to continue.");
+                    FinalizeRecord(record);
+                    return;
+                }
+                if (record.source_name == record.target_name)
+                {
+                    SendMessageToSource(record, "You are " + ((PlayerIsAdmin(record.source_player))?(""):("not ")) + "an admin. [" + record.source_player.player_role.role_name + "]");
+                }
+                else 
+                {
+                    SendMessageToSource(record, record.target_player.GetVerboseName() + " is " + ((PlayerIsAdmin(record.target_player)) ? ("") : ("not ")) + "an admin. [" + record.target_player.player_role.role_name + "]");
+                }
+            }
+            catch (Exception e)
+            {
+                record.record_exception = new AdKatsException("Error while sending admin status.", e);
+                HandleException(record.record_exception);
+                FinalizeRecord(record);
+            }
+            Log.Debug("Exiting SendTargetIsAdmin", 6);
+        }
+        
         public void SendUptime(AdKatsRecord record)
         {
             Log.Debug("Entering SendUptime", 6);
@@ -33691,6 +33767,10 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command 116", "REPLACE INTO `adkats_commands` VALUES(116, 'Active', 'player_blacklistautoassist_remove', 'Log', 'Remove Auto-Assist Blacklist', 'unauablacklist', TRUE, 'Any')", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(117)) {
+                                    SendNonQuery("Adding command 117", "REPLACE INTO `adkats_commands` VALUES(117, 'Active', 'player_isadmin', 'Log', 'Fetch Admin Status', 'isadmin', FALSE, 'AnyHidden')", true);
+                                    changed = true;
+                                }
                                 if (changed)
                                 {
                                     FetchCommands();
@@ -33825,6 +33905,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_whitelistcommand_remove"] = "Removes a player from the command target whitelist.";
             _CommandDescriptionDictionary["player_blacklistautoassist"] = "A player under auto-assist blacklist is automatically @assist'd when baserape starts.";
             _CommandDescriptionDictionary["player_blacklistautoassist_remove"] = "Removes a player from the auto-assist blacklist.";
+            _CommandDescriptionDictionary["player_isadmin"] = "Fetches a player's admin status.";
         }
 
         private void UpdateCommandTimeouts()
