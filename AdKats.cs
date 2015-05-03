@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.6.4
+ * Version 6.6.6.5
  * 2-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.6.4</version_code>
+ * <version_code>6.6.6.5</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.6.4";
+        private const String PluginVersion = "6.6.6.5";
 
         public enum GameVersion
         {
@@ -24506,8 +24506,6 @@ namespace PRoConEvents
                     {
                         Thread.CurrentThread.Name = "CountdownPrinter";
                         for (Int32 countdown = record.command_numeric; countdown > 0; countdown--) {
-                            Stopwatch timer = new Stopwatch();
-                            timer.Start();
                             if (!_pluginEnabled)
                             {
                                 LogThreadExit();
@@ -24519,18 +24517,22 @@ namespace PRoConEvents
                             }
                             else
                             {
-                                foreach (AdKatsPlayer aPlayer in targetedPlayers)
-                                {
-                                    PlayerTellMessage(aPlayer.player_name, record.record_message + " in " + countdown + "...", false, 1);
-                                }
+                                //Threads spawned from threads...oh god
+                                StartAndLogThread(new Thread(new ThreadStart(delegate {
+                                    try {
+                                        Thread.CurrentThread.Name = "CountdownPrinter_Private";
+                                        var inCount = countdown;
+                                        foreach (AdKatsPlayer aPlayer in targetedPlayers) {
+                                            PlayerTellMessage(aPlayer.player_name, record.record_message + " in " + inCount + "...", false, 1);
+                                        }
+                                        _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(0.1));
+                                    } catch (Exception) {
+                                        HandleException(new AdKatsException("Error while printing private countdown"));
+                                    }
+                                    LogThreadExit();
+                                })));
                             }
-                            timer.Stop();
-                            if (_isTestingAuthorized) {
-                                Log.Info("Message took " + timer.ElapsedMilliseconds + "ms to display.");
-                            }
-                            if (timer.Elapsed.TotalSeconds < 1) {
-                                _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1 - timer.Elapsed.TotalSeconds));
-                            }
+                            _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(1));
                         }
                         if (record.target_name == "All")
                         {
