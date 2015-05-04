@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.6.6
- * 2-MAY-2015
+ * Version 6.6.6.7
+ * 3-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.6.6</version_code>
+ * <version_code>6.6.6.7</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.6.6";
+        private const String PluginVersion = "6.6.6.7";
 
         public enum GameVersion
         {
@@ -9759,7 +9759,7 @@ namespace PRoConEvents
                 {
                     aKill.killer.RecentKills.Dequeue();
                 }
-                if (_isTestingAuthorized && _serverInfo.ServerType != "OFFICIAL")
+                if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]")) && _serverInfo.ServerType != "OFFICIAL")
                 {
                     //KPM check
                     Int32 countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
@@ -9786,7 +9786,7 @@ namespace PRoConEvents
                     Int32 nskc = nonSniperKills.Count();
                     if (nskc >= 20)
                     {
-                        if ((nonSniperHSKP >= 90 || (nskc >= 45 && nonSniperHSKP >= 75)) && !PlayerProtected(aKill.killer))
+                        if ((nonSniperHSKP >= 90 || (nskc >= 45 && nonSniperHSKP >= 80)) && !PlayerProtected(aKill.killer))
                         {
                             QueueRecordForProcessing(new AdKatsRecord
                             {
@@ -9802,7 +9802,7 @@ namespace PRoConEvents
                             });
                             return;
                         }
-                        if (nonSniperHSKP >= 70 && !aKill.killer.TargetedRecords.Any(aRecord => aRecord.record_message.Contains("non-sniper HSKP") && (UtcDbTime() - aRecord.record_time).TotalMinutes < 30))
+                        if (nonSniperHSKP >= 75 && !aKill.killer.TargetedRecords.Any(aRecord => aRecord.record_message.Contains("non-sniper HSKP") && (UtcDbTime() - aRecord.record_time).TotalMinutes < 30))
                         {
                             //Create the report record
                             QueueRecordForProcessing(new AdKatsRecord
@@ -9845,7 +9845,7 @@ namespace PRoConEvents
                         if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_Medkit" && !dKill.IsTeamkill) >= 5) {
                             actedCode = "6";
                         }
-                        if (!String.IsNullOrEmpty(actedCode))
+                        if (!String.IsNullOrEmpty(actedCode) && !PlayerProtected(aKill.killer))
                         {
                             QueueRecordForProcessing(new AdKatsRecord
                             {
@@ -9880,7 +9880,7 @@ namespace PRoConEvents
                         if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Medkit" && !dKill.IsTeamkill) >= 5) {
                             actedCode = "4";
                         }
-                        if (!String.IsNullOrEmpty(actedCode))
+                        if (!String.IsNullOrEmpty(actedCode) && !PlayerProtected(aKill.killer))
                         {
                             QueueRecordForProcessing(new AdKatsRecord
                             {
@@ -10122,11 +10122,6 @@ namespace PRoConEvents
                             QueueRecordForProcessing(aRecord);
                             //Inform the victim
                             PlayerTellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " was slain for teamkilling you");
-                        }
-                        else if (aKill.weaponCode == "Medkit" || aKill.weaponCode == "U_PortableMedicpack" || aKill.weaponCode == "U_Medkit")
-                        {
-                            PlayerSayMessage(aKill.killer.player_name, aKill.victim.GetVerboseName() + " denied your revive!");
-                            PlayerTellMessage(aKill.victim.player_name, "You denied " + aKill.killer.GetVerboseName() + "'s revive!");
                         }
                     }
                     else if (_UseWeaponLimiter && !gKillHandled)
@@ -11356,33 +11351,32 @@ namespace PRoConEvents
                                             Double HSDiff = weaponStat.Headshots - previousWeaponStat.Headshots;
                                             Double diffDPS = (killDiff / hitDiff) * 100;
                                             Double percDiff = (diffDPS - weapon.DamageMax) / weapon.DamageMax;
-                                            if (_isTestingAuthorized) {
-                                                String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
-                                                if (Math.Round(percDiff) > 0) {
-                                                    Log.Info("STATDIFF - " + aPlayer.GetVerboseName() + " - " + formattedName + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
+
+                                            String formattedName = weaponStat.ID.Replace("-", "").Replace(" ", "").ToUpper();
+                                            if (Math.Round(percDiff) > 0) {
+                                                Log.Info("STATDIFF - " + aPlayer.GetVerboseName() + " - " + formattedName + " [" + killDiff + "/" + hitDiff + "][" + Math.Round(diffDPS) + " DPS][" + ((Math.Round(percDiff * 100) > 0) ? ("+") : ("")) + Math.Round(percDiff * 100) + "%]");
+                                            }
+                                            //Check for damage hack
+                                            //Require at least 12 kills difference, +100% (double) normal weapon damage for non-sidearm weapons, and 85 DPS weapon damage for sidearms.
+                                            if (killDiff >= 12 &&
+                                                diffDPS > weapon.DamageMax &&
+                                                (diffDPS >= 85 || (!isSidearm && percDiff > 1.00))) {
+                                                Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int) diffDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]");
+                                                if (!debugMode) {
+                                                    //Create the ban record
+                                                    QueueRecordForProcessing(new AdKatsRecord {
+                                                        record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                        server_id = _serverInfo.ServerID,
+                                                        command_type = GetCommandByKey("player_ban_perm"),
+                                                        command_numeric = 0,
+                                                        target_name = aPlayer.player_name,
+                                                        target_player = aPlayer,
+                                                        source_name = "AutoAdmin",
+                                                        record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int) diffDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]",
+                                                        record_time = UtcDbTime()
+                                                    });
                                                 }
-                                                //Check for damage hack
-                                                //Require at least 12 kills difference, +100% (double) normal weapon damage for non-sidearm weapons, and 85 DPS weapon damage for sidearms.
-                                                if (killDiff >= 12 &&
-                                                    diffDPS > weapon.DamageMax &&
-                                                    (diffDPS >= 85 || (!isSidearm && percDiff > 1.00))) {
-                                                    Log.Info(aPlayer.GetVerboseName() + " auto-banned for damage mod. [LIVE][" + formattedName + "-" + (int) diffDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]");
-                                                    if (!debugMode) {
-                                                        //Create the ban record
-                                                        QueueRecordForProcessing(new AdKatsRecord {
-                                                            record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                            server_id = _serverInfo.ServerID,
-                                                            command_type = GetCommandByKey("player_ban_perm"),
-                                                            command_numeric = 0,
-                                                            target_name = aPlayer.player_name,
-                                                            target_player = aPlayer,
-                                                            source_name = "AutoAdmin",
-                                                            record_message = _HackerCheckerDPSBanMessage + " [LIVE][" + formattedName + "-" + (int) diffDPS + "-" + (int) killDiff + "-" + (int) HSDiff + "]",
-                                                            record_time = UtcDbTime()
-                                                        });
-                                                    }
-                                                    return true;
-                                                }
+                                                return true;
                                             }
                                         }
                                     }
