@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.6.8
+ * Version 6.6.6.9
  * 3-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.6.8</version_code>
+ * <version_code>6.6.6.9</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.6.8";
+        private const String PluginVersion = "6.6.6.9";
 
         public enum GameVersion
         {
@@ -10257,22 +10257,23 @@ namespace PRoConEvents
                     if (_roundState == RoundState.Loaded)
                     {
                         _roundState = RoundState.Playing;
-                        if (_isTestingAuthorized)
-                        {
-                            if (_serverInfo.ServerName.Contains("#7") && _gameVersion == GameVersion.BF4)
-                            {
-                                StartAndLogThread(new Thread(new ThreadStart(delegate
-                                {
+                        if (_isTestingAuthorized) {
+                            if (_serverInfo.ServerName.Contains("=ADK= #5") && _gameVersion == GameVersion.BF4) {
+                                StartAndLogThread(new Thread(new ThreadStart(delegate {
+                                    Thread.CurrentThread.Name = "RoundWelcome";
+                                    Thread.Sleep(TimeSpan.FromSeconds(17));
+                                    AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of VoteMap TDM");
+                                    LogThreadExit();
+                                })));
+                            } else if (_serverInfo.ServerName.Contains("=ADK= #7") && _gameVersion == GameVersion.BF4) {
+                                StartAndLogThread(new Thread(new ThreadStart(delegate {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(17));
                                     AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro");
                                     LogThreadExit();
                                 })));
-                            }
-                            else if (_serverInfo.ServerName.Contains("#6") && _gameVersion == GameVersion.BF4)
-                            {
-                                StartAndLogThread(new Thread(new ThreadStart(delegate
-                                {
+                            } else if (_serverInfo.ServerName.Contains("=ADK= #6") && _gameVersion == GameVersion.BF4) {
+                                StartAndLogThread(new Thread(new ThreadStart(delegate {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(17));
                                     AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Locker");
