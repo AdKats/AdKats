@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.7.0
+ * Version 6.6.7.1
  * 4-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.7.0</version_code>
+ * <version_code>6.6.7.1</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.7.0";
+        private const String PluginVersion = "6.6.7.1";
 
         public enum GameVersion
         {
@@ -14679,15 +14679,12 @@ namespace PRoConEvents
                                         FinalizeRecord(record);
                                         return;
                                     }
-                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
                                     //Target is source
                                     record.record_message = "Self-Inflicted";
                                     record.target_name = record.source_name;
                                     CompleteTargetInformation(record, true, false, false);
                                     break;
                                 case 2:
-                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
-
                                     record.target_name = parameters[1];
                                     Log.Debug("target: " + record.target_name, 6);
 
@@ -14699,8 +14696,6 @@ namespace PRoConEvents
                                     }
                                     break;
                                 case 3:
-                                    record.command_numeric = (int)(recordDuration * durationMultiplier);
-
                                     record.target_name = parameters[1];
                                     Log.Debug("target: " + record.target_name, 6);
 
