@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.7.2
+ * Version 6.6.7.3
  * 6-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.7.2</version_code>
+ * <version_code>6.6.7.3</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.7.2";
+        private const String PluginVersion = "6.6.7.3";
 
         public enum GameVersion
         {
@@ -2786,11 +2786,6 @@ namespace PRoConEvents
                     Boolean PostWinLossBaserapeStatistics = Boolean.Parse(strValue);
                     if (PostWinLossBaserapeStatistics != _PostWinLossBaserapeStatistics)
                     {
-                        if (PostWinLossBaserapeStatistics && (!_surrenderAutoEnable || _surrenderAutoNukeWinning))
-                        {
-                            Log.Error("Posting win/loss/baserape statistics cannot be enabled when auto-surrender is disabled, that system is used to detect baserape.");
-                            return;
-                        }
                         _PostWinLossBaserapeStatistics = PostWinLossBaserapeStatistics;
                         if (_threadsReady)
                         {
@@ -9201,6 +9196,7 @@ namespace PRoConEvents
                                         _surrenderAutoUseLockerValues = true;
                                     }
                                     _spamBotExcludeAdminsAndWhitelist = true;
+                                    _PostWinLossBaserapeStatistics = true;
                                 }
                                 _DisplayTicketRatesInProconChat = true;
                                 _PostMapBenefitStatistics = true;
