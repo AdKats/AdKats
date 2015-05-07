@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.7.6
+ * Version 6.6.7.7
  * 7-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.7.6</version_code>
+ * <version_code>6.6.7.7</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.7.6";
+        private const String PluginVersion = "6.6.7.7";
 
         public enum GameVersion
         {
@@ -1232,7 +1232,8 @@ namespace PRoConEvents
                         }
                     }
                     if (_isTestingAuthorized) {
-                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + _topPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), _PlayerDictionary.Values.ToList().Where(aPlayer => _topPlayers.ContainsKey(aPlayer.player_name)).Select(aPlayer => ((aPlayer.RequiredTeam != null)?("(" + aPlayer.RequiredTeam.TeamKey + ") "):("(PENDING) ")) + aPlayer.GetVerboseName()).OrderBy(item => item).ToArray()));
+                        var onlineTopPlayers = _PlayerDictionary.Values.ToList().Where(aPlayer => _topPlayers.ContainsKey(aPlayer.player_name)).Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(!) ")) + aPlayer.GetVerboseName()).OrderBy(item => item);
+                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayers.ToArray()));
                         lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                         lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
                         lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Count to Consider Top", typeof(Int32), _TopPlayersMinimumCount));
