@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.7.4
- * 6-MAY-2015
+ * Version 6.6.7.5
+ * 7-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.7.4</version_code>
+ * <version_code>6.6.7.5</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.7.4";
+        private const String PluginVersion = "6.6.7.5";
 
         public enum GameVersion
         {
@@ -6930,7 +6930,7 @@ namespace PRoConEvents
                     }
                     if (aPlayer.RequiredTeam != null && aPlayer.RequiredTeam.TeamKey != newTeam.TeamKey && !PlayerIsAdmin(aPlayer))
                     {
-                        if (_roundState == RoundState.Playing && !_baserapeCausingPlayers.ContainsKey(aPlayer.player_name))
+                        if (_roundState == RoundState.Playing && !_baserapeCausingPlayers.ContainsKey(aPlayer.player_name) && !_topPlayers.ContainsKey(aPlayer.player_name))
                         {
                             OnlineAdminSayMessage(soldierName + " attempted to team switch after being admin moved.");
                             PlayerTellMessage(soldierName, "You were moved to " + aPlayer.RequiredTeam.TeamKey + " team, please remain on that team.");
@@ -9819,7 +9819,7 @@ namespace PRoConEvents
                         if (countAll >= highKillCount && highKillHSKP >= highKillTriggerHSKP) {
                             actionMessage = "Code 6-H-" + Math.Round(highKillHSKP) + ": Dispute Requested";
                         } else if (countAll >= lowKillCount && lowKillHSKP >= lowKillTriggerHSKP) {
-                            actionMessage = "Code 6-L-" + Math.Round(highKillHSKP) + ": Dispute Requested";
+                            actionMessage = "Code 6-L-" + Math.Round(lowKillHSKP) + ": Dispute Requested";
                         }
                         if (!String.IsNullOrEmpty(actionMessage) && !PlayerProtected(aKill.killer)) {
                             //Create ban record
