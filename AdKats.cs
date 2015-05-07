@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.7.3
+ * Version 6.6.7.4
  * 6-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.7.3</version_code>
+ * <version_code>6.6.7.4</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.7.3";
+        private const String PluginVersion = "6.6.7.4";
 
         public enum GameVersion
         {
@@ -6301,7 +6301,9 @@ namespace PRoConEvents
                                     //Check for online teamspeak players
                                     foreach (TeamSpeakClientViewer.TeamspeakClient client in _tsViewer.GetPlayersOnTs())
                                     {
-                                        IEnumerable<AdKatsPlayer> matching = _PlayerDictionary.Values.ToList().Where(dPlayer => PercentMatch(client.TsName, dPlayer.player_name) > 60 || client.AdvIpAddress == dPlayer.player_ip);
+                                        IEnumerable<AdKatsPlayer> matching = _PlayerDictionary.Values.ToList().Where(dPlayer => 
+                                            (!String.IsNullOrEmpty(client.AdvIpAddress) && !String.IsNullOrEmpty(dPlayer.player_ip) && client.AdvIpAddress == dPlayer.player_ip) || 
+                                            ((String.IsNullOrEmpty(client.AdvIpAddress) || String.IsNullOrEmpty(dPlayer.player_ip)) && PercentMatch(client.TsName, dPlayer.player_name) > 80));
                                         if (_tsViewer.DbgClients)
                                         {
                                             Log.Info("TSClient: " + client.TsName + " | " + client.AdvIpAddress + " | " + ((matching.Any()) ? (matching.Count() + " online players match client.") : ("No matching online players.")));
