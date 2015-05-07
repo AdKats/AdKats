@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.7.1
- * 4-MAY-2015
+ * Version 6.6.7.2
+ * 6-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.7.1</version_code>
+ * <version_code>6.6.7.2</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.7.1";
+        private const String PluginVersion = "6.6.7.2";
 
         public enum GameVersion
         {
@@ -538,6 +538,10 @@ namespace PRoConEvents
         private Boolean _FeedBaserapeCausingPlayerDispersion;
         private Boolean _AutomaticAssistBaserapeCausingPlayers;
         private Boolean _PlayersAutoAssistedThisRound;
+        //Top Players
+        private Int32 _TopPlayersDurationDays = 7;
+        private Int32 _TopPlayersMinimumCount = 5;
+        private readonly Dictionary<String, AdKatsPlayer> _topPlayers = new Dictionary<String, AdKatsPlayer>();
         //Populators
         private Boolean _PopulatorMonitor;
         private Boolean _PopulatorUseSpecifiedPopulatorsOnly;
@@ -1226,6 +1230,11 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(tsPlayerMonitorPrefix + "Teamspeak Player Perks - Ping Whitelist", typeof(Boolean), _TeamspeakPlayerPerksPingWhitelist));
                             lstReturn.Add(new CPluginVariable(tsPlayerMonitorPrefix + "Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
                         }
+                    }
+                    if (_isTestingAuthorized) {
+                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Top Players (Display)", typeof(String[]), _topPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
+                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Count to Consider Top", typeof(Int32), _TopPlayersMinimumCount));
                     }
 
                     //Debug settings
@@ -2965,6 +2974,43 @@ namespace PRoConEvents
                         }
                         //Upload change to database 
                         QueueSettingForUpload(new CPluginVariable(@"Automatic Assist Trigger for Baserape Causing Players", typeof(Boolean), _AutomaticAssistBaserapeCausingPlayers));
+                    }
+                } else if (Regex.Match(strVariable, @"Past Days to Monitor Top Players").Success) {
+                    //Initial parse
+                    Int32 TopPlayersDurationDays = Int32.Parse(strValue);
+                    //Check for changed value
+                    if (_TopPlayersDurationDays != TopPlayersDurationDays) {
+                        //Rejection cases
+                        if (TopPlayersDurationDays < 1) {
+                            Log.Error("'Past Days to Monitor Top Players' cannot be less than 1.");
+                            TopPlayersDurationDays = 1;
+                        }
+                        //Assignment
+                        _TopPlayersDurationDays = TopPlayersDurationDays;
+                        if (_threadsReady) {
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
+                    }
+                } else if (Regex.Match(strVariable, @"Count to Consider Top").Success) {
+                    //Initial parse
+                    Int32 TopPlayersMinimumCount = Int32.Parse(strValue);
+                    //Check for changed value
+                    if (_TopPlayersMinimumCount != TopPlayersMinimumCount) {
+                        //Rejection cases
+                        if (TopPlayersMinimumCount < 1) {
+                            Log.Error("'Count to Consider Top' cannot be less than 1.");
+                            TopPlayersMinimumCount = 1;
+                        }
+                        //Assignment
+                        _TopPlayersMinimumCount = TopPlayersMinimumCount;
+                        //Notification
+                        if (_threadsReady) {
+                            FetchAllAccess(true);
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Count to Consider Top", typeof(Int32), _TopPlayersMinimumCount));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Monitor Populator Players").Success)
@@ -6799,11 +6845,11 @@ namespace PRoConEvents
                                     continue;
                                 }
                                 _acceptingTeamUpdates = false;
-                                if (_isTestingAuthorized && _FeedBaserapeCausingPlayerDispersion && _firstPlayerListComplete)
+                                if (_isTestingAuthorized && _firstPlayerListComplete)
                                 {
-                                    //Update team assignment of baserape causing players
-                                    List<AdKatsPlayer> randomBRCPlayers = Shuffle(_PlayerDictionary.Values.Where(dPlayer => dPlayer.player_type == PlayerType.Player && _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
-                                    if (randomBRCPlayers.Count > 1)
+                                    //Update team assignment of top players
+                                    List<AdKatsPlayer> randomTopPlayers = Shuffle(_PlayerDictionary.Values.Where(dPlayer => dPlayer.player_type == PlayerType.Player && _topPlayers.ContainsKey(dPlayer.player_name)).ToList());
+                                    if (randomTopPlayers.Count > 1)
                                     {
                                         AdKatsTeam team1;
                                         AdKatsTeam team2;
@@ -6819,7 +6865,7 @@ namespace PRoConEvents
                                         }
                                         Random rand = new Random();
                                         Boolean team1Set = rand.NextDouble() >= 0.5;
-                                        foreach (AdKatsPlayer aPlayer in randomBRCPlayers)
+                                        foreach (AdKatsPlayer aPlayer in randomTopPlayers)
                                         {
                                             aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
@@ -6829,7 +6875,7 @@ namespace PRoConEvents
                                     }
                                     else
                                     {
-                                        Log.Info("Not enough BRC players online to do splitting.");
+                                        Log.Info("Not enough top players online to do splitting.");
                                     }
                                     FetchAllAccess(true);
                                 }
@@ -6845,35 +6891,6 @@ namespace PRoConEvents
                     OnTeamFactionOverride(1, 0);
                     OnTeamFactionOverride(2, 1);
                     _acceptingTeamUpdates = false;
-                    if (_isTestingAuthorized && _FeedBaserapeCausingPlayerDispersion && _firstPlayerListComplete)
-                    {
-                        //Update team assignment of baserape causing players
-                        List<AdKatsPlayer> randomBRCPlayers = Shuffle(_PlayerDictionary.Values.Where(dPlayer => dPlayer.player_type == PlayerType.Player && _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList());
-                        //                            var taggedBRCPlayers = _PlayerDictionary.Values.Where(dPlayer =>
-                        //                                    dPlayer.player_type == PlayerType.Player &&
-                        //                                    _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).OrderBy(dPlayer => dPlayer.player_clanTag).ToList();
-                        if (randomBRCPlayers.Count > 1)
-                        {
-                            AdKatsTeam team1;
-                            AdKatsTeam team2;
-                            _teamDictionary.TryGetValue(1, out team1);
-                            _teamDictionary.TryGetValue(2, out team2);
-                            Random rand = new Random();
-                            Boolean team1Set = rand.NextDouble() >= 0.5;
-                            foreach (AdKatsPlayer aPlayer in randomBRCPlayers)
-                            {
-                                aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
-                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
-                                Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                team1Set = !team1Set;
-                            }
-                        }
-                        else
-                        {
-                            Log.Info("Not enough BRC players online to do splitting.");
-                        }
-                        FetchAllAccess(true);
-                    }
                 }
             }
             catch (Exception e)
@@ -7547,43 +7564,6 @@ namespace PRoConEvents
                                             if ((_roundState == RoundState.Playing || _roundState == RoundState.Loaded) && !PlayerIsAdmin(aPlayer))
                                             {
                                                 _mapBenefitIndex++;
-                                            }
-                                            //BRC player processing
-                                            //Disabled until full server case is solved.
-                                            if (false && _isTestingAuthorized && _baserapeCausingPlayers.ContainsKey(aPlayer.player_name)) {
-                                                AdKatsTeam t1, t2;
-                                                if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2))
-                                                {
-                                                    var team1BRCCount = _PlayerDictionary.Values.Count(
-                                                        dPlayer => 
-                                                            dPlayer.player_type == PlayerType.Player && 
-                                                            _baserapeCausingPlayers.ContainsKey(dPlayer.player_name) && 
-                                                            dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID);
-                                                    var team2BRCCount = _PlayerDictionary.Values.Count(
-                                                        dPlayer => 
-                                                            dPlayer.player_type == PlayerType.Player && 
-                                                            _baserapeCausingPlayers.ContainsKey(dPlayer.player_name) && 
-                                                            dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID);
-                                                    if (team1BRCCount > team2BRCCount) 
-                                                    {
-                                                        aPlayer.RequiredTeam = t2;
-                                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
-                                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                                    }
-                                                    else if (team2BRCCount > team1BRCCount)
-                                                    {
-                                                        aPlayer.RequiredTeam = t2;
-                                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
-                                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                                    }
-                                                }
-                                                else
-                                                {
-                                                    if (_roundState == RoundState.Playing)
-                                                    {
-                                                        Log.Error("Teams not loaded when they should be.");
-                                                    }
-                                                }
                                             }
                                         }
                                         //Set their last death/spawn times
@@ -8514,10 +8494,15 @@ namespace PRoConEvents
                                             {
                                                 Dictionary<String, AdKatsPlayer> auaPlayers = new Dictionary<String, AdKatsPlayer>();
                                                 //Get players from the baserape causing list
-                                                bool lowPopAssist = _isTestingAuthorized && (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")) && (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
+                                                bool lowPopAssist = _isTestingAuthorized && 
+                                                    (_serverInfo.ServerName.Contains("#7") || _serverInfo.ServerName.Contains("#6")) && 
+                                                    (_populationStatus == PopulationState.Low || _populationStatus == PopulationState.Medium);
                                                 if (_AutomaticAssistBaserapeCausingPlayers || lowPopAssist)
                                                 {
-                                                    foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(dPlayer => dPlayer.player_type == PlayerType.Player && dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
+                                                    foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.Where(dPlayer => 
+                                                        dPlayer.player_type == PlayerType.Player && 
+                                                        dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && 
+                                                        _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)))
                                                     {
                                                         if (!auaPlayers.ContainsKey(aPlayer.player_name))
                                                         {
@@ -8526,7 +8511,8 @@ namespace PRoConEvents
                                                     }
                                                 }
                                                 //Get players from the auto-assist blacklist
-                                                foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
+                                                foreach (AdKatsPlayer aPlayer in GetOnlinePlayersOfGroup("blacklist_autoassist").Where(aPlayer => 
+                                                    aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
                                                 {
                                                     if (!auaPlayers.ContainsKey(aPlayer.player_name))
                                                     {
@@ -9348,6 +9334,32 @@ namespace PRoConEvents
                         stat_time = UtcDbTime()
                     });
                 }
+                var TopWinning = WinningPlayers.Take((Int32) (WinningPlayers.Count / 4.0)).ToList();
+                foreach (AdKatsPlayer aPlayer in TopWinning) {
+                    QueueStatisticForProcessing(new AdKatsStatistic() {
+                        stat_type = AdKatsStatistic.StatisticType.player_top,
+                        server_id = _serverInfo.ServerID,
+                        round_id = _roundID,
+                        target_name = aPlayer.player_name,
+                        target_player = aPlayer,
+                        stat_value = aPlayer.frostbitePlayerInfo.SquadID,
+                        stat_comment = aPlayer.player_name + " top winning team player in position " + (WinningPlayers.IndexOf(aPlayer) + 1),
+                        stat_time = UtcDbTime()
+                    });
+                }
+                var TopLosing = LosingPlayers.Take((Int32) (LosingPlayers.Count / 4.0)).ToList();
+                foreach (AdKatsPlayer aPlayer in TopLosing) {
+                    QueueStatisticForProcessing(new AdKatsStatistic() {
+                        stat_type = AdKatsStatistic.StatisticType.player_top,
+                        server_id = _serverInfo.ServerID,
+                        round_id = _roundID,
+                        target_name = aPlayer.player_name,
+                        target_player = aPlayer,
+                        stat_value = aPlayer.frostbitePlayerInfo.SquadID,
+                        stat_comment = aPlayer.player_name + " top losing team player in position " + (LosingPlayers.IndexOf(aPlayer) + 1),
+                        stat_time = UtcDbTime()
+                    });
+                }
                 if (_surrenderAutoTriggerCountCurrent > 0 && winningTeam.TeamTicketDifferenceRate > losingTeam.TeamTicketDifferenceRate)
                 {
                     foreach (AdKatsPlayer aPlayer in WinningPlayers.Take((Int32)(WinningPlayers.Count / 3.5)).ToList())
@@ -9791,16 +9803,29 @@ namespace PRoConEvents
                         });
                         return;
                     }
-                    IEnumerable<AdKatsKill> nonSniperKills = aKill.killer.RecentKills.Where(dKill => dKill.weaponCategory != DamageTypes.None && dKill.weaponCategory != DamageTypes.SniperRifle && dKill.weaponCategory != DamageTypes.DMR);
-                    IEnumerable<AdKatsKill> nonSniperHS = nonSniperKills.Where(dKill => dKill.IsHeadshot);
-                    Double nonSniperHSKP = nonSniperHS.Count() / (Double)nonSniperKills.Count() * 100;
-                    Int32 nskc = nonSniperKills.Count();
-                    if (nskc >= 20)
-                    {
-                        if ((nonSniperHSKP >= 90 || (nskc >= 45 && nonSniperHSKP >= 80)) && !PlayerProtected(aKill.killer))
-                        {
-                            QueueRecordForProcessing(new AdKatsRecord
-                            {
+                    Int32 lowKillCount = 20;
+                    Double lowKillTriggerHSKP = 90;
+                    Int32 highKillCount = 45;
+                    Double highKillTriggerHSKP = 80;
+                    var nonSniperKills = aKill.killer.RecentKills
+                        .Where(dKill => 
+                            dKill.weaponCategory != DamageTypes.None && 
+                            dKill.weaponCategory != DamageTypes.SniperRifle && 
+                            dKill.weaponCategory != DamageTypes.DMR)
+                        .OrderByDescending(dKill => dKill.timestamp);
+                    var countAll = nonSniperKills.Count();
+                    if (countAll >= lowKillCount) {
+                        var lowKillHSKP = nonSniperKills.Take(lowKillCount).Count(dKill => dKill.IsHeadshot) / ((Double) lowKillCount) * 100.0;
+                        var highKillHSKP = nonSniperKills.Take(highKillCount).Count(dKill => dKill.IsHeadshot) / ((Double) highKillCount) * 100.0;
+                        String actionMessage = null;
+                        if (countAll >= highKillCount && highKillHSKP >= highKillTriggerHSKP) {
+                            actionMessage = "Code 6-H-" + Math.Round(highKillHSKP) + ": Dispute Requested";
+                        } else if (countAll >= lowKillCount && lowKillHSKP >= lowKillTriggerHSKP) {
+                            actionMessage = "Code 6-L-" + Math.Round(highKillHSKP) + ": Dispute Requested";
+                        }
+                        if (!String.IsNullOrEmpty(actionMessage) && !PlayerProtected(aKill.killer)) {
+                            //Create ban record
+                            QueueRecordForProcessing(new AdKatsRecord {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_ban_perm"),
@@ -9808,16 +9833,18 @@ namespace PRoConEvents
                                 target_name = aKill.killer.player_name,
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
-                                record_message = "Code 6-" + nskc + ": Dispute Requested",
+                                record_message = actionMessage,
                                 record_time = UtcDbTime()
                             });
                             return;
                         }
-                        if (nonSniperHSKP >= 75 && !aKill.killer.TargetedRecords.Any(aRecord => aRecord.record_message.Contains("non-sniper HSKP") && (UtcDbTime() - aRecord.record_time).TotalMinutes < 30))
-                        {
-                            //Create the report record
-                            QueueRecordForProcessing(new AdKatsRecord
-                            {
+                        if (highKillHSKP >= 75 &&
+                            !aKill.killer.TargetedRecords.Any(aRecord =>
+                                aRecord.record_message.Contains("non-sniper HSKP") &&
+                                (UtcDbTime() - aRecord.record_time).TotalMinutes <= 30) &&
+                            !PlayerProtected(aKill.killer)) {
+                            //Create report record
+                            QueueRecordForProcessing(new AdKatsRecord {
                                 record_source = AdKatsRecord.Sources.InternalAutomated,
                                 server_id = _serverInfo.ServerID,
                                 command_type = GetCommandByKey("player_report"),
@@ -9825,7 +9852,7 @@ namespace PRoConEvents
                                 target_name = aKill.killer.player_name,
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
-                                record_message = Math.Round(nonSniperHSKP) + "% non-sniper HSKP",
+                                record_message = Math.Round(highKillHSKP) + "% non-sniper HSKP",
                                 record_time = UtcDbTime()
                             });
                         }
@@ -10403,22 +10430,6 @@ namespace PRoConEvents
                                             }
                                         }
                                         PlayerTellMessage(aPlayer.player_name, repMessage);
-                                        if (!_isTestingAuthorized)
-                                        {
-                                            if (_baserapeCausingPlayers.Values.Any(dPlayer => dPlayer.player_id == aPlayer.player_id))
-                                            {
-                                                if (_FeedMultiBalancerDisperseList && _FeedBaserapeCausingPlayerDispersion)
-                                                {
-                                                    _threadMasterWaitHandle.WaitOne(5000);
-                                                    PlayerSayMessage(aPlayer.player_name, "Baserape monitor has you under temporary autobalance dispersion. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
-                                                }
-                                                else if (_AutomaticAssistBaserapeCausingPlayers)
-                                                {
-                                                    _threadMasterWaitHandle.WaitOne(5000);
-                                                    PlayerSayMessage(aPlayer.player_name, "Baserape monitor has you under temporary automatic assist. Stats kept for " + _BaserapeCausingPlayersDurationDays + " days.");
-                                                }
-                                            }
-                                        }
                                     }
                                 }
                                 catch (Exception)
@@ -31505,16 +31516,12 @@ namespace PRoConEvents
             Log.Debug("UpdateBaserapeCausingPlayers finished!", 6);
         }
 
-        private List<AdKatsPlayer> GetBaserapeCausingPlayers(TimeSpan duration, Int32 minBaserapes)
-        {
+        private List<AdKatsPlayer> GetBaserapeCausingPlayers(TimeSpan duration, Int32 minBaserapes) {
             Log.Debug("GetBaserapeCausingPlayers starting!", 6);
             List<AdKatsPlayer> resultPlayers = new List<AdKatsPlayer>();
-            try
-            {
-                using (MySqlConnection connection = GetDatabaseConnection())
-                {
-                    using (MySqlCommand command = connection.CreateCommand())
-                    {
+            try {
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"
                         SELECT 
 	                        `InnerResults`.*,
@@ -31610,31 +31617,177 @@ namespace PRoConEvents
 	                        `baserape_count` DESC, 
 	                        `player_name` ASC";
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
-                        command.Parameters.AddWithValue("@duration_minutes", (Int32)duration.TotalMinutes);
+                        command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
                         command.Parameters.AddWithValue("@baserapes_minimum", minBaserapes);
                         command.Parameters.AddWithValue("@winlossratio_minimum", 1.25);
                         command.Parameters.AddWithValue("@baseraperoundratio_minimum", 0.10);
                         //Attempt to execute the query
-                        using (MySqlDataReader reader = SafeExecuteReader(command))
-                        {
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             //Grab the matching players
-                            while (reader.Read())
-                            {
+                            while (reader.Read()) {
                                 AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
-                                if (aPlayer != null)
-                                {
+                                if (aPlayer != null) {
                                     resultPlayers.Add(aPlayer);
                                 }
                             }
                         }
                     }
                 }
-            }
-            catch (Exception e)
-            {
+            } catch (Exception e) {
                 HandleException(new AdKatsException("Error while fetching baserape causing players", e));
             }
             Log.Debug("GetBaserapeCausingPlayers finished!", 6);
+            return resultPlayers;
+        }
+
+        private void UpdateTopPlayers() {
+            Log.Debug("UpdateTopPlayers starting!", 6);
+            try {
+                List<Int64> validIDs = new List<Int64>();
+                lock (_topPlayers) {
+                    foreach (AdKatsPlayer aPlayer in GetTopPlayers(TimeSpan.FromDays(_TopPlayersDurationDays), _TopPlayersMinimumCount)) {
+                        validIDs.Add(aPlayer.player_id);
+                        if (!_topPlayers.ContainsKey(aPlayer.player_name)) {
+                            if (_threadsReady) {
+                                Log.Info("Adding " + aPlayer.player_name + " to top player list.");
+                            }
+                        }
+                        _topPlayers[aPlayer.player_name] = aPlayer;
+                    }
+                    foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
+                        if (_threadsReady) {
+                            Log.Info("Removing " + aPlayer.player_name + " from top player list.");
+                        }
+                        _topPlayers.Remove(aPlayer.player_name);
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AdKatsException("Error while fetching top players", e));
+            }
+            Log.Debug("UpdateTopPlayers finished!", 6);
+        }
+
+        private List<AdKatsPlayer> GetTopPlayers(TimeSpan duration, Int32 minTops) {
+            Log.Debug("GetTopPlayers starting!", 6);
+            List<AdKatsPlayer> resultPlayers = new List<AdKatsPlayer>();
+            try {
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        command.CommandText = @"
+				SELECT 
+					`InnerResults`.*,
+					ROUND(`win_count`/REPLACE(`loss_count`, 0, 1), 2) AS `win_loss_ratio`,
+					ROUND(`top_count`/REPLACE(`round_count`, 0, 1), 2) AS `top_round_ratio`
+				FROM
+				(
+				SELECT 
+					`server_id` AS `server`,
+					`target_id` AS `player_id`,
+					`target_name` AS `player_name`,
+					(SELECT
+						COUNT(`stat_id`)
+					 FROM
+						`adkats_statistics`
+					 WHERE
+						`server_id` = `server`
+					 AND
+						`target_id` = `player_id`
+					 AND
+						`stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
+					 AND
+						(
+							`stat_type` = 'player_win'
+							OR
+							`stat_type` = 'player_loss'
+						)) AS `round_count`,
+					(SELECT
+						COUNT(`stat_id`)
+					 FROM
+						`adkats_statistics`
+					 WHERE
+						`server_id` = `server`
+					 AND
+						`target_id` = `player_id`
+					 AND
+						`stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
+					 AND
+						`stat_type` = 'player_win') AS `win_count`,
+					(SELECT
+						COUNT(`stat_id`)
+					 FROM
+						`adkats_statistics`
+					 WHERE
+						`server_id` = `server`
+					 AND
+						`target_id` = `player_id`
+					 AND
+						`stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
+					 AND
+						`stat_type` = 'player_loss') AS `loss_count`,
+					(SELECT
+						COUNT(`stat_id`)
+					 FROM
+						`adkats_statistics`
+					 WHERE
+						`server_id` = `server`
+					 AND
+						`target_id` = `player_id`
+					 AND
+						`stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
+					 AND
+						`stat_type` = 'player_top') AS `top_count`
+				FROM
+					`adkats_statistics`
+				WHERE
+					`server_id` = @server_id
+				AND
+				(
+					`stat_type` = 'player_win'
+				OR
+					`stat_type` = 'player_loss'
+				OR
+					`stat_type` = 'player_top'
+				) 
+				GROUP BY
+					`target_id`, `server_id`
+				ORDER BY 
+					`top_count` DESC
+				) AS `InnerResults`
+				WHERE
+					`top_count` >= @tops_minimum
+				AND
+					`win_count`/REPLACE(`loss_count`, 0, 1) >= 1.0
+				AND
+				(
+					`win_count`/REPLACE(`loss_count`, 0, 1) >= @winlossratio_minimum
+					OR
+					`top_count`/REPLACE(`round_count`, 0, 1) >= @toproundratio_minimum
+				)
+				ORDER BY
+					`InnerResults`.`server` ASC, 
+					`top_count` DESC, 
+					`player_name` ASC";
+                        command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
+                        command.Parameters.AddWithValue("@tops_minimum", minTops);
+                        command.Parameters.AddWithValue("@winlossratio_minimum", 1.25);
+                        command.Parameters.AddWithValue("@toproundratio_minimum", 0.10);
+                        //Attempt to execute the query
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
+                            //Grab the matching players
+                            while (reader.Read()) {
+                                AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
+                                if (aPlayer != null) {
+                                    resultPlayers.Add(aPlayer);
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AdKatsException("Error while fetching top players", e));
+            }
+            Log.Debug("GetTopPlayers finished!", 6);
             return resultPlayers;
         }
 
@@ -34832,16 +34985,16 @@ namespace PRoConEvents
                                             }
                                         }
                                     }
-                                    if (_isTestingAuthorized && _FeedBaserapeCausingPlayerDispersion)
-                                    {
-                                        lock (_baserapeCausingPlayers)
-                                        {
-                                            foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(aPlayer => aPlayer.game_id == _serverInfo.GameID && !tempASPlayers.Any(asp => asp.player_object != null && asp.player_object.player_id == aPlayer.player_id)))
-                                            {
-                                                tempASPlayers.Add(new AdKatsSpecialPlayer()
-                                                {
-                                                    player_game = (int)_serverInfo.GameID,
-                                                    player_server = (int)_serverInfo.ServerID,
+                                    if (_isTestingAuthorized) {
+                                        lock (_topPlayers) {
+                                            foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(aPlayer => 
+                                                    aPlayer.game_id == _serverInfo.GameID && 
+                                                    !tempASPlayers.Any(asp =>
+                                                            asp.player_object != null && 
+                                                            asp.player_object.player_id == aPlayer.player_id))) {
+                                                tempASPlayers.Add(new AdKatsSpecialPlayer() {
+                                                    player_game = (int) _serverInfo.GameID,
+                                                    player_server = (int) _serverInfo.ServerID,
                                                     player_group = asGroup,
                                                     player_identifier = aPlayer.player_name,
                                                     player_object = aPlayer,
@@ -34996,6 +35149,9 @@ namespace PRoConEvents
             if (_PopulatorMonitor)
             {
                 UpdatePopulatorPlayers();
+            }
+            if (_isTestingAuthorized) {
+                UpdateTopPlayers();
             }
             UpdateMULTIBalancerWhitelist();
             UpdateMULTIBalancerDisperseList();
@@ -35497,14 +35653,12 @@ namespace PRoConEvents
                     List<AdKatsSpecialPlayer> evenDispersedPlayers = GetVerboseASPlayersOfGroup("blacklist_dispersion");
                     if (evenDispersedPlayers.Any())
                     {
-                        List<AdKatsPlayer> onlineBRCPlayers = _PlayerDictionary.Values.Where(dPlayer => dPlayer.player_type == PlayerType.Player && _baserapeCausingPlayers.ContainsKey(dPlayer.player_name)).ToList();
                         foreach (AdKatsSpecialPlayer asPlayer in evenDispersedPlayers)
                         {
                             String playerIdentifier = null;
                             if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_guid))
                             {
-                                AdKatsPlayer brcPlayer = onlineBRCPlayers.FirstOrDefault(bPlayer => bPlayer.player_id == asPlayer.player_object.player_id && bPlayer.RequiredTeam != null);
-                                playerIdentifier = ((brcPlayer != null) ? (brcPlayer.RequiredTeam.TeamID + " ") : ("")) + asPlayer.player_object.player_guid;
+                                playerIdentifier = asPlayer.player_object.player_guid;
                             }
                             else
                             {
@@ -40260,7 +40414,8 @@ namespace PRoConEvents
                 map_detriment,
                 player_win,
                 player_loss,
-                player_baserape
+                player_baserape,
+                player_top
             }
 
             public Int64 stat_id;
