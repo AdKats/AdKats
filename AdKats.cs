@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.7.5
+ * Version 6.6.7.6
  * 7-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.7.5</version_code>
+ * <version_code>6.6.7.6</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.7.5";
+        private const String PluginVersion = "6.6.7.6";
 
         public enum GameVersion
         {
@@ -1184,7 +1184,7 @@ namespace PRoConEvents
                     lstReturn.Add(new CPluginVariable("B27. Player Monitor Settings|Monitor Baserape Causing Players", typeof(Boolean), _BaserapeCausingPlayersMonitor));
                     if (_BaserapeCausingPlayersMonitor)
                     {
-                        lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Baserape Causing Players (Display)", typeof(String[]), _baserapeCausingPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                        lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|[" + _baserapeCausingPlayers.Count() + "] Baserape Causing Players (Display)", typeof(String[]), _baserapeCausingPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                         lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
                         lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
                         lstReturn.Add(new CPluginVariable("B27-1. Baserape Causing Player Monitor Settings|Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
@@ -1193,7 +1193,7 @@ namespace PRoConEvents
                     lstReturn.Add(new CPluginVariable("B27. Player Monitor Settings|Monitor Populator Players - Thanks CMWGaming", typeof(Boolean), _PopulatorMonitor));
                     if (_PopulatorMonitor)
                     {
-                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Populator Players (Display)", typeof(String[]), _populatorPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                        lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|[" + _populatorPlayers.Count() + "] Populator Players (Display)", typeof(String[]), _populatorPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                         lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
                         lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
                         lstReturn.Add(new CPluginVariable("B27-2. Populator Monitor Settings - Thanks CMWGaming|Count to Consider Populator Past Week", typeof(Int32), _PopulatorMinimumPopulationCountPastWeek));
@@ -1211,7 +1211,7 @@ namespace PRoConEvents
                     String tsPlayerMonitorPrefix = "B27-3. Teamspeak Player Monitor Settings - Thanks CMWGaming|";
                     if (_TeamspeakPlayerMonitorView)
                     {
-                        lstReturn.Add(new CPluginVariable(tsPlayerMonitorPrefix + "Teamspeak Players (Display)", typeof(String[]), _tsPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                        lstReturn.Add(new CPluginVariable(tsPlayerMonitorPrefix + "[" + _tsPlayers.Count() + "] Teamspeak Players (Display)", typeof(String[]), _tsPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                         lstReturn.Add(new CPluginVariable(tsPlayerMonitorPrefix + "Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
                         lstReturn.Add(new CPluginVariable(tsPlayerMonitorPrefix + "Teamspeak Server IP", typeof(String), _tsViewer.Ts3ServerIp));
                         lstReturn.Add(new CPluginVariable(tsPlayerMonitorPrefix + "Teamspeak Server Port", typeof(Int32), _tsViewer.Ts3ServerPort));
@@ -1232,7 +1232,8 @@ namespace PRoConEvents
                         }
                     }
                     if (_isTestingAuthorized) {
-                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Top Players (Display)", typeof(String[]), _topPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + _topPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), _PlayerDictionary.Values.ToList().Where(aPlayer => _topPlayers.ContainsKey(aPlayer.player_name)).Select(aPlayer => ((aPlayer.RequiredTeam != null)?("(" + aPlayer.RequiredTeam.TeamKey + ") "):("(PENDING) ")) + aPlayer.GetVerboseName()).OrderBy(item => item).ToArray()));
+                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                         lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
                         lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Count to Consider Top", typeof(Int32), _TopPlayersMinimumCount));
                     }
