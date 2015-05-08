@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.7.8
+ * Version 6.6.7.9
  * 7-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.7.8</version_code>
+ * <version_code>6.6.7.9</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.7.8";
+        private const String PluginVersion = "6.6.7.9";
 
         public enum GameVersion
         {
@@ -7562,6 +7562,38 @@ namespace PRoConEvents
                                             if ((_roundState == RoundState.Playing || _roundState == RoundState.Loaded) && !PlayerIsAdmin(aPlayer))
                                             {
                                                 _mapBenefitIndex++;
+                                            }
+                                            //Top player processing
+                                            if (_isTestingAuthorized && 
+                                                aPlayer.RequiredTeam == null &&
+                                                _topPlayers.ContainsKey(aPlayer.player_name) && 
+                                                _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player) < _serverInfo.InfoObject.MaxPlayerCount - 2) {
+                                                AdKatsTeam t1, t2;
+                                                if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
+                                                    var team1BRCCount = _PlayerDictionary.Values.Count(
+                                                        dPlayer =>
+                                                            dPlayer.player_type == PlayerType.Player &&
+                                                            _baserapeCausingPlayers.ContainsKey(dPlayer.player_name) &&
+                                                            dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID);
+                                                    var team2BRCCount = _PlayerDictionary.Values.Count(
+                                                        dPlayer =>
+                                                            dPlayer.player_type == PlayerType.Player &&
+                                                            _baserapeCausingPlayers.ContainsKey(dPlayer.player_name) &&
+                                                            dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID);
+                                                    if (team1BRCCount > team2BRCCount) {
+                                                        aPlayer.RequiredTeam = t2;
+                                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                                    } else if (team2BRCCount > team1BRCCount) {
+                                                        aPlayer.RequiredTeam = t2;
+                                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
+                                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                                    }
+                                                } else {
+                                                    if (_roundState == RoundState.Playing) {
+                                                        Log.Error("Teams not loaded when they should be.");
+                                                    }
+                                                }
                                             }
                                         }
                                         //Set their last death/spawn times
