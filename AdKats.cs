@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.7.9
+ * Version 6.6.8.0
  * 7-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.7.9</version_code>
+ * <version_code>6.6.8.0</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.7.9";
+        private const String PluginVersion = "6.6.8.0";
 
         public enum GameVersion
         {
@@ -1232,9 +1232,18 @@ namespace PRoConEvents
                         }
                     }
                     if (_isTestingAuthorized) {
-                        var onlineTopPlayers = _PlayerDictionary.Values.ToList().Where(aPlayer => _topPlayers.ContainsKey(aPlayer.player_name)).Select(aPlayer => ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(!) ")) + aPlayer.GetVerboseName()).OrderBy(item => item);
+                        var onlineTopPlayers = _PlayerDictionary.Values.ToList()
+                            .Where(aPlayer => 
+                                _topPlayers.ContainsKey(aPlayer.player_name))
+                            .Select(aPlayer => 
+                                ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
+                            .OrderBy(item => item);
                         lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayers.ToArray()));
-                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
+                            .Select(aPlayer =>
+                                ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
+                            .OrderBy(item => item)
+                            .ToArray()));
                         lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
                         lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Count to Consider Top", typeof(Int32), _TopPlayersMinimumCount));
                     }
@@ -6847,8 +6856,15 @@ namespace PRoConEvents
                                 if (_isTestingAuthorized && _firstPlayerListComplete)
                                 {
                                     //Update team assignment of top players
-                                    List<AdKatsPlayer> randomTopPlayers = Shuffle(_PlayerDictionary.Values.Where(dPlayer => dPlayer.player_type == PlayerType.Player && _topPlayers.ContainsKey(dPlayer.player_name)).ToList());
-                                    if (randomTopPlayers.Count > 1)
+                                    //Update team assignment of top players
+                                    List<AdKatsPlayer> orderedTopPlayers = _PlayerDictionary.Values
+                                        .Where(dPlayer =>
+                                            dPlayer.player_type == PlayerType.Player &&
+                                            _topPlayers.ContainsKey(dPlayer.player_name))
+                                        .OrderByDescending(dPlayer =>
+                                            dPlayer.TopStats.TopRoundRatio)
+                                        .ToList();
+                                    if (orderedTopPlayers.Count > 1)
                                     {
                                         AdKatsTeam team1;
                                         AdKatsTeam team2;
@@ -6864,7 +6880,7 @@ namespace PRoConEvents
                                         }
                                         Random rand = new Random();
                                         Boolean team1Set = rand.NextDouble() >= 0.5;
-                                        foreach (AdKatsPlayer aPlayer in randomTopPlayers)
+                                        foreach (AdKatsPlayer aPlayer in orderedTopPlayers)
                                         {
                                             aPlayer.RequiredTeam = ((team1Set) ? (team1) : (team2));
                                             ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
@@ -31636,8 +31652,6 @@ namespace PRoConEvents
                         WHERE
 	                        `baserape_count` >= @baserapes_minimum
                         AND
-	                        `win_count`/REPLACE(`loss_count`, 0, 1) >= 1.0
-                        AND
                         (
 	                        `win_count`/REPLACE(`loss_count`, 0, 1) >= @winlossratio_minimum
 	                        OR
@@ -31787,28 +31801,28 @@ namespace PRoConEvents
 				WHERE
 					`top_count` >= @tops_minimum
 				AND
-					`win_count`/REPLACE(`loss_count`, 0, 1) >= 1.0
-				AND
-				(
-					`win_count`/REPLACE(`loss_count`, 0, 1) >= @winlossratio_minimum
-					OR
 					`top_count`/REPLACE(`round_count`, 0, 1) >= @toproundratio_minimum
-				)
-				ORDER BY
-					`InnerResults`.`server` ASC, 
-					`top_count` DESC, 
-					`player_name` ASC";
+                ORDER BY
+	                `top_round_ratio` DESC, 
+	                `player_name` ASC";
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
                         command.Parameters.AddWithValue("@tops_minimum", minTops);
-                        command.Parameters.AddWithValue("@winlossratio_minimum", 1.25);
-                        command.Parameters.AddWithValue("@toproundratio_minimum", 0.10);
+                        command.Parameters.AddWithValue("@toproundratio_minimum", 0.6);
                         //Attempt to execute the query
                         using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             //Grab the matching players
                             while (reader.Read()) {
                                 AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
                                 if (aPlayer != null) {
+                                    //Update top stats
+                                    aPlayer.TopStats.RoundCount = reader.GetInt32("round_count");
+                                    aPlayer.TopStats.WinCount = reader.GetInt32("win_count");
+                                    aPlayer.TopStats.LossCount = reader.GetInt32("loss_count");
+                                    aPlayer.TopStats.TopCount = reader.GetInt32("top_count");
+                                    aPlayer.TopStats.WinLossRatio = reader.GetDouble("win_loss_ratio");
+                                    aPlayer.TopStats.TopRoundRatio = reader.GetDouble("top_round_ratio");
+                                    //Return player
                                     resultPlayers.Add(aPlayer);
                                 }
                             }
@@ -40091,6 +40105,7 @@ namespace PRoConEvents
             public AdKatsPlayer conversationPartner = null;
 
             public Dictionary<Int64, AdKatsPlayerStats> RoundStats;
+            public AdKatsTopStats TopStats;
             public IPAPILocation location = null;
             public Boolean update_playerUpdated = true;
             public Boolean player_new = false;
@@ -40106,6 +40121,7 @@ namespace PRoConEvents
             {
                 Plugin = plugin;
                 RoundStats = new Dictionary<Int64, AdKatsPlayerStats>();
+                TopStats = new AdKatsTopStats();
                 RecentKills = new Queue<AdKatsKill>();
                 player_pings = new Queue<KeyValuePair<Double, DateTime>>();
                 TargetedRecords = new List<AdKatsRecord>();
@@ -40302,6 +40318,15 @@ namespace PRoConEvents
                 }
                 return TimeSpan.FromSeconds(InfoObject.RoundTime) + (Plugin.UtcDbTime() - infoObjectTime);
             }
+        }
+
+        public class AdKatsTopStats {
+            public Int32 RoundCount;
+            public Int32 WinCount;
+            public Int32 LossCount;
+            public Int32 TopCount;
+            public Double WinLossRatio;
+            public Double TopRoundRatio;
         }
 
         public class AdKatsPlayerStats {
