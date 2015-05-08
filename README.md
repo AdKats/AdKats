@@ -2891,7 +2891,7 @@ plugin.CallOtherPlugin("AdKats", "IssueCommand", command);
     <li><b>'Populator Perks - Ping Whitelist.'</b> - When enabled, populators are given whitelist from ping kicks.</li>
     <li><b>'Populator Perks - TeamKillTracker Whitelist.'</b> - When enabled, populators are given a whitelist in TeamKillTracker.</li>
 </ul>
-<h3>B27-3. Populator Monitor Settings - Thanks CMWGaming:</h3>
+<h3>B27-3. Teamspeak Monitor Settings - Thanks CMWGaming:</h3>
 <ul>
     <li><b>'Teamspeak Players (Display)'</b> - Current display of teamspeak players using the below options.</li>
     <li><b>'Enable Teamspeak Player Monitor'</b> - When enabled, the below settings will be used to monitor
