@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.8.0
+ * Version 6.6.8.1
  * 7-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.8.0</version_code>
+ * <version_code>6.6.8.1</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.8.0";
+        private const String PluginVersion = "6.6.8.1";
 
         public enum GameVersion
         {
@@ -6262,8 +6262,10 @@ namespace PRoConEvents
                             }
 
                             //Check for keep alive every 30 seconds
-                            if ((UtcDbTime() - lastKeepAliveCheck).TotalSeconds > 30)
-                            {
+                            if ((UtcDbTime() - lastKeepAliveCheck).TotalSeconds > 30) {
+                                if (_isTestingAuthorized) {
+                                    UpdateTopPlayers();
+                                }
                                 if (_isTestingAuthorized && 
                                     _roundState == RoundState.Playing && 
                                     _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 && 
@@ -7579,38 +7581,6 @@ namespace PRoConEvents
                                             {
                                                 _mapBenefitIndex++;
                                             }
-                                            //Top player processing
-                                            if (_isTestingAuthorized && 
-                                                aPlayer.RequiredTeam == null &&
-                                                _topPlayers.ContainsKey(aPlayer.player_name) && 
-                                                _PlayerDictionary.Values.Count(dPlayer => dPlayer.player_type == PlayerType.Player) < _serverInfo.InfoObject.MaxPlayerCount - 2) {
-                                                AdKatsTeam t1, t2;
-                                                if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
-                                                    var team1BRCCount = _PlayerDictionary.Values.Count(
-                                                        dPlayer =>
-                                                            dPlayer.player_type == PlayerType.Player &&
-                                                            _baserapeCausingPlayers.ContainsKey(dPlayer.player_name) &&
-                                                            dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID);
-                                                    var team2BRCCount = _PlayerDictionary.Values.Count(
-                                                        dPlayer =>
-                                                            dPlayer.player_type == PlayerType.Player &&
-                                                            _baserapeCausingPlayers.ContainsKey(dPlayer.player_name) &&
-                                                            dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID);
-                                                    if (team1BRCCount > team2BRCCount) {
-                                                        aPlayer.RequiredTeam = t2;
-                                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
-                                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                                    } else if (team2BRCCount > team1BRCCount) {
-                                                        aPlayer.RequiredTeam = t2;
-                                                        ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "true");
-                                                        Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                                    }
-                                                } else {
-                                                    if (_roundState == RoundState.Playing) {
-                                                        Log.Error("Teams not loaded when they should be.");
-                                                    }
-                                                }
-                                            }
                                         }
                                         //Set their last death/spawn times
                                         aPlayer.lastDeath = UtcDbTime();
@@ -7689,6 +7659,42 @@ namespace PRoConEvents
                                     }
                                     if (_roundState == RoundState.Playing) {
                                         aPlayer.RoundStats[_roundID].LiveStats = aPlayer.frostbitePlayerInfo;
+                                    }
+                                    //Top player processing
+                                    if (_firstPlayerListComplete &&
+                                        _isTestingAuthorized &&
+                                        aPlayer.RequiredTeam == null &&
+                                        _topPlayers.ContainsKey(aPlayer.player_name)) {
+                                        AdKatsTeam t1, t2;
+                                        if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
+                                            var team1BRCCount = _PlayerDictionary.Values.Count(
+                                                dPlayer =>
+                                                    dPlayer.player_type == PlayerType.Player &&
+                                                    _topPlayers.ContainsKey(dPlayer.player_name) &&
+                                                    dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID);
+                                            var team2BRCCount = _PlayerDictionary.Values.Count(
+                                                dPlayer =>
+                                                    dPlayer.player_type == PlayerType.Player &&
+                                                    _topPlayers.ContainsKey(dPlayer.player_name) &&
+                                                    dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID);
+                                            if (team1BRCCount > team2BRCCount) {
+                                                aPlayer.RequiredTeam = t2;
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
+                                            } 
+                                            else if (team2BRCCount > team1BRCCount) {
+                                                aPlayer.RequiredTeam = t2;
+                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
+                                            }
+                                            else {
+                                                GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out aPlayer.RequiredTeam);
+                                            }
+                                            Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                            UpdateSettingPage();
+                                        } else {
+                                            if (_roundState == RoundState.Playing) {
+                                                Log.Error("Teams not loaded when they should be.");
+                                            }
+                                        }
                                     }
                                 }
 
@@ -9909,26 +9915,34 @@ namespace PRoConEvents
                     {
                         //Special weapons
                         String actedCode = null;
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_PortableAmmopack") >= 5)
+                        Int32 triggerCount = 3;
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_PortableAmmopack") >= triggerCount)
                         {
                             actedCode = "1";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_RadioBeacon") >= 5)
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_RadioBeacon") >= triggerCount)
                         {
                             actedCode = "2";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Gameplay/Gadgets/SOFLAM/SOFLAM_Projectile") >= 5)
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Gameplay/Gadgets/SOFLAM/SOFLAM_Projectile") >= triggerCount)
                         {
                             actedCode = "3";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_Motionsensor") >= 5) {
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_Motionsensor") >= triggerCount) 
+                        {
                             actedCode = "4";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_PortableMedicpack" && !dKill.IsTeamkill) >= 5) {
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_PortableMedicpack" && !dKill.IsTeamkill) >= triggerCount) 
+                        {
                             actedCode = "5";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_Medkit" && !dKill.IsTeamkill) >= 5) {
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_Medkit" && !dKill.IsTeamkill) >= triggerCount) 
+                        {
                             actedCode = "6";
+                        }
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "U_Ammobag") >= triggerCount) 
+                        {
+                            actedCode = "7";
                         }
                         if (!String.IsNullOrEmpty(actedCode) && !PlayerProtected(aKill.killer))
                         {
@@ -9951,18 +9965,21 @@ namespace PRoConEvents
                     {
                         //Special weapons
                         String actedCode = null;
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "AmmoBag") >= 5)
+                        Int32 triggerCount = 3;
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "AmmoBag") >= triggerCount)
                         {
                             actedCode = "1";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/RadioBeacon/Radio_Beacon") >= 5)
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/RadioBeacon/Radio_Beacon") >= triggerCount)
                         {
                             actedCode = "2";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/SOFLAM/SOFLAM_PDA") >= 5) {
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Weapons/Gadgets/SOFLAM/SOFLAM_PDA") >= triggerCount)
+                        {
                             actedCode = "3";
                         }
-                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Medkit" && !dKill.IsTeamkill) >= 5) {
+                        if (aKill.killer.RecentKills.Count(dKill => dKill.weaponCode == "Medkit" && !dKill.IsTeamkill) >= triggerCount) 
+                        {
                             actedCode = "4";
                         }
                         if (!String.IsNullOrEmpty(actedCode) && !PlayerProtected(aKill.killer))
@@ -31695,6 +31712,7 @@ namespace PRoConEvents
                         if (!_topPlayers.ContainsKey(aPlayer.player_name)) {
                             if (_threadsReady) {
                                 Log.Info("Adding " + aPlayer.player_name + " to top player list.");
+                                UpdateSettingPage();
                             }
                         }
                         _topPlayers[aPlayer.player_name] = aPlayer;
@@ -31702,6 +31720,7 @@ namespace PRoConEvents
                     foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
                         if (_threadsReady) {
                             Log.Info("Removing " + aPlayer.player_name + " from top player list.");
+                            UpdateSettingPage();
                         }
                         _topPlayers.Remove(aPlayer.player_name);
                     }
@@ -31719,92 +31738,61 @@ namespace PRoConEvents
                 using (MySqlConnection connection = GetDatabaseConnection()) {
                     using (MySqlCommand command = connection.CreateCommand()) {
                         command.CommandText = @"
-				SELECT 
-					`InnerResults`.*,
-					ROUND(`win_count`/REPLACE(`loss_count`, 0, 1), 2) AS `win_loss_ratio`,
-					ROUND(`top_count`/REPLACE(`round_count`, 0, 1), 2) AS `top_round_ratio`
-				FROM
-				(
-				SELECT 
-					`server_id` AS `server`,
-					`target_id` AS `player_id`,
-					`target_name` AS `player_name`,
-					(SELECT
-						COUNT(`stat_id`)
-					 FROM
-						`adkats_statistics`
-					 WHERE
-						`server_id` = `server`
-					 AND
-						`target_id` = `player_id`
-					 AND
-						`stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
-					 AND
-						(
-							`stat_type` = 'player_win'
-							OR
-							`stat_type` = 'player_loss'
-						)) AS `round_count`,
-					(SELECT
-						COUNT(`stat_id`)
-					 FROM
-						`adkats_statistics`
-					 WHERE
-						`server_id` = `server`
-					 AND
-						`target_id` = `player_id`
-					 AND
-						`stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
-					 AND
-						`stat_type` = 'player_win') AS `win_count`,
-					(SELECT
-						COUNT(`stat_id`)
-					 FROM
-						`adkats_statistics`
-					 WHERE
-						`server_id` = `server`
-					 AND
-						`target_id` = `player_id`
-					 AND
-						`stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
-					 AND
-						`stat_type` = 'player_loss') AS `loss_count`,
-					(SELECT
-						COUNT(`stat_id`)
-					 FROM
-						`adkats_statistics`
-					 WHERE
-						`server_id` = `server`
-					 AND
-						`target_id` = `player_id`
-					 AND
-						`stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
-					 AND
-						`stat_type` = 'player_top') AS `top_count`
-				FROM
-					`adkats_statistics`
-				WHERE
-					`server_id` = @server_id
-				AND
-				(
-					`stat_type` = 'player_win'
-				OR
-					`stat_type` = 'player_loss'
-				OR
-					`stat_type` = 'player_top'
-				) 
-				GROUP BY
-					`target_id`, `server_id`
-				ORDER BY 
-					`top_count` DESC
-				) AS `InnerResults`
-				WHERE
-					`top_count` >= @tops_minimum
-				AND
-					`top_count`/REPLACE(`round_count`, 0, 1) >= @toproundratio_minimum
-                ORDER BY
-	                `top_round_ratio` DESC, 
-	                `player_name` ASC";
+                        SELECT 
+	                        `InnerResults`.*,
+	                        ROUND(`top_count`/REPLACE(`round_count`, 0, 1), 2) AS `top_round_ratio`
+                        FROM
+                        (
+                        SELECT 
+	                        `server_id` AS `server`,
+	                        `target_id` AS `player_id`,
+	                        `target_name` AS `player_name`,
+	                        (SELECT
+		                        COUNT(`stat_id`)
+	                         FROM
+		                        `adkats_statistics`
+	                         WHERE
+		                        `server_id` = `server`
+	                         AND
+		                        `target_id` = `player_id`
+	                         AND
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
+	                         AND
+		                        (
+			                        `stat_type` = 'player_win'
+			                        OR
+			                        `stat_type` = 'player_loss'
+		                        )) AS `round_count`,
+	                        (SELECT
+		                        COUNT(`stat_id`)
+	                         FROM
+		                        `adkats_statistics`
+	                         WHERE
+		                        `server_id` = `server`
+	                         AND
+		                        `target_id` = `player_id`
+	                         AND
+		                        `stat_time` > DATE_SUB(UTC_TIMESTAMP, INTERVAL @duration_minutes MINUTE)
+	                         AND
+		                        `stat_type` = 'player_top') AS `top_count`
+                        FROM
+	                        `adkats_statistics`
+                        WHERE
+	                        `server_id` = @server_id
+                        AND
+	                        `stat_type` = 'player_top'
+                        GROUP BY
+	                        `target_id`, `server_id`
+                        ORDER BY 
+	                        `top_count` DESC
+                        ) AS `InnerResults`
+                        WHERE
+	                        `top_count` >= @tops_minimum
+                        AND
+	                        `top_count`/REPLACE(`round_count`, 0, 1) >= @toproundratio_minimum
+                        ORDER BY
+	                        `top_round_ratio` DESC, 
+	                        `player_name` ASC";
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
                         command.Parameters.AddWithValue("@tops_minimum", minTops);
@@ -31817,10 +31805,7 @@ namespace PRoConEvents
                                 if (aPlayer != null) {
                                     //Update top stats
                                     aPlayer.TopStats.RoundCount = reader.GetInt32("round_count");
-                                    aPlayer.TopStats.WinCount = reader.GetInt32("win_count");
-                                    aPlayer.TopStats.LossCount = reader.GetInt32("loss_count");
                                     aPlayer.TopStats.TopCount = reader.GetInt32("top_count");
-                                    aPlayer.TopStats.WinLossRatio = reader.GetDouble("win_loss_ratio");
                                     aPlayer.TopStats.TopRoundRatio = reader.GetDouble("top_round_ratio");
                                     //Return player
                                     resultPlayers.Add(aPlayer);
@@ -34121,9 +34106,10 @@ namespace PRoConEvents
             _commandTimeoutDictionary["player_kick"] = (plugin => (30));
             _commandTimeoutDictionary["player_blacklistdisperse"] = (plugin => (30));
             _commandTimeoutDictionary["player_ban_temp"] = (plugin => (30));
-            _commandTimeoutDictionary["player_ban_perm"] = (plugin => (30));
-            _commandTimeoutDictionary["player_ban_perm_future"] = (plugin => (30));
+            _commandTimeoutDictionary["player_ban_perm"] = (plugin => (90));
+            _commandTimeoutDictionary["player_ban_perm_future"] = (plugin => (90));
             _commandTimeoutDictionary["player_report"] = (plugin => (10));
+            _commandTimeoutDictionary["self_kill"] = (plugin => (10 * 60));
         }
 
         private void FetchRoles()
@@ -35194,9 +35180,6 @@ namespace PRoConEvents
             if (_PopulatorMonitor)
             {
                 UpdatePopulatorPlayers();
-            }
-            if (_isTestingAuthorized) {
-                UpdateTopPlayers();
             }
             UpdateMULTIBalancerWhitelist();
             UpdateMULTIBalancerDisperseList();
@@ -40322,10 +40305,7 @@ namespace PRoConEvents
 
         public class AdKatsTopStats {
             public Int32 RoundCount;
-            public Int32 WinCount;
-            public Int32 LossCount;
             public Int32 TopCount;
-            public Double WinLossRatio;
             public Double TopRoundRatio;
         }
 
