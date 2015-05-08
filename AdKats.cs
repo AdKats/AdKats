@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.7.7
+ * Version 6.6.7.8
  * 7-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.7.7</version_code>
+ * <version_code>6.6.7.8</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.7.7";
+        private const String PluginVersion = "6.6.7.8";
 
         public enum GameVersion
         {
@@ -7229,7 +7229,6 @@ namespace PRoConEvents
                                     aPlayer.player_spawnedOnce = false;
                                     aPlayer.RecentKills.Clear();
                                     aPlayer.ClearPingEntries();
-                                    aPlayer.RequiredTeam = null;
                                     DequeuePlayer(aPlayer);
                                     //Remove all old values
                                     List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcDbTime() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
@@ -7700,7 +7699,6 @@ namespace PRoConEvents
                                         aPlayer.player_spawnedOnce = false;
                                         aPlayer.ClearPingEntries();
                                         aPlayer.RecentKills.Clear();
-                                        aPlayer.RequiredTeam = null;
                                         DequeuePlayer(aPlayer);
                                         //Remove all old values
                                         List<String> removeNames = _PlayerLeftDictionary.Where(pair => (UtcDbTime() - pair.Value.LastUsage).TotalMinutes > 120).Select(pair => pair.Key).ToList();
@@ -9436,55 +9434,56 @@ namespace PRoConEvents
         //Round ended stuff
         public override void OnRoundOverTeamScores(List<TeamScore> teamScores)
         {
-            if (_PostWinLossBaserapeStatistics)
-            {
-                PostPlayerWinLossStatistics();
-            }
-            foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList())
-            {
-                aPlayer.RequiredTeam = null;
-            }
-            //Stat refresh
-            List<AdKatsPlayer> roundPlayerObjects;
-            HashSet<Int64> roundPlayers;
-            if (_roundID > 0 && _RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers))
-            {
-                //Get players who where online this round
-                roundPlayerObjects = _FetchedPlayers.Values.Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
-                if (_isTestingAuthorized) {
-                    Log.Warn("Preparing to requeue " + roundPlayerObjects.Count + " players for stats check in 30 seconds.");
+            try {
+                if (_PostWinLossBaserapeStatistics) {
+                    PostPlayerWinLossStatistics();
                 }
-                //Queue players for stats refresh
-                StartAndLogThread(new Thread(new ThreadStart(delegate {
-                    Thread.CurrentThread.Name = "StatRefetch";
-                    Thread.Sleep(TimeSpan.FromSeconds(30));
+                //Stat refresh
+                List<AdKatsPlayer> roundPlayerObjects;
+                HashSet<Int64> roundPlayers;
+                if (_roundID > 0 && _RoundPlayerIDs.TryGetValue(_roundID, out roundPlayers)) {
+                    //Get players who where online this round
+                    roundPlayerObjects = _FetchedPlayers.Values.Where(dPlayer => roundPlayers.Contains(dPlayer.player_id)).ToList();
                     if (_isTestingAuthorized) {
-                        Log.Warn("Requeuing " + roundPlayerObjects.Count + " players for stats check.");
+                        Log.Warn("Preparing to requeue " + roundPlayerObjects.Count + " players for stats check in 30 seconds.");
                     }
-                    foreach (var aPlayer in roundPlayerObjects) {
-                        if (_UseBanEnforcer) {
-                            QueuePlayerForBanCheck(aPlayer);
-                        } else if (_UseHackerChecker) {
-                            //Queue the player for a hacker check
-                            QueuePlayerForHackerCheck(aPlayer);
+                    //Queue players for stats refresh
+                    StartAndLogThread(new Thread(new ThreadStart(delegate {
+                        Thread.CurrentThread.Name = "StatRefetch";
+                        Thread.Sleep(TimeSpan.FromSeconds(30));
+                        if (_isTestingAuthorized) {
+                            Log.Warn("Requeuing " + roundPlayerObjects.Count + " players for stats check.");
                         }
-                    }
-                    LogThreadExit();
-                })));
+                        foreach (var aPlayer in roundPlayerObjects) {
+                            if (_UseBanEnforcer) {
+                                QueuePlayerForBanCheck(aPlayer);
+                            } else if (_UseHackerChecker) {
+                                //Queue the player for a hacker check
+                                QueuePlayerForHackerCheck(aPlayer);
+                            }
+                        }
+                        LogThreadExit();
+                    })));
+                }
+                FetchRoundID(true);
+                _roundState = RoundState.Ended;
+                _pingKicksThisRound = 0;
+                foreach (AdKatsPlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
+                    aPlayer.RequiredTeam = null;
+                }
             }
-            FetchRoundID(true);
-            _roundState = RoundState.Ended;
-            _pingKicksThisRound = 0;
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error running round over teamscores.", e));
+            }
         }
 
         public override void OnRunNextLevel()
         {
-            foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList())
-            {
-                aPlayer.RequiredTeam = null;
-            }
             _roundState = RoundState.Ended;
             _pingKicksThisRound = 0;
+            foreach (AdKatsPlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
+                aPlayer.RequiredTeam = null;
+            }
         }
 
         //Move delayed players when they are killed
