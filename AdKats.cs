@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.8.4
+ * Version 6.6.8.5
  * 7-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.8.4</version_code>
+ * <version_code>6.6.8.5</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.8.4";
+        private const String PluginVersion = "6.6.8.5";
 
         public enum GameVersion
         {
@@ -6263,9 +6263,6 @@ namespace PRoConEvents
 
                             //Check for keep alive every 30 seconds
                             if ((UtcDbTime() - lastKeepAliveCheck).TotalSeconds > 30) {
-                                if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
-                                    UpdateTopPlayers();
-                                }
                                 if (_isTestingAuthorized && 
                                     _roundState == RoundState.Playing && 
                                     _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 && 
@@ -35189,6 +35186,9 @@ namespace PRoConEvents
             if (_PopulatorMonitor)
             {
                 UpdatePopulatorPlayers();
+            }
+            if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
+                UpdateTopPlayers();
             }
             UpdateMULTIBalancerWhitelist();
             UpdateMULTIBalancerDisperseList();
