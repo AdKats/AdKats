@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.8.6
- * 7-MAY-2015
+ * Version 6.6.8.7
+ * 9-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.8.6</version_code>
+ * <version_code>6.6.8.7</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.8.6";
+        private const String PluginVersion = "6.6.8.7";
 
         public enum GameVersion
         {
@@ -9509,7 +9509,7 @@ namespace PRoConEvents
                             round_id = _roundID,
                             target_name = _serverInfo.InfoObject.Map,
                             stat_value = quality,
-                            stat_comment = "Round was quality level " + quality,
+                            stat_comment = "Quality level " + quality + " (" + winningTeam.TeamTicketCount + "|" + losingTeam.TeamTicketCount + ")",
                             stat_time = UtcDbTime()
                         });
                     } else if (_serverInfo.ServerName.Contains("#7")) {
@@ -9525,7 +9525,7 @@ namespace PRoConEvents
                             round_id = _roundID,
                             target_name = _serverInfo.InfoObject.Map,
                             stat_value = quality,
-                            stat_comment = "Round was quality level " + quality,
+                            stat_comment = "Quality level " + quality + " (" + winningTeam.TeamTicketCount + "|" + losingTeam.TeamTicketCount + ")",
                             stat_time = UtcDbTime()
                         });
                     } else if (_serverInfo.ServerName.Contains("#6")) {
@@ -11308,7 +11308,7 @@ namespace PRoConEvents
                                         if (_UseHackerChecker) {
                                             RunStatSiteHackCheck(aPlayer, false);
                                             _hackerCheckedPlayersStats.Add(aPlayer.player_guid);
-                                            Log.Debug(aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 2);
+                                            Log.Debug(aPlayer.GetVerboseName() + " stat checked. (" + String.Format("{0:0.00}", (_hackerCheckedPlayersStats.Count / (Double) _hackerCheckedPlayers.Count) * 100) + "% of " + _hackerCheckedPlayers.Count + " players checked)", 4);
                                         } else {
                                             Log.Debug("Player skipped after disabling hacker checker.", 2);
                                         }
@@ -11381,8 +11381,6 @@ namespace PRoConEvents
                             if (killDiff > 0) {
                                 Log.Warn(logString);
                                 Log.Warn(String.Join(", ", aPlayer.RecentKills.Select(aKill => aKill.weaponCode).ToArray()));
-                            } else {
-                                Log.Info(logString);
                             }
                             if (killDiff > 5 && !PlayerProtected(aPlayer)) {
                                 QueueRecordForProcessing(new AdKatsRecord {
