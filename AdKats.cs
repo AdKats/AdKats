@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.8.5
+ * Version 6.6.8.6
  * 7-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.8.5</version_code>
+ * <version_code>6.6.8.6</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.8.5";
+        private const String PluginVersion = "6.6.8.6";
 
         public enum GameVersion
         {
@@ -9325,39 +9325,11 @@ namespace PRoConEvents
             Log.Debug("Exiting PostAndResetMapBenefitStatistics", 7);
         }
 
-        public void PostPlayerWinLossStatistics()
+        public void PostRoundStatistics(AdKatsTeam winningTeam, AdKatsTeam losingTeam)
         {
             Log.Debug("Entering PostPlayerWinLossStatistics", 7);
             try
             {
-                AdKatsTeam team1, team2;
-                if (!GetTeamByID(1, out team1))
-                {
-                    if (_roundState == RoundState.Playing)
-                    {
-                        Log.Error("Teams not loaded when they should be.");
-                    }
-                    return;
-                }
-                if (!GetTeamByID(2, out team2))
-                {
-                    if (_roundState == RoundState.Playing)
-                    {
-                        Log.Error("Teams not loaded when they should be.");
-                    }
-                    return;
-                }
-                AdKatsTeam winningTeam, losingTeam;
-                if (team1.TeamTicketCount > team2.TeamTicketCount)
-                {
-                    winningTeam = team1;
-                    losingTeam = team2;
-                }
-                else
-                {
-                    winningTeam = team2;
-                    losingTeam = team1;
-                }
                 List<AdKatsPlayer> WinningPlayers = _PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && aPlayer.player_type == PlayerType.Player).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
                 List<AdKatsPlayer> LosingPlayers = _PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == losingTeam.TeamID && aPlayer.player_type == PlayerType.Player).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
                 foreach (AdKatsPlayer aPlayer in WinningPlayers)
@@ -9491,8 +9463,77 @@ namespace PRoConEvents
         public override void OnRoundOverTeamScores(List<TeamScore> teamScores)
         {
             try {
+                //Update the live team scores
+                if (teamScores != null) {
+                    foreach (var teamScore in teamScores) {
+                        AdKatsTeam aTeam;
+                        if (GetTeamByID(teamScore.TeamID, out aTeam)) {
+                            aTeam.UpdateTicketCount(teamScore.Score);
+                        }
+                    }
+                }
+                AdKatsTeam team1, team2;
+                if (!GetTeamByID(1, out team1)) {
+                    if (_roundState == RoundState.Playing) {
+                        Log.Error("Teams not loaded when they should be.");
+                    }
+                    return;
+                }
+                if (!GetTeamByID(2, out team2)) {
+                    if (_roundState == RoundState.Playing) {
+                        Log.Error("Teams not loaded when they should be.");
+                    }
+                    return;
+                }
+                AdKatsTeam winningTeam, losingTeam;
+                if (team1.TeamTicketCount > team2.TeamTicketCount) {
+                    winningTeam = team1;
+                    losingTeam = team2;
+                } else {
+                    winningTeam = team2;
+                    losingTeam = team1;
+                }
+                if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
+                    if (_serverInfo.ServerName.Contains("EU #5")) {
+                        //Do nothing
+                    } else if (_serverInfo.ServerName.Contains("#5")) {
+                        Int32 quality = 0;
+                        if (losingTeam.TeamTicketCount >= 230) {
+                            quality = 2;
+                        } else if (losingTeam.TeamTicketCount >= 200) {
+                            quality = 1;
+                        }
+                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                            stat_type = AdKatsStatistic.StatisticType.round_quality,
+                            server_id = _serverInfo.ServerID,
+                            round_id = _roundID,
+                            target_name = _serverInfo.InfoObject.Map,
+                            stat_value = quality,
+                            stat_comment = "Round was quality level " + quality,
+                            stat_time = UtcDbTime()
+                        });
+                    } else if (_serverInfo.ServerName.Contains("#7")) {
+                        Int32 quality = 2;
+                        if (winningTeam.TeamTicketCount >= 700) {
+                            quality = 0;
+                        } else if (winningTeam.TeamTicketCount >= 550) {
+                            quality = 1;
+                        }
+                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                            stat_type = AdKatsStatistic.StatisticType.round_quality,
+                            server_id = _serverInfo.ServerID,
+                            round_id = _roundID,
+                            target_name = _serverInfo.InfoObject.Map,
+                            stat_value = quality,
+                            stat_comment = "Round was quality level " + quality,
+                            stat_time = UtcDbTime()
+                        });
+                    } else if (_serverInfo.ServerName.Contains("#6")) {
+                        //Do nothing
+                    }
+                }
                 if (_PostWinLossBaserapeStatistics) {
-                    PostPlayerWinLossStatistics();
+                    PostRoundStatistics(winningTeam, losingTeam);
                 }
                 //Stat refresh
                 List<AdKatsPlayer> roundPlayerObjects;
@@ -31802,7 +31843,7 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
                         command.Parameters.AddWithValue("@tops_minimum", minTops);
-                        command.Parameters.AddWithValue("@toproundratio_minimum", 0.6);
+                        command.Parameters.AddWithValue("@toproundratio_minimum", 0.65);
                         //Attempt to execute the query
                         using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             //Grab the matching players
@@ -40460,7 +40501,8 @@ namespace PRoConEvents
                 player_win,
                 player_loss,
                 player_baserape,
-                player_top
+                player_top,
+                round_quality
             }
 
             public Int64 stat_id;
