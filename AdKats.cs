@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.8.7
+ * Version 6.6.8.8
  * 9-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.8.7</version_code>
+ * <version_code>6.6.8.8</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.8.7";
+        private const String PluginVersion = "6.6.8.8";
 
         public enum GameVersion
         {
@@ -9497,6 +9497,12 @@ namespace PRoConEvents
                     if (_serverInfo.ServerName.Contains("EU #5")) {
                         //Do nothing
                     } else if (_serverInfo.ServerName.Contains("#5")) {
+                        StartAndLogThread(new Thread(new ThreadStart(delegate {
+                            Thread.CurrentThread.Name = "RoundOverSkip";
+                            Thread.Sleep(TimeSpan.FromSeconds(10));
+                            ExecuteCommand("procon.protected.send", "mapList.runNextRound");
+                            LogThreadExit();
+                        })));
                         Int32 quality = 0;
                         if (losingTeam.TeamTicketCount >= 230) {
                             quality = 2;
@@ -9576,10 +9582,12 @@ namespace PRoConEvents
 
         public override void OnRunNextLevel()
         {
-            _roundState = RoundState.Ended;
-            _pingKicksThisRound = 0;
-            foreach (AdKatsPlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
-                aPlayer.RequiredTeam = null;
+            if (_roundState != RoundState.Ended) {
+                _roundState = RoundState.Ended;
+                _pingKicksThisRound = 0;
+                foreach (AdKatsPlayer aPlayer in _FetchedPlayers.Values.Where(aPlayer => aPlayer.RequiredTeam != null)) {
+                    aPlayer.RequiredTeam = null;
+                }
             }
         }
 
