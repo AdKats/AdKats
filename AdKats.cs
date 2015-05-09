@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.8.1
+ * Version 6.6.8.2
  * 7-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.8.1</version_code>
+ * <version_code>6.6.8.2</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.8.1";
+        private const String PluginVersion = "6.6.8.2";
 
         public enum GameVersion
         {
@@ -1236,7 +1236,7 @@ namespace PRoConEvents
                             .Where(aPlayer => 
                                 _topPlayers.ContainsKey(aPlayer.player_name))
                             .Select(aPlayer => 
-                                ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
+                                ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing)?(_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> "):("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
                             .OrderBy(item => item);
                         lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayers.ToArray()));
                         lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
@@ -6263,7 +6263,7 @@ namespace PRoConEvents
 
                             //Check for keep alive every 30 seconds
                             if ((UtcDbTime() - lastKeepAliveCheck).TotalSeconds > 30) {
-                                if (_isTestingAuthorized) {
+                                if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
                                     UpdateTopPlayers();
                                 }
                                 if (_isTestingAuthorized && 
@@ -7660,41 +7660,46 @@ namespace PRoConEvents
                                     if (_roundState == RoundState.Playing) {
                                         aPlayer.RoundStats[_roundID].LiveStats = aPlayer.frostbitePlayerInfo;
                                     }
-                                    //Top player processing
-                                    if (_firstPlayerListComplete &&
-                                        _isTestingAuthorized &&
-                                        aPlayer.RequiredTeam == null &&
-                                        _topPlayers.ContainsKey(aPlayer.player_name)) {
-                                        AdKatsTeam t1, t2;
-                                        if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
-                                            var team1BRCCount = _PlayerDictionary.Values.Count(
-                                                dPlayer =>
-                                                    dPlayer.player_type == PlayerType.Player &&
-                                                    _topPlayers.ContainsKey(dPlayer.player_name) &&
-                                                    dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID);
-                                            var team2BRCCount = _PlayerDictionary.Values.Count(
-                                                dPlayer =>
-                                                    dPlayer.player_type == PlayerType.Player &&
-                                                    _topPlayers.ContainsKey(dPlayer.player_name) &&
-                                                    dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID);
-                                            if (team1BRCCount > team2BRCCount) {
-                                                aPlayer.RequiredTeam = t2;
-                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
-                                            } 
-                                            else if (team2BRCCount > team1BRCCount) {
-                                                aPlayer.RequiredTeam = t2;
-                                                ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
-                                            }
-                                            else {
-                                                GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out aPlayer.RequiredTeam);
-                                            }
-                                            Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                            UpdateSettingPage();
-                                        } else {
-                                            if (_roundState == RoundState.Playing) {
-                                                Log.Error("Teams not loaded when they should be.");
+                                    try {
+                                        //Top player processing
+                                        if (_firstPlayerListComplete &&
+                                            _isTestingAuthorized &&
+                                            aPlayer.RequiredTeam == null &&
+                                            _topPlayers.ContainsKey(aPlayer.player_name)) {
+                                            AdKatsTeam t1, t2;
+                                            if (GetTeamByID(1, out t1) && GetTeamByID(2, out t2)) {
+                                                var team1TopCount = _PlayerDictionary.Values.Count(
+                                                    dPlayer =>
+                                                        dPlayer.player_type == PlayerType.Player &&
+                                                        _topPlayers.ContainsKey(dPlayer.player_name) &&
+                                                        (dPlayer.frostbitePlayerInfo.TeamID == t1.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t1.TeamID)));
+                                                var team2TopCount = _PlayerDictionary.Values.Count(
+                                                    dPlayer =>
+                                                        dPlayer.player_type == PlayerType.Player &&
+                                                        _topPlayers.ContainsKey(dPlayer.player_name) &&
+                                                        (dPlayer.frostbitePlayerInfo.TeamID == t2.TeamID || (dPlayer.RequiredTeam != null && dPlayer.RequiredTeam.TeamID == t2.TeamID)));
+                                                if (team1TopCount > team2TopCount) {
+                                                    aPlayer.RequiredTeam = t2;
+                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
+                                                } 
+                                                else if (team2TopCount > team1TopCount) {
+                                                    aPlayer.RequiredTeam = t2;
+                                                    ExecuteCommand("procon.protected.send", "admin.movePlayer", aPlayer.player_name, aPlayer.RequiredTeam.TeamID + "", aPlayer.frostbitePlayerInfo.SquadID + "", "false");
+                                                }
+                                                else {
+                                                    GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out aPlayer.RequiredTeam);
+                                                }
+                                                Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
+                                                UpdateSettingPage();
+                                            } else {
+                                                if (_roundState == RoundState.Playing) {
+                                                    Log.Error("Teams not loaded when they should be.");
+                                                }
                                             }
                                         }
+                                    }
+                                    catch (Exception e) {
+                                        HandleException(new AdKatsException("Error running player distribution.", e));
                                     }
                                 }
 
@@ -31712,7 +31717,9 @@ namespace PRoConEvents
                         if (!_topPlayers.ContainsKey(aPlayer.player_name)) {
                             if (_threadsReady) {
                                 Log.Info("Adding " + aPlayer.player_name + " to top player list.");
-                                UpdateSettingPage();
+                                if (_firstPlayerListComplete) {
+                                    UpdateSettingPage();
+                                }
                             }
                         }
                         _topPlayers[aPlayer.player_name] = aPlayer;
@@ -31720,7 +31727,9 @@ namespace PRoConEvents
                     foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
                         if (_threadsReady) {
                             Log.Info("Removing " + aPlayer.player_name + " from top player list.");
-                            UpdateSettingPage();
+                            if (_firstPlayerListComplete) {
+                                UpdateSettingPage();
+                            }
                         }
                         _topPlayers.Remove(aPlayer.player_name);
                     }
