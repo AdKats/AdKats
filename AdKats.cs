@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.9.0
- * 9-MAY-2015
+ * Version 6.6.9.1
+ * 10-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.9.0</version_code>
+ * <version_code>6.6.9.1</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.9.0";
+        private const String PluginVersion = "6.6.9.1";
 
         public enum GameVersion
         {
@@ -9499,7 +9499,7 @@ namespace PRoConEvents
                     } else if (_serverInfo.ServerName.Contains("#5")) {
                         StartAndLogThread(new Thread(new ThreadStart(delegate {
                             Thread.CurrentThread.Name = "RoundOverSkip";
-                            Thread.Sleep(TimeSpan.FromSeconds(15));
+                            Thread.Sleep(TimeSpan.FromSeconds(17));
                             ExecuteCommand("procon.protected.send", "mapList.runNextRound");
                             LogThreadExit();
                         })));
@@ -20546,10 +20546,17 @@ namespace PRoConEvents
                                 Log.Debug("Preparing to fetch battlelog info for player", 6);
                                 //Dequeue the record
                                 AdKatsPlayer aPlayer = unprocessedBattlelogFetchPlayers.Dequeue();
+                                if (aPlayer.blInfoFetched) {
+                                    continue;
+                                }
                                 //Old Tag
                                 String oldTag = aPlayer.player_clanTag;
                                 //Run the appropriate action
-                                FetchPlayerBattlelogInformation(aPlayer);
+                                if (!FetchPlayerBattlelogInformation(aPlayer)) {
+                                    //No info found/error, requeue them for fetching
+                                    Thread.Sleep(TimeSpan.FromSeconds(0.50));
+                                    QueuePlayerForBattlelogInfoFetch(aPlayer);
+                                }
                                 //Update database with clan tag
                                 if (!String.IsNullOrEmpty(aPlayer.player_clanTag) && (String.IsNullOrEmpty(oldTag) || aPlayer.player_clanTag != oldTag))
                                 {
@@ -36900,18 +36907,14 @@ namespace PRoConEvents
             return playerData;
         }
 
-        public void FetchPlayerBattlelogInformation(AdKatsPlayer aPlayer)
+        public Boolean FetchPlayerBattlelogInformation(AdKatsPlayer aPlayer)
         {
             try
             {
-                if (aPlayer.blInfoFetched)
-                {
-                    return;
-                }
                 if (String.IsNullOrEmpty(aPlayer.player_name))
                 {
                     Log.Error("Attempted to get battlelog information of nameless player.");
-                    return;
+                    return false;
                 }
                 if (_gameVersion == GameVersion.BF3)
                 {
@@ -36925,7 +36928,7 @@ namespace PRoConEvents
                             if (!pid.Success)
                             {
                                 //HandleException(new AdKatsException("Could not find BF3 persona ID for " + aPlayer.player_name));
-                                return;
+                                return false;
                             }
                             aPlayer.player_personaID = pid.Groups[1].Value.Trim();
                             Log.Debug("Persona ID fetched for " + aPlayer.player_name, 4);
@@ -36940,9 +36943,14 @@ namespace PRoConEvents
                                 Log.Debug("Clan tag [" + aPlayer.player_clanTag + "] found for " + aPlayer.player_name, 4);
                             }
                         }
-                        catch (Exception)
+                        catch (Exception e)
                         {
-                            return;
+                            if (e is WebException) {
+                                Log.Debug("Error connecting to battlelog.", 3);
+                                return true;
+                            }
+                            HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
+                            return false;
                         }
                     }
                 }
@@ -36960,7 +36968,7 @@ namespace PRoConEvents
                                 if (!pid.Success)
                                 {
                                     HandleException(new AdKatsException("Could not find persona ID for " + aPlayer.player_name));
-                                    return;
+                                    return false;
                                 }
                                 aPlayer.player_personaID = pid.Groups[1].Value.Trim();
                                 Log.Debug("Persona ID fetched for " + aPlayer.player_name, 4);
@@ -36991,9 +36999,13 @@ namespace PRoConEvents
                                 }
                             }
                         }
-                        catch (Exception e)
-                        {
-                            HandleException(new AdKatsException("Error while parsing player stats data.", e));
+                        catch (Exception e) {
+                            if (e is WebException) {
+                                Log.Debug("Error connecting to battlelog.", 3);
+                                return true;
+                            }
+                            HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
+                            return false;
                         }
                     }
                 }
@@ -37052,9 +37064,13 @@ namespace PRoConEvents
                                 }
                             }
                         }
-                        catch (Exception e)
-                        {
-                            Log.Exception("Error fetching BFHL player info", e, 0);
+                        catch (Exception e) {
+                            if (e is WebException) {
+                                Log.Debug("Error connecting to battlelog.", 3);
+                                return true;
+                            }
+                            HandleException(new AdKatsException("Error while parsing player battlelog data.", e));
+                            return false;
                         }
                     }
                 }
@@ -37063,7 +37079,9 @@ namespace PRoConEvents
             catch (Exception e)
             {
                 HandleException(new AdKatsException("Error while fetching battlelog information for " + aPlayer.player_name, e));
+                return false;
             }
+            return true;
         }
 
         public Boolean FetchPlayerStatInformation(AdKatsPlayer aPlayer) {
@@ -37144,7 +37162,12 @@ namespace PRoConEvents
                         }
                         aPlayer.RoundStats[_roundID] = stats;
                         return true;
-                    } catch (Exception) {
+                    } catch (Exception e) {
+                        if (e is WebException) {
+                            Log.Debug("Error connecting to battlelog.", 3);
+                            return false;
+                        }
+                        HandleException(new AdKatsException("Error while parsing player stats data.", e));
                         return false;
                     }
                 }
@@ -37281,7 +37304,12 @@ namespace PRoConEvents
                         aPlayer.RoundStats[_roundID] = stats;
                         return true;
                     } catch (Exception e) {
+                        if (e is WebException) {
+                            Log.Debug("Error connecting to battlelog.", 3);
+                            return false;
+                        }
                         HandleException(new AdKatsException("Error while parsing player stats data.", e));
+                        return false;
                     }
                 }
             } else if (_gameVersion == GameVersion.BFHL) {
@@ -37358,7 +37386,12 @@ namespace PRoConEvents
                         aPlayer.RoundStats[_roundID] = stats;
                         return true;
                     } catch (Exception e) {
-                        Log.Exception("Error fetching BFHL player info", e, 0);
+                        if (e is WebException) {
+                            Log.Debug("Error connecting to battlelog.", 3);
+                            return false;
+                        }
+                        HandleException(new AdKatsException("Error while parsing player stats data.", e));
+                        return false;
                     }
                 }
             }
