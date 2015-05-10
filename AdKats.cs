@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.9.1
+ * Version 6.6.9.2
  * 10-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.9.1</version_code>
+ * <version_code>6.6.9.2</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.9.1";
+        private const String PluginVersion = "6.6.9.2";
 
         public enum GameVersion
         {
@@ -33319,14 +33319,10 @@ namespace PRoConEvents
                                             }
                                             break;
                                         case "player_say":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                                {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                                    changed = true;
-                                                }
+                                            if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden) {
+                                                Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                changed = true;
                                             }
                                             break;
                                         case "admin_yell":
@@ -33341,14 +33337,10 @@ namespace PRoConEvents
                                             }
                                             break;
                                         case "player_yell":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                                {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                                    changed = true;
-                                                }
+                                            if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden) {
+                                                Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                changed = true;
                                             }
                                             break;
                                         case "admin_tell":
@@ -33363,14 +33355,10 @@ namespace PRoConEvents
                                             }
                                             break;
                                         case "player_tell":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                                {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                                    changed = true;
-                                                }
+                                            if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden) {
+                                                Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                changed = true;
                                             }
                                             break;
                                         case "player_ban_perm_future":
@@ -33407,14 +33395,10 @@ namespace PRoConEvents
                                             }
                                             break;
                                         case "player_find":
-                                            if (_isTestingAuthorized)
-                                            {
-                                                if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden)
-                                                {
-                                                    Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
-                                                    currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
-                                                    changed = true;
-                                                }
+                                            if (currentCommand.command_access != AdKatsCommand.CommandAccess.AnyHidden) {
+                                                Log.Warn(currentCommand.command_name + " access must be 'AnyHidden'. Resetting.");
+                                                currentCommand.command_access = AdKatsCommand.CommandAccess.AnyHidden;
+                                                changed = true;
                                             }
                                             break;
                                         case "self_reportlist":
@@ -38841,7 +38825,11 @@ namespace PRoConEvents
         {
             try
             {
-                if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled && !_pluginUpdatePatched) || (_isTestingAuthorized) || (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)) || manual)
+                if ((_pluginVersionStatus == VersionStatus.OutdatedBuild && !_automaticUpdatesDisabled && !_pluginUpdatePatched) || 
+                    _pluginVersionStatus == VersionStatus.TestBuild || 
+                    (_isTestingAuthorized) || 
+                    (!String.IsNullOrEmpty(_AdKatsLRTExtensionToken)) || 
+                    manual)
                 {
                     if (_aliveThreads.Values.Any(aThread => aThread.Name == "PluginUpdater"))
                     {
