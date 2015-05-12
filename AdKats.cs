@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.9.3
+ * Version 6.6.9.4
  * 11-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.9.3</version_code>
+ * <version_code>6.6.9.4</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.9.3";
+        private const String PluginVersion = "6.6.9.4";
 
         public enum GameVersion
         {
@@ -6263,6 +6263,38 @@ namespace PRoConEvents
 
                             //Check for keep alive every 30 seconds
                             if ((UtcDbTime() - lastKeepAliveCheck).TotalSeconds > 30) {
+                                //Auto-squad-leader
+                                if (_isTestingAuthorized && 
+                                    _serverInfo.ServerName.Contains("#7") &&
+                                    _serverInfo.GetRoundElapsedTime().TotalMinutes > 5) {
+                                    var onlinePlayers = _PlayerDictionary.Values.ToList();
+                                    var squads = onlinePlayers.GroupBy(aPlayer => new {
+                                        aPlayer.frostbitePlayerInfo.TeamID,
+                                        aPlayer.frostbitePlayerInfo.SquadID
+                                    });
+                                    foreach (var squad in squads) {
+                                        Int32 topScore = 0;
+                                        AdKatsPlayer topPlayer = null;
+                                        foreach (var aPlayer in squad) {
+                                            if (aPlayer.frostbitePlayerInfo.Score > topScore) {
+                                                topScore = aPlayer.frostbitePlayerInfo.Score;
+                                                topPlayer = aPlayer;
+                                            }
+                                        }
+                                        if (topPlayer != null) {
+                                            Thread.Sleep(100);
+                                            ExecuteCommand(
+                                                "procon.protected.send", 
+                                                "squad.leader", 
+                                                topPlayer.frostbitePlayerInfo.TeamID.ToString(), 
+                                                topPlayer.frostbitePlayerInfo.SquadID.ToString(), 
+                                                topPlayer.player_name);
+                                            Log.Info(topPlayer.GetVerboseName() + " given lead.");
+                                        }
+                                    }
+                                }
+
+                                //Auto-assist
                                 AdKatsTeam team1, team2, winningTeam, losingTeam;
                                 if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
                                     if (team1.TeamTicketCount > team2.TeamTicketCount) {
@@ -12749,18 +12781,20 @@ namespace PRoConEvents
                                     if (_isTestingAuthorized && _gameVersion != GameVersion.BF3)
                                     {
                                         string lowerM = " " + messageObject.Message.ToLower() + " ";
-                                        if (lowerM.Contains(" ping"))
-                                        {
-                                            if (!PlayerIsAdmin(aPlayer))
-                                            {
+                                        if (lowerM.Contains("bipod")) {
+                                            if (!PlayerIsAdmin(aPlayer)) {
+                                                PlayerTellMessage(messageObject.Speaker, "Patches for both bipod glitching and head glitching are dropping soon.");
+                                                continue;
+                                            }
+                                        }
+                                        if (lowerM.Contains(" ping")) {
+                                            if (!PlayerIsAdmin(aPlayer)) {
                                                 PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 and missing pings are kicked when the server is full.");
                                                 continue;
                                             }
                                         }
-                                        if (lowerM.Contains(" plng") || lowerM.Contains(" p|ng"))
-                                        {
-                                            if (!PlayerIsAdmin(aPlayer))
-                                            {
+                                        if (lowerM.Contains(" plng") || lowerM.Contains(" p|ng")) {
+                                            if (!PlayerIsAdmin(aPlayer)) {
                                                 PlayerTellMessage(messageObject.Speaker, "Really? Bypassing the ping message?");
                                                 continue;
                                             }
