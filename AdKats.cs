@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.9.2
- * 10-MAY-2015
+ * Version 6.6.9.3
+ * 11-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.9.2</version_code>
+ * <version_code>6.6.9.3</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.9.2";
+        private const String PluginVersion = "6.6.9.3";
 
         public enum GameVersion
         {
@@ -6263,43 +6263,35 @@ namespace PRoConEvents
 
                             //Check for keep alive every 30 seconds
                             if ((UtcDbTime() - lastKeepAliveCheck).TotalSeconds > 30) {
-                                if (_isTestingAuthorized && 
-                                    _roundState == RoundState.Playing && 
-                                    _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 && 
-                                    !_Team1MoveQueue.Any() && 
-                                    !_Team2MoveQueue.Any()) {
-                                    var onlineAUAPlayers = GetOnlinePlayerDictionaryOfGroup("blacklist_autoassist");
-                                    if (onlineAUAPlayers.Any()) {
-                                        AdKatsTeam team1, team2, winningTeam, losingTeam;
-                                        if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2))
-                                        {
-                                            if (team1.TeamTicketCount > team2.TeamTicketCount)
-                                            {
-                                                winningTeam = team1;
-                                                losingTeam = team2;
-                                            }
-                                            else
-                                            {
-                                                winningTeam = team2;
-                                                losingTeam = team1;
-                                            }
-                                            foreach (var aPlayer in onlineAUAPlayers.Values.Where(dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID))
-                                            {
-                                                Thread.Sleep(2000);
-                                                _PlayersAutoAssistedThisRound = true;
-                                                QueueRecordForProcessing(new AdKatsRecord
-                                                {
-                                                    record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                    server_id = _serverInfo.ServerID,
-                                                    command_type = GetCommandByKey("self_assist"),
-                                                    command_action = GetCommandByKey("self_assist_unconfirmed"),
-                                                    target_name = aPlayer.player_name,
-                                                    target_player = aPlayer,
-                                                    source_name = "AUAManager",
-                                                    record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
-                                                    record_time = UtcDbTime()
-                                                });
-                                            }
+                                AdKatsTeam team1, team2, winningTeam, losingTeam;
+                                if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
+                                    if (team1.TeamTicketCount > team2.TeamTicketCount) {
+                                        winningTeam = team1;
+                                        losingTeam = team2;
+                                    } else {
+                                        winningTeam = team2;
+                                        losingTeam = team1;
+                                    }
+                                    if (_roundState == RoundState.Playing &&
+                                        _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 && 
+                                        Math.Abs(team1.TeamTicketCount - team2.TeamTicketCount) > 100 &&
+                                        !_Team1MoveQueue.Any() &&
+                                        !_Team2MoveQueue.Any()) {
+                                        foreach (var aPlayer in GetOnlinePlayerDictionaryOfGroup("blacklist_autoassist").Values
+                                            .Where(dPlayer => dPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID)) {
+                                            Thread.Sleep(2000);
+                                            _PlayersAutoAssistedThisRound = true;
+                                            QueueRecordForProcessing(new AdKatsRecord {
+                                                record_source = AdKatsRecord.Sources.InternalAutomated,
+                                                server_id = _serverInfo.ServerID,
+                                                command_type = GetCommandByKey("self_assist"),
+                                                command_action = GetCommandByKey("self_assist_unconfirmed"),
+                                                target_name = aPlayer.player_name,
+                                                target_player = aPlayer,
+                                                source_name = "AUAManager",
+                                                record_message = "Auto-assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]",
+                                                record_time = UtcDbTime()
+                                            });
                                         }
                                     }
                                 }
@@ -11374,9 +11366,11 @@ namespace PRoConEvents
                     AdKatsPlayerStats currentStats;
                     if (aPlayer.RoundStats.TryGetValue(_roundID, out currentStats) &&
                         aPlayer.RoundStats.TryGetValue(_roundID - 1, out previousStats)) {
-                        if (previousStats.LiveStats != null && 
-                            previousStats.WeaponStats != null && 
-                            previousStats.VehicleStats != null) {
+                            if (previousStats.LiveStats != null &&
+                                previousStats.WeaponStats != null &&
+                                previousStats.VehicleStats != null &&
+                                currentStats.WeaponStats != null &&
+                                currentStats.VehicleStats != null) {
                             Int32 liveKillDiff = previousStats.LiveStats.Kills;
                             Int32 previousKillCount = 
                                 (Int32) previousStats.WeaponStats.Values.Sum(aWeapon => aWeapon.Kills) +
