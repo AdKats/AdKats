@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.9.6
- * 11-MAY-2015
+ * Version 6.6.9.8
+ * 12-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.9.6</version_code>
+ * <version_code>6.6.9.8</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.9.6";
+        private const String PluginVersion = "6.6.9.8";
 
         public enum GameVersion
         {
@@ -132,14 +132,14 @@ namespace PRoConEvents
         private volatile String _pluginRebootOnDisableSource;
         private volatile Boolean _threadsReady;
         private volatile String _latestPluginVersion;
-        private volatile Int32 _latestPluginVersionInt;
-        private volatile Int32 _currentPluginVersionInt;
+        private Int64 _latestPluginVersionInt;
+        private Int64 _currentPluginVersionInt;
         private volatile String _pluginVersionStatusString;
         private volatile VersionStatus _pluginVersionStatus = VersionStatus.UnfetchedBuild;
         private volatile Boolean _pluginUpdateServerInfoChecked;
         private volatile Boolean _pluginUpdatePatched;
         private volatile String _pluginPatchedVersion;
-        private volatile Int32 _pluginPatchedVersionInt;
+        private Int64 _pluginPatchedVersionInt;
         private volatile String _pluginUpdateProgress = "NotStarted";
         private volatile String _pluginDescFetchProgress = "NotStarted";
         private AdKatsRecord _pluginUpdateCaller;
@@ -6039,14 +6039,12 @@ namespace PRoConEvents
                     {
                         //Extract the latest stable version
                         String latestStableVersion = ExtractString(_pluginDescription, "latest_stable_release");
-                        if (!String.IsNullOrEmpty(latestStableVersion))
+                        if (!String.IsNullOrEmpty(latestStableVersion)) 
                         {
-                            //Convert it to an integer
-                            String trimmedLatestStableVersion = latestStableVersion.Replace(".", "");
                             _latestPluginVersion = latestStableVersion;
-                            _latestPluginVersionInt = Int32.Parse(trimmedLatestStableVersion);
+                            _latestPluginVersionInt = ConvertVersionInt(latestStableVersion);
                             //Get current plugin version
-                            _currentPluginVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
+                            _currentPluginVersionInt = ConvertVersionInt(PluginVersion);
 
                             String versionStatus = String.Empty;
                             //Add the appropriate message to plugin description
@@ -6263,12 +6261,14 @@ namespace PRoConEvents
 
                             //Check for keep alive every 30 seconds
                             if ((UtcDbTime() - lastKeepAliveCheck).TotalSeconds > 30) {
+
                                 //Auto-squad-leader
                                 if (_isTestingAuthorized && 
                                     _firstPlayerListComplete &&
                                     _serverInfo.ServerName.Contains("#7") &&
-                                    _serverInfo.GetRoundElapsedTime().TotalMinutes > 1 &&
-                                    (((Int32)_serverInfo.GetRoundElapsedTime().TotalMinutes) % 5 == 0)) {
+                                    _roundState == RoundState.Playing &&
+                                    _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 &&
+                                    _serverInfo.GetRoundElapsedTime().TotalMinutes < 6) {
                                     var onlinePlayers = _PlayerDictionary.Values.ToList();
                                     var squads = onlinePlayers.GroupBy(aPlayer => new {
                                         aPlayer.frostbitePlayerInfo.TeamID,
@@ -37744,7 +37744,7 @@ namespace PRoConEvents
                 {
                     return;
                 }
-                Int32 currentVersionInt = Int32.Parse(PluginVersion.Replace(".", ""));
+                Int64 currentVersionInt = ConvertVersionInt(PluginVersion);
                 foreach (AdKatsSQLUpdate update in FetchSQLUpdates())
                 {
                     if (!_pluginEnabled)
@@ -37759,12 +37759,12 @@ namespace PRoConEvents
                     try
                     {
                         //Check for valid version
-                        if (!String.IsNullOrEmpty(update.version_minimum) && currentVersionInt < Int32.Parse(update.version_minimum.Replace(".", "")))
+                        if (!String.IsNullOrEmpty(update.version_minimum) && currentVersionInt < ConvertVersionInt(update.version_minimum))
                         {
                             Log.Debug("Cancelling SQL update '" + update.update_id + "'. Version too early for update.", 5);
                             continue;
                         }
-                        if (!String.IsNullOrEmpty(update.version_maximum) && currentVersionInt > Int32.Parse(update.version_maximum.Replace(".", "")))
+                        if (!String.IsNullOrEmpty(update.version_maximum) && currentVersionInt > ConvertVersionInt(update.version_maximum))
                         {
                             Log.Debug("Cancelling SQL update '" + update.update_id + "'. Version too late for update.", 5);
                             continue;
@@ -39023,8 +39023,7 @@ namespace PRoConEvents
                             String patchedVersion = ExtractString(pluginSource, "version_code");
                             if (!String.IsNullOrEmpty(patchedVersion))
                             {
-                                String trimmedPatchedVersion = patchedVersion.Replace(".", "");
-                                Int32 patchedVersionInt = Int32.Parse(trimmedPatchedVersion);
+                                Int64 patchedVersionInt = ConvertVersionInt(patchedVersion);
                                 if (patchedVersionInt >= _currentPluginVersionInt)
                                 {
                                     //Patched version is newer than current version
@@ -39556,7 +39555,7 @@ namespace PRoConEvents
                         isDebug = true,
                         server_id = _serverInfo.ServerID,
                         command_type = GetCommandByKey("adkats_exception"),
-                        command_numeric = _currentPluginVersionInt,
+                        command_numeric = Int32.Parse(GetPluginVersion().Replace(".", "")),
                         target_name = "AdKats",
                         target_player = null,
                         source_name = "AdKats",
@@ -39958,6 +39957,28 @@ namespace PRoConEvents
                 Thread.Sleep(_GoogleWaitDuration - (UtcDbTime() - _LastGoogleAction));
             }
             _LastGoogleAction = UtcDbTime();
+        }
+
+        public Int64 ConvertVersionInt(String version) {
+            try {
+                String[] versionSplit = version.Split('.');
+                Int64 major, minor, patch, hotfix;
+                if (versionSplit.Length == 4 && 
+                    Int64.TryParse(versionSplit[0], out major) && 
+                    Int64.TryParse(versionSplit[1], out minor) && 
+                    Int64.TryParse(versionSplit[2], out patch) &&
+                    Int64.TryParse(versionSplit[3], out hotfix)) {
+                    return 
+                        (major * 1000000000) + 
+                        (minor * 1000000) + 
+                        (patch * 1000) + 
+                        (hotfix);
+                }
+            }
+            catch (Exception e) {
+                HandleException(new AdKatsException("Error converting version number.", e));
+            }
+            return 0;
         }
 
         private void FetchIPLocation(AdKatsPlayer aPlayer)
