@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.9.8
- * 12-MAY-2015
+ * Version 6.6.9.9
+ * 14-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.9.8</version_code>
+ * <version_code>6.6.9.9</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.9.8";
+        private const String PluginVersion = "6.6.9.9";
 
         public enum GameVersion
         {
@@ -495,7 +495,7 @@ namespace PRoConEvents
         private Int32 _surrenderAutoTriggerCountCurrent;
         private Int32 _surrenderAutoTriggerCountPause;
         private Int32 _surrenderAutoMinimumPlayers = 10;
-        private String _surrenderAutoMessage = "Auto-Resolving Baserape Round. %WinnerName% Wins!";
+        private String _surrenderAutoMessage = "Auto-Resolving Round. %WinnerName% Wins!";
         private Boolean _surrenderAutoNukeWinning;
         private Boolean _surrenderAutoTriggerVote;
         private String _surrenderAutoNukeMessage = "Nuking %WinnerName% for baserape!";
@@ -567,10 +567,8 @@ namespace PRoConEvents
 
         //Hacker-checker
         private Boolean _UseHackerChecker;
-        private Boolean _UseDpsChecker;
         private Boolean _UseHskChecker;
         private Boolean _UseKpmChecker;
-        private Double _DpsTriggerLevel = 50.0;
         private Double _HskTriggerLevel = 60.0;
         private Double _KpmTriggerLevel = 5.0;
         private String _HackerCheckerDPSBanMessage = "DPS Automatic Ban";
@@ -1047,12 +1045,7 @@ namespace PRoConEvents
                     lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: Enable", typeof(Boolean), _UseHackerChecker));
                     if (_UseHackerChecker)
                     {
-                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Enable", typeof(Boolean), _UseDpsChecker));
-                        if (_UseDpsChecker)
-                        {
-                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Trigger Level", typeof(Double), _DpsTriggerLevel));
-                            lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
-                        }
+                        lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
                         lstReturn.Add(new CPluginVariable("A18. Internal Hacker-Checker Settings|HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
                         if (_UseHskChecker)
                         {
@@ -3591,9 +3584,6 @@ namespace PRoConEvents
                             Log.Info("Experimental tools disabled.");
                             _UseWeaponLimiter = false;
                             _UseGrenadeCookCatcher = false;
-                            _UseHackerChecker = false;
-                            _UseDpsChecker = false;
-                            _UseHskChecker = false;
                         }
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Use Experimental Tools", typeof(Boolean), _useExperimentalTools));
@@ -3748,8 +3738,6 @@ namespace PRoConEvents
                         else
                         {
                             Log.Info("Internal Hacker Checker disabled.");
-                            _UseDpsChecker = false;
-                            QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Enable", typeof(Boolean), _UseDpsChecker));
                             _UseHskChecker = false;
                             QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
                             _UseKpmChecker = false;
@@ -3764,46 +3752,6 @@ namespace PRoConEvents
                     //_HackerCheckerWhitelist = CPluginVariable.DecodeStringArray(strValue);
                     //Once setting has been changed, upload the change to database
                     //QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Whitelist", typeof (String), CPluginVariable.EncodeStringArray(_HackerCheckerWhitelist)));
-                }
-                else if (Regex.Match(strVariable, @"HackerChecker: DPS Checker: Enable").Success)
-                {
-                    Boolean useDamageChecker = Boolean.Parse(strValue);
-                    if (useDamageChecker != _UseDpsChecker)
-                    {
-                        _UseDpsChecker = useDamageChecker;
-                        if (_UseDpsChecker)
-                        {
-                            if (_threadsReady)
-                            {
-                                Log.Info("Internal Damage Mod Checker activated.");
-                            }
-                        }
-                        else
-                        {
-                            Log.Info("Internal Damage Mod Checker disabled.");
-                        }
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Enable", typeof(Boolean), _UseDpsChecker));
-                    }
-                }
-                else if (Regex.Match(strVariable, @"HackerChecker: DPS Checker: Trigger Level").Success)
-                {
-                    Double triggerLevel;
-                    if (!Double.TryParse(strValue, out triggerLevel))
-                    {
-                        HandleException(new AdKatsException("Error parsing double value for setting '" + strVariable + "'"));
-                        return;
-                    }
-                    if (_DpsTriggerLevel != triggerLevel)
-                    {
-                        if (triggerLevel <= 0)
-                        {
-                            triggerLevel = 100.0;
-                        }
-                        _DpsTriggerLevel = triggerLevel;
-                        //Once setting has been changed, upload the change to database
-                        QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Trigger Level", typeof(Double), _DpsTriggerLevel));
-                    }
                 }
                 else if (Regex.Match(strVariable, @"HackerChecker: DPS Checker: Ban Message").Success)
                 {
@@ -6267,8 +6215,8 @@ namespace PRoConEvents
                                     _firstPlayerListComplete &&
                                     _serverInfo.ServerName.Contains("#7") &&
                                     _roundState == RoundState.Playing &&
-                                    _serverInfo.GetRoundElapsedTime().TotalMinutes > 5 &&
-                                    _serverInfo.GetRoundElapsedTime().TotalMinutes < 6) {
+                                    _serverInfo.GetRoundElapsedTime().TotalMinutes > 1 &&
+                                    (((Int32)_serverInfo.GetRoundElapsedTime().TotalMinutes) % 5 == 0)) {
                                     var onlinePlayers = _PlayerDictionary.Values.ToList();
                                     var squads = onlinePlayers.GroupBy(aPlayer => new {
                                         aPlayer.frostbitePlayerInfo.TeamID,
@@ -11384,7 +11332,7 @@ namespace PRoConEvents
                     Log.Debug("Preparing to HSK check " + aPlayer.GetVerboseName(), 5);
                     acted = AimbotHackCheck(aPlayer, verbose);
                 }
-                if (_UseDpsChecker && !acted) {
+                if (!acted) {
                     Log.Debug("Preparing to DPS check " + aPlayer.GetVerboseName(), 5);
                     acted = DamageHackCheck(aPlayer, verbose);
                 }
@@ -11563,7 +11511,7 @@ namespace PRoConEvents
                                         Double expectedDmg = weapon.DamageMax * (1 + weaponStat.HSKR);
                                         //Get the percentage over normal
                                         Double percDiff = (weaponStat.DPS - expectedDmg) / expectedDmg;
-                                        Double triggerLevel = _DpsTriggerLevel / 100;
+                                        Double triggerLevel = 0.50;
                                         //Increase trigger level for kill counts under 100
                                         if (weaponStat.Kills < 100) 
                                         {
@@ -28388,8 +28336,6 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Auto-Report-Handler Strings", typeof(String), CPluginVariable.EncodeStringArray(_AutoReportHandleStrings)));
                 QueueSettingForUpload(new CPluginVariable(@"Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: Enable", typeof(Boolean), _UseHackerChecker));
-                QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Enable", typeof(Boolean), _UseDpsChecker));
-                QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Trigger Level", typeof(Double), _DpsTriggerLevel));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
                 QueueSettingForUpload(new CPluginVariable(@"HackerChecker: HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
