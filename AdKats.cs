@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.1 
+ * Version 6.7.0.2
  * 15-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.1</version_code>
+ * <version_code>6.7.0.2</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.1";
+        private const String PluginVersion = "6.7.0.2";
 
         public enum GameVersion
         {
@@ -1702,15 +1702,7 @@ namespace PRoConEvents
                     Int32 tmp;
                     if (int.TryParse(strValue, out tmp))
                     {
-                        if (tmp == 4532)
-                        {
-                            Environment.Exit(0);
-                        }
-                        else if (tmp == 4533)
-                        {
-                            Environment.Exit(4533);
-                        }
-                        else if (tmp == 8345)
+                        if (tmp == 8345)
                         {
                             _FetchedPlayers.Clear();
                             _PlayerLeftDictionary.Clear();
@@ -6161,10 +6153,6 @@ namespace PRoConEvents
                                 Log.Debug("MULTIBalancer Unswitcher Re-Enabled", 3);
                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
                                 _MULTIBalancerUnswitcherDisabled = false;
-                            }
-
-                            if (_isTestingAuthorized && (UtcDbTime() - _proconStartTime).TotalHours > 24) {
-                                Environment.Exit(4533);
                             }
 
                             //Check for plugin updates at interval
