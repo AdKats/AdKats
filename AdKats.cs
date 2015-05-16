@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.3
- * 15-MAY-2015
+ * Version 6.7.0.5
+ * 16-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.3</version_code>
+ * <version_code>6.7.0.5</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.3";
+        private const String PluginVersion = "6.7.0.5";
 
         public enum GameVersion
         {
@@ -1225,7 +1225,7 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(tsPlayerMonitorPrefix + "Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
                         }
                     }
-                    if (_isTestingAuthorized ) {
+                    if (_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]"))) {
                         var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                             .Where(aPlayer => 
                                 _topPlayers.ContainsKey(aPlayer.player_name))
@@ -6113,7 +6113,8 @@ namespace PRoConEvents
                 try
                 {
                     Thread.CurrentThread.Name = "StatusMonitor";
-                    DateTime lastKeepAliveCheck = UtcDbTime();
+                    DateTime lastShortKeepAliveCheck = UtcDbTime();
+                    DateTime lastLongKeepAliveCheck = UtcDbTime();
                     ExecuteCommand("procon.protected.send", "serverInfo");
                     DateTime lastServerInfoRequest = UtcDbTime();
                     while (true)
@@ -6152,6 +6153,10 @@ namespace PRoConEvents
                                 Log.Debug("MULTIBalancer Unswitcher Re-Enabled", 3);
                                 ExecuteCommand("procon.protected.plugins.call", "MULTIbalancer", "UpdatePluginData", "AdKats", "bool", "DisableUnswitcher", "False");
                                 _MULTIBalancerUnswitcherDisabled = false;
+                            }
+
+                            if (_isTestingAuthorized && (UtcDbTime() - _proconStartTime).TotalHours > 24) {
+                                Environment.Exit(4533);
                             }
 
                             //Check for plugin updates at interval
@@ -6237,17 +6242,33 @@ namespace PRoConEvents
                                     _spamBotTellLastPost = UtcDbTime();
                                 }
                             }
-
-                            //Check for keep alive every 30 seconds
-                            if ((UtcDbTime() - lastKeepAliveCheck).TotalSeconds > 30) {
+                            //Check for long keep alive every 5 minutes
+                            if ((UtcDbTime() - lastLongKeepAliveCheck).TotalMinutes > 5) {
+                                //Player listing check
+                                if (_pluginEnabled && 
+                                    _firstPlayerListComplete && 
+                                    (UtcDbTime() - _lastSuccessfulPlayerList) > TimeSpan.FromMinutes(5)) {
+                                    if (_isTestingAuthorized) {
+                                        //Create report record
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_report"),
+                                            command_numeric = 0,
+                                            target_name = "AdKats",
+                                            source_name = "AdKats",
+                                            record_message = "Player listing offline. Inform ColColonCleaner.",
+                                            record_time = UtcDbTime()
+                                        });
+                                    }
+                                }
 
                                 //Auto-squad-leader
                                 if (_isTestingAuthorized && 
                                     _firstPlayerListComplete &&
                                     _serverInfo.ServerName.Contains("#7") &&
                                     _roundState == RoundState.Playing &&
-                                    _serverInfo.GetRoundElapsedTime().TotalMinutes > 1 &&
-                                    (((Int32)_serverInfo.GetRoundElapsedTime().TotalMinutes) % 5 == 0)) {
+                                    _serverInfo.GetRoundElapsedTime().TotalMinutes > 1) {
                                     var onlinePlayers = _PlayerDictionary.Values.ToList();
                                     var squads = onlinePlayers.GroupBy(aPlayer => new {
                                         aPlayer.frostbitePlayerInfo.TeamID,
@@ -6275,6 +6296,11 @@ namespace PRoConEvents
                                     }
                                 }
 
+                                lastLongKeepAliveCheck = UtcDbTime();
+                            }
+
+                            //Check for short keep alive every 30 seconds
+                            if ((UtcDbTime() - lastShortKeepAliveCheck).TotalSeconds > 30) {
                                 //Auto-assist
                                 AdKatsTeam team1, team2, winningTeam, losingTeam;
                                 if (GetTeamByID(1, out team1) && GetTeamByID(2, out team2)) {
@@ -6354,9 +6380,6 @@ namespace PRoConEvents
                                     }
                                 }
 
-                                //Log.Info("Average Read: " + Math.Round(_DatabaseReadAverageDuration, 3) + "s " + _DatabaseReaderDurations.Count + " | Average Write: " + Math.Round(_DatabaseWriteAverageDuration, 3) + "s " + _DatabaseNonQueryDurations.Count);
-                                lastKeepAliveCheck = UtcDbTime();
-
                                 if (_pluginEnabled && _threadsReady && _firstPlayerListComplete)
                                 {
                                     AdminSayMessage("/AdKatsInstanceCheck " + _instanceKey + " " + Math.Round((UtcDbTime() - _AdKatsRunningTime).TotalSeconds), false);
@@ -6424,6 +6447,8 @@ namespace PRoConEvents
 
                                     //TODO: Once MULTIBalancer adds registered commands, check for availability
                                 }
+
+                                lastShortKeepAliveCheck = UtcDbTime();
                             }
 
                             if (_threadsReady && (UtcDbTime() - lastServerInfoRequest).TotalSeconds > 10)
@@ -6857,7 +6882,7 @@ namespace PRoConEvents
                                     continue;
                                 }
                                 _acceptingTeamUpdates = false;
-                                if ((_isTestingAuthorized ) && _firstPlayerListComplete)
+                                if ((_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]"))) && _firstPlayerListComplete)
                                 {
                                     //Update team assignment of top players
                                     //Update team assignment of top players
@@ -7665,7 +7690,7 @@ namespace PRoConEvents
                                     try {
                                         //Top player processing
                                         if (_firstPlayerListComplete &&
-                                            (_isTestingAuthorized ) &&
+                                            (_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]"))) &&
                                             aPlayer.player_type == PlayerType.Player &&
                                             aPlayer.RequiredTeam == null &&
                                             _topPlayers.ContainsKey(aPlayer.player_name)) {
@@ -9892,7 +9917,7 @@ namespace PRoConEvents
                 {
                     aKill.killer.RecentKills.Dequeue();
                 }
-                if ((_isTestingAuthorized ) && _serverInfo.ServerType != "OFFICIAL")
+                if ((_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]"))) && _serverInfo.ServerType != "OFFICIAL")
                 {
                     //KPM check
                     Int32 countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
@@ -35069,7 +35094,7 @@ namespace PRoConEvents
                                             }
                                         }
                                     }
-                                    if ((_isTestingAuthorized )) {
+                                    if ((_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]")))) {
                                         lock (_topPlayers) {
                                             foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(aPlayer => 
                                                     aPlayer.game_id == _serverInfo.GameID && 
@@ -35234,7 +35259,7 @@ namespace PRoConEvents
             {
                 UpdatePopulatorPlayers();
             }
-            if ((_isTestingAuthorized ) && _gameVersion == GameVersion.BF4) {
+            if ((_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]"))) && _gameVersion == GameVersion.BF4) {
                 UpdateTopPlayers();
             }
             UpdateMULTIBalancerWhitelist();
@@ -39013,6 +39038,9 @@ namespace PRoConEvents
                                         }
                                         //Patched version is newer than an already patched version
                                         Log.Success("Previous update " + _pluginPatchedVersion + " overwritten by newer patch " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
+                                        if (_isTestingAuthorized) {
+                                            Environment.Exit(4533);
+                                        }
                                     }
                                     else if (!_pluginUpdatePatched && patchedVersionInt > _currentPluginVersionInt)
                                     {
@@ -39023,6 +39051,9 @@ namespace PRoConEvents
                                         //User not notified of patch yet
                                         Log.Success("Plugin updated to version " + patchedVersion + ", restart procon to run this version. Plugin size " + patchedSizeKB + "KB");
                                         Log.Success("Updated plugin file located at: " + pluginPath);
+                                        if (_isTestingAuthorized) {
+                                            Environment.Exit(4533);
+                                        }
                                     }
                                     else
                                     {
