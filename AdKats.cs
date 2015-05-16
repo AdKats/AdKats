@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.2
+ * Version 6.7.0.3
  * 15-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.2</version_code>
+ * <version_code>6.7.0.3</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.2";
+        private const String PluginVersion = "6.7.0.3";
 
         public enum GameVersion
         {
@@ -1225,7 +1225,7 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(tsPlayerMonitorPrefix + "Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
                         }
                     }
-                    if (_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]")) {
+                    if (_isTestingAuthorized ) {
                         var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                             .Where(aPlayer => 
                                 _topPlayers.ContainsKey(aPlayer.player_name))
@@ -5502,8 +5502,7 @@ namespace PRoConEvents
                     "OnForceReloadWholeMags", 
                     "OnServerType", 
                     "OnMaxSpectators", 
-                    "OnTeamFactionOverride",
-                    "OnSoldierHealth");
+                    "OnTeamFactionOverride");
             }
             catch (Exception e)
             {
@@ -6858,7 +6857,7 @@ namespace PRoConEvents
                                     continue;
                                 }
                                 _acceptingTeamUpdates = false;
-                                if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]")) && _firstPlayerListComplete)
+                                if ((_isTestingAuthorized ) && _firstPlayerListComplete)
                                 {
                                     //Update team assignment of top players
                                     //Update team assignment of top players
@@ -7666,7 +7665,7 @@ namespace PRoConEvents
                                     try {
                                         //Top player processing
                                         if (_firstPlayerListComplete &&
-                                            (_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]")) &&
+                                            (_isTestingAuthorized ) &&
                                             aPlayer.player_type == PlayerType.Player &&
                                             aPlayer.RequiredTeam == null &&
                                             _topPlayers.ContainsKey(aPlayer.player_name)) {
@@ -8306,10 +8305,6 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while starting round ticket logger", e));
             }
-        }
-
-        public override void OnSoldierHealth(int limit) {
-            _soldierHealth = limit;
         }
 
         public override void OnServerInfo(CServerInfo serverInfo)
@@ -9897,7 +9892,7 @@ namespace PRoConEvents
                 {
                     aKill.killer.RecentKills.Dequeue();
                 }
-                if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]")) && _serverInfo.ServerType != "OFFICIAL")
+                if ((_isTestingAuthorized ) && _serverInfo.ServerType != "OFFICIAL")
                 {
                     //KPM check
                     Int32 countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
@@ -35074,7 +35069,7 @@ namespace PRoConEvents
                                             }
                                         }
                                     }
-                                    if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]"))) {
+                                    if ((_isTestingAuthorized )) {
                                         lock (_topPlayers) {
                                             foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(aPlayer => 
                                                     aPlayer.game_id == _serverInfo.GameID && 
@@ -35239,7 +35234,7 @@ namespace PRoConEvents
             {
                 UpdatePopulatorPlayers();
             }
-            if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]")) && _gameVersion == GameVersion.BF4) {
+            if ((_isTestingAuthorized ) && _gameVersion == GameVersion.BF4) {
                 UpdateTopPlayers();
             }
             UpdateMULTIBalancerWhitelist();
