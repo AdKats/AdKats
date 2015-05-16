@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.6.9.9
- * 14-MAY-2015
+ * Version 6.6.9.10
+ * 15-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.6.9.9</version_code>
+ * <version_code>6.6.9.10</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.6.9.9";
+        private const String PluginVersion = "6.6.9.10";
 
         public enum GameVersion
         {
@@ -156,6 +156,7 @@ namespace PRoConEvents
         private Boolean _isTestingAuthorized;
         private Boolean _endingRound;
         private readonly AdKatsServer _serverInfo;
+        private Int32 _soldierHealth = 100;
         private Int64 _settingImportID = -1;
         private Boolean _settingsFetched;
         private Boolean _settingsLocked;
@@ -539,8 +540,8 @@ namespace PRoConEvents
         private Boolean _AutomaticAssistBaserapeCausingPlayers;
         private Boolean _PlayersAutoAssistedThisRound;
         //Top Players
-        private Int32 _TopPlayersDurationDays = 7;
-        private Int32 _TopPlayersMinimumCount = 5;
+        private Int32 _TopPlayersDurationDays = 30;
+        private Int32 _TopPlayersMinimumCount = 3;
         private readonly Dictionary<String, AdKatsPlayer> _topPlayers = new Dictionary<String, AdKatsPlayer>();
         //Populators
         private Boolean _PopulatorMonitor;
@@ -1224,7 +1225,7 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(tsPlayerMonitorPrefix + "Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
                         }
                     }
-                    if (_isTestingAuthorized) {
+                    if (_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]")) {
                         var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                             .Where(aPlayer => 
                                 _topPlayers.ContainsKey(aPlayer.player_name))
@@ -5467,7 +5468,50 @@ namespace PRoConEvents
                 //Set the server IP
                 _serverInfo.ServerIP = strHostName + ":" + strPort;
                 //Register all events
-                RegisterEvents(GetType().Name, "OnVersion", "OnServerInfo", "OnListPlayers", "OnPunkbusterPlayerInfo", "OnReservedSlotsList", "OnPlayerKilled", "OnPlayerIsAlive", "OnPlayerSpawned", "OnPlayerTeamChange", "OnPlayerSquadChange", "OnPlayerJoin", "OnPlayerLeft", "OnGlobalChat", "OnTeamChat", "OnSquadChat", "OnLevelLoaded", "OnBanAdded", "OnBanRemoved", "OnBanListClear", "OnBanListSave", "OnBanListLoad", "OnBanList", "OnRoundOverTeamScores", "OnSpectatorListLoad", "OnSpectatorListSave", "OnSpectatorListPlayerAdded", "OnSpectatorListPlayerRemoved", "OnSpectatorListCleared", "OnSpectatorListList", "OnGameAdminLoad", "OnGameAdminSave", "OnGameAdminPlayerAdded", "OnGameAdminPlayerRemoved", "OnGameAdminCleared", "OnGameAdminList", "OnFairFight", "OnIsHitIndicator", "OnCommander", "OnForceReloadWholeMags", "OnServerType", "OnMaxSpectators", "OnTeamFactionOverride");
+                RegisterEvents(GetType().Name, 
+                    "OnVersion", 
+                    "OnServerInfo", 
+                    "OnListPlayers", 
+                    "OnPunkbusterPlayerInfo", 
+                    "OnReservedSlotsList", 
+                    "OnPlayerKilled", 
+                    "OnPlayerIsAlive", 
+                    "OnPlayerSpawned", 
+                    "OnPlayerTeamChange", 
+                    "OnPlayerSquadChange", 
+                    "OnPlayerJoin", 
+                    "OnPlayerLeft", 
+                    "OnGlobalChat", 
+                    "OnTeamChat", 
+                    "OnSquadChat", 
+                    "OnLevelLoaded", 
+                    "OnBanAdded", 
+                    "OnBanRemoved", 
+                    "OnBanListClear", 
+                    "OnBanListSave", 
+                    "OnBanListLoad", 
+                    "OnBanList", 
+                    "OnRoundOverTeamScores", 
+                    "OnSpectatorListLoad", 
+                    "OnSpectatorListSave", 
+                    "OnSpectatorListPlayerAdded", 
+                    "OnSpectatorListPlayerRemoved", 
+                    "OnSpectatorListCleared", 
+                    "OnSpectatorListList", 
+                    "OnGameAdminLoad", 
+                    "OnGameAdminSave", 
+                    "OnGameAdminPlayerAdded", 
+                    "OnGameAdminPlayerRemoved", 
+                    "OnGameAdminCleared", 
+                    "OnGameAdminList", 
+                    "OnFairFight", 
+                    "OnIsHitIndicator", 
+                    "OnCommander", 
+                    "OnForceReloadWholeMags", 
+                    "OnServerType", 
+                    "OnMaxSpectators", 
+                    "OnTeamFactionOverride",
+                    "OnSoldierHealth");
             }
             catch (Exception e)
             {
@@ -6826,7 +6870,7 @@ namespace PRoConEvents
                                     continue;
                                 }
                                 _acceptingTeamUpdates = false;
-                                if (_isTestingAuthorized && _firstPlayerListComplete)
+                                if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]")) && _firstPlayerListComplete)
                                 {
                                     //Update team assignment of top players
                                     //Update team assignment of top players
@@ -7634,7 +7678,8 @@ namespace PRoConEvents
                                     try {
                                         //Top player processing
                                         if (_firstPlayerListComplete &&
-                                            _isTestingAuthorized &&
+                                            (_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]")) &&
+                                            aPlayer.player_type == PlayerType.Player &&
                                             aPlayer.RequiredTeam == null &&
                                             _topPlayers.ContainsKey(aPlayer.player_name)) {
                                             AdKatsTeam t1, t2;
@@ -8273,6 +8318,10 @@ namespace PRoConEvents
             {
                 HandleException(new AdKatsException("Error while starting round ticket logger", e));
             }
+        }
+
+        public override void OnSoldierHealth(int limit) {
+            _soldierHealth = limit;
         }
 
         public override void OnServerInfo(CServerInfo serverInfo)
@@ -11459,8 +11508,8 @@ namespace PRoConEvents
                         StatLibraryWeapon weapon;
                         if (_StatLibrary.Weapons.TryGetValue(weaponStat.ID, out weapon))
                         {
-                            //Only handle weapons that do < 50 max dps
-                            if (weapon.DamageMax < 50) {
+                            //Only handle weapons that do < 55 max dps
+                            if (weapon.DamageMax < 55) {
                                 //For live stat check, look for previous round stat difference
                                 if (previousStats != null && previousStats.WeaponStats != null) {
                                     AdKatsWeaponStat previousWeaponStat;
@@ -11511,7 +11560,7 @@ namespace PRoConEvents
                                         Double expectedDmg = weapon.DamageMax * (1 + weaponStat.HSKR);
                                         //Get the percentage over normal
                                         Double percDiff = (weaponStat.DPS - expectedDmg) / expectedDmg;
-                                        Double triggerLevel = 0.50;
+                                        Double triggerLevel = ((_soldierHealth > 65) ? (0.50) : (0.60));
                                         //Increase trigger level for kill counts under 100
                                         if (weaponStat.Kills < 100) 
                                         {
@@ -35037,7 +35086,7 @@ namespace PRoConEvents
                                             }
                                         }
                                     }
-                                    if (_isTestingAuthorized) {
+                                    if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]"))) {
                                         lock (_topPlayers) {
                                             foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(aPlayer => 
                                                     aPlayer.game_id == _serverInfo.GameID && 
@@ -35202,7 +35251,7 @@ namespace PRoConEvents
             {
                 UpdatePopulatorPlayers();
             }
-            if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
+            if ((_isTestingAuthorized || _serverInfo.ServerName.Contains("[FPSG]")) && _gameVersion == GameVersion.BF4) {
                 UpdateTopPlayers();
             }
             UpdateMULTIBalancerWhitelist();
