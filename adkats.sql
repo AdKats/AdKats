@@ -1,5 +1,5 @@
 -- AdKats Database Setup Script
--- Version 6.5.0.0 (2/9/2014)
+-- Version 6.6.0.0 (5/17/2015)
 -- ColColonCleaner
 
 SET FOREIGN_KEY_CHECKS=0;
@@ -50,6 +50,28 @@ CREATE TRIGGER `tbl_chatlog_player_id_insert` BEFORE INSERT ON `tbl_chatlog`
                             INNER JOIN `tbl_playerdata` ON `tbl_games`.`GameID` = `tbl_playerdata`.`GameID`
                             WHERE `tbl_playerdata`.`SoldierName` = NEW.logSoldierName AND `tbl_server`.`ServerID` = NEW.ServerID LIMIT 1);
     END
+$$
+
+DROP TRIGGER IF EXISTS `Player_Update_BlankDataFix`$$
+CREATE TRIGGER
+    Player_Update_BlankDataFix
+BEFORE UPDATE ON
+    tbl_playerdata
+FOR EACH ROW
+BEGIN
+    IF (NEW.SoldierName IS NULL OR CHAR_LENGTH(NEW.SoldierName) = 0) AND OLD.SoldierName IS NOT NULL
+        THEN SET NEW.SoldierName = OLD.SoldierName;
+    END IF;
+    IF (NEW.EAGUID IS NULL OR CHAR_LENGTH(NEW.EAGUID) = 0) AND OLD.EAGUID IS NOT NULL
+        THEN SET NEW.EAGUID = OLD.EAGUID;
+    END IF;
+    IF (NEW.PBGUID IS NULL OR CHAR_LENGTH(NEW.PBGUID) = 0) AND OLD.PBGUID IS NOT NULL
+        THEN SET NEW.PBGUID = OLD.PBGUID;
+    END IF;
+    IF (NEW.IP_Address IS NULL OR CHAR_LENGTH(NEW.IP_Address) = 0) AND OLD.IP_Address IS NOT NULL
+        THEN SET NEW.IP_Address = OLD.IP_Address;
+    END IF;
+END;
 $$
 
 DELIMITER ;
