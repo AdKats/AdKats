@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.6
+ * Version 6.7.0.7
  * 16-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.6</version_code>
+ * <version_code>6.7.0.7</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.6";
+        private const String PluginVersion = "6.7.0.7";
 
         public enum GameVersion
         {
@@ -447,7 +447,6 @@ namespace PRoConEvents
         //Metabans
         private Boolean _useMetabans;
         private String _metabansAPIKey = "";
-        private Boolean _metabansConnectionConfirmed = false;
         private String _metabansUsername = "";
 
         //Reports
@@ -4962,6 +4961,10 @@ namespace PRoConEvents
                 else if (Regex.Match(strVariable, @"Use Metabans?").Success)
                 {
                     _useMetabans = Boolean.Parse(strValue);
+                    if (_useMetabans) {
+                        //Make sure the metabans plugin is enabled
+                        ExecuteCommand("procon.protected.plugins.enable", "Metabans", "True");
+                    }
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable("Use Metabans?", typeof(Boolean), _useMetabans));
                 }
@@ -4980,6 +4983,7 @@ namespace PRoConEvents
                             //Once setting has been changed, upload the change to database
                             QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
                         }
+                        SetExternalPluginSetting("Metabans", "API Key", _metabansAPIKey);
                     }
                 }
                 else if (Regex.Match(strVariable, @"Metabans Username").Success)
@@ -4997,6 +5001,7 @@ namespace PRoConEvents
                             //Once setting has been changed, upload the change to database
                             QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof(String), _metabansUsername));
                         }
+                        SetExternalPluginSetting("Metabans", "Username", _metabansUsername);
                     }
                 }
                 else if (Regex.Match(strVariable, @"On-Player-Muted Message").Success)
