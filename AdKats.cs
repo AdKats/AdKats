@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.5
+ * Version 6.7.0.6
  * 16-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.5</version_code>
+ * <version_code>6.7.0.6</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.5";
+        private const String PluginVersion = "6.7.0.6";
 
         public enum GameVersion
         {
@@ -9528,12 +9528,6 @@ namespace PRoConEvents
                     if (_serverInfo.ServerName.Contains("EU #5")) {
                         //Do nothing
                     } else if (_serverInfo.ServerName.Contains("#5")) {
-                        StartAndLogThread(new Thread(new ThreadStart(delegate {
-                            Thread.CurrentThread.Name = "RoundOverSkip";
-                            Thread.Sleep(TimeSpan.FromSeconds(17));
-                            ExecuteCommand("procon.protected.send", "mapList.runNextRound");
-                            LogThreadExit();
-                        })));
                         Int32 quality = 0;
                         if (losingTeam.TeamTicketCount >= 230) {
                             quality = 2;
