@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.7
- * 16-MAY-2015
+ * Version 6.7.0.8
+ * 17-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.7</version_code>
+ * <version_code>6.7.0.8</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.7";
+        private const String PluginVersion = "6.7.0.8";
 
         public enum GameVersion
         {
@@ -4964,6 +4964,12 @@ namespace PRoConEvents
                     if (_useMetabans) {
                         //Make sure the metabans plugin is enabled
                         ExecuteCommand("procon.protected.plugins.enable", "Metabans", "True");
+                        SetExternalPluginSetting("Metabans", "Ban Propagation", "Do not propagate my bans");
+                        if (_isTestingAuthorized) {
+                            SetExternalPluginSetting("Metabans", "Enforce Metabans Bans", "No");
+                            SetExternalPluginSetting("Metabans", "Announce Bans", "No");
+                            SetExternalPluginSetting("Metabans", "Debug Mode", "Off");
+                        }
                     }
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable("Use Metabans?", typeof(Boolean), _useMetabans));
