@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.8
- * 17-MAY-2015
+ * Version 6.7.0.9
+ * 18-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.8</version_code>
+ * <version_code>6.7.0.9</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.8";
+        private const String PluginVersion = "6.7.0.9";
 
         public enum GameVersion
         {
@@ -6277,7 +6277,7 @@ namespace PRoConEvents
                                 //Auto-squad-leader
                                 if (_isTestingAuthorized && 
                                     _firstPlayerListComplete &&
-                                    _serverInfo.ServerName.Contains("#7") &&
+                                    _gameVersion == GameVersion.BF4 &&
                                     _roundState == RoundState.Playing &&
                                     _serverInfo.GetRoundElapsedTime().TotalMinutes > 1) {
                                     var onlinePlayers = _PlayerDictionary.Values.ToList();
@@ -6302,7 +6302,6 @@ namespace PRoConEvents
                                                 topPlayer.frostbitePlayerInfo.TeamID.ToString(), 
                                                 topPlayer.frostbitePlayerInfo.SquadID.ToString(), 
                                                 topPlayer.player_name);
-                                            Log.Info(topPlayer.GetVerboseName() + " given lead.");
                                         }
                                     }
                                 }
@@ -9372,8 +9371,9 @@ namespace PRoConEvents
             Log.Debug("Entering PostPlayerWinLossStatistics", 7);
             try
             {
-                List<AdKatsPlayer> WinningPlayers = _PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID && aPlayer.player_type == PlayerType.Player).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
-                List<AdKatsPlayer> LosingPlayers = _PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == losingTeam.TeamID && aPlayer.player_type == PlayerType.Player).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
+                List<AdKatsPlayer> OrderedPlayers = _PlayerDictionary.Values.Where(aPlayer => aPlayer.player_type == PlayerType.Player).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
+                List<AdKatsPlayer> WinningPlayers = OrderedPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == winningTeam.TeamID).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
+                List<AdKatsPlayer> LosingPlayers = OrderedPlayers.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == losingTeam.TeamID).OrderByDescending(aPlayer => aPlayer.frostbitePlayerInfo.Score).ToList();
                 foreach (AdKatsPlayer aPlayer in WinningPlayers)
                 {
                     QueueStatisticForProcessing(new AdKatsStatistic()
@@ -9402,8 +9402,8 @@ namespace PRoConEvents
                         stat_time = UtcDbTime()
                     });
                 }
-                var TopWinning = WinningPlayers.Take((Int32) (WinningPlayers.Count / 4.0)).ToList();
-                foreach (AdKatsPlayer aPlayer in TopWinning) {
+                var TopOrdered = OrderedPlayers.Take((Int32) (OrderedPlayers.Count / 3.75)).ToList();
+                foreach (AdKatsPlayer aPlayer in TopOrdered) {
                     QueueStatisticForProcessing(new AdKatsStatistic() {
                         stat_type = AdKatsStatistic.StatisticType.player_top,
                         server_id = _serverInfo.ServerID,
@@ -9411,20 +9411,7 @@ namespace PRoConEvents
                         target_name = aPlayer.player_name,
                         target_player = aPlayer,
                         stat_value = aPlayer.frostbitePlayerInfo.SquadID,
-                        stat_comment = aPlayer.player_name + " top winning team player in position " + (WinningPlayers.IndexOf(aPlayer) + 1),
-                        stat_time = UtcDbTime()
-                    });
-                }
-                var TopLosing = LosingPlayers.Take((Int32) (LosingPlayers.Count / 4.0)).ToList();
-                foreach (AdKatsPlayer aPlayer in TopLosing) {
-                    QueueStatisticForProcessing(new AdKatsStatistic() {
-                        stat_type = AdKatsStatistic.StatisticType.player_top,
-                        server_id = _serverInfo.ServerID,
-                        round_id = _roundID,
-                        target_name = aPlayer.player_name,
-                        target_player = aPlayer,
-                        stat_value = aPlayer.frostbitePlayerInfo.SquadID,
-                        stat_comment = aPlayer.player_name + " top losing team player in position " + (LosingPlayers.IndexOf(aPlayer) + 1),
+                        stat_comment = aPlayer.player_name + " top player in position " + (WinningPlayers.IndexOf(aPlayer) + 1),
                         stat_time = UtcDbTime()
                     });
                 }
@@ -11954,8 +11941,8 @@ namespace PRoConEvents
                         weaponStat.CategorySID != "WARSAW_ID_P_CAT_GADGET" && 
                         weaponStat.CategorySID != "WARSAW_ID_P_CAT_SIDEARM")
                     {
-                        //Only take weapons with more than 100 kills
-                        if (weaponStat.Kills > 100)
+                        //Only take weapons with more than 200 kills
+                        if (weaponStat.Kills > 200)
                         {
                             //Check for KPM limit
                             Log.Debug("Checking " + weaponStat.ID + " KPM (" + String.Format("{0:0.00}", weaponStat.KPM) + " >? " + (_KpmTriggerLevel) + ")", 6);
@@ -13063,7 +13050,7 @@ namespace PRoConEvents
                                                 {
                                                     if (_isTestingAuthorized)
                                                     {
-                                                        AdminSayMessage(assistRecord.target_player.GetVerboseName() + ", thank you for assisting the weak team!");
+                                                        AdminSayMessage(assistRecord.target_player.GetVerboseName() + ", thank you for assisting " + team1.TeamName + "!");
                                                     }
                                                     assistRecord.command_action = GetCommandByKey("self_assist");
                                                     QueueRecordForProcessing(assistRecord);
@@ -13105,8 +13092,12 @@ namespace PRoConEvents
                                             if (dicPlayer != null && team2.TeamTicketCount <= team1.TeamTicketCount)
                                             {
                                                 AdKatsRecord assistRecord = dicPlayer.TargetedRecords.FirstOrDefault(record => record.command_type.command_key == "self_assist" && record.command_action.command_key == "self_assist_unconfirmed");
-                                                if (assistRecord != null)
+                                                if (assistRecord != null) 
                                                 {
+                                                    if (_isTestingAuthorized) 
+                                                    {
+                                                        AdminSayMessage(assistRecord.target_player.GetVerboseName() + ", thank you for assisting " + team2.TeamName + "!");
+                                                    }
                                                     assistRecord.command_action = GetCommandByKey("self_assist");
                                                     QueueRecordForProcessing(assistRecord);
                                                 }
