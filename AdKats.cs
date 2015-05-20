@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.9
- * 18-MAY-2015
+ * Version 6.7.0.10
+ * 19-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.9</version_code>
+ * <version_code>6.7.0.10</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.9";
+        private const String PluginVersion = "6.7.0.10";
 
         public enum GameVersion
         {
@@ -17240,20 +17240,17 @@ namespace PRoConEvents
                             }
                         }
                         break;
-                    case "player_log":
-                        {
+                    case "player_log": {
                             //Remove previous commands awaiting confirmation
                             CancelSourcePendingAction(record);
 
                             //Parse parameters using max param count
                             String[] parameters = ParseParameters(remainingMessage, 2);
-                            switch (parameters.Length)
-                            {
+                            switch (parameters.Length) {
                                 case 1:
                                     record.target_name = parameters[0];
                                     //Handle based on report ID as only option
-                                    if (!HandleRoundReport(record))
-                                    {
+                                    if (!HandleRoundReport(record)) {
                                         SendMessageToSource(record, "No log message given, unable to submit.");
                                     }
                                     FinalizeRecord(record);
@@ -17263,26 +17260,44 @@ namespace PRoConEvents
 
                                     //attempt to handle via pre-message ID
                                     record.record_message = GetPreMessage(parameters[1], _RequirePreMessageUse);
-                                    if (record.record_message == null)
-                                    {
+                                    if (record.record_message == null) {
                                         SendMessageToSource(record, "Invalid PreMessage ID, valid PreMessage IDs are 1-" + _PreMessageList.Count);
                                         FinalizeRecord(record);
                                         return;
                                     }
 
                                     //Handle based on report ID if possible
-                                    if (!HandleRoundReport(record))
-                                    {
-                                        if (record.record_message.Length >= _RequiredReasonLength)
-                                        {
+                                    if (!HandleRoundReport(record)) {
+                                        if (record.record_message.Length >= _RequiredReasonLength) {
                                             CompleteTargetInformation(record, false, false, false);
-                                        }
-                                        else
-                                        {
+                                        } else {
                                             SendMessageToSource(record, "Log message too short, unable to submit.");
                                             FinalizeRecord(record);
                                         }
                                     }
+                                    break;
+                                default:
+                                    SendMessageToSource(record, "Invalid parameters, unable to submit.");
+                                    FinalizeRecord(record);
+                                    return;
+                            }
+                        }
+                        break;
+                    case "self_feedback": {
+                            //Remove previous commands awaiting confirmation
+                            CancelSourcePendingAction(record);
+
+                            //Parse parameters using max param count
+                            String[] parameters = ParseParameters(remainingMessage, 1);
+                            switch (parameters.Length) {
+                                case 1:
+                                    record.record_message = parameters[0];
+                                    if (record.record_message.Length < 5) {
+                                        SendMessageToSource(record, "Feedback message too short, unable to submit.");
+                                        FinalizeRecord(record);
+                                        return;
+                                    }
+                                    QueueRecordForProcessing(record);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -20994,6 +21009,9 @@ namespace PRoConEvents
                         break;
                     case "player_log":
                         SendMessageToSource(record, "Log saved for " + record.GetTargetNames());
+                        break;
+                    case "self_feedback":
+                        SendMessageToSource(record, "Feedback saved for the server.");
                         break;
                     case "player_population_success":
                         SendPopulationSuccess(record);
@@ -34036,6 +34054,10 @@ namespace PRoConEvents
                                     SendNonQuery("Adding command 117", "REPLACE INTO `adkats_commands` VALUES(117, 'Active', 'player_isadmin', 'Log', 'Fetch Admin Status', 'isadmin', FALSE, 'AnyHidden')", true);
                                     changed = true;
                                 }
+                                if (!_CommandIDDictionary.ContainsKey(118)) {
+                                    SendNonQuery("Adding command 118", "REPLACE INTO `adkats_commands` VALUES(118, 'Active', 'self_feedback', 'Log', 'Give Server Feedback', 'feedback', FALSE, 'AnyHidden')", true);
+                                    changed = true;
+                                }
                                 if (changed)
                                 {
                                     FetchCommands();
@@ -34171,6 +34193,7 @@ namespace PRoConEvents
             _CommandDescriptionDictionary["player_blacklistautoassist"] = "A player under auto-assist blacklist is automatically @assist'd when baserape starts.";
             _CommandDescriptionDictionary["player_blacklistautoassist_remove"] = "Removes a player from the auto-assist blacklist.";
             _CommandDescriptionDictionary["player_isadmin"] = "Fetches a player's admin status.";
+            _CommandDescriptionDictionary["self_feedback"] = "Logs feedback for the server.";
         }
 
         private void UpdateCommandTimeouts()
