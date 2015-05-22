@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.13
+ * Version 6.7.0.14
  * 21-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.13</version_code>
+ * <version_code>6.7.0.14</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.13";
+        private const String PluginVersion = "6.7.0.14";
 
         public enum GameVersion
         {
@@ -6221,11 +6221,11 @@ namespace PRoConEvents
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
-                                            OnlineNonWhitelistSayMessage(message);
+                                            OnlineNonWhitelistYellMessage(message);
                                         }
                                     } else {
                                         if (!String.IsNullOrEmpty(message)) {
-                                            AdminSayMessage(message);
+                                            AdminYellMessage(message);
                                         }
                                     }
                                     _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
@@ -6239,11 +6239,11 @@ namespace PRoConEvents
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
-                                            OnlineNonWhitelistSayMessage(message);
+                                            OnlineNonWhitelistTellMessage(message);
                                         }
                                     } else {
                                         if (!String.IsNullOrEmpty(message)) {
-                                            AdminSayMessage(message);
+                                            AdminTellMessage(message);
                                         }
                                     }
                                     _spamBotTellQueue.Enqueue(_spamBotTellQueue.Dequeue());
@@ -6891,7 +6891,6 @@ namespace PRoConEvents
                                 _acceptingTeamUpdates = false;
                                 if ((_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]"))) && _firstPlayerListComplete)
                                 {
-                                    //Update team assignment of top players
                                     //Update team assignment of top players
                                     List<AdKatsPlayer> orderedTopPlayers = _PlayerDictionary.Values
                                         .Where(dPlayer =>
@@ -31697,7 +31696,7 @@ namespace PRoConEvents
                         validIDs.Add(aPlayer.player_id);
                         if (!_baserapeCausingPlayers.ContainsKey(aPlayer.player_name))
                         {
-                            if (_threadsReady)
+                            if (_firstPlayerListComplete)
                             {
                                 Log.Info("Adding " + aPlayer.player_name + " to baserape causing player list.");
                             }
@@ -31706,7 +31705,7 @@ namespace PRoConEvents
                     }
                     foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList())
                     {
-                        if (_threadsReady)
+                        if (_firstPlayerListComplete)
                         {
                             Log.Info("Removing " + aPlayer.player_name + " from baserape causing player list.");
                         }
@@ -31851,7 +31850,7 @@ namespace PRoConEvents
                     foreach (AdKatsPlayer aPlayer in GetTopPlayers(TimeSpan.FromDays(_TopPlayersDurationDays), _TopPlayersMinimumCount)) {
                         validIDs.Add(aPlayer.player_id);
                         if (!_topPlayers.ContainsKey(aPlayer.player_name)) {
-                            if (_threadsReady) {
+                            if (_firstPlayerListComplete) {
                                 Log.Info("Adding " + aPlayer.player_name + " to top player list.");
                                 if (_firstPlayerListComplete) {
                                     UpdateSettingPage();
@@ -31861,7 +31860,7 @@ namespace PRoConEvents
                         _topPlayers[aPlayer.player_name] = aPlayer;
                     }
                     foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
-                        if (_threadsReady) {
+                        if (_firstPlayerListComplete) {
                             Log.Info("Removing " + aPlayer.player_name + " from top player list.");
                             if (_firstPlayerListComplete) {
                                 UpdateSettingPage();
@@ -31999,7 +31998,7 @@ namespace PRoConEvents
                         //Add the player
                         if (!_populatorPlayers.ContainsKey(aPlayer.player_name))
                         {
-                            if (_threadsReady)
+                            if (_firstPlayerListComplete)
                             {
                                 Log.Info("Adding " + aPlayer.player_name + " to current populator players.");
                             }
@@ -32022,7 +32021,7 @@ namespace PRoConEvents
                         //Add the player
                         if (!_populatorPlayers.ContainsKey(aPlayer.player_name))
                         {
-                            if (_threadsReady)
+                            if (_firstPlayerListComplete)
                             {
                                 Log.Info("Adding " + aPlayer.player_name + " to current populator players.");
                             }
@@ -32032,7 +32031,7 @@ namespace PRoConEvents
                     //Remove invalid players
                     foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList())
                     {
-                        if (_threadsReady)
+                        if (_firstPlayerListComplete)
                         {
                             Log.Info("Removing " + aPlayer.player_name + " from current populator players.");
                         }
