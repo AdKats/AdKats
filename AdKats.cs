@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.12
+ * Version 6.7.0.13
  * 21-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.12</version_code>
+ * <version_code>6.7.0.13</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.12";
+        private const String PluginVersion = "6.7.0.13";
 
         public enum GameVersion
         {
@@ -12180,9 +12180,13 @@ namespace PRoConEvents
                     try
                     {
                         Thread.CurrentThread.Name = "OnlineNonAdminSay";
-                        if (displayProconChat)
-                        {
-                            ProconChatWrite("Say (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
+                        var spambotMessage = false;
+                        if (message.Contains("[SpamBotMessage]")) {
+                            message = message.Replace("[SpamBotMessage]", "");
+                            spambotMessage = true;
+                        }
+                        if (displayProconChat) {
+                            ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -12249,9 +12253,13 @@ namespace PRoConEvents
                     try
                     {
                         Thread.CurrentThread.Name = "OnlineNonAdminYell";
-                        if (displayProconChat)
-                        {
-                            ProconChatWrite("Yell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
+                        var spambotMessage = false;
+                        if (message.Contains("[SpamBotMessage]")) {
+                            message = message.Replace("[SpamBotMessage]", "");
+                            spambotMessage = true;
+                        }
+                        if (displayProconChat) {
+                            ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
@@ -12318,9 +12326,13 @@ namespace PRoConEvents
                     try
                     {
                         Thread.CurrentThread.Name = "OnlineNonAdminTell";
-                        if (displayProconChat)
-                        {
-                            ProconChatWrite("Tell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
+                        var spambotMessage = false;
+                        if (message.Contains("[SpamBotMessage]")) {
+                            message = message.Replace("[SpamBotMessage]", "");
+                            spambotMessage = true;
+                        }
+                        if (displayProconChat) {
+                            ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] (Admins " + ((whitelistedPlayers.Any()) ? ("& " + whitelistedPlayers.Count + " Others ") : ("")) + "Whitelisted) > " + message);
                         }
                         //Process will take ~2 seconds for a full server
                         foreach (AdKatsPlayer aPlayer in FetchOnlineNonAdminSoldiers())
