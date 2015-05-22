@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.11
+ * Version 6.7.0.12
  * 21-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.11</version_code>
+ * <version_code>6.7.0.12</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.11";
+        private const String PluginVersion = "6.7.0.12";
 
         public enum GameVersion
         {
@@ -6196,10 +6196,10 @@ namespace PRoConEvents
                                 _PlayerDictionary.Any())
                             {
                                 if ((UtcDbTime() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds) {
-                                    String message = _spamBotSayQueue.Peek();
+                                    String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
                                     if (message.Contains("%Round15000Date%")) {
                                         var futureDate = FetchFutureRoundDate(15000);
-                                        message = message.Replace("%Round15000Date%", futureDate.ToShortDateString() + "(" + FormatTimeString(futureDate - UtcDbTime(), 2) + ")");
+                                        message = message.Replace("%Round15000Date%", futureDate.ToShortDateString() + " (" + FormatTimeString(futureDate - UtcDbTime(), 2) + ")");
                                     }
                                     if (_spamBotExcludeAdminsAndWhitelist) {
                                         if (!String.IsNullOrEmpty(message)) {
@@ -6214,7 +6214,7 @@ namespace PRoConEvents
                                     _spamBotSayLastPost = UtcDbTime();
                                 }
                                 if ((UtcDbTime() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds) {
-                                    String message = _spamBotSayQueue.Peek();
+                                    String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
                                     if (message.Contains("%Round15000Date%")) {
                                         var futureDate = FetchFutureRoundDate(15000);
                                         message = message.Replace("%Round15000Date%", futureDate.ToShortDateString() + "(" + FormatTimeString(futureDate - UtcDbTime(), 2) + ")");
@@ -6232,7 +6232,7 @@ namespace PRoConEvents
                                     _spamBotYellLastPost = UtcDbTime();
                                 }
                                 if ((UtcDbTime() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds) {
-                                    String message = _spamBotTellQueue.Peek();
+                                    String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
                                     if (message.Contains("%Round15000Date%")) {
                                         var futureDate = FetchFutureRoundDate(15000);
                                         message = message.Replace("%Round15000Date%", futureDate.ToShortDateString() + "(" + FormatTimeString(futureDate - UtcDbTime(), 2) + ")");
@@ -12401,9 +12401,13 @@ namespace PRoConEvents
                     Log.Error("message null in adminSay");
                     return;
                 }
-                if (displayProconChat)
-                {
-                    ProconChatWrite("Say > " + message);
+                var spambotMessage = false;
+                if (message.Contains("[SpamBotMessage]")) {
+                    message = message.Replace("[SpamBotMessage]", "");
+                    spambotMessage = true;
+                }
+                if (displayProconChat) {
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say > " + message);
                 }
                 string[] messageSplit = message.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
                 int maxLineLength = 127;
@@ -12440,9 +12444,13 @@ namespace PRoConEvents
                     Log.Error("target or message null in playerSayMessage");
                     return;
                 }
-                if (displayProconChat)
-                {
-                    ProconChatWrite("Say > " + target + " > " + message);
+                var spambotMessage = false;
+                if (message.Contains("[SpamBotMessage]")) {
+                    message = message.Replace("[SpamBotMessage]", "");
+                    spambotMessage = true;
+                }
+                if (displayProconChat) {
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Say > " + target + " > " + message);
                 }
                 string[] messageSplit = message.Split(new[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
                 int maxLineLength = 127;
@@ -12479,9 +12487,13 @@ namespace PRoConEvents
                     Log.Error("message null in adminYell");
                     return;
                 }
-                if (displayProconChat)
-                {
-                    ProconChatWrite("Yell[" + _YellDuration + "s] > " + message);
+                var spambotMessage = false;
+                if (message.Contains("[SpamBotMessage]")) {
+                    message = message.Replace("[SpamBotMessage]", "");
+                    spambotMessage = true;
+                }
+                if (displayProconChat) {
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + message);
                 }
                 ExecuteCommand("procon.protected.send", "admin.yell", ((_gameVersion == GameVersion.BF4) ? (Environment.NewLine) : ("")) + message.ToUpper(), _YellDuration + "", "all");
             }
@@ -12507,9 +12519,13 @@ namespace PRoConEvents
                     Log.Error("message null in adminYell");
                     return;
                 }
-                if (displayProconChat)
-                {
-                    ProconChatWrite("Yell[" + _YellDuration + "s] > " + target + " > " + message);
+                var spambotMessage = false;
+                if (message.Contains("[SpamBotMessage]")) {
+                    message = message.Replace("[SpamBotMessage]", "");
+                    spambotMessage = true;
+                }
+                if (displayProconChat) {
+                    ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Yell[" + _YellDuration + "s] > " + target + " > " + message);
                 }
                 for (int count = 0; count < spamCount; count++)
                 {
@@ -12529,11 +12545,14 @@ namespace PRoConEvents
             AdminTellMessage(message, true);
         }
 
-        public void AdminTellMessage(String message, Boolean displayProconChat)
-        {
-            if (displayProconChat)
-            {
-                ProconChatWrite("Tell[" + _YellDuration + "s] > " + message);
+        public void AdminTellMessage(String message, Boolean displayProconChat) {
+            var spambotMessage = false;
+            if (message.Contains("[SpamBotMessage]")) {
+                message = message.Replace("[SpamBotMessage]", "");
+                spambotMessage = true;
+            }
+            if (displayProconChat) {
+                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + message);
             }
             AdminSayMessage(message, false);
             AdminYellMessage(message, false);
@@ -12544,11 +12563,14 @@ namespace PRoConEvents
             PlayerTellMessage(target, message, true, 1);
         }
 
-        public void PlayerTellMessage(String target, String message, Boolean displayProconChat, Int32 spamCount)
-        {
-            if (displayProconChat)
-            {
-                ProconChatWrite("Tell[" + _YellDuration + "s] > " + target + " > " + message);
+        public void PlayerTellMessage(String target, String message, Boolean displayProconChat, Int32 spamCount) {
+            var spambotMessage = false;
+            if (message.Contains("[SpamBotMessage]")) {
+                message = message.Replace("[SpamBotMessage]", "");
+                spambotMessage = true;
+            }
+            if (displayProconChat) {
+                ProconChatWrite(((spambotMessage) ? (Log.FBold("SpamBot") + " ") : ("")) + "Tell[" + _YellDuration + "s] > " + target + " > " + message);
             }
             PlayerSayMessage(target, message, false, spamCount);
             PlayerYellMessage(target, message, false, spamCount);
@@ -32199,7 +32221,7 @@ namespace PRoConEvents
 	                        WHERE 
 		                        `server_id` = @ServerID 
 	                        AND
-		                        TIMESTAMPDIFF(MINUTE, `roundstat_time`, UTC_TIMESTAMP()) < 1440
+		                        TIMESTAMPDIFF(MINUTE, `roundstat_time`, UTC_TIMESTAMP()) < 3000
 	                        GROUP BY 
 		                        `round_id`
 	                        ORDER BY
