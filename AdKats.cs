@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.10
- * 19-MAY-2015
+ * Version 6.7.0.11
+ * 21-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.10</version_code>
+ * <version_code>6.7.0.11</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.10";
+        private const String PluginVersion = "6.7.0.11";
 
         public enum GameVersion
         {
@@ -6195,58 +6195,55 @@ namespace PRoConEvents
                                 _roundState == RoundState.Playing && 
                                 _PlayerDictionary.Any())
                             {
-                                if ((UtcDbTime() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds)
-                                {
-                                    if (_spamBotExcludeAdminsAndWhitelist)
-                                    {
-                                        if (!String.IsNullOrEmpty(_spamBotSayQueue.Peek()))
-                                        {
-                                            OnlineNonWhitelistSayMessage(_spamBotSayQueue.Peek());
+                                if ((UtcDbTime() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds) {
+                                    String message = _spamBotSayQueue.Peek();
+                                    if (message.Contains("%Round15000Date%")) {
+                                        var futureDate = FetchFutureRoundDate(15000);
+                                        message = message.Replace("%Round15000Date%", futureDate.ToShortDateString() + "(" + FormatTimeString(futureDate - UtcDbTime(), 2) + ")");
+                                    }
+                                    if (_spamBotExcludeAdminsAndWhitelist) {
+                                        if (!String.IsNullOrEmpty(message)) {
+                                            OnlineNonWhitelistSayMessage(message);
+                                        }
+                                    } else {
+                                        if (!String.IsNullOrEmpty(message)) {
+                                            AdminSayMessage(message);
                                         }
                                     }
-                                    else
-                                    {
-                                        if (!String.IsNullOrEmpty(_spamBotSayQueue.Peek()))
-                                        {
-                                            AdminSayMessage(_spamBotSayQueue.Peek());
-                                        }
-                                    }
-                                    _spamBotSayLastPost = UtcDbTime();
                                     _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
+                                    _spamBotSayLastPost = UtcDbTime();
                                 }
-                                if ((UtcDbTime() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds)
-                                {
-                                    if (_spamBotExcludeAdminsAndWhitelist)
-                                    {
-                                        if (!String.IsNullOrEmpty(_spamBotYellQueue.Peek()))
-                                        {
-                                            OnlineNonWhitelistYellMessage(_spamBotYellQueue.Peek());
-                                        }
+                                if ((UtcDbTime() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds) {
+                                    String message = _spamBotSayQueue.Peek();
+                                    if (message.Contains("%Round15000Date%")) {
+                                        var futureDate = FetchFutureRoundDate(15000);
+                                        message = message.Replace("%Round15000Date%", futureDate.ToShortDateString() + "(" + FormatTimeString(futureDate - UtcDbTime(), 2) + ")");
                                     }
-                                    else
-                                    {
-                                        if (!String.IsNullOrEmpty(_spamBotYellQueue.Peek()))
-                                        {
-                                            AdminYellMessage(_spamBotYellQueue.Peek());
+                                    if (_spamBotExcludeAdminsAndWhitelist) {
+                                        if (!String.IsNullOrEmpty(message)) {
+                                            OnlineNonWhitelistSayMessage(message);
+                                        }
+                                    } else {
+                                        if (!String.IsNullOrEmpty(message)) {
+                                            AdminSayMessage(message);
                                         }
                                     }
                                     _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
                                     _spamBotYellLastPost = UtcDbTime();
                                 }
-                                if ((UtcDbTime() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds)
-                                {
-                                    if (_spamBotExcludeAdminsAndWhitelist)
-                                    {
-                                        if (!String.IsNullOrEmpty(_spamBotTellQueue.Peek()))
-                                        {
-                                            OnlineNonWhitelistTellMessage(_spamBotTellQueue.Peek());
-                                        }
+                                if ((UtcDbTime() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds) {
+                                    String message = _spamBotTellQueue.Peek();
+                                    if (message.Contains("%Round15000Date%")) {
+                                        var futureDate = FetchFutureRoundDate(15000);
+                                        message = message.Replace("%Round15000Date%", futureDate.ToShortDateString() + "(" + FormatTimeString(futureDate - UtcDbTime(), 2) + ")");
                                     }
-                                    else
-                                    {
-                                        if (!String.IsNullOrEmpty(_spamBotTellQueue.Peek()))
-                                        {
-                                            AdminTellMessage(_spamBotTellQueue.Peek());
+                                    if (_spamBotExcludeAdminsAndWhitelist) {
+                                        if (!String.IsNullOrEmpty(message)) {
+                                            OnlineNonWhitelistSayMessage(message);
+                                        }
+                                    } else {
+                                        if (!String.IsNullOrEmpty(message)) {
+                                            AdminSayMessage(message);
                                         }
                                     }
                                     _spamBotTellQueue.Enqueue(_spamBotTellQueue.Dequeue());
@@ -8705,7 +8702,7 @@ namespace PRoConEvents
                                     requiredTriggers -= ((losingTeam.TeamTicketCount <= 500) ? ((500 - losingTeam.TeamTicketCount) / 30) : (0));
                                     //Add modification based on automatic assist
                                     requiredTriggers = ((_PlayersAutoAssistedThisRound) ? (requiredTriggers * 2) : (requiredTriggers));
-                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < ((_isTestingAuthorized) ? (-40) : (-50)) && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
+                                    if ((losingTeam.TeamAdjustedTicketDifferenceRate < ((_isTestingAuthorized) ? (-45) : (-50)) && winningTeam.TeamAdjustedTicketDifferenceRate > -5))
                                     {
                                         _lastAutoSurrenderTriggerTime = UtcDbTime();
                                         bool resumed = _surrenderAutoTriggerCountCurrent != 0 && _surrenderAutoTriggerCountCurrent == _surrenderAutoTriggerCountPause;
@@ -12155,23 +12152,25 @@ namespace PRoConEvents
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            if (_isTestingAuthorized)
-            {
-                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList())
-                {
-                    if (aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer) && !whitelistedPlayers.ContainsKey(aPlayer.player_name))
-                    {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
-                    }
-                    else if (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0)
-                    {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
-                    }
-                    else if (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High)
-                    {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+            if (_isTestingAuthorized) {
+                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()){
+                    if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                        if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) || 
+                            (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 5.0) ||
+                            (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High)) {
+                            whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                        }
                     }
                 }
+            }
+            const string bypassPrefix = "[whitelistbypass]";
+            var bypass = false;
+            while (message.Contains(bypassPrefix)) {
+                message = message.Replace(bypassPrefix, "");
+                bypass = true;
+            }
+            if (bypass) {
+                whitelistedPlayers.Clear();
             }
             if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
             {
@@ -12222,23 +12221,25 @@ namespace PRoConEvents
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            if (_isTestingAuthorized)
-            {
-                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList())
-                {
-                    if (aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer) && !whitelistedPlayers.ContainsKey(aPlayer.player_name))
-                    {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
-                    }
-                    else if (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0)
-                    {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
-                    }
-                    else if (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High)
-                    {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+            if (_isTestingAuthorized) {
+                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
+                    if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                        if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
+                            (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
+                            (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High)) {
+                            whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                        }
                     }
                 }
+            }
+            const string bypassPrefix = "[whitelistbypass]";
+            var bypass = false;
+            while (message.Contains(bypassPrefix)) {
+                message = message.Replace(bypassPrefix, "");
+                bypass = true;
+            }
+            if (bypass) {
+                whitelistedPlayers.Clear();
             }
             if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
             {
@@ -12289,23 +12290,25 @@ namespace PRoConEvents
         {
             Boolean nonAdminsTold = false;
             Dictionary<String, AdKatsPlayer> whitelistedPlayers = GetOnlinePlayerDictionaryOfGroup("whitelist_spambot");
-            if (_isTestingAuthorized)
-            {
-                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList())
-                {
-                    if (aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer) && !whitelistedPlayers.ContainsKey(aPlayer.player_name))
-                    {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
-                    }
-                    else if (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0)
-                    {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
-                    }
-                    else if (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High)
-                    {
-                        whitelistedPlayers[aPlayer.player_name] = aPlayer;
+            if (_isTestingAuthorized) {
+                foreach (AdKatsPlayer aPlayer in _PlayerDictionary.Values.ToList()) {
+                    if (!whitelistedPlayers.ContainsKey(aPlayer.player_name)) {
+                        if ((aPlayer.player_reputation >= _reputationThresholdGood && !PlayerIsAdmin(aPlayer)) ||
+                            (message.ToLower().Contains("donat") && aPlayer.player_serverplaytime.TotalHours <= 50.0) ||
+                            (message.ToLower().Contains("reserve") && _populationStatus != PopulationState.High)) {
+                            whitelistedPlayers[aPlayer.player_name] = aPlayer;
+                        }
                     }
                 }
+            }
+            const string bypassPrefix = "[whitelistbypass]";
+            var bypass = false;
+            while (message.Contains(bypassPrefix)) {
+                message = message.Replace(bypassPrefix, "");
+                bypass = true;
+            }
+            if (bypass) {
+                whitelistedPlayers.Clear();
             }
             if (FetchOnlineAdminSoldiers().Any() || whitelistedPlayers.Any())
             {
@@ -32167,7 +32170,55 @@ namespace PRoConEvents
             return aBan;
         }
 
-
+        private DateTime FetchFutureRoundDate(Int32 TargetRoundID) {
+            if (_roundID <= 1 || TargetRoundID <= 1 || HandlePossibleDisconnect()) {
+                return DateTime.MinValue;
+            }
+            try {
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        //The most ham-handed SQL I've ever written
+                        command.CommandText = @"
+                        SELECT
+	                        *,
+                            (@TargetRound - `CurrentRoundId`) AS `RemainingRounds`,
+                            `AvgRoundDuration` * (@TargetRound - `CurrentRoundId`) AS `RemainingMinutes`,
+                            DATE_ADD(UTC_TIMESTAMP(), INTERVAL `AvgRoundDuration` * (@TargetRound - `CurrentRoundId`) MINUTE) AS `TargetTime`
+                        FROM
+	                        (SELECT 
+	                        (SELECT MAX(`round_id`) FROM `tbl_extendedroundstats` WHERE `server_id` = @ServerID) AS `CurrentRoundId`,
+	                        (SELECT
+		                        TIMESTAMPDIFF(SECOND, MIN(`roundstart_time`), MAX(`roundstart_time`)) / 
+		                        (REPLACE(COUNT(`round_id`), 0, 1.0)) / 60.0
+	                        FROM
+	                        (SELECT 
+		                        `round_id`, 
+		                        `roundstat_time` AS `roundstart_time`
+	                        FROM 
+		                        `tbl_extendedroundstats` 
+	                        WHERE 
+		                        `server_id` = @ServerID 
+	                        AND
+		                        TIMESTAMPDIFF(MINUTE, `roundstat_time`, UTC_TIMESTAMP()) < 1440
+	                        GROUP BY 
+		                        `round_id`
+	                        ORDER BY
+		                        `roundstat_id` DESC) AS `RoundStartTimes`) AS `AvgRoundDuration`) AS `RoundInfo`";
+                        command.Parameters.AddWithValue("@ServerID", _serverInfo.ServerID);
+                        command.Parameters.AddWithValue("@TargetRound", TargetRoundID);
+                        using (MySqlDataReader reader = SafeExecuteReader(command)) {
+                            if (reader.Read()) {
+                                return reader.GetDateTime("TargetTime");
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                HandleException(new AdKatsException("Error while fetching future round time.", e));
+            }
+            return DateTime.MinValue;
+        }
+        
         private List<AdKatsBan> FetchPlayerBans(AdKatsPlayer player)
         {
             Log.Debug("FetchPlayerBans starting!", 6);
@@ -39778,7 +39829,7 @@ namespace PRoConEvents
                                         {
                                             _databaseSuccess = 0;
                                             //Inform the user database still not connectable
-                                            Log.Error("Database still not accessible. (" + String.Format("{0:0.00}", disconnectTimer.Elapsed.TotalMinutes) + " minutes since critical disconnect at " + disconnectTime.ToShortTimeString() + ".");
+                                            Log.Error("Database still not accessible. (" + FormatTimeString(disconnectTimer.Elapsed, 3) + " since critical disconnect at " + disconnectTime.ToShortTimeString() + ".)");
                                         }
                                         else
                                         {
