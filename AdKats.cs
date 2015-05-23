@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.14
- * 21-MAY-2015
+ * Version 6.7.0.15
+ * 22-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.14</version_code>
+ * <version_code>6.7.0.15</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.14";
+        private const String PluginVersion = "6.7.0.15";
 
         public enum GameVersion
         {
@@ -12813,7 +12813,7 @@ namespace PRoConEvents
                                 }
                                 if (_serverInfo.ServerType != "OFFICIAL")
                                 {
-                                    if (_isTestingAuthorized && _gameVersion != GameVersion.BF3)
+                                    if (_isTestingAuthorized && !isCommand)
                                     {
                                         string lowerM = " " + messageObject.Message.ToLower() + " ";
                                         if (lowerM.Contains("bipod")) {
@@ -12831,6 +12831,16 @@ namespace PRoConEvents
                                         if (lowerM.Contains(" plng") || lowerM.Contains(" p|ng")) {
                                             if (!PlayerIsAdmin(aPlayer)) {
                                                 PlayerTellMessage(messageObject.Speaker, "Really? Bypassing the ping message?");
+                                                continue;
+                                            }
+                                        }
+                                        if (lowerM.Contains(" hack") || 
+                                            lowerM.Contains(" aimbot") || 
+                                            lowerM.Contains(" bot") || 
+                                            lowerM.Contains(" macro")) {
+                                            if (!PlayerIsAdmin(aPlayer)) {
+                                                PlayerYellMessage(messageObject.Speaker, "If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
+                                                AdminSayMessage("If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
                                                 continue;
                                             }
                                         }
