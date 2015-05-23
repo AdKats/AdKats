@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.15
+ * Version 6.7.0.16
  * 22-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.15</version_code>
+ * <version_code>6.7.0.16</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.15";
+        private const String PluginVersion = "6.7.0.16";
 
         public enum GameVersion
         {
@@ -12836,11 +12836,13 @@ namespace PRoConEvents
                                         }
                                         if (lowerM.Contains(" hack") || 
                                             lowerM.Contains(" aimbot") || 
-                                            lowerM.Contains(" bot") || 
+                                            lowerM.Contains(" bot ") || 
                                             lowerM.Contains(" macro")) {
                                             if (!PlayerIsAdmin(aPlayer)) {
                                                 PlayerYellMessage(messageObject.Speaker, "If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
-                                                AdminSayMessage("If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
+                                                if (messageObject.Subset == AdKatsChatMessage.ChatSubset.Global) {
+                                                    AdminSayMessage("If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
+                                                }
                                                 continue;
                                             }
                                         }
