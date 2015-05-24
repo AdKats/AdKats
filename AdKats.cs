@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.17
- * 23-MAY-2015
+ * Version 6.7.0.18
+ * 24-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.17</version_code>
+ * <version_code>6.7.0.18</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.17";
+        private const String PluginVersion = "6.7.0.18";
 
         public enum GameVersion
         {
@@ -12835,14 +12835,18 @@ namespace PRoConEvents
                                                 continue;
                                             }
                                         }
-                                        if (lowerM.Contains(" hack") || 
-                                            lowerM.Contains(" aimbot") || 
-                                            lowerM.Contains(" bot ") || 
+                                        if (lowerM.Contains(" hack") ||
+                                            lowerM.Contains(" cheat") ||
+                                            lowerM.Contains(" aimbot") ||
+                                            lowerM.Contains(" bot ") ||
+                                            lowerM.Contains(" botting ") || 
                                             lowerM.Contains(" macro")) {
                                             if (!PlayerIsAdmin(aPlayer)) {
-                                                PlayerYellMessage(messageObject.Speaker, "If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
                                                 if (messageObject.Subset == AdKatsChatMessage.ChatSubset.Global) {
+                                                    PlayerYellMessage(messageObject.Speaker, "If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
                                                     AdminSayMessage("If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
+                                                } else {
+                                                    PlayerTellMessage(messageObject.Speaker, "If you think a player is cheating use !report playername reason. Otherwise, it's chat spam.");
                                                 }
                                                 continue;
                                             }
@@ -17341,6 +17345,7 @@ namespace PRoConEvents
                             switch (parameters.Length) {
                                 case 1:
                                     record.record_message = parameters[0];
+                                    record.target_name = "Server";
                                     if (record.record_message.Length < 5) {
                                         SendMessageToSource(record, "Feedback message too short, unable to submit.");
                                         FinalizeRecord(record);
@@ -40682,7 +40687,7 @@ namespace PRoConEvents
                 }
                 else
                 {
-                    targets = target_name;
+                    targets = ((String.IsNullOrEmpty(target_name))?("NoNameTarget"):(target_name));
                 }
                 return targets.Trim().TrimEnd(',');
             }
