@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.18
+ * Version 6.7.0.19
  * 24-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.18</version_code>
+ * <version_code>6.7.0.19</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.18";
+        private const String PluginVersion = "6.7.0.19";
 
         public enum GameVersion
         {
@@ -10440,7 +10440,8 @@ namespace PRoConEvents
                                 StartAndLogThread(new Thread(new ThreadStart(delegate {
                                     Thread.CurrentThread.Name = "RoundWelcome";
                                     Thread.Sleep(TimeSpan.FromSeconds(17));
-                                    AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro");
+                                    var kTime = FetchFutureRoundDate(15000);
+                                    AdminTellMessage("Welcome to round " + String.Format("{0:n0}", _roundID) + " of No Explosives Metro" + ((_roundID < 15000) ? (Environment.NewLine + "Round 15,000 in " + FormatTimeString(kTime - UtcDbTime(), 3) + " (" + kTime.ToShortDateString() + ")") : ("")));
                                     LogThreadExit();
                                 })));
                             } else if (_serverInfo.ServerName.Contains("#6")) {
