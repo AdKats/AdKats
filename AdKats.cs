@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.19
- * 24-MAY-2015
+ * Version 6.7.0.20
+ * 25-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.19</version_code>
+ * <version_code>6.7.0.20</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.19";
+        private const String PluginVersion = "6.7.0.20";
 
         public enum GameVersion
         {
@@ -5224,7 +5224,7 @@ namespace PRoConEvents
                     if (!_spamBotSayList.SequenceEqual(spamBotSayList))
                     {
                         _spamBotSayQueue.Clear();
-                        foreach (String line in spamBotSayList.ToList())
+                        foreach (String line in spamBotSayList.Where(message => !String.IsNullOrEmpty(message)).ToList())
                         {
                             _spamBotSayQueue.Enqueue(line);
                         }
@@ -5254,7 +5254,7 @@ namespace PRoConEvents
                     if (!_spamBotYellList.SequenceEqual(spamBotYellList))
                     {
                         _spamBotYellQueue.Clear();
-                        foreach (String line in spamBotYellList.ToList())
+                        foreach (String line in spamBotYellList.Where(message => !String.IsNullOrEmpty(message)).ToList())
                         {
                             _spamBotYellQueue.Enqueue(line);
                         }
@@ -5284,7 +5284,7 @@ namespace PRoConEvents
                     if (!_spamBotYellList.SequenceEqual(spamBotTellList))
                     {
                         _spamBotTellQueue.Clear();
-                        foreach (String line in spamBotTellList.ToList())
+                        foreach (String line in spamBotTellList.Where(message => !String.IsNullOrEmpty(message)).ToList())
                         {
                             _spamBotTellQueue.Enqueue(line);
                         }
@@ -6195,7 +6195,7 @@ namespace PRoConEvents
                                 _roundState == RoundState.Playing && 
                                 _PlayerDictionary.Any())
                             {
-                                if ((UtcDbTime() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds) {
+                                if ((UtcDbTime() - _spamBotSayLastPost).TotalSeconds > _spamBotSayDelaySeconds && _spamBotSayQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotSayQueue.Peek();
                                     if (message.Contains("%Round15000Date%")) {
                                         var futureDate = FetchFutureRoundDate(15000);
@@ -6213,7 +6213,7 @@ namespace PRoConEvents
                                     _spamBotSayQueue.Enqueue(_spamBotSayQueue.Dequeue());
                                     _spamBotSayLastPost = UtcDbTime();
                                 }
-                                if ((UtcDbTime() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds) {
+                                if ((UtcDbTime() - _spamBotYellLastPost).TotalSeconds > _spamBotYellDelaySeconds && _spamBotYellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotYellQueue.Peek();
                                     if (message.Contains("%Round15000Date%")) {
                                         var futureDate = FetchFutureRoundDate(15000);
@@ -6231,7 +6231,7 @@ namespace PRoConEvents
                                     _spamBotYellQueue.Enqueue(_spamBotYellQueue.Dequeue());
                                     _spamBotYellLastPost = UtcDbTime();
                                 }
-                                if ((UtcDbTime() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds) {
+                                if ((UtcDbTime() - _spamBotTellLastPost).TotalSeconds > _spamBotTellDelaySeconds && _spamBotTellQueue.Any()) {
                                     String message = "[SpamBotMessage]" + _spamBotTellQueue.Peek();
                                     if (message.Contains("%Round15000Date%")) {
                                         var futureDate = FetchFutureRoundDate(15000);
