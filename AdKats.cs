@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.20
+ * Version 6.7.0.21
  * 25-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.20</version_code>
+ * <version_code>6.7.0.21</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.20";
+        private const String PluginVersion = "6.7.0.21";
 
         public enum GameVersion
         {
@@ -9520,13 +9520,15 @@ namespace PRoConEvents
                     losingTeam = team1;
                 }
                 if (_isTestingAuthorized && _gameVersion == GameVersion.BF4) {
-                    if (_serverInfo.ServerName.Contains("EU #5")) {
-                        //Do nothing
-                    } else if (_serverInfo.ServerName.Contains("#5")) {
+                    if (_serverInfo.ServerID == 6) {
                         Int32 quality = 0;
-                        if (losingTeam.TeamTicketCount >= 230) {
-                            quality = 2;
+                        if (losingTeam.TeamTicketCount >= 260) {
+                            quality = 4;
+                        } else if (losingTeam.TeamTicketCount >= 230) {
+                            quality = 3;
                         } else if (losingTeam.TeamTicketCount >= 200) {
+                            quality = 2;
+                        } else if (losingTeam.TeamTicketCount >= 150) {
                             quality = 1;
                         }
                         QueueStatisticForProcessing(new AdKatsStatistic() {
@@ -9538,12 +9540,16 @@ namespace PRoConEvents
                             stat_comment = "Quality level " + quality + " (" + winningTeam.TeamTicketCount + "|" + losingTeam.TeamTicketCount + ")",
                             stat_time = UtcDbTime()
                         });
-                    } else if (_serverInfo.ServerName.Contains("#7")) {
-                        Int32 quality = 2;
-                        if (winningTeam.TeamTicketCount >= 700) {
+                    } else if (_serverInfo.ServerID == 1) {
+                        Int32 quality = 4;
+                        if (losingTeam.TeamTicketCount >= 800) {
                             quality = 0;
-                        } else if (winningTeam.TeamTicketCount >= 550) {
+                        } else if (losingTeam.TeamTicketCount >= 700) {
                             quality = 1;
+                        } else if (losingTeam.TeamTicketCount >= 600) {
+                            quality = 2;
+                        } else if (losingTeam.TeamTicketCount >= 500) {
+                            quality = 3;
                         }
                         QueueStatisticForProcessing(new AdKatsStatistic() {
                             stat_type = AdKatsStatistic.StatisticType.round_quality,
@@ -9554,8 +9560,26 @@ namespace PRoConEvents
                             stat_comment = "Quality level " + quality + " (" + winningTeam.TeamTicketCount + "|" + losingTeam.TeamTicketCount + ")",
                             stat_time = UtcDbTime()
                         });
-                    } else if (_serverInfo.ServerName.Contains("#6")) {
-                        //Do nothing
+                    } else if (_serverInfo.ServerID == 7) {
+                        Int32 quality = 4;
+                        if (losingTeam.TeamTicketCount >= 600) {
+                            quality = 0;
+                        } else if (losingTeam.TeamTicketCount >= 500) {
+                            quality = 1;
+                        } else if (losingTeam.TeamTicketCount >= 400) {
+                            quality = 2;
+                        } else if (losingTeam.TeamTicketCount >= 300) {
+                            quality = 3;
+                        }
+                        QueueStatisticForProcessing(new AdKatsStatistic() {
+                            stat_type = AdKatsStatistic.StatisticType.round_quality,
+                            server_id = _serverInfo.ServerID,
+                            round_id = _roundID,
+                            target_name = _serverInfo.InfoObject.Map,
+                            stat_value = quality,
+                            stat_comment = "Quality level " + quality + " (" + winningTeam.TeamTicketCount + "|" + losingTeam.TeamTicketCount + ")",
+                            stat_time = UtcDbTime()
+                        });
                     }
                 }
                 if (_PostWinLossBaserapeStatistics) {
