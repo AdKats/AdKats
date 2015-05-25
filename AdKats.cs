@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.21
+ * Version 6.7.0.22
  * 25-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.21</version_code>
+ * <version_code>6.7.0.22</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.21";
+        private const String PluginVersion = "6.7.0.22";
 
         public enum GameVersion
         {
@@ -9542,13 +9542,13 @@ namespace PRoConEvents
                         });
                     } else if (_serverInfo.ServerID == 1) {
                         Int32 quality = 4;
-                        if (losingTeam.TeamTicketCount >= 800) {
+                        if (winningTeam.TeamTicketCount >= 800) {
                             quality = 0;
-                        } else if (losingTeam.TeamTicketCount >= 700) {
+                        } else if (winningTeam.TeamTicketCount >= 700) {
                             quality = 1;
-                        } else if (losingTeam.TeamTicketCount >= 600) {
+                        } else if (winningTeam.TeamTicketCount >= 600) {
                             quality = 2;
-                        } else if (losingTeam.TeamTicketCount >= 500) {
+                        } else if (winningTeam.TeamTicketCount >= 500) {
                             quality = 3;
                         }
                         QueueStatisticForProcessing(new AdKatsStatistic() {
@@ -9562,13 +9562,13 @@ namespace PRoConEvents
                         });
                     } else if (_serverInfo.ServerID == 7) {
                         Int32 quality = 4;
-                        if (losingTeam.TeamTicketCount >= 600) {
+                        if (winningTeam.TeamTicketCount >= 600) {
                             quality = 0;
-                        } else if (losingTeam.TeamTicketCount >= 500) {
+                        } else if (winningTeam.TeamTicketCount >= 500) {
                             quality = 1;
-                        } else if (losingTeam.TeamTicketCount >= 400) {
+                        } else if (winningTeam.TeamTicketCount >= 400) {
                             quality = 2;
-                        } else if (losingTeam.TeamTicketCount >= 300) {
+                        } else if (winningTeam.TeamTicketCount >= 300) {
                             quality = 3;
                         }
                         QueueStatisticForProcessing(new AdKatsStatistic() {
