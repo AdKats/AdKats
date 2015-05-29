@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.23
+ * Version 6.7.0.24
  * 28-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.23</version_code>
+ * <version_code>6.7.0.24</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.23";
+        private const String PluginVersion = "6.7.0.24";
 
         public enum GameVersion
         {
@@ -14626,7 +14626,7 @@ namespace PRoConEvents
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, false, true);
                                         }
                                         else
                                         {
@@ -14695,7 +14695,7 @@ namespace PRoConEvents
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, false, true);
                                         }
                                         else
                                         {
@@ -14764,7 +14764,7 @@ namespace PRoConEvents
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, false, true);
                                         }
                                         else
                                         {
@@ -14833,7 +14833,7 @@ namespace PRoConEvents
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, false, true);
                                         }
                                         else
                                         {
@@ -14970,7 +14970,7 @@ namespace PRoConEvents
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, true, true);
                                         }
                                         else
                                         {
@@ -15039,7 +15039,7 @@ namespace PRoConEvents
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, true, true);
                                         }
                                         else
                                         {
@@ -15175,7 +15175,7 @@ namespace PRoConEvents
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, true, true);
                                         }
                                         else
                                         {
@@ -15379,14 +15379,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -15402,7 +15402,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -15514,14 +15514,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -15537,7 +15537,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -15642,14 +15642,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -15665,7 +15665,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -15763,14 +15763,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -15786,7 +15786,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -15891,14 +15891,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -15914,7 +15914,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -16019,14 +16019,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -16042,7 +16042,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -16140,14 +16140,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -16163,7 +16163,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -16261,14 +16261,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -16284,7 +16284,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -16382,14 +16382,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -16405,7 +16405,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -16510,14 +16510,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -16533,7 +16533,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -16645,14 +16645,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -16668,7 +16668,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -16709,7 +16709,7 @@ namespace PRoConEvents
                                     }
                                     record.record_message = "Self-Inflicted";
                                     record.target_name = record.source_name;
-                                    CompleteTargetInformation(record, true, false, false);
+                                    CompleteTargetInformation(record, true, true, true);
                                     break;
                                 case 1:
                                     record.target_name = parameters[0];
@@ -16737,7 +16737,7 @@ namespace PRoConEvents
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, true, true);
                                         }
                                         else
                                         {
@@ -16771,7 +16771,7 @@ namespace PRoConEvents
                                     }
                                     record.record_message = "Self-Inflicted";
                                     record.target_name = record.source_name;
-                                    CompleteTargetInformation(record, true, false, false);
+                                    CompleteTargetInformation(record, true, true, true);
                                     break;
                                 case 1:
                                     record.target_name = parameters[0];
@@ -16799,7 +16799,7 @@ namespace PRoConEvents
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, true, true);
                                         }
                                         else
                                         {
@@ -16840,7 +16840,7 @@ namespace PRoConEvents
                                     }
                                     record.record_message = "Self-Inflicted";
                                     record.target_name = record.source_name;
-                                    CompleteTargetInformation(record, true, false, false);
+                                    CompleteTargetInformation(record, true, false, true);
                                     break;
                                 case 1:
                                     record.target_name = parameters[0];
@@ -16868,7 +16868,7 @@ namespace PRoConEvents
                                     {
                                         if (record.record_message.Length >= _RequiredReasonLength)
                                         {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, false, true);
                                         }
                                         else
                                         {
@@ -17084,7 +17084,7 @@ namespace PRoConEvents
                                 case 1:
                                     record.target_name = parameters[0];
                                     record.record_message = "Fetching Player Info";
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -17148,7 +17148,7 @@ namespace PRoConEvents
                                         record.record_message = "Fetching player chat history";
                                         record.target_name = parameters[0];
                                         record.command_numeric = 5;
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 case 2:
@@ -17159,7 +17159,7 @@ namespace PRoConEvents
                                         record.record_message = "Fetching player chat history";
                                         record.target_name = parameters[1];
                                         record.command_numeric = numeric;
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     else
                                     {
@@ -17172,7 +17172,7 @@ namespace PRoConEvents
                                             record.TargetNamesLocal.Add(record.source_name);
                                             record.TargetNamesLocal.Add(parameters[0]);
                                             record.command_numeric = 5;
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, true, true);
                                         }
                                         else
                                         {
@@ -17181,7 +17181,7 @@ namespace PRoConEvents
                                             record.TargetNamesLocal.Add(parameters[0]);
                                             record.TargetNamesLocal.Add(parameters[1]);
                                             record.command_numeric = 5;
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, true, true);
                                         }
                                     }
                                     break;
@@ -17197,7 +17197,7 @@ namespace PRoConEvents
                                             record.TargetNamesLocal.Add(record.source_name);
                                             record.TargetNamesLocal.Add(parameters[2]);
                                             record.command_numeric = numeric;
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, true, true);
                                         }
                                         else
                                         {
@@ -17206,7 +17206,7 @@ namespace PRoConEvents
                                             record.TargetNamesLocal.Add(parameters[1]);
                                             record.TargetNamesLocal.Add(parameters[2]);
                                             record.command_numeric = numeric;
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, true, true);
                                         }
                                     }
                                     else
@@ -17368,7 +17368,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record)) {
                                         if (record.record_message.Length >= _RequiredReasonLength) {
-                                            CompleteTargetInformation(record, false, false, false);
+                                            CompleteTargetInformation(record, false, true, true);
                                         } else {
                                             SendMessageToSource(record, "Log message too short, unable to submit.");
                                             FinalizeRecord(record);
@@ -18163,7 +18163,7 @@ namespace PRoConEvents
                                     record.record_message = "Giving Player Squad Lead";
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, false, false);
+                                        CompleteTargetInformation(record, false, false, true);
                                     }
                                     break;
                                 default:
@@ -18342,7 +18342,7 @@ namespace PRoConEvents
                                     record.record_message = GetPreMessage(parameters[1], false);
                                     Log.Debug("" + record.record_message, 6);
 
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -18401,7 +18401,7 @@ namespace PRoConEvents
                                     record.record_message = GetPreMessage(parameters[1], false);
                                     Log.Debug("" + record.record_message, 6);
 
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -18460,7 +18460,7 @@ namespace PRoConEvents
                                     record.record_message = GetPreMessage(parameters[1], false);
                                     Log.Debug("" + record.record_message, 6);
 
-                                    CompleteTargetInformation(record, false, false, false);
+                                    CompleteTargetInformation(record, false, false, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -18707,14 +18707,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -18730,7 +18730,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -18835,14 +18835,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -18858,7 +18858,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -18963,14 +18963,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -18986,7 +18986,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -19091,14 +19091,14 @@ namespace PRoConEvents
                                     }
                                     record.target_name = record.source_name;
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 2:
                                     //time
                                     //player
                                     record.target_name = parameters[1];
                                     record.record_message = defaultReason;
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 case 3:
                                     //time
@@ -19114,7 +19114,7 @@ namespace PRoConEvents
                                         return;
                                     }
                                     Log.Debug("" + record.record_message, 6);
-                                    CompleteTargetInformation(record, false, true, false);
+                                    CompleteTargetInformation(record, false, true, true);
                                     break;
                                 default:
                                     SendMessageToSource(record, "Invalid parameters, unable to submit.");
@@ -19149,7 +19149,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19192,7 +19192,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19228,7 +19228,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19264,7 +19264,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19300,7 +19300,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19336,7 +19336,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19379,7 +19379,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19422,7 +19422,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19465,7 +19465,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19508,7 +19508,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19551,7 +19551,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19594,7 +19594,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19637,7 +19637,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19680,7 +19680,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19723,7 +19723,7 @@ namespace PRoConEvents
                                     //Handle based on report ID if possible
                                     if (!HandleRoundReport(record))
                                     {
-                                        CompleteTargetInformation(record, false, true, false);
+                                        CompleteTargetInformation(record, false, true, true);
                                     }
                                     break;
                                 default:
@@ -19915,12 +19915,12 @@ namespace PRoConEvents
             Log.Debug("Exiting FinalizeRecord", 7);
         }
 
-        public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm, Boolean externalFetchOverFuzzy, Boolean externalOnlineFetchOverFuzzy)
+        public void CompleteTargetInformation(AdKatsRecord record, Boolean requireConfirm, Boolean externalFetch, Boolean externalOnlineFetch)
         {
-            CompleteTargetInformation(record, true, requireConfirm, externalFetchOverFuzzy, externalOnlineFetchOverFuzzy);
+            CompleteTargetInformation(record, true, requireConfirm, externalFetch, externalOnlineFetch);
         }
 
-        public void CompleteTargetInformation(AdKatsRecord record, Boolean includeLeftPlayers, Boolean requireConfirm, Boolean externalFetchOverFuzzy, Boolean externalOnlineFetchOverFuzzy)
+        public void CompleteTargetInformation(AdKatsRecord record, Boolean includeLeftPlayers, Boolean requireConfirm, Boolean externalFetch, Boolean externalOnlineFetch)
         {
             try
             {
@@ -19934,7 +19934,7 @@ namespace PRoConEvents
                         AdKatsPlayer aPlayer;
                         String resultMessage;
                         Boolean curConfirm;
-                        if (FetchPlayerFromName(targetName, includeLeftPlayers, externalFetchOverFuzzy, externalOnlineFetchOverFuzzy, out aPlayer, out curConfirm, out resultMessage))
+                        if (FetchPlayerFromName(targetName, includeLeftPlayers, externalFetch, externalOnlineFetch, out aPlayer, out curConfirm, out resultMessage))
                         {
                             record.TargetPlayersLocal.Add(aPlayer);
                             if (curConfirm)
@@ -19958,7 +19958,7 @@ namespace PRoConEvents
                     AdKatsPlayer aPlayer;
                     String resultMessage;
                     Boolean curConfirm;
-                    if (FetchPlayerFromName(record.target_name, includeLeftPlayers, externalFetchOverFuzzy, externalOnlineFetchOverFuzzy, out aPlayer, out curConfirm, out resultMessage))
+                    if (FetchPlayerFromName(record.target_name, includeLeftPlayers, externalFetch, externalOnlineFetch, out aPlayer, out curConfirm, out resultMessage))
                     {
                         record.target_name = aPlayer.player_name;
                         record.target_player = aPlayer;
@@ -19991,7 +19991,7 @@ namespace PRoConEvents
             }
         }
 
-        public Boolean FetchPlayerFromName(String playerNameInput, Boolean includeLeftPlayers, Boolean externalFetchOverFuzzy, Boolean externalOnlineFetchOverFuzzy, out AdKatsPlayer aPlayer, out Boolean confirmNeeded, out String resultMessage)
+        public Boolean FetchPlayerFromName(String playerNameInput, Boolean includeLeftPlayers, Boolean externalFetch, Boolean externalOnlineFetch, out AdKatsPlayer aPlayer, out Boolean confirmNeeded, out String resultMessage)
         {
             //Set default return values
             resultMessage = "No valid player found for '" + playerNameInput + "'";
@@ -20002,12 +20002,6 @@ namespace PRoConEvents
                 if (!SoldierNameValid(playerNameInput))
                 {
                     resultMessage = "'" + playerNameInput + "' was an invalid player name.";
-                    return false;
-                }
-                if (externalFetchOverFuzzy && externalOnlineFetchOverFuzzy)
-                {
-                    Log.Error("Cannot use both external fetches at the same time.");
-                    resultMessage = "Cannot use both external fetches at the same time.";
                     return false;
                 }
                 //Check for an exact match
@@ -20175,7 +20169,7 @@ namespace PRoConEvents
                         return false;
                     }
                 }
-                if (externalFetchOverFuzzy)
+                if (externalFetch)
                 {
                     if (playerNameInput.Length < 3)
                     {
@@ -20184,30 +20178,26 @@ namespace PRoConEvents
                     }
                     //No online or left player found, run external fetch over checking for fuzzy match
                     aPlayer = FetchPlayer(false, true, true, null, -1, playerNameInput, null, null);
-                    if (aPlayer == null)
-                    {
-                        return false;
+                    if (aPlayer != null) {
+                        resultMessage = "Offline player found.";
+                        aPlayer.player_online = false;
+                        aPlayer.RecentKills.Clear();
+                        aPlayer.player_server = null;
+                        confirmNeeded = true;
+                        aPlayer.LastUsage = UtcDbTime();
+                        return true;
                     }
-                    resultMessage = "Offline player found.";
-                    aPlayer.player_online = false;
-                    aPlayer.RecentKills.Clear();
-                    aPlayer.player_server = null;
-                    confirmNeeded = true;
-                    aPlayer.LastUsage = UtcDbTime();
-                    return true;
                 }
-                if (externalOnlineFetchOverFuzzy)
+                if (externalOnlineFetch)
                 {
                     //No online or left player found, run external online player fetch over checking for fuzzy match
                     aPlayer = FetchMatchingExternalOnlinePlayer(playerNameInput);
-                    if (aPlayer == null)
-                    {
-                        return false;
+                    if (aPlayer != null) {
+                        resultMessage = "Online player found in '" + aPlayer.player_server.ServerName.Substring(0, 20) + "'.";
+                        confirmNeeded = true;
+                        aPlayer.LastUsage = UtcDbTime();
+                        return true;
                     }
-                    resultMessage = "Online player found in '" + aPlayer.player_server.ServerName.Substring(0, 20) + "'.";
-                    confirmNeeded = true;
-                    aPlayer.LastUsage = UtcDbTime();
-                    return true;
                 }
                 //No other option, run fuzzy match
                 if (currentPlayerNames.Count > 0)
