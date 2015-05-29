@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.22
- * 25-MAY-2015
+ * Version 6.7.0.23
+ * 28-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.22</version_code>
+ * <version_code>6.7.0.23</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.22";
+        private const String PluginVersion = "6.7.0.23";
 
         public enum GameVersion
         {
@@ -539,6 +539,7 @@ namespace PRoConEvents
         private Boolean _AutomaticAssistBaserapeCausingPlayers;
         private Boolean _PlayersAutoAssistedThisRound;
         //Top Players
+        private Boolean _UseTopPlayerMonitor;
         private Int32 _TopPlayersDurationDays = 30;
         private Int32 _TopPlayersMinimumCount = 3;
         private readonly Dictionary<String, AdKatsPlayer> _topPlayers = new Dictionary<String, AdKatsPlayer>();
@@ -1224,21 +1225,23 @@ namespace PRoConEvents
                             lstReturn.Add(new CPluginVariable(tsPlayerMonitorPrefix + "Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
                         }
                     }
-                    if (_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]"))) {
+                    lstReturn.Add(new CPluginVariable("B27. Player Monitor Settings|Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
+                    var topPlayerPrefix = "B27-4. Top Player Monitor Settings|";
+                    if (_UseTopPlayerMonitor) {
                         var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                             .Where(aPlayer => 
                                 _topPlayers.ContainsKey(aPlayer.player_name))
                             .Select(aPlayer => 
                                 ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing)?(_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> "):("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
                             .OrderBy(item => item);
-                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayers.ToArray()));
-                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
+                        lstReturn.Add(new CPluginVariable(topPlayerPrefix + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayers.ToArray()));
+                        lstReturn.Add(new CPluginVariable(topPlayerPrefix + "[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
                             .Select(aPlayer =>
                                 ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
                             .OrderBy(item => item)
                             .ToArray()));
-                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
-                        lstReturn.Add(new CPluginVariable("B27-T. Top Player Monitor Settings|Count to Consider Top", typeof(Int32), _TopPlayersMinimumCount));
+                        lstReturn.Add(new CPluginVariable(topPlayerPrefix + "Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
+                        lstReturn.Add(new CPluginVariable(topPlayerPrefix + "Minimum Round Count for Top Players", typeof(Int32), _TopPlayersMinimumCount));
                     }
 
                     //Debug settings
@@ -2966,6 +2969,29 @@ namespace PRoConEvents
                         //Upload change to database 
                         QueueSettingForUpload(new CPluginVariable(@"Automatic Assist Trigger for Baserape Causing Players", typeof(Boolean), _AutomaticAssistBaserapeCausingPlayers));
                     }
+                } else if (Regex.Match(strVariable, @"Monitor/Disperse Top Players").Success) {
+                    //Initial parse
+                    Boolean UseTopPlayerMonitor = Boolean.Parse(strValue);
+                    //Check for changed value
+                    if (UseTopPlayerMonitor != _UseTopPlayerMonitor) {
+                        //Rejection cases
+                        if (_threadsReady && !_FeedMultiBalancerWhitelist && UseTopPlayerMonitor) {
+                            Log.Error("'Monitor Top Players' cannot be enabled when 'Feed MULTIBalancer Whitelist' is disabled.");
+                            return;
+                        }
+                        //Assignment
+                        _UseTopPlayerMonitor = UseTopPlayerMonitor;
+                        //Notification
+                        if (_threadsReady) {
+                            if (_UseTopPlayerMonitor) {
+                                Log.Info("Top players now being automatically dispersed between rounds.");
+                            } else {
+                                Log.Info("Top players no longer being dispersed.");
+                            }
+                        }
+                        //Upload change to database  
+                        QueueSettingForUpload(new CPluginVariable(@"Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
+                    }
                 } else if (Regex.Match(strVariable, @"Past Days to Monitor Top Players").Success) {
                     //Initial parse
                     Int32 TopPlayersDurationDays = Int32.Parse(strValue);
@@ -2984,14 +3010,14 @@ namespace PRoConEvents
                         //Upload change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
                     }
-                } else if (Regex.Match(strVariable, @"Count to Consider Top").Success) {
+                } else if (Regex.Match(strVariable, @"Minimum Round Count for Top Players").Success) {
                     //Initial parse
                     Int32 TopPlayersMinimumCount = Int32.Parse(strValue);
                     //Check for changed value
                     if (_TopPlayersMinimumCount != TopPlayersMinimumCount) {
                         //Rejection cases
                         if (TopPlayersMinimumCount < 1) {
-                            Log.Error("'Count to Consider Top' cannot be less than 1.");
+                            Log.Error("'Minimum Round Count for Top Players' cannot be less than 1.");
                             TopPlayersMinimumCount = 1;
                         }
                         //Assignment
@@ -3001,7 +3027,7 @@ namespace PRoConEvents
                             FetchAllAccess(true);
                         }
                         //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Count to Consider Top", typeof(Int32), _TopPlayersMinimumCount));
+                        QueueSettingForUpload(new CPluginVariable(@"Minimum Round Count for Top Players", typeof(Int32), _TopPlayersMinimumCount));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Monitor Populator Players").Success)
@@ -6890,7 +6916,7 @@ namespace PRoConEvents
                                     continue;
                                 }
                                 _acceptingTeamUpdates = false;
-                                if ((_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]"))) && _firstPlayerListComplete)
+                                if (_UseTopPlayerMonitor && _firstPlayerListComplete)
                                 {
                                     //Update team assignment of top players
                                     List<AdKatsPlayer> orderedTopPlayers = _PlayerDictionary.Values
@@ -7697,7 +7723,7 @@ namespace PRoConEvents
                                     try {
                                         //Top player processing
                                         if (_firstPlayerListComplete &&
-                                            (_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]"))) &&
+                                            _UseTopPlayerMonitor &&
                                             aPlayer.player_type == PlayerType.Player &&
                                             aPlayer.RequiredTeam == null &&
                                             _topPlayers.ContainsKey(aPlayer.player_name)) {
@@ -9273,6 +9299,7 @@ namespace PRoConEvents
                                 {
                                     _FeedStatLoggerSettings = true;
                                     _PostStatLoggerChatManually = true;
+                                    _UseTopPlayerMonitor = true;
 
                                     if (_serverInfo.ServerType != "OFFICIAL")
                                     {
@@ -9930,7 +9957,7 @@ namespace PRoConEvents
                 {
                     aKill.killer.RecentKills.Dequeue();
                 }
-                if ((_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]"))) && _serverInfo.ServerType != "OFFICIAL")
+                if (_UseTopPlayerMonitor && _serverInfo.ServerType != "OFFICIAL")
                 {
                     //KPM check
                     Int32 countRecent = aKill.killer.RecentKills.Count(dKill => (DateTime.Now - dKill.timestamp).TotalSeconds < 60);
@@ -12842,12 +12869,6 @@ namespace PRoConEvents
                                     if (_isTestingAuthorized && !isCommand)
                                     {
                                         string lowerM = " " + messageObject.Message.ToLower() + " ";
-                                        if (lowerM.Contains("bipod")) {
-                                            if (!PlayerIsAdmin(aPlayer)) {
-                                                PlayerTellMessage(messageObject.Speaker, "Patches for both bipod glitching and head glitching are dropping soon.");
-                                                continue;
-                                            }
-                                        }
                                         if (lowerM.Contains(" ping")) {
                                             if (!PlayerIsAdmin(aPlayer)) {
                                                 PlayerTellMessage(messageObject.Speaker, "Ping limit is 300 and missing pings are kicked when the server is full.");
@@ -28477,6 +28498,9 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Autobalance Whitelist", typeof(Boolean), _TeamspeakPlayerPerksBalanceWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Ping Whitelist", typeof(Boolean), _TeamspeakPlayerPerksPingWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
+                QueueSettingForUpload(new CPluginVariable(@"Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
+                QueueSettingForUpload(new CPluginVariable(@"Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
+                QueueSettingForUpload(new CPluginVariable(@"Minimum Round Count for Top Players", typeof(Int32), _TopPlayersMinimumCount));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
@@ -30933,22 +30957,15 @@ namespace PRoConEvents
             {
                 return;
             }
-            try
-            {
-                lock (aRole)
-                {
-                    lock (aRole.RoleAllowedCommands)
-                    {
-                        Log.Debug("Uploading role: " + aRole.role_name, 5);
+            try {
+                Log.Debug("Uploading role: " + aRole.role_name, 5);
 
-                        //Open db connection
-                        using (MySqlConnection connection = GetDatabaseConnection())
-                        {
-                            //Upload/Update the main role object
-                            using (MySqlCommand command = connection.CreateCommand())
-                            {
-                                //Set the insert command structure
-                                command.CommandText = @"
+                //Open db connection
+                using (MySqlConnection connection = GetDatabaseConnection()) {
+                    //Upload/Update the main role object
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        //Set the insert command structure
+                        command.CommandText = @"
                                 INSERT INTO 
 	                                `adkats_roles`
                                 (
@@ -30963,41 +30980,34 @@ namespace PRoConEvents
                                 ON DUPLICATE KEY UPDATE
 	                                `role_key` = @role_key,
 	                                `role_name` = @role_name";
-                                //Set values
-                                command.Parameters.AddWithValue("@role_key", aRole.role_key);
-                                command.Parameters.AddWithValue("@role_name", aRole.role_name);
+                        //Set values
+                        command.Parameters.AddWithValue("@role_key", aRole.role_key);
+                        command.Parameters.AddWithValue("@role_name", aRole.role_name);
 
-                                //Attempt to execute the query
-                                Int32 rowsAffected = SafeExecuteNonQuery(command);
-                                if (rowsAffected > 0)
-                                {
-                                    //Set the user's new ID if new
-                                    if (aRole.role_id < 0)
-                                    {
-                                        aRole.role_id = command.LastInsertedId;
-                                    }
-                                    Log.Debug("Role uploaded to database SUCCESSFULY.", 5);
-                                }
-                                else
-                                {
-                                    Log.Error("Unable to upload role " + aRole.role_name + " to database.");
-                                    return;
-                                }
+                        //Attempt to execute the query
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                        if (rowsAffected > 0) {
+                            //Set the user's new ID if new
+                            if (aRole.role_id < 0) {
+                                aRole.role_id = command.LastInsertedId;
                             }
-                            //Delete all current allowed commands
-                            using (MySqlCommand command = connection.CreateCommand())
-                            {
-                                command.CommandText = @"DELETE FROM `adkats_rolecommands` where `role_id` = " + aRole.role_id;
-                                //Attempt to execute the query
-                                Int32 rowsAffected = SafeExecuteNonQuery(command);
-                            }
-                            foreach (AdKatsCommand aCommand in aRole.RoleAllowedCommands.Values)
-                            {
-                                //Upload the role's allowed commands
-                                using (MySqlCommand command = connection.CreateCommand())
-                                {
-                                    //Set the insert command structure
-                                    command.CommandText = @"
+                            Log.Debug("Role uploaded to database SUCCESSFULY.", 5);
+                        } else {
+                            Log.Error("Unable to upload role " + aRole.role_name + " to database.");
+                            return;
+                        }
+                    }
+                    //Delete all current allowed commands
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        command.CommandText = @"DELETE FROM `adkats_rolecommands` where `role_id` = " + aRole.role_id;
+                        //Attempt to execute the query
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                    }
+                    foreach (AdKatsCommand aCommand in aRole.RoleAllowedCommands.Values.ToList()) {
+                        //Upload the role's allowed commands
+                        using (MySqlCommand command = connection.CreateCommand()) {
+                            //Set the insert command structure
+                            command.CommandText = @"
                                     INSERT INTO 
 	                                    `adkats_rolecommands`
                                     (
@@ -31012,36 +31022,30 @@ namespace PRoConEvents
                                     ON DUPLICATE KEY UPDATE
 	                                    `role_id` = @role_id,
 	                                    `command_id` = @command_id";
-                                    //Set values
-                                    command.Parameters.AddWithValue("@role_id", aRole.role_id);
-                                    command.Parameters.AddWithValue("@command_id", aCommand.command_id);
+                            //Set values
+                            command.Parameters.AddWithValue("@role_id", aRole.role_id);
+                            command.Parameters.AddWithValue("@command_id", aCommand.command_id);
 
-                                    //Attempt to execute the query
-                                    Int32 rowsAffected = SafeExecuteNonQuery(command);
-                                    if (rowsAffected > 0)
-                                    {
-                                        Log.Debug("Role-command uploaded to database SUCCESSFULY.", 5);
-                                    }
-                                    else
-                                    {
-                                        Log.Error("Unable to upload role-command for " + aRole.role_name + ".");
-                                        return;
-                                    }
-                                }
+                            //Attempt to execute the query
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0) {
+                                Log.Debug("Role-command uploaded to database SUCCESSFULY.", 5);
+                            } else {
+                                Log.Error("Unable to upload role-command for " + aRole.role_name + ".");
+                                return;
                             }
-                            //Delete all current role groups
-                            using (MySqlCommand command = connection.CreateCommand())
-                            {
-                                command.CommandText = @"DELETE FROM `adkats_rolegroups` where `role_id` = " + aRole.role_id;
-                                //Attempt to execute the query
-                                Int32 rowsAffected = SafeExecuteNonQuery(command);
-                            }
-                            foreach (AdKatsSpecialGroup aGroup in aRole.RoleSetGroups.Values)
-                            {
-                                //Upload the role's set groups
-                                using (MySqlCommand command = connection.CreateCommand())
-                                {
-                                    command.CommandText = @"
+                        }
+                    }
+                    //Delete all current role groups
+                    using (MySqlCommand command = connection.CreateCommand()) {
+                        command.CommandText = @"DELETE FROM `adkats_rolegroups` where `role_id` = " + aRole.role_id;
+                        //Attempt to execute the query
+                        Int32 rowsAffected = SafeExecuteNonQuery(command);
+                    }
+                    foreach (AdKatsSpecialGroup aGroup in aRole.RoleSetGroups.Values.ToList()) {
+                        //Upload the role's set groups
+                        using (MySqlCommand command = connection.CreateCommand()) {
+                            command.CommandText = @"
                                     INSERT INTO 
 	                                    `adkats_rolegroups`
                                     (
@@ -31056,22 +31060,17 @@ namespace PRoConEvents
                                     ON DUPLICATE KEY UPDATE
 	                                    `role_id` = @role_id,
 	                                    `group_key` = @group_key";
-                                    //Set values
-                                    command.Parameters.AddWithValue("@role_id", aRole.role_id);
-                                    command.Parameters.AddWithValue("@group_key", aGroup.group_key);
+                            //Set values
+                            command.Parameters.AddWithValue("@role_id", aRole.role_id);
+                            command.Parameters.AddWithValue("@group_key", aGroup.group_key);
 
-                                    //Attempt to execute the query
-                                    Int32 rowsAffected = SafeExecuteNonQuery(command);
-                                    if (rowsAffected > 0)
-                                    {
-                                        Log.Debug("Role-groups uploaded to database SUCCESSFULY.", 5);
-                                    }
-                                    else
-                                    {
-                                        Log.Error("Unable to upload role-group " + aGroup.group_key + " for " + aRole.role_name + ".");
-                                        return;
-                                    }
-                                }
+                            //Attempt to execute the query
+                            Int32 rowsAffected = SafeExecuteNonQuery(command);
+                            if (rowsAffected > 0) {
+                                Log.Debug("Role-groups uploaded to database SUCCESSFULY.", 5);
+                            } else {
+                                Log.Error("Unable to upload role-group " + aGroup.group_key + " for " + aRole.role_name + ".");
+                                return;
                             }
                         }
                     }
@@ -35240,7 +35239,7 @@ namespace PRoConEvents
                                             }
                                         }
                                     }
-                                    if ((_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]")))) {
+                                    if (_UseTopPlayerMonitor) {
                                         lock (_topPlayers) {
                                             foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(aPlayer => 
                                                     aPlayer.game_id == _serverInfo.GameID && 
@@ -35405,7 +35404,7 @@ namespace PRoConEvents
             {
                 UpdatePopulatorPlayers();
             }
-            if ((_isTestingAuthorized || (_serverInfo != null && !String.IsNullOrEmpty(_serverInfo.ServerName) && _serverInfo.ServerName.Contains("[FPSG]"))) && _gameVersion == GameVersion.BF4) {
+            if (_UseTopPlayerMonitor) {
                 UpdateTopPlayers();
             }
             UpdateMULTIBalancerWhitelist();
