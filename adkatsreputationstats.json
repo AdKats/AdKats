@@ -663,5 +663,30 @@
     "command_typeaction": "112|112",
     "target_weight": 0,
     "source_weight": 0
+  },
+  {
+    "command_typeaction": "113|113",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "114|114",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "115|115",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "116|116",
+    "target_weight": 0,
+    "source_weight": 0
+  },
+  {
+    "command_typeaction": "117|117",
+    "target_weight": 0,
+    "source_weight": 0
   }
 ] 
