@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.24
- * 28-MAY-2015
+ * Version 6.7.0.25
+ * 29-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.24</version_code>
+ * <version_code>6.7.0.25</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.24";
+        private const String PluginVersion = "6.7.0.25";
 
         public enum GameVersion
         {
@@ -31972,7 +31972,7 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
                         command.Parameters.AddWithValue("@tops_minimum", minTops);
-                        command.Parameters.AddWithValue("@toproundratio_minimum", 0.65);
+                        command.Parameters.AddWithValue("@toproundratio_minimum", 0.40);
                         //Attempt to execute the query
                         using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             //Grab the matching players
