@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.27
+ * Version 6.7.0.28
  * 30-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.27</version_code>
+ * <version_code>6.7.0.28</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.27";
+        private const String PluginVersion = "6.7.0.28";
 
         public enum GameVersion
         {
@@ -195,7 +195,7 @@ namespace PRoConEvents
         private DateTime _lastDbActionFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastDbSettingFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastSuccessfulPlayerList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
-        private DateTime _lastUpdateSettingRequest = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastSettingPageUpdate = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastUserFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastPlayerMoveIssued = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastPluginDescFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
@@ -881,8 +881,9 @@ namespace PRoConEvents
 
         public List<CPluginVariable> GetDisplayPluginVariables()
         {
-            try
-            {
+            try {
+                Log.Debug("Updating Setting Page: " + (UtcDbTime() - _lastSettingPageUpdate).TotalSeconds + " seconds since last update.", 4);
+                _lastSettingPageUpdate = UtcDbTime();
                 Stopwatch timer = new Stopwatch();
                 timer.Start();
                 List<CPluginVariable> lstReturn = new List<CPluginVariable>();
@@ -38884,8 +38885,6 @@ namespace PRoConEvents
         //Calling this method will make the settings window refresh with new data
         public void UpdateSettingPage()
         {
-            Log.Debug("Updating Setting Page: " + (UtcDbTime() - _lastUpdateSettingRequest).TotalSeconds + " seconds since last update.", 4);
-            _lastUpdateSettingRequest = UtcDbTime();
             SetExternalPluginSetting("AdKats", "UpdateSettings", "Update");
         }
 
