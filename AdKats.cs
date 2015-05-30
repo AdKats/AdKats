@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.28
+ * Version 6.7.0.29
  * 30-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.28</version_code>
+ * <version_code>6.7.0.29</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.28";
+        private const String PluginVersion = "6.7.0.29";
 
         public enum GameVersion
         {
@@ -1709,7 +1709,7 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Send Query").Success)
                 {
-                    if (HandlePossibleDisconnect())
+                    if (_databaseConnectionCriticalState)
                     {
                         return;
                     }
@@ -1717,7 +1717,7 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Send Non-Query").Success)
                 {
-                    if (HandlePossibleDisconnect())
+                    if (_databaseConnectionCriticalState)
                     {
                         return;
                     }
@@ -7823,7 +7823,6 @@ namespace PRoConEvents
                                                     GetTeamByID(aPlayer.frostbitePlayerInfo.TeamID, out aPlayer.RequiredTeam);
                                                 }
                                                 Log.Info(aPlayer.GetVerboseName() + " assigned to " + aPlayer.RequiredTeam.TeamKey + " for round " + _roundID);
-                                                UpdateSettingPage();
                                             } else {
                                                 if (_roundState == RoundState.Playing) {
                                                     Log.Error("Teams not loaded when they should be.");
@@ -11110,7 +11109,7 @@ namespace PRoConEvents
         public override void OnBanList(List<CBanInfo> banList)
         {
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -24811,19 +24810,13 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                lock (_PlayerDictionary)
-                {
-                    if (record.source_name == "RoundManager")
-                    {
-                        AdminTellMessage(record.record_message);
-                    }
-                    foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone")))
-                    {
-                        ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
-                        if (record.source_name != "RoundManager")
-                        {
-                            PlayerTellMessage(record.source_name, "NUKE issued on team " + record.GetTargetNames());
-                        }
+                if (record.source_name == "RoundManager") {
+                    AdminTellMessage(record.record_message);
+                }
+                foreach (AdKatsPlayer player in _PlayerDictionary.Values.ToList().Where(player => (player.frostbitePlayerInfo.TeamID == record.command_numeric) || (record.target_name == "Everyone"))) {
+                    ExecuteCommand("procon.protected.send", "admin.killPlayer", player.player_name);
+                    if (record.source_name != "RoundManager") {
+                        PlayerTellMessage(record.source_name, "NUKE issued on team " + record.GetTargetNames());
                     }
                 }
                 SendMessageToSource(record, "You NUKED " + record.GetTargetNames() + ".");
@@ -24856,44 +24849,38 @@ namespace PRoConEvents
                     return;
                 }
                 List<AdKatsPlayer> targetedPlayers = new List<AdKatsPlayer>();
-                lock (_PlayerDictionary)
-                {
-                    switch (record.target_name)
-                    {
-                        case "Squad":
-                            if (record.source_player == null || !record.source_player.player_online || !_PlayerDictionary.ContainsKey(record.source_player.player_name) || record.source_player.player_type == PlayerType.Spectator)
-                            {
-                                SendMessageToSource(record, "Source must be an online player to use squad option. Unable to act.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            targetedPlayers.AddRange(_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID && aPlayer.frostbitePlayerInfo.SquadID == record.source_player.frostbitePlayerInfo.SquadID).ToList());
-                            break;
-                        case "Team":
-                            if (record.source_player == null || !record.source_player.player_online || !_PlayerDictionary.ContainsKey(record.source_player.player_name) || record.source_player.player_type == PlayerType.Spectator)
-                            {
-                                SendMessageToSource(record, "Source must be an online player to use team option. Unable to act.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            targetedPlayers.AddRange(_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).ToList());
-                            break;
-                        case "All":
-                            //All players, so include spectators and commanders
-                            break;
-                        default:
-                            //Check for specific team targeting
-                            var teamTarget = GetTeamByKey(record.target_name);
-                            if (teamTarget != null) {
-                                //Send to target and neutral team
-                                targetedPlayers.AddRange(_PlayerDictionary.Values.Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == teamTarget.TeamID || aPlayer.frostbitePlayerInfo.TeamID == 0).ToList());
-                            } else {
-                                SendMessageToSource(record, "Invalid target, must be Squad, Team, or All. Unable to Act.");
-                                FinalizeRecord(record);
-                                return;
-                            }
-                            break;
-                    }
+                switch (record.target_name) {
+                    case "Squad":
+                        if (record.source_player == null || !record.source_player.player_online || !_PlayerDictionary.ContainsKey(record.source_player.player_name) || record.source_player.player_type == PlayerType.Spectator) {
+                            SendMessageToSource(record, "Source must be an online player to use squad option. Unable to act.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        targetedPlayers.AddRange(_PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID && aPlayer.frostbitePlayerInfo.SquadID == record.source_player.frostbitePlayerInfo.SquadID).ToList());
+                        break;
+                    case "Team":
+                        if (record.source_player == null || !record.source_player.player_online || !_PlayerDictionary.ContainsKey(record.source_player.player_name) || record.source_player.player_type == PlayerType.Spectator) {
+                            SendMessageToSource(record, "Source must be an online player to use team option. Unable to act.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        targetedPlayers.AddRange(_PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == record.source_player.frostbitePlayerInfo.TeamID).ToList());
+                        break;
+                    case "All":
+                        //All players, so include spectators and commanders
+                        break;
+                    default:
+                        //Check for specific team targeting
+                        var teamTarget = GetTeamByKey(record.target_name);
+                        if (teamTarget != null) {
+                            //Send to target and neutral team
+                            targetedPlayers.AddRange(_PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.frostbitePlayerInfo.TeamID == teamTarget.TeamID || aPlayer.frostbitePlayerInfo.TeamID == 0).ToList());
+                        } else {
+                            SendMessageToSource(record, "Invalid target, must be Squad, Team, or All. Unable to Act.");
+                            FinalizeRecord(record);
+                            return;
+                        }
+                        break;
                 }
                 //Start the thread
                 StartAndLogThread(new Thread(new ThreadStart(delegate
@@ -24966,12 +24953,8 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                lock (_PlayerDictionary)
-                {
-                    foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(aPlayer => aPlayer.player_type == PlayerType.Player))
-                    {
-                        QueuePlayerForForceMove(player.frostbitePlayerInfo);
-                    }
+                foreach (AdKatsPlayer player in _PlayerDictionary.Values.ToList().Where(aPlayer => aPlayer.player_type == PlayerType.Player)) {
+                    QueuePlayerForForceMove(player.frostbitePlayerInfo);
                 }
                 SendMessageToSource(record, "You SwapNuked the server.");
             }
@@ -24990,13 +24973,9 @@ namespace PRoConEvents
             try
             {
                 record.record_action_executed = true;
-                lock (_PlayerDictionary)
-                {
-                    foreach (AdKatsPlayer player in _PlayerDictionary.Values.Where(player => player.player_role.role_key == "guest_default"))
-                    {
-                        _threadMasterWaitHandle.WaitOne(50);
-                        ExecuteCommand("procon.protected.send", "admin.kickPlayer", player.player_name, "(" + record.source_name + ") " + record.record_message);
-                    }
+                foreach (AdKatsPlayer player in _PlayerDictionary.Values.ToList().Where(player => player.player_role.role_key == "guest_default")) {
+                    _threadMasterWaitHandle.WaitOne(50);
+                    ExecuteCommand("procon.protected.send", "admin.kickPlayer", player.player_name, "(" + record.source_name + ") " + record.record_message);
                 }
                 AdminSayMessage("All guest players have been kicked.");
                 SendMessageToSource(record, "You KICKED EVERYONE for '" + record.record_message + "'");
@@ -27900,7 +27879,7 @@ namespace PRoConEvents
 
         private Boolean ConfirmAdKatsTables()
         {
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return false;
             }
@@ -28498,7 +28477,7 @@ namespace PRoConEvents
                 return;
             }
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -28707,7 +28686,7 @@ namespace PRoConEvents
         {
             Log.Debug("uploadSetting starting!", 7);
             //Make sure database connection active
-            if (HandlePossibleDisconnect() || !_settingsFetched)
+            if (_databaseConnectionCriticalState || !_settingsFetched)
             {
                 return;
             }
@@ -28768,7 +28747,7 @@ namespace PRoConEvents
             Log.Debug("fetchSettings starting!", 6);
             Boolean success = false;
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -28827,7 +28806,7 @@ namespace PRoConEvents
             Log.Debug("uploadCommand starting!", 6);
 
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -28989,7 +28968,7 @@ namespace PRoConEvents
         private Boolean HandleRecordUpload(AdKatsRecord record)
         {
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 record.record_exception = new AdKatsException("Database not connected.");
                 return true;
@@ -29133,7 +29112,7 @@ namespace PRoConEvents
 
             Boolean success = false;
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 record.record_exception = new AdKatsException("Database not connected.");
                 return false;
@@ -29337,7 +29316,7 @@ namespace PRoConEvents
 
             Boolean success = false;
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return false;
             }
@@ -29464,7 +29443,7 @@ namespace PRoConEvents
                 return success;
             }
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 HandleException(new AdKatsException("Database not connected on chat upload."));
                 return success;
@@ -29938,7 +29917,7 @@ namespace PRoConEvents
             Log.Debug("UpdateInnerRecord starting!", 6);
 
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 record.record_exception = new AdKatsException("Database not connected.");
                 return;
@@ -30012,7 +29991,7 @@ namespace PRoConEvents
             Log.Debug("fetchRecordByID starting!", 6);
             AdKatsRecord record = null;
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return null;
             }
@@ -30130,7 +30109,7 @@ namespace PRoConEvents
             Log.Debug("FetchRecentRecords starting!", 6);
             List<AdKatsRecord> records = new List<AdKatsRecord>();
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return records;
             }
@@ -30272,7 +30251,7 @@ namespace PRoConEvents
             //Create return list
             List<AdKatsRecord> records = new List<AdKatsRecord>();
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return records;
             }
@@ -30404,7 +30383,7 @@ namespace PRoConEvents
             //Create return list
             List<AdKatsPlayer> onlinePlayers = new List<AdKatsPlayer>();
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return onlinePlayers;
             }
@@ -30472,7 +30451,7 @@ namespace PRoConEvents
             Log.Debug("FetchMatchingExternalOnlinePlayer starting!", 6);
             AdKatsPlayer aPlayer = null;
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return null;
             }
@@ -30543,7 +30522,7 @@ namespace PRoConEvents
         {
             Log.Debug("RunPluginOrchestration starting!", 6);
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -30588,7 +30567,7 @@ namespace PRoConEvents
         {
             Log.Debug("fetchNameBanCount starting!", 7);
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return 0;
             }
@@ -30638,7 +30617,7 @@ namespace PRoConEvents
         {
             Log.Debug("fetchGUIDBanCount starting!", 7);
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return 0;
             }
@@ -30688,7 +30667,7 @@ namespace PRoConEvents
         {
             Log.Debug("fetchIPBanCount starting!", 7);
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return 0;
             }
@@ -30736,7 +30715,7 @@ namespace PRoConEvents
         private void RemoveUser(AdKatsUser user)
         {
             Log.Debug("removeUser starting!", 6);
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -30762,7 +30741,7 @@ namespace PRoConEvents
         private void RemoveRole(AdKatsRole aRole)
         {
             Log.Debug("removeRole starting!", 6);
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -30812,7 +30791,7 @@ namespace PRoConEvents
         private void UploadUser(AdKatsUser aUser)
         {
             Log.Debug("uploadUser starting!", 6);
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -31015,7 +30994,7 @@ namespace PRoConEvents
         {
             Log.Debug("uploadRole starting!", 6);
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -31152,7 +31131,7 @@ namespace PRoConEvents
 
             Boolean success = false;
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -31382,7 +31361,7 @@ namespace PRoConEvents
             //Create return list
             AdKatsPlayer aPlayer = null;
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 //If AdKats is disconnected from the database, return the player as-is
                 aPlayer = new AdKatsPlayer(this)
@@ -31727,7 +31706,7 @@ namespace PRoConEvents
         {
             Log.Debug("updatePlayer starting!", 6);
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return aPlayer;
             }
@@ -31956,9 +31935,6 @@ namespace PRoConEvents
                         if (!_topPlayers.ContainsKey(aPlayer.player_name)) {
                             if (_firstPlayerListComplete) {
                                 Log.Info("Adding " + aPlayer.player_name + " to top player list.");
-                                if (_firstPlayerListComplete) {
-                                    UpdateSettingPage();
-                                }
                             }
                         }
                         _topPlayers[aPlayer.player_name] = aPlayer;
@@ -31966,9 +31942,6 @@ namespace PRoConEvents
                     foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
                         if (_firstPlayerListComplete) {
                             Log.Info("Removing " + aPlayer.player_name + " from top player list.");
-                            if (_firstPlayerListComplete) {
-                                UpdateSettingPage();
-                            }
                         }
                         _topPlayers.Remove(aPlayer.player_name);
                     }
@@ -32242,7 +32215,7 @@ namespace PRoConEvents
             Log.Debug("FetchBanByID starting!", 6);
             AdKatsBan aBan = null;
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return null;
             }
@@ -32308,7 +32281,7 @@ namespace PRoConEvents
         }
 
         private DateTime FetchFutureRoundDate(Int32 TargetRoundID) {
-            if (_roundID <= 1 || TargetRoundID <= 1 || HandlePossibleDisconnect()) {
+            if (_roundID <= 1 || TargetRoundID <= 1 || _databaseConnectionCriticalState) {
                 return DateTime.MinValue;
             }
             try {
@@ -32361,7 +32334,7 @@ namespace PRoConEvents
             Log.Debug("FetchPlayerBans starting!", 6);
             List<AdKatsBan> aBanList = new List<AdKatsBan>();
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return null;
             }
@@ -32506,7 +32479,7 @@ namespace PRoConEvents
             Log.Debug("FetchMatchingBans starting!", 6);
             List<AdKatsBan> aBanList = new List<AdKatsBan>();
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return null;
             }
@@ -32569,7 +32542,7 @@ namespace PRoConEvents
             Log.Info("Downloading bans from database, please wait. This might take several minutes depending on your ban count!");
 
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -32763,7 +32736,7 @@ namespace PRoConEvents
         {
             Log.Debug("updateBanStatus starting!", 6);
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return false;
             }
@@ -33019,7 +32992,7 @@ namespace PRoConEvents
                 return false;
             }
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 record.record_exception = new AdKatsException("Database not connected.");
                 return false;
@@ -33077,7 +33050,7 @@ namespace PRoConEvents
                     return true;
                 }
                 //Make sure database connection active
-                if (HandlePossibleDisconnect())
+                if (_databaseConnectionCriticalState)
                 {
                     record.record_exception = new AdKatsException("Database not connected.");
                     return false;
@@ -33129,7 +33102,7 @@ namespace PRoConEvents
         {
             Log.Debug("runActionsFromDB starting!", 7);
             //Make sure database connection active
-            if (HandlePossibleDisconnect() || !_firstPlayerListComplete)
+            if (_databaseConnectionCriticalState || !_firstPlayerListComplete)
             {
                 return;
             }
@@ -33152,7 +33125,7 @@ namespace PRoConEvents
         {
             Int32 returnVal = player.player_infractionPoints;
             //Make sure database connection active
-            if (HandlePossibleDisconnect() || (!update && player.player_infractionPoints != Int32.MinValue))
+            if (_databaseConnectionCriticalState || (!update && player.player_infractionPoints != Int32.MinValue))
             {
                 return (returnVal > 0) ? (returnVal) : (0);
             }
@@ -33196,7 +33169,7 @@ namespace PRoConEvents
 
             List<KeyValuePair<DateTime, KeyValuePair<string, string>>> pchat = new List<KeyValuePair<DateTime, KeyValuePair<String, String>>>();
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return pchat;
             }
@@ -33258,7 +33231,7 @@ namespace PRoConEvents
 
             List<KeyValuePair<DateTime, string>> pchat = new List<KeyValuePair<DateTime, String>>();
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return pchat;
             }
@@ -33311,7 +33284,7 @@ namespace PRoConEvents
         private void FetchCommands()
         {
             Log.Debug("fetchCommands starting!", 6);
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -34400,7 +34373,7 @@ namespace PRoConEvents
         private void FetchRoles()
         {
             Log.Debug("fetchRoles starting!", 6);
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -34726,7 +34699,7 @@ namespace PRoConEvents
         private void FetchUserList()
         {
             Log.Debug("fetchUserList starting!", 6);
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return;
             }
@@ -35491,7 +35464,6 @@ namespace PRoConEvents
                     Log.Warn("No users have been added. Add a new user with 'Add User'.");
                 }
                 Log.Info("Fetching player list.");
-                UpdateSettingPage();
                 //Call player listing immediately
                 ExecuteCommand("procon.protected.send", "admin.listPlayers", "all");
             }
@@ -35506,7 +35478,6 @@ namespace PRoConEvents
                     Log.Warn("No users have been added. Add a new user with 'Add User'.");
                 }
             }
-
             UpdateSettingPage();
             Log.Debug("fetchUserList finished!", 6);
         }
@@ -35587,7 +35558,7 @@ namespace PRoConEvents
                 aPlayer.player_aa = true;
                 return;
             }
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 aPlayer.player_aa = false;
                 return;
@@ -35646,7 +35617,7 @@ namespace PRoConEvents
             Log.Debug("FetchDBServerInfo starting!", 6);
 
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return false;
             }
@@ -35696,7 +35667,7 @@ namespace PRoConEvents
             Log.Debug("fetchServerGroup starting!", 6);
 
             //Make sure database connection active
-            if (HandlePossibleDisconnect())
+            if (_databaseConnectionCriticalState)
             {
                 return -1;
             }
@@ -35732,21 +35703,6 @@ namespace PRoConEvents
 
             Log.Debug("fetchServerGroup finished!", 6);
             return -1;
-        }
-
-        private Boolean HandlePossibleDisconnect()
-        {
-            Boolean returnVal = false;
-            //Make sure database connection active
-            if (_databaseConnectionCriticalState || !DebugDatabaseConnectionActive())
-            {
-                if (!_databaseConnectionCriticalState)
-                {
-                    HandleDatabaseConnectionInteruption();
-                }
-                returnVal = true;
-            }
-            return returnVal;
         }
 
         private Boolean DebugDatabaseConnectionActive()
@@ -37950,7 +37906,7 @@ namespace PRoConEvents
         {
             try
             {
-                if (HandlePossibleDisconnect())
+                if (_databaseConnectionCriticalState)
                 {
                     return;
                 }
@@ -38636,188 +38592,6 @@ namespace PRoConEvents
         private TimeSpan GetRemainingBanTime(AdKatsBan aBan)
         {
             return aBan.ban_endTime.Subtract(UtcDbTime());
-        }
-
-        public Boolean ConfirmStatLoggerSetup()
-        {
-            //This function has been disabled for now
-
-            //Make sure database connection active
-            if (HandlePossibleDisconnect())
-            {
-                return false;
-            }
-            try
-            {
-                List<MatchCommand> registered = GetRegisteredCommands();
-                MatchCommand loggerStatusCommand = null;
-                foreach (MatchCommand command in registered)
-                {
-                    if (String.Compare(command.RegisteredClassname, "CChatGUIDStatsLoggerBF3", StringComparison.Ordinal) == 0 && String.Compare(command.RegisteredMethodName, "GetStatus", StringComparison.Ordinal) == 0)
-                    {
-                        loggerStatusCommand = command;
-                        Log.Debug("Found command for BF3 stat logger.", 5);
-                        break;
-                    }
-                    if (String.Compare(command.RegisteredClassname, "CChatGUIDStatsLogger", StringComparison.Ordinal) == 0 && String.Compare(command.RegisteredMethodName, "GetStatus", StringComparison.Ordinal) == 0)
-                    {
-                        loggerStatusCommand = command;
-                        Log.Debug("Found command for Universal stat logger.", 5);
-                        break;
-                    }
-                }
-                if (loggerStatusCommand != null)
-                {
-                    //Stat logger is installed, fetch its status
-                    Hashtable statLoggerStatus = GetStatLoggerStatus();
-
-                    //Only continue if response value
-                    if (statLoggerStatus == null)
-                    {
-                        return false;
-                    }
-                    foreach (String key in statLoggerStatus.Keys)
-                    {
-                        Log.Debug("Logger response: (" + key + "): " + statLoggerStatus[key], 5);
-                    }
-                    if (((String)statLoggerStatus["pluginVersion"]) != "1.1.0.2")
-                    {
-                        Log.Error("Invalid version of CChatGUIDStatsLoggerBF3 installed. Version 1.1.0.2 is required. If there is a new version, inform ColColonCleaner.");
-                        return false;
-                    }
-
-                    if (!Regex.Match((String)statLoggerStatus["DBHost"], _mySqlHostname, RegexOptions.IgnoreCase).Success || !Regex.Match((String)statLoggerStatus["DBPort"], _mySqlPort, RegexOptions.IgnoreCase).Success || !Regex.Match((String)statLoggerStatus["DBName"], _mySqlSchemaName, RegexOptions.IgnoreCase).Success)
-                    {
-                        //Are db settings set for AdKats? If not, import them from stat logger.
-                        if (String.IsNullOrEmpty(_mySqlHostname) || String.IsNullOrEmpty(_mySqlPort) || String.IsNullOrEmpty(_mySqlSchemaName))
-                        {
-                            _mySqlHostname = (String)statLoggerStatus["DBHost"];
-                            _mySqlPort = (String)statLoggerStatus["DBPort"];
-                            _mySqlSchemaName = (String)statLoggerStatus["DBName"];
-                            UpdateSettingPage();
-                        }
-                        //Are DB Settings set for stat logger? If not, set them
-                        if (String.IsNullOrEmpty((String)statLoggerStatus["DBHost"]) || String.IsNullOrEmpty((String)statLoggerStatus["DBPort"]) || String.IsNullOrEmpty((String)statLoggerStatus["DBName"]))
-                        {
-                            SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Host", _mySqlHostname);
-                            SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Port", _mySqlPort);
-                            SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Database Name", _mySqlSchemaName);
-                            SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "UserName", _mySqlUsername);
-                            SetExternalPluginSetting("CChatGUIDStatsLoggerBF3", "Password", _mySqlPassword);
-
-                            Log.Error("CChatGUIDStatsLoggerBF3 database connection was not configured. It has been set up to use the same database and credentials as AdKats.");
-                            //Update the logger status
-                            statLoggerStatus = GetStatLoggerStatus();
-                        }
-                        else
-                        {
-                            Log.Error("CChatGUIDStatsLoggerBF3 is not set up to use the same database as AdKats. Modify settings so they both use the same database.");
-                            return false;
-                        }
-                    }
-                    if (((String)statLoggerStatus["DBConnectionActive"]) != "True")
-                    {
-                        Log.Error("CChatGUIDStatsLoggerBF3's connection to the database is not active. Backup mode Enabled...");
-                    }
-                    return true;
-                }
-                Log.Error("^1^bCChatGUIDStatsLoggerBF3^n plugin not found. Installing special release version 1.1.0.2 of that plugin is required for AdKats!");
-                return false;
-            }
-            catch (Exception e)
-            {
-                HandleException(new AdKatsException("Error while confirming stat logger setup.", e));
-                return false;
-            }
-        }
-
-        public Hashtable GetStatLoggerStatus()
-        {
-            //Disabled
-
-            //Make sure AdKats database connection active
-            if (HandlePossibleDisconnect())
-            {
-                return null;
-            }
-            try
-            {
-                //Check if enabled
-                if (!_pluginEnabled)
-                {
-                    Log.Debug("Attempted to fetch stat logger status while plugin disabled.", 4);
-                    return null;
-                }
-                //Build request
-                Hashtable request = new Hashtable();
-                request["pluginName"] = "AdKats";
-                request["pluginMethod"] = "HandleStatLoggerStatusResponse";
-                // Send request
-                _StatLoggerStatusWaitHandle.Reset();
-                ExecuteCommand("procon.protected.plugins.call", "CChatGUIDStatsLoggerBF3", "GetStatus", JSON.JsonEncode(request));
-                //Wait a maximum of 5 seconds for stat logger response
-                if (!_StatLoggerStatusWaitHandle.WaitOne(5000))
-                {
-                    Log.Warn("^bCChatGUIDStatsLoggerBF3^n is not enabled or is lagging! Attempting to enable, please wait...");
-                    Int32 attempts = 0;
-                    Boolean success = false;
-                    do
-                    {
-                        attempts++;
-                        Log.Debug("Stat Logger Enable Attempt " + attempts, 2);
-                        //Issue the command to enable stat logger
-                        ExecuteCommand("procon.protected.plugins.enable", "CChatGUIDStatsLoggerBF3", "True");
-                        //Wait 5 seconds for enable and initial connect
-                        _threadMasterWaitHandle.WaitOne(5000);
-                        //Refetch the status
-                        _StatLoggerStatusWaitHandle.Reset();
-                        ExecuteCommand("procon.protected.plugins.call", "CChatGUIDStatsLoggerBF3", "GetStatus", JSON.JsonEncode(request));
-                        if (_StatLoggerStatusWaitHandle.WaitOne(5000))
-                        {
-                            success = true;
-                        }
-                    } while (!success && attempts < 10);
-                    if (!success)
-                    {
-                        Log.Error("CChatGUIDStatsLoggerBF3 could not be enabled automatically. Please enable manually.");
-                        return null;
-                    }
-                }
-                if (_lastStatLoggerStatusUpdate != null && _lastStatLoggerStatusUpdate.ContainsKey("pluginVersion") && _lastStatLoggerStatusUpdate.ContainsKey("pluginEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("DBHost") && _lastStatLoggerStatusUpdate.ContainsKey("DBPort") && _lastStatLoggerStatusUpdate.ContainsKey("DBName") && _lastStatLoggerStatusUpdate.ContainsKey("DBTimeOffset") && _lastStatLoggerStatusUpdate.ContainsKey("DBConnectionActive") && _lastStatLoggerStatusUpdate.ContainsKey("ChatloggingEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("InstantChatLoggingEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("StatsLoggingEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("DBliveScoreboardEnabled") && _lastStatLoggerStatusUpdate.ContainsKey("DebugMode") && _lastStatLoggerStatusUpdate.ContainsKey("Error"))
-                {
-                    //Response appears to be valid, return it
-                    return _lastStatLoggerStatusUpdate;
-                }
-                //Response is invalid, throw error and return null
-                Log.Error("Status response from CChatGUIDStatsLoggerBF3 was not valid.");
-                return null;
-            }
-            catch (Exception)
-            {
-                HandleException(new AdKatsException("Error while getting stat logger status."));
-                return null;
-            }
-        }
-
-        public void HandleStatLoggerStatusResponse(params String[] commands)
-        {
-            Log.Debug("Entering HandleStatLoggerStatusResponse", 7);
-            try
-            {
-                if (commands.Length < 1)
-                {
-                    Log.Error("Status fetch response handle canceled, no parameters provided.");
-                    return;
-                }
-                _lastStatLoggerStatusUpdate = (Hashtable)JSON.JsonDecode(commands[0]);
-                _lastStatLoggerStatusUpdateTime = UtcDbTime();
-                _StatLoggerStatusWaitHandle.Set();
-            }
-            catch (Exception e)
-            {
-                HandleException(new AdKatsException("Error while handling stat logger status response.", e));
-            }
-            Log.Debug("Exiting HandleStatLoggerStatusResponse", 7);
         }
 
         public DateTime UtcDbTime()
