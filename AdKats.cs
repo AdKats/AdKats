@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.37
+ * Version 6.7.0.38
  * 31-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.37</version_code>
+ * <version_code>6.7.0.38</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.37";
+        private const String PluginVersion = "6.7.0.38";
 
         public enum GameVersion
         {
@@ -6371,7 +6371,8 @@ namespace PRoConEvents
                                 }
 
                                 //Auto-squad-leader
-                                if (_isTestingAuthorized && 
+                                if (false &&
+                                    _isTestingAuthorized && 
                                     _firstPlayerListComplete &&
                                     _gameVersion == GameVersion.BF4 &&
                                     _roundState == RoundState.Playing &&
