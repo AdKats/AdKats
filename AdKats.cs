@@ -660,7 +660,7 @@ namespace PRoConEvents
         private Dictionary<String, String> _SettingSections = new Dictionary<String, String>();
         private String _SettingSectionEnum;
         private String _CurrentSettingSection;
-        private const String _AllSettingSections = "* All Settings *";
+        private const String _AllSettingSections = "All Settings .*";
 
         public readonly Logger Log;
 
