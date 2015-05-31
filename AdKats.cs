@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.35
- * 30-MAY-2015
+ * Version 6.7.0.36
+ * 31-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.35</version_code>
+ * <version_code>6.7.0.36</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.35";
+        private const String PluginVersion = "6.7.0.36";
 
         public enum GameVersion
         {
@@ -658,8 +658,8 @@ namespace PRoConEvents
 
         //Settings display
         private Dictionary<String, String> _SettingSections = new Dictionary<String, String>();
-        private String settingSectionEnum;
-        private String currentSettingSection;
+        private String _SettingSectionEnum;
+        private String _CurrentSettingSection;
 
         public readonly Logger Log;
 
@@ -726,21 +726,21 @@ namespace PRoConEvents
             AddSettingSection("D99", "Debugging");
             AddSettingSection("X99", "Experimental");
             //Build setting section enum
-            settingSectionEnum = String.Empty;
+            _SettingSectionEnum = String.Empty;
             Random random = new Random();
             var sections = _SettingSections.Keys.ToList();
             sections.Sort();
             foreach (String sectionKey in sections) {
-                if (String.IsNullOrEmpty(settingSectionEnum)) {
-                    settingSectionEnum += "enum.SettingSectionEnum_" + random.Next(100000, 999999) + "(";
+                if (String.IsNullOrEmpty(_SettingSectionEnum)) {
+                    _SettingSectionEnum += "enum.SettingSectionEnum_" + random.Next(100000, 999999) + "(";
                 } else {
-                    settingSectionEnum += "|";
+                    _SettingSectionEnum += "|";
                 }
-                settingSectionEnum += GetSettingSection(sectionKey);
+                _SettingSectionEnum += GetSettingSection(sectionKey);
             }
-            settingSectionEnum += ")";
+            _SettingSectionEnum += ")";
             //Set default setting section
-            currentSettingSection = GetSettingSection("0");
+            _CurrentSettingSection = GetSettingSection("0");
 
 
             //Init the punishment severity index
@@ -881,7 +881,7 @@ namespace PRoConEvents
         }
 
         private Boolean IsCurrentSettingSection(String number) {
-            return currentSettingSection == _SettingSections[number];
+            return _CurrentSettingSection == GetSettingSection(number);
         }
 
         public List<CPluginVariable> GetDisplayPluginVariables()
@@ -950,10 +950,11 @@ namespace PRoConEvents
                         return lstReturn;
                     }
 
+
+                    lstReturn.Add(new CPluginVariable("* AdKats *|Current Setting Section", _SettingSectionEnum, _CurrentSettingSection));
+
                     //Auto-Enable Settings
                     lstReturn.Add(new CPluginVariable(GetSettingSection("0") + sept + "Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("0") + sept + "Current Setting Section", settingSectionEnum, currentSettingSection));
-
 
                     if (IsCurrentSettingSection("1")) {
                         //Server Settings
@@ -1181,27 +1182,24 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("0")) {
-
-                    }
-                    //Ping enforcer settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Enforcer Enable", typeof(Boolean), _pingEnforcerEnable));
-                    if (_pingEnforcerEnable)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Medium Population Trigger ms", typeof(Double), _pingEnforcerMedTriggerMS));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick High Population Trigger ms", typeof(Double), _pingEnforcerHighTriggerMS));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Full Population Trigger ms", typeof(Double), _pingEnforcerFullTriggerMS));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Ignore User List", typeof(Boolean), _pingEnforcerIgnoreUserList));
-                        if (!_pingEnforcerIgnoreUserList)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Ignore Roles", typeof(String[]), _pingEnforcerIgnoreRoles));
+                    if (IsCurrentSettingSection("B21")) {
+                        //Ping enforcer settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Enforcer Enable", typeof(Boolean), _pingEnforcerEnable));
+                        if (_pingEnforcerEnable) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Medium Population Trigger ms", typeof(Double), _pingEnforcerMedTriggerMS));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick High Population Trigger ms", typeof(Double), _pingEnforcerHighTriggerMS));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Full Population Trigger ms", typeof(Double), _pingEnforcerFullTriggerMS));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Ignore User List", typeof(Boolean), _pingEnforcerIgnoreUserList));
+                            if (!_pingEnforcerIgnoreUserList) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Ignore Roles", typeof(String[]), _pingEnforcerIgnoreRoles));
+                            }
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Message Prefix", typeof(String), _pingEnforcerMessagePrefix));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Message Prefix", typeof(String), _pingEnforcerMessagePrefix));
                     }
 
                     if (IsCurrentSettingSection("B22")) {
@@ -1642,7 +1640,7 @@ namespace PRoConEvents
                     }
                 } 
                 else if (Regex.Match(strVariable, @"Current Setting Section").Success) {
-                    currentSettingSection = strValue;
+                    _CurrentSettingSection = strValue;
                 }
                 else if (Regex.Match(strVariable, @"Override Timing Confirmation").Success)
                 {
