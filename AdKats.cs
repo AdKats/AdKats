@@ -32033,7 +32033,7 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
                         command.Parameters.AddWithValue("@tops_minimum", minTops);
-                        command.Parameters.AddWithValue("@toproundratio_minimum", 0.40);
+                        command.Parameters.AddWithValue("@toproundratio_minimum", 0.50);
                         //Attempt to execute the query
                         using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             //Grab the matching players
