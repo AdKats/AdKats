@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.32
+ * Version 6.7.0.33
  * 30-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.32</version_code>
+ * <version_code>6.7.0.33</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.32";
+        private const String PluginVersion = "6.7.0.33";
 
         public enum GameVersion
         {
@@ -6250,7 +6250,7 @@ namespace PRoConEvents
                                     });
                                     Thread.Sleep(TimeSpan.FromSeconds(10));
                                 }
-                                else if (MBUsed > 100)
+                                else if (MBUsed > 250)
                                 {
                                     Log.Warn(MBUsed + "MB estimated memory used");
                                     Thread.Sleep(TimeSpan.FromSeconds(10));
@@ -6499,7 +6499,7 @@ namespace PRoConEvents
                                 }
 
                                 //Clean dead threads
-                                foreach (Int32 deadThreadID in _aliveThreads.Values.Where(thread => !thread.IsAlive).Select(thread => thread.ManagedThreadId).ToList())
+                                foreach (Int32 deadThreadID in _aliveThreads.Values.ToList().Where(thread => !thread.IsAlive).Select(thread => thread.ManagedThreadId))
                                 {
                                     _aliveThreads.Remove(deadThreadID);
                                 }
@@ -13512,9 +13512,13 @@ namespace PRoConEvents
                                     FinalizeRecord(record);
                                     return;
                                 }
-                                if (record.source_player != null && GetMatchingVerboseASPlayersOfGroup("blacklist_report", record.source_player).Any())
-                                {
+                                if (record.source_player != null && GetMatchingVerboseASPlayersOfGroup("blacklist_report", record.source_player).Any()) {
                                     SendMessageToSource(record, "You may not report players at this time.");
+                                    FinalizeRecord(record);
+                                    return;
+                                }
+                                if (record.source_name == record.target_name) {
+                                    SendMessageToSource(record, "You may not report yourself.");
                                     FinalizeRecord(record);
                                     return;
                                 }
@@ -22112,7 +22116,10 @@ namespace PRoConEvents
                     else
                     {
                         record.command_action = GetCommandByKey("player_kill");
-                        if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
+                        if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) &&
+                            record.target_player != null &&
+                            record.target_player.player_reputation <= 0 &&
+                            record.target_player.player_online)
                         {
                             ExecuteCommand("procon.protected.plugins.call", "AdKatsLRT", "CallLoadoutCheckOnPlayer", "AdKats", JSON.JsonEncode(new Hashtable {
                                 {"caller_identity", "AdKats"},
@@ -24420,7 +24427,10 @@ namespace PRoConEvents
                     _RoundReports.Add(reportID + "", record);
                 }
                 record.record_action_executed = true;
-                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation <= 0)
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) &&
+                    record.target_player != null &&
+                    record.target_player.player_reputation <= 0 &&
+                    record.target_player.player_online)
                 {
                     Log.Info("Running loadout case for report record " + reportID);
                     if (!record.isLoadoutChecked)
@@ -24569,7 +24579,10 @@ namespace PRoConEvents
                     _RoundReports.Add(reportID + "", record);
                 }
                 record.record_action_executed = true;
-                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && record.target_player.player_reputation < 0)
+                if (_subscribedClients.Any(client => client.ClientName == "AdKatsLRT" && client.SubscriptionEnabled) && 
+                    record.target_player != null && 
+                    record.target_player.player_reputation <= 0 &&
+                    record.target_player.player_online)
                 {
                     Log.Info("Running loadout case for report record " + reportID);
                     if (!record.isLoadoutChecked)
@@ -27154,7 +27167,7 @@ namespace PRoConEvents
             }
             catch (Exception e)
             {
-                HandleException(new AdKatsException("Error while handling setting uploads."));
+                HandleException(new AdKatsException("Error while handling setting uploads.", e));
             }
         }
 
@@ -28896,12 +28909,9 @@ namespace PRoConEvents
             try
             {
                 //Loop over the user list
-                lock (_userCache)
+                foreach (AdKatsUser user in _userCache.Values.ToList().Where(UserIsAdmin)) 
                 {
-                    foreach (AdKatsUser user in _userCache.Values.Where(UserIsAdmin))
-                    {
-                        adminSoldiers.AddRange(user.soldierDictionary.Values);
-                    }
+                    adminSoldiers.AddRange(user.soldierDictionary.Values);
                 }
             }
             catch (Exception e)
@@ -28916,7 +28926,7 @@ namespace PRoConEvents
             List<AdKatsPlayer> onlineAdminSoldiers = new List<AdKatsPlayer>();
             try
             {
-                onlineAdminSoldiers.AddRange(_PlayerDictionary.Values.Where(PlayerIsAdmin));
+                onlineAdminSoldiers.AddRange(_PlayerDictionary.Values.ToList().Where(PlayerIsAdmin));
             }
             catch (Exception e)
             {
@@ -28930,7 +28940,7 @@ namespace PRoConEvents
             List<AdKatsPlayer> nonAdminSoldiers = new List<AdKatsPlayer>();
             try
             {
-                nonAdminSoldiers.AddRange(_PlayerDictionary.Values.Where(aPlayer => !PlayerIsAdmin(aPlayer)));
+                nonAdminSoldiers.AddRange(_PlayerDictionary.Values.ToList().Where(aPlayer => !PlayerIsAdmin(aPlayer)));
             }
             catch (Exception e)
             {
@@ -28943,12 +28953,9 @@ namespace PRoConEvents
         {
             List<AdKatsPlayer> elevatedSoldiers = new List<AdKatsPlayer>();
             //Loop over the user list
-            lock (_userCache)
+            foreach (AdKatsUser aUser in _userCache.Values.ToList().Where(user => !UserIsAdmin(user) && user.user_role.role_key != "guest_default")) 
             {
-                foreach (AdKatsUser aUser in _userCache.Values.Where(user => !UserIsAdmin(user) && user.user_role.role_key != "guest_default"))
-                {
-                    elevatedSoldiers.AddRange(aUser.soldierDictionary.Values);
-                }
+                elevatedSoldiers.AddRange(aUser.soldierDictionary.Values);
             }
             return elevatedSoldiers;
         }
@@ -28957,12 +28964,9 @@ namespace PRoConEvents
         {
             List<AdKatsPlayer> roleSoldiers = new List<AdKatsPlayer>();
             //Loop over the user list
-            lock (_userCache)
+            foreach (AdKatsUser user in _userCache.Values.ToList().Where(user => user.user_role.role_key == aRole.role_key)) 
             {
-                foreach (AdKatsUser user in _userCache.Values.Where(user => user.user_role.role_key == aRole.role_key))
-                {
-                    roleSoldiers.AddRange(user.soldierDictionary.Values);
-                }
+                roleSoldiers.AddRange(user.soldierDictionary.Values);
             }
             return roleSoldiers;
         }
@@ -28971,12 +28975,9 @@ namespace PRoConEvents
         {
             List<AdKatsPlayer> userSoldiers = new List<AdKatsPlayer>();
             //Loop over the user list
-            lock (_userCache)
+            foreach (AdKatsUser user in _userCache.Values.ToList().Where(aUser => aUser.user_role.role_key != "guest_default"))
             {
-                foreach (AdKatsUser user in _userCache.Values.Where(aUser => aUser.user_role.role_key != "guest_default"))
-                {
-                    userSoldiers.AddRange(user.soldierDictionary.Values);
-                }
+                userSoldiers.AddRange(user.soldierDictionary.Values);
             }
             return userSoldiers;
         }
