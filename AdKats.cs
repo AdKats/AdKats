@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.38
+ * Version 6.7.0.39
  * 31-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.38</version_code>
+ * <version_code>6.7.0.39</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.38";
+        private const String PluginVersion = "6.7.0.39";
 
         public enum GameVersion
         {
@@ -39570,13 +39570,23 @@ namespace PRoConEvents
             }
             _slowmo = SlowMoOnException;
             //Check if the exception attributes to the database
-            if (aException.InternalException != null && (aException.InternalException.GetType() == typeof(TimeoutException) || aException.InternalException.ToString().Contains("Unable to connect to any of the specified MySQL hosts") || aException.InternalException.ToString().Contains("Reading from the stream has failed.") || aException.InternalException.ToString().Contains("Too many connections") || aException.InternalException.ToString().Contains("Timeout expired") || aException.InternalException.ToString().Contains("An existing connection was forcibly closed by the remote host") || aException.InternalException.ToString().Contains("Unable to read data") || aException.InternalException.ToString().Contains("Lock wait timeout exceeded")))
+            if (aException.InternalException != null && 
+                (aException.InternalException is TimeoutException || 
+                aException.InternalException.ToString().Contains("Unable to connect to any of the specified MySQL hosts") || 
+                aException.InternalException.ToString().Contains("Reading from the stream has failed.") || 
+                aException.InternalException.ToString().Contains("Too many connections") || 
+                aException.InternalException.ToString().Contains("Timeout expired") || 
+                aException.InternalException.ToString().Contains("An existing connection was forcibly closed by the remote host") || 
+                aException.InternalException.ToString().Contains("Unable to read data") || 
+                aException.InternalException.ToString().Contains("Lock wait timeout exceeded")))
             {
                 HandleDatabaseConnectionInteruption();
-            }
-            else if (aException.InternalException != null && aException.InternalException.ToString().Contains("Deadlock"))
-            {
-                //Ignore. Deadlock cannot be avoided. Request already retried.
+            } 
+            else if (aException.InternalException != null && 
+                    aException.InternalException is MySqlException &&
+                    (((MySqlException) aException.InternalException).Number == 1205 ||
+                    ((MySqlException) aException.InternalException).Number == 1213)) {
+                //Deadlock related. Do nothing.
             }
             else
             {
