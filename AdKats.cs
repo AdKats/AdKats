@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.33
+ * Version 6.7.0.34
  * 30-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.33</version_code>
+ * <version_code>6.7.0.34</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.33";
+        private const String PluginVersion = "6.7.0.34";
 
         public enum GameVersion
         {
@@ -1349,7 +1349,7 @@ namespace PRoConEvents
                     {
                         //Sort access list by access level, then by id
                         List<AdKatsUser> tempAccess = _userCache.Values.ToList();
-                        tempAccess.Sort((a1, a2) => (a1.user_role.role_id == a2.user_role.role_id) ? (String.CompareOrdinal(a1.user_name, a2.user_name)) : ((a1.user_role.role_id < a2.user_role.role_id) ? (-1) : (1)));
+                        tempAccess.Sort((a1, a2) => (a1.user_role.role_powerLevel == a2.user_role.role_powerLevel) ? (String.CompareOrdinal(a1.user_name, a2.user_name)) : ((a1.user_role.role_powerLevel > a2.user_role.role_powerLevel) ? (-1) : (1)));
                         String roleEnum = String.Empty;
                         if (_RoleKeyDictionary.Count > 0)
                         {
