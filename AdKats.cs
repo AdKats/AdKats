@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.31
+ * Version 6.7.0.32
  * 30-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.31</version_code>
+ * <version_code>6.7.0.32</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.31";
+        private const String PluginVersion = "6.7.0.32";
 
         public enum GameVersion
         {
@@ -196,6 +196,7 @@ namespace PRoConEvents
         private DateTime _lastDbSettingFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastSuccessfulPlayerList = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastSettingPageUpdate = DateTime.UtcNow - TimeSpan.FromSeconds(5);
+        private DateTime _lastSettingPageUpdateRequest = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _lastUserFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastPlayerMoveIssued = DateTime.UtcNow - TimeSpan.FromSeconds(5);
         private DateTime _LastPluginDescFetch = DateTime.UtcNow - TimeSpan.FromSeconds(5);
@@ -6471,7 +6472,7 @@ namespace PRoConEvents
                                         }
                                         _tsPlayers[aPlayer.player_name] = aPlayer;
                                     }
-                                    foreach (string removePlayer in _tsPlayers.Keys.Where(key => !validTsPlayers.Contains(key)).ToList())
+                                    foreach (string removePlayer in _tsPlayers.Keys.ToList().Where(key => !validTsPlayers.Contains(key)).ToList())
                                     {
                                         if (_tsViewer.DbgClients)
                                         {
@@ -38690,8 +38691,11 @@ namespace PRoConEvents
         }
 
         //Calling this method will make the settings window refresh with new data
-        public void UpdateSettingPage()
-        {
+        public void UpdateSettingPage() {
+            if ((UtcDbTime() - _lastSettingPageUpdateRequest).TotalSeconds < 2) {
+                return;
+            }
+            _lastSettingPageUpdateRequest = UtcDbTime();
             SetExternalPluginSetting("AdKats", "UpdateSettings", "Update");
         }
 
