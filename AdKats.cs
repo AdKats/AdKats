@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.39
+ * Version 6.7.0.40
  * 31-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.39</version_code>
+ * <version_code>6.7.0.40</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.39";
+        private const String PluginVersion = "6.7.0.40";
 
         public enum GameVersion
         {
@@ -742,7 +742,7 @@ namespace PRoConEvents
             }
             _SettingSectionEnum += ")";
             //Set default setting section
-            _CurrentSettingSection = GetSettingSection("1");
+            _CurrentSettingSection = GetSettingSection("*");
 
 
             //Init the punishment severity index
@@ -5057,10 +5057,9 @@ namespace PRoConEvents
                         QueueSettingForUpload(new CPluginVariable(@"Only Send Report Emails When Admins Offline", typeof(Boolean), _emailReportsOnlyWhenAdminless));
                     }
                 }
-                else if (Regex.Match(strVariable, @"Use Metabans?").Success)
-                {
-                    _useMetabans = Boolean.Parse(strValue);
-                    if (_useMetabans) {
+                else if (Regex.Match(strVariable, @"Use Metabans?").Success) {
+                    var useMetabans = Boolean.Parse(strValue);
+                    if (!_useMetabans && useMetabans) {
                         //Make sure the metabans plugin is enabled
                         ExecuteCommand("procon.protected.plugins.enable", "Metabans", "True");
                         SetExternalPluginSetting("Metabans", "Ban Propagation", "Do not propagate my bans");
@@ -5070,6 +5069,7 @@ namespace PRoConEvents
                             SetExternalPluginSetting("Metabans", "Debug Mode", "Off");
                         }
                     }
+                    _useMetabans = useMetabans;
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable("Use Metabans?", typeof(Boolean), _useMetabans));
                 }
@@ -5082,13 +5082,13 @@ namespace PRoConEvents
                             _metabansAPIKey = "";
                             Log.Error("No API key for Metabans was given! Canceling Operation.");
                         }
-                        else
+                        else if (_metabansAPIKey != strValue)
                         {
                             _metabansAPIKey = strValue;
                             //Once setting has been changed, upload the change to database
                             QueueSettingForUpload(new CPluginVariable(@"Metabans API Key", typeof(String), _metabansAPIKey));
+                            SetExternalPluginSetting("Metabans", "API Key", _metabansAPIKey);
                         }
-                        SetExternalPluginSetting("Metabans", "API Key", _metabansAPIKey);
                     }
                 }
                 else if (Regex.Match(strVariable, @"Metabans Username").Success)
@@ -5100,13 +5100,13 @@ namespace PRoConEvents
                             _metabansUsername = "";
                             Log.Error("No username for Metabans was given! Canceling Operation.");
                         }
-                        else
+                        else if (_metabansUsername != strValue)
                         {
                             _metabansUsername = strValue;
                             //Once setting has been changed, upload the change to database
                             QueueSettingForUpload(new CPluginVariable(@"Metabans Username", typeof(String), _metabansUsername));
+                            SetExternalPluginSetting("Metabans", "Username", _metabansUsername);
                         }
-                        SetExternalPluginSetting("Metabans", "Username", _metabansUsername);
                     }
                 }
                 else if (Regex.Match(strVariable, @"On-Player-Muted Message").Success)
