@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.34
+ * Version 6.7.0.35
  * 30-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.34</version_code>
+ * <version_code>6.7.0.35</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.34";
+        private const String PluginVersion = "6.7.0.35";
 
         public enum GameVersion
         {
@@ -657,7 +657,7 @@ namespace PRoConEvents
         public Dictionary<String, DamageTypes> WeaponTypeDictionary = null;
 
         //Settings display
-        private Dictionary<String, String> settingSections = new Dictionary<String, String>();
+        private Dictionary<String, String> _SettingSections = new Dictionary<String, String>();
         private String settingSectionEnum;
         private String currentSettingSection;
 
@@ -728,7 +728,7 @@ namespace PRoConEvents
             //Build setting section enum
             settingSectionEnum = String.Empty;
             Random random = new Random();
-            var sections = settingSections.Keys.ToList();
+            var sections = _SettingSections.Keys.ToList();
             sections.Sort();
             foreach (String sectionKey in sections) {
                 if (String.IsNullOrEmpty(settingSectionEnum)) {
@@ -872,18 +872,22 @@ namespace PRoConEvents
         }
 
         private String AddSettingSection(String number, String desc) {
-            settingSections[number] = desc;
+            _SettingSections[number] = desc;
             return GetSettingSection(number);
         }
 
         private String GetSettingSection(String number) {
-            return number + ". " + settingSections[number];
+            return number + ". " + _SettingSections[number];
+        }
+
+        private Boolean IsCurrentSettingSection(String number) {
+            return currentSettingSection == _SettingSections[number];
         }
 
         public List<CPluginVariable> GetDisplayPluginVariables()
         {
             try {
-                Log.Debug("Updating Setting Page: " + (UtcDbTime() - _lastSettingPageUpdate).TotalSeconds + " seconds since last update.", 4);
+                Log.Debug("Updating Setting Page [" + ((String.IsNullOrEmpty(Thread.CurrentThread.Name)) ? ("Main") : (Thread.CurrentThread.Name)) + "]: " + (UtcDbTime() - _lastSettingPageUpdate).TotalSeconds + " seconds since last update.", 4);
                 _lastSettingPageUpdate = UtcDbTime();
                 Stopwatch timer = new Stopwatch();
                 timer.Start();
@@ -945,221 +949,241 @@ namespace PRoConEvents
                         timer.Stop();
                         return lstReturn;
                     }
+
                     //Auto-Enable Settings
                     lstReturn.Add(new CPluginVariable(GetSettingSection("0") + sept + "Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
                     lstReturn.Add(new CPluginVariable(GetSettingSection("0") + sept + "Current Setting Section", settingSectionEnum, currentSettingSection));
-                    
 
-                    //Server Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "Setting Import", typeof(String), _serverInfo.ServerID));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "Server ID (Display)", typeof(Int32), _serverInfo.ServerID));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "High Population Value", typeof(Int32), _highPopulationPlayerCount));
 
-                    //SQL Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Hostname", typeof(String), _mySqlHostname));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Port", typeof(String), _mySqlPort));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Database", typeof(String), _mySqlSchemaName));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Username", typeof(String), _mySqlUsername));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Password", typeof(String), _mySqlPassword));
-
-                    //Punishment Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Punishment Hierarchy", typeof(String[]), _PunishmentHierarchy));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Automatic Forgives", typeof(Boolean), _AutomaticForgives));
-                    if (_AutomaticForgives)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Automatic Forgive Days Since Punished", typeof(Int32), _AutomaticForgiveLastPunishDays));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Automatic Forgive Days Since Forgiven", typeof(Int32), _AutomaticForgiveLastForgiveDays));
-                    }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Use IRO Punishment", typeof(Boolean), _IROActive));
-                    if (_IROActive)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "IRO Timeout Minutes", typeof(Int32), _IROTimeout));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
+                    if (IsCurrentSettingSection("1")) {
+                        //Server Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "Setting Import", typeof(String), _serverInfo.ServerID));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "Server ID (Display)", typeof(Int32), _serverInfo.ServerID));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "Server IP (Display)", typeof(String), _serverInfo.ServerIP));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "Low Population Value", typeof(Int32), _lowPopulationPlayerCount));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "High Population Value", typeof(Int32), _highPopulationPlayerCount));
                     }
 
-                    //Email Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Send Emails", typeof(Boolean), _UseEmail));
-                    if (_UseEmail)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Use SSL?", typeof(Boolean), _EmailHandler.UseSSL));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "SMTP-Server address", typeof(String), _EmailHandler.SMTPServer));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "SMTP-Server port", typeof(int), _EmailHandler.SMTPPort));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Sender address", typeof(String), _EmailHandler.SenderEmail));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "SMTP-Server username", typeof(String), _EmailHandler.SMTPUser));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "SMTP-Server password", typeof(String), _EmailHandler.SMTPPassword));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Custom HTML Addition", typeof(String), _EmailHandler.CustomHTMLAddition));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Extra Recipient Email Addresses", typeof(String[]), _EmailHandler.RecipientEmails.ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Only Send Report Emails When Admins Offline", typeof(Boolean), _emailReportsOnlyWhenAdminless));
+                    if (IsCurrentSettingSection("2")) {
+                        //SQL Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Hostname", typeof(String), _mySqlHostname));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Port", typeof(String), _mySqlPort));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Database", typeof(String), _mySqlSchemaName));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Username", typeof(String), _mySqlUsername));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Password", typeof(String), _mySqlPassword));
                     }
 
-                    //TeamSwap Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("9") + sept + "Ticket Window High", typeof(int), _TeamSwapTicketWindowHigh));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("9") + sept + "Ticket Window Low", typeof(int), _TeamSwapTicketWindowLow));
-
-                    //Admin Assistant Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + sept + "Enable Admin Assistants", typeof(Boolean), _EnableAdminAssistants));
-                    if (_EnableAdminAssistants)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + sept + "Minimum Confirmed Reports Per Month", typeof(int), _MinimumRequiredMonthlyReports));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + sept + "Enable Admin Assistant Perk", typeof(Boolean), _EnableAdminAssistantPerk));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + sept + "Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
-                        if (_UseAAReportAutoHandler)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + sept + "Auto-Report-Handler Strings", typeof(String[]), _AutoReportHandleStrings));
+                    if (IsCurrentSettingSection("7")) {
+                        //Punishment Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Punishment Hierarchy", typeof(String[]), _PunishmentHierarchy));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Automatic Forgives", typeof(Boolean), _AutomaticForgives));
+                        if (_AutomaticForgives) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Automatic Forgive Days Since Punished", typeof(Int32), _AutomaticForgiveLastPunishDays));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Automatic Forgive Days Since Forgiven", typeof(Int32), _AutomaticForgiveLastForgiveDays));
+                        }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Only Kill Players when Server in low population", typeof(Boolean), _OnlyKillOnLowPop));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Use IRO Punishment", typeof(Boolean), _IROActive));
+                        if (_IROActive) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "IRO Timeout Minutes", typeof(Int32), _IROTimeout));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "IRO Punishment Overrides Low Pop", typeof(Boolean), _IROOverridesLowPop));
                         }
                     }
 
-                    //Muting Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "On-Player-Muted Message", typeof(String), _MutedPlayerMuteMessage));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "On-Player-Killed Message", typeof(String), _MutedPlayerKillMessage));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "On-Player-Kicked Message", typeof(String), _MutedPlayerKickMessage));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "# Chances to give player before kicking", typeof(int), _MutedPlayerChances));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "Ignore commands for mute enforcement", typeof(Boolean), _MutedPlayerIgnoreCommands));
-
-                    //Message Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display Targeted Player Left Notification", typeof(Boolean), _ShowTargetedPlayerLeftNotification));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display Ticket Rates in Procon Chat", typeof(Boolean), _DisplayTicketRatesInProconChat));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
-                    if (_InformReportedPlayers)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Player Inform Exclusion Strings", typeof(String[]), _PlayerInformExclusionStrings));
-                    }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Inform reputable players and admins of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Yell display time seconds", typeof(int), _YellDuration));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Pre-Message List", typeof(String[]), _PreMessageList.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
-                    if (_UseFirstSpawnMessage)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "First spawn message text", typeof(String), _FirstSpawnMessage));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
-                    }
-
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Enable", typeof(Boolean), _spamBotEnabled));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Say List", typeof(String[]), _spamBotSayList.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Yell List", typeof(String[]), _spamBotYellList.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Yell Delay Seconds", typeof(Int32), _spamBotYellDelaySeconds));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Tell List", typeof(String[]), _spamBotTellList.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Tell Delay Seconds", typeof(Int32), _spamBotTellDelaySeconds));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
-
-                    //Ban Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + sept + "Use Additional Ban Message", typeof(Boolean), _UseBanAppend));
-                    if (_UseBanAppend)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + sept + "Additional Ban Message", typeof(String), _BanAppend));
-                    }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + sept + "Procon Ban Admin Name", typeof(String), _CBanAdminName));
-
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
-                    if (_UseBanEnforcer)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
-
-                        //Metabans Settings
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Use Metabans?", typeof(bool), _useMetabans));
-                        if (_useMetabans)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Metabans Username", typeof(String), _metabansUsername));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Metabans API Key", typeof(String), _metabansAPIKey));
+                    if (IsCurrentSettingSection("8")) {
+                        //Email Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Send Emails", typeof(Boolean), _UseEmail));
+                        if (_UseEmail) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Use SSL?", typeof(Boolean), _EmailHandler.UseSSL));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "SMTP-Server address", typeof(String), _EmailHandler.SMTPServer));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "SMTP-Server port", typeof(int), _EmailHandler.SMTPPort));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Sender address", typeof(String), _EmailHandler.SenderEmail));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "SMTP-Server username", typeof(String), _EmailHandler.SMTPUser));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "SMTP-Server password", typeof(String), _EmailHandler.SMTPPassword));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Custom HTML Addition", typeof(String), _EmailHandler.CustomHTMLAddition));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Extra Recipient Email Addresses", typeof(String[]), _EmailHandler.RecipientEmails.ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Only Send Report Emails When Admins Offline", typeof(Boolean), _emailReportsOnlyWhenAdminless));
                         }
                     }
 
-                    //External Command Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A14") + sept + "AdkatsLRT Extension Token", typeof(String), _AdKatsLRTExtensionToken));
-                    if (!_UseBanEnforcer)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A14") + sept + "Fetch Actions from Database", typeof(Boolean), _fetchActionsFromDb));
+                    if (IsCurrentSettingSection("9")) {
+                        //TeamSwap Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("9") + sept + "Ticket Window High", typeof(int), _TeamSwapTicketWindowHigh));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("9") + sept + "Ticket Window Low", typeof(int), _TeamSwapTicketWindowLow));
                     }
 
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A15") + sept + "Server VOIP Address", typeof(String), _ServerVoipAddress));
-                    //MULTIBalancer
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed MULTIBalancer Whitelist", typeof(Boolean), _FeedMultiBalancerWhitelist));
-                    if (_FeedMultiBalancerWhitelist)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_Admins));
-                    }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList));
-                    //TeamKillTracker
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed TeamKillTracker Whitelist", typeof(Boolean), _FeedTeamKillTrackerWhitelist));
-                    if (_FeedTeamKillTrackerWhitelist)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Automatic TeamKillTracker Whitelist for Admins", typeof(Boolean), _FeedTeamKillTrackerWhitelist_Admins));
-                    }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed Server Reserved Slots", typeof(Boolean), _FeedServerReservedSlots));
-                    if (_FeedServerReservedSlots)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
-                    }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
-                    if (_FeedServerSpectatorList)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Automatic Spectator Slot for Admins", typeof(Boolean), _FeedServerSpectatorList_Admins));
-                    }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
-                    if (_PostStatLoggerChatManually)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
-                    }
-
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A17") + sept + "Round Timer: Enable", typeof(Boolean), _useRoundTimer));
-                    if (_useRoundTimer)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A17") + sept + "Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
-                    }
-
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: Enable", typeof(Boolean), _UseHackerChecker));
-                    if (_UseHackerChecker)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
-                        if (_UseHskChecker)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Ban Message", typeof(String), _HackerCheckerHSKBanMessage));
-                        }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Enable", typeof(Boolean), _UseKpmChecker));
-                        if (_UseKpmChecker)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Trigger Level", typeof(Double), _KpmTriggerLevel));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Ban Message", typeof(String), _HackerCheckerKPMBanMessage));
+                    if (IsCurrentSettingSection("A10")) {
+                        //Admin Assistant Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + sept + "Enable Admin Assistants", typeof(Boolean), _EnableAdminAssistants));
+                        if (_EnableAdminAssistants) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + sept + "Minimum Confirmed Reports Per Month", typeof(int), _MinimumRequiredMonthlyReports));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + sept + "Enable Admin Assistant Perk", typeof(Boolean), _EnableAdminAssistantPerk));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + sept + "Use AA Report Auto Handler", typeof(Boolean), _UseAAReportAutoHandler));
+                            if (_UseAAReportAutoHandler) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + sept + "Auto-Report-Handler Strings", typeof(String[]), _AutoReportHandleStrings));
+                            }
                         }
                     }
 
-                    //Server rules settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Rule Print Delay", typeof(Double), _ServerRulesDelay));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Rule Print Interval", typeof(Double), _ServerRulesInterval));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Server Rule List", typeof(String[]), _ServerRulesList));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Yell Server Rules", typeof(Boolean), _ServerRulesYell));
+                    if (IsCurrentSettingSection("A11")) {
+                        //Muting Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "On-Player-Muted Message", typeof(String), _MutedPlayerMuteMessage));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "On-Player-Killed Message", typeof(String), _MutedPlayerKillMessage));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "On-Player-Kicked Message", typeof(String), _MutedPlayerKickMessage));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "# Chances to give player before kicking", typeof(int), _MutedPlayerChances));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "Ignore commands for mute enforcement", typeof(Boolean), _MutedPlayerIgnoreCommands));
+                    }
 
-                    //AFK manager settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK System Enable", typeof(Boolean), _AFKManagerEnable));
-                    if (_AFKManagerEnable)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Trigger Minutes", typeof(Double), _AFKTriggerDurationMinutes));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Minimum Players", typeof(Int32), _AFKTriggerMinimumPlayers));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Ignore User List", typeof(Boolean), _AFKIgnoreUserList));
-                        if (!_AFKIgnoreUserList)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Ignore Roles", typeof(String[]), _AFKIgnoreRoles));
+                    if (IsCurrentSettingSection("A12")) {
+                        //Message Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display Player Name Change Announcement", typeof(Boolean), _ShowPlayerNameChangeAnnouncement));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display Targeted Player Left Notification", typeof(Boolean), _ShowTargetedPlayerLeftNotification));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display Ticket Rates in Procon Chat", typeof(Boolean), _DisplayTicketRatesInProconChat));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Inform players of reports against them", typeof(Boolean), _InformReportedPlayers));
+                        if (_InformReportedPlayers) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Player Inform Exclusion Strings", typeof(String[]), _PlayerInformExclusionStrings));
+                        }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Inform reputable players and admins of admin joins", typeof(Boolean), _InformReputablePlayersOfAdminJoins));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Yell display time seconds", typeof(int), _YellDuration));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Pre-Message List", typeof(String[]), _PreMessageList.ToArray()));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Require Use of Pre-Messages", typeof(Boolean), _RequirePreMessageUse));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Use first spawn message", typeof(Boolean), _UseFirstSpawnMessage));
+                        if (_UseFirstSpawnMessage) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "First spawn message text", typeof(String), _FirstSpawnMessage));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Use First Spawn Reputation and Infraction Message", typeof(Boolean), _useFirstSpawnRepMessage));
                         }
                     }
 
+                    if (IsCurrentSettingSection("A12-2")) {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Enable", typeof(Boolean), _spamBotEnabled));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Say List", typeof(String[]), _spamBotSayList.ToArray()));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Yell List", typeof(String[]), _spamBotYellList.ToArray()));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Yell Delay Seconds", typeof(Int32), _spamBotYellDelaySeconds));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Tell List", typeof(String[]), _spamBotTellList.ToArray()));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Tell Delay Seconds", typeof(Int32), _spamBotTellDelaySeconds));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
+                    }
+
+                    if (IsCurrentSettingSection("A13")) {
+                        //Ban Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + sept + "Use Additional Ban Message", typeof(Boolean), _UseBanAppend));
+                        if (_UseBanAppend) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + sept + "Additional Ban Message", typeof(String), _BanAppend));
+                        }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + sept + "Procon Ban Admin Name", typeof(String), _CBanAdminName));
+                    }
+
+                    if (IsCurrentSettingSection("A13-2")) {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
+                        if (_UseBanEnforcer) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
+
+                            //Metabans Settings
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Use Metabans?", typeof(bool), _useMetabans));
+                            if (_useMetabans) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Metabans Username", typeof(String), _metabansUsername));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Metabans API Key", typeof(String), _metabansAPIKey));
+                            }
+                        }
+                    }
+
+                    if (IsCurrentSettingSection("A14")) {
+                        //External Command Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A14") + sept + "AdkatsLRT Extension Token", typeof(String), _AdKatsLRTExtensionToken));
+                        if (!_UseBanEnforcer) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A14") + sept + "Fetch Actions from Database", typeof(Boolean), _fetchActionsFromDb));
+                        }
+                    }
+
+                    if (IsCurrentSettingSection("A15")) {
+                        //VOIP
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A15") + sept + "Server VOIP Address", typeof(String), _ServerVoipAddress));
+                    }
+
+                    if (IsCurrentSettingSection("A16")) {
+                        //MULTIBalancer
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed MULTIBalancer Whitelist", typeof(Boolean), _FeedMultiBalancerWhitelist));
+                        if (_FeedMultiBalancerWhitelist) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Automatic MULTIBalancer Whitelist for Admins", typeof(Boolean), _FeedMultiBalancerWhitelist_Admins));
+                        }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed MULTIBalancer Even Dispersion List", typeof(Boolean), _FeedMultiBalancerDisperseList));
+                        //TeamKillTracker
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed TeamKillTracker Whitelist", typeof(Boolean), _FeedTeamKillTrackerWhitelist));
+                        if (_FeedTeamKillTrackerWhitelist) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Automatic TeamKillTracker Whitelist for Admins", typeof(Boolean), _FeedTeamKillTrackerWhitelist_Admins));
+                        }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed Server Reserved Slots", typeof(Boolean), _FeedServerReservedSlots));
+                        if (_FeedServerReservedSlots) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Automatic Reserved Slot for Admins", typeof(Boolean), _FeedServerReservedSlots_Admins));
+                        }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed Server Spectator List", typeof(Boolean), _FeedServerSpectatorList));
+                        if (_FeedServerSpectatorList) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Automatic Spectator Slot for Admins", typeof(Boolean), _FeedServerSpectatorList_Admins));
+                        }
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed Stat Logger Settings", typeof(Boolean), _FeedStatLoggerSettings));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Post Stat Logger Chat Manually", typeof(Boolean), _PostStatLoggerChatManually));
+                        if (_PostStatLoggerChatManually) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Post Server Chat Spam", typeof(Boolean), _PostStatLoggerChatManually_PostServerChatSpam));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Exclude Commands from Chat Logs", typeof(Boolean), _PostStatLoggerChatManually_IgnoreCommands));
+                        }
+                    }
+
+                    if (IsCurrentSettingSection("A17")) {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A17") + sept + "Round Timer: Enable", typeof(Boolean), _useRoundTimer));
+                        if (_useRoundTimer) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A17") + sept + "Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
+                        }
+                    }
+
+                    if (IsCurrentSettingSection("A18")) {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: Enable", typeof(Boolean), _UseHackerChecker));
+                        if (_UseHackerChecker) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Enable", typeof(Boolean), _UseHskChecker));
+                            if (_UseHskChecker) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Trigger Level", typeof(Double), _HskTriggerLevel));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: HSK Checker: Ban Message", typeof(String), _HackerCheckerHSKBanMessage));
+                            }
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Enable", typeof(Boolean), _UseKpmChecker));
+                            if (_UseKpmChecker) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Trigger Level", typeof(Double), _KpmTriggerLevel));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: KPM Checker: Ban Message", typeof(String), _HackerCheckerKPMBanMessage));
+                            }
+                        }
+                    }
+
+                    if (IsCurrentSettingSection("A19")) {
+                        //Server rules settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Rule Print Delay", typeof(Double), _ServerRulesDelay));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Rule Print Interval", typeof(Double), _ServerRulesInterval));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Server Rule List", typeof(String[]), _ServerRulesList));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Server Rule Numbers", typeof(Boolean), _ServerRulesNumbers));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Yell Server Rules", typeof(Boolean), _ServerRulesYell));
+                    }
+
+                    if (IsCurrentSettingSection("B20")) {
+                        //AFK manager settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK System Enable", typeof(Boolean), _AFKManagerEnable));
+                        if (_AFKManagerEnable) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Ignore Chat", typeof(Boolean), _AFKIgnoreChat));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Auto-Kick Enable", typeof(Boolean), _AFKAutoKickEnable));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Trigger Minutes", typeof(Double), _AFKTriggerDurationMinutes));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Minimum Players", typeof(Int32), _AFKTriggerMinimumPlayers));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Ignore User List", typeof(Boolean), _AFKIgnoreUserList));
+                            if (!_AFKIgnoreUserList) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK Ignore Roles", typeof(String[]), _AFKIgnoreRoles));
+                            }
+                        }
+                    }
+
+                    if (IsCurrentSettingSection("0")) {
+
+                    }
                     //Ping enforcer settings
                     lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Enforcer Enable", typeof(Boolean), _pingEnforcerEnable));
                     if (_pingEnforcerEnable)
@@ -1180,406 +1204,383 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Message Prefix", typeof(String), _pingEnforcerMessagePrefix));
                     }
 
-                    //Commander manager settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B22") + sept + "Commander Manager Enable", typeof(Boolean), _CMDRManagerEnable));
-                    if (_CMDRManagerEnable)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B22") + sept + "Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
-                    }
-
-                    //Player locking settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + sept + "Player Lock Manual Duration Minutes", typeof(Double), _playerLockingManualDuration));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + sept + "Automatically Lock Players on Admin Action", typeof(Boolean), _playerLockingAutomaticLock));
-                    if (_playerLockingAutomaticLock)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + sept + "Player Lock Automatic Duration Minutes", typeof(Double), _playerLockingAutomaticDuration));
-                    }
-
-                    //Surrender Vote settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
-                    if (_surrenderVoteEnable)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Percentage Votes Needed for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Minimum Player Count to Enable Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Minimum Ticket Gap to Surrender", typeof(Int32), _surrenderVoteMinimumTicketGap));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Enable Required Ticket Rate Gap to Surrender", typeof(Boolean), _surrenderVoteTicketRateGapEnable));
-                        if (_surrenderVoteTicketRateGapEnable)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Minimum Ticket Rate Gap to Surrender", typeof(Double), _surrenderVoteMinimumTicketRateGap));
-                        }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
-                        if (_surrenderVoteTimeoutEnable)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Surrender Vote Timeout Minutes", typeof(Double), _surrenderVoteTimeoutMinutes));
+                    if (IsCurrentSettingSection("B22")) {
+                        //Commander manager settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B22") + sept + "Commander Manager Enable", typeof(Boolean), _CMDRManagerEnable));
+                        if (_CMDRManagerEnable) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B22") + sept + "Minimum Players to Allow Commanders", typeof(Int32), _CMDRMinimumPlayers));
                         }
                     }
 
-                    //Auto-Surrender Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
-                    if (_surrenderAutoEnable)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
-                        if (!_surrenderAutoUseMetroValues && !_surrenderAutoUseLockerValues)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
+                    if (IsCurrentSettingSection("B23")) {
+                        //Player locking settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + sept + "Player Lock Manual Duration Minutes", typeof(Double), _playerLockingManualDuration));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + sept + "Automatically Lock Players on Admin Action", typeof(Boolean), _playerLockingAutomaticLock));
+                        if (_playerLockingAutomaticLock) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + sept + "Player Lock Automatic Duration Minutes", typeof(Double), _playerLockingAutomaticDuration));
                         }
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Minimum Players", typeof(Int32), _surrenderAutoMinimumPlayers));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
-                        if (!_surrenderAutoTriggerVote)
-                        {
-                            if (!_surrenderAutoNukeWinning)
-                            {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
+                    }
+
+                    if (IsCurrentSettingSection("B24")) {
+                        //Surrender Vote settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
+                        if (_surrenderVoteEnable) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Percentage Votes Needed for Surrender", typeof(Double), _surrenderVoteMinimumPlayerPercentage));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Minimum Player Count to Enable Surrender", typeof(Int32), _surrenderVoteMinimumPlayerCount));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Minimum Ticket Gap to Surrender", typeof(Int32), _surrenderVoteMinimumTicketGap));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Enable Required Ticket Rate Gap to Surrender", typeof(Boolean), _surrenderVoteTicketRateGapEnable));
+                            if (_surrenderVoteTicketRateGapEnable) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Minimum Ticket Rate Gap to Surrender", typeof(Double), _surrenderVoteMinimumTicketRateGap));
                             }
-                            else
-                            {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Surrender Vote Timeout Enable", typeof(Boolean), _surrenderVoteTimeoutEnable));
+                            if (_surrenderVoteTimeoutEnable) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Surrender Vote Timeout Minutes", typeof(Double), _surrenderVoteTimeoutMinutes));
                             }
                         }
                     }
 
-                    //Statistics Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B26") + sept + "Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B26") + sept + "Post Win/Loss/Baserape Statistics", typeof(Boolean), _PostWinLossBaserapeStatistics));
-
-                    //Player monitor settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Baserape Causing Players", typeof(Boolean), _BaserapeCausingPlayersMonitor));
-                    if (_BaserapeCausingPlayersMonitor)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "[" + _baserapeCausingPlayers.Count() + "] Baserape Causing Players (Display)", typeof(String[]), _baserapeCausingPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Automatic Assist Trigger for Baserape Causing Players", typeof(Boolean), _AutomaticAssistBaserapeCausingPlayers));
-                    }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Populator Players - Thanks CMWGaming", typeof(Boolean), _PopulatorMonitor));
-                    if (_PopulatorMonitor)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "[" + _populatorPlayers.Count() + "] Populator Players (Display)", typeof(String[]), _populatorPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Count to Consider Populator Past Week", typeof(Int32), _PopulatorMinimumPopulationCountPastWeek));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Count to Consider Populator Past 2 Weeks", typeof(Int32), _PopulatorMinimumPopulationCountPast2Weeks));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Enable Populator Perks", typeof(Boolean), _PopulatorPerksEnable));
-                        if (_PopulatorPerksEnable)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Populator Perks - Reserved Slot", typeof(Boolean), _PopulatorPerksReservedSlot));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Populator Perks - Autobalance Whitelist", typeof(Boolean), _PopulatorPerksBalanceWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Populator Perks - Ping Whitelist", typeof(Boolean), _PopulatorPerksPingWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Populator Perks - TeamKillTracker Whitelist", typeof(Boolean), _PopulatorPerksTeamKillTrackerWhitelist));
-                        }
-                    }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Teamspeak Players - Thanks CMWGaming", typeof(Boolean), _TeamspeakPlayerMonitorView));
-                    if (_TeamspeakPlayerMonitorView)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "[" + _tsPlayers.Count() + "] Teamspeak Players (Display)", typeof(String[]), _tsPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server IP", typeof(String), _tsViewer.Ts3ServerIp));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server Port", typeof(Int32), _tsViewer.Ts3ServerPort));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server Query Port", typeof(Int32), _tsViewer.Ts3QueryPort));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server Query Username", typeof(String), _tsViewer.Ts3QueryUsername));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server Query Password", typeof(String), _tsViewer.Ts3QueryPassword));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server Query Nickname", typeof(String), _tsViewer.Ts3QueryNickname));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Main Channel Name", typeof(String), _tsViewer.Ts3MainChannelName));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Secondary Channel Names", typeof(String[]), _tsViewer.Ts3SubChannelNames));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Debug Display Teamspeak Clients", typeof(Boolean), _tsViewer.DbgClients));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
-                        if (_TeamspeakPlayerPerksEnable)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Player Perks - Reserved Slot", typeof(Boolean), _TeamspeakPlayerPerksReservedSlot));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Player Perks - Autobalance Whitelist", typeof(Boolean), _TeamspeakPlayerPerksBalanceWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Player Perks - Ping Whitelist", typeof(Boolean), _TeamspeakPlayerPerksPingWhitelist));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
-                        }
-                    }
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
-                    if (_UseTopPlayerMonitor) {
-                        var onlineTopPlayers = _PlayerDictionary.Values.ToList()
-                            .Where(aPlayer => 
-                                _topPlayers.ContainsKey(aPlayer.player_name))
-                            .Select(aPlayer => 
-                                ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing)?(_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> "):("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
-                            .OrderBy(item => item);
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayers.ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
-                            .Select(aPlayer =>
-                                ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
-                            .OrderBy(item => item)
-                            .ToArray()));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Minimum Round Count for Top Players", typeof(Int32), _TopPlayersMinimumCount));
-                    }
-
-                    //Debug settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Debug level", typeof(int), Log.DebugLevel));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Debug Soldier Name", typeof(String), _debugSoldierName));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Command Entry", typeof(String), ""));
-
-                    //Experimental tools
-                    if (_isTestingAuthorized)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "Use Experimental Tools", typeof(Boolean), _useExperimentalTools));
-                        if (_useExperimentalTools)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "Send Query", typeof(String), ""));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "Send Non-Query", typeof(String), ""));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
-                            if (_UseWeaponLimiter)
-                            {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
+                    if (IsCurrentSettingSection("B25")) {
+                        //Auto-Surrender Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
+                        if (_surrenderAutoEnable) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Use Optimal Values for Metro Conquest", typeof(Boolean), _surrenderAutoUseMetroValues));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Use Optimal Values for Locker Conquest", typeof(Boolean), _surrenderAutoUseLockerValues));
+                            if (!_surrenderAutoUseMetroValues && !_surrenderAutoUseLockerValues) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Minimum Ticket Gap", typeof(Int32), _surrenderAutoMinimumTicketGap));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Use Adjusted Ticket Rates", typeof(Boolean), _surrenderAutoUseAdjustedTicketRates));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Losing Team Rate Window Max", typeof(Double), _surrenderAutoLosingRateMax));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Losing Team Rate Window Min", typeof(Double), _surrenderAutoLosingRateMin));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Winning Team Rate Window Max", typeof(Double), _surrenderAutoWinningRateMax));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Winning Team Rate Window Min", typeof(Double), _surrenderAutoWinningRateMin));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Trigger Count to Surrender", typeof(Int32), _surrenderAutoTriggerCountToSurrender));
                             }
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
-                        }
-                    }
-                    //User Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("3") + sept + "Add User", typeof(String), ""));
-                    if (_userCache.Count > 0)
-                    {
-                        //Sort access list by access level, then by id
-                        List<AdKatsUser> tempAccess = _userCache.Values.ToList();
-                        tempAccess.Sort((a1, a2) => (a1.user_role.role_powerLevel == a2.user_role.role_powerLevel) ? (String.CompareOrdinal(a1.user_name, a2.user_name)) : ((a1.user_role.role_powerLevel > a2.user_role.role_powerLevel) ? (-1) : (1)));
-                        String roleEnum = String.Empty;
-                        if (_RoleKeyDictionary.Count > 0)
-                        {
-                            Random random = new Random();
-                            foreach (AdKatsRole role in _RoleKeyDictionary.Values.ToList())
-                            {
-                                if (String.IsNullOrEmpty(roleEnum))
-                                {
-                                    roleEnum += "enum.RoleEnum_" + random.Next(100000, 999999) + "(";
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Reset Trigger Count on Cancel", typeof(Boolean), _surrenderAutoResetTriggerCountOnCancel));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Minimum Players", typeof(Int32), _surrenderAutoMinimumPlayers));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Nuke Winning Team Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoNukeWinning));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Start Surrender Vote Instead of Surrendering Losing Team", typeof(Boolean), _surrenderAutoTriggerVote));
+                            if (!_surrenderAutoTriggerVote) {
+                                if (!_surrenderAutoNukeWinning) {
+                                    lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Message", typeof(String), _surrenderAutoMessage));
+                                } else {
+                                    lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Nuke Message", typeof(String), _surrenderAutoNukeMessage));
                                 }
-                                else
-                                {
-                                    roleEnum += "" + sept + "";
-                                }
-                                roleEnum += role.role_name;
                             }
-                            roleEnum += ")";
-                        }
-                        foreach (AdKatsUser user in tempAccess)
-                        {
-                            String userPrefix = GetSettingSection("3") + sept + "USR" + user.user_id + sep + user.user_name + sep;
-                            if (_UseEmail)
-                            {
-                                lstReturn.Add(new CPluginVariable(userPrefix + "User Email", typeof(String), user.user_email));
-                            }
-                            lstReturn.Add(new CPluginVariable(userPrefix + "User Expiration", typeof(String), user.user_expiration.ToShortDateString()));
-                            lstReturn.Add(new CPluginVariable(userPrefix + "User Notes", typeof(String), user.user_notes));
-                            //Do not display phone input until that operation is available for use
-                            //lstReturn.Add(new CPluginVariable(userPrefix + "User Phone", typeof(String), user.user_phone));
-                            lstReturn.Add(new CPluginVariable(userPrefix + "User Role", roleEnum, user.user_role.role_name));
-                            lstReturn.Add(new CPluginVariable(userPrefix + "Delete User?", typeof(String), ""));
-                            lstReturn.Add(new CPluginVariable(userPrefix + "Add Soldier?", typeof(String), ""));
-                            String soldierPrefix = userPrefix + "Soldiers" + sep;
-
-                            lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + sep + (_gameIDDictionary.ContainsKey(aPlayer.game_id) ? (_gameIDDictionary[aPlayer.game_id].ToString()) : ("INVALID GAME ID [" + aPlayer.game_id + "]")) + sep + aPlayer.player_name + sep + "Delete Soldier?", typeof(String), "")));
-                        }
-                    }
-                    else
-                    {
-                        if (_firstUserListComplete)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("3") + sept + "No Users in User List", typeof(String), "Add Users with 'Add User'."));
-                        }
-                        else
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("3") + sept + "Please Wait, Fetching User List.", typeof(String), "Please Wait, Fetching User List."));
                         }
                     }
 
-                    if (_firstUserListComplete)
-                    {
-                        //Special Player Settings
-                        Boolean anyList = false;
-                        foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name))
-                        {
-                            List<String> groupList = new List<String>();
-                            foreach (AdKatsSpecialPlayer asPlayer in GetASPlayersOfGroup(asGroup.group_key))
-                            {
-                                String playerIdentifier = null;
-                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
-                                {
-                                    playerIdentifier = asPlayer.player_object.player_name;
-                                }
-                                else
-                                {
-                                    playerIdentifier = asPlayer.player_identifier;
-                                }
-                                if (String.IsNullOrEmpty(playerIdentifier))
-                                {
-                                    continue;
-                                }
-                                TimeSpan duration = (asPlayer.player_expiration - UtcDbTime()).Duration();
-                                if (duration.TotalDays > 3650)
-                                {
-                                    playerIdentifier += " | Permanent";
-                                }
-                                else
-                                {
-                                    playerIdentifier += " | " + FormatTimeString(duration, 3);
-                                }
-                                if (!groupList.Contains(playerIdentifier))
-                                {
-                                    groupList.Add(playerIdentifier);
-                                }
-                            }
-                            if (groupList.Any())
-                            {
-                                anyList = true;
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("3-2") + sept + "[" + groupList.Count + "] " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
-                            }
-                        }
-                        if (!anyList)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("3-2") + sept + "All Groups Empty", typeof(String), "All Groups Empty"));
-                        }
+                    if (IsCurrentSettingSection("B26")) {
+                        //Statistics Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B26") + sept + "Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B26") + sept + "Post Win/Loss/Baserape Statistics", typeof(Boolean), _PostWinLossBaserapeStatistics));
+                    }
 
-                        //Verbose Special Player Settings
-                        Boolean anyVerbostList = false;
-                        foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name))
-                        {
-                            List<String> groupList = new List<String>();
-                            foreach (AdKatsSpecialPlayer asPlayer in GetVerboseASPlayersOfGroup(asGroup.group_key))
-                            {
-                                String playerIdentifier = null;
-                                if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name))
-                                {
-                                    playerIdentifier = asPlayer.player_object.player_name;
-                                }
-                                else
-                                {
-                                    playerIdentifier = asPlayer.player_identifier;
-                                }
-                                if (String.IsNullOrEmpty(playerIdentifier))
-                                {
-                                    continue;
-                                }
-                                if (!groupList.Contains(playerIdentifier))
-                                {
-                                    groupList.Add(playerIdentifier);
-                                }
-                            }
-                            if (groupList.Any())
-                            {
-                                anyVerbostList = true;
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("3-3") + sept + "[" + groupList.Count + "] Verbose " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
-                            }
-                        }
-                        if (!anyVerbostList)
-                        {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("3-3") + sept + "All Verbose Groups Empty", typeof(String), "All Verbose Groups Empty"));
+                    if (IsCurrentSettingSection("B27")) {
+                        //Player monitor settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Baserape Causing Players", typeof(Boolean), _BaserapeCausingPlayersMonitor));
+                    }
+
+                    if (IsCurrentSettingSection("B27")) {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Populator Players - Thanks CMWGaming", typeof(Boolean), _PopulatorMonitor));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Teamspeak Players - Thanks CMWGaming", typeof(Boolean), _TeamspeakPlayerMonitorView));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
+                    }
+
+                    if (IsCurrentSettingSection("B27-1")) {
+                        if (_BaserapeCausingPlayersMonitor) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "[" + _baserapeCausingPlayers.Count() + "] Baserape Causing Players (Display)", typeof(String[]), _baserapeCausingPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Count to Consider Baserape Causing", typeof(Int32), _BaserapeCausingPlayersMinimumCount));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Automatic Dispersion for Baserape Causing Players", typeof(Boolean), _FeedBaserapeCausingPlayerDispersion));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Automatic Assist Trigger for Baserape Causing Players", typeof(Boolean), _AutomaticAssistBaserapeCausingPlayers));
                         }
                     }
 
-                    //Role Settings
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("4") + sept + "Add Role", typeof(String), ""));
-                    if (_RoleIDDictionary.Count > 0)
-                    {
-                        lock (_RoleIDDictionary)
-                        {
-                            foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
-                            {
-                                lock (_CommandIDDictionary)
-                                {
-                                    Random random = new Random();
-                                    String rolePrefix = GetSettingSection("4") + sept + "RLE" + aRole.role_id + sep + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + sep;
-                                    lstReturn.AddRange(from aCommand in _CommandNameDictionary.Values where aCommand.command_active == AdKatsCommand.CommandActive.Active && aCommand.command_key != "command_confirm" && aCommand.command_key != "command_cancel" where aRole.role_key != "guest_default" || !aCommand.command_playerInteraction let allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) let display = rolePrefix + "CDE" + aCommand.command_id + sep + aCommand.command_name + ((allowed && aCommand.command_playerInteraction) ? (" [ADMIN]") : ("")) select new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
-                                    //Do not display the delete option for default guest
-                                    if (aRole.role_key != "guest_default")
-                                    {
-                                        lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
+                    if (IsCurrentSettingSection("B27-2")) {
+                        if (_PopulatorMonitor) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "[" + _populatorPlayers.Count() + "] Populator Players (Display)", typeof(String[]), _populatorPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Monitor Populators of This Server Only", typeof(Boolean), _PopulatorPopulatingThisServerOnly));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Count to Consider Populator Past Week", typeof(Int32), _PopulatorMinimumPopulationCountPastWeek));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Count to Consider Populator Past 2 Weeks", typeof(Int32), _PopulatorMinimumPopulationCountPast2Weeks));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Enable Populator Perks", typeof(Boolean), _PopulatorPerksEnable));
+                            if (_PopulatorPerksEnable) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Populator Perks - Reserved Slot", typeof(Boolean), _PopulatorPerksReservedSlot));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Populator Perks - Autobalance Whitelist", typeof(Boolean), _PopulatorPerksBalanceWhitelist));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Populator Perks - Ping Whitelist", typeof(Boolean), _PopulatorPerksPingWhitelist));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Populator Perks - TeamKillTracker Whitelist", typeof(Boolean), _PopulatorPerksTeamKillTrackerWhitelist));
+                            }
+                        }
+                    }
+
+                    if (IsCurrentSettingSection("B27-3")) {
+                        if (_TeamspeakPlayerMonitorView) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "[" + _tsPlayers.Count() + "] Teamspeak Players (Display)", typeof(String[]), _tsPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server IP", typeof(String), _tsViewer.Ts3ServerIp));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server Port", typeof(Int32), _tsViewer.Ts3ServerPort));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server Query Port", typeof(Int32), _tsViewer.Ts3QueryPort));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server Query Username", typeof(String), _tsViewer.Ts3QueryUsername));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server Query Password", typeof(String), _tsViewer.Ts3QueryPassword));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Server Query Nickname", typeof(String), _tsViewer.Ts3QueryNickname));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Main Channel Name", typeof(String), _tsViewer.Ts3MainChannelName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Secondary Channel Names", typeof(String[]), _tsViewer.Ts3SubChannelNames));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Debug Display Teamspeak Clients", typeof(Boolean), _tsViewer.DbgClients));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Enable Teamspeak Player Perks", typeof(Boolean), _TeamspeakPlayerPerksEnable));
+                            if (_TeamspeakPlayerPerksEnable) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Player Perks - Reserved Slot", typeof(Boolean), _TeamspeakPlayerPerksReservedSlot));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Player Perks - Autobalance Whitelist", typeof(Boolean), _TeamspeakPlayerPerksBalanceWhitelist));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Player Perks - Ping Whitelist", typeof(Boolean), _TeamspeakPlayerPerksPingWhitelist));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
+                            }
+                        }
+                    }
+
+                    if (IsCurrentSettingSection("B27-4")) {
+                        if (_UseTopPlayerMonitor) {
+                            var onlineTopPlayers = _PlayerDictionary.Values.ToList()
+                                .Where(aPlayer =>
+                                    _topPlayers.ContainsKey(aPlayer.player_name))
+                                .Select(aPlayer =>
+                                    ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
+                                .OrderBy(item => item);
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayers.ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
+                                .Select(aPlayer =>
+                                    ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
+                                .OrderBy(item => item)
+                                .ToArray()));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Minimum Round Count for Top Players", typeof(Int32), _TopPlayersMinimumCount));
+                        }
+                    }
+
+
+                    if (IsCurrentSettingSection("D99")) {
+                        //Debug settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Debug level", typeof(int), Log.DebugLevel));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Debug Soldier Name", typeof(String), _debugSoldierName));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Disable Automatic Updates", typeof(Boolean), _automaticUpdatesDisabled));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Disable Version Tracking - Required For TEST Builds", typeof(Boolean), _versionTrackingDisabled));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Command Entry", typeof(String), ""));
+                    }
+
+
+                    if (IsCurrentSettingSection("X99")) {
+                        //Experimental tools
+                        if (_isTestingAuthorized) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "Use Experimental Tools", typeof(Boolean), _useExperimentalTools));
+                            if (_useExperimentalTools) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "Send Query", typeof(String), ""));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "Send Non-Query", typeof(String), ""));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
+                                if (_UseWeaponLimiter) {
+                                    lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "NO EXPLOSIVES Weapon String", typeof(String), _WeaponLimiterString));
+                                    lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "NO EXPLOSIVES Exception String", typeof(String), _WeaponLimiterExceptionString));
+                                }
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "Use Grenade Cook Catcher", typeof(Boolean), _UseGrenadeCookCatcher));
+                            }
+                        }
+                    }
+
+                    if (IsCurrentSettingSection("3")) {
+                        //User Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("3") + sept + "Add User", typeof(String), ""));
+                        if (_userCache.Count > 0) {
+                            //Sort access list by access level, then by id
+                            List<AdKatsUser> tempAccess = _userCache.Values.ToList();
+                            tempAccess.Sort((a1, a2) => (a1.user_role.role_powerLevel == a2.user_role.role_powerLevel) ? (String.CompareOrdinal(a1.user_name.ToLower(), a2.user_name.ToLower())) : ((a1.user_role.role_powerLevel > a2.user_role.role_powerLevel) ? (-1) : (1)));
+                            String roleEnum = String.Empty;
+                            if (_RoleKeyDictionary.Count > 0) {
+                                Random random = new Random();
+                                foreach (AdKatsRole role in _RoleKeyDictionary.Values.ToList()) {
+                                    if (String.IsNullOrEmpty(roleEnum)) {
+                                        roleEnum += "enum.RoleEnum_" + random.Next(100000, 999999) + "(";
+                                    } else {
+                                        roleEnum += "" + sept + "";
+                                    }
+                                    roleEnum += role.role_name;
+                                }
+                                roleEnum += ")";
+                            }
+                            foreach (AdKatsUser user in tempAccess) {
+                                String userPrefix = GetSettingSection("3") + sept + "USR" + user.user_id + sep + user.user_name + sep;
+                                if (_UseEmail) {
+                                    lstReturn.Add(new CPluginVariable(userPrefix + "User Email", typeof(String), user.user_email));
+                                }
+                                lstReturn.Add(new CPluginVariable(userPrefix + "User Expiration", typeof(String), user.user_expiration.ToShortDateString()));
+                                lstReturn.Add(new CPluginVariable(userPrefix + "User Notes", typeof(String), user.user_notes));
+                                //Do not display phone input until that operation is available for use
+                                //lstReturn.Add(new CPluginVariable(userPrefix + "User Phone", typeof(String), user.user_phone));
+                                lstReturn.Add(new CPluginVariable(userPrefix + "User Role", roleEnum, user.user_role.role_name));
+                                lstReturn.Add(new CPluginVariable(userPrefix + "Delete User?", typeof(String), ""));
+                                lstReturn.Add(new CPluginVariable(userPrefix + "Add Soldier?", typeof(String), ""));
+                                String soldierPrefix = userPrefix + "Soldiers" + sep;
+
+                                lstReturn.AddRange(user.soldierDictionary.Values.Select(aPlayer => new CPluginVariable(soldierPrefix + aPlayer.player_id + sep + (_gameIDDictionary.ContainsKey(aPlayer.game_id) ? (_gameIDDictionary[aPlayer.game_id].ToString()) : ("INVALID GAME ID [" + aPlayer.game_id + "]")) + sep + aPlayer.player_name + sep + "Delete Soldier?", typeof(String), "")));
+                            }
+                        } else {
+                            if (_firstUserListComplete) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("3") + sept + "No Users in User List", typeof(String), "Add Users with 'Add User'."));
+                            } else {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("3") + sept + "Please Wait, Fetching User List.", typeof(String), "Please Wait, Fetching User List."));
+                            }
+                        }
+                    }
+
+                    if (_firstUserListComplete) {
+                        if (IsCurrentSettingSection("3-2")) {
+                            //Special Player Settings
+                            Boolean anyList = false;
+                            foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name)) {
+                                List<String> groupList = new List<String>();
+                                foreach (AdKatsSpecialPlayer asPlayer in GetASPlayersOfGroup(asGroup.group_key)) {
+                                    String playerIdentifier = null;
+                                    if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name)) {
+                                        playerIdentifier = asPlayer.player_object.player_name;
+                                    } else {
+                                        playerIdentifier = asPlayer.player_identifier;
+                                    }
+                                    if (String.IsNullOrEmpty(playerIdentifier)) {
+                                        continue;
+                                    }
+                                    TimeSpan duration = (asPlayer.player_expiration - UtcDbTime()).Duration();
+                                    if (duration.TotalDays > 3650) {
+                                        playerIdentifier += " | Permanent";
+                                    } else {
+                                        playerIdentifier += " | " + FormatTimeString(duration, 3);
+                                    }
+                                    if (!groupList.Contains(playerIdentifier)) {
+                                        groupList.Add(playerIdentifier);
                                     }
                                 }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("4") + sept + "Role List Empty", typeof(String), "No valid roles found in database."));
-                    }
-
-                    //Role Group Settings
-                    if (_RoleIDDictionary.Count > 0)
-                    {
-                        lock (_RoleIDDictionary)
-                        {
-                            foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList())
-                            {
-                                lock (_specialPlayerGroupKeyDictionary)
-                                {
-                                    Random random = new Random();
-                                    String rolePrefix = GetSettingSection("4-2") + sept + "RLE" + aRole.role_id + sep + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + sep;
-                                    lstReturn.AddRange(from aGroup in _specialPlayerGroupKeyDictionary.Values let allowed = aRole.RoleSetGroups.ContainsKey(aGroup.group_key) || (aGroup.group_key == "slot_reserved" && _FeedServerReservedSlots && _FeedServerReservedSlots_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "slot_spectator" && _FeedServerSpectatorList && _FeedServerSpectatorList_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "whitelist_multibalancer" && _FeedMultiBalancerWhitelist && _FeedMultiBalancerWhitelist_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "whitelist_teamkill" && _FeedTeamKillTrackerWhitelist && _FeedTeamKillTrackerWhitelist_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "whitelist_spambot" && _spamBotExcludeAdminsAndWhitelist && RoleIsAdmin(aRole)) let display = rolePrefix + "GPE" + aGroup.group_id + sep + aGroup.group_name select new CPluginVariable(display, "enum.roleSetGroupEnum(Assign|Ignore)", allowed ? ("Assign") : ("Ignore")));
+                                if (groupList.Any()) {
+                                    anyList = true;
+                                    lstReturn.Add(new CPluginVariable(GetSettingSection("3-2") + sept + "[" + groupList.Count + "] " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
                                 }
                             }
+                            if (!anyList) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("3-2") + sept + "All Groups Empty", typeof(String), "All Groups Empty"));
+                            }
                         }
-                    }
-                    else
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("4-2") + sept + "Role List Empty", typeof(String), "No valid roles found in database."));
-                    }
 
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Bypass all command confirmation -DO NOT USE-", typeof(Boolean), _bypassCommandConfirmation));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "External plugin player commands", typeof(String[]), _ExternalPlayerCommands.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
-                    lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Command Target Whitelist Commands", typeof(String[]), _CommandTargetWhitelistCommands.ToArray()));
+                        if (IsCurrentSettingSection("3-3")) {
+                            //Verbose Special Player Settings
+                            Boolean anyVerbostList = false;
+                            foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name)) {
+                                List<String> groupList = new List<String>();
+                                foreach (AdKatsSpecialPlayer asPlayer in GetVerboseASPlayersOfGroup(asGroup.group_key)) {
+                                    String playerIdentifier = null;
+                                    if (asPlayer.player_object != null && !String.IsNullOrEmpty(asPlayer.player_object.player_name)) {
+                                        playerIdentifier = asPlayer.player_object.player_name;
+                                    } else {
+                                        playerIdentifier = asPlayer.player_identifier;
+                                    }
+                                    if (String.IsNullOrEmpty(playerIdentifier)) {
+                                        continue;
+                                    }
+                                    if (!groupList.Contains(playerIdentifier)) {
+                                        groupList.Add(playerIdentifier);
+                                    }
+                                }
+                                if (groupList.Any()) {
+                                    anyVerbostList = true;
+                                    lstReturn.Add(new CPluginVariable(GetSettingSection("3-3") + sept + "[" + groupList.Count + "] Verbose " + asGroup.group_name + " (Display)", typeof(String[]), groupList.ToArray()));
+                                }
+                            }
+                            if (!anyVerbostList) {
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("3-3") + sept + "All Verbose Groups Empty", typeof(String), "All Verbose Groups Empty"));
+                            }
+                        }
+                        }
 
-                    //Command Settings
-                    if (_CommandNameDictionary.Count > 0)
-                    {
-                        lock (_CommandIDDictionary)
-                        {
-                            foreach (AdKatsCommand command in _CommandIDDictionary.Values.ToList())
-                            {
-                                if (command.command_active != AdKatsCommand.CommandActive.Invisible)
-                                {
-                                    String commandPrefix = GetSettingSection("6") + sept + "CDE" + command.command_id + sep + command.command_name + sep;
-                                    lstReturn.Add(new CPluginVariable(commandPrefix + "Active", "enum.commandActiveEnum(Active|Disabled)", command.command_active.ToString()));
-                                    if (command.command_active != AdKatsCommand.CommandActive.Disabled)
-                                    {
-                                        if (command.command_logging != AdKatsCommand.CommandLogging.Mandatory && command.command_logging != AdKatsCommand.CommandLogging.Unable)
-                                        {
-                                            lstReturn.Add(new CPluginVariable(commandPrefix + "Logging", "enum.commandLoggingEnum(Log|Ignore)", command.command_logging.ToString()));
+                    if (IsCurrentSettingSection("4")) {
+                        //Role Settings
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("4") + sept + "Add Role", typeof(String), ""));
+                        if (_RoleIDDictionary.Count > 0) {
+                            lock (_RoleIDDictionary) {
+                                foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList()) {
+                                    lock (_CommandIDDictionary) {
+                                        Random random = new Random();
+                                        String rolePrefix = GetSettingSection("4") + sept + "RLE" + aRole.role_id + sep + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + sep;
+                                        lstReturn.AddRange(from aCommand in _CommandNameDictionary.Values where aCommand.command_active == AdKatsCommand.CommandActive.Active && aCommand.command_key != "command_confirm" && aCommand.command_key != "command_cancel" where aRole.role_key != "guest_default" || !aCommand.command_playerInteraction let allowed = aRole.RoleAllowedCommands.ContainsKey(aCommand.command_key) let display = rolePrefix + "CDE" + aCommand.command_id + sep + aCommand.command_name + ((allowed && aCommand.command_playerInteraction) ? (" [ADMIN]") : ("")) select new CPluginVariable(display, "enum.roleAllowCommandEnum(Allow|Deny)", allowed ? ("Allow") : ("Deny")));
+                                        //Do not display the delete option for default guest
+                                        if (aRole.role_key != "guest_default") {
+                                            lstReturn.Add(new CPluginVariable(rolePrefix + "Delete Role? (All assignments will be removed)", typeof(String), ""));
                                         }
-                                        lstReturn.Add(new CPluginVariable(commandPrefix + "Text", typeof(String), command.command_text));
-                                        lstReturn.Add(new CPluginVariable(commandPrefix + "Access Method", CreateEnumString(typeof(AdKatsCommand.CommandAccess)), command.command_access.ToString()));
                                     }
                                 }
                             }
+                        } else {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("4") + sept + "Role List Empty", typeof(String), "No valid roles found in database."));
                         }
                     }
-                    else
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("6") + sept + "Command List Empty", typeof(String), "No valid commands found in database."));
+
+                    if (IsCurrentSettingSection("4-2")) {
+                        //Role Group Settings
+                        if (_RoleIDDictionary.Count > 0) {
+                            lock (_RoleIDDictionary) {
+                                foreach (AdKatsRole aRole in _RoleKeyDictionary.Values.ToList()) {
+                                    lock (_specialPlayerGroupKeyDictionary) {
+                                        Random random = new Random();
+                                        String rolePrefix = GetSettingSection("4-2") + sept + "RLE" + aRole.role_id + sep + ((RoleIsAdmin(aRole)) ? ("[A]") : ("")) + aRole.role_name + sep;
+                                        lstReturn.AddRange(from aGroup in _specialPlayerGroupKeyDictionary.Values let allowed = aRole.RoleSetGroups.ContainsKey(aGroup.group_key) || (aGroup.group_key == "slot_reserved" && _FeedServerReservedSlots && _FeedServerReservedSlots_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "slot_spectator" && _FeedServerSpectatorList && _FeedServerSpectatorList_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "whitelist_multibalancer" && _FeedMultiBalancerWhitelist && _FeedMultiBalancerWhitelist_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "whitelist_teamkill" && _FeedTeamKillTrackerWhitelist && _FeedTeamKillTrackerWhitelist_Admins && RoleIsAdmin(aRole)) || (aGroup.group_key == "whitelist_spambot" && _spamBotExcludeAdminsAndWhitelist && RoleIsAdmin(aRole)) let display = rolePrefix + "GPE" + aGroup.group_id + sep + aGroup.group_name select new CPluginVariable(display, "enum.roleSetGroupEnum(Assign|Ignore)", allowed ? ("Assign") : ("Ignore")));
+                                    }
+                                }
+                            }
+                        } else {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("4-2") + sept + "Role List Empty", typeof(String), "No valid roles found in database."));
+                        }
                     }
 
-                    if (_UseBanEnforcer)
-                    {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + sept + "NAME Ban Count", typeof(int), _NameBanCount));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + sept + "GUID Ban Count", typeof(int), _GUIDBanCount));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + sept + "IP Ban Count", typeof(int), _IPBanCount));
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + sept + "Ban Search", typeof(String), ""));
-                        lstReturn.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(GetSettingSection("A13-3") + sept + "BAN" + aBan.ban_id + sep + aBan.ban_record.target_player.player_name + sep + aBan.ban_record.source_name + sep + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
+                    if (IsCurrentSettingSection("5")) {
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Allow Commands from Admin Say", typeof(Boolean), _AllowAdminSayCommands));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Bypass all command confirmation -DO NOT USE-", typeof(Boolean), _bypassCommandConfirmation));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "External plugin player commands", typeof(String[]), _ExternalPlayerCommands.ToArray()));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "External plugin admin commands", typeof(String[]), _ExternalAdminCommands.ToArray()));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Command Target Whitelist Commands", typeof(String[]), _CommandTargetWhitelistCommands.ToArray()));
+                    }
+
+                    if (IsCurrentSettingSection("6")) {
+                        //Command Settings
+                        if (_CommandNameDictionary.Count > 0) {
+                            lock (_CommandIDDictionary) {
+                                foreach (AdKatsCommand command in _CommandIDDictionary.Values.ToList()) {
+                                    if (command.command_active != AdKatsCommand.CommandActive.Invisible) {
+                                        String commandPrefix = GetSettingSection("6") + sept + "CDE" + command.command_id + sep + command.command_name + sep;
+                                        lstReturn.Add(new CPluginVariable(commandPrefix + "Active", "enum.commandActiveEnum(Active|Disabled)", command.command_active.ToString()));
+                                        if (command.command_active != AdKatsCommand.CommandActive.Disabled) {
+                                            if (command.command_logging != AdKatsCommand.CommandLogging.Mandatory && command.command_logging != AdKatsCommand.CommandLogging.Unable) {
+                                                lstReturn.Add(new CPluginVariable(commandPrefix + "Logging", "enum.commandLoggingEnum(Log|Ignore)", command.command_logging.ToString()));
+                                            }
+                                            lstReturn.Add(new CPluginVariable(commandPrefix + "Text", typeof(String), command.command_text));
+                                            lstReturn.Add(new CPluginVariable(commandPrefix + "Access Method", CreateEnumString(typeof(AdKatsCommand.CommandAccess)), command.command_access.ToString()));
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("6") + sept + "Command List Empty", typeof(String), "No valid commands found in database."));
+                        }
+                    }
+
+                    if (IsCurrentSettingSection("A13-3")) {
+                        if (_UseBanEnforcer) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + sept + "NAME Ban Count", typeof(int), _NameBanCount));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + sept + "GUID Ban Count", typeof(int), _GUIDBanCount));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + sept + "IP Ban Count", typeof(int), _IPBanCount));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + sept + "Ban Search", typeof(String), ""));
+                            lstReturn.AddRange(_BanEnforcerSearchResults.Select(aBan => new CPluginVariable(GetSettingSection("A13-3") + sept + "BAN" + aBan.ban_id + sep + aBan.ban_record.target_player.player_name + sep + aBan.ban_record.source_name + sep + aBan.ban_record.record_message, "enum.commandActiveEnum(Active|Disabled|Expired)", aBan.ban_status)));
+                        }
                     }
                 }
                 timer.Stop();
-                return ((_threadsReady)?(lstReturn.Where(vari => vari.Name.Contains(GetSettingSection("0")) || vari.Name.Contains(currentSettingSection)).ToList()):(lstReturn));
+                if (_isTestingAuthorized) {
+                    Log.Info("Setting render took " + timer.ElapsedMilliseconds + "ms");
+                }
+                return lstReturn;
             }
             catch (Exception e)
             {
