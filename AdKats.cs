@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.36
+ * Version 6.7.0.37
  * 31-MAY-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.36</version_code>
+ * <version_code>6.7.0.37</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.36";
+        private const String PluginVersion = "6.7.0.37";
 
         public enum GameVersion
         {
@@ -660,6 +660,7 @@ namespace PRoConEvents
         private Dictionary<String, String> _SettingSections = new Dictionary<String, String>();
         private String _SettingSectionEnum;
         private String _CurrentSettingSection;
+        private const String _AllSettingSections = "* All Settings *";
 
         public readonly Logger Log;
 
@@ -684,6 +685,7 @@ namespace PRoConEvents
             Log.DebugLevel = 0;
 
             //Setting Sections
+            AddSettingSection("*", _AllSettingSections);
             AddSettingSection("0", "Instance Settings");
             AddSettingSection("1", "Server Settings");
             AddSettingSection("2", "MySQL Settings");
@@ -740,7 +742,7 @@ namespace PRoConEvents
             }
             _SettingSectionEnum += ")";
             //Set default setting section
-            _CurrentSettingSection = GetSettingSection("0");
+            _CurrentSettingSection = GetSettingSection("1");
 
 
             //Init the punishment severity index
@@ -880,8 +882,8 @@ namespace PRoConEvents
             return number + ". " + _SettingSections[number];
         }
 
-        private Boolean IsCurrentSettingSection(String number) {
-            return _CurrentSettingSection == GetSettingSection(number);
+        private Boolean IsActiveSettingSection(String number) {
+            return _CurrentSettingSection == GetSettingSection("*") || _CurrentSettingSection == GetSettingSection(number);
         }
 
         public List<CPluginVariable> GetDisplayPluginVariables()
@@ -950,13 +952,12 @@ namespace PRoConEvents
                         return lstReturn;
                     }
 
-
                     lstReturn.Add(new CPluginVariable("* AdKats *|Current Setting Section", _SettingSectionEnum, _CurrentSettingSection));
 
                     //Auto-Enable Settings
                     lstReturn.Add(new CPluginVariable(GetSettingSection("0") + sept + "Auto-Enable/Keep-Alive", typeof(Boolean), _useKeepAlive));
 
-                    if (IsCurrentSettingSection("1")) {
+                    if (IsActiveSettingSection("1")) {
                         //Server Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "Setting Import", typeof(String), _serverInfo.ServerID));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "Server ID (Display)", typeof(Int32), _serverInfo.ServerID));
@@ -965,7 +966,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("1") + sept + "High Population Value", typeof(Int32), _highPopulationPlayerCount));
                     }
 
-                    if (IsCurrentSettingSection("2")) {
+                    if (IsActiveSettingSection("2")) {
                         //SQL Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Hostname", typeof(String), _mySqlHostname));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Port", typeof(String), _mySqlPort));
@@ -974,7 +975,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("2") + sept + "MySQL Password", typeof(String), _mySqlPassword));
                     }
 
-                    if (IsCurrentSettingSection("7")) {
+                    if (IsActiveSettingSection("7")) {
                         //Punishment Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Punishment Hierarchy", typeof(String[]), _PunishmentHierarchy));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("7") + sept + "Combine Server Punishments", typeof(Boolean), _CombineServerPunishments));
@@ -991,7 +992,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("8")) {
+                    if (IsActiveSettingSection("8")) {
                         //Email Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("8") + sept + "Send Emails", typeof(Boolean), _UseEmail));
                         if (_UseEmail) {
@@ -1007,13 +1008,13 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("9")) {
+                    if (IsActiveSettingSection("9")) {
                         //TeamSwap Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("9") + sept + "Ticket Window High", typeof(int), _TeamSwapTicketWindowHigh));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("9") + sept + "Ticket Window Low", typeof(int), _TeamSwapTicketWindowLow));
                     }
 
-                    if (IsCurrentSettingSection("A10")) {
+                    if (IsActiveSettingSection("A10")) {
                         //Admin Assistant Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A10") + sept + "Enable Admin Assistants", typeof(Boolean), _EnableAdminAssistants));
                         if (_EnableAdminAssistants) {
@@ -1026,7 +1027,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("A11")) {
+                    if (IsActiveSettingSection("A11")) {
                         //Muting Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "On-Player-Muted Message", typeof(String), _MutedPlayerMuteMessage));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "On-Player-Killed Message", typeof(String), _MutedPlayerKillMessage));
@@ -1035,7 +1036,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A11") + sept + "Ignore commands for mute enforcement", typeof(Boolean), _MutedPlayerIgnoreCommands));
                     }
 
-                    if (IsCurrentSettingSection("A12")) {
+                    if (IsActiveSettingSection("A12")) {
                         //Message Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display Admin Name in Kick and Ban Announcement", typeof(Boolean), _ShowAdminNameInAnnouncement));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12") + sept + "Display New Player Announcement", typeof(Boolean), _ShowNewPlayerAnnouncement));
@@ -1057,7 +1058,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("A12-2")) {
+                    if (IsActiveSettingSection("A12-2")) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Enable", typeof(Boolean), _spamBotEnabled));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Say List", typeof(String[]), _spamBotSayList.ToArray()));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "SpamBot Say Delay Seconds", typeof(Int32), _spamBotSayDelaySeconds));
@@ -1068,7 +1069,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A12-2") + sept + "Exclude Admins and Whitelist from Spam", typeof(Boolean), _spamBotExcludeAdminsAndWhitelist));
                     }
 
-                    if (IsCurrentSettingSection("A13")) {
+                    if (IsActiveSettingSection("A13")) {
                         //Ban Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + sept + "Use Additional Ban Message", typeof(Boolean), _UseBanAppend));
                         if (_UseBanAppend) {
@@ -1077,7 +1078,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A13") + sept + "Procon Ban Admin Name", typeof(String), _CBanAdminName));
                     }
 
-                    if (IsCurrentSettingSection("A13-2")) {
+                    if (IsActiveSettingSection("A13-2")) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
                         if (_UseBanEnforcer) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
@@ -1093,7 +1094,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("A14")) {
+                    if (IsActiveSettingSection("A14")) {
                         //External Command Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A14") + sept + "AdkatsLRT Extension Token", typeof(String), _AdKatsLRTExtensionToken));
                         if (!_UseBanEnforcer) {
@@ -1101,12 +1102,12 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("A15")) {
+                    if (IsActiveSettingSection("A15")) {
                         //VOIP
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A15") + sept + "Server VOIP Address", typeof(String), _ServerVoipAddress));
                     }
 
-                    if (IsCurrentSettingSection("A16")) {
+                    if (IsActiveSettingSection("A16")) {
                         //MULTIBalancer
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A16") + sept + "Feed MULTIBalancer Whitelist", typeof(Boolean), _FeedMultiBalancerWhitelist));
                         if (_FeedMultiBalancerWhitelist) {
@@ -1134,14 +1135,14 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("A17")) {
+                    if (IsActiveSettingSection("A17")) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A17") + sept + "Round Timer: Enable", typeof(Boolean), _useRoundTimer));
                         if (_useRoundTimer) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A17") + sept + "Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
                         }
                     }
 
-                    if (IsCurrentSettingSection("A18")) {
+                    if (IsActiveSettingSection("A18")) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: Enable", typeof(Boolean), _UseHackerChecker));
                         if (_UseHackerChecker) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A18") + sept + "HackerChecker: DPS Checker: Ban Message", typeof(String), _HackerCheckerDPSBanMessage));
@@ -1158,7 +1159,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("A19")) {
+                    if (IsActiveSettingSection("A19")) {
                         //Server rules settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Rule Print Delay", typeof(Double), _ServerRulesDelay));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Rule Print Interval", typeof(Double), _ServerRulesInterval));
@@ -1167,7 +1168,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("A19") + sept + "Yell Server Rules", typeof(Boolean), _ServerRulesYell));
                     }
 
-                    if (IsCurrentSettingSection("B20")) {
+                    if (IsActiveSettingSection("B20")) {
                         //AFK manager settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B20") + sept + "AFK System Enable", typeof(Boolean), _AFKManagerEnable));
                         if (_AFKManagerEnable) {
@@ -1182,7 +1183,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("B21")) {
+                    if (IsActiveSettingSection("B21")) {
                         //Ping enforcer settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Enforcer Enable", typeof(Boolean), _pingEnforcerEnable));
                         if (_pingEnforcerEnable) {
@@ -1202,7 +1203,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("B22")) {
+                    if (IsActiveSettingSection("B22")) {
                         //Commander manager settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B22") + sept + "Commander Manager Enable", typeof(Boolean), _CMDRManagerEnable));
                         if (_CMDRManagerEnable) {
@@ -1210,7 +1211,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("B23")) {
+                    if (IsActiveSettingSection("B23")) {
                         //Player locking settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + sept + "Player Lock Manual Duration Minutes", typeof(Double), _playerLockingManualDuration));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B23") + sept + "Automatically Lock Players on Admin Action", typeof(Boolean), _playerLockingAutomaticLock));
@@ -1219,7 +1220,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("B24")) {
+                    if (IsActiveSettingSection("B24")) {
                         //Surrender Vote settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B24") + sept + "Surrender Vote Enable", typeof(Boolean), _surrenderVoteEnable));
                         if (_surrenderVoteEnable) {
@@ -1237,7 +1238,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("B25")) {
+                    if (IsActiveSettingSection("B25")) {
                         //Auto-Surrender Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B25") + sept + "Auto-Surrender Enable", typeof(Boolean), _surrenderAutoEnable));
                         if (_surrenderAutoEnable) {
@@ -1266,24 +1267,24 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("B26")) {
+                    if (IsActiveSettingSection("B26")) {
                         //Statistics Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B26") + sept + "Post Map Benefit/Detriment Statistics", typeof(Boolean), _PostMapBenefitStatistics));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B26") + sept + "Post Win/Loss/Baserape Statistics", typeof(Boolean), _PostWinLossBaserapeStatistics));
                     }
 
-                    if (IsCurrentSettingSection("B27")) {
+                    if (IsActiveSettingSection("B27")) {
                         //Player monitor settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Baserape Causing Players", typeof(Boolean), _BaserapeCausingPlayersMonitor));
                     }
 
-                    if (IsCurrentSettingSection("B27")) {
+                    if (IsActiveSettingSection("B27")) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Populator Players - Thanks CMWGaming", typeof(Boolean), _PopulatorMonitor));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor Teamspeak Players - Thanks CMWGaming", typeof(Boolean), _TeamspeakPlayerMonitorView));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B27") + sept + "Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
                     }
 
-                    if (IsCurrentSettingSection("B27-1")) {
+                    if (IsActiveSettingSection("B27-1")) {
                         if (_BaserapeCausingPlayersMonitor) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "[" + _baserapeCausingPlayers.Count() + "] Baserape Causing Players (Display)", typeof(String[]), _baserapeCausingPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-1") + sept + "Past Days to Monitor Baserape Causing Players", typeof(Int32), _BaserapeCausingPlayersDurationDays));
@@ -1293,7 +1294,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("B27-2")) {
+                    if (IsActiveSettingSection("B27-2")) {
                         if (_PopulatorMonitor) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "[" + _populatorPlayers.Count() + "] Populator Players (Display)", typeof(String[]), _populatorPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-2") + sept + "Monitor Specified Populators Only", typeof(Boolean), _PopulatorUseSpecifiedPopulatorsOnly));
@@ -1310,7 +1311,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("B27-3")) {
+                    if (IsActiveSettingSection("B27-3")) {
                         if (_TeamspeakPlayerMonitorView) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "[" + _tsPlayers.Count() + "] Teamspeak Players (Display)", typeof(String[]), _tsPlayers.Values.Select(aPlayer => aPlayer.player_name).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-3") + sept + "Enable Teamspeak Player Monitor", typeof(Boolean), _TeamspeakPlayerMonitorEnable));
@@ -1333,7 +1334,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("B27-4")) {
+                    if (IsActiveSettingSection("B27-4")) {
                         if (_UseTopPlayerMonitor) {
                             var onlineTopPlayers = _PlayerDictionary.Values.ToList()
                                 .Where(aPlayer =>
@@ -1353,7 +1354,7 @@ namespace PRoConEvents
                     }
 
 
-                    if (IsCurrentSettingSection("D99")) {
+                    if (IsActiveSettingSection("D99")) {
                         //Debug settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Debug level", typeof(int), Log.DebugLevel));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("D99") + sept + "Debug Soldier Name", typeof(String), _debugSoldierName));
@@ -1363,7 +1364,7 @@ namespace PRoConEvents
                     }
 
 
-                    if (IsCurrentSettingSection("X99")) {
+                    if (IsActiveSettingSection("X99")) {
                         //Experimental tools
                         if (_isTestingAuthorized) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("X99") + sept + "Use Experimental Tools", typeof(Boolean), _useExperimentalTools));
@@ -1380,7 +1381,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("3")) {
+                    if (IsActiveSettingSection("3")) {
                         //User Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("3") + sept + "Add User", typeof(String), ""));
                         if (_userCache.Count > 0) {
@@ -1426,7 +1427,7 @@ namespace PRoConEvents
                     }
 
                     if (_firstUserListComplete) {
-                        if (IsCurrentSettingSection("3-2")) {
+                        if (IsActiveSettingSection("3-2")) {
                             //Special Player Settings
                             Boolean anyList = false;
                             foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name)) {
@@ -1461,7 +1462,7 @@ namespace PRoConEvents
                             }
                         }
 
-                        if (IsCurrentSettingSection("3-3")) {
+                        if (IsActiveSettingSection("3-3")) {
                             //Verbose Special Player Settings
                             Boolean anyVerbostList = false;
                             foreach (AdKatsSpecialGroup asGroup in _specialPlayerGroupIDDictionary.Values.OrderBy(aGroup => aGroup.group_name)) {
@@ -1491,7 +1492,7 @@ namespace PRoConEvents
                         }
                         }
 
-                    if (IsCurrentSettingSection("4")) {
+                    if (IsActiveSettingSection("4")) {
                         //Role Settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("4") + sept + "Add Role", typeof(String), ""));
                         if (_RoleIDDictionary.Count > 0) {
@@ -1513,7 +1514,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("4-2")) {
+                    if (IsActiveSettingSection("4-2")) {
                         //Role Group Settings
                         if (_RoleIDDictionary.Count > 0) {
                             lock (_RoleIDDictionary) {
@@ -1530,7 +1531,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("5")) {
+                    if (IsActiveSettingSection("5")) {
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Minimum Required Reason Length", typeof(int), _RequiredReasonLength));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Minimum Report Handle Seconds", typeof(int), _MinimumReportHandleSeconds));
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Maximum Temp-Ban Duration Minutes", typeof(Double), _MaxTempBanDuration.TotalMinutes));
@@ -1541,7 +1542,7 @@ namespace PRoConEvents
                         lstReturn.Add(new CPluginVariable(GetSettingSection("5") + sept + "Command Target Whitelist Commands", typeof(String[]), _CommandTargetWhitelistCommands.ToArray()));
                     }
 
-                    if (IsCurrentSettingSection("6")) {
+                    if (IsActiveSettingSection("6")) {
                         //Command Settings
                         if (_CommandNameDictionary.Count > 0) {
                             lock (_CommandIDDictionary) {
@@ -1564,7 +1565,7 @@ namespace PRoConEvents
                         }
                     }
 
-                    if (IsCurrentSettingSection("A13-3")) {
+                    if (IsActiveSettingSection("A13-3")) {
                         if (_UseBanEnforcer) {
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + sept + "NAME Ban Count", typeof(int), _NameBanCount));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("A13-3") + sept + "GUID Ban Count", typeof(int), _GUIDBanCount));
@@ -26871,6 +26872,9 @@ namespace PRoConEvents
                         //Log.Write("HandleStatisticUploads took " + counter.ElapsedMilliseconds + "ms");
 
                         if (displayUpdate) {
+                            if (_isTestingAuthorized) {
+                                Log.Info("26875");
+                            }
                             UpdateSettingPage();
                         }
 
@@ -28809,6 +28813,9 @@ namespace PRoConEvents
                             if (success)
                             {
                                 _lastDbSettingFetch = UtcDbTime();
+                                if (_isTestingAuthorized) {
+                                    Log.Info("28816");
+                                }
                                 UpdateSettingPage();
                             }
                             else if (verbose)
@@ -34263,6 +34270,9 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching commands from database.", e));
             }
             if (displayUpdate) {
+                if (_isTestingAuthorized) {
+                    Log.Info("34273");
+                }
                 UpdateSettingPage();
             }
             Log.Debug("fetchCommands finished!", 6);
@@ -34695,6 +34705,9 @@ namespace PRoConEvents
                 HandleException(new AdKatsException("Error while fetching roles from database.", e));
             }
             if (displayUpdate) {
+                if (_isTestingAuthorized) {
+                    Log.Info("34708");
+                }
                 UpdateSettingPage();
             }
             Log.Debug("fetchRoles finished!", 6);
@@ -35511,6 +35524,9 @@ namespace PRoConEvents
                 {
                     Log.Warn("No users have been added. Add a new user with 'Add User'.");
                 }
+            }
+            if (_isTestingAuthorized) {
+                Log.Info("35528");
             }
             UpdateSettingPage();
             Log.Debug("fetchUserList finished!", 6);
@@ -38692,16 +38708,17 @@ namespace PRoConEvents
 
         //Calling this method will make the settings window refresh with new data
         public void UpdateSettingPage() {
-            if ((UtcDbTime() - _lastSettingPageUpdateRequest).TotalSeconds < 2) {
-                return;
+            if (_isTestingAuthorized) {
+                Log.Info("Updating settings manually");
             }
-            _lastSettingPageUpdateRequest = UtcDbTime();
             SetExternalPluginSetting("AdKats", "UpdateSettings", "Update");
         }
 
         //Calls setVariable with the given parameters
-        public void SetExternalPluginSetting(String pluginName, String settingName, String settingValue)
-        {
+        public void SetExternalPluginSetting(String pluginName, String settingName, String settingValue) {
+            if (_isTestingAuthorized) {
+                Log.Info("Updating setting " + pluginName + ":" + settingName);
+            }
             if (String.IsNullOrEmpty(pluginName) || String.IsNullOrEmpty(settingName) || settingValue == null)
             {
                 Log.Error("Required inputs null or empty in setExternalPluginSetting");
