@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.44
+ * Version 6.7.0.45
  * 2-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.44</version_code>
+ * <version_code>6.7.0.45</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.44";
+        private const String PluginVersion = "6.7.0.45";
 
         public enum GameVersion
         {
@@ -1078,17 +1078,17 @@ namespace PRoConEvents
                     }
 
                     if (IsActiveSettingSection("A13-2")) {
-                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
+                        lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + sept + "Use Ban Enforcer", typeof(Boolean), _UseBanEnforcer));
                         if (_UseBanEnforcer) {
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + sept + "Enforce New Bans by NAME", typeof(Boolean), _DefaultEnforceName));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + sept + "Enforce New Bans by GUID", typeof(Boolean), _DefaultEnforceGUID));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + sept + "Enforce New Bans by IP", typeof(Boolean), _DefaultEnforceIP));
 
                             //Metabans Settings
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Use Metabans?", typeof(bool), _useMetabans));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + sept + "Use Metabans?", typeof(bool), _useMetabans));
                             if (_useMetabans) {
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Metabans Username", typeof(String), _metabansUsername));
-                                lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + "Metabans API Key", typeof(String), _metabansAPIKey));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + sept + "Metabans Username", typeof(String), _metabansUsername));
+                                lstReturn.Add(new CPluginVariable(GetSettingSection("A13-2") + sept + "Metabans API Key", typeof(String), _metabansAPIKey));
                             }
                         }
                     }
@@ -11695,8 +11695,8 @@ namespace PRoConEvents
                                 {
                                     Thread.CurrentThread.Name = "BanDelay";
                                     DateTime start = UtcDbTime();
-                                    Log.Info(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
-                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
+                                    Log.Info(banPlayer.GetVerboseName() + " will be DPS banned. Waiting for starting case.");
+                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " will be DPS banned. Waiting for starting case.");
                                     while (banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
                                     {
                                         if (!_pluginEnabled)
@@ -11707,7 +11707,7 @@ namespace PRoConEvents
                                         _threadMasterWaitHandle.WaitOne(1000);
                                     }
                                     //Onced triggered, ban after 90 seconds.
-                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " triggered timer. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
+                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " triggered DPS timer. [" + formattedName + "-" + (int)actedWeapon.DPS + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
                                     PlayerTellMessage(banPlayer.player_name, "Thank you for making our system look good. Goodbye.", true, 6);
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(7));
@@ -11878,8 +11878,8 @@ namespace PRoConEvents
                                 {
                                     Thread.CurrentThread.Name = "BanDelay";
                                     DateTime start = UtcDbTime();
-                                    Log.Info(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
-                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " will be banned. Waiting for starting case.");
+                                    Log.Info(banPlayer.GetVerboseName() + " will be HSK banned. Waiting for starting case.");
+                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " will be HSK banned. Waiting for starting case.");
                                     while (_roundState == RoundState.Playing && banPlayer.player_online && !banPlayer.player_spawnedOnce && (UtcDbTime() - start).TotalSeconds < 300)
                                     {
                                         if (!_pluginEnabled)
@@ -11890,7 +11890,7 @@ namespace PRoConEvents
                                         _threadMasterWaitHandle.WaitOne(1000);
                                     }
                                     //Onced triggered, ban after 90 seconds.
-                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " triggered timer. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
+                                    OnlineAdminTellMessage(banPlayer.GetVerboseName() + " triggered HSK timer. [" + formattedName + "-" + (int)(actedWeapon.HSKR * 100) + "-" + (int)actedWeapon.Kills + "-" + (int)actedWeapon.Headshots + "] They will be banned in 90 seconds.");
                                     _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(83));
                                     if (actedWeapon.HSKR >= .7)
                                     {
