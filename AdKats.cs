@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.40
- * 31-MAY-2015
+ * Version 6.7.0.41
+ * 1-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.40</version_code>
+ * <version_code>6.7.0.41</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.40";
+        private const String PluginVersion = "6.7.0.41";
 
         public enum GameVersion
         {
@@ -541,8 +541,7 @@ namespace PRoConEvents
         private Boolean _PlayersAutoAssistedThisRound;
         //Top Players
         private Boolean _UseTopPlayerMonitor;
-        private Int32 _TopPlayersDurationDays = 30;
-        private Int32 _TopPlayersMinimumCount = 3;
+        private String _TopPlayersAffected = "Good And Above";
         private readonly Dictionary<String, AdKatsPlayer> _topPlayers = new Dictionary<String, AdKatsPlayer>();
         //Populators
         private Boolean _PopulatorMonitor;
@@ -1340,16 +1339,15 @@ namespace PRoConEvents
                                 .Where(aPlayer =>
                                     _topPlayers.ContainsKey(aPlayer.player_name))
                                 .Select(aPlayer =>
-                                    ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
+                                    ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
                                 .OrderBy(item => item);
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayers.ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
                                 .Select(aPlayer =>
-                                    ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + aPlayer.GetVerboseName() + " [" + aPlayer.TopStats.TopCount + "|" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "]")
+                                    ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
                                 .OrderBy(item => item)
                                 .ToArray()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Minimum Round Count for Top Players", typeof(Int32), _TopPlayersMinimumCount));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Affected Top Players", "enum.commandActiveEnum(Best Only|Good And Above|Ok And Above)", _TopPlayersAffected));
                         }
                     }
 
@@ -3049,7 +3047,7 @@ namespace PRoConEvents
                     if (UseTopPlayerMonitor != _UseTopPlayerMonitor) {
                         //Rejection cases
                         if (_threadsReady && !_FeedMultiBalancerWhitelist && UseTopPlayerMonitor) {
-                            Log.Error("'Monitor Top Players' cannot be enabled when 'Feed MULTIBalancer Whitelist' is disabled.");
+                            Log.Error("'Monitor/Disperse Top Players' cannot be enabled when 'Feed MULTIBalancer Whitelist' is disabled.");
                             return;
                         }
                         //Assignment
@@ -3065,42 +3063,11 @@ namespace PRoConEvents
                         //Upload change to database  
                         QueueSettingForUpload(new CPluginVariable(@"Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
                     }
-                } else if (Regex.Match(strVariable, @"Past Days to Monitor Top Players").Success) {
-                    //Initial parse
-                    Int32 TopPlayersDurationDays = Int32.Parse(strValue);
-                    //Check for changed value
-                    if (_TopPlayersDurationDays != TopPlayersDurationDays) {
-                        //Rejection cases
-                        if (TopPlayersDurationDays < 1) {
-                            Log.Error("'Past Days to Monitor Top Players' cannot be less than 1.");
-                            TopPlayersDurationDays = 1;
-                        }
-                        //Assignment
-                        _TopPlayersDurationDays = TopPlayersDurationDays;
-                        if (_threadsReady) {
-                            FetchAllAccess(true);
-                        }
+                } else if (Regex.Match(strVariable, @"Affected Top Players").Success) {
+                    if (strValue != _TopPlayersAffected) {
+                        _TopPlayersAffected = strValue;
                         //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
-                    }
-                } else if (Regex.Match(strVariable, @"Minimum Round Count for Top Players").Success) {
-                    //Initial parse
-                    Int32 TopPlayersMinimumCount = Int32.Parse(strValue);
-                    //Check for changed value
-                    if (_TopPlayersMinimumCount != TopPlayersMinimumCount) {
-                        //Rejection cases
-                        if (TopPlayersMinimumCount < 1) {
-                            Log.Error("'Minimum Round Count for Top Players' cannot be less than 1.");
-                            TopPlayersMinimumCount = 1;
-                        }
-                        //Assignment
-                        _TopPlayersMinimumCount = TopPlayersMinimumCount;
-                        //Notification
-                        if (_threadsReady) {
-                            FetchAllAccess(true);
-                        }
-                        //Upload change to database  
-                        QueueSettingForUpload(new CPluginVariable(@"Minimum Round Count for Top Players", typeof(Int32), _TopPlayersMinimumCount));
+                        QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(String), _TopPlayersAffected));
                     }
                 }
                 else if (Regex.Match(strVariable, @"Monitor Populator Players").Success)
@@ -24924,7 +24891,6 @@ namespace PRoConEvents
                                         foreach (AdKatsPlayer aPlayer in targetedPlayers) {
                                             PlayerTellMessage(aPlayer.player_name, record.record_message + " in " + inCount + "...", false, 1);
                                         }
-                                        _threadMasterWaitHandle.WaitOne(TimeSpan.FromSeconds(0.1));
                                     } catch (Exception) {
                                         HandleException(new AdKatsException("Error while printing private countdown"));
                                     }
@@ -28573,8 +28539,7 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - Ping Whitelist", typeof(Boolean), _TeamspeakPlayerPerksPingWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Teamspeak Player Perks - TeamKillTracker Whitelist", typeof(Boolean), _TeamspeakPlayerPerksTeamKillTrackerWhitelist));
                 QueueSettingForUpload(new CPluginVariable(@"Monitor/Disperse Top Players", typeof(Boolean), _UseTopPlayerMonitor));
-                QueueSettingForUpload(new CPluginVariable(@"Past Days to Monitor Top Players", typeof(Int32), _TopPlayersDurationDays));
-                QueueSettingForUpload(new CPluginVariable(@"Minimum Round Count for Top Players", typeof(Int32), _TopPlayersMinimumCount));
+                QueueSettingForUpload(new CPluginVariable(@"Affected Top Players", typeof(Int32), _TopPlayersAffected));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Enable", typeof(Boolean), _useRoundTimer));
                 QueueSettingForUpload(new CPluginVariable(@"Round Timer: Round Duration Minutes", typeof(Double), _maxRoundTimeMinutes));
                 QueueSettingForUpload(new CPluginVariable(@"Use NO EXPLOSIVES Limiter", typeof(Boolean), _UseWeaponLimiter));
@@ -31952,7 +31917,7 @@ namespace PRoConEvents
             try {
                 List<Int64> validIDs = new List<Int64>();
                 lock (_topPlayers) {
-                    foreach (AdKatsPlayer aPlayer in GetTopPlayers(TimeSpan.FromDays(_TopPlayersDurationDays), _TopPlayersMinimumCount)) {
+                    foreach (AdKatsPlayer aPlayer in GetTopPlayers(TimeSpan.FromDays(30), 3)) {
                         validIDs.Add(aPlayer.player_id);
                         if (!_topPlayers.ContainsKey(aPlayer.player_name)) {
                             if (_firstPlayerListComplete) {
@@ -32039,7 +32004,20 @@ namespace PRoConEvents
                         command.Parameters.AddWithValue("@server_id", _serverInfo.ServerID);
                         command.Parameters.AddWithValue("@duration_minutes", (Int32) duration.TotalMinutes);
                         command.Parameters.AddWithValue("@tops_minimum", minTops);
-                        command.Parameters.AddWithValue("@toproundratio_minimum", 0.50);
+                        switch (_TopPlayersAffected) {
+                            case "Best Only":
+                                command.Parameters.AddWithValue("@toproundratio_minimum", 0.70);
+                                break;
+                            case "Good And Above":
+                                command.Parameters.AddWithValue("@toproundratio_minimum", 0.55);
+                                break;
+                            case "Ok And Above":
+                                command.Parameters.AddWithValue("@toproundratio_minimum", 0.40);
+                                break;
+                            default:
+                                Log.Error("Invalid affected top player category.");
+                                return resultPlayers;
+                        }
                         //Attempt to execute the query
                         using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             //Grab the matching players
