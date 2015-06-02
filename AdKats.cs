@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.42
+ * Version 6.7.0.43
  * 1-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.42</version_code>
+ * <version_code>6.7.0.43</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.42";
+        private const String PluginVersion = "6.7.0.43";
 
         public enum GameVersion
         {
@@ -1340,7 +1340,7 @@ namespace PRoConEvents
                                     _topPlayers.ContainsKey(aPlayer.player_name))
                                 .Select(aPlayer =>
                                     ((aPlayer.RequiredTeam != null) ? ("(" + ((aPlayer.RequiredTeam.TeamID != aPlayer.frostbitePlayerInfo.TeamID && _roundState == RoundState.Playing) ? (_teamDictionary[aPlayer.frostbitePlayerInfo.TeamID].TeamKey + " -> ") : ("")) + aPlayer.RequiredTeam.TeamKey + ") ") : ("(+) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
-                                .OrderBy(item => item);
+                                .OrderByDescending(item => item);
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + onlineTopPlayers.Count() + "] Online Top Players (Display)", typeof(String[]), onlineTopPlayers.ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "[" + _topPlayers.Count() + "] Top Players (Display)", typeof(String[]), _topPlayers.Values
                                 .Select(aPlayer =>
@@ -10366,9 +10366,10 @@ namespace PRoConEvents
 
                 try
                 {
-                    if (_isTestingAuthorized && _serverInfo.ServerName.Contains("#7") && aKill.killerCPI.TeamID == aKill.victimCPI.TeamID && !aKill.IsSuicide)
+                    if (_isTestingAuthorized && _gameVersion == GameVersion.BF4 && aKill.killerCPI.TeamID == aKill.victimCPI.TeamID && !aKill.IsSuicide)
                     {
-                        if (aKill.weaponCode == "DamageArea")
+                        //Case for valid medkit teamkills
+                        if (aKill.weaponCode != "U_PortableMedicpack" && aKill.weaponCode != "U_Medkit")
                         {
                             //Slay the teamkiller
                             AdKatsRecord aRecord = new AdKatsRecord
@@ -10380,7 +10381,7 @@ namespace PRoConEvents
                                 target_name = aKill.killer.player_name,
                                 target_player = aKill.killer,
                                 source_name = "AutoAdmin",
-                                record_message = "Teamkilling " + aKill.victim.GetVerboseName() + " with a damage area",
+                                record_message = "Teamkilling " + aKill.victim.GetVerboseName(),
                                 record_time = UtcDbTime()
                             };
                             QueueRecordForProcessing(aRecord);
