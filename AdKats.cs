@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.41
+ * Version 6.7.0.42
  * 1-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.41</version_code>
+ * <version_code>6.7.0.42</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.41";
+        private const String PluginVersion = "6.7.0.42";
 
         public enum GameVersion
         {
@@ -1347,7 +1347,7 @@ namespace PRoConEvents
                                     ((aPlayer.RequiredTeam != null) ? ("(" + aPlayer.RequiredTeam.TeamKey + ") ") : ("(-) ")) + "(" + Math.Round(aPlayer.TopStats.TopRoundRatio, 2) + "|" + aPlayer.TopStats.TopCount + ") " + aPlayer.GetVerboseName())
                                 .OrderBy(item => item)
                                 .ToArray()));
-                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Affected Top Players", "enum.commandActiveEnum(Best Only|Good And Above|Ok And Above)", _TopPlayersAffected));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B27-4") + sept + "Affected Top Players", "enum.AffectedTopPlayersEnum(Best Only|Good And Above|Ok And Above)", _TopPlayersAffected));
                         }
                     }
 
