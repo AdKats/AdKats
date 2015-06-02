@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.43
- * 1-JUN-2015
+ * Version 6.7.0.44
+ * 2-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.43</version_code>
+ * <version_code>6.7.0.44</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.43";
+        private const String PluginVersion = "6.7.0.44";
 
         public enum GameVersion
         {
@@ -9635,7 +9635,7 @@ namespace PRoConEvents
                             quality = 1;
                         } else if (winningTeam.TeamTicketCount >= 500) {
                             quality = 2;
-                        } else if (winningTeam.TeamTicketCount >= 400) {
+                        } else if (winningTeam.TeamTicketCount >= 350) {
                             quality = 3;
                         }
                         QueueStatisticForProcessing(new AdKatsStatistic() {
@@ -14489,6 +14489,13 @@ namespace PRoConEvents
                                 return;
                             }
 
+                            Int32 minAssistMinutes = ((_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.target_player.player_id)) ? (4) : (2));
+                            if (_isTestingAuthorized && _serverInfo.GetRoundElapsedTime().TotalMinutes < minAssistMinutes) {
+                                SendMessageToSource(record, "Please wait at least " + minAssistMinutes + " minutes into the round to use assist. [" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "]");
+                                FinalizeRecord(record);
+                                return;
+                            }
+
                             //Team Info Check
                             AdKatsTeam team1, team2;
                             if (!GetTeamByID(1, out team1))
@@ -14548,13 +14555,6 @@ namespace PRoConEvents
                             {
                                 enemyStrong = Math.Abs(team1.TeamTicketDifferenceRate) < Math.Abs(team2.TeamTicketDifferenceRate);
                             }
-                            Int32 minAssistMinutes = ((_baserapeCausingPlayers.Values.Any(aPlayer => aPlayer.player_id == record.target_player.player_id)) ? (4) : (2));
-                            if (_isTestingAuthorized && _serverInfo.GetRoundElapsedTime().TotalMinutes < minAssistMinutes)
-                            {
-                                SendMessageToSource(record, "Please wait at least " + minAssistMinutes + " minutes into the round to use assist. [" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 2) + "]");
-                                FinalizeRecord(record);
-                                return;
-                            }
                             if ((!enemyWinning && !enemyStrong) || (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 200))
                             {
                                 //15 second timeout
@@ -14566,23 +14566,23 @@ namespace PRoConEvents
                                     return;
                                 }
                                 SendMessageToSource(record, "Queuing you to assist the weak team. Thank you. " + debug);
-                            }
-                            else
-                            {
+                            } 
+                            else if (!_isTestingAuthorized || Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100) {
                                 String responseMessage = "You may only assist a weak team. Enemy team is ";
-                                if (enemyWinning && enemyStrong)
-                                {
+                                if (enemyWinning && enemyStrong) {
                                     responseMessage += "winning and strong.";
                                 }
-                                else if (enemyWinning && !enemyStrong)
-                                {
+                                else if (enemyWinning && !enemyStrong) {
                                     responseMessage += "losing ground, but still winning the match.";
                                 }
-                                else if (!enemyWinning && enemyStrong)
-                                {
+                                else if (!enemyWinning && enemyStrong) {
                                     responseMessage += "losing, but is making a comeback.";
                                 }
                                 SendMessageToSource(record, responseMessage);
+                                FinalizeRecord(record);
+                                return;
+                            } else {
+                                SendMessageToSource(record, "100 ticket difference required to assist");
                                 FinalizeRecord(record);
                                 return;
                             }
