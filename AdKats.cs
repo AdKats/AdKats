@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.45
- * 2-JUN-2015
+ * Version 6.7.0.46
+ * 3-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.45</version_code>
+ * <version_code>6.7.0.46</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.45";
+        private const String PluginVersion = "6.7.0.46";
 
         public enum GameVersion
         {
@@ -10366,7 +10366,122 @@ namespace PRoConEvents
 
                 try
                 {
-                    if (_isTestingAuthorized && _gameVersion == GameVersion.BF4 && aKill.killerCPI.TeamID == aKill.victimCPI.TeamID && !aKill.IsSuicide)
+                    if (_isTestingAuthorized && 
+                        _serverInfo.ServerID == 1 && 
+                        _roundID >= 15000 &&
+                        _roundID <= 15004) {
+                        if (aKill.killerCPI.TeamID != aKill.victimCPI.TeamID) {
+                            switch (_roundID) {
+                                case 15000:
+                                    //Only 5 knife codes known, fuzzy match for unknown knife types
+                                    if (!aKill.weaponCode.ToLower().Contains("knife") && 
+                                        !aKill.weaponCode.ToLower().Contains("melee") && 
+                                        aKill.weaponCode != "DamageArea") {
+                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
+                                        if (_populationStatus == PopulationState.High &&
+                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
+                                            (targetedRecord.command_numeric == _roundID) &&
+                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") && 
+                                            (UtcDbTime() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                            aCommand = GetCommandByKey("player_kick");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = aCommand,
+                                            command_numeric = _roundID,
+                                            target_name = aKill.killer.player_name,
+                                            target_player = aKill.killer,
+                                            source_name = "AutoAdmin",
+                                            record_time = UtcDbTime(),
+                                            record_message = "ROUND 15000 EVENT (PT 1): KNIFE ONLY"
+                                        });
+                                    }
+                                    break;
+                                case 15001:
+                                    if (aKill.weaponCode != "U_Defib" && 
+                                        aKill.weaponCode != "DamageArea") {
+                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
+                                        if (_populationStatus == PopulationState.High &&
+                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
+                                            (targetedRecord.command_numeric == _roundID) &&
+                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
+                                            (UtcDbTime() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                            aCommand = GetCommandByKey("player_kick");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = aCommand,
+                                            command_numeric = _roundID,
+                                            target_name = aKill.killer.player_name,
+                                            target_player = aKill.killer,
+                                            source_name = "AutoAdmin",
+                                            record_time = UtcDbTime(),
+                                            record_message = "ROUND 15000 EVENT (PT 2): DEFIB ONLY"
+                                        });
+                                    }
+                                    break;
+                                case 15002:
+                                    if (aKill.weaponCode != "U_Repairtool" && 
+                                        aKill.weaponCode != "EODBot" && 
+                                        aKill.weaponCode != "Death" && 
+                                        aKill.weaponCode != "DamageArea") {
+                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
+                                        if (_populationStatus == PopulationState.High &&
+                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
+                                            (targetedRecord.command_numeric == _roundID) &&
+                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
+                                            (UtcDbTime() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                            aCommand = GetCommandByKey("player_kick");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = aCommand,
+                                            command_numeric = _roundID,
+                                            target_name = aKill.killer.player_name,
+                                            target_player = aKill.killer,
+                                            source_name = "AutoAdmin",
+                                            record_time = UtcDbTime(),
+                                            record_message = "ROUND 15000 EVENT (PT 3): REPAIR TOOL/EOD ONLY"
+                                        });
+                                    }
+                                    break;
+                                case 15003:
+                                    if (aKill.weaponCode != "U_SaddlegunSnp" &&
+                                        aKill.weaponCode != "DamageArea") {
+                                        AdKatsCommand aCommand = GetCommandByKey("player_kill");
+                                        if (_populationStatus == PopulationState.High &&
+                                            aKill.killer.TargetedRecords.Any(targetedRecord =>
+                                            (targetedRecord.command_numeric == _roundID) &&
+                                            (targetedRecord.command_action.command_key == "player_kill" || targetedRecord.command_action.command_key == "player_kick") &&
+                                            (UtcDbTime() - targetedRecord.record_time).TotalMinutes < 10)) {
+                                            aCommand = GetCommandByKey("player_kick");
+                                        }
+                                        QueueRecordForProcessing(new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = aCommand,
+                                            command_numeric = _roundID,
+                                            target_name = aKill.killer.player_name,
+                                            target_player = aKill.killer,
+                                            source_name = "AutoAdmin",
+                                            record_time = UtcDbTime(),
+                                            record_message = "ROUND 15000 EVENT (4): MARE'S LEG ONLY"
+                                        });
+                                    }
+                                    break;
+                                case 15004:
+                                    //All weapons allowed
+                                    break;
+                            }
+                        }
+                    }
+                    else if (_isTestingAuthorized && 
+                        _gameVersion == GameVersion.BF4 && 
+                        aKill.killerCPI.TeamID == aKill.victimCPI.TeamID && 
+                        !aKill.IsSuicide)
                     {
                         //Case for valid medkit teamkills
                         if (aKill.weaponCode != "U_PortableMedicpack" && aKill.weaponCode != "U_Medkit")
@@ -10401,12 +10516,38 @@ namespace PRoConEvents
                                 if (!aKill.IsSuicide)
                                 {
                                     //Get player from the dictionary
-                                    if (aKill.killer != null)
-                                    {
-                                        //Code to avoid spam
-                                        if (aKill.killer.lastKill.AddSeconds(2) < UtcDbTime())
+                                    if (aKill.killer != null) {
+                                        var spamRejection = (aKill.killer.lastKill.AddSeconds(2) < UtcDbTime());
+                                        aKill.killer.lastKill = UtcDbTime();
+
+                                        const string removeWeapon = "Weapons/";
+                                        const string removeGadgets = "Gadgets/";
+                                        const string removePrefix = "U_";
+                                        String weapon = GetShortWeaponNameByCode(aKill.weaponCode);
+                                        Int32 index = weapon.IndexOf(removeWeapon, StringComparison.Ordinal);
+                                        weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeWeapon.Length));
+                                        index = weapon.IndexOf(removeGadgets, StringComparison.Ordinal);
+                                        weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeGadgets.Length));
+                                        index = weapon.IndexOf(removePrefix, StringComparison.Ordinal);
+                                        weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removePrefix.Length));
+
+                                        //Record to boost rep for victim
+                                        PlayerYellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " was punished for killing you with " + weapon);
+                                        AdKatsRecord repRecord = new AdKatsRecord {
+                                            record_source = AdKatsRecord.Sources.InternalAutomated,
+                                            server_id = _serverInfo.ServerID,
+                                            command_type = GetCommandByKey("player_repboost"),
+                                            command_numeric = 0,
+                                            target_name = aKill.victim.player_name,
+                                            target_player = aKill.victim,
+                                            source_name = "RepManager",
+                                            record_message = "Player killed by restricted weapon " + weapon,
+                                            record_time = UtcDbTime()
+                                        };
+                                        QueueRecordForProcessing(repRecord);
+
+                                        if (!spamRejection && _serverInfo.ServerType != "OFFICIAL")
                                         {
-                                            aKill.killer.lastKill = UtcDbTime();
                                             //Create the punish record
                                             AdKatsRecord record = new AdKatsRecord
                                             {
@@ -10419,16 +10560,6 @@ namespace PRoConEvents
                                                 source_name = "AutoAdmin",
                                                 record_time = UtcDbTime()
                                             };
-                                            const string removeWeapon = "Weapons/";
-                                            const string removeGadgets = "Gadgets/";
-                                            const string removePrefix = "U_";
-                                            String weapon = GetShortWeaponNameByCode(aKill.weaponCode);
-                                            Int32 index = weapon.IndexOf(removeWeapon, StringComparison.Ordinal);
-                                            weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeWeapon.Length));
-                                            index = weapon.IndexOf(removeGadgets, StringComparison.Ordinal);
-                                            weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removeGadgets.Length));
-                                            index = weapon.IndexOf(removePrefix, StringComparison.Ordinal);
-                                            weapon = (index < 0) ? (weapon) : (weapon.Remove(index, removePrefix.Length));
                                             if (weapon == "RoadKill")
                                             {
                                                 record.record_message = "Rules: Roadkilling with EOD or MAV";
@@ -10448,28 +10579,9 @@ namespace PRoConEvents
                                             {
                                                 record.record_message = "Rules: Using Explosives [" + weapon + "]";
                                             }
-                                            PlayerYellMessage(aKill.victim.player_name, aKill.killer.GetVerboseName() + " was punished for killing you with " + weapon);
 
-                                            //Custom record to boost rep for victim
-                                            AdKatsRecord repRecord = new AdKatsRecord
-                                            {
-                                                record_source = AdKatsRecord.Sources.InternalAutomated,
-                                                server_id = _serverInfo.ServerID,
-                                                command_type = GetCommandByKey("player_repboost"),
-                                                command_numeric = 0,
-                                                target_name = aKill.victim.player_name,
-                                                target_player = aKill.victim,
-                                                source_name = "RepManager",
-                                                record_message = "Player killed by restricted weapon " + weapon,
-                                                record_time = UtcDbTime()
-                                            };
-                                            if (_serverInfo.ServerType != "OFFICIAL")
-                                            {
-                                                QueueRecordForProcessing(repRecord);
-
-                                                //Process the record
-                                                QueueRecordForProcessing(record);
-                                            }
+                                            //Process the record
+                                            QueueRecordForProcessing(record);
                                         }
                                         else
                                         {
@@ -11598,8 +11710,8 @@ namespace PRoConEvents
                         StatLibraryWeapon weapon;
                         if (_StatLibrary.Weapons.TryGetValue(weaponStat.ID, out weapon))
                         {
-                            //Only handle weapons that do < 55 max dps
-                            if (weapon.DamageMax < 55) {
+                            //Only handle weapons that do < 50 max dps
+                            if (weapon.DamageMax < 50) {
                                 //For live stat check, look for previous round stat difference
                                 if (previousStats != null && previousStats.WeaponStats != null) {
                                     AdKatsWeaponStat previousWeaponStat;
@@ -14545,7 +14657,8 @@ namespace PRoConEvents
                             String debug = (PlayerIsAdmin(record.source_player)) ? ("[" + friendlyTeam.TeamKey + ":" + friendlyTeam.TeamTicketCount + ":" + (int)friendlyTeam.TeamTicketDifferenceRate + "][" + enemyTeam.TeamKey + ":" + enemyTeam.TeamTicketCount + ":" + (int)enemyTeam.TeamTicketDifferenceRate + "]") : ("");
 
                             record.record_message = "Assist Weak Team [" + winningTeam.TeamTicketCount + ":" + losingTeam.TeamTicketCount + "][" + FormatTimeString(_serverInfo.GetRoundElapsedTime(), 3) + "]";
-                            Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID);
+                            var teamFlux = Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) <= 50;
+                            Boolean enemyWinning = (record.target_player.frostbitePlayerInfo.TeamID == losingTeam.TeamID || teamFlux);
                             Boolean enemyStrong = true;
                             if (record.target_player.frostbitePlayerInfo.TeamID == team1.TeamID)
                             {
@@ -14555,7 +14668,8 @@ namespace PRoConEvents
                             {
                                 enemyStrong = Math.Abs(team1.TeamTicketDifferenceRate) < Math.Abs(team2.TeamTicketDifferenceRate);
                             }
-                            if ((!enemyWinning && !enemyStrong) || (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 200))
+                            if ((!enemyWinning && !enemyStrong) || 
+                                (!enemyWinning && Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 200))
                             {
                                 //15 second timeout
                                 Double timeout = (60 - (UtcDbTime() - _commandUsageTimes["self_assist"]).TotalSeconds);
@@ -14567,9 +14681,12 @@ namespace PRoConEvents
                                 }
                                 SendMessageToSource(record, "Queuing you to assist the weak team. Thank you. " + debug);
                             } 
-                            else if (!_isTestingAuthorized || Math.Abs(winningTeam.TeamTicketCount - losingTeam.TeamTicketCount) > 100) {
+                            else {
                                 String responseMessage = "You may only assist a weak team. Enemy team is ";
-                                if (enemyWinning && enemyStrong) {
+                                if (teamFlux) {
+                                    responseMessage += "in flux.";
+                                }
+                                else if (enemyWinning && enemyStrong) {
                                     responseMessage += "winning and strong.";
                                 }
                                 else if (enemyWinning && !enemyStrong) {
@@ -14579,10 +14696,6 @@ namespace PRoConEvents
                                     responseMessage += "losing, but is making a comeback.";
                                 }
                                 SendMessageToSource(record, responseMessage);
-                                FinalizeRecord(record);
-                                return;
-                            } else {
-                                SendMessageToSource(record, "100 ticket difference required to assist");
                                 FinalizeRecord(record);
                                 return;
                             }
