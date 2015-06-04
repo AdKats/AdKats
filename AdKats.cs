@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.46
+ * Version 6.7.0.48
  * 3-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.46</version_code>
+ * <version_code>6.7.0.48</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.46";
+        private const String PluginVersion = "6.7.0.48";
 
         public enum GameVersion
         {
@@ -416,9 +416,13 @@ namespace PRoConEvents
         private Boolean _pingEnforcerEnable;
         private Int32 _pingEnforcerTriggerMinimumPlayers = 50;
         private Double _pingEnforcerLowTriggerMS = 300;
+        private Int32[] _pingEnforcerLowTimeModifier = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         private Double _pingEnforcerMedTriggerMS = 300;
+        private Int32[] _pingEnforcerMedTimeModifier = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         private Double _pingEnforcerHighTriggerMS = 300;
+        private Int32[] _pingEnforcerHighTimeModifier = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         private Double _pingEnforcerFullTriggerMS = 300;
+        private Int32[] _pingEnforcerFullTimeModifier = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
         private Double _pingMovingAverageDurationSeconds = 180;
         private Boolean _pingEnforcerKickMissingPings = true;
         private Boolean _pingEnforcerIgnoreUserList = true;
@@ -1186,11 +1190,16 @@ namespace PRoConEvents
                         //Ping enforcer settings
                         lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Enforcer Enable", typeof(Boolean), _pingEnforcerEnable));
                         if (_pingEnforcerEnable) {
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Current Pint Limit (Display)", typeof(String), GetPingLimitStatus()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Moving Average Duration sec", typeof(Double), _pingMovingAverageDurationSeconds));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Low Population Time Modifier", typeof(String[]), _pingEnforcerLowTimeModifier.Select(x => x.ToString()).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Medium Population Trigger ms", typeof(Double), _pingEnforcerMedTriggerMS));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Medium Population Time Modifier", typeof(String[]), _pingEnforcerMedTimeModifier.Select(x => x.ToString()).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick High Population Trigger ms", typeof(Double), _pingEnforcerHighTriggerMS));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick High Population Time Modifier", typeof(String[]), _pingEnforcerHighTimeModifier.Select(x => x.ToString()).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Full Population Trigger ms", typeof(Double), _pingEnforcerFullTriggerMS));
+                            lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Full Population Time Modifier", typeof(String[]), _pingEnforcerFullTimeModifier.Select(x => x.ToString()).ToArray()));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
                             lstReturn.Add(new CPluginVariable(GetSettingSection("B21") + sept + "Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
@@ -2099,6 +2108,18 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Ping Kick Low Population Trigger ms", typeof(Double), _pingEnforcerLowTriggerMS));
                     }
+                } else if (Regex.Match(strVariable, @"Ping Kick Low Population Time Modifier").Success) {
+                    Int32 parser;
+                    var timeModifiers = CPluginVariable.DecodeStringArray(strValue)
+                        .Select((modifier, index) => ((Int32.TryParse(modifier.Trim(), out parser))?(parser):(0)))
+                        .Take(24).ToList();
+                    while (timeModifiers.Count() < 24) {
+                        Log.Error("Not all hours accounted for, adding 0 for low hour " + (timeModifiers.Count() - 1));
+                        timeModifiers.Add(0);
+                    }
+                    _pingEnforcerLowTimeModifier = timeModifiers.ToArray();
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"Ping Kick Low Population Time Modifier", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerLowTimeModifier.Select(x => x.ToString()).ToArray())));
                 }
                 else if (Regex.Match(strVariable, @"Ping Kick Medium Population Trigger ms").Success)
                 {
@@ -2119,6 +2140,18 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Ping Kick Medium Population Trigger ms", typeof(Double), _pingEnforcerMedTriggerMS));
                     }
+                } else if (Regex.Match(strVariable, @"Ping Kick Medium Population Time Modifier").Success) {
+                    Int32 parser;
+                    var timeModifiers = CPluginVariable.DecodeStringArray(strValue)
+                        .Select((modifier, index) => ((Int32.TryParse(modifier.Trim(), out parser)) ? (parser) : (0)))
+                        .Take(24).ToList();
+                    while (timeModifiers.Count() < 24) {
+                        Log.Error("Not all hours accounted for, adding 0 for medium hour " + (timeModifiers.Count() - 1));
+                        timeModifiers.Add(0);
+                    }
+                    _pingEnforcerMedTimeModifier = timeModifiers.ToArray();
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"Ping Kick Medium Population Time Modifier", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerMedTimeModifier.Select(x => x.ToString()).ToArray())));
                 }
                 else if (Regex.Match(strVariable, @"Ping Kick High Population Trigger ms").Success)
                 {
@@ -2139,6 +2172,18 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Ping Kick High Population Trigger ms", typeof(Double), _pingEnforcerHighTriggerMS));
                     }
+                } else if (Regex.Match(strVariable, @"Ping Kick High Population Time Modifier").Success) {
+                    Int32 parser;
+                    var timeModifiers = CPluginVariable.DecodeStringArray(strValue)
+                        .Select((modifier, index) => ((Int32.TryParse(modifier.Trim(), out parser)) ? (parser) : (0)))
+                        .Take(24).ToList();
+                    while (timeModifiers.Count() < 24) {
+                        Log.Error("Not all hours accounted for, adding 0 for high hour " + (timeModifiers.Count() - 1));
+                        timeModifiers.Add(0);
+                    }
+                    _pingEnforcerHighTimeModifier = timeModifiers.ToArray();
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"Ping Kick High Population Time Modifier", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerHighTimeModifier.Select(x => x.ToString()).ToArray())));
                 }
                 else if (Regex.Match(strVariable, @"Ping Kick Full Population Trigger ms").Success)
                 {
@@ -2159,6 +2204,18 @@ namespace PRoConEvents
                         //Once setting has been changed, upload the change to database
                         QueueSettingForUpload(new CPluginVariable(@"Ping Kick Full Population Trigger ms", typeof(Double), _pingEnforcerFullTriggerMS));
                     }
+                } else if (Regex.Match(strVariable, @"Ping Kick Full Population Time Modifier").Success) {
+                    Int32 parser;
+                    var timeModifiers = CPluginVariable.DecodeStringArray(strValue)
+                        .Select((modifier, index) => ((Int32.TryParse(modifier.Trim(), out parser)) ? (parser) : (0)))
+                        .Take(24).ToList();
+                    while (timeModifiers.Count() < 24) {
+                        Log.Error("Not all hours accounted for, adding 0 for full hour " + (timeModifiers.Count() - 1));
+                        timeModifiers.Add(0);
+                    }
+                    _pingEnforcerFullTimeModifier = timeModifiers.ToArray();
+                    //Once setting has been changed, upload the change to database
+                    QueueSettingForUpload(new CPluginVariable(@"Ping Kick Full Population Time Modifier", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerFullTimeModifier.Select(x => x.ToString()).ToArray())));
                 }
                 else if (Regex.Match(strVariable, @"Ping Kick Minimum Players").Success)
                 {
@@ -4762,7 +4819,7 @@ namespace PRoConEvents
                 }
                 else if (Regex.Match(strVariable, @"Punishment Hierarchy").Success)
                 {
-                    _PunishmentHierarchy = CPluginVariable.DecodeStringArray(strValue);
+                    _PunishmentHierarchy = CPluginVariable.DecodeStringArray(strValue).Where(punishType => _PunishmentSeverityIndex.Contains(punishType)).ToArray();
                     //Once setting has been changed, upload the change to database
                     QueueSettingForUpload(new CPluginVariable(@"Punishment Hierarchy", typeof(String), CPluginVariable.EncodeStringArray(_PunishmentHierarchy)));
                 }
@@ -7455,26 +7512,8 @@ namespace PRoConEvents
                                             if (_pingEnforcerEnable && aPlayer.player_type == PlayerType.Player && !PlayerIsAdmin(aPlayer) && !GetMatchingVerboseASPlayersOfGroup("whitelist_ping", aPlayer).Any() && !(_PopulatorMonitor && _PopulatorPerksEnable && _PopulatorPerksPingWhitelist && _populatorPlayers.Values.Any(pPlayer => pPlayer.player_id == aPlayer.player_id)) && !(_TeamspeakPlayerMonitorEnable && _TeamspeakPlayerPerksEnable && _TeamspeakPlayerPerksPingWhitelist && _tsPlayers.Values.Any(pPlayer => pPlayer.player_id == aPlayer.player_id)) && !_pingEnforcerIgnoreRoles.Contains(aPlayer.player_role.role_key) && !(_pingEnforcerIgnoreUserList && FetchAllUserSoldiers().Any(sPlayer => sPlayer.player_guid == aPlayer.player_guid)))
                                             {
                                                 int playerCount = _PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player);
-                                                if (playerCount > _pingEnforcerTriggerMinimumPlayers)
-                                                {
-                                                    Double currentTriggerMS = 1000;
-                                                    //Get current ping limit
-                                                    if (playerCount >= _serverInfo.InfoObject.MaxPlayerCount - 1)
-                                                    {
-                                                        currentTriggerMS = _pingEnforcerFullTriggerMS;
-                                                    }
-                                                    else if (_populationStatus == PopulationState.High)
-                                                    {
-                                                        currentTriggerMS = _pingEnforcerHighTriggerMS;
-                                                    }
-                                                    else if (_populationStatus == PopulationState.Medium)
-                                                    {
-                                                        currentTriggerMS = _pingEnforcerMedTriggerMS;
-                                                    }
-                                                    else if (_populationStatus == PopulationState.Low)
-                                                    {
-                                                        currentTriggerMS = _pingEnforcerLowTriggerMS;
-                                                    }
+                                                if (playerCount > _pingEnforcerTriggerMinimumPlayers) {
+                                                    Double currentTriggerMS = GetPingLimit();
                                                     //Warn players of limit and spikes
                                                     if (ping > currentTriggerMS)
                                                     {
@@ -10018,9 +10057,9 @@ namespace PRoConEvents
                         });
                         return;
                     }
-                    Int32 lowKillCount = 20;
+                    Int32 lowKillCount = 25;
                     Double lowKillTriggerHSKP = 90;
-                    Int32 highKillCount = 45;
+                    Int32 highKillCount = 50;
                     Double highKillTriggerHSKP = 80;
                     var nonSniperKills = aKill.killer.RecentKills
                         .Where(dKill => 
@@ -28750,6 +28789,10 @@ namespace PRoConEvents
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Medium Population Trigger ms", typeof(Double), _pingEnforcerMedTriggerMS));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick High Population Trigger ms", typeof(Double), _pingEnforcerHighTriggerMS));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Full Population Trigger ms", typeof(Double), _pingEnforcerFullTriggerMS));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Low Population Time Modifier", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerLowTimeModifier.Select(x => x.ToString()).ToArray())));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Medium Population Time Modifier", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerMedTimeModifier.Select(x => x.ToString()).ToArray())));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick High Population Time Modifier", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerHighTimeModifier.Select(x => x.ToString()).ToArray())));
+                QueueSettingForUpload(new CPluginVariable(@"Ping Kick Full Population Time Modifier", typeof(String), CPluginVariable.EncodeStringArray(_pingEnforcerFullTimeModifier.Select(x => x.ToString()).ToArray())));
                 QueueSettingForUpload(new CPluginVariable(@"Ping Kick Minimum Players", typeof(Int32), _pingEnforcerTriggerMinimumPlayers));
                 QueueSettingForUpload(new CPluginVariable(@"Kick Missing Pings", typeof(Boolean), _pingEnforcerKickMissingPings));
                 QueueSettingForUpload(new CPluginVariable(@"Attempt Manual Ping when Missing", typeof(Boolean), _attemptManualPingWhenMissing));
@@ -38735,6 +38778,54 @@ namespace PRoConEvents
         private TimeSpan GetRemainingBanTime(AdKatsBan aBan)
         {
             return aBan.ban_endTime.Subtract(UtcDbTime());
+        }
+
+        private String GetPingLimitStatus() {
+            Int32 finalTrigger = 0;
+            Int32 baseTrigger = 0;
+            Int32 modifier = 0;
+            Int32 hour = 0;
+            String population = "Unknown";
+            if (_PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) >= _serverInfo.InfoObject.MaxPlayerCount - 1) {
+                baseTrigger = (Int32)_pingEnforcerFullTriggerMS;
+                hour = DateTime.Now.Hour;
+                modifier = _pingEnforcerFullTimeModifier[DateTime.Now.Hour];
+                finalTrigger = baseTrigger + modifier;
+                population = "Full";
+            } else if (_populationStatus == PopulationState.High) {
+                baseTrigger = (Int32)_pingEnforcerHighTriggerMS;
+                hour = DateTime.Now.Hour;
+                modifier = _pingEnforcerHighTimeModifier[DateTime.Now.Hour];
+                finalTrigger = baseTrigger + modifier;
+                population = "High";
+            } else if (_populationStatus == PopulationState.Medium) {
+                baseTrigger = (Int32)_pingEnforcerMedTriggerMS;
+                hour = DateTime.Now.Hour;
+                modifier = _pingEnforcerMedTimeModifier[DateTime.Now.Hour];
+                finalTrigger = baseTrigger + modifier;
+                population = "Medium";
+            } else if (_populationStatus == PopulationState.Low) {
+                baseTrigger = (Int32)_pingEnforcerLowTriggerMS;
+                hour = DateTime.Now.Hour;
+                modifier = _pingEnforcerLowTimeModifier[DateTime.Now.Hour];
+                finalTrigger = baseTrigger + modifier;
+                population = "Low";
+            }
+            return finalTrigger + "ms = " + baseTrigger + "ms [Pop: " + population + "] " + ((modifier >= 0)?("add "):("remove ")) + Math.Abs(modifier) + "ms [Hour: " + hour + "]"; 
+        }
+
+        private Double GetPingLimit() {
+            Double currentTriggerMS = 1000;
+            if (_PlayerDictionary.Values.Count(player => player.player_type == PlayerType.Player) >= _serverInfo.InfoObject.MaxPlayerCount - 1) {
+                currentTriggerMS = _pingEnforcerFullTriggerMS + _pingEnforcerFullTimeModifier[DateTime.Now.Hour];
+            } else if (_populationStatus == PopulationState.High) {
+                currentTriggerMS = _pingEnforcerHighTriggerMS + _pingEnforcerHighTimeModifier[DateTime.Now.Hour];
+            } else if (_populationStatus == PopulationState.Medium) {
+                currentTriggerMS = _pingEnforcerMedTriggerMS + _pingEnforcerMedTimeModifier[DateTime.Now.Hour];
+            } else if (_populationStatus == PopulationState.Low) {
+                currentTriggerMS = _pingEnforcerLowTriggerMS + _pingEnforcerLowTimeModifier[DateTime.Now.Hour];
+            }
+            return currentTriggerMS;
         }
 
         public DateTime UtcDbTime()
