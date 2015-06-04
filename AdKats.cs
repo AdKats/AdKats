@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.48
+ * Version 6.7.0.49
  * 3-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.48</version_code>
+ * <version_code>6.7.0.49</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.48";
+        private const String PluginVersion = "6.7.0.49";
 
         public enum GameVersion
         {
@@ -31918,8 +31918,10 @@ namespace PRoConEvents
                         _baserapeCausingPlayers.Clear();
                         return;
                     }
-                    foreach (AdKatsPlayer aPlayer in GetBaserapeCausingPlayers(TimeSpan.FromDays(_BaserapeCausingPlayersDurationDays), _BaserapeCausingPlayersMinimumCount))
-                    {
+                    foreach (AdKatsPlayer aPlayer in GetBaserapeCausingPlayers(TimeSpan.FromDays(_BaserapeCausingPlayersDurationDays), _BaserapeCausingPlayersMinimumCount)) {
+                        if (!_pluginEnabled) {
+                            return;
+                        }
                         validIDs.Add(aPlayer.player_id);
                         if (!_baserapeCausingPlayers.ContainsKey(aPlayer.player_name))
                         {
@@ -31930,8 +31932,10 @@ namespace PRoConEvents
                         }
                         _baserapeCausingPlayers[aPlayer.player_name] = aPlayer;
                     }
-                    foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList())
-                    {
+                    foreach (AdKatsPlayer aPlayer in _baserapeCausingPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
+                        if (!_pluginEnabled) {
+                            return;
+                        }
                         if (_firstPlayerListComplete)
                         {
                             Log.Info("Removing " + aPlayer.player_name + " from baserape causing player list.");
@@ -32054,6 +32058,9 @@ namespace PRoConEvents
                         using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             //Grab the matching players
                             while (reader.Read()) {
+                                if (!_pluginEnabled) {
+                                    return resultPlayers;
+                                }
                                 AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
                                 if (aPlayer != null) {
                                     resultPlayers.Add(aPlayer);
@@ -32075,6 +32082,9 @@ namespace PRoConEvents
                 List<Int64> validIDs = new List<Int64>();
                 lock (_topPlayers) {
                     foreach (AdKatsPlayer aPlayer in GetTopPlayers(TimeSpan.FromDays(30), 3)) {
+                        if (!_pluginEnabled) {
+                            return;
+                        }
                         validIDs.Add(aPlayer.player_id);
                         if (!_topPlayers.ContainsKey(aPlayer.player_name)) {
                             if (_firstPlayerListComplete) {
@@ -32084,6 +32094,9 @@ namespace PRoConEvents
                         _topPlayers[aPlayer.player_name] = aPlayer;
                     }
                     foreach (AdKatsPlayer aPlayer in _topPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
+                        if (!_pluginEnabled) {
+                            return;
+                        }
                         if (_firstPlayerListComplete) {
                             Log.Info("Removing " + aPlayer.player_name + " from top player list.");
                         }
@@ -32179,6 +32192,9 @@ namespace PRoConEvents
                         using (MySqlDataReader reader = SafeExecuteReader(command)) {
                             //Grab the matching players
                             while (reader.Read()) {
+                                if (!_pluginEnabled) {
+                                    return resultPlayers;
+                                }
                                 AdKatsPlayer aPlayer = FetchPlayer(false, true, false, null, reader.GetInt64("player_id"), null, null, null);
                                 if (aPlayer != null) {
                                     //Update top stats
@@ -32217,8 +32233,10 @@ namespace PRoConEvents
                     List<AdKatsPlayer> populatorsPastWeek = GetPopulatingPlayers(TimeSpan.FromDays(7), _PopulatorMinimumPopulationCountPastWeek, _PopulatorPopulatingThisServerOnly);
                     List<AdKatsPlayer> populatorsPast2Weeks = GetPopulatingPlayers(TimeSpan.FromDays(14), _PopulatorMinimumPopulationCountPast2Weeks, _PopulatorPopulatingThisServerOnly);
                     //Find all populators from the past week
-                    foreach (AdKatsPlayer aPlayer in populatorsPastWeek)
-                    {
+                    foreach (AdKatsPlayer aPlayer in populatorsPastWeek) {
+                        if (!_pluginEnabled) {
+                            return;
+                        }
                         //If using specified populators only, reject any non-specified populator entries
                         if (_PopulatorUseSpecifiedPopulatorsOnly && !GetMatchingVerboseASPlayersOfGroup("whitelist_populator", aPlayer).Any())
                         {
@@ -32240,8 +32258,10 @@ namespace PRoConEvents
                         _populatorPlayers[aPlayer.player_name] = aPlayer;
                     }
                     //Find all populators from the past 2 weeks
-                    foreach (AdKatsPlayer aPlayer in populatorsPast2Weeks)
-                    {
+                    foreach (AdKatsPlayer aPlayer in populatorsPast2Weeks) {
+                        if (!_pluginEnabled) {
+                            return;
+                        }
                         //If using specified populators only, reject any non-specified populator entries
                         if (_PopulatorUseSpecifiedPopulatorsOnly && !GetMatchingVerboseASPlayersOfGroup("whitelist_populator", aPlayer).Any())
                         {
@@ -32263,8 +32283,10 @@ namespace PRoConEvents
                         _populatorPlayers[aPlayer.player_name] = aPlayer;
                     }
                     //Remove invalid players
-                    foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList())
-                    {
+                    foreach (AdKatsPlayer aPlayer in _populatorPlayers.Values.Where(dPlayer => !validIDs.Contains(dPlayer.player_id)).ToList()) {
+                        if (!_pluginEnabled) {
+                            return;
+                        }
                         if (_firstPlayerListComplete)
                         {
                             Log.Info("Removing " + aPlayer.player_name + " from current populator players.");
