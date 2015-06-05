@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.49
+ * Version 6.7.0.50
  * 3-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.49</version_code>
+ * <version_code>6.7.0.50</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.49";
+        private const String PluginVersion = "6.7.0.50";
 
         public enum GameVersion
         {
@@ -20887,9 +20887,11 @@ namespace PRoConEvents
                                 //Run the appropriate action
                                 if (!FetchPlayerBattlelogInformation(aPlayer)) {
                                     //No info found/error, requeue them for fetching
+                                    Log.Debug("Battlelog info fetch for " + aPlayer.GetVerboseName() + " failed. Requeueing.", 6);
                                     Thread.Sleep(TimeSpan.FromSeconds(0.50));
                                     QueuePlayerForBattlelogInfoFetch(aPlayer);
                                 }
+                                Log.Debug("Battlelog info fetched for " + aPlayer.GetVerboseName() + ".", 6);
                                 //Update database with clan tag
                                 if (!String.IsNullOrEmpty(aPlayer.player_clanTag) && (String.IsNullOrEmpty(oldTag) || aPlayer.player_clanTag != oldTag))
                                 {
@@ -37304,8 +37306,8 @@ namespace PRoConEvents
                     Log.Error("Attempted to get battlelog information of nameless player.");
                     return false;
                 }
-                if (_gameVersion == GameVersion.BF3)
-                {
+                if (_gameVersion == GameVersion.BF3) {
+                    Log.Debug("Preparing to fetch battlelog info for BF3 player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
                     {
                         try
@@ -37342,8 +37344,8 @@ namespace PRoConEvents
                         }
                     }
                 }
-                else if (_gameVersion == GameVersion.BF4)
-                {
+                else if (_gameVersion == GameVersion.BF4) {
+                    Log.Debug("Preparing to fetch battlelog info for BF4 player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
                     {
                         try
@@ -37397,8 +37399,8 @@ namespace PRoConEvents
                         }
                     }
                 }
-                else if (_gameVersion == GameVersion.BFHL)
-                {
+                else if (_gameVersion == GameVersion.BFHL) {
+                    Log.Debug("Preparing to fetch battlelog info for BFHL player " + aPlayer.GetVerboseName(), 7);
                     using (WebClient client = new WebClient())
                     {
                         try
