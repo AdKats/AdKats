@@ -20,11 +20,11 @@
  * Development by Daniel J. Gradinjan (ColColonCleaner)
  * 
  * AdKats.cs
- * Version 6.7.0.50
+ * Version 6.7.0.51
  * 3-JUN-2015
  * 
  * Automatic Update Information
- * <version_code>6.7.0.50</version_code>
+ * <version_code>6.7.0.51</version_code>
  */
 
 using System;
@@ -64,7 +64,7 @@ namespace PRoConEvents
     public class AdKats : PRoConPluginAPI, IPRoConPluginInterface
     {
         //Current Plugin Version
-        private const String PluginVersion = "6.7.0.50";
+        private const String PluginVersion = "6.7.0.51";
 
         public enum GameVersion
         {
@@ -40186,18 +40186,26 @@ namespace PRoConEvents
 
         private void DoBattlelogWait()
         {
-            if ((UtcDbTime() - _LastBattlelogAction) < _BattlelogWaitDuration)
-            {
-                Thread.Sleep(_BattlelogWaitDuration - (UtcDbTime() - _LastBattlelogAction));
+            if ((UtcDbTime() - _LastBattlelogAction) < _BattlelogWaitDuration) {
+                TimeSpan waitDuration = _BattlelogWaitDuration - (UtcDbTime() - _LastBattlelogAction);
+                if (waitDuration > _BattlelogWaitDuration) {
+                    Log.Warn("Battlelog wait duration was too long: " + FormatTimeString(waitDuration, 3));
+                    waitDuration = _BattlelogWaitDuration;
+                }
+                Thread.Sleep(waitDuration);
             }
             _LastBattlelogAction = UtcDbTime();
         }
 
         private void DoIPAPIWait()
         {
-            if ((UtcDbTime() - _LastIPAPIAction) < _IPAPIWaitDuration)
-            {
-                Thread.Sleep(_IPAPIWaitDuration - (UtcDbTime() - _LastIPAPIAction));
+            if ((UtcDbTime() - _LastIPAPIAction) < _IPAPIWaitDuration) {
+                TimeSpan waitDuration = _IPAPIWaitDuration - (UtcDbTime() - _LastIPAPIAction);
+                if (waitDuration > _IPAPIWaitDuration) {
+                    Log.Warn("IPAPI wait duration was too long: " + FormatTimeString(waitDuration, 3));
+                    waitDuration = _IPAPIWaitDuration;
+                }
+                Thread.Sleep(waitDuration);
             }
             _LastIPAPIAction = UtcDbTime();
         }
